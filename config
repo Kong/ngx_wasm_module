@@ -1,0 +1,13 @@
+ngx_module_type=CORE
+ngx_module_name=ngx_wasm_module
+ngx_module_incs="$ngx_addon_dir"
+
+ngx_module_deps="$ngx_addon_dir/src/ddebug.h \
+                 $ngx_addon_dir/src/ngx_wasm_module.h"
+
+ngx_module_srcs="$ngx_addon_dir/src/ngx_wasm_module.c"
+
+ngx_module_libs=
+ngx_module_link=ADDON
+
+. auto/module
