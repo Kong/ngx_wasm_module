@@ -1,13 +1,64 @@
+find_wasmtime() {
+    if [ $ngx_found = yes ]; then
+        return
+    fi
+
+    ngx_feature="wasmtime library"
+    ngx_feature_path=
+    ngx_feature_libs=
+
+    if [ -n "$1" ]; then
+        ngx_feature="$ngx_feature (-I $1"
+        ngx_feature_path="$1"
+
+        if [ -n "$2" ]; then
+            ngx_feature="$ngx_feature, -L $2)"
+            ngx_feature_libs="-L $2 "
+
+        else
+            ngx_feature="$ngx_feature)"
+        fi
+    fi
+
+    ngx_feature_name="NGX_WASM_HAVE_WASMTIME"
+    ngx_feature_run=no
+    ngx_feature_incs="#include <wasm.h>
+                      #include <wasi.h>
+                      #include <wasmtime.h>"
+    ngx_feature_test=
+    ngx_feature_libs="$ngx_feature_libs-lwasmtime"
+
+    . auto/feature
+}
+
+ngx_found=no
+
+if [ -n "$WASMTIME_INC" -o -n "$WASMTIME_LIB" ]; then
+    find_wasmtime "$WASMTIME_INC" "$WASMTIME_LIB"
+fi
+
+find_wasmtime
+find_wasmtime "/usr/local/opt/include" "/usr/local/opt/lib"
+find_wasmtime "/usr/local/include"     "/usr/local/lib"
+
+if [ $ngx_found = no ]; then
+    echo "$0: error: $ngx_module_name could not find the wasmtime library (specify \$WASMTIME_INC and \$WASMTIME_LIB)."
+    echo
+    exit 1
+fi
+
+WASMTIME_INC="$ngx_feature_path"
+WASMTIME_LIB="$ngx_feature_libs"
+
+###############################################################################
+
 ngx_module_type=CORE
 ngx_module_name=ngx_wasm_module
-ngx_module_incs="$ngx_addon_dir"
-
+ngx_module_incs="$WASMTIME_INC"
+ngx_module_libs="$WASMTIME_LIB"
 ngx_module_deps="$ngx_addon_dir/src/ddebug.h \
                  $ngx_addon_dir/src/ngx_wasm_module.h"
-
 ngx_module_srcs="$ngx_addon_dir/src/ngx_wasm_module.c"
-
-ngx_module_libs=
 ngx_module_link=ADDON
 
 . auto/module

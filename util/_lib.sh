@@ -1,7 +1,7 @@
 DIR_WORK=$NGX_WASM_DIR/work
-DIR_DOWNLOAD=$NGX_WASM_DIR/work
-DIR_BUILDROOT=$NGX_WASM_DIR/buildroot
-DIR_CPANM=$DIR_WORK
+DIR_DOWNLOAD=$DIR_WORK/downloads
+DIR_BUILDROOT=$DIR_WORK/buildroot
+DIR_CPANM=$DIR_WORK/opt
 
 build_nginx() {
     local ngx_dir=$1
@@ -15,12 +15,14 @@ build_nginx() {
               || "$NGX_WASM_DIR/util/_lib.sh" -nt "Makefile" ]];
         then
             ./configure \
-                --prefix=$DIR_BUILDROOT \
-                --add-module=$NGX_WASM_DIR
+                --build="ngx_wasm_module dev" \
+                --builddir=$DIR_BUILDROOT \
+                --add-module=$NGX_WASM_DIR \
+                --with-ld-opt="-Wl,-rpath,$WASMTIME_LIB" \
+                --with-debug
         fi
 
         make -j${n_jobs}
-        make install
     popd
 }
 

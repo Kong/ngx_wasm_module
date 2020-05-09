@@ -7,6 +7,11 @@
 #define _NGX_WASM_H_INCLUDED_
 
 
+#include <wasm.h>
+#include <wasi.h>
+#include <wasmtime.h>
+
+
 #define NGX_WASM_MODULE      0x5741534d   /* "WASM" */
 #define NGX_WASM_CONF        0x02000000
 
@@ -20,6 +25,10 @@
 
 typedef struct {
     unsigned                     parsed_wasm_block:1;
+
+    wasm_engine_t               *wasm_engine;
+    wasm_store_t                *wasm_store;
+    wasi_config_t               *wasi_config;
 } ngx_wasm_conf_t;
 
 

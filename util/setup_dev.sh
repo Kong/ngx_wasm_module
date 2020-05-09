@@ -15,6 +15,8 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
 
+mkdir -p $DIR_CPANM
+
 pushd $DIR_CPANM
     if [[ ! -x "cpanm" ]]; then
         download cpanm https://cpanmin.us/
