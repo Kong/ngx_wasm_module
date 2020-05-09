@@ -74,9 +74,10 @@ invalid_usage() {
 }
 
 fatal() {
-    builtin echo -en "\033[1;31m"
+    exec 1>&2
+    #builtin echo -en "\033[1;31m"
     echo "FATAL: $@"
-    builtin echo -en "\033[0m"
+    #builtin echo -en "\033[0m"
     exit 1
 }
 
