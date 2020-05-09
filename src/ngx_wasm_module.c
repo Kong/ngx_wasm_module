@@ -10,7 +10,8 @@
 
 
 static void *ngx_wasm_module_create_conf(ngx_cycle_t *cycle);
-static char *ngx_wasm_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_wasm_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd,
+                                 void *conf);
 
 static ngx_int_t ngx_wasm_module_init(ngx_cycle_t *cycle);
 
