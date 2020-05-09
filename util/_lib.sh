@@ -1,12 +1,19 @@
+DIR_WORK=$NGX_WASM_DIR/work
 DIR_DOWNLOAD=$NGX_WASM_DIR/work
 DIR_BUILDROOT=$NGX_WASM_DIR/buildroot
+DIR_CPANM=$DIR_WORK
 
 build_nginx() {
     local ngx_dir=$1
 
     pushd $ngx_dir
-        if [[ -n "$NGX_BUILD_FORCE" || ! -f "Makefile" || \
-              "$NGX_WASM_DIR/config" -nt "Makefile" ]]; then
+        if [[ -n "$NGX_BUILD_FORCE" \
+              || ! -f "Makefile" \
+              || "$NGX_WASM_DIR/config" -nt "Makefile" \
+              || "$NGX_WASM_DIR/Makefile" -nt "Makefile" \
+              || "$NGX_WASM_DIR/util/build.sh" -nt "Makefile" \
+              || "$NGX_WASM_DIR/util/_lib.sh" -nt "Makefile" ]];
+        then
             ./configure \
                 --prefix=$DIR_BUILDROOT \
                 --add-module=$NGX_WASM_DIR
