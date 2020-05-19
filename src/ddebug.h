@@ -24,7 +24,6 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-
 #include <stdarg.h>
 
 static ngx_inline void
@@ -80,5 +79,6 @@ dd(const char *fmt, ...) {
 
 
 #endif /* _DDEBUG_H_INCLUDED_ */
+
 
 /* vi:set ft=c ts=4 sw=4 et fdm=marker: */

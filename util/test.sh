@@ -37,6 +37,10 @@ export TEST_NGINX_RESOLVER=${TEST_NGINX_RESOLVER:=8.8.4.4}
     #export PATH=/usr/local/opt/systemtap/bin:$PATH
 #fi
 
+if [[ ! -x "$TEST_NGINX_BINARY" ]]; then
+    fatal "no nginx binary at $TEST_NGINX_BINARY"
+fi
+
 echo $TEST_NGINX_BINARY
 echo
 eval "$TEST_NGINX_BINARY -V"

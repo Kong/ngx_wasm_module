@@ -57,8 +57,11 @@ ngx_module_name=ngx_wasm_module
 ngx_module_incs="$WASMTIME_INC"
 ngx_module_libs="$WASMTIME_LIB"
 ngx_module_deps="$ngx_addon_dir/src/ddebug.h \
-                 $ngx_addon_dir/src/ngx_wasm_module.h"
-ngx_module_srcs="$ngx_addon_dir/src/ngx_wasm_module.c"
+                 $ngx_addon_dir/src/ngx_wasm_common.h \
+                 $ngx_addon_dir/src/ngx_wasm_module.h \
+                 $ngx_addon_dir/src/ngx_wasm_wasmtime.h"
+ngx_module_srcs="$ngx_addon_dir/src/ngx_wasm_module.c \
+                 $ngx_addon_dir/src/ngx_wasm_wasmtime.c"
 ngx_module_link=ADDON
 
 . auto/module
