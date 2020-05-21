@@ -1,3 +1,27 @@
+ngx_module_type=CORE
+ngx_module_name=ngx_wasm_module
+ngx_module_incs="$ngx_addon_dir/src"
+ngx_module_libs=
+ngx_module_deps="$ngx_addon_dir/src/ngx_wasm.h"
+ngx_module_srcs="$ngx_addon_dir/src/ngx_wasm.c"
+ngx_module_link=ADDON
+
+. auto/module
+
+###############################################################################
+
+ngx_module_type=WASM
+ngx_module_name=ngx_wasm_core_module
+ngx_module_incs="$ngx_addon_dir/src"
+ngx_module_libs=
+ngx_module_deps=
+ngx_module_srcs=
+ngx_module_link=ADDON
+
+. auto/module
+
+###############################################################################
+
 find_wasmtime() {
     if [ $ngx_found = yes ]; then
         return
@@ -47,21 +71,18 @@ if [ $ngx_found = no ]; then
     exit 1
 fi
 
-WASMTIME_INC="$ngx_feature_path"
-WASMTIME_LIB="$ngx_feature_libs"
-
-###############################################################################
-
-ngx_module_type=CORE
-ngx_module_name=ngx_wasm_module
-ngx_module_incs="$WASMTIME_INC"
-ngx_module_libs="$WASMTIME_LIB"
-ngx_module_deps="$ngx_addon_dir/src/ddebug.h \
-                 $ngx_addon_dir/src/ngx_wasm_common.h \
-                 $ngx_addon_dir/src/ngx_wasm_module.h \
-                 $ngx_addon_dir/src/ngx_wasm_wasmtime.h"
-ngx_module_srcs="$ngx_addon_dir/src/ngx_wasm_module.c \
-                 $ngx_addon_dir/src/ngx_wasm_wasmtime.c"
+ngx_module_type=WASM
+ngx_module_name=ngx_wasmtime_module
+ngx_module_incs="$ngx_feature_path $ngx_addon_dir/src"
+ngx_module_libs="$ngx_feature_libs"
+ngx_module_deps=
+ngx_module_srcs="$ngx_addon_dir/src/modules/ngx_wasmtime_module.c"
 ngx_module_link=ADDON
 
 . auto/module
+
+###############################################################################
+
+# bypass auto/make which does not recognize WASM_INCS and WASM_MODULES
+CORE_INCS="$CORE_INCS $WASM_INCS"
+CORE_MODULES="$CORE_MODULES $WASM_MODULES"

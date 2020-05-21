@@ -18,7 +18,7 @@ build_nginx() {
                 --build="ngx_wasm_module dev" \
                 --builddir=$DIR_BUILDROOT \
                 --add-module=$NGX_WASM_DIR \
-                --with-cc-opt="-O0 -g -DNGX_WASM_USE_ASSERT" \
+                --with-cc-opt="-O0 -DNGX_WASM_USE_ASSERT" \
                 --with-ld-opt="-Wl,-rpath,$WASMTIME_LIB" \
                 --with-debug
         fi

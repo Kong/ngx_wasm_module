@@ -15,6 +15,6 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
 
-rm -rf $DIR_DOWNLOAD $DIR_BUILDROOT
+rm -rf $DIR_BUILDROOT
 
 # vim: ft=sh st=4 sts=4 sw=4:
