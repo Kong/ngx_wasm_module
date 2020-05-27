@@ -11,7 +11,8 @@ __DATA__
 === TEST 1: NGINX supports a wasm{} configuration block
 --- main_config
     wasm {
-        vm wasmtime;
+        spec proxy_wasm;
+        vm   wasmtime;
     }
 --- config
 --- no_error_log
@@ -31,8 +32,8 @@ missing "vm" directive in wasm configuration
 
 === TEST 3: detects duplicated wasm{} blocks
 --- main_config
-    wasm { vm wasmtime; }
-    wasm { vm wasmtime; }
+    wasm { spec proxy_wasm; vm wasmtime; }
+    wasm { spec proxy_wasm; vm wasmtime; }
 --- config
 --- must_die
 --- error_log
@@ -61,15 +62,41 @@ missing "vm" directive in wasm configuration
 --- config
 --- must_die
 --- error_log
-invalid wasm VM "foo"
+invalid wasm vm "foo"
 
 
 
-=== TEST 6: vm = wasmtime
+=== TEST 6: duplicated 'spec' directive
 --- main_config
     wasm {
-        vm wasmtime;
+        spec proxy_wasm;
+        spec proxy_wasm;
+    }
+--- config
+--- must_die
+--- error_log
+"spec" directive is duplicate
+
+
+
+=== TEST 7: invalid 'spec' directive
+--- main_config
+    wasm {
+        spec foo;
+    }
+--- config
+--- must_die
+--- error_log
+invalid wasm spec "foo"
+
+
+
+=== TEST 8: vm = wasmtime + spec = proxy_wasm
+--- main_config
+    wasm {
+        spec proxy_wasm;
+        vm   wasmtime;
     }
 --- config
 --- error_log eval
-qr/\[notice\] .*? initializing wasm \(VM=wasmtime\)/
+qr/\[notice\] .*? using wasm spec "proxy_wasm" with vm "wasmtime"/

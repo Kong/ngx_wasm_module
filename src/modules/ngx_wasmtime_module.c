@@ -20,20 +20,21 @@
     [ngx_wasmtime_module.ctx_index]
 
 
-static void     *ngx_wasmtime_create_conf(ngx_cycle_t *cycle);
-static ngx_int_t ngx_wasmtime_init(ngx_cycle_t *cycle);
-static ngx_int_t ngx_wasmtime_init_engine(ngx_cycle_t *cycle);
-static void      ngx_wasmtime_shutdown_engine(ngx_cycle_t *cycle);
-static ngx_int_t ngx_wasmtime_init_store(ngx_cycle_t *cycle);
-static void      ngx_wasmtime_shutdown_store(ngx_cycle_t *cycle);
-static ngx_int_t ngx_wasmtime_load_wasm_module(ngx_cycle_t *cycle,
+static void       *ngx_wasmtime_create_conf(ngx_cycle_t *cycle);
+static ngx_int_t   ngx_wasmtime_init(ngx_cycle_t *cycle);
+static ngx_int_t   ngx_wasmtime_init_engine(ngx_cycle_t *cycle);
+static void        ngx_wasmtime_shutdown_engine(ngx_cycle_t *cycle);
+static ngx_int_t   ngx_wasmtime_init_store(ngx_cycle_t *cycle);
+static void        ngx_wasmtime_shutdown_store(ngx_cycle_t *cycle);
+static ngx_int_t   ngx_wasmtime_load_wasm_module(ngx_cycle_t *cycle,
                                                const u_char *path);
-static ngx_int_t ngx_wasmtime_init_instance(ngx_cycle_t *cycle);
-static ngx_int_t ngx_wasmtime_run_entrypoint(ngx_cycle_t *cycle,
+static ngx_int_t   ngx_wasmtime_init_instance(ngx_cycle_t *cycle);
+static ngx_int_t   ngx_wasmtime_run_entrypoint(ngx_cycle_t *cycle,
                                              const u_char *entrypoint);
-static void ngx_wasmtime_log_error(ngx_uint_t level, ngx_log_t *log,
-                                   wasmtime_error_t *werror, wasm_trap_t *wtrap,
-                                   const char *fmt, ...);
+static void        ngx_wasmtime_log_error(ngx_uint_t level, ngx_log_t *log,
+                                          wasmtime_error_t *werror,
+                                          wasm_trap_t *wtrap, const char *fmt,
+                                          ...);
 
 
 static ngx_str_t          module_name = ngx_string("wasmtime");
@@ -51,6 +52,7 @@ typedef struct {
 
 
 static ngx_wasm_module_t  ngx_wasmtime_module_ctx = {
+    NGX_WASM_MODULE_VM,
     &module_name,
     ngx_wasmtime_create_conf,
     NULL,
@@ -101,7 +103,7 @@ ngx_wasmtime_create_conf(ngx_cycle_t *cycle)
 static ngx_int_t
 ngx_wasmtime_init(ngx_cycle_t *cycle)
 {
-    ngx_wasm_actions = ngx_wasmtime_module_ctx.actions;
+    ngx_wasm_vm_actions = ngx_wasmtime_module_ctx.vm_actions;
 
     return NGX_OK;
 }

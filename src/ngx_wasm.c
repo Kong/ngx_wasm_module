@@ -22,6 +22,8 @@ static void      *ngx_wasm_core_create_conf(ngx_cycle_t *cycle);
 static char      *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
 static char      *ngx_wasm_core_vm_directive(ngx_conf_t *cf,
                                              ngx_command_t *cmd, void *conf);
+static char      *ngx_wasm_core_spec_directive(ngx_conf_t *cf,
+                                               ngx_command_t *cmd, void *conf);
 static ngx_int_t  ngx_wasm_core_init(ngx_cycle_t *cycle);
 
 
@@ -61,16 +63,23 @@ ngx_module_t  ngx_wasm_module = {
 };
 
 
-static ngx_str_t      wasm_core_name = ngx_string("wasm_core");
-static ngx_uint_t     ngx_wasm_max_module;
-ngx_wasm_actions_t    ngx_wasm_actions;
+static ngx_str_t         wasm_core_name = ngx_string("wasm_core");
+static ngx_uint_t        ngx_wasm_max_module;
+ngx_wasm_vm_actions_t    ngx_wasm_vm_actions;
 
 
-static ngx_command_t  ngx_wasm_core_commands[] = {
+static ngx_command_t     ngx_wasm_core_commands[] = {
 
     { ngx_string("vm"),
       NGX_WASM_CONF|NGX_CONF_TAKE1,
       ngx_wasm_core_vm_directive,
+      0,
+      0,
+      NULL },
+
+    { ngx_string("spec"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_wasm_core_spec_directive,
       0,
       0,
       NULL },
@@ -80,12 +89,12 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
 
 
 static ngx_wasm_module_t  ngx_wasm_core_module_ctx = {
+    0,
     &wasm_core_name,
     ngx_wasm_core_create_conf,             /* create configuration */
     ngx_wasm_core_init_conf,               /* init configuration */
     NULL,                                  /* init module */
-
-    { NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+    NGX_WASM_NO_VM_ACTIONS
 };
 
 
@@ -208,7 +217,9 @@ ngx_wasm_core_vm_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
 
         wasm_module = cf->cycle->modules[i]->ctx;
-        if (wasm_module->name->len == value[1].len
+
+        if (wasm_module->type == NGX_WASM_MODULE_VM
+            && wasm_module->name->len == value[1].len
             && ngx_strcmp(wasm_module->name->data, value[1].data) == 0)
         {
             wcf->vm = cf->cycle->modules[i]->ctx_index;
@@ -219,7 +230,46 @@ ngx_wasm_core_vm_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "invalid wasm VM \"%V\"", &value[1]);
+                       "invalid wasm vm \"%V\"", &value[1]);
+
+    return NGX_CONF_ERROR;
+}
+
+
+static char *
+ngx_wasm_core_spec_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_wasm_core_conf_t    *wcf = conf;
+    ngx_wasm_module_t       *wasm_module;
+    ngx_str_t               *value;
+    ngx_uint_t               i;
+
+    if (wcf->spec != NGX_CONF_UNSET_UINT) {
+        return "is duplicate";
+    }
+
+    value = cf->args->elts;
+
+    for (i = 0; cf->cycle->modules[i]; i++) {
+        if (cf->cycle->modules[i]->type != NGX_WASM_MODULE) {
+            continue;
+        }
+
+        wasm_module = cf->cycle->modules[i]->ctx;
+
+        if (wasm_module->type == NGX_WASM_MODULE_SPEC
+            && wasm_module->name->len == value[1].len
+            && ngx_strcmp(wasm_module->name->data, value[1].data) == 0)
+        {
+            wcf->spec = cf->cycle->modules[i]->ctx_index;
+            wcf->spec_name = wasm_module->name->data;
+
+            return NGX_CONF_OK;
+        }
+    }
+
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                       "invalid wasm spec \"%V\"", &value[1]);
 
     return NGX_CONF_ERROR;
 }
@@ -237,6 +287,8 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
 
     wcf->vm = NGX_CONF_UNSET_UINT;
     wcf->vm_name = (void *) NGX_CONF_UNSET;
+    wcf->spec = NGX_CONF_UNSET_UINT;
+    wcf->spec_name = (void *) NGX_CONF_UNSET;
 
     return wcf;
 }
@@ -257,7 +309,10 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 
         wasm_module = cycle->modules[i]->ctx;
 
-        if (ngx_strcmp(wasm_module->name->data, wasm_core_name.data) == 0) {
+        if (ngx_strcmp(wasm_module->name->data, wasm_core_name.data) == 0
+            || wasm_module->type != NGX_WASM_MODULE_VM
+            || wasm_module->type != NGX_WASM_MODULE_SPEC)
+        {
             continue;
         }
 
@@ -276,6 +331,12 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
         return NGX_CONF_ERROR;
     }
 
+    if (wcf->spec == NGX_CONF_UNSET_UINT) {
+        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
+                      "missing \"spec\" directive in wasm configuration");
+        return NGX_CONF_ERROR;
+    }
+
     return NGX_CONF_OK;
 }
 
@@ -291,13 +352,15 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
 
     ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0,
-                  "initializing wasm (VM=%s)", wcf->vm_name);
+                  "using wasm spec \"%s\" with vm \"%s\"",
+                  wcf->spec_name, wcf->vm_name);
 
     /* NGX_WASM_MODULES init */
 
     for (i = 0; cycle->modules[i]; i++) {
         if (cycle->modules[i]->type != NGX_WASM_MODULE
-            || cycle->modules[i]->ctx_index != wcf->vm)
+            || cycle->modules[i]->ctx_index != wcf->vm
+            || cycle->modules[i]->ctx_index != wcf->spec)
         {
             continue;
         }
@@ -312,15 +375,16 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
         }
     }
 
-    if (ngx_wasm_actions.init_engine(cycle) != NGX_OK) {
+    /*
+    if (ngx_wasm_vm_actions.init_engine(cycle) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    if (ngx_wasm_actions.init_store(cycle) != NGX_OK) {
+    if (ngx_wasm_vm_actions.init_store(cycle) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    if (ngx_wasm_actions.load_wasm_module(cycle,
+    if (ngx_wasm_vm_actions.load_wasm_module(cycle,
             (u_char *) "/home/chasum/code/wasm/hello-world/target/"
                        "wasm32-wasi/debug/hello-world.wasm")
         != NGX_OK)
@@ -328,15 +392,16 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
-    if (ngx_wasm_actions.init_instance(cycle) != NGX_OK) {
+    if (ngx_wasm_vm_actions.init_instance(cycle) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    if (ngx_wasm_actions.run_entrypoint(cycle, (u_char *) "_start")
+    if (ngx_wasm_vm_actions.run_entrypoint(cycle, (u_char *) "_start")
         != NGX_OK)
     {
         return NGX_ERROR;
     }
+    */
 
     return NGX_OK;
 }

@@ -22,6 +22,18 @@ ngx_module_link=ADDON
 
 ###############################################################################
 
+ngx_module_type=WASM
+ngx_module_name=ngx_wasm_proxy_spec_module
+ngx_module_incs="$ngx_feature_path $ngx_addon_dir/src"
+ngx_module_libs="$ngx_feature_libs"
+ngx_module_deps=
+ngx_module_srcs="$ngx_addon_dir/src/modules/ngx_wasm_proxy_spec_module.c"
+ngx_module_link=ADDON
+
+. auto/module
+
+###############################################################################
+
 find_wasmtime() {
     if [ $ngx_found = yes ]; then
         return
