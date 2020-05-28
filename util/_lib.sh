@@ -2,6 +2,7 @@ DIR_WORK=$NGX_WASM_DIR/work
 DIR_DOWNLOAD=$DIR_WORK/downloads
 DIR_BUILDROOT=$DIR_WORK/buildroot
 DIR_CPANM=$DIR_WORK/opt
+DIR_BIN=$DIR_WORK/bin
 
 build_nginx() {
     local ngx_dir=$1
@@ -74,6 +75,13 @@ invalid_usage() {
     show_usage
 
     exit 1
+}
+
+notice() {
+    #builtin echo -en "\033[1;33m"
+    #echo "NOTICE: $@"
+    echo "$@"
+    #builtin echo -en "\033[0m"
 }
 
 fatal() {

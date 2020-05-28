@@ -15,12 +15,10 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
 
-if [[ "$1" == "--all" ]]; then
-    rm -rf $DIR_WORK
-
-else
-    rm -rf $DIR_BUILDROOT
+if [[ ! -x "$DIR_BIN/reindex" ]]; then
+    fatal "missing 'reindex' script, run 'make setup' first"
 fi
 
+exec $DIR_BIN/reindex "$@"
 
 # vim: ft=sh st=4 sts=4 sw=4:

@@ -15,6 +15,14 @@ setup:
 test:
 	@util/test.sh -r t/
 
+.PHONY: reindex
+reindex:
+	@util/reindex.sh t/*.t t/**/*.t
+
 .PHONY: clean
 clean:
 	@util/clean.sh
+
+.PHONY: cleanall
+cleanall:
+	@util/clean.sh --all
