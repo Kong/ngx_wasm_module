@@ -16,13 +16,7 @@
 
 
 #define NGX_WASM_MODULE       0x5741534d   /* "MSAW" */
-#define NGX_WASM_MODULE_VM    0x00000001
-#define NGX_WASM_MODULE_SPEC  0x00000010
 #define NGX_WASM_CONF         0x00300000
-
-
-#define NGX_WASM_NO_VM_ACTIONS                                               \
-    { NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 #ifdef NGX_WASM_USE_ASSERT
@@ -37,22 +31,40 @@
 
 
 typedef struct {
-    ngx_int_t       (*init_engine)(ngx_cycle_t *cycle);
-    void            (*shutdown_engine)(ngx_cycle_t *cycle);
+    ngx_pool_t         *pool;
+    ngx_log_t          *log;
+    void               *wvm;
+} ngx_wasm_wvm_t;
 
-    ngx_int_t       (*init_store)(ngx_cycle_t *cycle);
-    void            (*shutdown_store)(ngx_cycle_t *cycle);
 
-    ngx_int_t       (*load_wasm_module)(ngx_cycle_t *cycle, const u_char *path);
+typedef struct {
+    ngx_wasm_wvm_t     *vm;
+    ngx_str_t           path;
+    void               *wmodule;
+} ngx_wasm_wmodule_t;
 
-    ngx_int_t       (*init_instance)(ngx_cycle_t *cycle);
-    ngx_int_t       (*run_entrypoint)(ngx_cycle_t *cycle,
-                                      const u_char *entrypoint);
+
+typedef struct {
+    ngx_wasm_wmodule_t  *module;
+    void                *winstance;
+} ngx_wasm_winstance_t;
+
+
+typedef struct {
+    ngx_int_t       (*init_vm)(ngx_wasm_wvm_t *vm, ngx_cycle_t *cycle);
+    void            (*shutdown_vm)(ngx_wasm_wvm_t *vm);
+    ngx_int_t       (*load_wasm_module)(ngx_wasm_wmodule_t *module,
+                                        ngx_wasm_wvm_t *vm, const u_char *path);
+    void            (*release_module)(ngx_wasm_wmodule_t *module);
+    ngx_int_t       (*init_instance)(ngx_wasm_winstance_t *instance,
+                                     ngx_wasm_wmodule_t *module);
+    void            (*shutdown_instance)(ngx_wasm_winstance_t *instance);
+    ngx_int_t       (*run_entrypoint)(ngx_wasm_winstance_t *instance,
+                                      const u_char *name);
 } ngx_wasm_vm_actions_t;
 
 
 typedef struct {
-    ngx_uint_t                   type;
     ngx_str_t                   *name;
     void                        *(*create_conf)(ngx_cycle_t *cycle);
     char                        *(*init_conf)(ngx_cycle_t *cycle, void *conf);
@@ -63,9 +75,7 @@ typedef struct {
 
 typedef struct {
     ngx_uint_t                   vm;
-    ngx_uint_t                   spec;
     u_char                      *vm_name;
-    u_char                      *spec_name;
 } ngx_wasm_core_conf_t;
 
 
