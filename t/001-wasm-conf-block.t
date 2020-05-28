@@ -25,7 +25,7 @@ __DATA__
 --- config
 --- must_die
 --- error_log
-missing "vm" directive in wasm configuration
+missing "use" directive in wasm configuration
 
 
 
@@ -66,7 +66,6 @@ invalid wasm vm "foo"
 
 
 === TEST 6: use wasmtime
---- ONLY
 --- main_config
     wasm {
         use wasmtime;

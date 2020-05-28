@@ -22,7 +22,6 @@ static void      *ngx_wasm_core_create_conf(ngx_cycle_t *cycle);
 static char      *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
 static char      *ngx_wasm_core_vm_directive(ngx_conf_t *cf,
                                              ngx_command_t *cmd, void *conf);
-static ngx_int_t  ngx_wasm_core_init(ngx_cycle_t *cycle);
 
 
 static ngx_command_t  ngx_wasm_cmds[] = {
@@ -94,7 +93,7 @@ ngx_module_t  ngx_wasm_core_module = {
     ngx_wasm_core_commands,                /* module directives */
     NGX_WASM_MODULE,                       /* module type */
     NULL,                                  /* init master */
-    ngx_wasm_core_init,                    /* init module */
+    NULL,                                  /* init module */
     NULL,                                  /* init process */
     NULL,                                  /* init thread */
     NULL,                                  /* exit thread */
@@ -214,6 +213,13 @@ ngx_wasm_core_vm_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             wcf->vm = cf->cycle->modules[i]->ctx_index;
             wcf->vm_name = wasm_module->name->data;
 
+            ngx_log_error(NGX_LOG_NOTICE, cf->log, 0,
+                    "using wasm vm \"%s\"", wcf->vm_name);
+
+            if (wasm_module->init(cf->cycle) != NGX_OK) {
+                return NGX_CONF_ERROR;
+            }
+
             return NGX_CONF_OK;
         }
     }
@@ -272,75 +278,11 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 
     if (wcf->vm == NGX_CONF_UNSET_UINT) {
         ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                      "missing \"vm\" directive in wasm configuration");
+                      "missing \"use\" directive in wasm configuration");
         return NGX_CONF_ERROR;
     }
 
     return NGX_CONF_OK;
-}
-
-
-static ngx_int_t
-ngx_wasm_core_init(ngx_cycle_t *cycle)
-{
-    ngx_int_t                    rv;
-    ngx_uint_t                   i;
-    ngx_wasm_module_t           *m;
-    ngx_wasm_core_conf_t        *wcf;
-
-    wcf = ngx_wasm_core_cycle_get_conf(cycle);
-
-    ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0,
-                  "using wasm vm \"%s\"", wcf->vm_name);
-
-    /* NGX_WASM_MODULES init */
-
-    for (i = 0; cycle->modules[i]; i++) {
-        if (cycle->modules[i]->type != NGX_WASM_MODULE
-            || cycle->modules[i]->ctx_index != wcf->vm)
-        {
-            continue;
-        }
-
-        m = cycle->modules[i]->ctx;
-
-        if (m->init) {
-            rv = m->init(cycle);
-            if (rv != NGX_OK) {
-                return rv;
-            }
-        }
-    }
-
-    /*
-    if (ngx_wasm_vm_actions.init_engine(cycle) != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    if (ngx_wasm_vm_actions.init_store(cycle) != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    if (ngx_wasm_vm_actions.load_wasm_module(cycle,
-            (u_char *) "/home/chasum/code/wasm/hello-world/target/"
-                       "wasm32-wasi/debug/hello-world.wasm")
-        != NGX_OK)
-    {
-        return NGX_ERROR;
-    }
-
-    if (ngx_wasm_vm_actions.init_instance(cycle) != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    if (ngx_wasm_vm_actions.run_entrypoint(cycle, (u_char *) "_start")
-        != NGX_OK)
-    {
-        return NGX_ERROR;
-    }
-    */
-
-    return NGX_OK;
 }
 
 

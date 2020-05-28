@@ -38,8 +38,8 @@ typedef struct {
 
 
 typedef struct {
-    ngx_wasm_wvm_t     *vm;
     ngx_str_t           path;
+    ngx_wasm_wvm_t     *vm;
     void               *wmodule;
 } ngx_wasm_wmodule_t;
 

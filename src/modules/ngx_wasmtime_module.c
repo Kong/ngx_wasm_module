@@ -223,9 +223,7 @@ failed:
 static void
 ngx_wasmtime_shutdown_vm(ngx_wasm_wvm_t *vm)
 {
-    ngx_wasmtime_vm_t       *wvm;
-
-    wvm = vm->wvm;
+    ngx_wasmtime_vm_t  *wvm = vm->wvm;
 
     if (wvm != NULL) {
         if (wvm->wasm_store != NULL) {
@@ -359,9 +357,7 @@ failed:
 static void
 ngx_wasmtime_release_module(ngx_wasm_wmodule_t *module)
 {
-    ngx_wasmtime_module_t       *wtmodule;
-
-    wtmodule = module->wmodule;
+    ngx_wasmtime_module_t  *wtmodule = module->wmodule;
 
     if (module->path.data != NULL) {
         ngx_pfree(module->vm->pool, module->path.data);
@@ -371,11 +367,10 @@ ngx_wasmtime_release_module(ngx_wasm_wmodule_t *module)
         /* TODO: wasi_inst */
 
         if (wtmodule->wasm_module != NULL) {
-             wasm_module_delete(wtmodule->wasm_module);
+            wasm_importtype_vec_delete(&wtmodule->wasm_imports);
+            wasm_exporttype_vec_delete(&wtmodule->wasm_exports);
+            wasm_module_delete(wtmodule->wasm_module);
         }
-
-        wasm_importtype_vec_delete(&wtmodule->wasm_imports);
-        wasm_exporttype_vec_delete(&wtmodule->wasm_exports);
 
         ngx_pfree(module->vm->pool, wtmodule);
     }
@@ -440,7 +435,8 @@ ngx_wasmtime_init_instance(ngx_wasm_winstance_t *instance,
         goto failed;
     }
 
-    wasm_instance_exports(wtinstance->wasm_instance, &wtinstance->wasm_externs);
+    wasm_instance_exports(wtinstance->wasm_instance,
+                          &wtinstance->wasm_externs);
 
     rc = NGX_OK;
 
@@ -463,16 +459,13 @@ failed:
 static void
 ngx_wasmtime_shutdown_instance(ngx_wasm_winstance_t *instance)
 {
-    ngx_wasmtime_instance_t     *wtinstance;
-
-    wtinstance = instance->winstance;
+    ngx_wasmtime_instance_t  *wtinstance = instance->winstance;
 
     if (wtinstance != NULL) {
         if (wtinstance->wasm_instance != NULL) {
-              wasm_instance_delete(wtinstance->wasm_instance);
+            //wasm_extern_vec_delete(&wtinstance->wasm_externs);
+            wasm_instance_delete(wtinstance->wasm_instance);
         }
-
-        wasm_extern_vec_delete(&wtinstance->wasm_externs);
 
         ngx_pfree(instance->module->vm->pool, wtinstance);
     }

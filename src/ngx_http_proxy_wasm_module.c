@@ -12,42 +12,65 @@
 #include <ngx_wasm.h>
 
 
-#define NGX_WASM_PROXY_WASM_ABI_VERSION  0.0.0
+#define NGX_HTTP_PROXY_WASM_ABI_VERSION  0.1.0
 
-
-#define ngx_http_proxy_wasm_cycle_get_conf(cycle)                            \
-    (*(ngx_get_conf(cycle->conf_ctx, ngx_http_module)))                      \
-    [ngx_http_proxy_wasm_module.ctx_index]
-
-
-static void       *ngx_http_proxy_wasm_create_conf(ngx_conf_t *cf);
+static void       *ngx_http_proxy_wasm_create_main_conf(ngx_conf_t *cf);
+static void       *ngx_http_proxy_wasm_create_srv_conf(ngx_conf_t *cf);
+static void       *ngx_http_proxy_wasm_create_loc_conf(ngx_conf_t *cf);
+static ngx_int_t   ngx_http_proxy_wasm_preconfig_init(ngx_conf_t *cf);
+static char       *ngx_http_proxy_wasm_module_directive(ngx_conf_t *cf,
+                                                        ngx_command_t *cmd,
+                                                        void *conf);
 static ngx_int_t   ngx_http_proxy_wasm_init(ngx_cycle_t *cycle);
 
 
 typedef struct {
-
+    ngx_wasm_wvm_t          *vm;
 } ngx_http_proxy_wasm_main_conf_t;
 
 
-static ngx_http_module_t  ngx_http_proxy_wasm_module_ctx = {
-    NULL,      /* preconfiguration */
-    NULL,               /* postconfiguration */
+typedef struct {
 
-    ngx_http_proxy_wasm_create_conf,       /* create main configuration */
+} ngx_http_proxy_wasm_srv_conf_t;
+
+
+typedef struct {
+    ngx_wasm_wmodule_t      *module;
+} ngx_http_proxy_wasm_loc_conf_t;
+
+
+static ngx_command_t  ngx_http_proxy_wasm_module_cmds[] = {
+
+    { ngx_string("wasm_module"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_proxy_wasm_module_directive,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
+      ngx_null_command
+};
+
+
+static ngx_http_module_t  ngx_http_proxy_wasm_module_ctx = {
+    ngx_http_proxy_wasm_preconfig_init,    /* preconfiguration */
+    NULL,                                  /* postconfiguration */
+
+    ngx_http_proxy_wasm_create_main_conf,  /* create main configuration */
     NULL,                                  /* init main configuration */
 
-    NULL,                                  /* create server configuration */
+    ngx_http_proxy_wasm_create_srv_conf,   /* create server configuration */
     NULL,                                  /* merge server configuration */
 
-    NULL,                                  /* create location configuration */
-    NULL                /* merge location configuration */
+    ngx_http_proxy_wasm_create_loc_conf,   /* create location configuration */
+    NULL                                   /* merge location configuration */
 };
 
 
 ngx_module_t  ngx_http_proxy_wasm_module = {
     NGX_MODULE_V1,
     &ngx_http_proxy_wasm_module_ctx,     /* module context */
-    NULL,                                /* module directives */
+    ngx_http_proxy_wasm_module_cmds,     /* module directives */
     NGX_HTTP_MODULE,                     /* module type */
     NULL,                                /* init master */
     ngx_http_proxy_wasm_init,            /* init module */
@@ -61,22 +84,118 @@ ngx_module_t  ngx_http_proxy_wasm_module = {
 
 
 static void *
-ngx_http_proxy_wasm_create_conf(ngx_conf_t *cf)
+ngx_http_proxy_wasm_create_main_conf(ngx_conf_t *cf)
 {
-    ngx_http_proxy_wasm_main_conf_t    *pwcf;
+    ngx_http_proxy_wasm_main_conf_t    *pwmcf;
 
-    pwcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_proxy_wasm_main_conf_t));
-    if (pwcf == NULL) {
+    pwmcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_proxy_wasm_main_conf_t));
+    if (pwmcf == NULL) {
         return NULL;
     }
 
-    return pwcf;
+    return pwmcf;
+}
+
+
+static void *
+ngx_http_proxy_wasm_create_srv_conf(ngx_conf_t *cf)
+{
+    ngx_http_proxy_wasm_srv_conf_t    *pwscf;
+
+    pwscf = ngx_pcalloc(cf->pool, sizeof(ngx_http_proxy_wasm_srv_conf_t));
+    if (pwscf == NULL) {
+        return NULL;
+    }
+
+    return pwscf;
+}
+
+
+static void *
+ngx_http_proxy_wasm_create_loc_conf(ngx_conf_t *cf)
+{
+    ngx_http_proxy_wasm_loc_conf_t    *pwlcf;
+
+    pwlcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_proxy_wasm_loc_conf_t));
+    if (pwlcf == NULL) {
+        return NULL;
+    }
+
+    return pwlcf;
+}
+
+
+static ngx_int_t
+ngx_http_proxy_wasm_preconfig_init(ngx_conf_t *cf)
+{
+    ngx_http_proxy_wasm_main_conf_t    *pwmcf;
+
+    pwmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_proxy_wasm_module);
+
+    pwmcf->vm = ngx_palloc(cf->pool, sizeof(ngx_wasm_wvm_t));
+    if (pwmcf->vm == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (ngx_wasm_vm_actions.init_vm(pwmcf->vm, cf->cycle) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
+
+static char *
+ngx_http_proxy_wasm_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
+{
+    ngx_http_proxy_wasm_loc_conf_t     *pwlcf = conf;
+    ngx_http_proxy_wasm_main_conf_t    *pwmcf;
+    ngx_str_t                          *value;
+    ngx_wasm_winstance_t                instance;
+
+    pwmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_proxy_wasm_module);
+
+    if (pwlcf->module) {
+        return "is duplicate";
+    }
+
+    pwlcf->module = ngx_palloc(cf->pool, sizeof(ngx_wasm_wmodule_t));
+    if (pwlcf->module == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    value = cf->args->elts;
+
+    if (ngx_wasm_vm_actions.load_wasm_module(pwlcf->module, pwmcf->vm,
+                                             value[1].data)
+        != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+
+    if (ngx_wasm_vm_actions.init_instance(&instance, pwlcf->module)
+        != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+
+    if (ngx_wasm_vm_actions.run_entrypoint(&instance, (u_char *) "_start")
+        != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+
+    ngx_wasm_vm_actions.shutdown_instance(&instance);
+
+    return NGX_CONF_OK;
 }
 
 
 static ngx_int_t
 ngx_http_proxy_wasm_init(ngx_cycle_t *cycle)
 {
+    /*
     ngx_wasm_wvm_t       *vm;
     ngx_wasm_wmodule_t   *module;
     ngx_wasm_winstance_t *instance;
@@ -136,6 +255,8 @@ failed:
     }
 
     return NGX_ERROR;
+    */
+    return NGX_OK;
 }
 
 

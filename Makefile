@@ -13,7 +13,7 @@ setup:
 
 .PHONY: test
 test:
-	@util/test.sh
+	@util/test.sh -r t/
 
 .PHONY: clean
 clean:
