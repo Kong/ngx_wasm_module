@@ -15,8 +15,13 @@
 #include <ngx_core.h>
 
 
-#define NGX_WASM_MODULE       0x5741534d   /* "MSAW" */
-#define NGX_WASM_CONF         0x00300000
+#define NGX_WASM_MODULE        0x5741534d   /* "MSAW" */
+#define NGX_WASM_CONF          0x00300000
+#define NGX_WASM_DEFAULT_VM    "wasmtime"
+#define NGX_WASM_NO_VM_ACTIONS { NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+
+
+#define NGX_LOG_DEBUG_WASM  NGX_LOG_DEBUG_CORE
 
 
 #ifdef NGX_WASM_USE_ASSERT
@@ -25,9 +30,6 @@
 #else
 #   define ngx_wasm_assert(a)
 #endif
-
-
-#define NGX_LOG_DEBUG_WASM  NGX_LOG_DEBUG_CORE
 
 
 typedef struct {
@@ -41,6 +43,7 @@ typedef struct {
     ngx_str_t           path;
     ngx_wasm_wvm_t     *vm;
     void               *wmodule;
+    unsigned            wat:1;
 } ngx_wasm_wmodule_t;
 
 
@@ -53,11 +56,9 @@ typedef struct {
 typedef struct {
     ngx_int_t       (*init_vm)(ngx_wasm_wvm_t *vm, ngx_cycle_t *cycle);
     void            (*shutdown_vm)(ngx_wasm_wvm_t *vm);
-    ngx_int_t       (*load_wasm_module)(ngx_wasm_wmodule_t *module,
-                                        ngx_wasm_wvm_t *vm, const u_char *path);
+    ngx_int_t       (*load_module)(ngx_wasm_wmodule_t *module);
     void            (*release_module)(ngx_wasm_wmodule_t *module);
-    ngx_int_t       (*init_instance)(ngx_wasm_winstance_t *instance,
-                                     ngx_wasm_wmodule_t *module);
+    ngx_int_t       (*init_instance)(ngx_wasm_winstance_t *instance);
     void            (*shutdown_instance)(ngx_wasm_winstance_t *instance);
     ngx_int_t       (*run_entrypoint)(ngx_wasm_winstance_t *instance,
                                       const u_char *name);
@@ -68,7 +69,7 @@ typedef struct {
     ngx_str_t                   *name;
     void                        *(*create_conf)(ngx_cycle_t *cycle);
     char                        *(*init_conf)(ngx_cycle_t *cycle, void *conf);
-    ngx_int_t                    (*init)(ngx_cycle_t *cycle);
+    ngx_int_t                    (*init_engine)(ngx_cycle_t *cycle);
     ngx_wasm_vm_actions_t        vm_actions;
 } ngx_wasm_module_t;
 

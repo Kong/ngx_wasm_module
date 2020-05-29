@@ -9,6 +9,7 @@
 
 #include <ngx_config.h>
 #include <ngx_wasm.h>
+#include <ngx_wasm_util.h>
 
 #include <wasm.h>
 #include <wasi.h>
@@ -21,17 +22,13 @@
 
 
 static void      *ngx_wasmtime_create_conf(ngx_cycle_t *cycle);
-static ngx_int_t  ngx_wasmtime_init(ngx_cycle_t *cycle);
 static ngx_int_t  ngx_wasmtime_init_engine(ngx_cycle_t *cycle);
 static void       ngx_wasmtime_shutdown_engine(ngx_cycle_t *cycle);
 static ngx_int_t  ngx_wasmtime_init_vm(ngx_wasm_wvm_t *vm, ngx_cycle_t *cycle);
 static void       ngx_wasmtime_shutdown_vm(ngx_wasm_wvm_t *vm);
-static ngx_int_t  ngx_wasmtime_load_wasm_module(ngx_wasm_wmodule_t *module,
-                                                ngx_wasm_wvm_t *vm,
-                                                const u_char *path);
+static ngx_int_t  ngx_wasmtime_load_module(ngx_wasm_wmodule_t *module);
 static void       ngx_wasmtime_release_module(ngx_wasm_wmodule_t *module);
-static ngx_int_t  ngx_wasmtime_init_instance(ngx_wasm_winstance_t *instance,
-                                             ngx_wasm_wmodule_t *module);
+static ngx_int_t  ngx_wasmtime_init_instance(ngx_wasm_winstance_t *instance);
 static void       ngx_wasmtime_shutdown_instance(ngx_wasm_winstance_t *instance);
 static ngx_int_t  ngx_wasmtime_run_entrypoint(ngx_wasm_winstance_t *instance,
                                               const u_char *name);
@@ -72,14 +69,14 @@ static ngx_str_t  module_name = ngx_string("wasmtime");
 
 static ngx_wasm_module_t  ngx_wasmtime_module_ctx = {
     &module_name,
-    ngx_wasmtime_create_conf,
-    NULL,
-    ngx_wasmtime_init,
+    ngx_wasmtime_create_conf,            /* create configuration */
+    NULL,                                /* init configuration */
 
+    ngx_wasmtime_init_engine,            /* init engine */
     {
         ngx_wasmtime_init_vm,
         ngx_wasmtime_shutdown_vm,
-        ngx_wasmtime_load_wasm_module,
+        ngx_wasmtime_load_module,
         ngx_wasmtime_release_module,
         ngx_wasmtime_init_instance,
         ngx_wasmtime_shutdown_instance,
@@ -119,19 +116,6 @@ ngx_wasmtime_create_conf(ngx_cycle_t *cycle)
 
 
 static ngx_int_t
-ngx_wasmtime_init(ngx_cycle_t *cycle)
-{
-    if (ngx_wasmtime_init_engine(cycle) != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    ngx_wasm_vm_actions = ngx_wasmtime_module_ctx.vm_actions;
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
 ngx_wasmtime_init_engine(ngx_cycle_t *cycle)
 {
     ngx_wasmtime_conf_t         *wtcf;
@@ -145,7 +129,7 @@ ngx_wasmtime_init_engine(ngx_cycle_t *cycle)
         goto failed;
     }
 
-    /*
+    /*{{{
     wtcf->wasi_config = wasi_config_new();
     if (wtcf->wasi_config == NULL) {
         ngx_wasmtime_log_error(NGX_LOG_ALERT, cycle->log, NULL, NULL,
@@ -155,7 +139,9 @@ ngx_wasmtime_init_engine(ngx_cycle_t *cycle)
 
     wasi_config_inherit_stdout(wtcf->wasi_config);
     wasi_config_inherit_stderr(wtcf->wasi_config);
-    */
+    *//*}}}*/
+
+    ngx_wasm_vm_actions = ngx_wasmtime_module_ctx.vm_actions;
 
     return NGX_OK;
 
@@ -188,22 +174,23 @@ ngx_wasmtime_init_vm(ngx_wasm_wvm_t *vm, ngx_cycle_t *cycle)
     ngx_wasmtime_conf_t         *wtcf;
     ngx_wasmtime_vm_t           *wtvm;
 
+    ngx_wasm_assert(vm->pool != NULL);
+    ngx_wasm_assert(vm->log != NULL);
+
     wtcf = ngx_wasmtime_cycle_get_conf(cycle);
 
-    wtvm = ngx_palloc(cycle->pool, sizeof(ngx_wasmtime_vm_t));
+    wtvm = ngx_palloc(vm->pool, sizeof(ngx_wasmtime_vm_t));
     if (wtvm == NULL) {
-        ngx_log_error(NGX_LOG_ERR, cycle->log, 0,
+        ngx_log_error(NGX_LOG_ERR, vm->log, 0,
                       "failed to allocate wasmtime vm");
         goto failed;
     }
 
     vm->wvm = wtvm;
-    vm->pool = cycle->pool;
-    vm->log = cycle->log;
 
     wtvm->wasm_store = wasm_store_new(wtcf->wasm_engine);
     if (wtvm->wasm_store == NULL) {
-        ngx_wasmtime_log_error(NGX_LOG_ERR, cycle->log, NULL, NULL,
+        ngx_wasmtime_log_error(NGX_LOG_ERR, vm->log, NULL, NULL,
                                "failed to instantiate store");
         goto failed;
     }
@@ -223,104 +210,76 @@ failed:
 static void
 ngx_wasmtime_shutdown_vm(ngx_wasm_wvm_t *vm)
 {
-    ngx_wasmtime_vm_t  *wvm = vm->wvm;
+    ngx_wasmtime_vm_t  *wtvm = vm->wvm;
 
-    if (wvm != NULL) {
-        if (wvm->wasm_store != NULL) {
-            wasm_store_delete(wvm->wasm_store);
+    if (wtvm != NULL) {
+        if (wtvm->wasm_store != NULL) {
+            wasm_store_delete(wtvm->wasm_store);
         }
 
-        ngx_pfree(vm->pool, wvm);
+        ngx_pfree(vm->pool, wtvm);
+        vm->wvm = NULL;
     }
-
-    vm->pool = NULL;
-    vm->log = NULL;
 }
 
 
 static ngx_int_t
-ngx_wasmtime_load_wasm_module(ngx_wasm_wmodule_t *module, ngx_wasm_wvm_t *vm,
-    const u_char *path)
+ngx_wasmtime_load_module(ngx_wasm_wmodule_t *module)
 {
+    ngx_wasm_wvm_t              *vm;
     ngx_wasmtime_vm_t           *wtvm;
     ngx_wasmtime_module_t       *wtmodule;
-    ssize_t                      fsize, n;
-    ngx_fd_t                     fd;
-    ngx_file_t                   file;
-    wasm_byte_vec_t              wbytes;
     wasmtime_error_t            *werror;
+    wasm_byte_vec_t              wat_bytes, wasm_bytes;
     ngx_int_t                    rc = NGX_ERROR;
 
-    /* wasm file */
+    ngx_wasm_assert(module->path.data != NULL);
+    ngx_wasm_assert(module->vm != NULL);
+    ngx_wasm_assert(module->vm->wvm != NULL); /* vm not initialized */
 
-    fd = ngx_open_file(path, NGX_FILE_RDONLY, NGX_FILE_OPEN, 0);
-    if (fd == NGX_INVALID_FILE) {
-        ngx_log_error(NGX_LOG_ERR, vm->log, ngx_errno,
-                      ngx_open_file_n " \"%s\" failed", path);
+    vm = module->vm;
+    wtvm = vm->wvm;
+
+    if (module->wat) {
+        if (ngx_wasm_read_file(&wat_bytes, module->path.data, vm->log)
+            != NGX_OK)
+        {
+            return NGX_ERROR;
+        }
+
+        werror = wasmtime_wat2wasm(&wat_bytes, &wasm_bytes);
+        if (werror) {
+            ngx_wasmtime_log_error(NGX_LOG_ERR, vm->log, werror, NULL,
+                                   "failed to compile .wat module at \"%V\"",
+                                   &module->path);
+            return NGX_ERROR;
+        }
+
+    } else if (ngx_wasm_read_file(&wasm_bytes, module->path.data, vm->log)
+               != NGX_OK)
+    {
         return NGX_ERROR;
     }
-
-    ngx_memzero(&file, sizeof(ngx_file_t));
-
-    file.fd = fd;
-    file.log = vm->log;
-    file.name.len = ngx_strlen(path);
-    file.name.data = (u_char *) path;
-
-    if (ngx_fd_info(fd, &file.info) == NGX_FILE_ERROR) {
-        ngx_log_error(NGX_LOG_ERR, vm->log, ngx_errno,
-                      ngx_fd_info_n " \"%s\" failed", &file.name);
-        goto failed;
-    }
-
-    fsize = ngx_file_size(&file.info);
-    wasm_byte_vec_new_uninitialized(&wbytes, fsize);
-
-    n = ngx_read_file(&file, (u_char *) wbytes.data, fsize, 0);
-    if (n == NGX_ERROR) {
-        ngx_log_error(NGX_LOG_ERR, vm->log, ngx_errno,
-                      ngx_read_file_n " \"%V\" failed", &file.name);
-        goto failed;
-    }
-
-    if (n != fsize) {
-        ngx_log_error(NGX_LOG_ERR, vm->log, 0,
-                      ngx_read_file_n " \"%V\" returned only "
-                      "%z bytes instead of %uz", &file.name, n, fsize);
-        goto failed;
-    }
-
-    /* wasm module */
 
     wtmodule = ngx_palloc(vm->pool, sizeof(ngx_wasmtime_module_t));
     if (wtmodule == NULL) {
         ngx_log_error(NGX_LOG_ERR, vm->log, 0,
                       "failed to allocate wasmtime module");
-        goto failed;
+        return NGX_ERROR;
     }
 
     module->wmodule = wtmodule;
-    module->vm = vm;
-    module->path.len = file.name.len;
-    module->path.data = ngx_palloc(vm->pool, file.name.len);
-    if (module->path.data == NULL) {
-        goto failed;
-    }
 
-    ngx_memcpy(module->path.data, path, module->path.len);
-
-    wtvm = vm->wvm;
-
-    werror = wasmtime_module_new(wtvm->wasm_store, &wbytes,
+    werror = wasmtime_module_new(wtvm->wasm_store, &wasm_bytes,
                                  &wtmodule->wasm_module);
     if (wtmodule->wasm_module == NULL) {
         ngx_wasmtime_log_error(NGX_LOG_ERR, vm->log, werror, NULL,
-                               "failed to compile module \"%V\"",
+                               "failed to load module at \"%V\"",
                                &module->path);
         goto failed;
     }
 
-    /*
+    /*{{{
     wtmodule->wasi_inst = wasi_instance_new(vm->wvm->wasm_store,
                                             "wasi_snapshot_preview1",
                                             vm->wvm->wtcf->wasi_config,
@@ -330,7 +289,7 @@ ngx_wasmtime_load_wasm_module(ngx_wasm_wmodule_t *module, ngx_wasm_wvm_t *vm,
                                "failed to instantiate wasi instance");
         goto failed;
     }
-    */
+    *//*}}}*/
 
     wasm_module_imports(wtmodule->wasm_module, &wtmodule->wasm_imports);
     wasm_module_exports(wtmodule->wasm_module, &wtmodule->wasm_exports);
@@ -339,12 +298,8 @@ ngx_wasmtime_load_wasm_module(ngx_wasm_wmodule_t *module, ngx_wasm_wvm_t *vm,
 
 failed:
 
-    if (ngx_close_file(file.fd) == NGX_FILE_ERROR) {
-        ngx_log_error(NGX_LOG_ERR, vm->log, ngx_errno,
-                      ngx_close_file_n " \"%V\" failed", &file.name);
-    }
-
-    wasm_byte_vec_delete(&wbytes);
+    //wasm_byte_vec_delete(&wat_bytes);
+    //wasm_byte_vec_delete(&wasm_bytes);
 
     if (rc != NGX_OK) {
         ngx_wasmtime_release_module(module);
@@ -359,10 +314,6 @@ ngx_wasmtime_release_module(ngx_wasm_wmodule_t *module)
 {
     ngx_wasmtime_module_t  *wtmodule = module->wmodule;
 
-    if (module->path.data != NULL) {
-        ngx_pfree(module->vm->pool, module->path.data);
-    }
-
     if (wtmodule != NULL) {
         /* TODO: wasi_inst */
 
@@ -373,16 +324,16 @@ ngx_wasmtime_release_module(ngx_wasm_wmodule_t *module)
         }
 
         ngx_pfree(module->vm->pool, wtmodule);
+        module->wmodule = NULL;
     }
-
-    module->vm = NULL;
 }
 
 
 static ngx_int_t
-ngx_wasmtime_init_instance(ngx_wasm_winstance_t *instance,
-    ngx_wasm_wmodule_t *module)
+ngx_wasmtime_init_instance(ngx_wasm_winstance_t *instance)
 {
+    ngx_wasm_wvm_t              *vm;
+    ngx_wasm_wmodule_t          *module;
     ngx_wasmtime_module_t       *wtmodule;
     ngx_wasmtime_instance_t     *wtinstance;
     //const wasm_extern_t        **wasm_inst_externs;
@@ -392,16 +343,22 @@ ngx_wasmtime_init_instance(ngx_wasm_winstance_t *instance,
     wasm_trap_t                 *wtrap = NULL;
     ngx_int_t                    rc = NGX_ERROR;
 
-    wtinstance = ngx_palloc(module->vm->pool, sizeof(ngx_wasmtime_instance_t));
+    ngx_wasm_assert(instance->module != NULL);
+    ngx_wasm_assert(instance->module->vm != NULL);
+
+    module = instance->module;
+    wtmodule = module->wmodule;
+    vm = module->vm;
+
+    wtinstance = ngx_palloc(vm->pool, sizeof(ngx_wasmtime_instance_t));
     if (wtinstance == NULL) {
-        ngx_log_error(NGX_LOG_ERR, module->vm->log, 0,
+        ngx_log_error(NGX_LOG_ERR, vm->log, 0,
                       "failed to allocate wasmtime instance");
     }
 
     instance->winstance = wtinstance;
-    instance->module = module;
 
-    //wasm_module_imports = module->wmodule->wasm_imports;
+    //wasm_module_imports = module->wmodule->wasm_imports;{{{
     //wasi_inst = module->wmodule->wasi_inst;
 
     /*
@@ -421,9 +378,7 @@ ngx_wasmtime_init_instance(ngx_wasm_winstance_t *instance,
             goto failed;
         }
     }
-    */
-
-    wtmodule = instance->module->wmodule;
+    *//*}}}*/
 
     werror = wasmtime_instance_new(wtmodule->wasm_module,
                                    NULL, //wasm_inst_externs,
@@ -442,11 +397,11 @@ ngx_wasmtime_init_instance(ngx_wasm_winstance_t *instance,
 
 failed:
 
-    /*
+    /*{{{
     if (wasm_inst_externs != NULL) {
         ngx_free(wasm_inst_externs);
     }
-    */
+    *//*}}}*/
 
     if (rc != NGX_OK) {
         ngx_wasmtime_shutdown_instance(instance);
@@ -468,9 +423,8 @@ ngx_wasmtime_shutdown_instance(ngx_wasm_winstance_t *instance)
         }
 
         ngx_pfree(instance->module->vm->pool, wtinstance);
+        instance->winstance = NULL;
     }
-
-    instance->module = NULL;
 }
 
 

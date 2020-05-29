@@ -12,20 +12,22 @@
 #include <ngx_wasm.h>
 
 
-#define NGX_HTTP_PROXY_WASM_ABI_VERSION  0.1.0
-
-static void       *ngx_http_proxy_wasm_create_main_conf(ngx_conf_t *cf);
-static void       *ngx_http_proxy_wasm_create_srv_conf(ngx_conf_t *cf);
-static void       *ngx_http_proxy_wasm_create_loc_conf(ngx_conf_t *cf);
-static ngx_int_t   ngx_http_proxy_wasm_preconfig_init(ngx_conf_t *cf);
-static char       *ngx_http_proxy_wasm_module_directive(ngx_conf_t *cf,
-                                                        ngx_command_t *cmd,
-                                                        void *conf);
-static ngx_int_t   ngx_http_proxy_wasm_init(ngx_cycle_t *cycle);
+static void     *ngx_http_proxy_wasm_create_main_conf(ngx_conf_t *cf);
+static char     *ngx_http_proxy_wasm_init_main_conf(ngx_conf_t *cf, void *conf);
+static void     *ngx_http_proxy_wasm_create_srv_conf(ngx_conf_t *cf);
+static void     *ngx_http_proxy_wasm_create_loc_conf(ngx_conf_t *cf);
+static char     *ngx_http_proxy_wasm_merge_loc_conf(ngx_conf_t *cf,
+                                                    void *parent,
+                                                    void *child);
+static char     *ngx_http_proxy_wasm_module_directive(ngx_conf_t *cf,
+                                                      ngx_command_t *cmd,
+                                                      void *conf);
+static ngx_int_t ngx_http_proxy_wasm_init(ngx_cycle_t *cycle);
 
 
 typedef struct {
     ngx_wasm_wvm_t          *vm;
+    ngx_array_t             *modules;
 } ngx_http_proxy_wasm_main_conf_t;
 
 
@@ -53,17 +55,17 @@ static ngx_command_t  ngx_http_proxy_wasm_module_cmds[] = {
 
 
 static ngx_http_module_t  ngx_http_proxy_wasm_module_ctx = {
-    ngx_http_proxy_wasm_preconfig_init,    /* preconfiguration */
+    NULL,                                  /* preconfiguration */
     NULL,                                  /* postconfiguration */
 
     ngx_http_proxy_wasm_create_main_conf,  /* create main configuration */
-    NULL,                                  /* init main configuration */
+    ngx_http_proxy_wasm_init_main_conf,    /* init main configuration */
 
     ngx_http_proxy_wasm_create_srv_conf,   /* create server configuration */
     NULL,                                  /* merge server configuration */
 
     ngx_http_proxy_wasm_create_loc_conf,   /* create location configuration */
-    NULL                                   /* merge location configuration */
+    ngx_http_proxy_wasm_merge_loc_conf     /* merge location configuration */
 };
 
 
@@ -87,13 +89,37 @@ static void *
 ngx_http_proxy_wasm_create_main_conf(ngx_conf_t *cf)
 {
     ngx_http_proxy_wasm_main_conf_t    *pwmcf;
+    ngx_wasm_wvm_t                     *vm;
 
     pwmcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_proxy_wasm_main_conf_t));
     if (pwmcf == NULL) {
         return NULL;
     }
 
+    pwmcf->modules = ngx_array_create(cf->pool, 2,
+                                      sizeof(ngx_wasm_wmodule_t *));
+    if (pwmcf->modules == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    vm = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_wvm_t));
+    if (vm == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    vm->pool = cf->pool;
+    vm->log = cf->log;
+
+    pwmcf->vm = vm;
+
     return pwmcf;
+}
+
+
+static char *
+ngx_http_proxy_wasm_init_main_conf(ngx_conf_t *cf, void *conf)
+{
+    return NGX_CONF_OK;
 }
 
 
@@ -121,27 +147,21 @@ ngx_http_proxy_wasm_create_loc_conf(ngx_conf_t *cf)
         return NULL;
     }
 
+    pwlcf->module = NGX_CONF_UNSET_PTR;
+
     return pwlcf;
 }
 
 
-static ngx_int_t
-ngx_http_proxy_wasm_preconfig_init(ngx_conf_t *cf)
+static char *
+ngx_http_proxy_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-    ngx_http_proxy_wasm_main_conf_t    *pwmcf;
+    ngx_http_proxy_wasm_loc_conf_t    *prev = parent;
+    ngx_http_proxy_wasm_loc_conf_t    *conf = child;
 
-    pwmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_proxy_wasm_module);
+    ngx_conf_merge_ptr_value(conf->module, prev->module, NULL);
 
-    pwmcf->vm = ngx_palloc(cf->pool, sizeof(ngx_wasm_wvm_t));
-    if (pwmcf->vm == NULL) {
-        return NGX_ERROR;
-    }
-
-    if (ngx_wasm_vm_actions.init_vm(pwmcf->vm, cf->cycle) != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    return NGX_OK;
+    return NGX_CONF_OK;
 }
 
 
@@ -152,41 +172,45 @@ ngx_http_proxy_wasm_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     ngx_http_proxy_wasm_loc_conf_t     *pwlcf = conf;
     ngx_http_proxy_wasm_main_conf_t    *pwmcf;
     ngx_str_t                          *value;
-    ngx_wasm_winstance_t                instance;
+    u_char                             *p;
+    ngx_wasm_wmodule_t                 *module, **pmodule;
 
-    pwmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_proxy_wasm_module);
-
-    if (pwlcf->module) {
+    if (pwlcf->module != NGX_CONF_UNSET_PTR) {
         return "is duplicate";
-    }
-
-    pwlcf->module = ngx_palloc(cf->pool, sizeof(ngx_wasm_wmodule_t));
-    if (pwlcf->module == NULL) {
-        return NGX_CONF_ERROR;
     }
 
     value = cf->args->elts;
 
-    if (ngx_wasm_vm_actions.load_wasm_module(pwlcf->module, pwmcf->vm,
-                                             value[1].data)
-        != NGX_OK)
-    {
+    if (value[1].len == 0) {
+        ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "no file specified");
         return NGX_CONF_ERROR;
     }
 
-    if (ngx_wasm_vm_actions.init_instance(&instance, pwlcf->module)
-        != NGX_OK)
-    {
+    pwmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_proxy_wasm_module);
+
+    module = ngx_palloc(cf->pool, sizeof(ngx_wasm_wmodule_t));
+    if (module == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    if (ngx_wasm_vm_actions.run_entrypoint(&instance, (u_char *) "_start")
-        != NGX_OK)
-    {
+    module->vm = pwmcf->vm;
+    module->wat = ngx_strcmp(&value[1].data[value[1].len - 4], ".wat") == 0;
+    module->path.len = value[1].len;
+    module->path.data = ngx_palloc(pwmcf->vm->pool, value[1].len + 1);
+    if (module->path.data == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    ngx_wasm_vm_actions.shutdown_instance(&instance);
+    p = ngx_copy(module->path.data, value[1].data, value[1].len);
+    *p = '\0';
+
+    pmodule = ngx_array_push(pwmcf->modules);
+    if (pmodule == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    *pmodule = module;
+    pwlcf->module = module;
 
     return NGX_CONF_OK;
 }
@@ -195,67 +219,30 @@ ngx_http_proxy_wasm_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 static ngx_int_t
 ngx_http_proxy_wasm_init(ngx_cycle_t *cycle)
 {
-    /*
-    ngx_wasm_wvm_t       *vm;
-    ngx_wasm_wmodule_t   *module;
-    ngx_wasm_winstance_t *instance;
+    ngx_http_proxy_wasm_main_conf_t    *pwmcf;
+    ngx_wasm_wmodule_t                 *module, **pmodule;
+    ngx_uint_t                          i;
 
-    vm = ngx_palloc(cycle->pool, sizeof(ngx_wasm_wvm_t));
-    if (vm == NULL) {
-        goto failed;
+    pwmcf = ngx_http_cycle_get_module_main_conf(cycle,
+                                                ngx_http_proxy_wasm_module);
+
+    if (ngx_wasm_vm_actions.init_vm(pwmcf->vm, cycle) != NGX_OK) {
+        return NGX_ERROR;
     }
 
-    module = ngx_palloc(cycle->pool, sizeof(ngx_wasm_wmodule_t));
-    if (module == NULL) {
-        goto failed;
+    pmodule = pwmcf->modules->elts;
+
+    for (i = 0; i < pwmcf->modules->nelts; i++) {
+        module = pmodule[i];
+
+        ngx_log_debug1(NGX_LOG_DEBUG_WASM, cycle->log, 0,
+                       "loading wasm module at \"%s\"", module->path.data);
+
+        if (ngx_wasm_vm_actions.load_module(module) != NGX_OK) {
+            return NGX_ERROR;
+        }
     }
 
-    instance = ngx_palloc(cycle->pool, sizeof(ngx_wasm_winstance_t));
-    if (instance == NULL) {
-        goto failed;
-    }
-
-    if (ngx_wasm_vm_actions.init_vm(vm, cycle) != NGX_OK) {
-        goto failed;
-    }
-
-    if (ngx_wasm_vm_actions.load_wasm_module(module, vm,
-            (u_char *) "/home/chasum/code/wasm/hello-world/target/"
-                       "wasm32-unknown-unknown/debug/hello.wasm")
-        != NGX_OK)
-    {
-        goto failed;
-    }
-
-    if (ngx_wasm_vm_actions.init_instance(instance, module) != NGX_OK) {
-        goto failed;
-    }
-
-    if (ngx_wasm_vm_actions.run_entrypoint(instance, (u_char *) "_start")
-        != NGX_OK)
-    {
-        goto failed;
-    }
-
-    return NGX_OK;
-
-failed:
-
-    if (vm != NULL) {
-        ngx_wasm_vm_actions.shutdown_vm(vm);
-        ngx_pfree(cycle->pool, vm);
-    }
-
-    if (module != NULL) {
-        ngx_pfree(cycle->pool, module);
-    }
-
-    if (instance != NULL) {
-        ngx_pfree(cycle->pool, instance);
-    }
-
-    return NGX_ERROR;
-    */
     return NGX_OK;
 }
 

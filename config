@@ -88,7 +88,8 @@ ngx_module_name=ngx_wasmtime_module
 ngx_module_incs="$ngx_feature_path $ngx_addon_dir/src"
 ngx_module_libs="$ngx_feature_libs"
 ngx_module_deps=
-ngx_module_srcs="$ngx_addon_dir/src/modules/ngx_wasmtime_module.c"
+ngx_module_srcs="$ngx_addon_dir/src/modules/ngx_wasmtime_module.c \
+                 $ngx_addon_dir/src/ngx_wasm_util.c"
 ngx_module_link=ADDON
 
 . auto/module
