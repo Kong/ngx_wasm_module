@@ -10,6 +10,7 @@ build_nginx() {
     pushd $ngx_dir
         if [[ -n "$NGX_BUILD_FORCE" \
               || ! -f "Makefile" \
+              || ! -d "$DIR_BUILDROOT" \
               || "$NGX_WASM_DIR/config" -nt "Makefile" \
               || "$NGX_WASM_DIR/Makefile" -nt "Makefile" \
               || "$NGX_WASM_DIR/util/build.sh" -nt "Makefile" \

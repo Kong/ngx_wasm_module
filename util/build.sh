@@ -60,7 +60,9 @@ fi
 download $DIR_DOWNLOAD/nginx-$NGX_VER.tar.gz \
          "https://nginx.org/download/nginx-$NGX_VER.tar.gz"
 
-tar -xf $DIR_DOWNLOAD/nginx-$NGX_VER.tar.gz -C $DIR_DOWNLOAD
+if [[ ! -d "$DIR_DOWNLOAD/nginx-$NGINX_VER" ]]; then
+    tar -xf $DIR_DOWNLOAD/nginx-$NGX_VER.tar.gz -C $DIR_DOWNLOAD
+fi
 
 build_nginx $DIR_DOWNLOAD/nginx-$NGX_VER
 
