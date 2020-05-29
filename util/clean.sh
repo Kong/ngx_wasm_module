@@ -19,8 +19,9 @@ if [[ "$1" == "--all" ]]; then
     rm -rf $DIR_WORK
 
 else
-    rm -rf $DIR_BUILDROOT
+    pushd $DIR_DOWNLOAD/nginx-*
+        make clean
+    popd
 fi
-
 
 # vim: ft=sh st=4 sts=4 sw=4:
