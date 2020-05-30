@@ -55,13 +55,13 @@ n_jobs() {
   local os=$(uname -s)
 
   if nproc 2>/dev/null >&2; then
-    nproc
+      nproc
 
   elif [[ "$os" == "Darwin" ]]; then
-    sysctl -n hw.physicalcpu
+      sysctl -n hw.physicalcpu
 
   else
-    echo "1"
+      echo "1"
   fi
 }
 
