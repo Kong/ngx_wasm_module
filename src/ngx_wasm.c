@@ -97,8 +97,7 @@ static ngx_wasm_module_t  ngx_wasm_core_module_ctx = {
     &wasm_core_name,
     ngx_wasm_core_create_conf,                      /* create configuration */
     ngx_wasm_core_init_conf,                        /* init configuration */
-
-    NULL,                                           /* init engine */
+    NULL,                                           /* init module */
     NGX_WASM_NO_VM_ACTIONS                          /* vm actions */
 };
 
@@ -309,24 +308,31 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 static ngx_int_t
 ngx_wasm_core_init(ngx_cycle_t *cycle)
 {
+    ngx_uint_t               i;
     ngx_wasm_core_conf_t    *wcf;
-    ngx_wasm_module_t       *wasm_module;
+    ngx_wasm_module_t       *m;
+    ngx_wasm_vm_actions_t   *vma = NULL, **vmap;
+
+    vmap = &vma;
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    wasm_module = cycle->modules[wcf->vm]->ctx;
 
-    if (wasm_module->init_engine == NULL) {
-        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                      "no \"init_engine\" function in \"%s\" module",
-                      wcf->vm_name);
-        return NGX_ERROR;
-    }
+    for (i = 0; cycle->modules[i]; i++) {
+        if (cycle->modules[i]->type != NGX_WASM_MODULE) {
+            continue;
+        }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_WASM, cycle->log, 0,
-                   "initializing wasm engine");
+        m = cycle->modules[i]->ctx;
 
-    if (wasm_module->init_engine(cycle) != NGX_OK) {
-        return NGX_ERROR;
+        if (m->init) {
+            if (m->init(cycle, vmap) != NGX_OK) {
+                return NGX_ERROR;
+            }
+
+            if (i == wcf->vm) {
+                ngx_wasm_vm_actions = *vma;
+            }
+        }
     }
 
     return NGX_OK;

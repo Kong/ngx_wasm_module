@@ -18,7 +18,7 @@
 #define NGX_WASM_MODULE        0x5741534d   /* "MSAW" */
 #define NGX_WASM_CONF          0x00300000
 #define NGX_WASM_DEFAULT_VM    "wasmtime"
-#define NGX_WASM_NO_VM_ACTIONS { NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+#define NGX_WASM_NO_VM_ACTIONS { NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 #define NGX_LOG_DEBUG_WASM  NGX_LOG_DEBUG_CORE
@@ -33,35 +33,31 @@
 
 
 typedef struct {
-    ngx_pool_t         *pool;
-    ngx_log_t          *log;
-    void               *wvm;
-} ngx_wasm_wvm_t;
-
-
-typedef struct {
-    ngx_str_t           path;
-    ngx_wasm_wvm_t     *vm;
-    void               *wmodule;
-    unsigned            wat:1;
+    ngx_str_t       path;
+    ngx_pool_t     *pool;
+    ngx_log_t      *log;
+    void           *data;
+    unsigned        wat:1;
 } ngx_wasm_wmodule_t;
 
 
 typedef struct {
-    ngx_wasm_wmodule_t  *module;
-    void                *winstance;
+    ngx_pool_t     *pool;
+    ngx_log_t      *log;
+    void           *data;
 } ngx_wasm_winstance_t;
 
 
 typedef struct {
-    ngx_int_t       (*init_vm)(ngx_wasm_wvm_t *vm, ngx_cycle_t *cycle);
-    void            (*shutdown_vm)(ngx_wasm_wvm_t *vm);
-    ngx_int_t       (*load_module)(ngx_wasm_wmodule_t *module);
-    void            (*release_module)(ngx_wasm_wmodule_t *module);
-    ngx_int_t       (*init_instance)(ngx_wasm_winstance_t *instance);
-    void            (*shutdown_instance)(ngx_wasm_winstance_t *instance);
-    ngx_int_t       (*run_entrypoint)(ngx_wasm_winstance_t *instance,
-                                      const u_char *name);
+    ngx_int_t               (*load_module)(ngx_wasm_wmodule_t *module,
+                                           ngx_cycle_t *cycle);
+    void                    (*unload_module)(ngx_wasm_wmodule_t *module);
+    ngx_wasm_winstance_t   *(*new_instance)(ngx_wasm_wmodule_t *module);
+    void                    (*free_instance)(ngx_wasm_winstance_t *instance);
+    ngx_int_t               (*call)(ngx_wasm_winstance_t *instance,
+                                    const u_char *fname);
+    ngx_int_t               (*call_maybe)(ngx_wasm_winstance_t *instance,
+                                          const u_char *fname);
 } ngx_wasm_vm_actions_t;
 
 
@@ -69,7 +65,8 @@ typedef struct {
     ngx_str_t                   *name;
     void                        *(*create_conf)(ngx_cycle_t *cycle);
     char                        *(*init_conf)(ngx_cycle_t *cycle, void *conf);
-    ngx_int_t                    (*init_engine)(ngx_cycle_t *cycle);
+    ngx_int_t                    (*init)(ngx_cycle_t *cycle,
+                                         ngx_wasm_vm_actions_t **vm_actions);
     ngx_wasm_vm_actions_t        vm_actions;
 } ngx_wasm_module_t;
 

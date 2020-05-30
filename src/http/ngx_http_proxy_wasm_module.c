@@ -26,7 +26,6 @@ static ngx_int_t ngx_http_proxy_wasm_init(ngx_cycle_t *cycle);
 
 
 typedef struct {
-    ngx_wasm_wvm_t          *vm;
     ngx_array_t             *modules;
 } ngx_http_proxy_wasm_main_conf_t;
 
@@ -89,7 +88,6 @@ static void *
 ngx_http_proxy_wasm_create_main_conf(ngx_conf_t *cf)
 {
     ngx_http_proxy_wasm_main_conf_t    *pwmcf;
-    ngx_wasm_wvm_t                     *vm;
 
     pwmcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_proxy_wasm_main_conf_t));
     if (pwmcf == NULL) {
@@ -101,16 +99,6 @@ ngx_http_proxy_wasm_create_main_conf(ngx_conf_t *cf)
     if (pwmcf->modules == NULL) {
         return NGX_CONF_ERROR;
     }
-
-    vm = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_wvm_t));
-    if (vm == NULL) {
-        return NGX_CONF_ERROR;
-    }
-
-    vm->pool = cf->pool;
-    vm->log = cf->log;
-
-    pwmcf->vm = vm;
 
     return pwmcf;
 }
@@ -193,10 +181,11 @@ ngx_http_proxy_wasm_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    module->vm = pwmcf->vm;
+    module->log = cf->log;
+    module->pool = cf->pool;
     module->wat = ngx_strcmp(&value[1].data[value[1].len - 4], ".wat") == 0;
     module->path.len = value[1].len;
-    module->path.data = ngx_palloc(pwmcf->vm->pool, value[1].len + 1);
+    module->path.data = ngx_palloc(module->pool, value[1].len + 1);
     if (module->path.data == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -221,14 +210,12 @@ ngx_http_proxy_wasm_init(ngx_cycle_t *cycle)
 {
     ngx_http_proxy_wasm_main_conf_t    *pwmcf;
     ngx_wasm_wmodule_t                 *module, **pmodule;
+    ngx_wasm_winstance_t               *instance;
     ngx_uint_t                          i;
+    ngx_int_t                           rc;
 
     pwmcf = ngx_http_cycle_get_module_main_conf(cycle,
                                                 ngx_http_proxy_wasm_module);
-
-    if (ngx_wasm_vm_actions.init_vm(pwmcf->vm, cycle) != NGX_OK) {
-        return NGX_ERROR;
-    }
 
     pmodule = pwmcf->modules->elts;
 
@@ -238,9 +225,21 @@ ngx_http_proxy_wasm_init(ngx_cycle_t *cycle)
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, cycle->log, 0,
                        "loading wasm module at \"%s\"", module->path.data);
 
-        if (ngx_wasm_vm_actions.load_module(module) != NGX_OK) {
+        if (ngx_wasm_vm_actions.load_module(module, cycle) != NGX_OK) {
             return NGX_ERROR;
         }
+
+        instance = ngx_wasm_vm_actions.new_instance(module);
+        if (instance == NULL) {
+            return NGX_ERROR;
+        }
+
+        rc = ngx_wasm_vm_actions.call_maybe(instance, (u_char *) "_start");
+        if (rc != NGX_OK && rc != NGX_DONE) {
+            return NGX_ERROR;
+        }
+
+        ngx_wasm_vm_actions.free_instance(instance);
     }
 
     return NGX_OK;
