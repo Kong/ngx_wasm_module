@@ -31,12 +31,9 @@ static void ngx_wasmtime_unload_module(ngx_wasm_wmodule_t *module);
 static ngx_wasm_winstance_t *ngx_wasmtime_new_instance(
     ngx_wasm_wmodule_t *module);
 static void ngx_wasmtime_free_instance(ngx_wasm_winstance_t *instance);
-static ngx_int_t ngx_wasmtime_call_helper(ngx_wasm_winstance_t *instance,
-    const u_char *fname, ngx_uint_t maybe);
-static ngx_int_t ngx_wasmtime_call(ngx_wasm_winstance_t *instance,
-    const u_char *fname);
-static ngx_int_t ngx_wasmtime_call_maybe(ngx_wasm_winstance_t *instance,
-    const u_char *fname);
+static ngx_int_t ngx_wasmtime_call_instance(ngx_wasm_winstance_t *instance,
+    const char *fname, const ngx_wasm_wval_t *args, size_t nargs,
+    ngx_wasm_wval_t *rets, size_t nrets);
 static void ngx_wasmtime_log_error(ngx_uint_t level, ngx_log_t *log,
     wasmtime_error_t *werror, wasm_trap_t *wtrap, const char *fmt, ...);
 
@@ -79,8 +76,7 @@ static ngx_wasm_module_t  ngx_wasmtime_module_ctx = {
         ngx_wasmtime_unload_module,
         ngx_wasmtime_new_instance,
         ngx_wasmtime_free_instance,
-        ngx_wasmtime_call,
-        ngx_wasmtime_call_maybe
+        ngx_wasmtime_call_instance
     }
 };
 
@@ -387,12 +383,112 @@ ngx_wasmtime_free_instance(ngx_wasm_winstance_t *instance)
 }
 
 
+static wasm_val_t
+ngx_wasmtime_ngxwval_to_wval(ngx_wasm_wval_t val)
+{
+    wasm_val_t      wval;
+
+    switch (val.kind) {
+
+    case NGX_WASM_I32:
+        wval.kind = WASM_I32;
+        wval.of.i32 = val.value.I32;
+        break;
+
+    case NGX_WASM_I64:
+        wval.kind = WASM_I64;
+        wval.of.i64 = val.value.I64;
+        break;
+
+    case NGX_WASM_F32:
+        wval.kind = WASM_F32;
+        wval.of.f32 = val.value.F32;
+        break;
+
+    case NGX_WASM_F64:
+        wval.kind = WASM_F64;
+        wval.of.f64 = val.value.F64;
+        break;
+
+    default:
+        ngx_wasm_assert(NULL);
+        break;
+
+    }
+
+    return wval;
+}
+
+
+static ngx_wasm_wval_t
+ngx_wasmtime_wval_to_ngxwval(wasm_val_t wval)
+{
+    ngx_wasm_wval_t     val;
+
+    switch (wval.kind) {
+
+    case WASM_I32:
+        val.kind = NGX_WASM_I32;
+        val.value.I32 = wval.of.i32;
+        break;
+
+    case WASM_I64:
+        val.kind = NGX_WASM_I64;
+        val.value.I64 = wval.of.i64;
+        break;
+
+    case WASM_F32:
+        val.kind = NGX_WASM_F32;
+        val.value.F32 = wval.of.f32;
+        break;
+
+    case WASM_F64:
+        val.kind = NGX_WASM_F64;
+        val.value.F64 = wval.of.f64;
+        break;
+
+    default:
+        ngx_wasm_assert(NULL);
+        break;
+
+    }
+
+    return val;
+}
+
+
+static void
+ngx_wasmtime_ngxwvals_to_wvals(wasm_val_t *wvals, const ngx_wasm_wval_t *vals,
+    size_t nvals)
+{
+    size_t          i;
+
+    for (i = 0; i < nvals; i++) {
+        wvals[i] = ngx_wasmtime_ngxwval_to_wval(vals[i]);
+    }
+}
+
+
+static void
+ngx_wasmtime_wvals_to_ngxwvals(ngx_wasm_wval_t *vals, wasm_val_t *wvals,
+    size_t nwvals)
+{
+    size_t          i;
+
+    for (i = 0; i < nwvals; i++) {
+        vals[i] = ngx_wasmtime_wval_to_ngxwval(wvals[i]);
+    }
+}
+
+
 static ngx_int_t
-ngx_wasmtime_call_helper(ngx_wasm_winstance_t *instance, const u_char *fname,
-    ngx_uint_t maybe)
+ngx_wasmtime_call_helper(ngx_wasm_winstance_t *instance, const char *fname,
+    const ngx_wasm_wval_t *args, size_t nargs, ngx_wasm_wval_t *rets,
+    size_t nrets)
 {
     ngx_wasmtime_winstance_t    *wtinstance = instance->data;
     const wasm_name_t           *wname;
+    wasm_val_t                   wargs[nargs], wrets[nrets];
     wasm_extern_t               *wfextern = NULL;
     wasm_func_t                 *wfunc = NULL;
     wasm_trap_t                 *wtrap = NULL;
@@ -400,9 +496,9 @@ ngx_wasmtime_call_helper(ngx_wasm_winstance_t *instance, const u_char *fname,
     size_t                       i;
     ngx_int_t                    rc = NGX_ERROR;
 
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, instance->log, 0,
-                   "wasm instance %p calling function \"%s\" (maybe: %u)",
-                   wtinstance->wasm_instance, fname, maybe);
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, instance->log, 0,
+                   "wasm instance %p calling function \"%s\"",
+                   wtinstance->wasm_instance, fname);
 
     for (i = 0; i < wtinstance->wasm_externs.size; i++) {
         wname = wasm_exporttype_name(wtinstance->wasm_module_exports->data[i]);
@@ -413,9 +509,11 @@ ngx_wasmtime_call_helper(ngx_wasm_winstance_t *instance, const u_char *fname,
     }
 
     if (wfextern == NULL) {
+        /*
         if (maybe) {
             return NGX_DONE;
         }
+        */
 
         ngx_wasmtime_log_error(NGX_LOG_ERR, instance->log, NULL, NULL,
                                "failed to find function \"%s\"", fname);
@@ -429,12 +527,16 @@ ngx_wasmtime_call_helper(ngx_wasm_winstance_t *instance, const u_char *fname,
         goto failed;
     }
 
-    werror = wasmtime_func_call(wfunc, NULL, 0, NULL, 0, &wtrap);
+    ngx_wasmtime_ngxwvals_to_wvals(wargs, args, nargs);
+
+    werror = wasmtime_func_call(wfunc, wargs, nargs, wrets, nrets, &wtrap);
     if (werror != NULL || wtrap != NULL) {
         ngx_wasmtime_log_error(NGX_LOG_ERR, instance->log, werror, wtrap,
                                "failed to call function \"%s\"", fname);
         goto failed;
     }
+
+    ngx_wasmtime_wvals_to_ngxwvals(rets, wrets, nrets);
 
     rc = NGX_OK;
 
@@ -449,16 +551,11 @@ failed:
 
 
 static ngx_int_t
-ngx_wasmtime_call(ngx_wasm_winstance_t *instance, const u_char *fname)
+ngx_wasmtime_call_instance(ngx_wasm_winstance_t *instance, const char *fname,
+    const ngx_wasm_wval_t *args, size_t nargs, ngx_wasm_wval_t *rets,
+    size_t nrets)
 {
-    return ngx_wasmtime_call_helper(instance, fname, 0);
-}
-
-
-static ngx_int_t
-ngx_wasmtime_call_maybe(ngx_wasm_winstance_t *instance, const u_char *fname)
-{
-    return ngx_wasmtime_call_helper(instance, fname, 1);
+    return ngx_wasmtime_call_helper(instance, fname, args, nargs, rets, nrets);
 }
 
 

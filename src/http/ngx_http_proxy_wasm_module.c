@@ -234,10 +234,13 @@ ngx_http_proxy_wasm_init(ngx_cycle_t *cycle)
             return NGX_ERROR;
         }
 
-        rc = ngx_wasm_vm_actions.call_maybe(instance, (u_char *) "_start");
+        /*
+        rc = ngx_wasm_vm_actions.call_instance(instance, "_start",
+                                               NULL, 0, NULL, 0);
         if (rc != NGX_OK && rc != NGX_DONE) {
             return NGX_ERROR;
         }
+        */
 
         ngx_wasm_vm_actions.free_instance(instance);
     }
