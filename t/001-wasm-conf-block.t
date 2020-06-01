@@ -2,7 +2,15 @@
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 2);
+plan tests => repeat_each() * (blocks() * 3);
+
+add_block_preprocessor(sub {
+    my $block = shift;
+
+    if (!defined $block->no_error_log) {
+        $block->set_value("no_error_log", "[error]");
+    }
+});
 
 run_tests();
 
@@ -16,7 +24,7 @@ __DATA__
 
 
 
-=== TEST 2: wasm{} - missing
+=== TEST 2: wasm{} - missing block
 --- main_config
 --- error_log
 no "wasm" section in configuration
@@ -24,23 +32,23 @@ no "wasm" section in configuration
 
 
 
-=== TEST 3: wasm{} - empty
---- SKIP: "use" is not required anymore
---- main_config
-    wasm {}
---- error_log
-missing "use" directive in wasm configuration
---- must_die
-
-
-
-=== TEST 4: wasm{} - duplicated
+=== TEST 3: wasm{} - duplicated block
 --- main_config
     wasm {}
     wasm {}
 --- error_log
 "wasm" directive is duplicate
 --- must_die
+
+
+
+=== TEST 4: wasm{} - use directive
+--- main_config
+    wasm {
+        use wasmtime;
+    }
+--- error_log eval
+qr/\[notice\] .*? using the "wasmtime" wasm vm/
 
 
 
@@ -67,7 +75,7 @@ invalid wasm vm "foo"
 
 
 
-=== TEST 7: wasm{} - default vm
+=== TEST 7: wasm{} - default vm (no 'use' directive)
 --- main_config
     wasm {}
 --- error_log eval
@@ -75,10 +83,115 @@ qr/\[notice\] .*? using the "wasmtime" wasm vm/
 
 
 
-=== TEST 8: wasm{} use wasmtime vm
+=== TEST 8: wasm{} - module directive
 --- main_config
     wasm {
-        use wasmtime;
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+    }
+--- user_files
+>>> hello.wat
+(module)
+--- error_log eval
+qr/\[notice\] .*? \[wasm\] loading module "hello" at ".*?hello\.wat"/
+
+
+
+=== TEST 9: wasm{} - multiple module directives
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module world $TEST_NGINX_HTML_DIR/hello.wat;
+    }
+--- user_files
+>>> hello.wat
+(module)
+--- error_log eval
+[qr/\[notice\] .*? \[wasm\] loading module "hello" at ".*?hello\.wat"/,
+qr/\[notice\] .*? \[wasm\] loading module "world" at ".*?hello\.wat"/]
+
+
+
+=== TEST 10: wasm{} - invalid 'module' directive (no name)
+--- main_config
+    wasm {
+        module $TEST_NGINX_HTML_DIR/hello.wat;
     }
 --- error_log eval
-qr/\[notice\] .*? using the "wasmtime" wasm vm/
+qr/\[emerg\] .*? invalid number of arguments in "module" directive/
+--- must_die
+
+
+
+=== TEST 11: wasm{} - invalid 'module' directive (no path)
+--- main_config
+    wasm {
+        module hello;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid number of arguments in "module" directive/
+--- must_die
+
+
+
+=== TEST 12: wasm{} - invalid 'module' directive (invalid name)
+--- main_config
+    wasm {
+        module '' $TEST_NGINX_HTML_DIR/hello.wat;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid module name ""/
+--- must_die
+
+
+
+=== TEST 13: wasm{} - invalid 'module' directive (invalid path)
+--- main_config
+    wasm {
+        module hello '';
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid module path ""/
+--- must_die
+
+
+
+=== TEST 14: wasm{} - invalid 'module' directive (already defined)
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+    }
+--- user_files
+>>> hello.wat
+(module)
+--- error_log eval
+qr/\[emerg\] .*? module "hello" already defined/
+--- must_die
+
+
+
+=== TEST 15: wasm{} - invalid 'module' directive (no such path)
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/none.wat;
+    }
+--- error_log eval
+qr/\[error\] .*? open\(\) ".*?none\.wat" .*? No such file or directory/
+--- no_error_log
+[emerg]
+--- must_die
+
+
+
+=== TEST 16: wasm{} - invalid 'module' directive (invalid module)
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+    }
+--- user_files
+>>> hello.wat
+--- error_log eval
+qr/\[error\] .*? \[wasm\] failed to compile \.wat module at ".*?" \(.*? expected at least one module field/
+--- no_error_log
+[emerg]
+--- must_die

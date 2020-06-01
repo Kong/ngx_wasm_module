@@ -2,71 +2,74 @@
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 2);
+plan tests => repeat_each() * (blocks() * 3);
+
+add_block_preprocessor(sub {
+    my $block = shift;
+
+    if (!defined $block->no_error_log) {
+        $block->set_value("no_error_log", "[error]\n[emerg]");
+    }
+});
 
 run_tests();
 
 __DATA__
 
-=== TEST 1: wasm_module - empty path
---- config
-    location /t {
-        wasm_module '';
-        return 200;
+=== TEST 1: proxy_wasm_module directive
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
     }
---- error_log
-no file specified
---- must_die
-
-
-
-=== TEST 2: wasm_module - duplicated
 --- config
     location /t {
-        wasm_module 'a';
-        wasm_module 'b';
-        return 200;
-    }
---- error_log
-"wasm_module" directive is duplicate
---- must_die
-
-
-
-=== TEST 3: wasm_module - invalid path
---- config
-    location /t {
-        wasm_module $TEST_NGINX_HTML_DIR/none.wat;
-        return 200;
-    }
---- error_log eval
-qr/\[error\] .*? open\(\) ".*?none\.wat" .*? No such file or directory/
---- must_die
-
-
-
-=== TEST 4: wasm_module - can load a .wat file
---- config
-    location /t {
-        wasm_module $TEST_NGINX_HTML_DIR/hello.wat;
+        proxy_wasm_module hello;
         return 200;
     }
 --- user_files
 >>> hello.wat
 (module)
---- error_log eval
-qr/\[debug\] .*? loading wasm module at ".*?hello\.wat"/
 
 
 
-=== TEST 5: wasm_module - invalid .wat file
+=== TEST 2: proxy_wasm_module directive: invalid module name
 --- config
     location /t {
-        wasm_module $TEST_NGINX_HTML_DIR/hello.wat;
+        proxy_wasm_module '';
         return 200;
     }
---- user_files
->>> hello.wat
 --- error_log eval
-qr/\[error\] .*? \[wasmtime\] failed to compile \.wat module at ".*?hello\.wat" \(expected at least one module field/
+qr/\[emerg\] .*? invalid module name ""/
+--- no_error_log
+[error]
+--- must_die
+
+
+
+=== TEST 3: proxy_wasm_module directive: no such module
+--- main_config
+    wasm {}
+--- config
+    location /t {
+        proxy_wasm_module hello;
+        return 200;
+    }
+--- error_log eval
+qr/\[emerg\] .*? no such module "hello" defined/
+--- no_error_log
+[error]
+--- must_die
+
+
+
+=== TEST 4: proxy_wasm_module directive: no wasm{} configuration block
+--- config
+    location /t {
+        proxy_wasm_module hello;
+        return 200;
+    }
+--- error_log eval
+qr/\[emerg\] .*? no such module "hello" defined/
+--- no_error_log
+[error]
 --- must_die
