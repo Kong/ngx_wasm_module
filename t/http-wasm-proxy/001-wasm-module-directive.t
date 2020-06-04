@@ -55,7 +55,7 @@ qr/\[emerg\] .*? invalid module name ""/
         return 200;
     }
 --- error_log eval
-qr/\[emerg\] .*? no such module "hello" defined/
+qr/\[emerg\] .*? no "hello" module defined/
 --- no_error_log
 [error]
 --- must_die
@@ -69,7 +69,7 @@ qr/\[emerg\] .*? no such module "hello" defined/
         return 200;
     }
 --- error_log eval
-qr/\[emerg\] .*? no such module "hello" defined/
+qr/\[emerg\] .*? no "hello" module defined/
 --- no_error_log
 [error]
 --- must_die

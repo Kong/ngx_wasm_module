@@ -92,7 +92,7 @@ qr/\[notice\] .*? using the "wasmtime" wasm vm/
 >>> hello.wat
 (module)
 --- error_log eval
-qr/\[notice\] .*? \[wasm\] loading module "hello" at ".*?hello\.wat"/
+qr/\[notice\] .*? \[wasm\] loading module "hello" from ".*?hello\.wat"/
 
 
 
@@ -106,8 +106,8 @@ qr/\[notice\] .*? \[wasm\] loading module "hello" at ".*?hello\.wat"/
 >>> hello.wat
 (module)
 --- error_log eval
-[qr/\[notice\] .*? \[wasm\] loading module "hello" at ".*?hello\.wat"/,
-qr/\[notice\] .*? \[wasm\] loading module "world" at ".*?hello\.wat"/]
+[qr/\[notice\] .*? \[wasm\] loading module "hello" from ".*?hello\.wat"/,
+qr/\[notice\] .*? \[wasm\] loading module "world" from ".*?hello\.wat"/]
 
 
 
@@ -176,9 +176,9 @@ qr/\[emerg\] .*? module "hello" already defined/
         module hello $TEST_NGINX_HTML_DIR/none.wat;
     }
 --- error_log eval
-qr/\[error\] .*? open\(\) ".*?none\.wat" .*? No such file or directory/
+qr/\[emerg\] .*? \[wasm\] failed to load module "hello" from ".*?none\.wat" \(2: No such file or directory\)/
 --- no_error_log
-[emerg]
+[error]
 --- must_die
 
 
@@ -191,7 +191,7 @@ qr/\[error\] .*? open\(\) ".*?none\.wat" .*? No such file or directory/
 --- user_files
 >>> hello.wat
 --- error_log eval
-qr/\[error\] .*? \[wasm\] failed to compile \.wat module at ".*?" \(.*? expected at least one module field/
+qr/\[emerg\] .*? \[wasm\] failed to load module "hello" from ".*?hello\.wat" \(wasmtime error: expected at least one module field/
 --- no_error_log
-[emerg]
+[error]
 --- must_die

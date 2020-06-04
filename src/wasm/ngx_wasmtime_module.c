@@ -8,11 +8,8 @@
 #include "ddebug.h"
 
 #include <ngx_config.h>
+#include <ngx_wasmtime.h>
 #include <ngx_wasm.h>
-
-#include <wasm.h>
-#include <wasi.h>
-#include <wasmtime.h>
 
 
 #define ngx_wasmtime_cycle_get_conf(cycle)                                   \
@@ -32,7 +29,6 @@ typedef struct {
     wasm_store_t           *wasm_store;
     wasm_module_t          *wasm_module;
     ngx_pool_t             *pool;
-    ngx_log_t              *log;
 } ngx_wasmtime_wmodule_t;
 
 
@@ -41,7 +37,6 @@ typedef struct {
     wasm_exporttype_vec_t  *wasm_module_exports;
     wasm_instance_t        *wasm_instance;
     ngx_pool_t             *pool;
-    ngx_log_t              *log;
 } ngx_wasmtime_winstance_t;
 
 
@@ -49,22 +44,20 @@ static void *ngx_wasmtime_create_conf(ngx_cycle_t *cycle);
 static ngx_int_t ngx_wasmtime_init(ngx_cycle_t *cycle,
     ngx_wasm_vm_actions_t **vm_actions);
 static void ngx_wasmtime_shutdown(ngx_cycle_t *cycle);
-static void *ngx_wasmtime_new_module(ngx_str_t *path,
-    ngx_pool_t *pool, ngx_log_t *log, ngx_cycle_t *cycle, ngx_uint_t wat);
-static void ngx_wasmtime_free_module(void *data);
-static void *ngx_wasmtime_new_instance(void *data, wasm_trap_t *wtrap);
-static void ngx_wasmtime_free_instance(void *data);
-static ngx_int_t ngx_wasmtime_call_instance(void *data,
-    const char *fname, const ngx_wasm_wval_t *args, size_t nargs,
-    ngx_wasm_wval_t *rets, size_t nrets, wasm_trap_t *trap);
-static void ngx_wasmtime_log_error(ngx_uint_t level, ngx_log_t *log,
-    wasmtime_error_t *werror,
-#if (NGX_HAVE_VARIADIC_MACROS)
-    const char *fmt, ...);
-
-#else
-    const char *fmt, va_list args);
-#endif
+static ngx_wasm_vm_module_t ngx_wasmtime_new_module(ngx_cycle_t *cycle,
+    ngx_pool_t *pool, ngx_wasm_vm_bytes_t *bytes, ngx_uint_t flags,
+    ngx_wasm_vm_error_t *vm_error);
+static void ngx_wasmtime_free_module(ngx_wasm_vm_module_t vm_module);
+static ngx_wasm_vm_instance_t ngx_wasmtime_new_instance(
+    ngx_wasm_vm_module_t vm_module, ngx_wasm_vm_error_t *vm_error,
+    ngx_wasm_vm_trap_t *vm_trap);
+static void ngx_wasmtime_free_instance(ngx_wasm_vm_instance_t vm_instance);
+static ngx_int_t ngx_wasmtime_call_instance(ngx_wasm_vm_instance_t vm_instance,
+    const u_char *fname, const ngx_wasm_wval_t *args, size_t nargs,
+    ngx_wasm_wval_t *rets, size_t nrets, ngx_wasm_vm_error_t *vm_error,
+    ngx_wasm_vm_trap_t *vm_trap);
+static u_char *ngx_wasmtime_log_error_handler(ngx_wasm_vm_error_t vm_error,
+    ngx_wasm_vm_trap_t vm_trap, u_char *buf, size_t len);
 
 
 static ngx_str_t  module_name = ngx_string("wasmtime");
@@ -80,7 +73,8 @@ static ngx_wasm_module_t  ngx_wasmtime_module_ctx = {
         ngx_wasmtime_free_module,
         ngx_wasmtime_new_instance,
         ngx_wasmtime_free_instance,
-        ngx_wasmtime_call_instance
+        ngx_wasmtime_call_instance,
+        ngx_wasmtime_log_error_handler
     }
 };
 
@@ -159,34 +153,32 @@ ngx_wasmtime_shutdown(ngx_cycle_t *cycle)
 }
 
 
-static void *
-ngx_wasmtime_new_module(ngx_str_t *path, ngx_pool_t *pool, ngx_log_t *log,
-    ngx_cycle_t *cycle, ngx_uint_t wat)
+static ngx_wasm_vm_module_t
+ngx_wasmtime_new_module(ngx_cycle_t *cycle, ngx_pool_t *pool,
+    ngx_wasm_vm_bytes_t *bytes, ngx_uint_t flags,
+    ngx_wasm_vm_error_t *vm_error)
 {
     ngx_wasmtime_conf_t         *wtcf;
     ngx_wasmtime_wmodule_t      *wtmodule;
-    wasmtime_error_t            *werror;
-    wasm_byte_vec_t              wat_bytes, wasm_bytes;
+    wasm_byte_vec_t              wasm_bytes, wat_bytes;
+    wasmtime_error_t           **wterror = (wasmtime_error_t **) vm_error;
 
     wtcf = ngx_wasmtime_cycle_get_conf(cycle);
 
     ngx_wasm_assert(wtcf->wasm_store);
 
-    if (wat) {
-        if (ngx_wasm_read_file(&wat_bytes, path->data, log) != NGX_OK) {
+    if (!(flags & NGX_WASM_WMODULE_ISWAT)) {
+        wasm_bytes.size = bytes->len;
+        wasm_bytes.data = (char *) bytes->data;
+
+    } else {
+        wat_bytes.size = bytes->len;
+        wat_bytes.data = (char * ) bytes->data;
+
+        *wterror = wasmtime_wat2wasm(&wat_bytes, &wasm_bytes);
+        if (*wterror) {
             return NULL;
         }
-
-        werror = wasmtime_wat2wasm(&wat_bytes, &wasm_bytes);
-        if (werror) {
-            ngx_wasmtime_log_error(NGX_LOG_ERR, log, werror,
-                                   "failed to compile .wat module at \"%V\"",
-                                   path);
-            return NULL;
-        }
-
-    } else if (ngx_wasm_read_file(&wasm_bytes, path->data, log) != NGX_OK) {
-        return NULL;
     }
 
     wtmodule = ngx_palloc(pool, sizeof(ngx_wasmtime_wmodule_t));
@@ -194,15 +186,12 @@ ngx_wasmtime_new_module(ngx_str_t *path, ngx_pool_t *pool, ngx_log_t *log,
         return NULL;
     }
 
-    wtmodule->wasm_store = wtcf->wasm_store;
     wtmodule->pool = pool;
-    wtmodule->log = log;
+    wtmodule->wasm_store = wtcf->wasm_store;
 
-    werror = wasmtime_module_new(wtmodule->wasm_store, &wasm_bytes,
-                                 &wtmodule->wasm_module);
-    if (wtmodule->wasm_module == NULL) {
-        ngx_wasmtime_log_error(NGX_LOG_ERR, log, werror,
-                               "failed to compile module at \"%V\"", path);
+    *wterror = wasmtime_module_new(wtmodule->wasm_store, &wasm_bytes,
+                                   &wtmodule->wasm_module);
+    if (*wterror) {
         goto failed;
     }
 
@@ -220,9 +209,9 @@ failed:
 
 
 static void
-ngx_wasmtime_free_module(void *data)
+ngx_wasmtime_free_module(ngx_wasm_vm_module_t vm_module)
 {
-    ngx_wasmtime_wmodule_t      *wtmodule = data;
+    ngx_wasmtime_wmodule_t      *wtmodule = vm_module;
 
     if (wtmodule->wasm_module != NULL) {
         wasm_importtype_vec_delete(&wtmodule->wasm_imports);
@@ -234,12 +223,14 @@ ngx_wasmtime_free_module(void *data)
 }
 
 
-static void *
-ngx_wasmtime_new_instance(void *data, wasm_trap_t *wtrap)
+static ngx_wasm_vm_instance_t
+ngx_wasmtime_new_instance(ngx_wasm_vm_module_t vm_module,
+    ngx_wasm_vm_error_t *vm_error, ngx_wasm_vm_trap_t *vm_trap)
 {
-    ngx_wasmtime_wmodule_t      *wtmodule = data;
     ngx_wasmtime_winstance_t    *wtinstance;
-    wasmtime_error_t            *werror;
+    ngx_wasmtime_wmodule_t      *wtmodule = vm_module;
+    wasmtime_error_t           **wterror = (wasmtime_error_t **) vm_error;
+    wasm_trap_t                **wtrap = (wasm_trap_t **) vm_trap;
 
     ngx_wasm_assert(wtmodule->wasm_module != NULL);
 
@@ -249,20 +240,12 @@ ngx_wasmtime_new_instance(void *data, wasm_trap_t *wtrap)
     }
 
     wtinstance->pool = wtmodule->pool;
-    wtinstance->log = wtmodule->log;
 
-    werror = wasmtime_instance_new(wtmodule->wasm_module, NULL, 0,
-                                   &wtinstance->wasm_instance, &wtrap);
-    if (werror != NULL || wtrap != NULL) {
-        if (werror != NULL) {
-            ngx_wasmtime_log_error(NGX_LOG_ERR, wtmodule->log, werror,
-                                   "failed to create instance");
-        }
-
+    *wterror = wasmtime_instance_new(wtmodule->wasm_module, NULL, 0,
+                                     &wtinstance->wasm_instance, wtrap);
+    if (*wterror || *wtrap) {
         goto failed;
     }
-
-    ngx_wasm_assert(wtinstance->wasm_instance != NULL);
 
     wtinstance->wasm_module_exports = &wtmodule->wasm_exports;
     wasm_instance_exports(wtinstance->wasm_instance,
@@ -279,9 +262,9 @@ failed:
 
 
 static void
-ngx_wasmtime_free_instance(void *data)
+ngx_wasmtime_free_instance(ngx_wasm_vm_instance_t vm_instance)
 {
-    ngx_wasmtime_winstance_t       *wtinstance = data;
+    ngx_wasmtime_winstance_t       *wtinstance = vm_instance;
 
     if (wtinstance->wasm_instance != NULL) {
         wasm_instance_delete(wtinstance->wasm_instance);
@@ -390,15 +373,18 @@ ngx_wasmtime_wvals_to_ngxwvals(ngx_wasm_wval_t *vals, wasm_val_t *wvals,
 
 
 static ngx_int_t
-ngx_wasmtime_call_helper(ngx_wasmtime_winstance_t *wtinstance,
-    const char *fname, const ngx_wasm_wval_t *args, size_t nargs,
-    ngx_wasm_wval_t *rets, size_t nrets, wasm_trap_t *wtrap)
+ngx_wasmtime_call_instance(ngx_wasm_vm_instance_t vm_instance,
+    const u_char *fname, const ngx_wasm_wval_t *args, size_t nargs,
+    ngx_wasm_wval_t *rets, size_t nrets, ngx_wasm_vm_error_t *vm_error,
+    ngx_wasm_vm_trap_t *vm_trap)
 {
+    ngx_wasmtime_winstance_t    *wtinstance = vm_instance;
     const wasm_name_t           *wname;
-    wasm_val_t                   wargs[nargs], wrets[nrets];
     wasm_extern_t               *wfextern = NULL;
     wasm_func_t                 *wfunc;
-    wasmtime_error_t            *werror;
+    wasm_val_t                   wargs[nargs], wrets[nrets];
+    wasmtime_error_t           **wterror = (wasmtime_error_t **) vm_error;
+    wasm_trap_t                **wtrap = (wasm_trap_t **) vm_trap;
     size_t                       i;
     ngx_int_t                    rc = NGX_ERROR;
 
@@ -421,14 +407,8 @@ ngx_wasmtime_call_helper(ngx_wasmtime_winstance_t *wtinstance,
 
     ngx_wasmtime_ngxwvals_to_wvals(wargs, args, nargs);
 
-    werror = wasmtime_func_call(wfunc, wargs, nargs, wrets, nrets, &wtrap);
-    if (werror != NULL || wtrap != NULL) {
-        if (werror != NULL) {
-            ngx_wasmtime_log_error(NGX_LOG_ERR, wtinstance->log, werror,
-                                   "failed to call \"%s\" function", fname);
-            rc = NGX_ABORT;
-        }
-
+    *wterror = wasmtime_func_call(wfunc, wargs, nargs, wrets, nrets, wtrap);
+    if (*wterror || *wtrap) {
         goto failed;
     }
 
@@ -446,67 +426,43 @@ failed:
 }
 
 
-static ngx_int_t
-ngx_wasmtime_call_instance(void *data, const char *fname,
-    const ngx_wasm_wval_t *args, size_t nargs, ngx_wasm_wval_t *rets,
-    size_t nrets, wasm_trap_t *wtrap)
+static u_char *
+ngx_wasmtime_log_error_handler(ngx_wasm_vm_error_t vm_error,
+    ngx_wasm_vm_trap_t vm_trap, u_char *buf, size_t len)
 {
-    ngx_wasmtime_winstance_t     *wtinstance = data;
+    wasmtime_error_t            *error = vm_error;
+    wasm_trap_t                 *trap = vm_trap;
+    wasm_byte_vec_t              error_msg, trap_msg;
+    u_char                      *p;
 
-    return ngx_wasmtime_call_helper(wtinstance, fname, args, nargs, rets,
-                                    nrets, wtrap);
-}
+    if (trap) {
+        ngx_memzero(&trap_msg, sizeof(wasm_byte_vec_t));
 
+        wasm_trap_message(trap, &trap_msg);
+        wasm_trap_delete(trap);
 
-static void
-ngx_wasmtime_log_error(ngx_uint_t level, ngx_log_t *log,
-    wasmtime_error_t *werror,
-#if (NGX_HAVE_VARIADIC_MACROS)
-    const char *fmt, ...)
+        p = ngx_snprintf(buf, len, " error: %*s)",
+                         trap_msg.size, trap_msg.data);
+        len -= p - buf;
+        buf = p;
 
-#else
-    const char *fmt, va_list args)
-#endif
-{
-#if (NGX_HAVE_VARIADIC_MACROS)
-    va_list                      args;
-#endif
-    wasm_byte_vec_t              werror_msg;
-    u_char                      *p, *last;
-    u_char                       errstr[NGX_MAX_ERROR_STR];
-
-    ngx_memzero(&werror_msg, sizeof(wasm_byte_vec_t));
-
-    if (werror != NULL) {
-        wasmtime_error_message(werror, &werror_msg);
-        wasmtime_error_delete(werror);
+        wasm_byte_vec_delete(&trap_msg);
     }
 
-    last = errstr + NGX_MAX_ERROR_STR;
-    p = &errstr[0];
+    if (vm_error) {
+        ngx_memzero(&error_msg, sizeof(wasm_byte_vec_t));
+        wasmtime_error_message(error, &error_msg);
+        wasmtime_error_delete(error);
 
-#if (NGX_HAVE_VARIADIC_MACROS)
-    va_start(args, fmt);
-    p = ngx_vslprintf(p, last, fmt, args);
-    va_end(args);
+        p = ngx_snprintf(buf, len, " (wasmtime error: %*s)",
+                         error_msg.size, error_msg.data);
+        len -= p - buf;
+        buf = p;
 
-#else
-    p = ngx_vslprintf(p, last, fmt, args);
-#endif
-
-    if (werror_msg.size) {
-        ngx_wasm_log_error(level, log, 0,
-                           "%*s (wasmtime error: %*s)",
-                           p - errstr, errstr,
-                           werror_msg.size, werror_msg.data);
-
-        wasm_byte_vec_delete(&werror_msg);
-
-    } else {
-        ngx_wasm_log_error(level, log, 0,
-                           "%*s (wasmtime error: ?)",
-                           p - errstr, errstr);
+        wasm_byte_vec_delete(&error_msg);
     }
+
+    return p;
 }
 
 

@@ -11,31 +11,17 @@
 #include <ngx_wasm.h>
 
 
-#define ngx_wasm_core_cycle_get_conf(cycle)                             \
-    (*(ngx_get_conf(cycle->conf_ctx, ngx_wasm_module)))                 \
-    [ngx_wasm_core_module.ctx_index]
+/* ngx_wasm_module */
 
 
 static char *ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_wasm_init_conf(ngx_cycle_t *cycle, void *conf);
-static void *ngx_wasm_core_create_conf(ngx_cycle_t *cycle);
-static char *ngx_wasm_core_use_directive(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-static char *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
-static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
-static ngx_int_t ngx_wasm_core_add_module(ngx_wasm_core_conf_t *wcf,
-    ngx_wasm_wmodule_t *wmodule);
 
 
-/* ngx_wasm_module */
+static ngx_uint_t  ngx_wasm_max_module;
 
 
-static ngx_uint_t         ngx_wasm_max_module;
-
-
-static ngx_command_t      ngx_wasm_cmds[] = {
+static ngx_command_t  ngx_wasm_cmds[] = {
 
     { ngx_string("wasm"),
       NGX_MAIN_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
@@ -55,7 +41,7 @@ static ngx_core_module_t  ngx_wasm_module_ctx = {
 };
 
 
-ngx_module_t              ngx_wasm_module = {
+ngx_module_t  ngx_wasm_module = {
     NGX_MODULE_V1,
     &ngx_wasm_module_ctx,              /* module context */
     ngx_wasm_cmds,                     /* module directives */
@@ -170,11 +156,49 @@ ngx_wasm_init_conf(ngx_cycle_t *cycle, void *conf)
 /* ngx_wasm_core_module */
 
 
-static ngx_str_t                wasm_core_name = ngx_string("wasm_core");
-static ngx_wasm_vm_actions_t    ngx_wasm_vm_actions;
+#define NGX_WASM_DEFAULT_VM "wasmtime"
+
+#define ngx_wasm_core_cycle_get_conf(cycle)                                  \
+    (*(ngx_get_conf(cycle->conf_ctx, ngx_wasm_module)))                      \
+    [ngx_wasm_core_module.ctx_index]
+
+#define ngx_wasm_clear_werror(werror)                                        \
+    ngx_memzero(werror, sizeof(ngx_wasm_werror_t))
 
 
-static ngx_command_t      ngx_wasm_core_commands[] = {
+typedef struct {
+    ngx_uint_t                vm;
+    u_char                   *vm_name;
+    ngx_array_t              *wmodules; /* TODO: R/B tree */
+} ngx_wasm_core_conf_t;
+
+
+typedef struct {
+    ngx_log_t                *orig_log;
+    ngx_wasm_winstance_t     *winstance;
+} ngx_wasm_vm_log_ctx_t;
+
+
+static void *ngx_wasm_core_create_conf(ngx_cycle_t *cycle);
+static char *ngx_wasm_core_use_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+static char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+static char *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
+static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
+static ngx_int_t ngx_wasm_core_get_bytes_path(ngx_wasm_wmodule_t *wmodule,
+    ngx_log_t *log);
+static u_char *ngx_wasm_core_log_error_handler(ngx_log_t *log, u_char *buf,
+    size_t len);
+static ngx_int_t ngx_wasm_core_add_module(ngx_wasm_core_conf_t *wcf,
+    ngx_wasm_wmodule_t *wmodule);
+
+
+static ngx_str_t  wasm_core_name = ngx_string("wasm_core");
+static ngx_wasm_vm_actions_t  ngx_wasm_vm_actions;
+
+
+static ngx_command_t  ngx_wasm_core_commands[] = {
 
     { ngx_string("use"),
       NGX_WASM_CONF|NGX_CONF_TAKE1,
@@ -203,7 +227,7 @@ static ngx_wasm_module_t  ngx_wasm_core_module_ctx = {
 };
 
 
-ngx_module_t              ngx_wasm_core_module = {
+ngx_module_t  ngx_wasm_core_module = {
     NGX_MODULE_V1,
     &ngx_wasm_core_module_ctx,             /* module context */
     ngx_wasm_core_commands,                /* module directives */
@@ -300,16 +324,18 @@ ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    wmodule = ngx_wasm_get_module(cf->cycle, (char *) name->data);
+    wmodule = ngx_wasm_get_module(name->data, cf->cycle);
     if (wmodule != NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "module \"%V\" already defined", name);
+                           "[wasm] module \"%V\" already defined", name);
         return NGX_CONF_ERROR;
     }
 
-    wmodule = ngx_wasm_new_module((char *) name->data, (char *) path->data,
-                                  cf->pool, cf->log);
+    wmodule = ngx_wasm_new_module(name->data, path->data, cf->log);
     if (wmodule == NULL) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
+                           "[wasm] failed to load module \"%V\" from \"%V\"",
+                           name, path);
         return NGX_CONF_ERROR;
     }
 
@@ -350,8 +376,7 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
     }
 
     if (m == NULL) {
-        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                      "no wasm nginx module found");
+        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0, "no NGX_WASM_MODULE found");
         return NGX_CONF_ERROR;
     }
 
@@ -374,6 +399,7 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
     ngx_wasm_module_t       *m;
     ngx_wasm_vm_actions_t   *vma = NULL, **vmap;
     ngx_wasm_wmodule_t     **pwmodule;
+    ngx_wasm_werror_t        werror;
 
     vmap = &vma;
 
@@ -402,12 +428,73 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
     pwmodule = wcf->wmodules->elts;
 
     for (i = 0; i < wcf->wmodules->nelts; i++) {
-        if (ngx_wasm_load_module(pwmodule[i], cycle) != NGX_OK) {
+        if (ngx_wasm_load_module(pwmodule[i], cycle, &werror) != NGX_OK) {
+            ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0, &werror,
+                               "failed to load module \"%V\" from \"%V\"",
+                               &pwmodule[i]->name, &pwmodule[i]->path);
             return NGX_ERROR;
         }
     }
 
     return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_wasm_core_get_bytes_path(ngx_wasm_wmodule_t *wmodule, ngx_log_t *log)
+{
+    ssize_t                      n, fsize;
+    ngx_fd_t                     fd;
+    ngx_file_t                   file;
+    ngx_int_t                    rc = NGX_ERROR;
+
+    fd = ngx_open_file(wmodule->path.data, NGX_FILE_RDONLY, NGX_FILE_OPEN, 0);
+    if (fd == NGX_INVALID_FILE) {
+        return NGX_ERROR;
+    }
+
+    ngx_memzero(&file, sizeof(ngx_file_t));
+
+    file.fd = fd;
+    file.log = log;
+    file.name.len = ngx_strlen(wmodule->path.data);
+    file.name.data = (u_char *) wmodule->path.data;
+
+    if (ngx_fd_info(fd, &file.info) == NGX_FILE_ERROR) {
+        goto failed;
+    }
+
+    fsize = ngx_file_size(&file.info);
+    wmodule->bytes.len = fsize;
+    wmodule->bytes.data = ngx_palloc(wmodule->pool, fsize);
+    if (wmodule->bytes.data == NULL) {
+        goto failed;
+    }
+
+    //wasm_byte_vec_new_uninitialized(bytes, fsize);
+
+    n = ngx_read_file(&file, (u_char *) wmodule->bytes.data, fsize, 0);
+    if (n == NGX_ERROR) {
+        goto failed;
+    }
+
+    if (n != fsize) {
+        ngx_log_error(NGX_LOG_ERR, log, 0,
+                      ngx_read_file_n " \"%V\" returned only "
+                      "%z bytes instead of %uz", &file.name, n, fsize);
+        goto failed;
+    }
+
+    rc = NGX_OK;
+
+failed:
+
+    if (ngx_close_file(file.fd) == NGX_FILE_ERROR) {
+        ngx_log_error(NGX_LOG_ERR, log, ngx_errno,
+                      ngx_close_file_n " \"%V\" failed", &file.name);
+    }
+
+    return rc;
 }
 
 
@@ -430,7 +517,7 @@ ngx_wasm_core_add_module(ngx_wasm_core_conf_t *wcf, ngx_wasm_wmodule_t *wmodule)
 
 
 ngx_wasm_wmodule_t *
-ngx_wasm_get_module(ngx_cycle_t *cycle, const char *name)
+ngx_wasm_get_module(const u_char *name, ngx_cycle_t *cycle)
 {
     ngx_wasm_core_conf_t    *wcf;
     ngx_wasm_wmodule_t      *wmodule = NULL, **pwmodule = NULL;
@@ -454,23 +541,24 @@ ngx_wasm_get_module(ngx_cycle_t *cycle, const char *name)
 
 
 ngx_wasm_wmodule_t *
-ngx_wasm_new_module(const char *name, const char *path, ngx_pool_t *pool,
-    ngx_log_t *log)
+ngx_wasm_new_module(const u_char *name, const u_char *path, ngx_log_t *log)
 {
+    ngx_pool_t                  *pool;
     ngx_wasm_wmodule_t          *wmodule;
     u_char                      *p;
 
-    ngx_wasm_assert(name != NULL && path != NULL);
-
-    wmodule = ngx_palloc(pool, sizeof(ngx_wasm_wmodule_t));
-    if (wmodule == NULL) {
+    pool = ngx_create_pool(NGX_DEFAULT_POOL_SIZE, log);
+    if (pool == NULL) {
         return NULL;
     }
 
-    wmodule->log = log;
+    wmodule = ngx_pcalloc(pool, sizeof(ngx_wasm_wmodule_t));
+    if (wmodule == NULL) {
+        ngx_destroy_pool(pool);
+        return NULL;
+    }
+
     wmodule->pool = pool;
-    wmodule->data = NULL;
-    wmodule->state = 0;
 
     wmodule->name.len = ngx_strlen(name);
     wmodule->name.data = ngx_palloc(pool, wmodule->name.len + 1);
@@ -491,8 +579,16 @@ ngx_wasm_new_module(const char *name, const char *path, ngx_pool_t *pool,
     *p = '\0';
 
     if (ngx_strcmp(&wmodule->path.data[wmodule->path.len - 4], ".wat") == 0) {
-        wmodule->state = NGX_WASM_WMODULE_ISWAT;
+        wmodule->flags |= NGX_WASM_WMODULE_ISWAT;
     }
+
+    if (ngx_wasm_core_get_bytes_path(wmodule, log) != NGX_OK) {
+        goto failed;
+    }
+
+    ngx_wasm_assert(wmodule->bytes.data != NULL);
+
+    wmodule->flags |= NGX_WASM_WMODULE_HASBYTES;
 
     return wmodule;
 
@@ -504,57 +600,64 @@ failed:
 }
 
 
-ngx_int_t
-ngx_wasm_load_module(ngx_wasm_wmodule_t *wmodule, ngx_cycle_t *cycle)
+void
+ngx_wasm_free_module(ngx_wasm_wmodule_t *wmodule)
 {
-    ngx_uint_t      iswat = (wmodule->state & NGX_WASM_WMODULE_ISWAT) != 0;
+    if (wmodule->vm_module != NULL) {
+        ngx_wasm_vm_actions.free_module(wmodule->vm_module);
+    }
 
-    ngx_wasm_log_error(NGX_LOG_NOTICE, wmodule->log, 0,
-                       "loading module \"%V\" at \"%V\"",
+    ngx_destroy_pool(wmodule->pool);
+}
+
+
+ngx_int_t
+ngx_wasm_load_module(ngx_wasm_wmodule_t *wmodule, ngx_cycle_t *cycle,
+    ngx_wasm_werror_t *werror)
+{
+    ngx_wasm_clear_werror(werror);
+
+    if (wmodule->flags & NGX_WASM_WMODULE_LOADED) {
+        return NGX_OK;
+    }
+
+    if (!(wmodule->flags & NGX_WASM_WMODULE_HASBYTES)) {
+        ngx_wasm_log_error(NGX_LOG_ALERT, cycle->log, 0, NULL,
+                           "module \"%V\" has no bytes to load",
+                           &wmodule->name, &wmodule->path);
+        return NGX_ABORT;
+    }
+
+    ngx_wasm_log_error(NGX_LOG_NOTICE, cycle->log, 0, NULL,
+                       "loading module \"%V\" from \"%V\"",
                        &wmodule->name, &wmodule->path);
 
-    wmodule->data = ngx_wasm_vm_actions.new_module(&wmodule->path,
-                                                   wmodule->pool,
-                                                   wmodule->log,
-                                                   cycle, iswat);
-    if (wmodule->data == NULL) {
+    wmodule->vm_module = ngx_wasm_vm_actions.new_module(cycle, wmodule->pool,
+                                                        &wmodule->bytes,
+                                                        wmodule->flags,
+                                                        &werror->vm_error);
+    if (wmodule->vm_module == NULL) {
         return NGX_ERROR;
     }
 
-    wmodule->state |= NGX_WASM_WMODULE_LOADED;
+    wmodule->flags |= NGX_WASM_WMODULE_LOADED;
 
     return NGX_OK;
 }
 
 
-void
-ngx_wasm_free_module(ngx_wasm_wmodule_t *wmodule)
-{
-    if (wmodule->name.data != NULL) {
-        ngx_pfree(wmodule->pool, wmodule->name.data);
-    }
-
-    if (wmodule->path.data != NULL) {
-        ngx_pfree(wmodule->pool, wmodule->path.data);
-    }
-
-    if (wmodule->data != NULL) {
-        ngx_wasm_vm_actions.free_module(wmodule->data);
-    }
-
-    ngx_pfree(wmodule->pool, wmodule);
-}
-
-
 ngx_wasm_winstance_t *
-ngx_wasm_new_instance(ngx_wasm_wmodule_t *wmodule)
+ngx_wasm_new_instance(ngx_wasm_wmodule_t *wmodule, ngx_log_t *log,
+    ngx_wasm_werror_t *werror)
 {
     ngx_wasm_winstance_t      *winstance;
-    wasm_trap_t               *wtrap = NULL;
+    ngx_wasm_vm_log_ctx_t     *ctx;
 
-    if (!(wmodule->state & NGX_WASM_WMODULE_LOADED)) {
-        ngx_wasm_log_error(NGX_LOG_ERR, wmodule->log, 0,
-                           "module \"%V\" is not loaded", wmodule->name);
+    ngx_wasm_clear_werror(werror);
+
+    if (!(wmodule->flags & NGX_WASM_WMODULE_LOADED)) {
+        ngx_wasm_log_error(NGX_LOG_ERR, log, 0, NULL,
+                           "module \"%V\" is not loaded", &wmodule->name);
         return NULL;
     }
 
@@ -563,21 +666,37 @@ ngx_wasm_new_instance(ngx_wasm_wmodule_t *wmodule)
         return NULL;
     }
 
-    winstance->wmod_name = &wmodule->name;
-    winstance->log = wmodule->log;
+    winstance->module = wmodule;
     winstance->pool = wmodule->pool;
 
-    ngx_wasm_log_error(NGX_LOG_INFO, wmodule->log, 0,
-                       "creating instance from \"%V\" module", wmodule->name);
+    winstance->log = ngx_palloc(wmodule->pool, sizeof(ngx_log_t));
+    if (winstance->log == NULL) {
+        goto failed;
+    }
 
-    winstance->data = ngx_wasm_vm_actions.new_instance(wmodule->data, wtrap);
-    if (winstance->data == NULL) {
-        if (wtrap != NULL) {
-            ngx_wasm_log_trap(NGX_LOG_ERR, wmodule->log, wtrap,
-                              "failed to create instance of \"%V\" module",
-                              wmodule->name);
-        }
+    winstance->log->file = log->file;
+    winstance->log->next = log->next;
+    winstance->log->writer = log->writer;
+    winstance->log->wdata = log->wdata;
+    winstance->log->log_level = log->log_level;
+    winstance->log->handler = ngx_wasm_core_log_error_handler;
 
+    ctx = ngx_palloc(wmodule->pool, sizeof(ngx_wasm_vm_log_ctx_t));
+    if (ctx == NULL) {
+        goto failed;
+    }
+
+    ctx->winstance = winstance;
+    ctx->orig_log = log;
+    winstance->log->data = ctx;
+
+    ngx_log_error(NGX_LOG_INFO, log, 0, "creating instance of module \"%V\"",
+                  &wmodule->name);
+
+    winstance->vm_instance = ngx_wasm_vm_actions.new_instance(
+                                 wmodule->vm_module, &werror->vm_error,
+                                 &werror->trap);
+    if (winstance->vm_instance == NULL) {
         goto failed;
     }
 
@@ -591,47 +710,107 @@ failed:
 }
 
 
-ngx_int_t
-ngx_wasm_call_instance(ngx_wasm_winstance_t *winstance, const char *fname,
-    const ngx_wasm_wval_t *args, size_t nargs, ngx_wasm_wval_t *rets,
-    size_t nrets)
+void
+ngx_wasm_free_instance(ngx_wasm_winstance_t *winstance)
 {
-    ngx_int_t           rc;
-    wasm_trap_t        *wtrap = NULL;
-
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, winstance->log, 0,
-                   "instance of \"%V\" (%p) calling function \"%s\"",
-                   winstance->wmod_name, winstance, fname);
-
-    rc = ngx_wasm_vm_actions.call_instance(winstance->data, fname, args, nargs,
-                                           rets, nrets, wtrap);
-    if (rc != NGX_OK) {
-        if (rc == NGX_DECLINED) {
-            ngx_wasm_log_error(NGX_LOG_ERR, winstance->log, 0,
-                               "module \"%V\" has no \"%s\" function",
-                               winstance->wmod_name, fname);
-
-        } else if (rc == NGX_ERROR) {
-            ngx_wasm_log_trap(NGX_LOG_ERR, winstance->log, wtrap,
-                               "module \"%V\" errored in \"%s\" function",
-                               winstance->wmod_name, fname);
-        }
-
-        /* rc == NGX_ABORT */
+    if (winstance->vm_instance != NULL) {
+        ngx_wasm_vm_actions.free_instance(winstance->vm_instance);
     }
 
-    return rc;
+    if (winstance->log != NULL) {
+        if (winstance->log->data != NULL) {
+            ngx_pfree(winstance->pool, winstance->log->data);
+        }
+
+        ngx_pfree(winstance->pool, winstance->log);
+    }
+
+    ngx_pfree(winstance->pool, winstance);
+}
+
+
+ngx_int_t
+ngx_wasm_call_instance(ngx_wasm_winstance_t *winstance, const u_char *fname,
+    const ngx_wasm_wval_t *args, size_t nargs, ngx_wasm_wval_t *rets,
+    size_t nrets, ngx_wasm_werror_t *werror)
+{
+    ngx_wasm_clear_werror(werror);
+
+    ngx_log_debug3(NGX_LOG_DEBUG_WASM, winstance->log, 0,
+                   "wasm instance of module \"%V\" "
+                   "calling function \"%s\" (instance: %p)",
+                   &winstance->module->name, fname, winstance);
+
+    return ngx_wasm_vm_actions.call_instance(winstance->vm_instance, fname,
+                                             args, nargs, rets, nrets,
+                                             &werror->vm_error, &werror->trap);
 }
 
 
 void
-ngx_wasm_free_instance(ngx_wasm_winstance_t *winstance)
+ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
+    ngx_wasm_werror_t *werror,
+#if (NGX_HAVE_VARIADIC_MACROS)
+    const char *fmt, ...)
+
+#else
+    const char *fmt, va_list args)
+#endif
 {
-    if (winstance->data != NULL) {
-        ngx_wasm_vm_actions.free_instance(winstance->data);
+#if (NGX_HAVE_VARIADIC_MACROS)
+    va_list            args;
+#endif
+    u_char            *p, *last;
+    u_char             errstr[NGX_MAX_ERROR_STR];
+
+    last = errstr + NGX_MAX_ERROR_STR;
+    p = &errstr[0];
+
+#if (NGX_HAVE_VARIADIC_MACROS)
+    va_start(args, fmt);
+    p = ngx_vslprintf(p, last, fmt, args);
+    va_end(args);
+
+#else
+    p = ngx_vslprintf(p, last, fmt, args);
+#endif
+
+    if (werror) {
+        if (ngx_wasm_vm_actions.log_error_handler) {
+            p = ngx_wasm_vm_actions.log_error_handler(werror->vm_error,
+                                                      werror->trap,
+                                                      p, last - p);
+        } else {
+            ngx_wasm_assert(NULL);
+            p = ngx_slprintf(p, last, " (no error log handler in vm)");
+        }
     }
 
-    ngx_pfree(winstance->pool, winstance);
+    ngx_log_error_core(level, log, err, "[wasm] %*s", p - errstr, errstr);
+}
+
+
+static u_char *
+ngx_wasm_core_log_error_handler(ngx_log_t *log, u_char *buf, size_t len)
+{
+    u_char                  *p = buf;
+    ngx_log_t               *orig_log;
+    ngx_wasm_vm_log_ctx_t   *ctx;
+    ngx_wasm_winstance_t    *winstance;
+
+    ctx = log->data;
+    orig_log = ctx->orig_log;
+    winstance = ctx->winstance;
+
+    if (winstance) {
+        p = ngx_snprintf(buf, len, " <NYI: instance info>");
+    }
+
+    if (orig_log->handler) {
+        p = orig_log->handler(orig_log, p, len);
+    }
+
+    return p;
 }
 
 

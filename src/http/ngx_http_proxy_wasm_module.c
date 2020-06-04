@@ -118,10 +118,10 @@ ngx_http_proxy_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    module = ngx_wasm_get_module(cf->cycle, (char *) name->data);
+    module = ngx_wasm_get_module(name->data, cf->cycle);
     if (module == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                          "no such module \"%V\" defined", name);
+                          "no \"%V\" module defined", name);
         return NGX_CONF_ERROR;
     }
 

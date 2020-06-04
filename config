@@ -1,53 +1,3 @@
-ngx_module_type=CORE
-ngx_module_name=ngx_wasm_module
-ngx_module_incs="$ngx_addon_dir/src \
-                 $ngx_addon_dir/src/common"
-ngx_module_libs=
-ngx_module_deps="$ngx_addon_dir/src/ngx_wasm.h"
-ngx_module_srcs="$ngx_addon_dir/src/ngx_wasm.c \
-                 $ngx_addon_dir/src/common/ngx_wasm_util.c"
-ngx_module_link=ADDON
-
-. auto/module
-
-###############################################################################
-
-ngx_module_type=WASM
-ngx_module_name=ngx_wasm_core_module
-ngx_module_incs=
-ngx_module_libs=
-ngx_module_deps=
-ngx_module_srcs=
-ngx_module_link=ADDON
-
-. auto/module
-
-###############################################################################
-
-ngx_module_type=HTTP
-ngx_module_name=ngx_http_proxy_wasm_module
-ngx_module_incs=
-ngx_module_libs=
-ngx_module_deps=
-ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_proxy_wasm_module.c"
-ngx_module_link=ADDON
-
-. auto/module
-
-###############################################################################
-
-ngx_module_type=HTTP
-ngx_module_name=ngx_http_wasm_module
-ngx_module_incs=
-ngx_module_libs=
-ngx_module_deps=
-#ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_module.c"
-ngx_module_link=ADDON
-
-#. auto/module
-
-###############################################################################
-
 find_wasmtime() {
     if [ $ngx_found = yes ]; then
         return
@@ -73,13 +23,14 @@ find_wasmtime() {
     ngx_feature_name="NGX_WASM_HAVE_WASMTIME"
     ngx_feature_run=no
     ngx_feature_incs="#include <wasm.h>
-                      #include <wasi.h>
                       #include <wasmtime.h>"
     ngx_feature_test=
     ngx_feature_libs="$ngx_feature_libs-lwasmtime"
 
     . auto/feature
 }
+
+###############################################################################
 
 ngx_found=no
 
@@ -103,6 +54,56 @@ ngx_module_incs="$ngx_feature_path"
 ngx_module_libs="$ngx_feature_libs"
 ngx_module_deps=
 ngx_module_srcs="$ngx_addon_dir/src/wasm/ngx_wasmtime_module.c"
+ngx_module_link=ADDON
+
+. auto/module
+
+###############################################################################
+
+ngx_module_type=CORE
+ngx_module_name=ngx_wasm_module
+ngx_module_incs="$ngx_addon_dir/src \
+                 $ngx_addon_dir/src/wasm \
+                 $ngx_addon_dir/src/common"
+ngx_module_libs=
+ngx_module_deps="$ngx_addon_dir/src/ngx_wasm.h"
+ngx_module_srcs="$ngx_addon_dir/src/ngx_wasm.c"
+ngx_module_link=ADDON
+
+. auto/module
+
+###############################################################################
+
+ngx_module_type=WASM
+ngx_module_name=ngx_wasm_core_module
+ngx_module_incs=
+ngx_module_libs=
+ngx_module_deps=
+ngx_module_srcs=
+ngx_module_link=ADDON
+
+. auto/module
+
+###############################################################################
+
+ngx_module_type=HTTP
+ngx_module_name=ngx_http_proxy_wasm_module
+ngx_module_incs=
+ngx_module_libs=
+ngx_module_deps=
+#ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_proxy_wasm_module.c"
+ngx_module_link=ADDON
+
+#. auto/module
+
+###############################################################################
+
+ngx_module_type=HTTP
+ngx_module_name=ngx_http_wasm_module
+ngx_module_incs=
+ngx_module_libs=
+ngx_module_deps=
+ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_module.c"
 ngx_module_link=ADDON
 
 . auto/module

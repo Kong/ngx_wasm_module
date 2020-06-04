@@ -16,15 +16,17 @@
 
 #include <nginx.h>
 #include <ngx_core.h>
-#include <ngx_wasm_util.h>
 
 
 #define NGX_WASM_MODULE            0x5741534d   /* "MSAW" */
 #define NGX_WASM_CONF              0x00300000
-#define NGX_WASM_DEFAULT_VM        "wasmtime"
-#define NGX_WASM_NO_VM_ACTIONS     { NULL, NULL, NULL, NULL, NULL }
-#define NGX_LOG_DEBUG_WASM         NGX_LOG_DEBUG_CORE
+#define NGX_WASM_NO_VM_ACTIONS     { NULL, NULL, NULL, NULL, NULL, NULL }
 
+#define NGX_WASM_WMODULE_ISWAT     (1 << 0)
+#define NGX_WASM_WMODULE_HASBYTES  (1 << 1)
+#define NGX_WASM_WMODULE_LOADED    (1 << 2)
+
+#define NGX_LOG_DEBUG_WASM         NGX_LOG_DEBUG_ALL
 
 #define NGX_WASM_ARG_I32(i)        { .kind = NGX_WASM_I32, .value.I32 = i }
 #define NGX_WASM_ARG_I64(i)        { .kind = NGX_WASM_I64, .value.I64 = i }
@@ -32,31 +34,35 @@
 #define NGX_WASM_ARG_F64(i)        { .kind = NGX_WASM_F64, .value.F64 = i }
 
 
-#define NGX_WASM_WMODULE_ISWAT     (1 << 0)
-#define NGX_WASM_WMODULE_LOADED    (1 << 1)
+typedef ngx_str_t ngx_wasm_vm_bytes_t;
+typedef void* ngx_wasm_vm_module_t;
+typedef void* ngx_wasm_vm_instance_t;
+typedef void* ngx_wasm_vm_error_t;
+typedef void* ngx_wasm_vm_trap_t;
 
 
 typedef struct {
-    ngx_str_t       name;
-    ngx_str_t       path;
-    u_short         state;
-    ngx_pool_t     *pool;
-    ngx_log_t      *log;
-    void           *data;
+    ngx_wasm_vm_trap_t     trap;
+    ngx_wasm_vm_error_t    vm_error;
+} ngx_wasm_werror_t;
+
+
+typedef struct {
+    ngx_str_t               name;
+    ngx_str_t               path;
+    ngx_wasm_vm_bytes_t     bytes;
+    ngx_uint_t              flags;
+    ngx_pool_t             *pool;
+    ngx_wasm_vm_module_t    vm_module;
 } ngx_wasm_wmodule_t;
 
 
 typedef struct {
-    ngx_str_t      *wmod_name;
-    ngx_pool_t     *pool;
-    ngx_log_t      *log;
-    void           *data;
+    ngx_wasm_wmodule_t     *module;
+    ngx_pool_t             *pool;
+    ngx_log_t              *log;
+    ngx_wasm_vm_instance_t  vm_instance;
 } ngx_wasm_winstance_t;
-
-
-//typedef struct {
-
-//} ngx_wasm_wfunc_t;
 
 
 typedef enum {
@@ -80,16 +86,25 @@ typedef struct {
 
 
 typedef struct {
-    void        *(*new_module)(ngx_str_t *path, ngx_pool_t *pool,
-                               ngx_log_t *log, ngx_cycle_t *cycle,
-                               ngx_uint_t wat);
-    void         (*free_module)(void *data);
-    void        *(*new_instance)(void *data, wasm_trap_t *wtrap);
-    void         (*free_instance)(void *data);
-    ngx_int_t    (*call_instance)(void *data, const char *fname,
-                                  const ngx_wasm_wval_t *args, size_t nargs,
-                                  ngx_wasm_wval_t *rets, size_t nrets,
-                                  wasm_trap_t *trap);
+    ngx_wasm_vm_module_t (*new_module)(ngx_cycle_t *cycle, ngx_pool_t *pool,
+        ngx_wasm_vm_bytes_t *bytes, ngx_uint_t flags,
+        ngx_wasm_vm_error_t *vm_error);
+
+    void (*free_module)(ngx_wasm_vm_module_t vm_module);
+
+    ngx_wasm_vm_instance_t (*new_instance)(ngx_wasm_vm_module_t vm_module,
+        ngx_wasm_vm_error_t *vm_error, ngx_wasm_vm_trap_t *vm_trap);
+
+    void (*free_instance)(ngx_wasm_vm_instance_t vm_instance);
+
+    ngx_int_t (*call_instance)(ngx_wasm_vm_instance_t vm_instance,
+        const u_char *fname, const ngx_wasm_wval_t *args, size_t nargs,
+        ngx_wasm_wval_t *rets, size_t nrets, ngx_wasm_vm_error_t *vm_error,
+        ngx_wasm_vm_trap_t *vm_trap);
+
+    u_char *(*log_error_handler)(ngx_wasm_vm_error_t vm_error,
+        ngx_wasm_vm_trap_t vm_trap, u_char *buf, size_t len);
+
 } ngx_wasm_vm_actions_t;
 
 
@@ -103,27 +118,29 @@ typedef struct {
 } ngx_wasm_module_t;
 
 
-typedef struct {
-    ngx_uint_t                   vm;
-    u_char                      *vm_name;
-    ngx_array_t                 *wmodules; /* TODO: R/B tree */
-} ngx_wasm_core_conf_t;
-
-
 extern ngx_module_t              ngx_wasm_module;
 
 
-ngx_wasm_wmodule_t *ngx_wasm_get_module(ngx_cycle_t *cycle, const char *name);
-ngx_wasm_wmodule_t *ngx_wasm_new_module(const char *name, const char *path,
-    ngx_pool_t *pool, ngx_log_t *log);
-ngx_int_t ngx_wasm_load_module(ngx_wasm_wmodule_t *wmodule,
-    ngx_cycle_t *cycle);
+ngx_wasm_wmodule_t *ngx_wasm_get_module(const u_char *name, ngx_cycle_t *cycle);
+ngx_wasm_wmodule_t *ngx_wasm_new_module(const u_char *name, const u_char *path,
+    ngx_log_t *log);
 void ngx_wasm_free_module(ngx_wasm_wmodule_t *wmodule);
-ngx_wasm_winstance_t *ngx_wasm_new_instance(ngx_wasm_wmodule_t *wmodule);
-ngx_int_t ngx_wasm_call_instance(ngx_wasm_winstance_t *winstance,
-    const char *fname, const ngx_wasm_wval_t *args, size_t nargs,
-    ngx_wasm_wval_t *rets, size_t nrets);
+ngx_int_t ngx_wasm_load_module(ngx_wasm_wmodule_t *wmodule,
+    ngx_cycle_t *cycle, ngx_wasm_werror_t *werror);
+ngx_wasm_winstance_t *ngx_wasm_new_instance(ngx_wasm_wmodule_t *wmodule,
+    ngx_log_t *log, ngx_wasm_werror_t *werror);
 void ngx_wasm_free_instance(ngx_wasm_winstance_t *winstance);
+ngx_int_t ngx_wasm_call_instance(ngx_wasm_winstance_t *winstance,
+    const u_char *fname, const ngx_wasm_wval_t *args, size_t nargs,
+    ngx_wasm_wval_t *rets, size_t nrets, ngx_wasm_werror_t *werror);
+void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
+    ngx_wasm_werror_t *werror,
+#if (NGX_HAVE_VARIADIC_MACROS)
+    const char *fmt, ...);
+
+#else
+    const char *fmt, va_list args);
+#endif
 
 
 #endif /* _NGX_WASM_H_INCLUDED_ */
