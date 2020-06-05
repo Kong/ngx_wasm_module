@@ -156,7 +156,7 @@ ngx_wasm_init_conf(ngx_cycle_t *cycle, void *conf)
 /* ngx_wasm_core_module */
 
 
-#define NGX_WASM_DEFAULT_VM "wasmtime"
+#define NGX_WASM_DEFAULT_VM  "wasmtime"
 
 #define ngx_wasm_core_cycle_get_conf(cycle)                                  \
     (*(ngx_get_conf(cycle->conf_ctx, ngx_wasm_module)))                      \
@@ -220,10 +220,10 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
 
 static ngx_wasm_module_t  ngx_wasm_core_module_ctx = {
     &wasm_core_name,
-    ngx_wasm_core_create_conf,                      /* create configuration */
-    ngx_wasm_core_init_conf,                        /* init configuration */
-    NULL,                                           /* init module */
-    NGX_WASM_NO_VM_ACTIONS                          /* vm actions */
+    ngx_wasm_core_create_conf,             /* create configuration */
+    ngx_wasm_core_init_conf,               /* init configuration */
+    NULL,                                  /* init module */
+    NGX_WASM_NO_VM_ACTIONS                 /* vm actions */
 };
 
 
@@ -690,9 +690,9 @@ ngx_wasm_new_instance(ngx_wasm_wmodule_t *wmodule, ngx_log_t *log,
     ctx->orig_log = log;
     winstance->log->data = ctx;
 
-    ngx_wasm_log_error(NGX_LOG_INFO, log, 0, NULL,
-                       "creating instance of \"%V\" module",
-                       &wmodule->name);
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, log, 0,
+                   "creating wasm instance of \"%V\" module",
+                   &winstance->module->name);
 
     winstance->vm_instance = ngx_wasm_vm_actions.new_instance(
                                  wmodule->vm_module, &werror->vm_error,

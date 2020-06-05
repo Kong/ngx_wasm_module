@@ -432,21 +432,33 @@ ngx_wasmtime_log_error_handler(ngx_wasm_vm_error_t vm_error,
 {
     wasmtime_error_t            *error = vm_error;
     wasm_trap_t                 *trap = vm_trap;
-    wasm_byte_vec_t              error_msg, trap_msg;
+    wasm_byte_vec_t              error_msg, trap_msg, trap_trace;
     u_char                      *p;
 
     if (trap) {
         ngx_memzero(&trap_msg, sizeof(wasm_byte_vec_t));
+        ngx_memzero(&trap_trace, sizeof(wasm_byte_vec_t));
 
         wasm_trap_message(trap, &trap_msg);
-        wasm_trap_delete(trap);
+        wasm_trap_trace(trap, &trap_trace);
 
         p = ngx_snprintf(buf, len, " | %*s |",
                          trap_msg.size, trap_msg.data);
         len -= p - buf;
         buf = p;
 
+#if 0
+        if (trap_trace.size) {
+            p = ngx_snprintf(buf, len, "\n%*s",
+                             trap_trace.size, trap_trace.data);
+            len -= p - buf;
+            buf = p;
+        }
+#endif
+
         wasm_byte_vec_delete(&trap_msg);
+        wasm_byte_vec_delete(&trap_trace);
+        wasm_trap_delete(trap);
     }
 
     if (vm_error) {

@@ -22,11 +22,11 @@
 #define NGX_WASM_CONF              0x00300000
 #define NGX_WASM_NO_VM_ACTIONS     { NULL, NULL, NULL, NULL, NULL, NULL }
 
+#define NGX_LOG_DEBUG_WASM         NGX_LOG_DEBUG_ALL
+
 #define NGX_WASM_WMODULE_ISWAT     (1 << 0)
 #define NGX_WASM_WMODULE_HASBYTES  (1 << 1)
 #define NGX_WASM_WMODULE_LOADED    (1 << 2)
-
-#define NGX_LOG_DEBUG_WASM         NGX_LOG_DEBUG_ALL
 
 #define NGX_WASM_ARG_I32(i)        { .kind = NGX_WASM_I32, .value.I32 = i }
 #define NGX_WASM_ARG_I64(i)        { .kind = NGX_WASM_I64, .value.I64 = i }
@@ -34,6 +34,7 @@
 #define NGX_WASM_ARG_F64(i)        { .kind = NGX_WASM_F64, .value.F64 = i }
 
 
+/* TODO */
 typedef ngx_str_t ngx_wasm_vm_bytes_t;
 typedef void* ngx_wasm_vm_module_t;
 typedef void* ngx_wasm_vm_instance_t;
