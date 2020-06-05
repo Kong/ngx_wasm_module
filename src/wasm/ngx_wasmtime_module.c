@@ -441,7 +441,7 @@ ngx_wasmtime_log_error_handler(ngx_wasm_vm_error_t vm_error,
         wasm_trap_message(trap, &trap_msg);
         wasm_trap_delete(trap);
 
-        p = ngx_snprintf(buf, len, " error: %*s)",
+        p = ngx_snprintf(buf, len, " | %*s |",
                          trap_msg.size, trap_msg.data);
         len -= p - buf;
         buf = p;

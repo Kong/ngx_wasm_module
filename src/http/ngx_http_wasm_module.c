@@ -239,6 +239,13 @@ ngx_http_wasm_init(ngx_conf_t *cf)
 
     for (i = 0; i <= NGX_WASM_HTTP_LAST_PHASE; i++) {
         if (mcf->phases[i]) {
+            if (phases_handlers[i] == NULL) {
+                ngx_log_error(NGX_LOG_ALERT, cf->log, 0,
+                              "http wasm: no phase handler declared for "
+                              "phase \"%d\"", i);
+                return NGX_ERROR;
+            }
+
             h = ngx_array_push(&cmcf->phases[i].handlers);
             if (h == NULL) {
                 return NGX_ERROR;
@@ -267,11 +274,11 @@ ngx_http_wasm_exec_on_phase(ngx_http_request_t *r, ngx_http_phases phase)
 
     calls = lcf->on_phases[phase];
 
+    /*
     if (calls == NULL) {
         return NGX_OK;
     }
-
-    //ngx_wasm_assert(calls != NULL);
+    */
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm: executing %d call(s) in log phase",
@@ -286,7 +293,7 @@ ngx_http_wasm_exec_on_phase(ngx_http_request_t *r, ngx_http_phases phase)
         instance = ngx_wasm_new_instance(module, r->connection->log, &werror);
         if (instance == NULL) {
             ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0, &werror,
-                               "failed to create instance of module \"%V\"",
+                               "failed to create instance of \"%V\" module",
                                &module->name);
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
@@ -296,8 +303,7 @@ ngx_http_wasm_exec_on_phase(ngx_http_request_t *r, ngx_http_phases phase)
             != NGX_OK)
         {
             ngx_wasm_log_error(NGX_LOG_ERR, instance->log, 0, &werror,
-                               "failed to call function \"%V\"",
-                               call->fname);
+                               "error calling \"%V\"", &call->fname);
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 

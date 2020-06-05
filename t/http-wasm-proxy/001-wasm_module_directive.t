@@ -16,7 +16,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm_module directive
+=== TEST 1: proxy_wasm_module directive: sanity
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;

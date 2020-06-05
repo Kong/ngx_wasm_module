@@ -690,8 +690,9 @@ ngx_wasm_new_instance(ngx_wasm_wmodule_t *wmodule, ngx_log_t *log,
     ctx->orig_log = log;
     winstance->log->data = ctx;
 
-    ngx_log_error(NGX_LOG_INFO, log, 0, "creating instance of module \"%V\"",
-                  &wmodule->name);
+    ngx_wasm_log_error(NGX_LOG_INFO, log, 0, NULL,
+                       "creating instance of \"%V\" module",
+                       &wmodule->name);
 
     winstance->vm_instance = ngx_wasm_vm_actions.new_instance(
                                  wmodule->vm_module, &werror->vm_error,
@@ -737,7 +738,7 @@ ngx_wasm_call_instance(ngx_wasm_winstance_t *winstance, const u_char *fname,
     ngx_wasm_clear_werror(werror);
 
     ngx_log_debug3(NGX_LOG_DEBUG_WASM, winstance->log, 0,
-                   "wasm instance of module \"%V\" "
+                   "wasm instance of \"%V\" module "
                    "calling function \"%s\" (instance: %p)",
                    &winstance->module->name, fname, winstance);
 
@@ -803,7 +804,8 @@ ngx_wasm_core_log_error_handler(ngx_log_t *log, u_char *buf, size_t len)
     winstance = ctx->winstance;
 
     if (winstance) {
-        p = ngx_snprintf(buf, len, " <NYI: instance info>");
+        p = ngx_snprintf(buf, len, " <module: \"%V\">",
+                         &winstance->module->name);
     }
 
     if (orig_log->handler) {

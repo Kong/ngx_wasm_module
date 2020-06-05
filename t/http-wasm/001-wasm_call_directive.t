@@ -16,7 +16,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: wasm_call_log directive
+=== TEST 1: wasm_call_log directive: sanity
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -34,3 +34,79 @@ __DATA__
 )
 --- error_log
 wasm: executing 1 call(s) in log phase
+
+
+
+=== TEST 2: wasm_call_log directive: invalid module name
+--- config
+    location /t {
+        wasm_call_log '' get;
+        return 200;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid module name ""/
+--- must_die
+
+
+
+=== TEST 3: wasm_call_log directive: invalid function name
+--- config
+    location /t {
+        wasm_call_log hello '';
+        return 200;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid function name ""/
+--- must_die
+
+
+
+=== TEST 4: wasm_call_log directive: no wasm{} configuration block
+--- config
+    location /t {
+        wasm_call_log hello get;
+        return 200;
+    }
+--- error_log eval
+qr/\[emerg\] .*? no "hello" module defined/
+--- must_die
+
+
+
+=== TEST 5: wasm_call_log directive: no such module
+--- main_config
+    wasm {}
+--- config
+    location /t {
+        wasm_call_log hello get;
+        return 200;
+    }
+--- error_log eval
+qr/\[emerg\] .*? no "hello" module defined/
+--- must_die
+
+
+
+=== TEST 6: wasm_call_log directive: catch runtime error sanity
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+    }
+--- config
+    location /t {
+        wasm_call_log hello div0;
+        return 200;
+    }
+--- user_files
+>>> hello.wat
+(module
+    (func (export "div0")
+        i32.const 0
+        i32.const 0
+        i32.div_u
+        drop)
+)
+--- error_log eval
+qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
+--- no_error_log
+[emerg]
