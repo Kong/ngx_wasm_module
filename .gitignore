@@ -1,3 +1,4 @@
 work/
 buildroot/
 t/servroot/
+t/lib/rust-http-tests/target/
