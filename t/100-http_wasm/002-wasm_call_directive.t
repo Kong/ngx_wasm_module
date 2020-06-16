@@ -61,33 +61,20 @@ qr/\[emerg\] .*? invalid function name ""/
 
 
 
-=== TEST 4: wasm_call_log directive: no wasm{} configuration block
+=== TEST 4: wasm_call_log directive: no such module
 --- config
     location /t {
         wasm_call_log hello get;
         return 200;
     }
 --- error_log eval
-qr/\[emerg\] .*? no "hello" module defined/
+qr/\[emerg\] .*? \[wasm\] no "hello" module defined/
 --- must_die
 
 
 
-=== TEST 5: wasm_call_log directive: no such module
---- main_config
-    wasm {}
---- config
-    location /t {
-        wasm_call_log hello get;
-        return 200;
-    }
---- error_log eval
-qr/\[emerg\] .*? no "hello" module defined/
---- must_die
-
-
-
-=== TEST 6: wasm_call_log directive: catch runtime error sanity
+=== TEST 5: wasm_call_log directive: catch runtime error sanity
+--- SKIP
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -108,5 +95,21 @@ qr/\[emerg\] .*? no "hello" module defined/
 )
 --- error_log eval
 qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
+--- no_error_log
+[emerg]
+
+
+
+=== TEST 6: wasm_call_log directive: X
+--- SKIP
+--- main_config
+    wasm {
+        module http_tests t/lib/rust-http-tests/target/wasm32-unknown-unknown/debug/rust_tests.wasm;
+    }
+--- config
+    location /t {
+        wasm_call_log http_tests _start;
+        return 200;
+    }
 --- no_error_log
 [emerg]

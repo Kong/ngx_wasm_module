@@ -48,7 +48,7 @@ no "wasm" section in configuration
         use wasmtime;
     }
 --- error_log eval
-qr/\[notice\] .*? using the "wasmtime" wasm vm/
+qr/\[notice\] .*? using the "wasmtime" wasm runtime/
 
 
 
@@ -70,20 +70,20 @@ qr/\[notice\] .*? using the "wasmtime" wasm vm/
         use foo;
     }
 --- error_log
-invalid wasm vm "foo"
+invalid wasm runtime "foo"
 --- must_die
 
 
 
-=== TEST 7: wasm{} - default vm (no 'use' directive)
+=== TEST 7: wasm{} - default runtime (no 'use' directive)
 --- main_config
     wasm {}
 --- error_log eval
-qr/\[notice\] .*? using the "wasmtime" wasm vm/
+qr/\[notice\] .*? using the "wasmtime" wasm runtime/
 
 
 
-=== TEST 8: wasm{} - module directive
+=== TEST 8: wasm{} - module directive loads module in default VM
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -92,7 +92,7 @@ qr/\[notice\] .*? using the "wasmtime" wasm vm/
 >>> hello.wat
 (module)
 --- error_log eval
-qr/\[notice\] .*? \[wasm\] loading module "hello" from ".*?hello\.wat"/
+qr/\[notice\] .*? \[wasm\] loading module "hello" from ".*?hello\.wat" <vm: default, runtime: .*?>/
 
 
 
@@ -176,7 +176,7 @@ qr/\[emerg\] .*? module "hello" already defined/
         module hello $TEST_NGINX_HTML_DIR/none.wat;
     }
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] failed to load module "hello" from ".*?none\.wat" \(2: No such file or directory\)/
+qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or directory\)/
 --- no_error_log
 [error]
 --- must_die
@@ -191,7 +191,7 @@ qr/\[emerg\] .*? \[wasm\] failed to load module "hello" from ".*?none\.wat" \(2:
 --- user_files
 >>> hello.wat
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] failed to load module "hello" from ".*?hello\.wat" \(wasmtime error: expected at least one module field/
+qr/\[emerg\] .*? \[wasm\] failed to load module "hello" from ".*?hello\.wat" \(expected at least one module field/
 --- no_error_log
 [error]
 --- must_die

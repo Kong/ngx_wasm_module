@@ -12,23 +12,9 @@
 
 
 typedef struct {
-    ngx_rbtree_node_t  rbnode;
-
-    ngx_str_t          name;
-    ngx_array_t       *hfuncs;
-    ngx_hash_t        *hash;
-} ngx_wasm_hostfuncs_namespace_t;
-
-
-typedef struct {
-    ngx_rbtree_t       rbtree;
-    ngx_rbtree_node_t  sentinel;
-} ngx_wasm_hostfuncs_namespaces_t;
-
-
-typedef struct {
     ngx_wasm_hostfuncs_namespaces_t   namespaces;
     ngx_pool_t                       *pool;
+    ngx_log_t                        *log;
 } ngx_wasm_hostfuncs_store_t;
 
 
@@ -73,7 +59,7 @@ ngx_wasm_hostfuncs_namespaces_insert(ngx_rbtree_node_t *temp,
 
 
 static ngx_wasm_hostfuncs_namespace_t *
-ngx_wasm_hostfuncs_namespaces_lookup(ngx_rbtree_t *rbtree, const char *name,
+ngx_wasm_hostfuncs_namespaces_lookup(ngx_rbtree_t *rbtree, u_char *name,
     size_t len, uint32_t hash)
 {
     ngx_wasm_hostfuncs_namespace_t  *nn;
@@ -110,57 +96,87 @@ ngx_wasm_hostfuncs_namespaces_lookup(ngx_rbtree_t *rbtree, const char *name,
 }/*}}}*/
 
 
-void
-ngx_wasm_hostfuncs_register(const char *namespace,
-    ngx_wasm_hostfunc_t *hfuncs, ngx_log_t *log)
+ngx_int_t
+ngx_wasm_hostfuncs_new(ngx_log_t *log)
 {
-    ngx_pool_t                              *pool;
-    ngx_wasm_hostfuncs_namespace_t          *nn;
-    ngx_rbtree_node_t                       *n;
-    ngx_wasm_hostfunc_t                    **phfuncs;
-    u_char                                  *p;
-    uint32_t                                 hash;
-    size_t                                   len;
+    ngx_pool_t          *pool;
 
-    if (store == NULL) {
-        pool = ngx_create_pool(NGX_DEFAULT_POOL_SIZE, log);
-        if (pool == NULL) {
-            return;
-        }
-
-        store = ngx_pcalloc(pool, sizeof(ngx_wasm_hostfuncs_store_t));
-        if (store == NULL) {
-            ngx_wasm_log_error(NGX_LOG_EMERG, log, 0,
-                               "failed to allocate host functions store");
-            ngx_destroy_pool(pool);
-            return;
-        }
-
-        store->pool = pool;
-
-        ngx_rbtree_init(&store->namespaces.rbtree,
-                        &store->namespaces.sentinel,
-                        ngx_wasm_hostfuncs_namespaces_insert);
+    if (store) {
+        return NGX_OK;
     }
 
-    len = ngx_strlen(namespace);
-    hash = ngx_crc32_short((u_char *) namespace, len);
+    pool = ngx_create_pool(NGX_DEFAULT_POOL_SIZE, log);
+    if (pool == NULL) {
+        goto failed;
+    }
 
-    nn = ngx_wasm_hostfuncs_namespaces_lookup(&store->namespaces.rbtree,
-                                              namespace, len, hash);
+    store = ngx_pcalloc(pool, sizeof(ngx_wasm_hostfuncs_store_t));
+    if (store == NULL) {
+        ngx_destroy_pool(pool);
+        goto failed;
+    }
+
+    store->pool = pool;
+    store->log = log;
+
+    ngx_rbtree_init(&store->namespaces.rbtree,
+                    &store->namespaces.sentinel,
+                    ngx_wasm_hostfuncs_namespaces_insert);
+
+    return NGX_OK;
+
+failed:
+
+    ngx_wasm_log_error(NGX_LOG_EMERG, log, 0,
+                       "failed to allocate host namespaces store");
+
+    return NGX_ERROR;
+}
+
+
+static ngx_wasm_hostfuncs_namespace_t *
+ngx_wasm_hostfuncs_namespace(u_char *namespace, size_t len)
+{
+    uint32_t                         hash;
+
+    ngx_wasm_assert(store);
+
+    hash = ngx_crc32_short(namespace, len);
+
+    return ngx_wasm_hostfuncs_namespaces_lookup(&store->namespaces.rbtree,
+                                                namespace, len, hash);
+}
+
+
+void
+ngx_wasm_hostfuncs_register(const char *namespace, ngx_wasm_hostfunc_t *hfuncs)
+{
+    ngx_str_t                                nspace;
+    ngx_wasm_hostfuncs_namespace_t          *nn;
+    u_char                                  *p;
+    ngx_wasm_hostfunc_t                     *hfunc, **phfunc;
+    ngx_rbtree_node_t                       *n;
+
+    ngx_wasm_assert(store);
+
+    nspace.len = ngx_strlen(namespace);
+    nspace.data = (u_char *) namespace;
+
+    nn = ngx_wasm_hostfuncs_namespace(nspace.data, nspace.len);
     if (nn == NULL) {
         nn = ngx_palloc(store->pool, sizeof(ngx_wasm_hostfuncs_namespace_t));
         if (nn == NULL) {
             goto failed;
         }
 
-        nn->name.len = len;
-        nn->name.data = ngx_palloc(store->pool, len + 1);
+        nn->hash = NULL;
+        nn->name.len = nspace.len;
+        nn->name.data = ngx_palloc(store->pool, nspace.len + 1);
         if (nn->name.data == NULL) {
             goto failed;
         }
 
-        p = ngx_copy(nn->name.data, namespace, nn->name.len);
+        p = ngx_copy(nn->name.data, nspace.data, nn->name.len);
         *p = '\0';
 
         nn->hfuncs = ngx_array_create(store->pool, 2,
@@ -174,23 +190,28 @@ ngx_wasm_hostfuncs_register(const char *namespace,
         ngx_rbtree_insert(&store->namespaces.rbtree, n);
     }
 
-    phfuncs = ngx_array_push(nn->hfuncs);
-    if (phfuncs == NULL) {
-        ngx_wasm_log_error(NGX_LOG_EMERG, log, 0,
-                           "failed to add host functions to \"%V\" namespace",
-                           &nn->name);
-        return;
-    }
+    hfunc = hfuncs;
 
-    *phfuncs = hfuncs;
+    for (/* void */; hfunc->ptr; hfunc++) {
+        phfunc = ngx_array_push(nn->hfuncs);
+        if (phfunc == NULL) {
+            ngx_wasm_log_error(NGX_LOG_EMERG, store->log, 0,
+                               "failed to add \"%V\" function "
+                               "to \"%V\" host namespace",
+                               &hfunc->name, &nn->name);
+            return;
+        }
+
+        *phfunc = hfunc;
+    }
 
     return;
 
 failed:
 
-    ngx_wasm_log_error(NGX_LOG_EMERG, log, 0,
-                       "failed to add host functions to \"%*s\" namespace",
-                       len, namespace);
+    ngx_wasm_log_error(NGX_LOG_EMERG, store->log, 0,
+                       "failed to add functions to \"%V\" host namespace",
+                       &nspace);
 
     if (nn) {
         if (nn->name.data) {
@@ -213,16 +234,14 @@ ngx_wasm_hostfuncs_init()
 {
     ngx_wasm_hostfuncs_namespace_t  *nn;
     ngx_rbtree_node_t               *node, *root, *sentinel;
-    ngx_wasm_hostfunc_t             *hfunc, *hfuncs, **phfuncs;
     ngx_pool_t                      *temp_pool;
     ngx_hash_init_t                  hash;
     ngx_hash_keys_arrays_t           hash_keys;
     size_t                           i;
+    ngx_wasm_hostfunc_t             *hfunc, **hfuncs;
     ngx_int_t                        rc = NGX_ERROR;
 
-    if (store == NULL) {
-        return NGX_ERROR;
-    }
+    ngx_wasm_assert(store);
 
     sentinel = store->namespaces.rbtree.sentinel;
     root = store->namespaces.rbtree.root;
@@ -231,12 +250,10 @@ ngx_wasm_hostfuncs_init()
         return NGX_OK;
     }
 
-    temp_pool = ngx_create_pool(NGX_MIN_POOL_SIZE, store->pool->log);
+    temp_pool = ngx_create_pool(NGX_MIN_POOL_SIZE, store->log);
     if (temp_pool == NULL) {
         return NGX_ERROR;
     }
-
-    /* for each namespace */
 
     for (node = ngx_rbtree_min(root, sentinel);
          node;
@@ -249,7 +266,8 @@ ngx_wasm_hostfuncs_init()
             ngx_pfree(store->pool, nn->hash);
         }
 
-        /* init hash */
+        ngx_log_debug1(NGX_LOG_DEBUG_WASM, store->log, 0,
+                      "[wasm] initializing \"%V\" host namespace", &nn->name);
 
         nn->hash = ngx_pcalloc(store->pool, sizeof(ngx_hash_t));
         if (nn->hash == NULL) {
@@ -262,28 +280,27 @@ ngx_wasm_hostfuncs_init()
         hash.bucket_size = ngx_align(64, ngx_cacheline_size);
         hash.pool = store->pool;
         hash.temp_pool = temp_pool;
-        ngx_sprintf((u_char *) hash.name,
-                    "wasm host functions hash for \"%V\" namespace", &nn->name);
+        hash.name = ngx_palloc(temp_pool, 128);
+        if (hash.name == NULL) {
+            goto failed;
+        }
+
+        ngx_snprintf((u_char *) hash.name, 128,
+                    "wasm functions hash for \"%V\" host namespace",
+                    &nn->name);
 
         hash_keys.pool = store->pool;
         hash_keys.temp_pool = temp_pool;
 
         ngx_hash_keys_array_init(&hash_keys, NGX_HASH_SMALL);
 
-        phfuncs = nn->hfuncs->elts;
-
-        /* for each namespace registered array */
+        hfuncs = nn->hfuncs->elts;
 
         for (i = 0; i < nn->hfuncs->nelts; i++) {
-            hfuncs = phfuncs[i];
-            hfunc = hfuncs;
+            hfunc = hfuncs[i];
 
-            /* for each host function */
-
-            for (/* void */; hfunc->ptr; hfunc++) {
-                ngx_hash_add_key(&hash_keys, (ngx_str_t *) &hfunc->name,
-                                 hfunc->ptr, NGX_HASH_READONLY_KEY);
-            }
+            ngx_hash_add_key(&hash_keys, &hfunc->name, hfunc->ptr,
+                             NGX_HASH_READONLY_KEY);
         }
 
         rc = ngx_hash_init(&hash, hash_keys.keys.elts, hash_keys.keys.nelts);
@@ -302,23 +319,27 @@ failed:
 }
 
 
-ngx_wasm_hostfunc_pt
-ngx_wasm_hostfuncs_find(const char *namespace, size_t nlen, char *name,
-    size_t len)
+ngx_wasm_hostfuncs_namespaces_t *
+ngx_wasm_hostfuncs_namespaces()
 {
-    ngx_wasm_hostfuncs_namespace_t  *nn;
-    uint32_t                         hash;
-    ngx_uint_t                       key;
+    ngx_wasm_assert(store);
 
-    if (!store) {
-        return NULL;
-    }
+    return &store->namespaces;
+}
 
-    hash = ngx_crc32_short((u_char *) namespace, nlen);
 
-    nn = ngx_wasm_hostfuncs_namespaces_lookup(&store->namespaces.rbtree,
-                                              namespace, nlen, hash);
-    if (nn == NULL || nn->hash == NULL) {
+static ngx_wasm_hostfunc_pt
+ngx_wasm_hostfuncs_namespace_find(ngx_wasm_hostfuncs_namespace_t *nn,
+    char *name, size_t len)
+{
+    ngx_uint_t      key;
+
+    ngx_wasm_assert(store);
+
+    if (nn->hash == NULL) {
+        ngx_wasm_log_error(NGX_LOG_EMERG, store->log, 0,
+                           "failed to search \"%V\" host namespace: "
+                           "hash not initialized", &nn->name);
         return NULL;
     }
 
@@ -328,7 +349,7 @@ ngx_wasm_hostfuncs_find(const char *namespace, size_t nlen, char *name,
 }
 
 
-void
+static void
 ngx_wasm_hostfuncs_destroy()
 {
     if (store) {

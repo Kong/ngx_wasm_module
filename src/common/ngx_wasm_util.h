@@ -12,6 +12,7 @@
 void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 #if (NGX_HAVE_VARIADIC_MACROS)
     const char *fmt, ...);
+
 #else
     const char *fmt, va_list args);
 #endif

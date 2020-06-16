@@ -146,9 +146,7 @@ ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static char *
 ngx_wasm_init_conf(ngx_cycle_t *cycle, void *conf)
 {
-    if (ngx_get_conf(cycle->conf_ctx, ngx_wasm_module) == NULL) {
-        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                      "no \"wasm\" section in configuration");
+    if (ngx_wasm_get_default_vm(cycle) == NULL) {
         return NGX_CONF_ERROR;
     }
 
@@ -242,8 +240,10 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
     wcf->vm_name = NGX_CONF_UNSET_PTR;
     wcf->default_vm = ngx_wasm_vm_new("default", &cycle->new_log);
     if (wcf->default_vm == NULL) {
-        ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                           "failed to initialize default vm");
+        return NULL;
+    }
+
+    if (ngx_wasm_hostfuncs_new(&cycle->new_log) != NGX_OK) {
         return NULL;
     }
 
@@ -281,7 +281,7 @@ ngx_wasm_core_use_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "invalid wasm vm \"%V\"", &value[1]);
+                       "invalid wasm runtime \"%V\"", &value[1]);
 
     return NGX_CONF_ERROR;
 }
@@ -314,19 +314,16 @@ ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     rc = ngx_wasm_vm_add_module(vm, name->data, path->data);
-    if (rc == NGX_DECLINED) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "[wasm] module \"%V\" already defined", name);
-        return NGX_CONF_ERROR;
+    if (rc != NGX_OK) {
+        if (rc == NGX_DECLINED) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "[wasm] module \"%V\" already defined", name);
+        }
 
-    } else if (rc == NGX_ERROR) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
-                           "[wasm] failed to load module \"%V\" from \"%V\"",
-                           name, path);
+        /* rc == NGX_ERROR */
+
         return NGX_CONF_ERROR;
     }
-
-    /* rc == NGX_OK */
 
     return NGX_CONF_OK;
 }
@@ -382,7 +379,6 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
     ngx_wasm_core_conf_t    *wcf;
     ngx_wasm_vm_pt           vm;
     ngx_wasm_module_t       *m;
-    ngx_wasm_vm_actions_t   *vma = NULL;
     ngx_uint_t               i;
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
@@ -398,21 +394,19 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
         m = cycle->modules[i]->ctx;
 
         if (m->init) {
-            if (m->init(cycle, &vma) != NGX_OK) {
+            if (m->init(cycle) != NGX_OK) {
                 return NGX_ERROR;
             }
+        }
 
-            if (i == wcf->vm
-                && ngx_wasm_vm_init(vm, vma) == NGX_ERROR)
-            {
-                return NGX_ERROR;
-            }
+        if (i == wcf->vm
+            && ngx_wasm_vm_init(vm, &m->vm_actions) == NGX_ERROR)
+        {
+            return NGX_ERROR;
         }
     }
 
     if (ngx_wasm_hostfuncs_init() != NGX_OK) {
-        ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                           "failed to initialize host functions");
         return NGX_ERROR;
     }
 
@@ -424,10 +418,16 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
 }
 
 
-ngx_wasm_vm_pt
+ngx_inline ngx_wasm_vm_pt
 ngx_wasm_get_default_vm(ngx_cycle_t *cycle)
 {
     ngx_wasm_core_conf_t  *wcf;
+
+    if (ngx_get_conf(cycle->conf_ctx, ngx_wasm_module) == NULL) {
+        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
+                      "no \"wasm\" section in configuration");
+        return NULL;
+    }
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
 

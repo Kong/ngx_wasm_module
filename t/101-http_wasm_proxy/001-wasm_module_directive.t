@@ -2,6 +2,8 @@
 use lib '.';
 use t::TestWasm;
 
+plan skip_all => 'NYI: ngx_http_wasm_proxy_module';
+
 plan tests => repeat_each() * (blocks() * 3);
 
 add_block_preprocessor(sub {

@@ -14,15 +14,14 @@
 
 
 #define NGX_WASM_NO_VM_ACTIONS                                               \
-    { NULL, NULL, NULL, NULL, NULL, NULL }
+    { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 typedef struct {
     ngx_str_t                   *name;
     void                        *(*create_conf)(ngx_cycle_t *cycle);
     char                        *(*init_conf)(ngx_cycle_t *cycle, void *conf);
-    ngx_int_t                    (*init)(ngx_cycle_t *cycle,
-                                         ngx_wasm_vm_actions_t **vm_actions);
+    ngx_int_t                    (*init)(ngx_cycle_t *cycle);
     ngx_wasm_vm_actions_t        vm_actions;
 } ngx_wasm_module_t;
 

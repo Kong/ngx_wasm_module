@@ -14,7 +14,7 @@
 #include <ngx_http_wasm_hostfuncs.h>
 
 
-#define NGX_WASM_HTTP_LAST_PHASE      NGX_HTTP_LOG_PHASE
+#define NGX_WASM_HTTP_LAST_PHASE  NGX_HTTP_LOG_PHASE
 
 
 static void *ngx_http_wasm_create_main_conf(ngx_conf_t *cf);
@@ -41,6 +41,7 @@ typedef struct {
 
 
 typedef struct {
+    ngx_str_t            mname;
     ngx_str_t            fname;
     ngx_array_t         *args;
 } ngx_http_wasm_call_t;
@@ -153,10 +154,9 @@ ngx_http_wasm_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     ngx_http_wasm_main_conf_t       *mcf;
     ngx_http_wasm_loc_conf_t        *lcf = conf;
     ngx_http_phases                  phase = (ngx_http_phases) cmd->post;
-    //ngx_http_wasm_call_t           **pcall, *call;
-    //ngx_wasm_wmodule_t              *module;
+    ngx_http_wasm_call_t           **pcall, *call;
     ngx_str_t                       *value, *mname, *fname;
-    //u_char                          *p;
+    u_char                          *p;
 
     mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
 
@@ -176,14 +176,11 @@ ngx_http_wasm_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    /*
-    module = ngx_wasm_get_module(mname->data, cf->cycle);
-    if (module == NULL) {
+    if (ngx_wasm_vm_has_module(mcf->default_vm, mname->data) != NGX_OK) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "no \"%V\" module defined", mname);
+                           "[wasm] no \"%V\" module defined", mname);
         return NGX_CONF_ERROR;
     }
-    */
 
     if (lcf->on_phases[phase] == NGX_CONF_UNSET_PTR) {
         lcf->on_phases[phase] = ngx_array_create(cf->pool, 2,
@@ -195,29 +192,35 @@ ngx_http_wasm_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 
     lcf->on_phases[phase] = lcf->on_phases[phase];
 
-    /*
     pcall = ngx_array_push(lcf->on_phases[phase]);
     if (pcall == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    *pcall = ngx_pcalloc(module->pool, sizeof(ngx_http_wasm_call_t));
+    *pcall = ngx_pcalloc(cf->pool, sizeof(ngx_http_wasm_call_t));
     if (*pcall == NULL) {
         return NGX_CONF_ERROR;
     }
 
     call = *pcall;
 
-    call->module = module;
+    call->mname.len = mname->len;
+    call->mname.data = ngx_palloc(cf->pool, mname->len + 1);
+    if (call->mname.data == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    p = ngx_copy(call->mname.data, mname->data, mname->len);
+    *p = '\0';
+
     call->fname.len = fname->len;
-    call->fname.data = ngx_palloc(module->pool, fname->len + 1);
+    call->fname.data = ngx_palloc(cf->pool, fname->len + 1);
     if (call->fname.data == NULL) {
         return NGX_CONF_ERROR;
     }
 
     p = ngx_copy(call->fname.data, fname->data, fname->len);
     *p = '\0';
-    */
 
     mcf->phases[phase] = 1;
 
@@ -255,7 +258,7 @@ ngx_http_wasm_init(ngx_conf_t *cf)
         if (mcf->phases[i]) {
             if (phases_handlers[i] == NULL) {
                 ngx_log_error(NGX_LOG_ALERT, cf->log, 0,
-                              "http wasm: no phase handler declared for "
+                              "NYI - http wasm: no phase handler declared for "
                               "phase \"%d\"", i);
                 return NGX_ERROR;
             }
@@ -269,7 +272,7 @@ ngx_http_wasm_init(ngx_conf_t *cf)
         }
     }
 
-    ngx_wasm_hostfuncs_register("http", ngx_http_wasm_hfuncs, cf->log);
+    ngx_wasm_hostfuncs_register("env", ngx_http_wasm_hfuncs);
 
     return NGX_OK;
 }
@@ -278,56 +281,34 @@ ngx_http_wasm_init(ngx_conf_t *cf)
 static ngx_int_t
 ngx_http_wasm_exec_on_phase(ngx_http_request_t *r, ngx_http_phases phase)
 {
+    ngx_http_wasm_main_conf_t   *mcf;
     ngx_http_wasm_loc_conf_t    *lcf;
     ngx_array_t                 *calls;
-    //ngx_http_wasm_call_t        *call, **pcall;
-    //ngx_wasm_wmodule_t          *module;
-    //ngx_wasm_winstance_t        *instance;
-    //ngx_wasm_werror_t            werror;
-    //ngx_uint_t                   i;
+    ngx_http_wasm_call_t        *call, **pcall;
+    ngx_wasm_instance_pt         instance;
+    ngx_uint_t                   i;
 
+    mcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
     lcf = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
 
     calls = lcf->on_phases[phase];
-
-    /*
     if (calls == NULL) {
         return NGX_OK;
     }
-    */
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm: executing %d call(s) in log phase",
                    calls->nelts);
 
-    /*
     pcall = calls->elts;
 
     for (i = 0; i < calls->nelts; i++) {
         call = pcall[i];
-        module = call->module;
 
-        instance = ngx_wasm_new_instance(module, NULL, r->connection->log,
-                                         &werror);
-        if (instance == NULL) {
-            ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0, &werror,
-                               "failed to create instance of \"%V\" module",
-                               &module->name);
-            return NGX_HTTP_INTERNAL_SERVER_ERROR;
-        }
+        instance = ngx_wasm_vm_new_instance(mcf->default_vm, call->mname.data);
 
-        if (ngx_wasm_call_instance(instance, call->fname.data,
-                                   NULL, 0, NULL, 0, &werror)
-            != NGX_OK)
-        {
-            ngx_wasm_log_error(NGX_LOG_ERR, instance->log, 0, &werror,
-                               "error calling \"%V\"", &call->fname);
-            return NGX_HTTP_INTERNAL_SERVER_ERROR;
-        }
-
-        ngx_wasm_free_instance(instance);
+        ngx_wasm_vm_free_instance(instance);
     }
-    */
 
     return NGX_OK;
 }

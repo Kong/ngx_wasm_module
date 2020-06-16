@@ -11,7 +11,7 @@
 
 
 ngx_wasm_vm_trap_pt
-ngx_wasm_host_log(void *env, const ngx_wasm_vm_val_t args[],
+ngx_wasm_host_log(const void *caller, const ngx_wasm_vm_val_t args[],
     ngx_wasm_vm_val_t rets[])
 {
 #if 0
@@ -37,7 +37,11 @@ ngx_wasm_host_log(void *env, const ngx_wasm_vm_val_t args[],
 
 
 ngx_wasm_hostfunc_t  ngx_http_wasm_hfuncs[] = {
-    { ngx_string("ngx_wasm_log"), &ngx_wasm_host_log },
+
+    { ngx_string("ngx_wasm_log"),
+      &ngx_wasm_host_log,
+      NGX_WASM_ARGS_I32_I32_I32,
+      NGX_WASM_NO_RETS },
 
     ngx_wasm_hostfuncs_null
 };
