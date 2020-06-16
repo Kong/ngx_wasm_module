@@ -62,11 +62,11 @@ typedef struct {
 /* runtime */
 
 
-typedef void* ngx_wasm_vm_engine_pt;
-typedef void* ngx_wasm_vm_module_pt;
-typedef void* ngx_wasm_vm_instance_pt;
-typedef void* ngx_wasm_vm_error_pt;
-typedef void* ngx_wasm_vm_trap_pt;
+typedef void *ngx_wasm_vm_engine_pt;
+typedef void *ngx_wasm_vm_module_pt;
+typedef void *ngx_wasm_vm_instance_pt;
+typedef void *ngx_wasm_vm_error_pt;
+typedef void *ngx_wasm_vm_trap_pt;
 
 
 typedef ngx_wasm_vm_trap_pt (*ngx_wasm_hostfunc_pt)(const void *caller,

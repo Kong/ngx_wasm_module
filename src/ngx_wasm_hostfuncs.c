@@ -267,7 +267,7 @@ ngx_wasm_hostfuncs_init()
         }
 
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, store->log, 0,
-                      "[wasm] initializing \"%V\" host namespace", &nn->name);
+                       "[wasm] initializing \"%V\" host namespace", &nn->name);
 
         nn->hash = ngx_pcalloc(store->pool, sizeof(ngx_hash_t));
         if (nn->hash == NULL) {
@@ -286,8 +286,8 @@ ngx_wasm_hostfuncs_init()
         }
 
         ngx_snprintf((u_char *) hash.name, 128,
-                    "wasm functions hash for \"%V\" host namespace",
-                    &nn->name);
+                     "wasm functions hash for \"%V\" host namespace",
+                     &nn->name);
 
         hash_keys.pool = store->pool;
         hash_keys.temp_pool = temp_pool;

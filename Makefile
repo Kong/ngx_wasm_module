@@ -15,6 +15,10 @@ setup:
 test:
 	@util/test.sh -r t/
 
+.PHONY: style
+style:
+	@util/style.pl src/*
+
 .PHONY: reindex
 reindex:
 	@util/reindex.sh t/*.t t/**/*.t

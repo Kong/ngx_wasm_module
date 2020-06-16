@@ -119,8 +119,8 @@ ngx_wasm_vm_modules_lookup(ngx_rbtree_t *rbtree, u_char *name, size_t len,
     uint32_t hash)
 {
     ngx_wasm_vm_module_t   *nm;
-    ngx_rbtree_node_t             *node, *sentinel;
-    ngx_int_t                      rc;
+    ngx_rbtree_node_t      *node, *sentinel;
+    ngx_int_t               rc;
 
     node = rbtree->root;
     sentinel = rbtree->sentinel;
