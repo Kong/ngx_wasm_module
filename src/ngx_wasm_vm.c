@@ -59,6 +59,7 @@ typedef struct {
 
 struct ngx_wasm_vm_s {
     ngx_str_t                     name;
+    ngx_str_t                    *vm_name;
     ngx_pool_t                   *pool;
     ngx_log_t                    *log;
     ngx_wasm_vm_actions_t        *vm_actions;
@@ -333,7 +334,8 @@ ngx_wasm_vm_has_module(ngx_wasm_vm_pt vm, u_char *name)
 
 
 ngx_int_t
-ngx_wasm_vm_init(ngx_wasm_vm_pt vm, ngx_wasm_vm_actions_t *vm_actions)
+ngx_wasm_vm_init(ngx_wasm_vm_pt vm, ngx_str_t *vm_name,
+    ngx_wasm_vm_actions_t *vm_actions)
 {
     ngx_wasm_vm_error_pt          vm_error = NULL;
 
@@ -341,6 +343,7 @@ ngx_wasm_vm_init(ngx_wasm_vm_pt vm, ngx_wasm_vm_actions_t *vm_actions)
         return NGX_DONE;
     }
 
+    vm->vm_name = vm_name;
     vm->vm_actions = vm_actions;
 
     if (vm_actions->new_engine) {
@@ -455,8 +458,8 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_pt vm, u_char *name)
                                                    &vm_error);
     if (module->vm_module == NULL) {
         ngx_wasm_vm_log_error(NGX_LOG_EMERG, vm->log, vm_error, NULL,
-                           "failed to load module \"%V\" from \"%V\"",
-                           &module->name, &module->path);
+                              "failed to load module \"%V\" from \"%V\"",
+                              &module->name, &module->path);
         return NGX_ERROR;
     }
 
@@ -630,7 +633,7 @@ ngx_wasm_vm_log_error_handler(ngx_log_t *log, u_char *buf, size_t len)
 
     } else {
         p = ngx_snprintf(buf, len, " <vm: %V, runtime: %V>", &vm->name,
-                         vm->vm_actions->vm_name);
+                         vm->vm_name);
     }
 
     len -= p - buf;

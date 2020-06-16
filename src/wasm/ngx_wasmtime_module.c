@@ -45,9 +45,6 @@ typedef struct {
 } ngx_wasmtime_instance_t;
 
 
-static ngx_str_t  module_name = ngx_string("wasmtime");
-
-
 /* utils */
 
 
@@ -449,12 +446,11 @@ ngx_wasmtime_log_error_handler(ngx_wasm_vm_error_pt vm_error,
 
 
 static ngx_wasm_module_t  ngx_wasmtime_module_ctx = {
-    &module_name,
+    ngx_string("wasmtime"),
     NULL,                                /* create configuration */
     NULL,                                /* init configuration */
     NULL,                                /* init module */
     {                                    /* VM actions */
-        &module_name,
         ngx_wasmtime_new_engine,
         ngx_wasmtime_free_engine,
         ngx_wasmtime_new_module,

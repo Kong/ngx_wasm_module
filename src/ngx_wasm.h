@@ -82,8 +82,6 @@ typedef struct {
 
 
 typedef struct {
-    ngx_str_t              *vm_name;
-
     ngx_wasm_vm_engine_pt   (*new_engine)(ngx_pool_t *pool,
                                           ngx_wasm_vm_error_pt *vm_error);
 

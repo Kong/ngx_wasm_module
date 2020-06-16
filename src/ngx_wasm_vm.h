@@ -17,7 +17,7 @@ ngx_int_t ngx_wasm_vm_add_module(ngx_wasm_vm_pt vm, u_char *name, u_char *path);
 
 ngx_int_t ngx_wasm_vm_has_module(ngx_wasm_vm_pt vm, u_char *name);
 
-ngx_int_t ngx_wasm_vm_init(ngx_wasm_vm_pt vm,
+ngx_int_t ngx_wasm_vm_init(ngx_wasm_vm_pt vm, ngx_str_t *vm_name,
     ngx_wasm_vm_actions_t *vm_actions);
 
 ngx_int_t ngx_wasm_vm_load_module(ngx_wasm_vm_pt vm, u_char *name);

@@ -164,7 +164,7 @@ ngx_wasm_init_conf(ngx_cycle_t *cycle, void *conf)
 
 typedef struct {
     ngx_uint_t                vm;
-    u_char                   *vm_name;
+    ngx_str_t                *vm_name;
     ngx_wasm_vm_pt            default_vm;
 } ngx_wasm_core_conf_t;
 
@@ -178,7 +178,7 @@ static char *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
 static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
 
 
-static ngx_str_t  wasm_core_name = ngx_string("wasm_core");
+static ngx_str_t const wasm_core_name = ngx_string("wasm_core");
 
 
 static ngx_command_t  ngx_wasm_core_commands[] = {
@@ -202,7 +202,7 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
 
 
 static ngx_wasm_module_t  ngx_wasm_core_module_ctx = {
-    &wasm_core_name,
+    wasm_core_name,
     ngx_wasm_core_create_conf,             /* create configuration */
     ngx_wasm_core_init_conf,               /* init configuration */
     NULL,                                  /* init module */
@@ -272,9 +272,9 @@ ngx_wasm_core_use_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         m = cf->cycle->modules[i]->ctx;
 
-        if (ngx_strcmp(m->name->data, value[1].data) == 0) {
+        if (ngx_strcmp(m->name.data, value[1].data) == 0) {
             wcf->vm = i;
-            wcf->vm_name = m->name->data;
+            wcf->vm_name = &m->name;
 
             return NGX_CONF_OK;
         }
@@ -344,11 +344,11 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 
         wm = cycle->modules[i]->ctx;
 
-        if (ngx_strcmp(wm->name->data, wasm_core_name.data) == 0) {
+        if (ngx_strcmp(wm->name.data, wasm_core_name.data) == 0) {
             continue;
         }
 
-        if (ngx_strcmp(wm->name->data, NGX_WASM_DEFAULT_VM) == 0) {
+        if (ngx_strcmp(wm->name.data, NGX_WASM_DEFAULT_VM) == 0) {
             default_wmodule_index = i;
         }
 
@@ -363,11 +363,11 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
     }
 
     ngx_conf_init_uint_value(wcf->vm, default_wmodule_index);
-    ngx_conf_init_ptr_value(wcf->vm_name, ((ngx_wasm_module_t *)
-        cycle->modules[default_wmodule_index]->ctx)->name->data);
+    ngx_conf_init_ptr_value(wcf->vm_name, &((ngx_wasm_module_t *)
+        cycle->modules[default_wmodule_index]->ctx)->name);
 
     ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0,
-                  "using the \"%s\" wasm runtime", wcf->vm_name);
+                  "using the \"%V\" wasm runtime", wcf->vm_name);
 
     return NGX_CONF_OK;
 }
@@ -400,7 +400,7 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
         }
 
         if (i == wcf->vm
-            && ngx_wasm_vm_init(vm, &m->vm_actions) == NGX_ERROR)
+            && ngx_wasm_vm_init(vm, &m->name, &m->vm_actions) == NGX_ERROR)
         {
             return NGX_ERROR;
         }
