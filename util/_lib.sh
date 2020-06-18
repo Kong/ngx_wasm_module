@@ -16,13 +16,19 @@ build_nginx() {
               || "$NGX_WASM_DIR/util/build.sh" -nt "Makefile" \
               || "$NGX_WASM_DIR/util/_lib.sh" -nt "Makefile" ]];
         then
-            ./configure \
-                --build="ngx_wasm_module dev" \
-                --builddir=$DIR_BUILDROOT \
-                --add-module=$NGX_WASM_DIR \
-                --with-cc-opt="-O0 -Wno-error -DNGX_WASM_USE_ASSERT" \
-                --with-ld-opt="-Wl,-rpath,$WASMTIME_LIB" \
-                --with-debug
+            local configure="configure"
+
+            if [[ -f "auto/configure" ]]; then
+                configure="auto/configure"
+            fi
+
+            eval ./$configure \
+                "--build='ngx_wasm_module dev'" \
+                "--builddir=$DIR_BUILDROOT" \
+                "--add-module=$NGX_WASM_DIR" \
+                "--with-cc-opt='-O0 -Wno-error -DNGX_WASM_USE_ASSERT'" \
+                "--with-ld-opt='-Wl,-rpath,$WASMTIME_LIB'" \
+                "--with-debug"
         fi
 
         make -j${n_jobs}

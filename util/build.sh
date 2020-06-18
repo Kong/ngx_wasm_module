@@ -16,9 +16,10 @@ source $NGX_WASM_DIR/util/_lib.sh
 ###############################################################################
 
 show_usage() {
-    echo "Usage: $SCRIPT_NAME <NGX_VER> [options]"
+    echo "Usage: $SCRIPT_NAME <NGX> [options]"
     echo
-    echo "<NGX_VER>         Version of NGINX to build (e.g. 1.17.9)."
+    echo "<NGX>             Version of NGINX to build (e.g. 1.17.9)"
+    echo "                  or path to an NGINX source tree (e.g. /tmp/nginx)."
     echo
     echo "Options:"
     echo "  -f,--force      Force a complete build (no incremental build)."
@@ -47,23 +48,32 @@ done
 
 eval set -- "$PARAMS"
 
-NGX_VER=$1
+NGX=$1
 
-if [[ -z "$NGX_VER" ]]; then
+if [[ -z "$NGX" ]]; then
     invalid_usage
 fi
 
-if [[ ! "$NGX_VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    invalid_usage "NGX_VER must be of form 'X.Y.Z' (e.g. 1.17.9)"
+if [[ -d "$NGX" ]]; then
+    NGX_DIR=$NGX
+
+else
+    NGX_VER=$NGX
+
+    if [[ ! "$NGX_VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        invalid_usage "version must be of form 'X.Y.Z' (e.g. 1.17.9)"
+    fi
+
+    download $DIR_DOWNLOAD/nginx-$NGX_VER.tar.gz \
+             "https://nginx.org/download/nginx-$NGX_VER.tar.gz"
+
+    if [[ ! -d "$DIR_DOWNLOAD/nginx-$NGINX_VER" ]]; then
+        tar -xf $DIR_DOWNLOAD/nginx-$NGX_VER.tar.gz -C $DIR_DOWNLOAD
+    fi
+
+    NGX_DIR=$DIR_DOWNLOAD/nginx-$NGX_VER
 fi
 
-download $DIR_DOWNLOAD/nginx-$NGX_VER.tar.gz \
-         "https://nginx.org/download/nginx-$NGX_VER.tar.gz"
-
-if [[ ! -d "$DIR_DOWNLOAD/nginx-$NGINX_VER" ]]; then
-    tar -xf $DIR_DOWNLOAD/nginx-$NGX_VER.tar.gz -C $DIR_DOWNLOAD
-fi
-
-build_nginx $DIR_DOWNLOAD/nginx-$NGX_VER
+build_nginx $NGX_DIR
 
 # vim: ft=sh st=4 sts=4 sw=4:
