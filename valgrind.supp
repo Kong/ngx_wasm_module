@@ -1,0 +1,5 @@
+{
+   <libwasmtime>
+   Memcheck:Leak
+   obj:*libwasmtime*
+}
