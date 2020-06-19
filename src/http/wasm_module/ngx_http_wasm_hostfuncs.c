@@ -32,6 +32,8 @@ ngx_wasm_host_log(const void *caller, const ngx_wasm_vm_val_t args[],
                   len, p + offset);
 #endif
 
+    //ngx_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0, "FROM WASM");
+
     return NULL;
 }
 

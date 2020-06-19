@@ -20,29 +20,23 @@
 
 
 typedef struct {
+    ngx_pool_t             *pool;
+    ngx_log_t              *log;
+
     wasm_engine_t          *engine;
     wasm_store_t           *store;
     wasmtime_linker_t      *linker;
-    ngx_pool_t             *pool;
-    ngx_log_t              *log;
 } ngx_wasmtime_engine_t;
 
 
 typedef struct {
-    wasm_importtype_vec_t   imports;
+    //wasm_importtype_vec_t   imports;
     wasm_exporttype_vec_t   exports;
-    ngx_wasmtime_engine_t  *engine;
     ngx_str_t              *name;
+    ngx_wasmtime_engine_t  *engine;
+
     wasm_module_t          *module;
 } ngx_wasmtime_module_t;
-
-
-typedef struct {
-    wasm_extern_vec_t       externs;
-    ngx_wasmtime_engine_t  *engine;
-    wasm_memory_t          *memory;
-    wasm_instance_t        *instance;
-} ngx_wasmtime_instance_t;
 
 
 /* utils */
@@ -106,16 +100,16 @@ ngx_wasmtime_free_engine(ngx_wasm_vm_engine_pt vm_engine)
 {
     ngx_wasmtime_engine_t       *engine = vm_engine;
 
+    if (engine->linker) {
+        wasmtime_linker_delete(engine->linker);
+    }
+
     if (engine->store) {
         wasm_store_delete(engine->store);
     }
 
     if (engine->engine) {
         wasm_engine_delete(engine->engine);
-    }
-
-    if (engine->linker) {
-        wasmtime_linker_delete(engine->linker);
     }
 
     ngx_pfree(engine->pool, engine);
@@ -125,6 +119,7 @@ ngx_wasmtime_free_engine(ngx_wasm_vm_engine_pt vm_engine)
 static ngx_wasm_vm_engine_pt
 ngx_wasmtime_new_engine(ngx_pool_t *pool, ngx_wasm_vm_error_pt *vm_error)
 {
+    wasm_config_t                   *config;
     ngx_wasmtime_engine_t           *engine;
     ngx_wasm_hostfuncs_namespaces_t *namespaces;
     ngx_wasm_hostfuncs_namespace_t  *nn;
@@ -136,7 +131,6 @@ ngx_wasmtime_new_engine(ngx_pool_t *pool, ngx_wasm_vm_error_pt *vm_error)
     wasm_valtype_vec_t               args, rets;
     wasm_functype_t                 *functype;
     wasm_func_t                     *func;
-    wasm_extern_t                   *func_extern;
     wasmtime_error_t               **error = (wasmtime_error_t **) vm_error;
 
     engine = ngx_palloc(pool, sizeof(ngx_wasmtime_engine_t));
@@ -147,7 +141,12 @@ ngx_wasmtime_new_engine(ngx_pool_t *pool, ngx_wasm_vm_error_pt *vm_error)
     engine->pool = pool;
     engine->log = pool->log;
 
-    engine->engine = wasm_engine_new();
+    config = wasm_config_new();
+
+    //wasmtime_config_max_wasm_stack_set(config, (size_t) 125000 * 5);
+    //wasmtime_config_static_memory_maximum_size_set(config, 0);
+
+    engine->engine = wasm_engine_new_with_config(config);
     if (engine->engine == NULL) {
         goto failed;
     }
@@ -215,10 +214,9 @@ ngx_wasmtime_new_engine(ngx_pool_t *pool, ngx_wasm_vm_error_pt *vm_error)
             func = wasmtime_func_new(engine->store, functype,
                                      (wasmtime_func_callback_t) hfunc->ptr);
 
-            func_extern = wasm_func_as_extern(func);
-
             *error = wasmtime_linker_define(engine->linker, &module_name,
-                                            &hfunc_name, func_extern);
+                                            &hfunc_name,
+                                            wasm_func_as_extern(func));
 
             wasm_func_delete(func);
             wasm_functype_delete(functype);
@@ -249,7 +247,7 @@ ngx_wasmtime_free_module(ngx_wasm_vm_module_pt vm_module)
     ngx_wasmtime_module_t       *module = vm_module;
 
     if (module->module) {
-        wasm_importtype_vec_delete(&module->imports);
+        //wasm_importtype_vec_delete(&module->imports);
         wasm_exporttype_vec_delete(&module->exports);
         wasm_module_delete(module->module);
     }
@@ -259,7 +257,7 @@ ngx_wasmtime_free_module(ngx_wasm_vm_module_pt vm_module)
 
 
 static ngx_wasm_vm_module_pt
-ngx_wasmtime_new_module(ngx_wasm_vm_engine_pt vm_engine, ngx_str_t *name,
+ngx_wasmtime_new_module(ngx_wasm_vm_engine_pt vm_engine, ngx_str_t *mod_name,
     ngx_str_t *bytes, ngx_uint_t flags, ngx_wasm_vm_error_pt *vm_error)
 {
     ngx_wasmtime_engine_t       *engine = vm_engine;
@@ -286,14 +284,14 @@ ngx_wasmtime_new_module(ngx_wasm_vm_engine_pt vm_engine, ngx_str_t *name,
     }
 
     module->engine = engine;
-    module->name = name;
+    module->name = mod_name;
 
     *error = wasmtime_module_new(engine->store, &wasm_bytes, &module->module);
     if (*error) {
         goto failed;
     }
 
-    ngx_wasm_bytes_set(&module_name, name);
+    ngx_wasm_bytes_set(&module_name, mod_name);
 
     *error = wasmtime_linker_module(engine->linker, &module_name,
                                     (const wasm_module_t *) module->module);
@@ -301,7 +299,7 @@ ngx_wasmtime_new_module(ngx_wasm_vm_engine_pt vm_engine, ngx_str_t *name,
         goto failed;
     }
 
-    wasm_module_imports(module->module, &module->imports);
+    //wasm_module_imports(module->module, &module->imports);
     wasm_module_exports(module->module, &module->exports);
 
     return module;
@@ -314,10 +312,14 @@ failed:
 }
 
 
+#if 0
 void
 ngx_wasmtime_free_instance(ngx_wasm_vm_instance_pt vm_instance)
 {
+    ngx_wasmtime_engine_t       *engine;
     ngx_wasmtime_instance_t     *instance = vm_instance;
+
+    engine = instance->module->engine;
 
     if (instance->instance) {
         /* double free bug in wasmtime? */
@@ -329,16 +331,15 @@ ngx_wasmtime_free_instance(ngx_wasm_vm_instance_pt vm_instance)
         wasm_memory_delete(instance->memory);
     }
 
-    ngx_pfree(instance->engine->pool, instance);
+    ngx_pfree(engine->pool, instance);
 }
 
 
 ngx_wasm_vm_instance_pt
-ngx_wasmtime_new_instance(ngx_wasm_vm_engine_pt vm_engine,
-    ngx_wasm_vm_module_pt vm_module, ngx_wasm_vm_error_pt *vm_error,
-    ngx_wasm_vm_trap_pt *vm_trap)
+ngx_wasmtime_new_instance(ngx_wasm_vm_module_pt vm_module,
+    ngx_wasm_vm_error_pt *vm_error, ngx_wasm_vm_trap_pt *vm_trap)
 {
-    ngx_wasmtime_engine_t       *engine = vm_engine;
+    ngx_wasmtime_engine_t       *engine;
     ngx_wasmtime_module_t       *module = vm_module;
     wasmtime_error_t           **error = (wasmtime_error_t **) vm_error;
     wasm_trap_t                **trap = (wasm_trap_t **) vm_trap;
@@ -347,13 +348,16 @@ ngx_wasmtime_new_instance(ngx_wasm_vm_engine_pt vm_engine,
     const wasm_name_t           *extern_name;
     const wasm_externtype_t     *extern_type;
 
+    engine = module->engine;
+
     instance = ngx_palloc(engine->pool, sizeof(ngx_wasmtime_instance_t));
     if (instance == NULL) {
         return NULL;
     }
 
-    instance->engine = engine;
+    instance->module = module;
 
+    /*
     *error = wasmtime_linker_instantiate(engine->linker, module->module,
                                          &instance->instance, trap);
     if (*error || *trap) {
@@ -379,6 +383,7 @@ ngx_wasmtime_new_instance(ngx_wasm_vm_engine_pt vm_engine,
             instance->memory = wasm_extern_as_memory(instance->externs.data[i]);
         }
     }
+    */
 
     return instance;
 
@@ -387,6 +392,43 @@ failed:
     ngx_wasmtime_free_instance(instance);
 
     return NULL;
+}
+#endif
+
+
+ngx_int_t
+ngx_wasmtime_call_by_name(ngx_wasm_vm_engine_pt vm_engine, ngx_str_t *mod_name,
+    ngx_str_t *func_name, ngx_wasm_vm_error_pt *vm_error,
+    ngx_wasm_vm_trap_pt *vm_trap)
+{
+    ngx_wasmtime_engine_t       *engine = vm_engine;
+    wasmtime_error_t           **error = (wasmtime_error_t **) vm_error;
+    wasm_trap_t                **trap = (wasm_trap_t **) vm_trap;
+    wasm_name_t                  mname,  fname;
+    wasm_extern_t               *fextern;
+    wasm_func_t                 *func;
+
+    ngx_wasm_bytes_set(&mname, mod_name);
+    ngx_wasm_bytes_set(&fname, func_name);
+
+    *error = wasmtime_linker_get_one_by_name(engine->linker,
+                                             &mname, &fname,
+                                             &fextern);
+    if (*error) {
+        return NGX_ERROR;
+    }
+
+    func = wasm_extern_as_func(fextern);
+
+    *error = wasmtime_func_call(func, NULL, 0, NULL, 0, trap);
+
+    wasm_func_delete(func);
+
+    if (*error || *trap) {
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
 }
 
 
@@ -450,13 +492,14 @@ static ngx_wasm_module_t  ngx_wasmtime_module_ctx = {
     NULL,                                /* create configuration */
     NULL,                                /* init configuration */
     NULL,                                /* init module */
+    NULL,                                /* exit process */
+    NULL,                                /* exit master */
     {                                    /* VM actions */
         ngx_wasmtime_new_engine,
         ngx_wasmtime_free_engine,
         ngx_wasmtime_new_module,
         ngx_wasmtime_free_module,
-        ngx_wasmtime_new_instance,
-        ngx_wasmtime_free_instance,
+        ngx_wasmtime_call_by_name,
         ngx_wasmtime_log_error_handler
     }
 };

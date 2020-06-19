@@ -119,7 +119,7 @@ ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    mcf->default_vm = ngx_wasm_get_default_vm(cf->cycle);
+    mcf->default_vm = ngx_wasm_core_get_default_vm(cf->cycle);
     if (mcf->default_vm == NULL) {
         return NULL;
     }
@@ -285,7 +285,6 @@ ngx_http_wasm_exec_on_phase(ngx_http_request_t *r, ngx_http_phases phase)
     ngx_http_wasm_loc_conf_t    *lcf;
     ngx_array_t                 *calls;
     ngx_http_wasm_call_t        *call, **pcall;
-    ngx_wasm_instance_pt         instance;
     ngx_uint_t                   i;
 
     mcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
@@ -305,9 +304,8 @@ ngx_http_wasm_exec_on_phase(ngx_http_request_t *r, ngx_http_phases phase)
     for (i = 0; i < calls->nelts; i++) {
         call = pcall[i];
 
-        instance = ngx_wasm_vm_new_instance(mcf->default_vm, call->mname.data);
-
-        ngx_wasm_vm_free_instance(instance);
+        (void) ngx_wasm_vm_call_by_name(mcf->default_vm,
+                                        &call->mname, &call->fname);
     }
 
     return NGX_OK;

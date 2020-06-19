@@ -46,6 +46,8 @@ ngx_int_t ngx_wasm_hostfuncs_init();
 
 ngx_wasm_hostfuncs_namespaces_t *ngx_wasm_hostfuncs_namespaces();
 
+void ngx_wasm_hostfuncs_destroy();
+
 
 #endif /* _NGX_WASM_HOSTFUNCS_H_INCLUDED_ */
 

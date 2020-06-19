@@ -105,7 +105,7 @@ ngx_wasm_hostfuncs_new(ngx_log_t *log)
         return NGX_OK;
     }
 
-    pool = ngx_create_pool(NGX_DEFAULT_POOL_SIZE, log);
+    pool = ngx_create_pool(NGX_MIN_POOL_SIZE, log);
     if (pool == NULL) {
         goto failed;
     }
@@ -349,7 +349,7 @@ ngx_wasm_hostfuncs_namespace_find(ngx_wasm_hostfuncs_namespace_t *nn,
 }
 
 
-static void
+void
 ngx_wasm_hostfuncs_destroy()
 {
     if (store) {

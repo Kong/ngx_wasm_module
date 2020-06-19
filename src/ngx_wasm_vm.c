@@ -46,7 +46,7 @@ typedef struct {
     ngx_str_t                     name;
     ngx_str_t                     path;
     ngx_uint_t                    flags;
-    ngx_str_t                     bytes;
+
     ngx_wasm_vm_module_pt         vm_module;
 } ngx_wasm_vm_module_t;
 
@@ -62,6 +62,7 @@ struct ngx_wasm_vm_s {
     ngx_str_t                    *vm_name;
     ngx_pool_t                   *pool;
     ngx_log_t                    *log;
+
     ngx_wasm_vm_actions_t        *vm_actions;
     ngx_wasm_vm_engine_pt         vm_engine;
     ngx_wasm_vm_modules_t         modules;
@@ -71,8 +72,8 @@ struct ngx_wasm_vm_s {
 struct ngx_wasm_instance_s {
     ngx_pool_t                   *pool;
     ngx_log_t                    *log;
+
     ngx_wasm_vm_pt                vm;
-    ngx_wasm_vm_instance_pt       vm_instance;
 };
 
 
@@ -186,7 +187,7 @@ ngx_wasm_vm_new(const char *name, ngx_log_t *log)
 
     vm->pool = pool;
 
-    vm->log = ngx_palloc(pool, sizeof(ngx_log_t));
+    vm->log = ngx_pcalloc(pool, sizeof(ngx_log_t));
     if (vm->log == NULL) {
         goto failed;
     }
@@ -198,7 +199,8 @@ ngx_wasm_vm_new(const char *name, ngx_log_t *log)
     vm->log->log_level = log->log_level;
     vm->log->handler = ngx_wasm_vm_log_error_handler;
 
-    log_ctx = ngx_palloc(pool, sizeof(ngx_wasm_vm_log_ctx_t));
+    log_ctx = ngx_palloc(pool,
+                         sizeof(ngx_wasm_vm_log_ctx_t));
     if (log_ctx == NULL) {
         goto failed;
     }
@@ -250,14 +252,14 @@ ngx_wasm_vm_free(ngx_wasm_vm_pt vm)
 
 
 ngx_int_t
-ngx_wasm_vm_add_module(ngx_wasm_vm_pt vm, u_char *name, u_char *path)
+ngx_wasm_vm_add_module(ngx_wasm_vm_pt vm, u_char *mod_name, u_char *path)
 {
     ngx_wasm_vm_module_t         *module;
     u_char                       *p;
     ngx_rbtree_node_t            *n;
     ngx_int_t                     rc = NGX_ERROR;
 
-    module = ngx_wasm_vm_get_module(vm, name);
+    module = ngx_wasm_vm_get_module(vm, mod_name);
     if (module) {
         return NGX_DECLINED;
     }
@@ -269,13 +271,13 @@ ngx_wasm_vm_add_module(ngx_wasm_vm_pt vm, u_char *name, u_char *path)
         goto failed;
     }
 
-    module->name.len = ngx_strlen(name);
+    module->name.len = ngx_strlen(mod_name);
     module->name.data = ngx_palloc(vm->pool, module->name.len + 1);
     if (module->name.data == NULL) {
         goto failed;
     }
 
-    p = ngx_copy(module->name.data, name, module->name.len);
+    p = ngx_copy(module->name.data, mod_name, module->name.len);
     *p = '\0';
 
     module->path.len = ngx_strlen(path);
@@ -301,7 +303,7 @@ failed:
 
     ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
                        "failed to add module \"%V\" from \"%V\"",
-                        name, path);
+                        mod_name, path);
 
     if (module) {
         if (module->name.data) {
@@ -320,11 +322,11 @@ failed:
 
 
 ngx_int_t
-ngx_wasm_vm_has_module(ngx_wasm_vm_pt vm, u_char *name)
+ngx_wasm_vm_has_module(ngx_wasm_vm_pt vm, u_char *mod_name)
 {
     ngx_wasm_vm_module_t         *module;
 
-    module = ngx_wasm_vm_get_module(vm, name);
+    module = ngx_wasm_vm_get_module(vm, mod_name);
     if (module == NULL) {
         return NGX_DECLINED;
     }
@@ -334,7 +336,7 @@ ngx_wasm_vm_has_module(ngx_wasm_vm_pt vm, u_char *name)
 
 
 ngx_int_t
-ngx_wasm_vm_init(ngx_wasm_vm_pt vm, ngx_str_t *vm_name,
+ngx_wasm_vm_init_runtime(ngx_wasm_vm_pt vm, ngx_str_t *vm_name,
     ngx_wasm_vm_actions_t *vm_actions)
 {
     ngx_wasm_vm_error_pt          vm_error = NULL;
@@ -350,7 +352,8 @@ ngx_wasm_vm_init(ngx_wasm_vm_pt vm, ngx_str_t *vm_name,
         vm->vm_engine = vm_actions->new_engine(vm->pool, &vm_error);
         if (vm->vm_engine == NULL) {
             ngx_wasm_vm_log_error(NGX_LOG_EMERG, vm->log, vm_error, NULL,
-                                  "failed to initialize \"%V\" vm", &vm->name);
+                                  "failed to initialize \"%V\" vm runtime",
+                                  &vm->name);
             return NGX_ERROR;
         }
     }
@@ -360,20 +363,21 @@ ngx_wasm_vm_init(ngx_wasm_vm_pt vm, ngx_str_t *vm_name,
 
 
 ngx_int_t
-ngx_wasm_vm_load_module(ngx_wasm_vm_pt vm, u_char *name)
+ngx_wasm_vm_load_module(ngx_wasm_vm_pt vm, u_char *mod_name)
 {
     ngx_wasm_vm_module_t         *module;
     ngx_wasm_vm_error_pt          vm_error = NULL;
+    ngx_str_t                     bytes;
     ngx_fd_t                      fd;
     ngx_file_t                    file;
     ssize_t                       n, fsize;
 
     ngx_wasm_vm_check_init(vm, NGX_ABORT);
 
-    module = ngx_wasm_vm_get_module(vm, name);
+    module = ngx_wasm_vm_get_module(vm, mod_name);
     if (module == NULL) {
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0, "no \"%s\" module",
-                           name);
+                           mod_name);
         return NGX_DECLINED;
     }
 
@@ -381,70 +385,69 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_pt vm, u_char *name)
         return NGX_OK;
     }
 
-    if (!module->bytes.data && !module->path.data) {
+    if (!module->path.len) {
         ngx_wasm_log_error(NGX_LOG_ALERT, vm->log, 0,
                            "NYI - ngx_wasm_vm: module loading only supported "
                            "via path");
         return NGX_ERROR;
     }
 
-    if (!module->bytes.data) {
-        fd = ngx_open_file(module->path.data, NGX_FILE_RDONLY,
-                           NGX_FILE_OPEN, 0);
-        if (fd == NGX_INVALID_FILE) {
-            ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, ngx_errno,
-                               ngx_open_file_n " \"%V\" failed",
-                               &module->path);
-            return NGX_ERROR;
-        }
+    fd = ngx_open_file(module->path.data, NGX_FILE_RDONLY,
+                       NGX_FILE_OPEN, 0);
+    if (fd == NGX_INVALID_FILE) {
+        ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, ngx_errno,
+                           ngx_open_file_n " \"%V\" failed",
+                           &module->path);
+        return NGX_ERROR;
+    }
 
-        ngx_memzero(&file, sizeof(ngx_file_t));
+    ngx_memzero(&file, sizeof(ngx_file_t));
 
-        file.fd = fd;
-        file.log = vm->log;
-        file.name.len = ngx_strlen(module->path.data);
-        file.name.data = (u_char *) module->path.data;
+    file.fd = fd;
+    file.log = vm->log;
+    file.name.len = ngx_strlen(module->path.data);
+    file.name.data = (u_char *) module->path.data;
 
-        if (ngx_fd_info(fd, &file.info) == NGX_FILE_ERROR) {
-            ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, ngx_errno,
-                               ngx_fd_info_n " \"%V\" failed", &file.name);
-            goto close;
-        }
+    if (ngx_fd_info(fd, &file.info) == NGX_FILE_ERROR) {
+        ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, ngx_errno,
+                           ngx_fd_info_n " \"%V\" failed", &file.name);
+        goto close;
+    }
 
-        fsize = ngx_file_size(&file.info);
-        module->bytes.len = fsize;
-        module->bytes.data = ngx_palloc(vm->pool, fsize);
-        if (module->bytes.data == NULL) {
-            ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
-                               "failed to allocate bytes for \"%V\" "
-                               "module from \"%V\"",
-                               &module->name, &module->path);
-            goto close;
-        }
+    fsize = ngx_file_size(&file.info);
 
-        n = ngx_read_file(&file, (u_char *) module->bytes.data,
-                          fsize, 0);
-        if (n == NGX_ERROR) {
-            ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, ngx_errno,
-                               ngx_read_file_n " \"%V\" failed",
-                               &file.name);
-            goto close;
-        }
+    bytes.len = fsize;
+    bytes.data = ngx_alloc(bytes.len, vm->log);
+    if (bytes.data == NULL) {
+        ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
+                           "failed to allocate bytes for \"%V\" "
+                           "module from \"%V\"",
+                           &module->name, &module->path);
+        goto close;
+    }
 
-        if (n != fsize) {
-            ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
-                               ngx_read_file_n " \"%V\" returned only "
-                               "%z bytes instead of %uz", &file.name,
-                               n, fsize);
-            goto close;
-        }
+    n = ngx_read_file(&file, (u_char *) bytes.data, fsize, 0);
+    if (n == NGX_ERROR) {
+        ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, ngx_errno,
+                           ngx_read_file_n " \"%V\" failed",
+                           &file.name);
+        goto close;
+    }
 
-        if (ngx_close_file(fd) == NGX_FILE_ERROR) {
-            ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, ngx_errno,
-                               ngx_close_file_n " \"%V\" failed",
-                               &file.name);
-            return NGX_ERROR;
-        }
+    if (n != fsize) {
+        ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
+                           ngx_read_file_n " \"%V\" returned only "
+                           "%z bytes instead of %uz", &file.name,
+                           n, fsize);
+        goto close;
+    }
+
+    if (ngx_close_file(fd) == NGX_FILE_ERROR) {
+        ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, ngx_errno,
+                           ngx_close_file_n " \"%V\" failed",
+                           &file.name);
+        fd = NGX_INVALID_FILE;
+        goto close;
     }
 
     ngx_wasm_log_error(NGX_LOG_NOTICE, vm->log, 0,
@@ -453,7 +456,7 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_pt vm, u_char *name)
 
     module->vm_module = vm->vm_actions->new_module(vm->vm_engine,
                                                    &module->name,
-                                                   &module->bytes,
+                                                   &bytes,
                                                    module->flags,
                                                    &vm_error);
     if (module->vm_module == NULL) {
@@ -472,6 +475,10 @@ close:
     if (fd != NGX_INVALID_FILE && ngx_close_file(fd) == NGX_FILE_ERROR) {
         ngx_wasm_log_error(NGX_LOG_ERR, vm->log, ngx_errno,
                            ngx_close_file_n " \"%V\" failed", &file.name);
+    }
+
+    if (bytes.data) {
+        ngx_free(bytes.data);
     }
 
     return NGX_ERROR;
@@ -510,6 +517,28 @@ ngx_wasm_vm_load_modules(ngx_wasm_vm_pt vm)
 }
 
 
+ngx_int_t
+ngx_wasm_vm_call_by_name(ngx_wasm_vm_pt vm, ngx_str_t *mod_name,
+    ngx_str_t *func_name)
+{
+    ngx_wasm_vm_error_pt          vm_error = NULL;
+    ngx_wasm_vm_trap_pt           vm_trap = NULL;
+    ngx_int_t                     rc;
+
+    ngx_wasm_vm_check_init(vm, NGX_ABORT);
+
+    rc = vm->vm_actions->call_by_name(vm->vm_engine, mod_name, func_name,
+                                      &vm_error, &vm_trap);
+    if (rc != NGX_OK) {
+        ngx_wasm_vm_log_error(NGX_LOG_ERR, vm->log, vm_error, vm_trap,
+                              "NYI: stacktrace");
+    }
+
+    return rc;
+}
+
+
+#if 0
 ngx_wasm_instance_pt
 ngx_wasm_vm_new_instance(ngx_wasm_vm_pt vm, u_char *module_name)
 {
@@ -536,17 +565,16 @@ ngx_wasm_vm_new_instance(ngx_wasm_vm_pt vm, u_char *module_name)
         return NULL;
     }
 
+    instance->vm = vm;
     instance->pool = vm->pool;
     instance->log = vm->log;
-    instance->vm = vm;
 
-    instance->vm_instance = vm->vm_actions->new_instance(vm->vm_engine,
-                                                         module->vm_module,
-                                                         &vm_error,
-                                                         &vm_trap);
+    instance->vm_instance = vm->vm_actions->new_instance(module->vm_module,
+                                                         &vm_error, &vm_trap);
     if (instance->vm_instance == NULL) {
         ngx_wasm_vm_log_error(NGX_LOG_EMERG, vm->log, vm_error, vm_trap,
-                              "failed to create instance of \"%s\" module");
+                              "failed to create instance of \"%s\" module",
+                              module_name);
         goto failed;
     }
 
@@ -569,6 +597,7 @@ ngx_wasm_vm_free_instance(ngx_wasm_instance_pt instance)
 
     ngx_pfree(instance->pool, instance);
 }
+#endif
 
 
 static void

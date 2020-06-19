@@ -16,7 +16,20 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: wasm_call_log directive: sanity
+=== TEST 1: wasm_call_log directive: no wasm{} configuration block
+--- main_config
+--- config
+    location /t {
+        wasm_call_log hello get;
+        return 200;
+    }
+--- error_log eval
+qr/\[emerg\] .*? no "wasm" section in configuration/
+--- must_die
+
+
+
+=== TEST 2: wasm_call_log directive: sanity
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -37,7 +50,7 @@ wasm: executing 1 call(s) in log phase
 
 
 
-=== TEST 2: wasm_call_log directive: invalid module name
+=== TEST 3: wasm_call_log directive: invalid module name
 --- config
     location /t {
         wasm_call_log '' get;
@@ -49,7 +62,7 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 
-=== TEST 3: wasm_call_log directive: invalid function name
+=== TEST 4: wasm_call_log directive: invalid function name
 --- config
     location /t {
         wasm_call_log hello '';
@@ -61,7 +74,7 @@ qr/\[emerg\] .*? invalid function name ""/
 
 
 
-=== TEST 4: wasm_call_log directive: no such module
+=== TEST 5: wasm_call_log directive: no such module
 --- config
     location /t {
         wasm_call_log hello get;
@@ -73,8 +86,7 @@ qr/\[emerg\] .*? \[wasm\] no "hello" module defined/
 
 
 
-=== TEST 5: wasm_call_log directive: catch runtime error sanity
---- SKIP
+=== TEST 6: wasm_call_log directive: catch runtime error sanity
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -100,16 +112,16 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
 
 
 
-=== TEST 6: wasm_call_log directive: X
---- SKIP
+=== TEST 7: wasm_call_log directive: X
 --- main_config
     wasm {
         module http_tests t/lib/rust-http-tests/target/wasm32-unknown-unknown/debug/rust_tests.wasm;
     }
 --- config
     location /t {
-        wasm_call_log http_tests _start;
+        wasm_call_log http_tests my_func;
         return 200;
     }
 --- no_error_log
 [emerg]
+[error]

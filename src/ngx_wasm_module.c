@@ -19,6 +19,9 @@
 
 static char *ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_wasm_init_conf(ngx_cycle_t *cycle, void *conf);
+static ngx_int_t ngx_wasm_init(ngx_cycle_t *cycle);
+static void ngx_wasm_exit_process(ngx_cycle_t *cycle);
+static void ngx_wasm_exit_master(ngx_cycle_t *cycle);
 
 
 static ngx_uint_t  ngx_wasm_max_module;
@@ -50,12 +53,12 @@ ngx_module_t  ngx_wasm_module = {
     ngx_wasm_cmds,                     /* module directives */
     NGX_CORE_MODULE,                   /* module type */
     NULL,                              /* init master */
-    NULL,                              /* init module */
+    ngx_wasm_init,                     /* init module */
     NULL,                              /* init process */
     NULL,                              /* init thread */
     NULL,                              /* exit thread */
-    NULL,                              /* exit process */
-    NULL,                              /* exit master */
+    ngx_wasm_exit_process,             /* exit process */
+    ngx_wasm_exit_master,              /* exit master */
     NGX_MODULE_V1_PADDING
 };
 
@@ -146,7 +149,7 @@ ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static char *
 ngx_wasm_init_conf(ngx_cycle_t *cycle, void *conf)
 {
-    if (ngx_wasm_get_default_vm(cycle) == NULL) {
+    if (ngx_wasm_core_get_default_vm(cycle) == NULL) {
         return NGX_CONF_ERROR;
     }
 
@@ -154,12 +157,86 @@ ngx_wasm_init_conf(ngx_cycle_t *cycle, void *conf)
 }
 
 
+static ngx_int_t
+ngx_wasm_init(ngx_cycle_t *cycle)
+{
+    size_t              i;
+    ngx_wasm_module_t  *m;
+    ngx_int_t           rc;
+
+    /* NGX_WASM_MODULES init */
+
+    for (i = 0; cycle->modules[i]; i++) {
+        if (cycle->modules[i]->type != NGX_WASM_MODULE) {
+            continue;
+        }
+
+        m = cycle->modules[i]->ctx;
+
+        if (m->init) {
+            rc = m->init(cycle);
+            if (rc != NGX_OK) {
+                return rc;
+            }
+        }
+    }
+
+    return NGX_OK;
+}
+
+
+static void
+ngx_wasm_exit_process(ngx_cycle_t *cycle)
+{
+    size_t              i;
+    ngx_wasm_module_t  *m;
+
+    /* NGX_WASM_MODULES exit_process */
+
+    for (i = 0; cycle->modules[i]; i++) {
+        if (cycle->modules[i]->type != NGX_WASM_MODULE) {
+            continue;
+        }
+
+        m = cycle->modules[i]->ctx;
+
+        if (m->exit_process) {
+            m->exit_process(cycle);
+        }
+    }
+}
+
+
+static void
+ngx_wasm_exit_master(ngx_cycle_t *cycle)
+{
+    size_t              i;
+    ngx_wasm_module_t  *m;
+
+    /* NGX_WASM_MODULES exit */
+
+    for (i = 0; cycle->modules[i]; i++) {
+        if (cycle->modules[i]->type != NGX_WASM_MODULE) {
+            continue;
+        }
+
+        m = cycle->modules[i]->ctx;
+
+        if (m->exit_master) {
+            m->exit_master(cycle);
+        }
+    }
+}
+
+
 /* ngx_wasm_core_module */
 
 
-#define ngx_wasm_core_cycle_get_conf(cycle)                                 \
-    (*(ngx_get_conf(cycle->conf_ctx, ngx_wasm_module)))                     \
-    [ngx_wasm_core_module.ctx_index]
+#define ngx_wasm_core_cycle_get_conf(cycle)                                  \
+    (ngx_get_conf(cycle->conf_ctx, ngx_wasm_module))                         \
+    ? (*(ngx_get_conf(cycle->conf_ctx, ngx_wasm_module)))                    \
+      [ngx_wasm_core_module.ctx_index]                                       \
+    : NULL
 
 
 typedef struct {
@@ -176,6 +253,8 @@ static char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
 static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
+static void ngx_wasm_core_exit_process(ngx_cycle_t *cycle);
+static void ngx_wasm_core_exit_master(ngx_cycle_t *cycle);
 
 
 static ngx_str_t const wasm_core_name = ngx_string("wasm_core");
@@ -205,7 +284,9 @@ static ngx_wasm_module_t  ngx_wasm_core_module_ctx = {
     wasm_core_name,
     ngx_wasm_core_create_conf,             /* create configuration */
     ngx_wasm_core_init_conf,               /* init configuration */
-    NULL,                                  /* init module */
+    ngx_wasm_core_init,                    /* init module */
+    ngx_wasm_core_exit_process,            /* exit process */
+    ngx_wasm_core_exit_master,             /* exit master */
     NGX_WASM_NO_VM_ACTIONS                 /* vm actions */
 };
 
@@ -216,7 +297,7 @@ ngx_module_t  ngx_wasm_core_module = {
     ngx_wasm_core_commands,                /* module directives */
     NGX_WASM_MODULE,                       /* module type */
     NULL,                                  /* init master */
-    ngx_wasm_core_init,                    /* init module */
+    NULL,                                  /* init module */
     NULL,                                  /* init process */
     NULL,                                  /* init thread */
     NULL,                                  /* exit thread */
@@ -377,40 +458,25 @@ static ngx_int_t
 ngx_wasm_core_init(ngx_cycle_t *cycle)
 {
     ngx_wasm_core_conf_t    *wcf;
-    ngx_wasm_vm_pt           vm;
+    ngx_wasm_vm_pt           default_vm;
     ngx_wasm_module_t       *m;
-    ngx_uint_t               i;
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    vm = wcf->default_vm;
+    default_vm = wcf->default_vm;
 
-    /* NGX_WASM_MODULES init */
+    m = cycle->modules[wcf->vm]->ctx;
 
-    for (i = 0; cycle->modules[i]; i++) {
-        if (cycle->modules[i]->type != NGX_WASM_MODULE) {
-            continue;
-        }
-
-        m = cycle->modules[i]->ctx;
-
-        if (m->init) {
-            if (m->init(cycle) != NGX_OK) {
-                return NGX_ERROR;
-            }
-        }
-
-        if (i == wcf->vm
-            && ngx_wasm_vm_init(vm, &m->name, &m->vm_actions) == NGX_ERROR)
-        {
-            return NGX_ERROR;
-        }
+    if (ngx_wasm_vm_init_runtime(default_vm, &m->name, &m->vm_actions)
+        != NGX_OK)
+    {
+        return NGX_ERROR;
     }
 
     if (ngx_wasm_hostfuncs_init() != NGX_OK) {
         return NGX_ERROR;
     }
 
-    if (ngx_wasm_vm_load_modules(vm) != NGX_OK) {
+    if (ngx_wasm_vm_load_modules(default_vm) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -418,18 +484,40 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
 }
 
 
-ngx_inline ngx_wasm_vm_pt
-ngx_wasm_get_default_vm(ngx_cycle_t *cycle)
+static void
+ngx_wasm_core_exit_process(ngx_cycle_t *cycle)
 {
     ngx_wasm_core_conf_t  *wcf;
 
-    if (ngx_get_conf(cycle->conf_ctx, ngx_wasm_module) == NULL) {
+    wcf = ngx_wasm_core_cycle_get_conf(cycle);
+
+    if (wcf->default_vm) {
+        ngx_wasm_vm_free(wcf->default_vm);
+        wcf->default_vm = NULL;
+    }
+
+    ngx_wasm_hostfuncs_destroy();
+}
+
+
+static void
+ngx_wasm_core_exit_master(ngx_cycle_t *cycle)
+{
+    ngx_wasm_core_exit_process(cycle);
+}
+
+
+ngx_inline ngx_wasm_vm_pt
+ngx_wasm_core_get_default_vm(ngx_cycle_t *cycle)
+{
+    ngx_wasm_core_conf_t  *wcf;
+
+    wcf = ngx_wasm_core_cycle_get_conf(cycle);
+    if (wcf == NULL) {
         ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
                       "no \"wasm\" section in configuration");
         return NULL;
     }
-
-    wcf = ngx_wasm_core_cycle_get_conf(cycle);
 
     return wcf->default_vm;
 }

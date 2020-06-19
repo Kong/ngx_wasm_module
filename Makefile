@@ -1,11 +1,11 @@
-NGX_VER ?= 1.19.0
+NGX ?= 1.19.0
 
 export WASMTIME_INC ?= /usr/local/opt/include
 export WASMTIME_LIB ?= /usr/local/opt/lib
 
 .PHONY: build
 build:
-	@util/build.sh ${NGX_VER}
+	@util/build.sh ${NGX}
 
 .PHONY: setup
 setup:

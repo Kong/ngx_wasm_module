@@ -3,8 +3,16 @@ pub mod hostcalls;
 use crate::hostcalls::*;
 
 #[no_mangle]
-pub fn _start() {
+pub fn my_func() {
     ngx_log(6, "with love");
+    //here();
+}
+
+fn here() {
+    let foo = 5;
+    let bar = 0;
+
+    //foo / bar;
 }
 
 #[cfg(test)]

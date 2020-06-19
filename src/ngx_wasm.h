@@ -36,7 +36,6 @@
 
 
 typedef struct ngx_wasm_vm_s       *ngx_wasm_vm_pt;
-typedef struct ngx_wasm_instance_s *ngx_wasm_instance_pt;
 
 
 typedef enum {
@@ -64,7 +63,6 @@ typedef struct {
 
 typedef void *ngx_wasm_vm_engine_pt;
 typedef void *ngx_wasm_vm_module_pt;
-typedef void *ngx_wasm_vm_instance_pt;
 typedef void *ngx_wasm_vm_error_pt;
 typedef void *ngx_wasm_vm_trap_pt;
 
@@ -88,19 +86,17 @@ typedef struct {
     void                    (*free_engine)(ngx_wasm_vm_engine_pt vm_engine);
 
     ngx_wasm_vm_module_pt   (*new_module)(ngx_wasm_vm_engine_pt vm_engine,
-                                          ngx_str_t *name, ngx_str_t *bytes,
+                                          ngx_str_t *mod_name, ngx_str_t *bytes,
                                           ngx_uint_t flags,
                                           ngx_wasm_vm_error_pt *vm_error);
 
     void                    (*free_module)(ngx_wasm_vm_module_pt vm_module);
 
-    ngx_wasm_vm_instance_pt (*new_instance)(ngx_wasm_vm_engine_pt vm_engine,
-                                            ngx_wasm_vm_module_pt vm_module,
+    ngx_int_t               (*call_by_name)(ngx_wasm_vm_engine_pt vm_engine,
+                                            ngx_str_t *mod_name,
+                                            ngx_str_t *func_name,
                                             ngx_wasm_vm_error_pt *vm_error,
                                             ngx_wasm_vm_trap_pt *vm_trap);
-
-    void                    (*free_instance)(ngx_wasm_vm_instance_pt
-                                             vm_instance);
 
     u_char                 *(*log_error_handler)(ngx_wasm_vm_error_pt vm_error,
                                                  ngx_wasm_vm_trap_pt vm_trap,

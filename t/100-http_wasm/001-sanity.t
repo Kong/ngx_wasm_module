@@ -16,13 +16,11 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: wasm_call_log directive: no wasm{} configuration block
---- main_config
+=== TEST 1: sanity (NYI)
 --- config
     location /t {
-        wasm_call_log hello get;
         return 200;
     }
---- error_log eval
-qr/\[emerg\] .*? no "wasm" section in configuration/
---- must_die
+--- no_error_log
+[error]
+[emerg]
