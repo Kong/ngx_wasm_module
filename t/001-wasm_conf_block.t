@@ -92,7 +92,7 @@ qr/\[notice\] .*? using the "wasmtime" wasm runtime/
 >>> hello.wat
 (module)
 --- error_log eval
-qr/\[notice\] .*? \[wasm\] loading module "hello" from ".*?hello\.wat" <vm: default, runtime: .*?>/
+qr/\[notice\] .*? \[wasm\] loading "hello" module from ".*?hello\.wat" <vm: default, runtime: .*?>/
 
 
 
@@ -106,8 +106,8 @@ qr/\[notice\] .*? \[wasm\] loading module "hello" from ".*?hello\.wat" <vm: defa
 >>> hello.wat
 (module)
 --- error_log eval
-[qr/\[notice\] .*? \[wasm\] loading module "hello" from ".*?hello\.wat"/,
-qr/\[notice\] .*? \[wasm\] loading module "world" from ".*?hello\.wat"/]
+[qr/\[notice\] .*? \[wasm\] loading "hello" module from ".*?hello\.wat"/,
+qr/\[notice\] .*? \[wasm\] loading "world" module from ".*?hello\.wat"/]
 
 
 
@@ -191,7 +191,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 --- user_files
 >>> hello.wat
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] failed to load module "hello" from ".*?hello\.wat" \(expected at least one module field/
+qr/\[emerg\] .*? \[wasm\] failed to load "hello" module from ".*?hello\.wat" \(expected at least one module field/
 --- no_error_log
 [error]
 --- must_die

@@ -4,3 +4,4 @@ t/servroot/
 t/lib/rust-http-tests/target/
 *.data*
 *.perf*
+vgcore.*

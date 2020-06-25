@@ -14,6 +14,7 @@ build_nginx() {
 
     if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
         build_name+=", no pool"
+        NGX_BUILD_CCOPT="$NGX_BUILD_CCOPT -DNGX_WASM_NO_POOL"
     fi
 
     if [[ "$NGX_BUILD_DEBUG" == 1 ]]; then

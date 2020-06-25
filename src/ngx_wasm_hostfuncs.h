@@ -9,47 +9,71 @@
 #include <ngx_wasm.h>
 
 
-#define NGX_WASM_NO_ARGS            { 0, 0, 0, 0, 0, 0, 0, 0 }
-#define NGX_WASM_NO_RETS            { 0 }
-
-#define NGX_WASM_ARGS_I32_I32_I32                                           \
-    { NGX_WASM_I32, NGX_WASM_I32, NGX_WASM_I32, 0, 0, 0, 0, 0 }
-
-#define NGX_WASM_RETS_I32                                                   \
-    { NGX_WASM_I32, 0, 0, 0, 0, 0, 0, 0 }
-
-#define ngx_wasm_hostfuncs_null                                             \
-    { ngx_null_string, NULL, NGX_WASM_NO_ARGS, NGX_WASM_NO_RETS }
+/* store */
 
 
 typedef struct {
-    ngx_rbtree_node_t  rbnode;
+    ngx_rbtree_node_t       rbnode;
+    ngx_str_t               name;
+    ngx_array_t            *decls;
+} ngx_wasm_hfuncs_decls_module_t;
 
-    ngx_str_t          name;
-    ngx_array_t       *hfuncs;
-    ngx_hash_t        *hash;
-} ngx_wasm_hostfuncs_namespace_t;
+
+struct ngx_wasm_hfuncs_store_s {
+    ngx_rbtree_t            rbtree;
+    ngx_rbtree_node_t       sentinel;
+    ngx_cycle_t            *cycle;
+    ngx_pool_t             *pool;
+};
+
+
+ngx_wasm_hfuncs_store_t *ngx_wasm_hfuncs_store_new(ngx_cycle_t *cycle);
+
+void ngx_wasm_hfuncs_store_add(ngx_wasm_hfuncs_store_t *store,
+    const char *module, const ngx_wasm_hfunc_decl_t decls[]);
+
+void ngx_wasm_hfuncs_store_free(ngx_wasm_hfuncs_store_t *store);
+
+
+/* resolver */
+
+
+struct ngx_wasm_hfunc_s {
+    ngx_str_t               *name;
+    ngx_wasm_hfunc_pt        ptr;
+    ngx_wasm_val_kind        args[NGX_WASM_ARGS_MAX];
+    ngx_wasm_val_kind        rets[NGX_WASM_RETS_MAX];
+    ngx_uint_t               nargs;
+    ngx_uint_t               nrets;
+    void                    *vm_data;
+};
 
 
 typedef struct {
-    ngx_rbtree_t       rbtree;
-    ngx_rbtree_node_t  sentinel;
-} ngx_wasm_hostfuncs_namespaces_t;
+    ngx_str_t               *name;
+    ngx_hash_t              *hfuncs;
+    ngx_hash_keys_arrays_t  *hfuncs_names;
+} ngx_wasm_hfuncs_module_t;
 
 
-ngx_int_t ngx_wasm_hostfuncs_new(ngx_log_t *log);
+struct ngx_wasm_hfuncs_resolver_s {
+    ngx_pool_t               *pool;
+    ngx_log_t                *log;
+    ngx_wasm_hfuncs_store_t  *store;
+    ngx_wasm_hfunc_new_pt     hf_new;
+    ngx_wasm_hfunc_free_pt    hf_free;
+    ngx_hash_t               *modules;
+    ngx_hash_keys_arrays_t   *modules_names;
+};
 
-void ngx_wasm_hostfuncs_register(const char *namespace,
-    ngx_wasm_hostfunc_t *hfuncs);
 
-ngx_int_t ngx_wasm_hostfuncs_init();
+ngx_int_t ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver);
 
-ngx_wasm_hostfuncs_namespaces_t *ngx_wasm_hostfuncs_namespaces();
+ngx_wasm_hfunc_t *ngx_wasm_hfuncs_resolver_lookup(
+    ngx_wasm_hfuncs_resolver_t *resolver, char *module, size_t mlen,
+    char *func, size_t flen);
 
-void ngx_wasm_hostfuncs_destroy();
+void ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver);
 
 
 #endif /* _NGX_WASM_HOSTFUNCS_H_INCLUDED_ */
-
-
-/* vi:set ft=c ts=4 sw=4 et fdm=marker: */

@@ -31,7 +31,7 @@ static ngx_int_t ngx_http_wasm_log_handler(ngx_http_request_t *r);
 
 typedef struct {
     u_short              phases[NGX_WASM_HTTP_LAST_PHASE + 1];
-    ngx_wasm_vm_pt       default_vm;
+    ngx_wasm_vm_t       *default_vm;
 } ngx_http_wasm_main_conf_t;
 
 
@@ -272,7 +272,7 @@ ngx_http_wasm_init(ngx_conf_t *cf)
         }
     }
 
-    ngx_wasm_hostfuncs_register("env", ngx_http_wasm_hfuncs);
+    ngx_wasm_core_hfuncs_add(cf->cycle, ngx_http_wasm_hfuncs);
 
     return NGX_OK;
 }
@@ -283,29 +283,39 @@ ngx_http_wasm_exec_on_phase(ngx_http_request_t *r, ngx_http_phases phase)
 {
     ngx_http_wasm_main_conf_t   *mcf;
     ngx_http_wasm_loc_conf_t    *lcf;
-    ngx_array_t                 *calls;
-    ngx_http_wasm_call_t        *call, **pcall;
+    ngx_array_t                 *calls_arr;
+    ngx_wasm_instance_t         *instance;
+    ngx_wasm_hctx_t              hctx;
+    ngx_http_wasm_call_t       **calls, *call;
     ngx_uint_t                   i;
+    //ngx_int_t                    rc = NGX_ERROR;
 
     mcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
     lcf = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
 
-    calls = lcf->on_phases[phase];
-    if (calls == NULL) {
+    calls_arr = lcf->on_phases[phase];
+    if (calls_arr == NULL) {
         return NGX_OK;
     }
 
+    hctx.log = r->connection->log;
+    hctx.data.r = r;
+
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm: executing %d call(s) in log phase",
-                   calls->nelts);
+                   calls_arr->nelts);
 
-    pcall = calls->elts;
+    for (calls = calls_arr->elts, i = 0; i < calls_arr->nelts; i++) {
+        call = calls[i];
 
-    for (i = 0; i < calls->nelts; i++) {
-        call = pcall[i];
+        instance = ngx_wasm_vm_instance_new(mcf->default_vm, &call->mname, &hctx);
+        if (instance == NULL) {
+            return NGX_ERROR;
+        }
 
-        (void) ngx_wasm_vm_call_by_name(mcf->default_vm,
-                                        &call->mname, &call->fname);
+        (void) ngx_wasm_vm_instance_call(instance, &call->fname);
+
+        ngx_wasm_vm_instance_free(instance);
     }
 
     return NGX_OK;
@@ -317,6 +327,3 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
 {
     return ngx_http_wasm_exec_on_phase(r, NGX_HTTP_LOG_PHASE);
 }
-
-
-/* vi:set ft=c ts=4 sw=4 et fdm=marker: */
