@@ -1,4 +1,4 @@
-NGX ?= 1.19.0
+NGX ?= 1.19.1
 
 export WASMTIME_INC ?= /usr/local/opt/include
 export WASMTIME_LIB ?= /usr/local/opt/lib
