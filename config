@@ -126,3 +126,6 @@ ngx_module_link=ADDON
 # bypass auto/make which does not recognize WASM_INCS and WASM_MODULES
 CORE_INCS="$CORE_INCS $WASM_INCS"
 CORE_MODULES="$CORE_MODULES $WASM_MODULES"
+
+
+# vim: set ft=sh st=4 sts=4 sw=4:
