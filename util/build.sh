@@ -56,6 +56,7 @@ fi
 
 if [[ -d "$NGX" ]]; then
     NGX_DIR=$NGX
+    NGX_VER=$(awk 'match($0, /NGINX_VERSION\s+"(.*?)"/, m) {print m[1]}' $NGX_DIR/src/core/nginx.h)
 
 else
     NGX_VER=$NGX
@@ -74,6 +75,6 @@ else
     NGX_DIR=$DIR_DOWNLOAD/nginx-$NGX_VER
 fi
 
-build_nginx $NGX_DIR
+build_nginx $NGX_DIR $NGX_VER
 
 # vim: ft=sh st=4 sts=4 sw=4:

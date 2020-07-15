@@ -1,14 +1,46 @@
 DIR_WORK=$NGX_WASM_DIR/work
 DIR_DOWNLOAD=$DIR_WORK/downloads
+DIR_SRCROOT=$DIR_DOWNLOAD/nginx-patched
 DIR_BUILDROOT=$DIR_WORK/buildroot
+DIR_NOPOOL=$DIR_WORK/no-pool-nginx
 DIR_CPANM=$DIR_WORK/opt
 DIR_BIN=$DIR_WORK/bin
 
 build_nginx() {
-    local ngx_dir=$1
+    local ngx_src=$1
+    local ngx_ver=$2
+    local build_name=(dev)
+    local build_with_debug=""
 
-    pushd $ngx_dir
-        if [[ -n "$NGX_BUILD_FORCE" \
+    if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
+        build_name+=", no pool"
+    fi
+
+    if [[ "$NGX_BUILD_DEBUG" == 1 ]]; then
+        build_name+=", debug"
+        build_with_debug="--with-debug"
+    fi
+
+    local hash=$(echo "$ngx_ver.$ngx_src.$build_name" | md5sum | awk '{ print $1 }')
+
+    if [[ ! -d "$DIR_SRCROOT" \
+          || ! -f "$DIR_SRCROOT/.hash" \
+          || $(cat "$DIR_SRCROOT/.hash") != $(echo $hash) ]];
+    then
+        NGX_BUILD_FORCE=1
+
+        rm -rf $DIR_SRCROOT
+        cp -R $ngx_src $DIR_SRCROOT
+
+        if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
+            get_no_pool_nginx
+
+            apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $DIR_SRCROOT
+        fi
+    fi
+
+    pushd $DIR_SRCROOT
+        if [[ "$NGX_BUILD_FORCE" == 1 \
               || ! -f "Makefile" \
               || ! -d "$DIR_BUILDROOT" \
               || "$NGX_WASM_DIR/config" -nt "Makefile" \
@@ -23,12 +55,14 @@ build_nginx() {
             fi
 
             eval ./$configure \
-                "--build='ngx_wasm_module dev'" \
+                "--build='ngx_wasm_module ${build_name[@]}'" \
                 "--builddir=$DIR_BUILDROOT" \
                 "--add-module=$NGX_WASM_DIR" \
-                "--with-cc-opt='-O0 -Wno-error -DNGX_WASM_USE_ASSERT'" \
+                "--with-cc-opt='$NGX_BUILD_CCOPT'" \
                 "--with-ld-opt='-Wl,-rpath,$WASMTIME_LIB'" \
-                "--with-debug"
+                $build_with_debug
+
+            echo $hash > "$DIR_SRCROOT/.hash"
         fi
 
         make -j${n_jobs}
@@ -55,6 +89,38 @@ download() {
     fi
 
     wget -O $output $url || (rm -f $output; fatal "failed to download $url")
+}
+
+apply_patch() {
+    local pnum=$1
+    local patch=$2
+    local dir=$3
+
+    local patch_name=$(basename -- "$patch")
+    patch_name="${patch_name%.*}"
+
+    echo "applying the $patch_name patch..."
+
+    if [[ ! -z $dir ]]; then
+        dir="-d $dir"
+    fi
+
+    patch $dir $pnum < $patch
+}
+
+get_no_pool_nginx() {
+    if [[ -d "$DIR_NOPOOL" ]]; then
+        if [[ ! -z "$1" ]]; then
+            notice "updating the no-pool-nginx repository..."
+            pushd $DIR_NOPOOL
+                git fetch
+                git reset --hard origin/master
+            popd
+        fi
+    else
+        notice "cloning the no-pool-nginx repository..."
+        git clone git@github.com:openresty/no-pool-nginx.git $DIR_NOPOOL
+    fi
 }
 
 n_jobs() {

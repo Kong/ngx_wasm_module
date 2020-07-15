@@ -19,7 +19,7 @@ if [[ "$1" == "--all" ]]; then
     rm -rf $DIR_WORK
 
 else
-    pushd $DIR_DOWNLOAD/nginx-*
+    pushd $DIR_SRCROOT
         make clean
     popd
 fi

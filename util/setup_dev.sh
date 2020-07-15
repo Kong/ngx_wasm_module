@@ -38,6 +38,8 @@ pushd $DIR_BIN
     chmod +x reindex
 popd
 
+get_no_pool_nginx 1
+
 notice "done"
 
 # vim: ft=sh st=4 sts=4 sw=4:
