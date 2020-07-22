@@ -42,6 +42,17 @@ if [[ ! -x "$TEST_NGINX_BINARY" ]]; then
     fatal "no nginx binary at $TEST_NGINX_BINARY"
 fi
 
+if [[ ! -x "$(command -v cargo)" ]]; then
+    fatal "missing 'cargo', is the rust toolchain installed?"
+fi
+
+cargo build \
+    --quiet \
+    --manifest-path t/lib/rust-http-tests/Cargo.toml \
+    --target wasm32-unknown-unknown \
+    --out-dir $DIR_TESTS_LIB_WASM \
+    -Z unstable-options
+
 echo $TEST_NGINX_BINARY
 echo
 eval "$TEST_NGINX_BINARY -V"

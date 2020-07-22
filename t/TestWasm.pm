@@ -4,12 +4,15 @@ use Test::Nginx::Socket::Lua -Base;
 use Cwd qw(cwd);
 
 our $pwd = cwd();
+our $crates = "t/lib/wasm";
 
 our @EXPORT = qw(
     $pwd
+    $crates
 );
 
 $ENV{TEST_NGINX_HTML_DIR} = html_dir;
+$ENV{TEST_NGINX_CRATES_DIR} = $crates;
 
 add_block_preprocessor(sub {
     my $block = shift;

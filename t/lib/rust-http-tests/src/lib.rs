@@ -4,7 +4,7 @@ use crate::hostcalls::*;
 
 #[no_mangle]
 pub fn my_func() {
-    //ngx_log(1, "with love");
+    ngx_log(1, "with love");
 }
 
 #[cfg(test)]

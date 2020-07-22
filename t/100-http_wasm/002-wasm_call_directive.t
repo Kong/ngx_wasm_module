@@ -115,7 +115,7 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
 === TEST 7: wasm_call_log directive: X
 --- main_config
     wasm {
-        module http_tests t/lib/rust-http-tests/target/wasm32-unknown-unknown/debug/rust_tests.wasm;
+        module http_tests $TEST_NGINX_CRATES_DIR/rust_tests.wasm;
     }
 --- config
     location /t {
@@ -123,5 +123,5 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
         return 200;
     }
 --- no_error_log
-[emerg]
+[warn]
 [error]

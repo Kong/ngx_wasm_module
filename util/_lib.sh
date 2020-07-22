@@ -5,6 +5,7 @@ DIR_BUILDROOT=$DIR_WORK/buildroot
 DIR_NOPOOL=$DIR_WORK/no-pool-nginx
 DIR_CPANM=$DIR_WORK/opt
 DIR_BIN=$DIR_WORK/bin
+DIR_TESTS_LIB_WASM=t/lib/wasm
 
 build_nginx() {
     local ngx_src=$1
