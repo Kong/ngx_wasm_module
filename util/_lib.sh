@@ -81,15 +81,16 @@ download() {
     mkdir -p $(dirname $output)
 
     if [ -x "$(command -v axel)" ]; then
-        (axel -o $output $url && return 0) || rm -f $output
+        (axel -o $output $url && return 0) || (rm -f $output; fatal "failed to download $url")
         return
     fi
 
     if [ -x "$(command -v wget)" ]; then
-        fatal "missing required command 'wget'"
+        wget -O $output $url || (rm -f $output; fatal "failed to download $url")
+        return
     fi
 
-    wget -O $output $url || (rm -f $output; fatal "failed to download $url")
+    curl --fail -L $url -o $output || (rm -f $output; fatal "failed to download $url")
 }
 
 apply_patch() {
@@ -120,22 +121,22 @@ get_no_pool_nginx() {
         fi
     else
         notice "cloning the no-pool-nginx repository..."
-        git clone git@github.com:openresty/no-pool-nginx.git $DIR_NOPOOL
+        git clone https://github.com/openresty/no-pool-nginx.git $DIR_NOPOOL
     fi
 }
 
 n_jobs() {
-  local os=$(uname -s)
+    local os=$(uname -s)
 
-  if nproc 2>/dev/null >&2; then
-      nproc
+    if nproc 2>/dev/null >&2; then
+        nproc
 
-  elif [[ "$os" == "Darwin" ]]; then
-      sysctl -n hw.physicalcpu
+    elif [[ "$os" == "Darwin" ]]; then
+        sysctl -n hw.physicalcpu
 
-  else
-      echo "1"
-  fi
+    else
+        echo "1"
+    fi
 }
 
 invalid_usage() {
