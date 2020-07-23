@@ -89,6 +89,7 @@ ngx_wasmtime_valkind_lower(ngx_wasm_val_kind kind)
 }
 
 
+#if 0
 static ngx_inline ngx_wasm_val_kind
 ngx_wasmtime_valkind_lift(wasm_valkind_t kind)
 {
@@ -112,6 +113,7 @@ ngx_wasmtime_valkind_lift(wasm_valkind_t kind)
 
     }
 }
+#endif
 
 
 static ngx_inline void

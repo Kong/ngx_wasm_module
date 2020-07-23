@@ -265,9 +265,6 @@ static void ngx_wasm_core_exit_process(ngx_cycle_t *cycle);
 static void ngx_wasm_core_exit_master(ngx_cycle_t *cycle);
 
 
-static ngx_str_t const wasm_core_name = ngx_string("wasm_core");
-
-
 static ngx_command_t  ngx_wasm_core_commands[] = {
 
     { ngx_string("use"),
@@ -289,7 +286,7 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
 
 
 static ngx_wasm_module_t  ngx_wasm_core_module_ctx = {
-    wasm_core_name,
+    ngx_string("wasm_core"),
     ngx_wasm_core_create_conf,             /* create configuration */
     ngx_wasm_core_init_conf,               /* init configuration */
     ngx_wasm_core_init,                    /* init module */
@@ -460,7 +457,10 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 
         wm = cycle->modules[i]->ctx;
 
-        if (ngx_strcmp(wm->name.data, wasm_core_name.data) == 0) {
+        if (ngx_strcmp(wm->name.data,
+                       ngx_wasm_core_module_ctx.name.data)
+            == 0)
+        {
             continue;
         }
 
