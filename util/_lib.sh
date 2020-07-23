@@ -22,7 +22,7 @@ build_nginx() {
         build_with_debug="--with-debug"
     fi
 
-    local hash=$(echo "$ngx_ver.$ngx_src.$build_name" | md5sum | awk '{ print $1 }')
+    local hash=$(echo "$ngx_ver.$ngx_src.$build_name.$NGX_BUILD_CCOPT" | shasum | awk '{ print $1 }')
 
     if [[ ! -d "$DIR_SRCROOT" \
           || ! -f "$DIR_SRCROOT/.hash" \
