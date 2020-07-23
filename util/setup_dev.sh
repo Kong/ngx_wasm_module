@@ -38,6 +38,10 @@ pushd $DIR_BIN
     chmod +x reindex
 popd
 
+pushd t/lib/rust-http-tests
+    cargo build --target wasm32-unknown-unknown
+popd
+
 get_no_pool_nginx 1
 
 notice "done"
