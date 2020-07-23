@@ -1,0 +1,45 @@
+name: Daily
+on:
+  schedule:
+    - cron: '0 6 * * *' # daily, 6am
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  tests:
+    name: 'Tests - large'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      max-parallel: 2
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        cc: [gcc-8, gcc-9, clang]
+        ngx: [1.18.0, 1.19.1]
+        wasmtime: [0.18.0]
+    steps:
+      - uses: actions-rs/toolchain@v1
+        with:
+          default: true
+          toolchain: nightly
+          target: wasm32-unknown-unknown
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/gh-actions-wasmtime
+        with:
+          version: ${{ matrix.wasmtime }}
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: work
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.yml') }}--0
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: make setup
+      - run: make
+        env:
+          NGX_BUILD_FORCE: 1
+          CC: ${{ matrix.cc }}
+          NGX: ${{ matrix.ngx }}
+      - run: make test
