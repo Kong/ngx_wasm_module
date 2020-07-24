@@ -5,4 +5,5 @@ t/lib/rust-http-tests/target/
 t/lib/wasm
 *.data*
 *.perf*
+*.log*
 vgcore.*
