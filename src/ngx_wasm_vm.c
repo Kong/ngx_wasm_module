@@ -432,6 +432,8 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, u_char *mod)
 
     ngx_wasm_vm_check_init(vm, NGX_ABORT);
 
+    ngx_memzero(&bytes, sizeof(ngx_str_t));
+
     module = ngx_wasm_vm_get_module(vm, mod);
     if (module == NULL) {
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,

@@ -58,6 +58,7 @@ typedef struct {
 
 struct ngx_wasm_hfuncs_resolver_s {
     ngx_pool_t               *pool;
+    ngx_pool_t               *temp_pool;
     ngx_log_t                *log;
     ngx_wasm_hfuncs_store_t  *store;
     ngx_wasm_hfunc_new_pt     hf_new;

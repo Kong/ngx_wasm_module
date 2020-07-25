@@ -20,7 +20,7 @@ jobs:
         os: [ubuntu-latest]
         cc: [gcc-8]
         ngx: [1.19.1]
-        wasmtime: [0.18.0]
+        wasmtime: [0.19.0]
     steps:
       - uses: actions-rs/toolchain@v1
         with:
@@ -58,9 +58,9 @@ jobs:
         os: [ubuntu-latest]
         cc: [gcc-8]
         ngx: [1.17.8]
-        wasmtime: [0.18.0]
+        wasmtime: [0.19.0]
     steps:
-      - run: sudo apt install -y valgrind gawk
+      - run: sudo apt install -y valgrind
       - uses: actions-rs/toolchain@v1
         with:
           default: true

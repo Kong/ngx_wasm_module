@@ -19,7 +19,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         cc: [gcc-8, gcc-9, clang]
         ngx: [1.18.0, 1.19.1]
-        wasmtime: [0.18.0]
+        wasmtime: [0.19.0]
     steps:
       - uses: actions-rs/toolchain@v1
         with:

@@ -250,9 +250,15 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
     ngx_wasm_assert(resolver->store != NULL);
     ngx_wasm_assert(resolver->hf_new != NULL);
     ngx_wasm_assert(resolver->hf_free != NULL);
+    ngx_wasm_assert(resolver->temp_pool == NULL);
 
     resolver->modules = ngx_pcalloc(resolver->pool, sizeof(ngx_hash_t));
     if (resolver->modules == NULL) {
+        goto failed;
+    }
+
+    resolver->temp_pool = ngx_create_pool(NGX_DEFAULT_POOL_SIZE, resolver->log);
+    if (resolver->temp_pool == NULL) {
         goto failed;
     }
 
@@ -261,7 +267,7 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
     hash_mods.max_size = 64;
     hash_mods.bucket_size = ngx_align(64, ngx_cacheline_size);
     hash_mods.pool = resolver->pool;
-    hash_mods.temp_pool = resolver->pool;
+    hash_mods.temp_pool = resolver->temp_pool;
     hash_mods.name = "wasm hash for host functions resolver";
 
     resolver->modules_names = ngx_pcalloc(resolver->pool,
@@ -271,7 +277,7 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
     }
 
     resolver->modules_names->pool = resolver->pool;
-    resolver->modules_names->temp_pool = resolver->pool;
+    resolver->modules_names->temp_pool = resolver->temp_pool;
 
     ngx_hash_keys_array_init(resolver->modules_names, NGX_HASH_SMALL);
 
@@ -305,7 +311,7 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
         hash_funcs.max_size = 128;
         hash_funcs.bucket_size = ngx_align(64, ngx_cacheline_size);
         hash_funcs.pool = resolver->pool;
-        hash_funcs.temp_pool = resolver->pool;
+        hash_funcs.temp_pool = resolver->temp_pool;
         hash_funcs.name = ngx_palloc(resolver->pool, 128);
         if (hash_funcs.name == NULL) {
             goto failed;
@@ -321,7 +327,7 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
         }
 
         rmod->hfuncs_names->pool = resolver->pool;
-        rmod->hfuncs_names->temp_pool = resolver->pool;
+        rmod->hfuncs_names->temp_pool = resolver->temp_pool;
 
         ngx_hash_keys_array_init(rmod->hfuncs_names, NGX_HASH_SMALL);
 
@@ -419,6 +425,21 @@ ngx_wasm_hfuncs_resolver_lookup(ngx_wasm_hfuncs_resolver_t *resolver,
 }
 
 
+static ngx_inline void
+ngx_wasm_ngx_hash_keys_array_destroy(ngx_hash_keys_arrays_t *ha)
+{
+#ifdef NGX_WASM_NO_POOL
+    ngx_array_destroy(&ha->keys);
+    ngx_array_destroy(&ha->dns_wc_head);
+    ngx_array_destroy(&ha->dns_wc_tail);
+
+    ngx_pfree(ha->temp_pool, ha->keys_hash);
+    ngx_pfree(ha->temp_pool, ha->dns_wc_head_hash);
+    ngx_pfree(ha->temp_pool, ha->dns_wc_tail_hash);
+#endif
+}
+
+
 void
 ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver)
 {
@@ -426,7 +447,6 @@ ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver)
     ngx_hash_key_t            *mkeys, *fkeys;
     ngx_wasm_hfuncs_module_t  *rmod;
     ngx_wasm_hfunc_t          *hfunc;
-    ngx_pool_t                *temp_pool;
 
     for (mkeys = resolver->modules_names->keys.elts, i = 0;
          i < resolver->modules_names->keys.nelts;
@@ -449,21 +469,16 @@ ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver)
             ngx_pfree(resolver->pool, hfunc);
         }
 
-        temp_pool = rmod->hfuncs_names->temp_pool;
+        ngx_wasm_ngx_hash_keys_array_destroy(rmod->hfuncs_names);
 
-        ngx_pfree(temp_pool, rmod->hfuncs_names->keys_hash);
-        ngx_pfree(temp_pool, rmod->hfuncs_names->dns_wc_head_hash);
-        ngx_pfree(temp_pool, rmod->hfuncs_names->dns_wc_tail_hash);
-        ngx_pfree(temp_pool, rmod->hfuncs_names);
-
+        ngx_pfree(resolver->temp_pool, rmod->hfuncs_names);
         ngx_pfree(resolver->pool, rmod->hfuncs);
         ngx_pfree(resolver->pool, rmod);
     }
 
-    temp_pool = resolver->modules_names->temp_pool;
+    ngx_wasm_ngx_hash_keys_array_destroy(resolver->modules_names);
 
-    ngx_pfree(temp_pool, resolver->modules_names->keys_hash);
-    ngx_pfree(temp_pool, resolver->modules_names->dns_wc_head_hash);
-    ngx_pfree(temp_pool, resolver->modules_names->dns_wc_tail_hash);
-    ngx_pfree(temp_pool, resolver->modules_names);
+    ngx_pfree(resolver->temp_pool, resolver->modules_names);
+
+    ngx_destroy_pool(resolver->temp_pool);
 }

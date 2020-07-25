@@ -15,10 +15,6 @@
 #include <wasmtime.h>
 
 
-#define ngx_wasm_bytes_set(name, str)                                        \
-    (name)->size = (str)->len; (name)->data = (char *) (str)->data
-
-
 typedef struct ngx_wasmtime_trampoline_ctx_s  ngx_wasmtime_trampoline_ctx_t;
 typedef struct ngx_wasmtime_instance_s  ngx_wasmtime_instance_t;
 
@@ -265,27 +261,32 @@ static ngx_wasm_vm_module_pt
 ngx_wasmtime_module_new(ngx_wasm_vm_engine_pt vm_engine, ngx_str_t *mod_name,
     ngx_str_t *bytes, ngx_uint_t flags, ngx_wasm_vm_error_pt *error)
 {
-    size_t                       i;
-    ngx_wasmtime_engine_t       *engine = vm_engine;
-    ngx_wasmtime_module_t       *module;
-    ngx_wasm_hfunc_t            *hfunc, **hfuncp;
-    wasm_byte_vec_t              wasm_bytes, wat_bytes;
-    const wasm_name_t           *name_module, *name_func;
-    const wasm_externtype_t     *ext_type;
+    size_t                    i;
+    ngx_wasmtime_engine_t    *engine = vm_engine;
+    ngx_wasmtime_module_t    *module;
+    ngx_wasm_hfunc_t         *hfunc, **hfuncp;
+    wasm_byte_vec_t           wasm_bytes, wat_bytes;
+    const wasm_externtype_t  *ext_type;
+    wasm_externkind_t         ext_kind;
+    const wasm_importtype_t  *imp_type;
+    const wasm_name_t        *name_module, *name_func;
 
     if (flags & NGX_WASM_VM_MODULE_ISWAT) {
-        ngx_wasm_bytes_set(&wat_bytes, bytes);
+        wasm_byte_vec_new(&wat_bytes, bytes->len, (const char *) bytes->data);
 
         *error = wasmtime_wat2wasm(&wat_bytes, &wasm_bytes);
+
+        wasm_byte_vec_delete(&wat_bytes);
+
         if (*error) {
             return NULL;
         }
 
     } else {
-        ngx_wasm_bytes_set(&wasm_bytes, bytes);
+        wasm_byte_vec_new(&wasm_bytes, bytes->len, (const char *) bytes->data);
     }
 
-    module = ngx_palloc(engine->pool, sizeof(ngx_wasmtime_module_t));
+    module = ngx_pcalloc(engine->pool, sizeof(ngx_wasmtime_module_t));
     if (module == NULL) {
         return NULL;
     }
@@ -293,7 +294,10 @@ ngx_wasmtime_module_new(ngx_wasm_vm_engine_pt vm_engine, ngx_str_t *mod_name,
     module->engine = engine;
     module->name = mod_name;
 
-    *error = wasmtime_module_new(engine->store, &wasm_bytes, &module->module);
+    *error = wasmtime_module_new(engine->engine, &wasm_bytes, &module->module);
+
+    wasm_byte_vec_delete(&wasm_bytes);
+
     if (*error) {
         goto failed;
     }
@@ -309,9 +313,11 @@ ngx_wasmtime_module_new(ngx_wasm_vm_engine_pt vm_engine, ngx_str_t *mod_name,
     }
 
     for (i = 0; i < module->imports.size; i++) {
-        ext_type = wasm_importtype_type(module->imports.data[i]);
+        imp_type = module->imports.data[i];
+        ext_type = wasm_importtype_type(imp_type);
+        ext_kind = wasm_externtype_kind(ext_type);
 
-        if (wasm_externtype_kind(ext_type) != WASM_EXTERN_FUNC) {
+        if (ext_kind != WASM_EXTERN_FUNC) {
             continue;
         }
 
@@ -347,14 +353,16 @@ failed:
 void
 ngx_wasmtime_instance_free(ngx_wasm_vm_instance_pt vm_instance)
 {
-    ngx_wasmtime_engine_t       *engine;
-    ngx_wasmtime_instance_t     *instance = vm_instance;
+    size_t                    i;
+    ngx_wasmtime_engine_t    *engine;
+    ngx_wasmtime_instance_t  *instance = vm_instance;
+    wasm_func_t              *func;
 
     engine = instance->module->engine;
 
     if (instance->instance) {
-        wasm_instance_delete(instance->instance);
         wasm_extern_vec_delete(&instance->externs);
+        wasm_instance_delete(instance->instance);
     }
 
     if (instance->ctxs) {
@@ -362,6 +370,11 @@ ngx_wasmtime_instance_free(ngx_wasm_vm_instance_pt vm_instance)
     }
 
     if (instance->imports) {
+        for (i = 0; i < instance->module->imports_hfuncs->nelts; i++) {
+            func = wasm_extern_as_func((wasm_extern_t *) instance->imports[i]);
+            wasm_func_delete(func);
+        }
+
         ngx_pfree(engine->pool, instance->imports);
     }
 
@@ -385,8 +398,8 @@ ngx_wasmtime_instance_new(ngx_wasm_vm_module_pt vm_module,
     ngx_wasmtime_trampoline_ctx_t   *ctx;
     ngx_wasm_hfunc_t               **hfuncs, *hfunc;
     wasm_extern_t                   *ext;
+    wasm_externkind_t                ext_kind;
     wasm_func_t                     *func;
-    const wasm_externtype_t         *ext_type;
 #if (NGX_DEBUG)
     const wasm_exporttype_t  *exp_type;
     const wasm_name_t        *exp_name;
@@ -440,9 +453,9 @@ ngx_wasmtime_instance_new(ngx_wasm_vm_module_pt vm_module,
     }
 
     *error = wasmtime_instance_new(instance->store, module->module,
-                                  (const wasm_extern_t * const *) instance->imports,
-                                  i, &instance->instance,
-                                  (wasm_trap_t **) trap);
+                                   (const wasm_extern_t * const *) instance->imports,
+                                   i, &instance->instance,
+                                   (wasm_trap_t **) trap);
     if (*error || *trap) {
         goto failed;
     }
@@ -451,7 +464,7 @@ ngx_wasmtime_instance_new(ngx_wasm_vm_module_pt vm_module,
 
     for (i = 0; i < instance->externs.size; i++) {
         ext = instance->externs.data[i];
-        ext_type = wasm_extern_type(ext);
+        ext_kind = wasm_extern_kind(ext);
 
 #if (NGX_DEBUG)
         exp_type = module->exports.data[i];
@@ -463,11 +476,11 @@ ngx_wasmtime_instance_new(ngx_wasm_vm_module_pt vm_module,
                        exp_name->size, exp_name->data);
 #endif
 
-        switch (wasm_externtype_kind(ext_type)) {
+        switch (ext_kind) {
 
         case WASM_EXTERN_MEMORY:
             instance->memory = wasm_extern_as_memory(ext);
-            goto done;
+            break;
 
         default:
             break;
@@ -497,20 +510,20 @@ ngx_wasmtime_instance_call(ngx_wasm_vm_instance_pt vm_instance,
     size_t                    i;
     ngx_wasmtime_instance_t  *instance = vm_instance;
     wasm_extern_t            *ext;
-    const wasm_externtype_t  *ext_type;
-    wasm_exporttype_t        *exp_type;
+    wasm_externkind_t         ext_kind;
     const wasm_name_t        *exp_name;
+    const wasm_exporttype_t  *exp_type;
     wasm_func_t              *func = NULL;
     ngx_int_t                 rc = NGX_ERROR;
 
     for (i = 0; i < instance->externs.size; i++) {
         ext = instance->externs.data[i];
-        ext_type = wasm_extern_type(ext);
+        ext_kind = wasm_extern_kind(ext);
 
         exp_type = instance->module->exports.data[i];
         exp_name = wasm_exporttype_name(exp_type);
 
-        if (wasm_externtype_kind(ext_type) != WASM_EXTERN_FUNC) {
+        if (ext_kind != WASM_EXTERN_FUNC) {
             continue;
         }
 
