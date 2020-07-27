@@ -446,8 +446,8 @@ static char *
 ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 {
     ngx_wasm_core_conf_t    *wcf = conf;
-    ngx_uint_t               i, default_wmodule_index;
-    ngx_module_t            *m;
+    ngx_uint_t               i, default_wmodule_index = NGX_CONF_UNSET_UINT;
+    ngx_module_t            *m = NULL;
     ngx_wasm_module_t       *wm;
 
     for (i = 0; cycle->modules[i]; i++) {
@@ -475,6 +475,13 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
     if (m == NULL) {
         ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
                            "no NGX_WASM_MODULE found");
+        return NGX_CONF_ERROR;
+    }
+
+    if (default_wmodule_index == NGX_CONF_UNSET_UINT) {
+        ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
+                           "missing default NGX_WASM_MODULE \"%s\"",
+                           NGX_WASM_VM_DEFAULT);
         return NGX_CONF_ERROR;
     }
 
