@@ -11,12 +11,13 @@ find_wasmtime() {
         ngx_feature="$ngx_feature (-I $1"
         ngx_feature_path="$1"
 
-        if [ -n "$2" ]; then
-            ngx_feature="$ngx_feature, -L $2)"
-            ngx_feature_libs="-L $2 "
+        if [ -n "$3" ]; then
+            ngx_feature="$ngx_feature, $3)"
+            ngx_feature_libs="$3"
 
-        else
-            ngx_feature="$ngx_feature)"
+        elif [ -n "$2" ]; then
+            ngx_feature="$ngx_feature, -L $2)"
+            ngx_feature_libs="-L $2 -lwasmtime"
         fi
     fi
 
@@ -25,7 +26,7 @@ find_wasmtime() {
     ngx_feature_incs="#include <wasm.h>
                       #include <wasmtime.h>"
     ngx_feature_test=
-    ngx_feature_libs="$ngx_feature_libs-lwasmtime"
+    ngx_feature_libs="$ngx_feature_libs"
 
     . auto/feature
 }
@@ -34,8 +35,8 @@ find_wasmtime() {
 
 ngx_found=no
 
-if [ -n "$WASMTIME_INC" -o -n "$WASMTIME_LIB" ]; then
-    find_wasmtime "$WASMTIME_INC" "$WASMTIME_LIB"
+if [ -n "$WASMTIME_INC" -o -n "$WASMTIME_LIB" -o -n "$WASMTIME_LD_OPT" ]; then
+    find_wasmtime "$WASMTIME_INC" "$WASMTIME_LIB" "$WASMTIME_LD_OPT"
 fi
 
 find_wasmtime
@@ -127,5 +128,4 @@ ngx_module_link=ADDON
 CORE_INCS="$CORE_INCS $WASM_INCS"
 CORE_MODULES="$CORE_MODULES $WASM_MODULES"
 
-
-# vim: set ft=sh st=4 sts=4 sw=4:
+# vim:ft=sh st=4 sts=4 sw=4:

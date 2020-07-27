@@ -2,6 +2,7 @@ DIR_WORK=$NGX_WASM_DIR/work
 DIR_DOWNLOAD=$DIR_WORK/downloads
 DIR_SRCROOT=$DIR_DOWNLOAD/nginx-patched
 DIR_BUILDROOT=$DIR_WORK/buildroot
+DIR_BUILDPREFIX=$NGX_WASM_DIR/t/servroot
 DIR_NOPOOL=$DIR_WORK/no-pool-nginx
 DIR_CPANM=$DIR_WORK/opt
 DIR_BIN=$DIR_WORK/bin
@@ -14,16 +15,25 @@ build_nginx() {
     local build_with_debug=""
 
     if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
-        build_name+=", no pool"
-        NGX_BUILD_CCOPT="$NGX_BUILD_CCOPT -DNGX_WASM_NO_POOL"
+        build_name+=" nopool"
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_NO_POOL -DNGX_DEBUG_MALLOC"
     fi
 
     if [[ "$NGX_BUILD_DEBUG" == 1 ]]; then
-        build_name+=", debug"
+        build_name+=" debug"
         build_with_debug="--with-debug"
     fi
 
-    local hash=$(echo "$ngx_ver.$ngx_src.$build_name.$NGX_BUILD_CCOPT" | shasum | awk '{ print $1 }')
+    if [[ -n "$NGX_BUILD_FSANITIZE" ]]; then
+        build_name+=" san:$NGX_BUILD_FSANITIZE"
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -Wno-unused-command-line-argument -g -fsanitize=$NGX_BUILD_FSANITIZE -fno-omit-frame-pointer"
+        NGX_BUILD_LD_OPT="-fsanitize=address -ldl -lm -lpthread -lrt"
+
+    else
+        NGX_BUILD_LD_OPT="-Wl,-rpath,$WASMTIME_LIB"
+    fi
+
+    local hash=$(echo "$CC.$ngx_ver.$ngx_src.$build_name.$NGX_BUILD_CC_OPT" | shasum | awk '{ print $1 }')
 
     if [[ ! -d "$DIR_SRCROOT" \
           || ! -f "$DIR_SRCROOT/.hash" \
@@ -57,11 +67,12 @@ build_nginx() {
             fi
 
             eval ./$configure \
-                "--build='ngx_wasm_module ${build_name[@]}'" \
+                "--build='ngx_wasm_module [${build_name[@]}]'" \
                 "--builddir=$DIR_BUILDROOT" \
+                "--prefix=$DIR_BUILDPREFIX" \
                 "--add-module=$NGX_WASM_DIR" \
-                "--with-cc-opt='$NGX_BUILD_CCOPT'" \
-                "--with-ld-opt='-Wl,-rpath,$WASMTIME_LIB'" \
+                "--with-cc-opt='$NGX_BUILD_CC_OPT'" \
+                "--with-ld-opt='$NGX_BUILD_LD_OPT'" \
                 $build_with_debug
 
             echo $hash > "$DIR_SRCROOT/.hash"

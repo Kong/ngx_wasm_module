@@ -213,7 +213,7 @@ ngx_wasmtime_engine_new(ngx_pool_t *pool,
     engine->log = pool->log;
     engine->hf_resolver = hf_resolver;
 
-#if 0
+#if 1
     engine->config = wasm_config_new();
 
     //wasmtime_config_max_wasm_stack_set(config, (size_t) 125000 * 5);
@@ -292,6 +292,7 @@ ngx_wasmtime_module_new(ngx_wasm_vm_engine_pt vm_engine, ngx_str_t *mod_name,
 
     module = ngx_pcalloc(engine->pool, sizeof(ngx_wasmtime_module_t));
     if (module == NULL) {
+        wasm_byte_vec_delete(&wasm_bytes);
         return NULL;
     }
 

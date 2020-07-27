@@ -22,6 +22,7 @@ export TEST_NGINX_SLEEP=${TEST_NGINX_SLEEP:=0.002}
 export TEST_NGINX_PORT=${TEST_NGINX_PORT:=1984}
 export TEST_NGINX_TIMEOUT=${TEST_NGINX_TIMEOUT:=10}
 export TEST_NGINX_RESOLVER=${TEST_NGINX_RESOLVER:=8.8.4.4}
+export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/asan.suppress"
 #export TEST_NGINX_RANDOMIZE=${TEST_NGINX_RANDOMIZE:=}
 #export TEST_NGINX_CHECK_LEAK=
 #export TEST_NGINX_USE_VALGRIND=
@@ -58,11 +59,13 @@ echo
 eval "$TEST_NGINX_BINARY -V"
 echo
 
+set +e
 if [[ $(uname -s) == Darwin ]]; then
     otool -L $TEST_NGINX_BINARY | grep wasm
 else
     ldd $TEST_NGINX_BINARY | grep wasm
 fi
+set -e
 
 echo
 
