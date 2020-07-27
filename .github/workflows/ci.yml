@@ -25,6 +25,7 @@ jobs:
         cc: [gcc-8]
         nginx: [1.19.1]
         wasmtime: [0.19.0]
+        hup: [1, 0]
     steps:
       - uses: actions-rs/toolchain@v1
         with:
@@ -48,6 +49,8 @@ jobs:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.nginx }}
       - run: make test
+        env:
+          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
 
   valgrind:
     name: 'Tests - valgrind'
@@ -63,6 +66,7 @@ jobs:
         cc: [gcc-8]
         nginx: [1.17.8]
         wasmtime: [0.19.0]
+        hup: [1, 0]
     steps:
       - run: sudo apt install -y valgrind
       - uses: actions-rs/toolchain@v1
@@ -87,6 +91,8 @@ jobs:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.nginx }}
       - run: make test 2>&1 | tee valgrind.out
+        env:
+          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
       - run: |
           awk -f ./util/parse-valgrind.awk valgrind.out > valgrind.log
           if [[ -s valgrind.log ]]; then

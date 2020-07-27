@@ -31,10 +31,6 @@ export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/asan.suppress"
 #export TEST_NGINX_EVENT_TYPE=poll
 #export LD_PRELOAD=
 
-if [[ ! -z "$TEST_NGINX_USE_VALGRIND" ]]; then
-    valgrind --version
-fi
-
 #if [[ ! -z "$TEST_NGINX_USE_STAP" ]]; then
     #export PATH=/usr/local/opt/systemtap/bin:$PATH
 #fi
@@ -53,6 +49,15 @@ cargo build \
     --target wasm32-unknown-unknown \
     --out-dir $DIR_TESTS_LIB_WASM \
     -Z unstable-options
+
+if [[ ! -z "$TEST_NGINX_USE_VALGRIND" ]]; then
+    echo "TEST_NGINX_USE_VALGRIND=$TEST_NGINX_USE_VALGRIND"
+    valgrind --version
+fi
+
+if [[ ! -z "$TEST_NGINX_USE_HUP" ]]; then
+    echo "TEST_NGINX_USE_HUP=$TEST_NGINX_USE_HUP"
+fi
 
 echo $TEST_NGINX_BINARY
 echo

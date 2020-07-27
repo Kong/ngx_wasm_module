@@ -20,6 +20,7 @@ jobs:
         cc: [gcc-8, gcc-9, clang]
         nginx: [1.18.0, 1.19.1]
         wasmtime: [0.19.0]
+        hup: [1, 0]
     steps:
       - uses: actions-rs/toolchain@v1
         with:
@@ -43,3 +44,5 @@ jobs:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.nginx }}
       - run: make test
+        env:
+          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
