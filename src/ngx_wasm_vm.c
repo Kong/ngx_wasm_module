@@ -46,6 +46,7 @@ struct ngx_wasm_vm_module_s {
     ngx_rbtree_node_t             rbnode;
     ngx_str_t                     name;
     ngx_str_t                     path;
+    ngx_str_t                     bytes;
     ngx_uint_t                    flags;
     ngx_wasm_vm_module_pt         vm_module;
 };
@@ -268,6 +269,7 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
 
         ngx_pfree(pool, module->name.data);
         ngx_pfree(pool, module->path.data);
+        ngx_pfree(pool, module->bytes.data);
         ngx_pfree(pool, module);
     }
 
@@ -474,9 +476,9 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, u_char *mod)
 
     fsize = ngx_file_size(&file.info);
 
-    bytes.len = fsize;
-    bytes.data = ngx_alloc(bytes.len, vm->log);
-    if (bytes.data == NULL) {
+    module->bytes.len = fsize;
+    module->bytes.data = ngx_palloc(vm->pool, module->bytes.len);
+    if (module->bytes.data == NULL) {
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
                            "failed to allocate bytes for \"%V\" "
                            "module from \"%V\"",
@@ -484,7 +486,7 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, u_char *mod)
         goto close;
     }
 
-    n = ngx_read_file(&file, (u_char *) bytes.data, fsize, 0);
+    n = ngx_read_file(&file, (u_char *) module->bytes.data, fsize, 0);
     if (n == NGX_ERROR) {
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, ngx_errno,
                            ngx_read_file_n " \"%V\" failed",
@@ -506,7 +508,7 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, u_char *mod)
 
     module->vm_module = vm->vm_actions->module_new(vm->vm_engine,
                                                    &module->name,
-                                                   &bytes,
+                                                   &module->bytes,
                                                    module->flags,
                                                    &vm_error);
     if (module->vm_module == NULL) {
@@ -531,10 +533,6 @@ close:
     if (ngx_close_file(fd) == NGX_FILE_ERROR) {
         ngx_wasm_log_error(NGX_LOG_ERR, vm->log, ngx_errno,
                            ngx_close_file_n " \"%V\" failed", &file.name);
-    }
-
-    if (bytes.data) {
-        ngx_free(bytes.data);
     }
 
     return rc;
