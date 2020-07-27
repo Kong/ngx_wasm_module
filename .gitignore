@@ -6,4 +6,5 @@ t/lib/wasm
 *.data*
 *.perf*
 *.log*
+*.gcov
 vgcore.*

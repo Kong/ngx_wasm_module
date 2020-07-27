@@ -27,13 +27,17 @@ jobs:
         wasmtime: [0.19.0]
         hup: [1, 0]
     steps:
-      - uses: actions-rs/toolchain@v1
+      - name: Set up gcov
+        run: sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/$(echo ${{ matrix.cc }} | sed s/gcc/gcov/) 100
+      - name: Set up rust
+        uses: actions-rs/toolchain@v1
         with:
           default: true
           toolchain: nightly
           target: wasm32-unknown-unknown
       - uses: actions/checkout@v2
-      - uses: ./.github/actions/wasmtime
+      - name: Set up wasmtime
+        uses: ./.github/actions/wasmtime
         with:
           version: ${{ matrix.wasmtime }}
       - uses: actions/cache@v2
@@ -45,12 +49,21 @@ jobs:
         run: make setup
       - run: make
         env:
+          NGX_BUILD_GCOV: 1
           NGX_BUILD_FORCE: 1
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.nginx }}
       - run: make test
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+      - uses: codecov/codecov-action@v1
+        env:
+          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unit
+          env_vars: TEST_NGINX_USE_HUP
+          fail_ci_if_error: true
 
   valgrind:
     name: 'Tests - valgrind'

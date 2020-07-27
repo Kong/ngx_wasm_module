@@ -27,13 +27,19 @@ build_nginx() {
     if [[ -n "$NGX_BUILD_FSANITIZE" ]]; then
         build_name+=" san:$NGX_BUILD_FSANITIZE"
         NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -Wno-unused-command-line-argument -g -fsanitize=$NGX_BUILD_FSANITIZE -fno-omit-frame-pointer"
-        NGX_BUILD_LD_OPT="-fsanitize=address -ldl -lm -lpthread -lrt"
+        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fsanitize=address -ldl -lm -lpthread -lrt"
 
     else
-        NGX_BUILD_LD_OPT="-Wl,-rpath,$WASMTIME_LIB"
+        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -Wl,-rpath,$WASMTIME_LIB"
     fi
 
-    local hash=$(echo "$CC.$ngx_ver.$ngx_src.$build_name.$NGX_BUILD_CC_OPT" | shasum | awk '{ print $1 }')
+    if [[ -n "$NGX_BUILD_GCOV" ]]; then
+        build_name+=" gcov"
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT --coverage"
+        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fprofile-arcs"
+    fi
+
+    local hash=$(echo "$CC.$ngx_ver.$ngx_src.$build_name.$NGX_BUILD_CC_OPT.$NGX_BUILD_LD_OPT" | shasum | awk '{ print $1 }')
 
     if [[ ! -d "$DIR_SRCROOT" \
           || ! -f "$DIR_SRCROOT/.hash" \

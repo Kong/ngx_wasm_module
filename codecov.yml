@@ -1,0 +1,22 @@
+coverage:
+  precision: 4
+  round: down
+  range: "75...100"
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: yes
+      macro: yes
+
+comment:
+  branches:
+    - master
+    - *
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: true
+  require_base: no
+  require_head: yes
