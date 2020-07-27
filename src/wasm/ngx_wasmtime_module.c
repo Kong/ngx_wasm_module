@@ -213,12 +213,16 @@ ngx_wasmtime_engine_new(ngx_pool_t *pool,
     engine->log = pool->log;
     engine->hf_resolver = hf_resolver;
 
+#if 0
     engine->config = wasm_config_new();
 
     //wasmtime_config_max_wasm_stack_set(config, (size_t) 125000 * 5);
-    wasmtime_config_static_memory_maximum_size_set(engine->config, 0);
+    //wasmtime_config_static_memory_maximum_size_set(engine->config, 0);
 
     engine->engine = wasm_engine_new_with_config(engine->config);
+#else
+    engine->engine = wasm_engine_new();
+#endif
     if (engine->engine == NULL) {
         goto failed;
     }

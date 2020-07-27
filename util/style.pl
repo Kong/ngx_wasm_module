@@ -336,4 +336,4 @@ sub output ($) {
 
 exit $exit_status;
 
-# vim: ft=pl st=4 sts=4 sw=4:
+# vim: ft=perl st=4 sts=4 sw=4:
