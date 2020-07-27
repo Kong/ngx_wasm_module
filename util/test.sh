@@ -31,9 +31,9 @@ export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/asan.suppress"
 #export TEST_NGINX_EVENT_TYPE=poll
 #export LD_PRELOAD=
 
-#if [[ ! -z "$TEST_NGINX_USE_VALGRIND" ]]; then
-    #export LD_LIBRARY_PATH=/:$LD_LIBRARY_PATH
-#fi
+if [[ ! -z "$TEST_NGINX_USE_VALGRIND" ]]; then
+    valgrind --version
+fi
 
 #if [[ ! -z "$TEST_NGINX_USE_STAP" ]]; then
     #export PATH=/usr/local/opt/systemtap/bin:$PATH

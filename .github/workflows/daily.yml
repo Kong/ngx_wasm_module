@@ -34,7 +34,7 @@ jobs:
         id: cache
         with:
           path: work
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.nginx }}-${{ hashFiles('.github/**/*.yml') }}--0
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
       - if: steps.cache.outputs.cache-hit != 'true'
         run: make setup
       - run: make
