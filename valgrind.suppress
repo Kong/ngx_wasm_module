@@ -90,3 +90,19 @@
    fun:ngx_epoll_init
    fun:ngx_event_process_init
 }
+{
+   <wasmtime: false positive in Valgrind 3.13 (gone in 3.16.0)>
+   Memcheck:Cond
+   fun:_ZN10wasmparser9validator9Validator3end17hc61168256fcf4d19E
+   fun:_ZN10wasmparser9validator9Validator7payload17he164b70d66335669E
+   fun:_ZN10wasmparser9validator9Validator12validate_all17he786fa0927ced952E
+   fun:_ZN8wasmtime6module6Module11from_binary17h49d201b6e7a5f01bE
+   fun:wasmtime_module_new
+   fun:ngx_wasmtime_module_new
+   fun:ngx_wasm_vm_load_module
+   fun:ngx_wasm_vm_load_modules
+   fun:ngx_wasm_core_init
+   fun:ngx_wasm_init
+   fun:ngx_init_modules
+   fun:ngx_init_cycle
+}
