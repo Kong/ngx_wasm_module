@@ -22,20 +22,32 @@ jobs:
         wasmtime: [0.19.0]
         hup: [1, 0]
     steps:
-      - uses: actions-rs/toolchain@v1
-        with:
-          default: true
-          toolchain: nightly
-          target: wasm32-unknown-unknown
       - uses: actions/checkout@v2
-      - uses: ./.github/actions/wasmtime
+      - name: "Set up cache - rustup toolchain"
+        uses: actions/cache@v2
         with:
-          version: ${{ matrix.wasmtime }}
-      - uses: actions/cache@v2
+          path: |
+            ~/.rustup/settings.toml
+            ~/.rustup/toolchains/*
+            ~/.rustup/update-hashes/*
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+      - name: "Set up cache - ngx_wasm work/ dir"
+        uses: actions/cache@v2
         id: cache
         with:
           path: work
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+      - name: Set up rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          target: wasm32-unknown-unknown
+          default: true
+      - name: Set up wasmtime
+        uses: ./.github/actions/wasmtime
+        with:
+          version: ${{ matrix.wasmtime }}
       - if: steps.cache.outputs.cache-hit != 'true'
         run: make setup
       - run: make
