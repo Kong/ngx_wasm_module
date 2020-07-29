@@ -448,37 +448,47 @@ ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver)
     ngx_wasm_hfuncs_module_t  *rmod;
     ngx_wasm_hfunc_t          *hfunc;
 
-    for (mkeys = resolver->modules_names->keys.elts, i = 0;
-         i < resolver->modules_names->keys.nelts;
-         i++)
-    {
-        rmod = (ngx_wasm_hfuncs_module_t *) mkeys[i].value;
+    ngx_wasm_assert(resolver != NULL);
 
-        for (fkeys = rmod->hfuncs_names->keys.elts, j = 0;
-             j < rmod->hfuncs_names->keys.nelts;
-             j++)
-        {
-            hfunc = (ngx_wasm_hfunc_t *) fkeys[i].value;
-
-            ngx_log_debug2(NGX_LOG_DEBUG_WASM, resolver->log, 0,
-                           "[wasm] free \"%V.%V\" host function",
-                           rmod->name, hfunc->name);
-
-            resolver->hf_free(hfunc->vm_data);
-
-            ngx_pfree(resolver->pool, hfunc);
-        }
-
-        ngx_wasm_ngx_hash_keys_array_destroy(rmod->hfuncs_names);
-
-        ngx_pfree(resolver->temp_pool, rmod->hfuncs_names);
-        ngx_pfree(resolver->pool, rmod->hfuncs);
-        ngx_pfree(resolver->pool, rmod);
+    if (resolver->modules) {
+        ngx_pfree(resolver->pool, resolver->modules);
     }
 
-    ngx_wasm_ngx_hash_keys_array_destroy(resolver->modules_names);
+    if (resolver->modules_names) {
+        for (mkeys = resolver->modules_names->keys.elts, i = 0;
+             i < resolver->modules_names->keys.nelts;
+             i++)
+        {
+            rmod = (ngx_wasm_hfuncs_module_t *) mkeys[i].value;
 
-    ngx_pfree(resolver->temp_pool, resolver->modules_names);
+            for (fkeys = rmod->hfuncs_names->keys.elts, j = 0;
+                 j < rmod->hfuncs_names->keys.nelts;
+                 j++)
+            {
+                hfunc = (ngx_wasm_hfunc_t *) fkeys[i].value;
 
-    ngx_destroy_pool(resolver->temp_pool);
+                ngx_log_debug2(NGX_LOG_DEBUG_WASM, resolver->log, 0,
+                               "[wasm] free \"%V.%V\" host function",
+                               rmod->name, hfunc->name);
+
+                resolver->hf_free(hfunc->vm_data);
+
+                ngx_pfree(resolver->pool, hfunc);
+            }
+
+            ngx_wasm_ngx_hash_keys_array_destroy(rmod->hfuncs_names);
+
+            ngx_pfree(resolver->temp_pool, rmod->hfuncs_names);
+            ngx_pfree(resolver->pool, rmod->hfuncs);
+            ngx_pfree(resolver->pool, rmod);
+        }
+
+        ngx_wasm_ngx_hash_keys_array_destroy(resolver->modules_names);
+
+        ngx_pfree(resolver->temp_pool, resolver->modules_names);
+    }
+
+    if (resolver->temp_pool) {
+        ngx_destroy_pool(resolver->temp_pool);
+    }
 }

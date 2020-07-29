@@ -240,7 +240,7 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
     ngx_rbtree_node_t     **root, **sentinel;
     ngx_wasm_vm_module_t   *module;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->log, 0,
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
                    "[wasm] free \"%V\" vm (vm: %p)",
                    &vm->name, vm);
 
@@ -259,7 +259,7 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
 
         ngx_rbtree_delete(&vm->modules.rbtree, &module->rbnode);
 
-        ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
+        ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
                        "[wasm] free \"%V\" module in \"%V\" vm"
                        " (vm: %p, module: %p)",
                        &module->name, &vm->name,
@@ -682,7 +682,7 @@ ngx_wasm_vm_instance_call(ngx_wasm_instance_t *instance,
 void
 ngx_wasm_vm_instance_free(ngx_wasm_instance_t *instance)
 {
-    ngx_log_debug5(NGX_LOG_DEBUG_WASM, instance->log, 0,
+    ngx_log_debug5(NGX_LOG_DEBUG_WASM, instance->vm->log, 0,
                    "[wasm] free instance of \"%V\" module in \"%V\" vm"
                    " (vm: %p, module: %p, instance: %p)",
                    &instance->module->name, &instance->vm->name,

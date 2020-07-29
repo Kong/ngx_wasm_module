@@ -12,6 +12,8 @@ jobs:
     name: 'Tests - unit (large)'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    env:
+      NGX_BUILD_FORCE: 1
     strategy:
       max-parallel: 2
       fail-fast: false
@@ -52,7 +54,6 @@ jobs:
         run: make setup
       - run: make
         env:
-          NGX_BUILD_FORCE: 1
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.nginx }}
       - run: make test

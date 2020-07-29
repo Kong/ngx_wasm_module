@@ -14,9 +14,38 @@ build_nginx() {
     local build_name=(dev)
     local build_with_debug=""
 
+    # Build options
+
     if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
         build_name+=" nopool"
         NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_NO_POOL -DNGX_DEBUG_MALLOC"
+    fi
+
+    if [[ -n "$NGX_BUILD_FSANITIZE" ]]; then
+        build_name+=" san:$NGX_BUILD_FSANITIZE"
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -Wno-unused-command-line-argument -g -fsanitize=$NGX_BUILD_FSANITIZE -fno-omit-frame-pointer"
+        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fsanitize=$NGX_BUILD_FSANITIZE -ldl -lm -lpthread -lrt"
+
+    else
+        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -Wl,-rpath,$WASMTIME_LIB"
+    fi
+
+    if [[ "$NGX_BUILD_CLANG_ANALYZER" == 1 ]]; then
+        build_name+=" clang-analyzer"
+        NGX_BUILD_CMD="scan-build -o $DIR_WORK/scans \
+            --exclude $DIR_WORK \
+            -analyze-headers \
+            --force-analyze-debug-code \
+            --html-title='$NGX - ngx_wasm_module [${build_name[@]}]' \
+            --status-bugs \
+            --use-cc=$CC"
+        NGX_BUILD_DEBUG=1
+    fi
+
+    if [[ "$NGX_BUILD_GCOV" == 1 ]]; then
+        build_name+=" gcov"
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT --coverage"
+        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fprofile-arcs"
     fi
 
     if [[ "$NGX_BUILD_DEBUG" == 1 ]]; then
@@ -24,20 +53,7 @@ build_nginx() {
         build_with_debug="--with-debug"
     fi
 
-    if [[ -n "$NGX_BUILD_FSANITIZE" ]]; then
-        build_name+=" san:$NGX_BUILD_FSANITIZE"
-        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -Wno-unused-command-line-argument -g -fsanitize=$NGX_BUILD_FSANITIZE -fno-omit-frame-pointer"
-        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fsanitize=address -ldl -lm -lpthread -lrt"
-
-    else
-        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -Wl,-rpath,$WASMTIME_LIB"
-    fi
-
-    if [[ -n "$NGX_BUILD_GCOV" ]]; then
-        build_name+=" gcov"
-        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT --coverage"
-        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fprofile-arcs"
-    fi
+    # Build options hash to determine rebuild
 
     local hash=$(echo "$CC.$ngx_ver.$ngx_src.$build_name.$NGX_BUILD_CC_OPT.$NGX_BUILD_LD_OPT" | shasum | awk '{ print $1 }')
 
@@ -50,12 +66,16 @@ build_nginx() {
         rm -rf $DIR_SRCROOT
         cp -R $ngx_src $DIR_SRCROOT
 
+        # Apply patches
+
         if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
             get_no_pool_nginx
 
             apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $DIR_SRCROOT
         fi
     fi
+
+    # Build
 
     pushd $DIR_SRCROOT
         if [[ "$NGX_BUILD_FORCE" == 1 \
@@ -84,7 +104,7 @@ build_nginx() {
             echo $hash > "$DIR_SRCROOT/.hash"
         fi
 
-        make -j${n_jobs}
+        eval "$NGX_BUILD_CMD make -j${n_jobs}"
     popd
 }
 
