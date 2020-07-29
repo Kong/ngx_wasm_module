@@ -6,7 +6,7 @@ DIR_NOPOOL=$DIR_DOWNLOAD/no-pool-nginx
 DIR_SRCROOT=$DIR_DOWNLOAD/nginx-patched
 DIR_BUILDROOT=$DIR_WORK/buildroot
 DIR_BUILDPREFIX=$NGX_WASM_DIR/t/servroot
-DIR_TESTS_LIB_WASM=t/lib/wasm
+DIR_TESTS_LIB_WASM=$DIR_WORK/lib/wasm
 
 build_nginx() {
     local ngx_src=$1

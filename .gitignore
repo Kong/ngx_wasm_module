@@ -2,7 +2,7 @@ work/
 buildroot/
 t/servroot/
 t/lib/rust-http-tests/target/
-t/lib/wasm
+lib/ngx-rust/target/
 *.data*
 *.perf*
 *.log*

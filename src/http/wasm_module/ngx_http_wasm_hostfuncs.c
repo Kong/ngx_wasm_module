@@ -20,7 +20,7 @@ ngx_wasm_host_log(ngx_wasm_hctx_t *hctx, const ngx_wasm_val_t args[],
     msg_offset = args[1].value.I32;
     len = args[2].value.I32;
 
-    ngx_log_error((ngx_uint_t) level, hctx->log, 0, "FROM WASM \"%*s\"",
+    ngx_log_error((ngx_uint_t) level, hctx->log, 0, "%*s",
                   len, hctx->memory_offset + msg_offset);
 
     return NGX_OK;

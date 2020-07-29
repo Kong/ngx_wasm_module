@@ -4,7 +4,7 @@ use Test::Nginx::Socket::Lua -Base;
 use Cwd qw(cwd);
 
 our $pwd = cwd();
-our $crates = "t/lib/wasm";
+our $crates = "work/lib/wasm";
 
 our @EXPORT = qw(
     $pwd

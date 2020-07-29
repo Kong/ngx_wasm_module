@@ -1,10 +1,8 @@
-pub mod hostcalls;
-
-use crate::hostcalls::*;
+use ngx::*;
 
 #[no_mangle]
-pub fn my_func() {
-    ngx_log(1, "with love");
+pub fn log_err() {
+    ngx_log!(Info, "hello world");
 }
 
 #[cfg(test)]

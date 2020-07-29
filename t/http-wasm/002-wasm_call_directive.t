@@ -112,16 +112,17 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
 
 
 
-=== TEST 7: wasm_call_log directive: X
+=== TEST 7: wasm_call_log directive: sanity
 --- main_config
     wasm {
-        module http_tests $TEST_NGINX_CRATES_DIR/rust_tests.wasm;
+        module http_tests $TEST_NGINX_CRATES_DIR/rust_http_tests.wasm;
     }
 --- config
     location /t {
-        wasm_call_log http_tests my_func;
+        wasm_call_log http_tests log_err;
         return 200;
     }
+--- error_log eval
+qr/\[info\] .*? hello world <vm: \S+, runtime: \S+> while logging request/
 --- no_error_log
-[warn]
 [error]
