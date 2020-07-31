@@ -465,7 +465,7 @@ ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver)
                  j < rmod->hfuncs_names->keys.nelts;
                  j++)
             {
-                hfunc = (ngx_wasm_hfunc_t *) fkeys[i].value;
+                hfunc = (ngx_wasm_hfunc_t *) fkeys[j].value;
 
                 ngx_log_debug2(NGX_LOG_DEBUG_WASM, resolver->log, 0,
                                "[wasm] free \"%V.%V\" host function",
