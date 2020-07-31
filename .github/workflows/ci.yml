@@ -1,16 +1,12 @@
 name: CI
 on:
-  push:
-    branches: '*'
+  #push:
+    #branches: '*'
   pull_request:
     branches: '*'
 defaults:
   run:
     shell: bash
-
-env:
-  nginx: 1.19.1
-  wasmtime: 0.19.0
 
 jobs:
 
@@ -18,6 +14,9 @@ jobs:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    env:
+      NGX_BUILD_GCOV: 1
+      NGX_BUILD_FORCE: 1
     strategy:
       fail-fast: false
       matrix:
@@ -41,16 +40,14 @@ jobs:
         id: cache
         with:
           path: work
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up gcov
         run: sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/$(echo ${{ matrix.cc }} | sed s/gcc/gcov/) 100
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
           profile: minimal
           target: wasm32-unknown-unknown
-          default: true
       - name: Set up wasmtime
         uses: ./.github/actions/wasmtime
         with:
@@ -59,8 +56,6 @@ jobs:
         run: make setup
       - run: make
         env:
-          NGX_BUILD_GCOV: 1
-          NGX_BUILD_FORCE: 1
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.nginx }}
       - run: make test
@@ -80,6 +75,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
+      NGX_BUILD_FORCE: 1
       NGX_BUILD_NOPOOL: 1
       TEST_NGINX_USE_VALGRIND: 1
     strategy:
@@ -91,7 +87,7 @@ jobs:
         wasmtime: [0.19.0]
         hup: [1, 0]
     steps:
-      - run: sudo apt install -y valgrind
+      - run: sudo apt-get install -y valgrind
       - uses: actions/checkout@v2
       - name: "Set up cache - rustup toolchain"
         uses: actions/cache@v2
@@ -106,14 +102,12 @@ jobs:
         id: cache
         with:
           path: work
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
           profile: minimal
           target: wasm32-unknown-unknown
-          default: true
       - name: Set up wasmtime
         uses: ./.github/actions/wasmtime
         with:
@@ -122,7 +116,6 @@ jobs:
         run: make setup
       - run: make
         env:
-          NGX_BUILD_FORCE: 1
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.nginx }}
       - run: make test 2>&1 | tee valgrind.out
@@ -137,7 +130,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
-          name: valgrind-leaks.log
+          name: gh-failures-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: valgrind.log
 
   style:
@@ -149,7 +142,7 @@ jobs:
         id: cache
         with:
           path: work
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - if: steps.cache.outputs.cache-hit != 'true'
         run: make setup
       - run: make style

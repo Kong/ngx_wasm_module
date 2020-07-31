@@ -5,7 +5,7 @@
 #ifndef _NGX_WASM_H_INCLUDED_
 #define _NGX_WASM_H_INCLUDED_
 
-#ifdef NGX_WASM_USE_ASSERT
+#if (NGX_DEBUG)
 #include <assert.h>
 #   define ngx_wasm_assert(a)  assert(a)
 #else

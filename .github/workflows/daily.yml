@@ -1,7 +1,7 @@
 name: Daily
 on:
   schedule:
-    - cron: '0 6 * * *' # daily, 6am
+    - cron: '0 9 * * *' # 9am UTC, 2am UTC-07:00
 defaults:
   run:
     shell: bash
@@ -12,15 +12,20 @@ jobs:
     name: 'Tests - unit (large)'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    env:
+      NGX_BUILD_FORCE: 1
     strategy:
       max-parallel: 2
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        cc: [gcc-8, gcc-9, clang]
-        nginx: [1.18.0, 1.19.1]
+        #cc: [gcc-8, gcc-9, clang]
+        cc: [clang]
+        #nginx: [1.18.0, 1.19.1]
+        nginx: [1.19.1]
         wasmtime: [0.19.0]
-        hup: [1, 0]
+        #hup: [1, 0]
+        hup: [0]
     steps:
       - uses: actions/checkout@v2
       - name: "Set up cache - rustup toolchain"
@@ -36,14 +41,12 @@ jobs:
         id: cache
         with:
           path: work
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
           profile: minimal
           target: wasm32-unknown-unknown
-          default: true
       - name: Set up wasmtime
         uses: ./.github/actions/wasmtime
         with:
@@ -52,9 +55,49 @@ jobs:
         run: make setup
       - run: make
         env:
-          NGX_BUILD_FORCE: 1
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.nginx }}
       - run: make test
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+
+  clang-analyzer:
+    name: 'Clang analyzer'
+    runs-on: ubuntu-latest
+    env:
+      NGX_BUILD_FORCE: 1
+      NGX_BUILD_CLANG_ANALYZER: 1
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [clang-9]
+        nginx: [1.19.1]
+        wasmtime: [0.19.0]
+    steps:
+      - run: |
+          sudo apt-get install -y $(echo ${{ matrix.cc }} | sed s/clang/clang-tools/)
+          sudo update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/$(echo ${{ matrix.cc }} | sed s/clang/scan-build/) 100
+      - uses: actions/checkout@v2
+      - name: "Set up cache - ngx_wasm work/ dir"
+        uses: actions/cache@v2
+        id: cache
+        with:
+          path: |
+            work
+            !work/scans
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+      - name: Set up wasmtime
+        uses: ./.github/actions/wasmtime
+        with:
+          version: ${{ matrix.wasmtime }}
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: make setup
+      - run: make
+        env:
+          CC: ${{ matrix.cc }}
+          NGX: ${{ matrix.nginx }}
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: gh-failures-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: work/scans/*

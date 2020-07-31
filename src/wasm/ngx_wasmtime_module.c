@@ -601,8 +601,8 @@ ngx_wasmtime_log_error_handler(ngx_wasm_vm_error_pt error,
 
         p = ngx_snprintf(buf, len, " (%*s)",
                          error_msg.size, error_msg.data);
-        len -= p - buf;
-        buf = p;
+        //len -= p - buf;
+        //buf = p;
 
         wasm_byte_vec_delete(&error_msg);
     }
