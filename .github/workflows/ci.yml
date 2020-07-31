@@ -40,7 +40,7 @@ jobs:
         id: cache
         with:
           path: work
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up gcov
         run: sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/$(echo ${{ matrix.cc }} | sed s/gcc/gcov/) 100
       - name: Set up rust
@@ -102,7 +102,7 @@ jobs:
         id: cache
         with:
           path: work
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
@@ -142,7 +142,7 @@ jobs:
         id: cache
         with:
           path: work
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - if: steps.cache.outputs.cache-hit != 'true'
         run: make setup
       - run: make style

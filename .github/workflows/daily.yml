@@ -41,7 +41,7 @@ jobs:
         id: cache
         with:
           path: work
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
