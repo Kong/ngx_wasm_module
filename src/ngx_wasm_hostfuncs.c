@@ -339,7 +339,7 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
                            " (%z/%z)", &mod->name, &decl->name,
                            i + 1, mod->decls->nelts);
 
-            hfunc = ngx_palloc(resolver->pool, sizeof(ngx_wasm_hfunc_t));
+            hfunc = ngx_pcalloc(resolver->pool, sizeof(ngx_wasm_hfunc_t));
             if (hfunc == NULL) {
                 goto failed;
             }
