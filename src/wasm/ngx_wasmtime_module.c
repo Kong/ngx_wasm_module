@@ -151,13 +151,53 @@ ngx_wasmtime_vals_lift(ngx_wasm_val_t ngx_vals[], wasm_val_t wasm_vals[],
 }
 
 
+static ngx_inline void
+ngx_wasmtime_vals_lower(wasm_val_t wasm_vals[], ngx_wasm_val_t ngx_vals[],
+    ngx_uint_t nvals)
+{
+    size_t   i;
+
+    for (i = 0; i < nvals; i++) {
+
+        switch (ngx_vals[i].kind) {
+
+        case NGX_WASM_I32:
+            wasm_vals[i].kind = WASM_I32;
+            wasm_vals[i].of.i32 = ngx_vals[i].value.I32;
+            break;
+
+        case NGX_WASM_I64:
+            wasm_vals[i].kind = WASM_I64;
+            wasm_vals[i].of.i64 = ngx_vals[i].value.I64;
+            break;
+
+        case NGX_WASM_F32:
+            wasm_vals[i].kind = WASM_F32;
+            wasm_vals[i].of.f32 = ngx_vals[i].value.F32;
+            break;
+
+        case NGX_WASM_F64:
+            wasm_vals[i].kind = WASM_F64;
+            wasm_vals[i].of.f64 = ngx_vals[i].value.F64;
+            break;
+
+        default:
+            ngx_wasm_assert(0);
+            break;
+
+        }
+    }
+}
+
+
 static wasm_trap_t *
 ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
 {
     ngx_wasmtime_trampoline_ctx_t  *ctx = env;
     ngx_int_t                       rc;
     ngx_wasm_val_t                  ngx_args[NGX_WASM_ARGS_MAX];
-    /*ngx_wasm_val_t                  ngx_rets[NGX_WASM_RETS_MAX];*/
+    ngx_wasm_val_t                  ngx_rets[NGX_WASM_RETS_MAX];
+    wasm_message_t                  trap_msg;
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->hctx->log, 0,
                    "wasmtime host function trampoline (hfunc: %V, hctx: %p)",
@@ -167,10 +207,15 @@ ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
 
     ctx->hctx->memory_offset = wasm_memory_data(ctx->instance->memory);
 
-    rc = ctx->hfunc->ptr(ctx->hctx, ngx_args, NULL);
-    if (rc != NGX_OK) {
-        return NULL;
+    rc = ctx->hfunc->ptr(ctx->hctx, ngx_args, ngx_rets);
+    if (rc == NGX_DECLINED) {
+        wasm_name_new_from_string(&trap_msg, "bad context");
+        return wasm_trap_new(ctx->instance->store, &trap_msg);
     }
+
+    /* rc == NGX_OK */
+
+    ngx_wasmtime_vals_lower(rets, ngx_rets, ctx->hfunc->nrets);
 
     return NULL;
 }
@@ -565,32 +610,20 @@ ngx_wasmtime_log_error_handler(ngx_wasm_vm_error_pt error,
 {
     wasmtime_error_t  *werror = error;
     wasm_trap_t       *wtrap = trap;
-    wasm_byte_vec_t    error_msg, trap_msg;//, trap_trace;
+    wasm_byte_vec_t    error_msg, trap_msg;
     u_char            *p = buf;
 
     if (wtrap) {
         ngx_memzero(&trap_msg, sizeof(wasm_byte_vec_t));
-        //ngx_memzero(&trap_trace, sizeof(wasm_byte_vec_t));
 
         wasm_trap_message(wtrap, &trap_msg);
-        //wasm_trap_trace(trap, &trap_trace);
 
-        p = ngx_snprintf(buf, len, " | %*s |",
+        p = ngx_snprintf(buf, len, " trap: %*s",
                          trap_msg.size, trap_msg.data);
         len -= p - buf;
         buf = p;
 
-#if 0
-        if (trap_trace.size) {
-            p = ngx_snprintf(buf, len, "\n%*s",
-                             trap_trace.size, trap_trace.data);
-            len -= p - buf;
-            buf = p;
-        }
-#endif
-
         wasm_byte_vec_delete(&trap_msg);
-        //wasm_byte_vec_delete(&trap_trace);
         wasm_trap_delete(wtrap);
     }
 
