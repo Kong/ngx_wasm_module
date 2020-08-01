@@ -112,7 +112,7 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
 
 
 
-=== TEST 7: wasm_call_log directive: sanity
+=== TEST 7: wasm_call_log directive: log_err
 --- main_config
     wasm {
         module http_tests $TEST_NGINX_CRATES_DIR/rust_http_tests.wasm;
@@ -124,5 +124,22 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
     }
 --- error_log eval
 qr/\[info\] .*? hello world <vm: \S+, runtime: \S+> while logging request/
+--- no_error_log
+[error]
+
+
+
+=== TEST 8: wasm_call_log directive: get_resp_status
+--- main_config
+    wasm {
+        module http_tests $TEST_NGINX_CRATES_DIR/rust_http_tests.wasm;
+    }
+--- config
+    location /t {
+        wasm_call_log http_tests get_resp_status;
+        return 200;
+    }
+--- error_log eval
+qr/\[info\] .*? resp status: 200 <vm: \S+, runtime: \S+> while logging request/
 --- no_error_log
 [error]

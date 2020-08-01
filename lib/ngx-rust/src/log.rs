@@ -1,11 +1,11 @@
 #[macro_export]
 macro_rules! ngx_log {
-    ($lvl:ident, $($arg:tt)*) => {
-        let msg = format!("{}", format_args!("{}", $($arg)*));
-        ngx_log_err(NgxLogErrLvl::$lvl, msg);
-    };
     ($lvl:ident, $fmt:expr, $($arg:tt)*) => {
         let msg = format!("{}", format_args!($fmt, $($arg)*));
+        ngx_log_err(NgxLogErrLvl::$lvl, msg);
+    };
+    ($lvl:ident, $($arg:tt)*) => {
+        let msg = format!("{}", format_args!("{}", $($arg)*));
         ngx_log_err(NgxLogErrLvl::$lvl, msg);
     };
 }
@@ -40,7 +40,7 @@ pub fn ngx_log_err(level: NgxLogErrLvl, msg: String) {
     };
 
     unsafe {
-        ngx_wasm_log(lvl, msg.as_ptr(), msg.len() as i32);
+        ngx_wasm_log(lvl, msg.as_ptr(), msg.len() as i32)
     }
 }
 

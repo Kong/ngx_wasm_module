@@ -671,8 +671,7 @@ ngx_wasm_vm_instance_call(ngx_wasm_instance_t *instance,
     rc = vm->vm_actions->instance_call(instance->vm_instance, func_name,
                                        &vm_error, &vm_trap);
     if (vm_error || vm_trap) {
-        ngx_wasm_vm_log_error(NGX_LOG_ERR, instance->log, vm_error, vm_trap,
-                              "func err");
+        ngx_wasm_vm_log_error(NGX_LOG_ERR, instance->log, vm_error, vm_trap, "");
     }
 
     return rc;
