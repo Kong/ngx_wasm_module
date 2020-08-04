@@ -23,6 +23,7 @@ typedef struct ngx_wasmtime_engine_s {
     ngx_pool_t                     *pool;
     ngx_log_t                      *log;
     ngx_wasm_hfuncs_resolver_t     *hf_resolver;
+
     wasm_config_t                  *config;
     wasm_engine_t                  *engine;
     wasm_store_t                   *store;
@@ -31,9 +32,10 @@ typedef struct ngx_wasmtime_engine_s {
 
 typedef struct ngx_wasmtime_module_s {
     ngx_wasmtime_engine_t          *engine;
-    wasm_module_t                  *module;
     ngx_str_t                      *name;
     ngx_array_t                    *imports_hfuncs;
+
+    wasm_module_t                  *module;
     wasm_importtype_vec_t           imports;
     wasm_exporttype_vec_t           exports;
 } ngx_wasmtime_module_t;
@@ -41,11 +43,12 @@ typedef struct ngx_wasmtime_module_s {
 
 struct ngx_wasmtime_instance_s {
     ngx_wasmtime_module_t           *module;
+    ngx_wasmtime_trampoline_ctx_t   *ctxs;
+
     wasm_store_t                    *store;
     wasm_instance_t                 *instance;
-    ngx_wasmtime_trampoline_ctx_t   *ctxs;
     wasm_memory_t                   *memory;
-    const wasm_extern_t            **imports;
+    wasm_extern_t                  **imports;
     wasm_extern_vec_t                externs;
 };
 
@@ -116,7 +119,7 @@ static ngx_inline void
 ngx_wasmtime_vals_lift(ngx_wasm_val_t ngx_vals[], wasm_val_t wasm_vals[],
     ngx_uint_t nvals)
 {
-    size_t   i;
+    size_t  i;
 
     for (i = 0; i < nvals; i++) {
 
@@ -155,7 +158,7 @@ static ngx_inline void
 ngx_wasmtime_vals_lower(wasm_val_t wasm_vals[], ngx_wasm_val_t ngx_vals[],
     ngx_uint_t nvals)
 {
-    size_t   i;
+    size_t  i;
 
     for (i = 0; i < nvals; i++) {
 
@@ -193,10 +196,10 @@ ngx_wasmtime_vals_lower(wasm_val_t wasm_vals[], ngx_wasm_val_t ngx_vals[],
 static wasm_trap_t *
 ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_wasmtime_trampoline_ctx_t  *ctx = env;
     ngx_int_t                       rc;
     ngx_wasm_val_t                  ngx_args[NGX_WASM_ARGS_MAX];
     ngx_wasm_val_t                  ngx_rets[NGX_WASM_RETS_MAX];
+    ngx_wasmtime_trampoline_ctx_t  *ctx = env;
     wasm_message_t                  trap_msg;
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->hctx->log, 0,
@@ -247,7 +250,7 @@ static ngx_wasm_vm_engine_pt
 ngx_wasmtime_engine_new(ngx_pool_t *pool,
     ngx_wasm_hfuncs_resolver_t *hf_resolver)
 {
-    ngx_wasmtime_engine_t           *engine;
+    ngx_wasmtime_engine_t  *engine;
 
     engine = ngx_pcalloc(pool, sizeof(ngx_wasmtime_engine_t));
     if (engine == NULL) {
@@ -290,7 +293,7 @@ failed:
 static void
 ngx_wasmtime_module_free(ngx_wasm_vm_module_pt vm_module)
 {
-    ngx_wasmtime_module_t       *module = vm_module;
+    ngx_wasmtime_module_t  *module = vm_module;
 
     if (module->module) {
         wasm_importtype_vec_delete(&module->imports);
@@ -311,13 +314,12 @@ ngx_wasmtime_module_new(ngx_wasm_vm_engine_pt vm_engine, ngx_str_t *mod_name,
     ngx_str_t *bytes, ngx_uint_t flags, ngx_wasm_vm_error_pt *error)
 {
     size_t                    i;
+    ngx_wasm_hfunc_t         *hfunc, **hfuncp;
     ngx_wasmtime_engine_t    *engine = vm_engine;
     ngx_wasmtime_module_t    *module;
-    ngx_wasm_hfunc_t         *hfunc, **hfuncp;
     wasm_byte_vec_t           wasm_bytes, wat_bytes;
     const wasm_externtype_t  *ext_type;
     wasm_externkind_t         ext_kind;
-    const wasm_importtype_t  *imp_type;
     const wasm_name_t        *name_module, *name_func;
 
     if (flags & NGX_WASM_VM_MODULE_ISWAT) {
@@ -363,8 +365,7 @@ ngx_wasmtime_module_new(ngx_wasm_vm_engine_pt vm_engine, ngx_str_t *mod_name,
     }
 
     for (i = 0; i < module->imports.size; i++) {
-        imp_type = module->imports.data[i];
-        ext_type = wasm_importtype_type(imp_type);
+        ext_type = wasm_importtype_type(module->imports.data[i]);
         ext_kind = wasm_externtype_kind(ext_type);
 
         if (ext_kind != WASM_EXTERN_FUNC) {
@@ -442,17 +443,17 @@ ngx_wasmtime_instance_new(ngx_wasm_vm_module_pt vm_module,
     ngx_wasm_vm_trap_pt *trap)
 {
     size_t                           i;
+    ngx_wasm_hfunc_t               **hfuncs, *hfunc;
     ngx_wasmtime_engine_t           *engine;
     ngx_wasmtime_module_t           *module = vm_module;
     ngx_wasmtime_instance_t         *instance;
     ngx_wasmtime_trampoline_ctx_t   *ctx;
-    ngx_wasm_hfunc_t               **hfuncs, *hfunc;
+    wasm_func_t                     *func;
     wasm_extern_t                   *ext;
     wasm_externkind_t                ext_kind;
-    wasm_func_t                     *func;
 #if (NGX_DEBUG)
-    const wasm_exporttype_t  *exp_type;
-    const wasm_name_t        *exp_name;
+    const wasm_exporttype_t         *exp_type;
+    const wasm_name_t               *exp_name;
 #endif
 
     engine = module->engine;
@@ -558,24 +559,24 @@ ngx_wasmtime_instance_call(ngx_wasm_vm_instance_pt vm_instance,
     ngx_wasm_vm_trap_pt *trap)
 {
     size_t                    i;
+    ngx_int_t                 rc = NGX_ERROR;
     ngx_wasmtime_instance_t  *instance = vm_instance;
     wasm_extern_t            *ext;
     wasm_externkind_t         ext_kind;
     const wasm_name_t        *exp_name;
     const wasm_exporttype_t  *exp_type;
     wasm_func_t              *func = NULL;
-    ngx_int_t                 rc = NGX_ERROR;
 
     for (i = 0; i < instance->externs.size; i++) {
         ext = instance->externs.data[i];
         ext_kind = wasm_extern_kind(ext);
 
-        exp_type = instance->module->exports.data[i];
-        exp_name = wasm_exporttype_name(exp_type);
-
         if (ext_kind != WASM_EXTERN_FUNC) {
             continue;
         }
+
+        exp_type = instance->module->exports.data[i];
+        exp_name = wasm_exporttype_name(exp_type);
 
         if (exp_name->size != func_name->len) {
             continue;
@@ -608,10 +609,10 @@ static u_char *
 ngx_wasmtime_log_error_handler(ngx_wasm_vm_error_pt error,
     ngx_wasm_vm_trap_pt trap, u_char *buf, size_t len)
 {
-    wasmtime_error_t  *werror = error;
+    u_char            *p = buf;
     wasm_trap_t       *wtrap = trap;
     wasm_byte_vec_t    error_msg, trap_msg;
-    u_char            *p = buf;
+    wasmtime_error_t  *werror = error;
 
     if (wtrap) {
         ngx_memzero(&trap_msg, sizeof(wasm_byte_vec_t));
@@ -647,11 +648,11 @@ ngx_wasmtime_log_error_handler(ngx_wasm_vm_error_pt error,
 static void *
 ngx_wasmtime_hfunc_new(ngx_wasm_hfunc_t *hfunc)
 {
-    size_t                i;
-    wasm_valtype_vec_t    args, rets;
-    wasm_valkind_t        valkind;
-    wasm_valtype_t       *valtype;
-    wasm_functype_t      *functype;
+    size_t               i;
+    wasm_valtype_vec_t   args, rets;
+    wasm_valkind_t       valkind;
+    wasm_valtype_t      *valtype;
+    wasm_functype_t     *functype;
 
     wasm_valtype_vec_new_uninitialized(&args, hfunc->nargs);
     wasm_valtype_vec_new_uninitialized(&rets, hfunc->nrets);
