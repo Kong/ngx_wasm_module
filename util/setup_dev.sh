@@ -26,8 +26,6 @@ pushd $DIR_CPANM
 
     notice "downloading Test::Nginx dependencies..."
     ./cpanm --notest --local-lib=$DIR_CPANM local::lib
-    eval $(perl -I$DIR_CPANM/lib/perl5 -Mlocal::lib)
-
     ./cpanm --notest --local-lib=$DIR_CPANM Test::Nginx
     ./cpanm --notest --local-lib=$DIR_CPANM IPC::Run
 popd
