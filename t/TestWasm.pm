@@ -31,6 +31,10 @@ add_block_preprocessor(sub {
         $block->set_value("request", "GET /t");
     }
 
+    if (!defined $block->no_error_log) {
+        $block->set_value("no_error_log", "[error]");
+    }
+
     # --- load_modules: ngx_http_echo_module
 
     my $dyn_modules = $block->load_modules;

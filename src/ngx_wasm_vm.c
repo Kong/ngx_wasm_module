@@ -33,22 +33,22 @@ typedef struct {
 
 
 struct ngx_wasm_instance_s {
-    ngx_pool_t                   *pool;
-    ngx_log_t                    *log;
-    ngx_wasm_hctx_t               hctx;
-    ngx_wasm_vm_t                *vm;
-    ngx_wasm_vm_module_t         *module;
-    ngx_wasm_vm_instance_pt       vm_instance;
+    ngx_pool_t                    *pool;
+    ngx_log_t                     *log;
+    ngx_wasm_vm_t                 *vm;
+    ngx_wasm_vm_module_t          *module;
+    ngx_wasm_vm_instance_pt        vm_instance;
+    ngx_wasm_hctx_t                hctx;
 };
 
 
 struct ngx_wasm_vm_module_s {
-    ngx_rbtree_node_t             rbnode;
-    ngx_str_t                     name;
-    ngx_str_t                     path;
-    ngx_str_t                     bytes;
-    ngx_uint_t                    flags;
-    ngx_wasm_vm_module_pt         vm_module;
+    ngx_wasm_rbtree_named_node_t   rbnode;
+    ngx_str_t                      name;
+    ngx_str_t                      path;
+    ngx_str_t                      bytes;
+    ngx_uint_t                     flags;
+    ngx_wasm_vm_module_pt          vm_module;
 };
 
 
@@ -84,97 +84,25 @@ static u_char *ngx_wasm_vm_log_error_handler(ngx_log_t *log, u_char *buf,
     size_t len);
 
 
-void/*{{{*/
-ngx_wasm_vm_modules_insert(ngx_rbtree_node_t *temp,
-    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel)
+static ngx_inline ngx_wasm_vm_module_t *
+ngx_wasm_vm_get_module(ngx_wasm_vm_t *vm, u_char *mod_name, size_t mod_len)
 {
-    ngx_wasm_vm_module_t   *n, *t;
-    ngx_rbtree_node_t     **p;
+    ngx_rbtree_node_t     *n;
+    ngx_wasm_vm_module_t  *module;
 
-    for ( ;; ) {
-
-        n = (ngx_wasm_vm_module_t *) node;
-        t = (ngx_wasm_vm_module_t *) temp;
-
-        if (node->key != temp->key) {
-            p = (node->key < temp->key) ? &temp->left : &temp->right;
-
-        } else if (n->name.len != t->name.len) {
-            p = (n->name.len < t->name.len) ? &temp->left : &temp->right;
-
-        } else {
-            p = (ngx_memcmp(n->name.data, t->name.data, n->name.len) < 0)
-                ? &temp->left : &temp->right;
-        }
-
-        if (*p == sentinel) {
-            break;
-        }
-
-        temp = *p;
-    }
-
-    *p = node;
-    node->parent = temp;
-    node->left = sentinel;
-    node->right = sentinel;
-    ngx_rbt_red(node);
-}
-
-
-static ngx_wasm_vm_module_t *
-ngx_wasm_vm_modules_lookup(ngx_rbtree_t *rbtree, u_char *name, size_t len,
-    uint32_t hash)
-{
-    ngx_wasm_vm_module_t   *nm;
-    ngx_rbtree_node_t      *node, *sentinel;
-    ngx_int_t               rc;
-
-    node = rbtree->root;
-    sentinel = rbtree->sentinel;
-
-    while (node != sentinel) {
-        nm = (ngx_wasm_vm_module_t *) node;
-
-        if (hash != node->key) {
-            node = (hash < node->key) ? node->left : node->right;
-            continue;
-        }
-
-        rc = ngx_memcmp(name, nm->name.data, len);
-
-        if (rc < 0) {
-            node = node->left;
-            continue;
-        }
-
-        if (rc > 0) {
-            node = node->right;
-            continue;
-        }
-
-        return nm;
+    n = ngx_wasm_rbtree_lookup_named_node(&vm->modules.rbtree, mod_name, mod_len);
+    if (n != NULL) {
+        module = (ngx_wasm_vm_module_t *)
+                     ((u_char *) n - offsetof(ngx_wasm_vm_module_t, rbnode));
+        return module;
     }
 
     return NULL;
 }
 
 
-static ngx_wasm_vm_module_t *
-ngx_wasm_vm_get_module(ngx_wasm_vm_t *vm, u_char *name)
-{
-    uint32_t                      hash;
-    size_t                        nlen;
-
-    nlen = ngx_strlen(name);
-    hash = ngx_crc32_short(name, nlen);
-
-    return ngx_wasm_vm_modules_lookup(&vm->modules.rbtree, name, nlen, hash);
-}/*}}}*/
-
-
 ngx_wasm_vm_t *
-ngx_wasm_vm_new(const char *name, ngx_cycle_t *cycle,
+ngx_wasm_vm_new(char *vm_name, ngx_cycle_t *cycle,
     ngx_wasm_hfuncs_store_t *hf_store)
 {
     ngx_wasm_vm_t           *vm;
@@ -205,15 +133,15 @@ ngx_wasm_vm_new(const char *name, ngx_cycle_t *cycle,
     vm->log->data = &vm->log_ctx;
 
     ngx_rbtree_init(&vm->modules.rbtree, &vm->modules.sentinel,
-                    ngx_wasm_vm_modules_insert);
+                    ngx_wasm_rbtree_insert_named_node);
 
-    vm->name.len = ngx_strlen(name);
+    vm->name.len = ngx_strlen(vm_name);
     vm->name.data = ngx_pnalloc(vm->pool, vm->name.len + 1);
     if (vm->name.data == NULL) {
         goto failed;
     }
 
-    p = ngx_copy(vm->name.data, name, vm->name.len);
+    p = ngx_copy(vm->name.data, vm_name, vm->name.len);
     *p = '\0';
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, cycle->log, 0,
@@ -225,7 +153,7 @@ ngx_wasm_vm_new(const char *name, ngx_cycle_t *cycle,
 failed:
 
     ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                       "failed to create \"%*s\" vm", name);
+                       "failed to create \"%*s\" vm", vm_name);
 
     ngx_wasm_vm_free(vm);
 
@@ -257,7 +185,7 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
     while (*root != *sentinel) {
         module = (ngx_wasm_vm_module_t *) ngx_rbtree_min(*root, *sentinel);
 
-        ngx_rbtree_delete(&vm->modules.rbtree, &module->rbnode);
+        ngx_rbtree_delete(&vm->modules.rbtree, &module->rbnode.node);
 
         ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
                        "[wasm] free \"%V\" module in \"%V\" vm"
@@ -293,31 +221,27 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
 
 
 ngx_int_t
-ngx_wasm_vm_add_module(ngx_wasm_vm_t *vm, u_char *name, u_char *path)
+ngx_wasm_vm_add_module(ngx_wasm_vm_t *vm, u_char *mod_name, u_char *path)
 {
-    ngx_wasm_vm_module_t         *module;
-    u_char                       *p;
-    ngx_rbtree_node_t            *n;
+    u_char                *p;
+    ngx_wasm_vm_module_t  *module;
 
-    module = ngx_wasm_vm_get_module(vm, name);
-    if (module) {
+    if (ngx_wasm_vm_has_module(vm, mod_name) == NGX_OK) {
         return NGX_DECLINED;
     }
-
-    /* module == NULL */
 
     module = ngx_pcalloc(vm->pool, sizeof(ngx_wasm_vm_module_t));
     if (module == NULL) {
         goto failed;
     }
 
-    module->name.len = ngx_strlen(name);
+    module->name.len = ngx_strlen(mod_name);
     module->name.data = ngx_pnalloc(vm->pool, module->name.len + 1);
     if (module->name.data == NULL) {
         goto failed;
     }
 
-    p = ngx_copy(module->name.data, name, module->name.len);
+    p = ngx_copy(module->name.data, mod_name, module->name.len);
     *p = '\0';
 
     module->path.len = ngx_strlen(path);
@@ -333,9 +257,8 @@ ngx_wasm_vm_add_module(ngx_wasm_vm_t *vm, u_char *name, u_char *path)
         module->flags |= NGX_WASM_VM_MODULE_ISWAT;
     }
 
-    n = &module->rbnode;
-    n->key = ngx_crc32_short(module->name.data, module->name.len);
-    ngx_rbtree_insert(&vm->modules.rbtree, n);
+    ngx_wasm_rbtree_set_named_node(&module->rbnode, &module->name);
+    ngx_rbtree_insert(&vm->modules.rbtree, &module->rbnode.node);
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
                    "[wasm] registered \"%V\" module in \"%V\" vm"
@@ -349,7 +272,7 @@ failed:
 
     ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
                        "failed to add \"%*s\" module from \"%*s\"",
-                        name, path);
+                       mod_name, path);
 
     if (module) {
         if (module->name.data) {
@@ -368,11 +291,11 @@ failed:
 
 
 ngx_int_t
-ngx_wasm_vm_has_module(ngx_wasm_vm_t *vm, u_char *mod)
+ngx_wasm_vm_has_module(ngx_wasm_vm_t *vm, u_char *mod_name)
 {
     ngx_wasm_vm_module_t         *module;
 
-    module = ngx_wasm_vm_get_module(vm, mod);
+    module = ngx_wasm_vm_get_module(vm, mod_name, ngx_strlen(mod_name));
     if (module == NULL) {
         return NGX_DECLINED;
     }
@@ -422,7 +345,7 @@ ngx_wasm_vm_init_runtime(ngx_wasm_vm_t *vm, ngx_str_t *vm_name,
 
 
 ngx_int_t
-ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, u_char *mod)
+ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
 {
     ngx_wasm_vm_module_t  *module;
     ngx_wasm_vm_error_pt   vm_error = NULL;
@@ -436,10 +359,10 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, u_char *mod)
 
     ngx_memzero(&bytes, sizeof(ngx_str_t));
 
-    module = ngx_wasm_vm_get_module(vm, mod);
+    module = ngx_wasm_vm_get_module(vm, mod_name->data, mod_name->len);
     if (module == NULL) {
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
-                           "no \"%*s\" module defined", mod);
+                           "no \"%V\" module defined", mod_name);
         return NGX_DECLINED;
     }
 
@@ -477,7 +400,7 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, u_char *mod)
     fsize = ngx_file_size(&file.info);
 
     module->bytes.len = fsize;
-    module->bytes.data = ngx_palloc(vm->pool, module->bytes.len);
+    module->bytes.data = ngx_pnalloc(vm->pool, module->bytes.len);
     if (module->bytes.data == NULL) {
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
                            "failed to allocate bytes for \"%V\" "
@@ -561,7 +484,7 @@ ngx_wasm_vm_load_modules(ngx_wasm_vm_t *vm)
     {
         module = (ngx_wasm_vm_module_t *) node;
 
-        rc = ngx_wasm_vm_load_module(vm, module->name.data);
+        rc = ngx_wasm_vm_load_module(vm, &module->name);
         if (rc != NGX_OK) {
             return rc;
         }
@@ -572,8 +495,7 @@ ngx_wasm_vm_load_modules(ngx_wasm_vm_t *vm)
 
 
 ngx_wasm_instance_t *
-ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm, ngx_str_t *mod,
-    ngx_wasm_hctx_t *hctx)
+ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
 {
     ngx_wasm_instance_t    *instance;
     ngx_wasm_vm_module_t   *module;
@@ -583,19 +505,19 @@ ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm, ngx_str_t *mod,
 
     ngx_wasm_vm_check_init(vm, NULL);
 
-    module = ngx_wasm_vm_get_module(vm, mod->data);
+    module = ngx_wasm_vm_get_module(vm, mod_name->data, mod_name->len);
     if (module == NULL) {
         ngx_wasm_log_error(NGX_LOG_ERR, vm->log, 0,
                            "failed to create instance of \"%V\" module: "
-                           "no such module defined", mod);
+                           "no such module defined", mod_name);
         return NULL;
     }
 
-    instance = ngx_palloc(vm->pool, sizeof(struct ngx_wasm_instance_s));
+    instance = ngx_pcalloc(vm->pool, sizeof(struct ngx_wasm_instance_s));
     if (instance == NULL) {
         ngx_wasm_log_error(NGX_LOG_ERR, vm->log, 0,
                            "failed to create instance of \"%V\" module: "
-                           "could not allocate memory", mod);
+                           "could not allocate memory", mod_name);
         return NULL;
     }
 
@@ -608,11 +530,11 @@ ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm, ngx_str_t *mod,
         goto failed;
     }
 
-    instance->log->file = hctx->log->file;
-    instance->log->next = hctx->log->next;
-    instance->log->writer = hctx->log->writer;
-    instance->log->wdata = hctx->log->wdata;
-    instance->log->log_level = hctx->log->log_level;
+    instance->log->file = vm->log->file;
+    instance->log->next = vm->log->next;
+    instance->log->wdata = vm->log->wdata;
+    instance->log->writer = vm->log->writer;
+    instance->log->log_level = vm->log->log_level;
     instance->log->handler = ngx_wasm_vm_log_error_handler;
 
     log_ctx = ngx_palloc(instance->pool, sizeof(ngx_wasm_vm_log_ctx_t));
@@ -622,13 +544,9 @@ ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm, ngx_str_t *mod,
 
     log_ctx->vm = vm;
     log_ctx->instance = instance;
-    log_ctx->orig_log = hctx->log;
+    log_ctx->orig_log = vm->log;
 
     instance->log->data = log_ctx;
-
-    instance->hctx.log = instance->log;
-    instance->hctx.data = hctx->data;
-    instance->hctx.memory_offset = NULL;
 
     ngx_log_debug5(NGX_LOG_DEBUG_WASM, vm->log, 0,
                    "[wasm] creating instance of \"%V\" module in \"%V\" vm"
@@ -643,7 +561,7 @@ ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm, ngx_str_t *mod,
     if (instance->vm_instance == NULL) {
         ngx_wasm_vm_log_error(NGX_LOG_ERR, vm->log, vm_error, vm_trap,
                               "failed to create instance of \"%V\" module",
-                              mod);
+                              mod_name);
         goto failed;
     }
 
@@ -654,6 +572,22 @@ failed:
     ngx_wasm_vm_instance_free(instance);
 
     return NULL;
+}
+
+
+void
+ngx_wasm_vm_instance_bind_request(ngx_wasm_instance_t *instance,
+    ngx_http_request_t *r)
+{
+    ngx_wasm_vm_log_ctx_t   *log_ctx;
+
+    log_ctx = (ngx_wasm_vm_log_ctx_t *) instance->log->data;
+    log_ctx->orig_log = r->connection->log;
+
+    ngx_memzero(&instance->hctx, sizeof(ngx_wasm_hctx_t));
+    instance->hctx.log = instance->log;
+    instance->hctx.type = NGX_WASM_HTYPE_REQUEST;
+    instance->hctx.data.r = r;
 }
 
 

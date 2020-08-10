@@ -1,13 +1,13 @@
 use ngx::*;
 
 #[no_mangle]
-pub fn log_err() {
-    ngx_log!(Info, "hello world");
+pub fn log_notice_hello() {
+    ngx_log!(Notice, "hello world");
 }
 
 #[no_mangle]
-pub fn get_resp_status() {
-    ngx_log!(Info, "resp status: {}", ngx_resp_get_status());
+pub fn resp_get_status() {
+    ngx_log!(Notice, "resp status: {}", ngx_resp_get_status());
 }
 
 #[cfg(test)]

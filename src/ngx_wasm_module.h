@@ -2,8 +2,8 @@
  * Copyright (C) Thibault Charbonnier
  */
 
-#ifndef NGX_WASM_MODULE_H_INCLUDED_
-#define NGX_WASM_MODULE_H_INCLUDED_
+#ifndef _NGX_WASM_MODULE_H_INCLUDED_
+#define _NGX_WASM_MODULE_H_INCLUDED_
 
 
 #include <ngx_wasm.h>
@@ -27,4 +27,4 @@ typedef struct {
 ngx_wasm_vm_t *ngx_wasm_core_get_default_vm(ngx_cycle_t *cycle);
 
 
-#endif /* NGX_WASM_MODULE_H_INCLUDED_ */
+#endif /* _NGX_WASM_MODULE_H_INCLUDED_ */

@@ -54,9 +54,9 @@ struct ngx_wasmtime_instance_s {
 
 
 struct ngx_wasmtime_trampoline_ctx_s {
-    ngx_wasmtime_instance_t         *instance;
-    ngx_wasm_hfunc_t                *hfunc;
     ngx_wasm_hctx_t                 *hctx;
+    ngx_wasm_hfunc_t                *hfunc;
+    ngx_wasmtime_instance_t         *vm_instance;
 };
 
 
@@ -202,18 +202,18 @@ ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
     ngx_wasmtime_trampoline_ctx_t  *ctx = env;
     wasm_message_t                  trap_msg;
 
+    ctx->hctx->memory_offset = wasm_memory_data(ctx->vm_instance->memory);
+
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->hctx->log, 0,
-                   "wasmtime host function trampoline (hfunc: %V, hctx: %p)",
+                   "wasmtime host function trampoline (hfunc: %V, ctx: %p)",
                    ctx->hfunc->name, ctx);
 
     ngx_wasmtime_vals_lift(ngx_args, (wasm_val_t *) args, ctx->hfunc->nargs);
 
-    ctx->hctx->memory_offset = wasm_memory_data(ctx->instance->memory);
-
     rc = ctx->hfunc->ptr(ctx->hctx, ngx_args, ngx_rets);
     if (rc == NGX_DECLINED) {
         wasm_name_new_from_string(&trap_msg, "bad context");
-        return wasm_trap_new(ctx->instance->store, &trap_msg);
+        return wasm_trap_new(ctx->vm_instance->store, &trap_msg);
     }
 
     /* rc == NGX_OK */
@@ -491,9 +491,9 @@ ngx_wasmtime_instance_new(ngx_wasm_vm_module_pt vm_module,
 
         ctx = &instance->ctxs[i];
 
-        ctx->instance = instance;
-        ctx->hfunc = hfunc;
         ctx->hctx = hctx;
+        ctx->hfunc = hfunc;
+        ctx->vm_instance = instance;
 
         func = wasm_func_new_with_env(instance->store,
                                       (wasm_functype_t *) hfunc->vm_data,

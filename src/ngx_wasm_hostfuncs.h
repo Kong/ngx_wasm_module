@@ -12,18 +12,11 @@
 /* store */
 
 
-typedef struct {
-    ngx_rbtree_node_t       rbnode;
-    ngx_str_t               name;
-    ngx_array_t            *decls;
-} ngx_wasm_hfuncs_decls_module_t;
-
-
 struct ngx_wasm_hfuncs_store_s {
-    ngx_rbtree_t            rbtree;
-    ngx_rbtree_node_t       sentinel;
-    ngx_cycle_t            *cycle;
-    ngx_pool_t             *pool;
+    ngx_rbtree_t                   rbtree;
+    ngx_rbtree_node_t              sentinel;
+    ngx_cycle_t                   *cycle;
+    ngx_pool_t                    *pool;
 };
 
 

@@ -11,83 +11,11 @@
 #include <ngx_wasm_util.h>
 
 
-static void/*{{{*/
-ngx_wasm_hfuncs_decls_module_insert(ngx_rbtree_node_t *temp,
-    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel)
-{
-    ngx_wasm_hfuncs_decls_module_t  *mod, *t;
-    ngx_rbtree_node_t              **n;
-
-    for ( ;; ) {
-        mod = (ngx_wasm_hfuncs_decls_module_t *) node;
-        t = (ngx_wasm_hfuncs_decls_module_t *) temp;
-
-        if (node->key != temp->key) {
-            n = (node->key < temp->key) ? &temp->left : &temp->right;
-
-        } else if (mod->name.len != t->name.len) {
-            n = (mod->name.len < t->name.len) ? &temp->left : &temp->right;
-
-        } else {
-            n = (ngx_memcmp(mod->name.data, t->name.data, mod->name.len) < 0)
-                ? &temp->left : &temp->right;
-        }
-
-        if (*n == sentinel) {
-            break;
-        }
-
-        temp = *n;
-    }
-
-    *n = node;
-    node->parent = temp;
-    node->left = sentinel;
-    node->right = sentinel;
-    ngx_rbt_red(node);
-}
-
-
-static ngx_wasm_hfuncs_decls_module_t *
-ngx_wasm_hfuncs_decls_module_lookup(ngx_wasm_hfuncs_store_t *store,
-    u_char *name, size_t len)
-{
-    ngx_wasm_hfuncs_decls_module_t  *mod;
-    uint32_t                         hash;
-    ngx_rbtree_node_t               *node, *sentinel;
-    ngx_int_t                        rc;
-
-    hash = ngx_crc32_short(name, len);
-
-    node = store->rbtree.root;
-    sentinel = store->rbtree.sentinel;
-
-    while (node != sentinel) {
-        mod = (ngx_wasm_hfuncs_decls_module_t *) node;
-
-        if (hash != node->key) {
-            node = (hash < node->key) ? node->left : node->right;
-            continue;
-        }
-
-        rc = ngx_memcmp(name, mod->name.data, mod->name.len);
-
-        if (rc < 0) {
-            node = node->left;
-            continue;
-        }
-
-        if (rc > 0) {
-            node = node->right;
-            continue;
-        }
-
-        return mod;
-    }
-
-    return NULL;
-}/*}}}*/
-
+typedef struct {
+    ngx_wasm_rbtree_named_node_t   rbnode;
+    ngx_str_t                      name;
+    ngx_array_t                   *decls;
+} ngx_wasm_hfuncs_decls_module_t;
 
 
 ngx_wasm_hfuncs_store_t *
@@ -104,7 +32,7 @@ ngx_wasm_hfuncs_store_new(ngx_cycle_t *cycle)
     store->pool = cycle->pool;
 
     ngx_rbtree_init(&store->rbtree, &store->sentinel,
-                    ngx_wasm_hfuncs_decls_module_insert);
+                    ngx_wasm_rbtree_insert_named_node);
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, cycle->log, 0,
                    "[wasm] new host functions store (store: %p)",
@@ -126,15 +54,20 @@ ngx_wasm_hfuncs_store_add(ngx_wasm_hfuncs_store_t *store,
     const char *module, const ngx_wasm_hfunc_decl_t decls[])
 {
     size_t                           len;
-    ngx_wasm_hfuncs_decls_module_t  *mod;
     u_char                          *p;
-    const ngx_wasm_hfunc_decl_t     *decl, **declp;
     ngx_rbtree_node_t               *n;
+    ngx_wasm_hfuncs_decls_module_t  *mod;
+    const ngx_wasm_hfunc_decl_t     *decl, **declp;
 
     len = ngx_strlen(module);
 
-    mod = ngx_wasm_hfuncs_decls_module_lookup(store, (u_char *) module, len);
-    if (mod == NULL) {
+    n = ngx_wasm_rbtree_lookup_named_node(&store->rbtree, (u_char *) module, len);
+    if (n) {
+        mod = (ngx_wasm_hfuncs_decls_module_t *)
+                  ((u_char *) n - offsetof(ngx_wasm_hfuncs_decls_module_t,
+                                           rbnode));
+
+    } else {
         mod = ngx_palloc(store->pool, sizeof(ngx_wasm_hfuncs_decls_module_t));
         if (mod == NULL) {
             goto failed;
@@ -155,10 +88,8 @@ ngx_wasm_hfuncs_store_add(ngx_wasm_hfuncs_store_t *store,
             goto failed;
         }
 
-        n = &mod->rbnode;
-        n->key = ngx_crc32_short(mod->name.data, mod->name.len);
-
-        ngx_rbtree_insert(&store->rbtree, n);
+        ngx_wasm_rbtree_set_named_node(&mod->rbnode, &mod->name);
+        ngx_rbtree_insert(&store->rbtree, &mod->rbnode.node);
     }
 
     decl = decls;
@@ -218,7 +149,7 @@ ngx_wasm_hfuncs_store_free(ngx_wasm_hfuncs_store_t *store)
         mod = (ngx_wasm_hfuncs_decls_module_t *) ngx_rbtree_min(*root,
                                                                 *sentinel);
 
-        ngx_rbtree_delete(&store->rbtree, &mod->rbnode);
+        ngx_rbtree_delete(&store->rbtree, &mod->rbnode.node);
 
         ngx_log_debug2(NGX_LOG_DEBUG_WASM, store->cycle->log, 0,
                        "[wasm] free \"%V\" host functions (store: %p)",
@@ -237,13 +168,13 @@ ngx_int_t
 ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
 {
     size_t                            i;
-    ngx_rbtree_node_t                *node, *root, *sentinel;
+    ngx_int_t                         rc = NGX_ERROR;
     ngx_hash_init_t                   hash_mods, hash_funcs;
+    ngx_rbtree_node_t                *node, *root, *sentinel;
     ngx_wasm_hfuncs_decls_module_t   *mod;
     ngx_wasm_hfuncs_module_t         *rmod;
     ngx_wasm_hfunc_decl_t           **decls, *decl;
     ngx_wasm_hfunc_t                 *hfunc;
-    ngx_int_t                         rc = NGX_ERROR;
 
     ngx_wasm_assert(resolver->pool != NULL);
     ngx_wasm_assert(resolver->log != NULL);
@@ -356,7 +287,7 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
             for (hfunc->nargs = 0; hfunc->args[hfunc->nargs]; hfunc->nargs++);
             for (hfunc->nrets = 0; hfunc->rets[hfunc->nrets]; hfunc->nrets++);
 
-            hfunc->vm_data = (void *) resolver->hf_new(hfunc);
+            hfunc->vm_data = resolver->hf_new(hfunc);
             if (hfunc->vm_data == NULL) {
                 ngx_wasm_log_error(NGX_LOG_EMERG, resolver->log, 0,
                                    "failed to initialize \"%V.%V\" host "
@@ -408,8 +339,8 @@ ngx_wasm_hfunc_t *
 ngx_wasm_hfuncs_resolver_lookup(ngx_wasm_hfuncs_resolver_t *resolver,
     char *module, size_t mlen, char *func, size_t flen)
 {
-    ngx_wasm_hfuncs_module_t  *rmod;
     ngx_uint_t                 mkey, fkey;
+    ngx_wasm_hfuncs_module_t  *rmod;
 
     mkey = ngx_hash_key((u_char *) module, mlen);
 
@@ -426,7 +357,7 @@ ngx_wasm_hfuncs_resolver_lookup(ngx_wasm_hfuncs_resolver_t *resolver,
 
 
 static ngx_inline void
-ngx_wasm_ngx_hash_keys_array_destroy(ngx_hash_keys_arrays_t *ha)
+ngx_wasm_hash_keys_array_cleanup(ngx_hash_keys_arrays_t *ha)
 {
 #ifdef NGX_WASM_NO_POOL
     ngx_array_destroy(&ha->keys);
@@ -476,14 +407,14 @@ ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver)
                 ngx_pfree(resolver->pool, hfunc);
             }
 
-            ngx_wasm_ngx_hash_keys_array_destroy(rmod->hfuncs_names);
+            ngx_wasm_hash_keys_array_cleanup(rmod->hfuncs_names);
 
             ngx_pfree(resolver->temp_pool, rmod->hfuncs_names);
             ngx_pfree(resolver->pool, rmod->hfuncs);
             ngx_pfree(resolver->pool, rmod);
         }
 
-        ngx_wasm_ngx_hash_keys_array_destroy(resolver->modules_names);
+        ngx_wasm_hash_keys_array_cleanup(resolver->modules_names);
 
         ngx_pfree(resolver->temp_pool, resolver->modules_names);
     }

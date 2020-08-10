@@ -4,14 +4,6 @@ use t::TestWasm;
 
 plan tests => repeat_each() * (blocks() * 3);
 
-add_block_preprocessor(sub {
-    my $block = shift;
-
-    if (!defined $block->no_error_log) {
-        $block->set_value("no_error_log", "[error]");
-    }
-});
-
 run_tests();
 
 __DATA__
@@ -42,7 +34,7 @@ no "wasm" section in configuration
 
 
 
-=== TEST 4: wasm{} - use directive
+=== TEST 4: wasm{} - 'use' directive
 --- main_config
     wasm {
         use wasmtime;
@@ -83,7 +75,7 @@ qr/\[notice\] .*? using the "wasmtime" wasm runtime/
 
 
 
-=== TEST 8: wasm{} - module directive loads module in default VM
+=== TEST 8: wasm{} - 'module' directive loads module in default VM
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -96,7 +88,7 @@ qr/\[notice\] .*? \[wasm\] loading "hello" module from ".*?hello\.wat" <vm: defa
 
 
 
-=== TEST 9: wasm{} - multiple module directives
+=== TEST 9: wasm{} - multiple 'module' directives
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;

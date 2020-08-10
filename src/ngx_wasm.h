@@ -5,17 +5,18 @@
 #ifndef _NGX_WASM_H_INCLUDED_
 #define _NGX_WASM_H_INCLUDED_
 
+
+#include <nginx.h>
+#include <ngx_core.h>
+#include <ngx_http.h>
+
+
 #if (NGX_DEBUG)
 #include <assert.h>
 #   define ngx_wasm_assert(a)  assert(a)
 #else
 #   define ngx_wasm_assert(a)
 #endif
-
-#include <nginx.h>
-#include <ngx_core.h>
-#include <ngx_http.h>
-
 
 #define NGX_LOG_DEBUG_WASM           NGX_LOG_DEBUG_ALL
 
@@ -45,6 +46,22 @@ typedef struct ngx_wasm_instance_s  ngx_wasm_instance_t;
 
 
 typedef enum {
+    NGX_WASM_HTYPE_REQUEST = 1,
+} ngx_wasm_htype_t;
+
+
+typedef struct {
+    ngx_wasm_htype_t   type;
+    ngx_log_t         *log;
+    char              *memory_offset;
+
+    union {
+        ngx_http_request_t  *r;
+    } data;
+} ngx_wasm_hctx_t;
+
+
+typedef enum {
     NGX_WASM_I32 = 1,
     NGX_WASM_I64,
     NGX_WASM_F32,
@@ -64,17 +81,12 @@ typedef struct {
 } ngx_wasm_val_t;
 
 
-typedef struct {
-    ngx_log_t            *log;
-    char                 *memory_offset;
-
-    union {
-        ngx_http_request_t    *r;
-    } data;
-} ngx_wasm_hctx_t;
-
-
 /* host functions */
+
+
+typedef struct ngx_wasm_hfunc_s  ngx_wasm_hfunc_t;
+typedef struct ngx_wasm_hfuncs_store_s  ngx_wasm_hfuncs_store_t;
+typedef struct ngx_wasm_hfuncs_resolver_s  ngx_wasm_hfuncs_resolver_t;
 
 
 typedef ngx_int_t (*ngx_wasm_hfunc_pt)(ngx_wasm_hctx_t *hctx,
@@ -94,11 +106,6 @@ void ngx_wasm_core_hfuncs_add(ngx_cycle_t *cycle,
 
 
 /* runtime */
-
-
-typedef struct ngx_wasm_hfunc_s  ngx_wasm_hfunc_t;
-typedef struct ngx_wasm_hfuncs_store_s  ngx_wasm_hfuncs_store_t;
-typedef struct ngx_wasm_hfuncs_resolver_s  ngx_wasm_hfuncs_resolver_t;
 
 
 typedef void *ngx_wasm_vm_engine_pt;
