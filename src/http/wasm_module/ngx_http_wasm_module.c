@@ -7,14 +7,15 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_config.h>
+#include <ngx_core.h>
 #include <ngx_http.h>
 #include <ngx_http_wasm_util.h>
-#include <ngx_http_wasm_hostfuncs.h>
+
 #include <ngx_wasm_vm.h>
 #include <ngx_wasm_vm_cache.h>
-#include <ngx_wasm_module.h>
 #include <ngx_wasm_util.h>
+
+#include <ngx_wasm_module.h>
 
 
 typedef struct {
@@ -308,8 +309,6 @@ ngx_http_wasm_init(ngx_conf_t *cf)
             *h = phase_handlers[i];
         }
     }
-
-    ngx_wasm_core_hfuncs_add(cf->cycle, ngx_http_wasm_hfuncs);
 
     return NGX_OK;
 }

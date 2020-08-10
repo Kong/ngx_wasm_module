@@ -7,9 +7,9 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_config.h>
+#include <ngx_core.h>
 #include <ngx_wasm_module.h>
-#include <ngx_wasm_hostfuncs.h>
+#include <ngx_wasm_hfuncs.h>
 
 #include <wasm.h>
 #include <wasmtime.h>

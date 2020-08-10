@@ -7,7 +7,7 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_wasm_hostfuncs.h>
+#include <ngx_wasm_hfuncs.h>
 #include <ngx_wasm_util.h>
 
 

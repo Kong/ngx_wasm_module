@@ -8,8 +8,8 @@
 #include "ddebug.h"
 
 #include <ngx_wasm_vm.h>
+#include <ngx_wasm_hfuncs.h>
 #include <ngx_wasm_util.h>
-#include <ngx_wasm_hostfuncs.h>
 
 
 #define ngx_wasm_vm_check_init(vm, ret)                                      \

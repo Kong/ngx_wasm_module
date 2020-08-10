@@ -23,7 +23,7 @@ pub enum NgxLogErrLvl {
 }
 
 extern "C" {
-    fn ngx_wasm_log(level: u32, msg: *const u8, size: i32);
+    fn ngx_log(level: u32, msg: *const u8, size: i32);
 }
 
 pub fn ngx_log_err(level: NgxLogErrLvl, msg: String) {
@@ -40,7 +40,7 @@ pub fn ngx_log_err(level: NgxLogErrLvl, msg: String) {
     };
 
     unsafe {
-        ngx_wasm_log(lvl, msg.as_ptr(), msg.len() as i32)
+        ngx_log(lvl, msg.as_ptr(), msg.len() as i32)
     }
 }
 

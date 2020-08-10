@@ -71,14 +71,38 @@ ngx_module_libs=
 ngx_module_deps="$ngx_addon_dir/src/ngx_wasm.h \
                  $ngx_addon_dir/src/ngx_wasm_vm.h \
                  $ngx_addon_dir/src/ngx_wasm_vm_cache.h \
+                 $ngx_addon_dir/src/ngx_wasm_hfuncs.h \
                  $ngx_addon_dir/src/ngx_wasm_module.h \
-                 $ngx_addon_dir/src/ngx_wasm_hostfuncs.h \
                  $ngx_addon_dir/src/common/ngx_wasm_util.h"
 ngx_module_srcs="$ngx_addon_dir/src/ngx_wasm_vm.c \
                  $ngx_addon_dir/src/ngx_wasm_vm_cache.c \
+                 $ngx_addon_dir/src/ngx_wasm_hfuncs.c \
                  $ngx_addon_dir/src/ngx_wasm_module.c \
-                 $ngx_addon_dir/src/ngx_wasm_hostfuncs.c \
                  $ngx_addon_dir/src/common/ngx_wasm_util.c"
+ngx_module_link=ADDON
+
+. auto/module
+
+###############################################################################
+
+ngx_module_type=WASM
+ngx_module_name=ngx_wasm_hfuncs_module
+ngx_module_incs=
+ngx_module_libs=
+ngx_module_deps=
+ngx_module_srcs="$ngx_addon_dir/src/wasm/ngx_wasm_hfuncs_module.c"
+ngx_module_link=ADDON
+
+. auto/module
+
+###############################################################################
+
+ngx_module_type=WASM
+ngx_module_name=ngx_http_wasm_hfuncs_module
+ngx_module_incs=
+ngx_module_libs=
+ngx_module_deps=
+ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_hfuncs_module.c"
 ngx_module_link=ADDON
 
 . auto/module
@@ -118,10 +142,8 @@ ngx_module_incs="$ngx_addon_dir/src \
                  $ngx_addon_dir/src/http/common \
                  $ngx_addon_dir/src/http/wasm_module"
 ngx_module_libs=
-ngx_module_deps="$ngx_addon_dir/src/http/wasm_module/ngx_http_wasm_hostfuncs.h \
-                 $ngx_addon_dir/src/http/common/ngx_http_wasm_util.h"
+ngx_module_deps="$ngx_addon_dir/src/http/common/ngx_http_wasm_util.h"
 ngx_module_srcs="$ngx_addon_dir/src/http/wasm_module/ngx_http_wasm_module.c \
-                 $ngx_addon_dir/src/http/wasm_module/ngx_http_wasm_hostfuncs.c \
                  $ngx_addon_dir/src/http/common/ngx_http_wasm_util.c"
 ngx_module_link=ADDON
 

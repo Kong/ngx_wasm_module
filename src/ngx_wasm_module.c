@@ -7,11 +7,10 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_config.h>
-#include <ngx_wasm_vm.h>
-#include <ngx_wasm_util.h>
 #include <ngx_wasm_module.h>
-#include <ngx_wasm_hostfuncs.h>
+#include <ngx_wasm_vm.h>
+#include <ngx_wasm_hfuncs.h>
+#include <ngx_wasm_util.h>
 
 
 #define ngx_wasm_run()                                                       \

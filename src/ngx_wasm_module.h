@@ -6,6 +6,7 @@
 #define _NGX_WASM_MODULE_H_INCLUDED_
 
 
+#include <ngx_core.h>
 #include <ngx_wasm.h>
 
 
@@ -25,6 +26,9 @@ typedef struct {
 
 
 ngx_wasm_vm_t *ngx_wasm_core_get_default_vm(ngx_cycle_t *cycle);
+
+void ngx_wasm_core_hfuncs_add(ngx_cycle_t *cycle,
+    const ngx_wasm_hfunc_decl_t decls[]);
 
 
 #endif /* _NGX_WASM_MODULE_H_INCLUDED_ */

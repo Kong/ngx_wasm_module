@@ -6,7 +6,6 @@
 #define _NGX_WASM_VM_CACHE_H_INCLUDED_
 
 
-#include <ngx_wasm.h>
 #include <ngx_wasm_vm.h>
 
 

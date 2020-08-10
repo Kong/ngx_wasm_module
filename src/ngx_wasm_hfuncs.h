@@ -2,10 +2,11 @@
  * Copyright (C) Thibault Charbonnier
  */
 
-#ifndef _NGX_WASM_HOSTFUNCS_H_INCLUDED_
-#define _NGX_WASM_HOSTFUNCS_H_INCLUDED_
+#ifndef _NGX_WASM_HFUNCS_H_INCLUDED_
+#define _NGX_WASM_HFUNCS_H_INCLUDED_
 
 
+#include <ngx_core.h>
 #include <ngx_wasm.h>
 
 
@@ -70,4 +71,4 @@ ngx_wasm_hfunc_t *ngx_wasm_hfuncs_resolver_lookup(
 void ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver);
 
 
-#endif /* _NGX_WASM_HOSTFUNCS_H_INCLUDED_ */
+#endif /* _NGX_WASM_HFUNCS_H_INCLUDED_ */

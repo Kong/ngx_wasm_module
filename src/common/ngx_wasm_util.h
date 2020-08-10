@@ -6,6 +6,7 @@
 #define _NGX_WASM_UTIL_H_INCLUDED_
 
 
+#include <ngx_core.h>
 #include <ngx_wasm.h>
 
 

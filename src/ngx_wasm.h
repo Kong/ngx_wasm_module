@@ -6,7 +6,6 @@
 #define _NGX_WASM_H_INCLUDED_
 
 
-#include <nginx.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
 
@@ -99,10 +98,6 @@ typedef struct ngx_wasm_hfunc_decl_s {
     ngx_wasm_val_kind        args[NGX_WASM_ARGS_MAX];
     ngx_wasm_val_kind        rets[NGX_WASM_RETS_MAX];
 } ngx_wasm_hfunc_decl_t;
-
-
-void ngx_wasm_core_hfuncs_add(ngx_cycle_t *cycle,
-    const ngx_wasm_hfunc_decl_t decls[]);
 
 
 /* runtime */
