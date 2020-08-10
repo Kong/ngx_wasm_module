@@ -36,6 +36,17 @@ pushd $DIR_BIN
     chmod +x reindex
 popd
 
+if [[ -d "$DIR_ECHO" ]]; then
+    notice "updating the echo-nginx-module repository..."
+    pushd $DIR_ECHO
+        git fetch
+        git reset --hard origin/master
+    popd
+else
+    notice "cloning the echo-nginx-module repository..."
+    git clone https://github.com/openresty/echo-nginx-module.git $DIR_ECHO
+fi
+
 get_no_pool_nginx 1
 
 notice "done"

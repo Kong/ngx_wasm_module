@@ -5,10 +5,12 @@ use Cwd qw(cwd);
 
 our $pwd = cwd();
 our $crates = "work/lib/wasm";
+our $buildroot = "../../work/buildroot";
 
 our @EXPORT = qw(
     $pwd
     $crates
+    $buildroot
 );
 
 $ENV{TEST_NGINX_HTML_DIR} = html_dir;
@@ -27,6 +29,17 @@ add_block_preprocessor(sub {
 
     if (!defined $block->request) {
         $block->set_value("request", "GET /t");
+    }
+
+    # --- load_modules: ngx_http_echo_module
+
+    my $dyn_modules = $block->load_modules;
+    if (defined $dyn_modules) {
+        my @modules = map { "load_module $buildroot/$_.so;" } grep { $_ } split /\s+/, $dyn_modules;
+        if (@modules) {
+            $block->set_value("main_config",
+                              (join " ", @modules) . "\n" . $block->main_config);
+        }
     }
 });
 
