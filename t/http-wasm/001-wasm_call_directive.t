@@ -69,7 +69,30 @@ qr/\[emerg\] .*? \[wasm\] no "hello" module defined/
 
 
 
-=== TEST 6: wasm_call directive: catch runtime error sanity
+=== TEST 6: wasm_call directive: no such function
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+    }
+--- config
+    location /t {
+        wasm_call log hello nonexist;
+        return 200;
+    }
+--- user_files
+>>> hello.wat
+(module
+  (func $nop)
+  (export "nop" (func $nop))
+)
+--- error_log eval
+qr/\[error\] .*? \[wasm\] no "nonexist" function defined in "hello" module <vm: .*?, runtime: .*?>/
+--- no_error_log
+[emerg]
+
+
+
+=== TEST 7: wasm_call directive: catch runtime error sanity
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -95,7 +118,7 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
 
 
 
-=== TEST 7: wasm_call directive: sanity in 'log' phase
+=== TEST 8: wasm_call directive: sanity in 'log' phase
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -116,7 +139,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 
-=== TEST 8: wasm_call directive: sanity in 'rewrite' phase in location block
+=== TEST 9: wasm_call directive: sanity in 'rewrite' phase in location block
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -137,7 +160,7 @@ wasm: calling "hello.nop" in "rewrite" phase
 
 
 
-=== TEST 9: wasm_call directive: multiple calls in a location block
+=== TEST 10: wasm_call directive: multiple calls in a location block
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -161,7 +184,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 
-=== TEST 10: wasm_call directive: multiple calls in main block
+=== TEST 11: wasm_call directive: multiple calls in main block
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -186,7 +209,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 
-=== TEST 11: wasm_call directive: mixed main and location blocks
+=== TEST 12: wasm_call directive: mixed main and location blocks
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -212,7 +235,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 
-=== TEST 12: wasm_call directive: multiple modules, multiple calls, multiple phases, multiple blocks
+=== TEST 13: wasm_call directive: multiple modules, multiple calls, multiple phases, multiple blocks
 --- main_config
     wasm {
         module moduleA $TEST_NGINX_HTML_DIR/hello.wat;

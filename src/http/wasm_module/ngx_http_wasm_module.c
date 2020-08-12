@@ -374,6 +374,7 @@ static ngx_int_t
 ngx_http_wasm_exec_phase(ngx_http_request_t *r, ngx_http_phases phase)
 {
     size_t                         i;
+    ngx_int_t                      rc;
     ngx_http_wasm_phase_engine_t  *phase_engine;
     ngx_http_wasm_loc_conf_t      *lcf;
     ngx_http_wasm_req_ctx_t       *rctx;
@@ -411,9 +412,8 @@ ngx_http_wasm_exec_phase(ngx_http_request_t *r, ngx_http_phases phase)
 
         ngx_wasm_vm_instance_bind_request(instance, r);
 
-        if (ngx_wasm_vm_instance_call(instance, &call->func_name)
-            != NGX_OK)
-        {
+        rc = ngx_wasm_vm_instance_call(instance, &call->func_name);
+        if (rc != NGX_OK) {
             return NGX_ERROR;
         }
     }

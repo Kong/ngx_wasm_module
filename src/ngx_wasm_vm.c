@@ -547,7 +547,12 @@ ngx_wasm_vm_instance_call(ngx_wasm_vm_instance_t *instance,
 
     rc = vm->runtime->instance_call(instance->wrt, func_name, &err, &trap);
     if (err || trap) {
-        ngx_wasm_vm_log_error(NGX_LOG_ERR, instance->log, err, trap, "");
+        ngx_wasm_vm_log_error(NGX_LOG_ERR, instance->log, err, trap, NULL);
+
+    } else if (rc == NGX_DECLINED) {
+        ngx_wasm_vm_log_error(NGX_LOG_ERR, instance->log, NULL, NULL,
+                              "no \"%V\" function defined in \"%V\" module",
+                              func_name, &instance->module->name);
     }
 
     return rc;
@@ -600,12 +605,16 @@ ngx_wasm_vm_log_error(ngx_uint_t level, ngx_log_t *log,
     p = &errstr[0];
 
 #if (NGX_HAVE_VARIADIC_MACROS)
-    va_start(args, fmt);
-    p = ngx_vslprintf(p, last, fmt, args);
-    va_end(args);
+    if (fmt) {
+        va_start(args, fmt);
+        p = ngx_vslprintf(p, last, fmt, args);
+        va_end(args);
+    }
 
 #else
-    p = ngx_vslprintf(p, last, fmt, args);
+    if (fmt) {
+        p = ngx_vslprintf(p, last, fmt, args);
+    }
 #endif
 
     if (vm->runtime == NULL) {
