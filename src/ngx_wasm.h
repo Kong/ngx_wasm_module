@@ -6,10 +6,6 @@
 #define _NGX_WASM_H_INCLUDED_
 
 
-#include <ngx_core.h>
-#include <ngx_http.h>
-
-
 #if (NGX_DEBUG)
 #include <assert.h>
 #   define ngx_wasm_assert(a)  assert(a)
@@ -17,47 +13,24 @@
 #   define ngx_wasm_assert(a)
 #endif
 
-#define NGX_LOG_DEBUG_WASM           NGX_LOG_DEBUG_ALL
 
-#define NGX_WASM_VM_DEFAULT          "wasmtime"
-#define NGX_WASM_VM_MODULE_ISWAT     (1 << 0)
-#define NGX_WASM_VM_MODULE_LOADED    (1 << 1)
-#define NGX_WASM_VM_NO_ACTIONS                                               \
-    { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+#include <ngx_core.h>
+
+
+#define NGX_LOG_DEBUG_WASM           NGX_LOG_DEBUG_ALL
 
 #define NGX_WASM_ARGS_MAX            8
 #define NGX_WASM_RETS_MAX            1
-#define NGX_WASM_ARGS_NONE           { 0, 0, 0, 0, 0, 0, 0, 0 }
-#define NGX_WASM_RETS_NONE           { 0 }
-#define NGX_WASM_ARGS_I32_I32_I32                                            \
-    { NGX_WASM_I32, NGX_WASM_I32, NGX_WASM_I32, 0, 0, 0, 0, 0 }
-#define NGX_WASM_RETS_I32                                                    \
-    { NGX_WASM_I32 }
-#define ngx_wasm_hfunc_null                                                  \
-    { ngx_null_string, NULL, NGX_WASM_ARGS_NONE, NGX_WASM_RETS_NONE }
+
+#define NGX_WRT_DEFAULT              "wasmtime"
 
 
-/* vm */
+/* wasm vm */
 
 
 typedef struct ngx_wasm_vm_s  ngx_wasm_vm_t;
-typedef struct ngx_wasm_instance_s  ngx_wasm_instance_t;
-
-
-typedef enum {
-    NGX_WASM_HTYPE_REQUEST = 1,
-} ngx_wasm_htype_t;
-
-
-typedef struct {
-    ngx_wasm_htype_t   type;
-    ngx_log_t         *log;
-    char              *memory_offset;
-
-    union {
-        ngx_http_request_t  *r;
-    } data;
-} ngx_wasm_hctx_t;
+typedef struct ngx_wasm_vm_module_s  ngx_wasm_vm_module_t;
+typedef struct ngx_wasm_vm_instance_s  ngx_wasm_vm_instance_t;
 
 
 typedef enum {
@@ -80,74 +53,46 @@ typedef struct {
 } ngx_wasm_val_t;
 
 
-/* host functions */
+/* wasm runtime */
 
 
-typedef struct ngx_wasm_hfunc_s  ngx_wasm_hfunc_t;
-typedef struct ngx_wasm_hfuncs_store_s  ngx_wasm_hfuncs_store_t;
+typedef struct ngx_wrt_s  ngx_wrt_t;
+
+typedef void *ngx_wrt_engine_pt;
+typedef void *ngx_wrt_module_pt;
+typedef void *ngx_wrt_instance_pt;
+typedef void *ngx_wrt_functype_pt;
+typedef void *ngx_wrt_error_pt;
+typedef void *ngx_wrt_trap_pt;
+
+
+/* host */
+
+
 typedef struct ngx_wasm_hfuncs_resolver_s  ngx_wasm_hfuncs_resolver_t;
+typedef struct ngx_wasm_hctx_s  ngx_wasm_hctx_t;
 
-
-typedef ngx_int_t (*ngx_wasm_hfunc_pt)(ngx_wasm_hctx_t *hctx,
+typedef ngx_int_t (*ngx_wasm_dfunc_pt)(ngx_wasm_hctx_t *hctx,
     const ngx_wasm_val_t args[], ngx_wasm_val_t rets[]);
 
 
-typedef struct ngx_wasm_hfunc_decl_s {
-    ngx_str_t                name;
-    ngx_wasm_hfunc_pt        ptr;
+typedef struct {
+    ngx_str_t               *name;
+    ngx_wasm_dfunc_pt        ptr;
     ngx_wasm_val_kind        args[NGX_WASM_ARGS_MAX];
     ngx_wasm_val_kind        rets[NGX_WASM_RETS_MAX];
-} ngx_wasm_hfunc_decl_t;
-
-
-/* runtime */
-
-
-typedef void *ngx_wasm_vm_engine_pt;
-typedef void *ngx_wasm_vm_module_pt;
-typedef void *ngx_wasm_vm_instance_pt;
-typedef void *ngx_wasm_vm_error_pt;
-typedef void *ngx_wasm_vm_trap_pt;
-
-
-typedef void *(*ngx_wasm_hfunc_new_pt)(ngx_wasm_hfunc_t *hfunc);
-typedef void (*ngx_wasm_hfunc_free_pt)(void *vm_data);
+    ngx_uint_t               nargs;
+    ngx_uint_t               nrets;
+    ngx_wrt_functype_pt      wrt_functype;
+} ngx_wasm_hfunc_t;
 
 
 typedef struct {
-    ngx_wasm_vm_engine_pt     (*engine_new)(ngx_pool_t *pool,
-                                  ngx_wasm_hfuncs_resolver_t *hf_resolver);
-
-    void                      (*engine_free)(ngx_wasm_vm_engine_pt vm_engine);
-
-    ngx_wasm_vm_module_pt     (*module_new)(ngx_wasm_vm_engine_pt vm_engine,
-                                            ngx_str_t *mod_name,
-                                            ngx_str_t *bytes, ngx_uint_t flags,
-                                            ngx_wasm_vm_error_pt *error);
-
-    void                      (*module_free)(ngx_wasm_vm_module_pt vm_module);
-
-    ngx_wasm_vm_instance_pt   (*instance_new)(ngx_wasm_vm_module_pt vm_module,
-                                              ngx_wasm_hctx_t *hctx,
-                                              ngx_wasm_vm_error_pt *error,
-                                              ngx_wasm_vm_trap_pt *trap);
-
-    ngx_int_t                 (*instance_call)(ngx_wasm_vm_instance_pt
-                                               vm_instance,
-                                               ngx_str_t *func_name,
-                                               ngx_wasm_vm_error_pt *error,
-                                               ngx_wasm_vm_trap_pt *trap);
-
-    void                      (*instance_free)(ngx_wasm_vm_instance_pt
-                                               vm_instance);
-
-    u_char                   *(*log_error_handler)(ngx_wasm_vm_error_pt error,
-                                                   ngx_wasm_vm_trap_pt trap,
-                                                   u_char *buf, size_t len);
-
-    ngx_wasm_hfunc_new_pt     hfunc_new;
-    ngx_wasm_hfunc_free_pt    hfunc_free;
-} ngx_wasm_vm_actions_t;
+    ngx_str_t                name;
+    ngx_wasm_dfunc_pt        ptr;
+    ngx_wasm_val_kind        args[NGX_WASM_ARGS_MAX];
+    ngx_wasm_val_kind        rets[NGX_WASM_RETS_MAX];
+} ngx_wasm_hfunc_decl_t;
 
 
 #endif /* _NGX_WASM_H_INCLUDED_ */

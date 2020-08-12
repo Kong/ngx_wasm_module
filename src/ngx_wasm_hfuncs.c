@@ -54,7 +54,6 @@ ngx_wasm_hfuncs_store_add(ngx_wasm_hfuncs_store_t *store,
     const char *module, const ngx_wasm_hfunc_decl_t decls[])
 {
     size_t                           len;
-    u_char                          *p;
     ngx_rbtree_node_t               *n;
     ngx_wasm_hfuncs_decls_module_t  *mod;
     const ngx_wasm_hfunc_decl_t     *decl, **declp;
@@ -74,13 +73,7 @@ ngx_wasm_hfuncs_store_add(ngx_wasm_hfuncs_store_t *store,
         }
 
         mod->name.len = len;
-        mod->name.data = ngx_pnalloc(store->pool, mod->name.len + 1);
-        if (mod->name.data == NULL) {
-            goto failed;
-        }
-
-        p = ngx_copy(mod->name.data, module, mod->name.len);
-        *p = '\0';
+        mod->name.data = (u_char *) module;
 
         mod->decls = ngx_array_create(store->pool, 2,
                                       sizeof(ngx_wasm_hfunc_decl_t *));
@@ -119,10 +112,6 @@ failed:
                        module);
 
     if (mod) {
-        if (mod->name.data) {
-            ngx_pfree(store->pool, mod->name.data);
-        }
-
         if (mod->decls) {
             ngx_array_destroy(mod->decls);
         }
@@ -156,7 +145,6 @@ ngx_wasm_hfuncs_store_free(ngx_wasm_hfuncs_store_t *store)
                        &mod->name, store);
 
         ngx_array_destroy(mod->decls);
-        ngx_pfree(store->pool, mod->name.data);
         ngx_pfree(store->pool, mod);
     }
 
@@ -164,32 +152,37 @@ ngx_wasm_hfuncs_store_free(ngx_wasm_hfuncs_store_t *store)
 }
 
 
-ngx_int_t
-ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
+ngx_wasm_hfuncs_resolver_t *
+ngx_wasm_hfuncs_resolver_new(ngx_cycle_t *cycle,
+    ngx_wasm_hfuncs_store_t *store, ngx_wrt_t *runtime)
 {
     size_t                            i;
-    ngx_int_t                         rc = NGX_ERROR;
+    u_char                           *p;
     ngx_hash_init_t                   hash_mods, hash_funcs;
     ngx_rbtree_node_t                *node, *root, *sentinel;
     ngx_wasm_hfuncs_decls_module_t   *mod;
     ngx_wasm_hfuncs_module_t         *rmod;
     ngx_wasm_hfunc_decl_t           **decls, *decl;
     ngx_wasm_hfunc_t                 *hfunc;
+    ngx_wasm_hfuncs_resolver_t       *resolver;
 
-    ngx_wasm_assert(resolver->pool != NULL);
-    ngx_wasm_assert(resolver->log != NULL);
-    ngx_wasm_assert(resolver->store != NULL);
-    ngx_wasm_assert(resolver->hf_new != NULL);
-    ngx_wasm_assert(resolver->hf_free != NULL);
-    ngx_wasm_assert(resolver->temp_pool == NULL);
-
-    resolver->modules = ngx_pcalloc(resolver->pool, sizeof(ngx_hash_t));
-    if (resolver->modules == NULL) {
+    resolver = ngx_pcalloc(cycle->pool, sizeof(ngx_wasm_hfuncs_resolver_t));
+    if (resolver == NULL) {
         goto failed;
     }
 
-    resolver->temp_pool = ngx_create_pool(NGX_DEFAULT_POOL_SIZE, resolver->log);
+    resolver->pool = cycle->pool;
+    resolver->log = &cycle->new_log;
+    resolver->functype_new = runtime->hfunctype_new;
+    resolver->functype_free = runtime->hfunctype_free;
+
+    resolver->temp_pool = ngx_create_pool(NGX_DEFAULT_POOL_SIZE, cycle->log);
     if (resolver->temp_pool == NULL) {
+        goto failed;
+    }
+
+    resolver->modules = ngx_pcalloc(resolver->pool, sizeof(ngx_hash_t));
+    if (resolver->modules == NULL) {
         goto failed;
     }
 
@@ -212,8 +205,8 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
 
     ngx_hash_keys_array_init(resolver->modules_names, NGX_HASH_SMALL);
 
-    sentinel = resolver->store->rbtree.sentinel;
-    root = resolver->store->rbtree.root;
+    sentinel = store->rbtree.sentinel;
+    root = store->rbtree.root;
 
     if (root == sentinel) {
         goto empty;
@@ -221,7 +214,7 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
 
     for (node = ngx_rbtree_min(root, sentinel);
          node;
-         node = ngx_rbtree_next(&resolver->store->rbtree, node))
+         node = ngx_rbtree_next(&store->rbtree, node))
     {
         mod = (ngx_wasm_hfuncs_decls_module_t *) node;
 
@@ -230,7 +223,14 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
             goto failed;
         }
 
-        rmod->name = &mod->name;
+        rmod->name.len = mod->name.len;
+        rmod->name.data = ngx_pnalloc(resolver->pool, mod->name.len + 1);
+        if (rmod->name.data == NULL) {
+            goto failed;
+        }
+
+        p = ngx_copy(rmod->name.data, mod->name.data, rmod->name.len);
+        *p = '\0';
 
         rmod->hfuncs = ngx_pcalloc(resolver->pool, sizeof(ngx_hash_t));
         if (rmod->hfuncs == NULL) {
@@ -287,8 +287,8 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
             for (hfunc->nargs = 0; hfunc->args[hfunc->nargs]; hfunc->nargs++);
             for (hfunc->nrets = 0; hfunc->rets[hfunc->nrets]; hfunc->nrets++);
 
-            hfunc->vm_data = resolver->hf_new(hfunc);
-            if (hfunc->vm_data == NULL) {
+            hfunc->wrt_functype = resolver->functype_new(hfunc);
+            if (hfunc->wrt_functype == NULL) {
                 ngx_wasm_log_error(NGX_LOG_EMERG, resolver->log, 0,
                                    "failed to initialize \"%V.%V\" host "
                                    "function: invalid init return value",
@@ -310,7 +310,7 @@ ngx_wasm_hfuncs_resolver_init(ngx_wasm_hfuncs_resolver_t *resolver)
             goto failed;
         }
 
-        ngx_hash_add_key(resolver->modules_names, rmod->name, rmod,
+        ngx_hash_add_key(resolver->modules_names, &rmod->name, rmod,
                          NGX_HASH_READONLY_KEY);
     }
 
@@ -323,36 +323,39 @@ empty:
         goto failed;
     }
 
-    rc = NGX_OK;
+    return resolver;
 
 failed:
 
-    if (rc != NGX_OK) {
-        ngx_wasm_hfuncs_resolver_destroy(resolver);
+    ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
+                       "failed to create host functions resolver");
+
+    if (resolver) {
+        ngx_wasm_hfuncs_resolver_free(resolver);
     }
 
-    return rc;
+    return NULL;
 }
 
 
 ngx_wasm_hfunc_t *
 ngx_wasm_hfuncs_resolver_lookup(ngx_wasm_hfuncs_resolver_t *resolver,
-    char *module, size_t mlen, char *func, size_t flen)
+    u_char *mod_name, size_t mod_len, u_char *func_name, size_t func_len)
 {
     ngx_uint_t                 mkey, fkey;
     ngx_wasm_hfuncs_module_t  *rmod;
 
-    mkey = ngx_hash_key((u_char *) module, mlen);
+    mkey = ngx_hash_key(mod_name, mod_len);
 
-    rmod = ngx_hash_find(resolver->modules, mkey, (u_char *) module, mlen);
+    rmod = ngx_hash_find(resolver->modules, mkey, mod_name, mod_len);
     if (rmod == NULL) {
         return NULL;
     }
 
-    fkey = ngx_hash_key((u_char *) func, flen);
+    fkey = ngx_hash_key(func_name, func_len);
 
     return (ngx_wasm_hfunc_t *)
-            ngx_hash_find(rmod->hfuncs, fkey, (u_char *) func, flen);
+            ngx_hash_find(rmod->hfuncs, fkey, func_name, func_len);
 }
 
 
@@ -372,7 +375,7 @@ ngx_wasm_hash_keys_array_cleanup(ngx_hash_keys_arrays_t *ha)
 
 
 void
-ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver)
+ngx_wasm_hfuncs_resolver_free(ngx_wasm_hfuncs_resolver_t *resolver)
 {
     size_t                     i, j;
     ngx_hash_key_t            *mkeys, *fkeys;
@@ -380,6 +383,9 @@ ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver)
     ngx_wasm_hfunc_t          *hfunc;
 
     ngx_wasm_assert(resolver != NULL);
+
+    ngx_log_debug0(NGX_LOG_DEBUG_WASM, resolver->log, 0,
+                   "[wasm] free hfuncs resolver");
 
     if (resolver->modules) {
         ngx_pfree(resolver->pool, resolver->modules);
@@ -400,16 +406,16 @@ ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver)
 
                 ngx_log_debug2(NGX_LOG_DEBUG_WASM, resolver->log, 0,
                                "[wasm] free \"%V.%V\" host function",
-                               rmod->name, hfunc->name);
+                               &rmod->name, hfunc->name);
 
-                resolver->hf_free(hfunc->vm_data);
-
+                resolver->functype_free(hfunc->wrt_functype);
                 ngx_pfree(resolver->pool, hfunc);
             }
 
             ngx_wasm_hash_keys_array_cleanup(rmod->hfuncs_names);
 
             ngx_pfree(resolver->temp_pool, rmod->hfuncs_names);
+            ngx_pfree(resolver->pool, rmod->name.data);
             ngx_pfree(resolver->pool, rmod->hfuncs);
             ngx_pfree(resolver->pool, rmod);
         }
@@ -422,4 +428,6 @@ ngx_wasm_hfuncs_resolver_destroy(ngx_wasm_hfuncs_resolver_t *resolver)
     if (resolver->temp_pool) {
         ngx_destroy_pool(resolver->temp_pool);
     }
+
+    ngx_pfree(resolver->pool, resolver);
 }

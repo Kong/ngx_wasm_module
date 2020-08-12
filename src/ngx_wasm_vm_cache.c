@@ -13,7 +13,7 @@
 
 typedef struct {
     ngx_wasm_rbtree_named_node_t   rbnode;
-    ngx_wasm_instance_t           *instance;
+    ngx_wasm_vm_instance_t        *instance;
 } ngx_wasm_vm_cache_node_t;
 
 
@@ -25,7 +25,7 @@ ngx_wasm_vm_cache_init(ngx_wasm_vm_cache_t *cache)
 }
 
 
-ngx_wasm_instance_t *
+ngx_wasm_vm_instance_t *
 ngx_wasm_vm_cache_get_instance(ngx_wasm_vm_cache_t *cache, ngx_str_t *mod_name)
 {
     ngx_rbtree_node_t         *n;

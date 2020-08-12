@@ -38,7 +38,7 @@ typedef struct {
 
 typedef struct {
     u_short               phases[NGX_HTTP_LOG_PHASE + 1];
-    ngx_wasm_vm_t        *default_vm;
+    ngx_wasm_vm_t        *vm;
 } ngx_http_wasm_main_conf_t;
 
 
@@ -125,7 +125,7 @@ static ngx_http_handler_pt  phase_handlers[NGX_HTTP_LOG_PHASE + 1] = {
 };
 
 
-/* Configuration & init */
+/* configuration & init */
 
 
 static void *
@@ -138,8 +138,8 @@ ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    mcf->default_vm = ngx_wasm_core_get_default_vm(cf->cycle);
-    if (mcf->default_vm == NULL) {
+    mcf->vm = ngx_wasm_core_get_vm(cf->cycle);
+    if (mcf->vm == NULL) {
         return NULL;
     }
 
@@ -225,7 +225,7 @@ ngx_http_wasm_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    if (ngx_wasm_vm_has_module(mcf->default_vm, call->mod_name.data) != NGX_OK) {
+    if (ngx_wasm_vm_get_module(mcf->vm, &call->mod_name) == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "[wasm] no \"%V\" module defined", &call->mod_name);
         return NGX_CONF_ERROR;
@@ -351,7 +351,7 @@ ngx_http_wasm_ctx_new(ngx_http_request_t *r)
 
     rctx->request = r;
     rctx->vmcache.pool = r->pool;
-    rctx->vmcache.vm = mcf->default_vm;
+    rctx->vmcache.vm = mcf->vm;
 
     ngx_wasm_vm_cache_init(&rctx->vmcache);
 
@@ -378,7 +378,7 @@ ngx_http_wasm_exec_phase(ngx_http_request_t *r, ngx_http_phases phase)
     ngx_http_wasm_loc_conf_t      *lcf;
     ngx_http_wasm_req_ctx_t       *rctx;
     ngx_http_wasm_call_t          *call;
-    ngx_wasm_instance_t           *instance;
+    ngx_wasm_vm_instance_t        *instance;
 
     lcf = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
 
@@ -400,7 +400,8 @@ ngx_http_wasm_exec_phase(ngx_http_request_t *r, ngx_http_phases phase)
 
         ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "wasm: calling \"%V.%V\" in \"%V\" phase",
-                       &call->mod_name, &call->func_name, &phase_engine->phase_name);
+                       &call->mod_name, &call->func_name,
+                       &phase_engine->phase_name);
 
         instance = ngx_wasm_vm_cache_get_instance(&rctx->vmcache,
                                                   &call->mod_name);

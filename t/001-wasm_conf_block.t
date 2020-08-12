@@ -75,7 +75,7 @@ qr/\[notice\] .*? using the "wasmtime" wasm runtime/
 
 
 
-=== TEST 8: wasm{} - 'module' directive loads module in default VM
+=== TEST 8: wasm{} - 'module' directive loads module in core VM
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -84,7 +84,7 @@ qr/\[notice\] .*? using the "wasmtime" wasm runtime/
 >>> hello.wat
 (module)
 --- error_log eval
-qr/\[notice\] .*? \[wasm\] loading "hello" module from ".*?hello\.wat" <vm: default, runtime: .*?>/
+qr/\[notice\] .*? \[wasm\] loading "hello" module from ".*?hello\.wat" <vm: core, runtime: .*?>/
 
 
 

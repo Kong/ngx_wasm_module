@@ -40,23 +40,20 @@ ngx_wasm_hfunc_decl_t  ngx_wasm_hfuncs[] = {
 };
 
 
-static ngx_int_t
-ngx_wasm_hfuncs_init(ngx_cycle_t *cycle)
+static char *
+ngx_wasm_hfuncs_init_conf(ngx_cycle_t *cycle, void *conf)
 {
     ngx_wasm_core_hfuncs_add(cycle, ngx_wasm_hfuncs);
 
-    return NGX_OK;
+    return NGX_CONF_OK;
 }
 
 
 static ngx_wasm_module_t  ngx_wasm_hfuncs_module_ctx = {
-    ngx_string("wasm_hfuncs"),
+    NULL,                                  /* runtime */
     NULL,                                  /* create configuration */
-    NULL,                                  /* init configuration */
-    ngx_wasm_hfuncs_init,                  /* init module */
-    NULL,                                  /* exit process */
-    NULL,                                  /* exit master */
-    NGX_WASM_VM_NO_ACTIONS                 /* vm actions */
+    ngx_wasm_hfuncs_init_conf,             /* init configuration */
+    NULL,                                  /* init module */
 };
 
 

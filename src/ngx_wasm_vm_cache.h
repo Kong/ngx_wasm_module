@@ -19,7 +19,7 @@ typedef struct ngx_wasm_vm_cache_s {
 
 void ngx_wasm_vm_cache_init(ngx_wasm_vm_cache_t *cache);
 
-ngx_wasm_instance_t *ngx_wasm_vm_cache_get_instance(ngx_wasm_vm_cache_t *cache,
+ngx_wasm_vm_instance_t *ngx_wasm_vm_cache_get_instance(ngx_wasm_vm_cache_t *cache,
     ngx_str_t *mod_name);
 
 void ngx_wasm_vm_cache_cleanup(ngx_wasm_vm_cache_t *cache);

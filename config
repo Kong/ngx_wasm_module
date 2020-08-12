@@ -86,6 +86,17 @@ ngx_module_link=ADDON
 ###############################################################################
 
 ngx_module_type=WASM
+ngx_module_name=ngx_wasm_core_module
+ngx_module_incs=
+ngx_module_libs=
+ngx_module_deps=
+ngx_module_srcs=
+ngx_module_link=ADDON
+
+. auto/module
+###############################################################################
+
+ngx_module_type=WASM
 ngx_module_name=ngx_wasm_hfuncs_module
 ngx_module_incs=
 ngx_module_libs=
@@ -95,26 +106,15 @@ ngx_module_link=ADDON
 
 . auto/module
 
+
 ###############################################################################
 
-ngx_module_type=WASM
+ngx_module_type=HTTP
 ngx_module_name=ngx_http_wasm_hfuncs_module
 ngx_module_incs=
 ngx_module_libs=
 ngx_module_deps=
 ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_hfuncs_module.c"
-ngx_module_link=ADDON
-
-. auto/module
-
-###############################################################################
-
-ngx_module_type=WASM
-ngx_module_name=ngx_wasm_core_module
-ngx_module_incs=
-ngx_module_libs=
-ngx_module_deps=
-ngx_module_srcs=
 ngx_module_link=ADDON
 
 . auto/module

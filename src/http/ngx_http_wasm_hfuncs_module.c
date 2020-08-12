@@ -8,8 +8,7 @@
 #include "ddebug.h"
 
 #include <ngx_core.h>
-//#include <ngx_http.h>
-#include <ngx_wasm_module.h>
+#include <ngx_http.h>
 #include <ngx_wasm_hfuncs.h>
 
 
@@ -44,7 +43,7 @@ ngx_http_wasm_hfunc_resp_get_status(ngx_wasm_hctx_t *hctx,
 }
 
 
-ngx_wasm_hfunc_decl_t  ngx_http_wasm_hfuncs[] = {
+static ngx_wasm_hfunc_decl_t  ngx_http_wasm_hfuncs[] = {
 
     { ngx_string("ngx_http_resp_get_status"),
       &ngx_http_wasm_hfunc_resp_get_status,
@@ -56,22 +55,23 @@ ngx_wasm_hfunc_decl_t  ngx_http_wasm_hfuncs[] = {
 
 
 static ngx_int_t
-ngx_http_wasm_hfuncs_init(ngx_cycle_t *cycle)
+ngx_http_wasm_hfuncs_init(ngx_conf_t *cf)
 {
-    ngx_wasm_core_hfuncs_add(cycle, ngx_http_wasm_hfuncs);
+    ngx_wasm_core_hfuncs_add(cf->cycle, ngx_http_wasm_hfuncs);
 
     return NGX_OK;
 }
 
 
-static ngx_wasm_module_t  ngx_http_wasm_hfuncs_module_ctx = {
-    ngx_string("http_wasm_hfuncs"),
-    NULL,                                  /* create configuration */
-    NULL,                                  /* init configuration */
-    ngx_http_wasm_hfuncs_init,             /* init module */
-    NULL,                                  /* exit process */
-    NULL,                                  /* exit master */
-    NGX_WASM_VM_NO_ACTIONS                 /* vm actions */
+static ngx_http_module_t  ngx_http_wasm_hfuncs_module_ctx = {
+    ngx_http_wasm_hfuncs_init,           /* preconfiguration */
+    NULL,                                /* postconfiguration */
+    NULL,                                /* create main configuration */
+    NULL,                                /* init main configuration */
+    NULL,                                /* create server configuration */
+    NULL,                                /* merge server configuration */
+    NULL,                                /* create location configuration */
+    NULL                                 /* merge location configuration */
 };
 
 
@@ -79,7 +79,7 @@ ngx_module_t  ngx_http_wasm_hfuncs_module = {
     NGX_MODULE_V1,
     &ngx_http_wasm_hfuncs_module_ctx,      /* module context */
     NULL,                                  /* module directives */
-    NGX_WASM_MODULE,                       /* module type */
+    NGX_HTTP_MODULE,                       /* module type */
     NULL,                                  /* init master */
     NULL,                                  /* init module */
     NULL,                                  /* init process */
