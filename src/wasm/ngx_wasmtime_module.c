@@ -264,6 +264,8 @@ ngx_wasmtime_engine_new(ngx_pool_t *pool,
 
     //wasmtime_config_max_wasm_stack_set(config, (size_t) 125000 * 5);
     //wasmtime_config_static_memory_maximum_size_set(engine->config, 0);
+    //wasmtime_config_profiler_set(engine->config, WASMTIME_PROFILING_STRATEGY_JITDUMP);
+    //wasmtime_config_debug_info_set(engine->config, 1);
 
     engine->engine = wasm_engine_new_with_config(engine->config);
 #else
