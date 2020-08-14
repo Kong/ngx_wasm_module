@@ -292,7 +292,7 @@ ngx_http_wasm_init(ngx_conf_t *cf)
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
     mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
 
-    for (i = 0; i <= NGX_HTTP_LOG_PHASE + 1; i++) {
+    for (i = 0; i <= NGX_HTTP_LOG_PHASE; i++) {
         if (mcf->phases[i]) {
             if (phase_handlers[i] == NULL) {
                 ngx_log_error(NGX_LOG_ALERT, cf->log, 0,
