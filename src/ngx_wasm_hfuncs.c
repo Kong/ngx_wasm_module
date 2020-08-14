@@ -284,8 +284,13 @@ ngx_wasm_hfuncs_resolver_new(ngx_cycle_t *cycle,
             ngx_memcpy(&hfunc->rets, &decl->rets,
                        sizeof(ngx_wasm_val_kind) * NGX_WASM_RETS_MAX);
 
-            for (hfunc->nargs = 0; hfunc->args[hfunc->nargs]; hfunc->nargs++);
-            for (hfunc->nrets = 0; hfunc->rets[hfunc->nrets]; hfunc->nrets++);
+            for (hfunc->nargs = 0;
+                 hfunc->args[hfunc->nargs] && hfunc->nargs < NGX_WASM_ARGS_MAX;
+                 hfunc->nargs++);
+
+            for (hfunc->nrets = 0;
+                 hfunc->rets[hfunc->nrets] && hfunc->nrets < NGX_WASM_RETS_MAX;
+                 hfunc->nrets++);
 
             hfunc->wrt_functype = resolver->functype_new(hfunc);
             if (hfunc->wrt_functype == NULL) {
