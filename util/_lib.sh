@@ -19,7 +19,7 @@ build_nginx() {
 
     if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
         build_name+=" nopool"
-        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_NO_POOL -DNGX_DEBUG_MALLOC"
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_NOPOOL -DNGX_DEBUG_MALLOC"
     fi
 
     if [[ -n "$NGX_BUILD_FSANITIZE" ]]; then

@@ -262,7 +262,7 @@ ngx_module_t  ngx_wasm_core_module = {
 };
 
 
-#ifdef NGX_WASM_NO_POOL
+#ifdef NGX_WASM_NOPOOL
 static void
 ngx_wasm_core_cleanup_pool(void *data)
 {
@@ -278,7 +278,7 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
 {
     static const ngx_str_t core_vm_name = ngx_string("core");
     ngx_wasm_core_conf_t  *wcf;
-#ifdef NGX_WASM_NO_POOL
+#ifdef NGX_WASM_NOPOOL
     ngx_pool_cleanup_t    *cln;
 #endif
 
@@ -300,7 +300,7 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
         return NULL;
     }
 
-#ifdef NGX_WASM_NO_POOL
+#ifdef NGX_WASM_NOPOOL
     /* ensure hfuncs and vm are freed in master HUP reloads for Valgrind */
     cln = ngx_pool_cleanup_add(cycle->pool, 0);
     if (cln == NULL) {

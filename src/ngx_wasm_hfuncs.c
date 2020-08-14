@@ -362,7 +362,7 @@ ngx_wasm_hfuncs_resolver_lookup(ngx_wasm_hfuncs_resolver_t *resolver,
 static ngx_inline void
 ngx_wasm_hash_keys_array_cleanup(ngx_hash_keys_arrays_t *ha)
 {
-#ifdef NGX_WASM_NO_POOL
+#ifdef NGX_WASM_NOPOOL
     ngx_array_destroy(&ha->keys);
     ngx_array_destroy(&ha->dns_wc_head);
     ngx_array_destroy(&ha->dns_wc_tail);
