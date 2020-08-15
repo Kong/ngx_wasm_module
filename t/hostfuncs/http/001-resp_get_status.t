@@ -24,7 +24,7 @@ __DATA__
 === TEST 1: resp_get_status: get 200 in 'log' phase
 --- config
     location /t {
-        wasm_call log http_tests resp_get_status;
+        wasm_call log http_tests log_resp_status;
         return 200;
     }
 --- error_log eval

@@ -6,7 +6,7 @@ pub fn log_notice_hello() {
 }
 
 #[no_mangle]
-pub fn resp_get_status() {
+pub fn log_resp_status() {
     ngx_log!(Notice, "resp status: {}", ngx_resp_get_status());
 }
 
