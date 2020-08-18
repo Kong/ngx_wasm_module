@@ -10,47 +10,66 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 #include <ngx_http_wasm_util.h>
-
 #include <ngx_wasm_vm.h>
 #include <ngx_wasm_vm_cache.h>
+#include <ngx_wasm_module.h>
 #include <ngx_wasm_util.h>
 
-#include <ngx_wasm_module.h>
+
+typedef enum {
+    NGX_HTTP_WASM_ISOLATION_SINGLE = 0,
+    NGX_HTTP_WASM_ISOLATION_SRV,
+    NGX_HTTP_WASM_ISOLATION_LOC,
+    NGX_HTTP_WASM_ISOLATION_REQ,
+    NGX_HTTP_WASM_ISOLATION_FULL
+} ngx_http_wasm_isolation_mode_t;
 
 
 typedef struct {
-    ngx_str_t            mod_name;
-    ngx_str_t            func_name;
+    ngx_str_t                        mod_name;
+    ngx_str_t                        func_name;
 } ngx_http_wasm_call_t;
 
 
 typedef struct {
-    ngx_http_phases      phase;
-    ngx_str_t            phase_name;
-    ngx_array_t         *calls;
+    ngx_array_t                     *calls;
+    ngx_str_t                        phase_name;
+    ngx_http_phases                  phase;
 } ngx_http_wasm_phase_engine_t;
 
 
 typedef struct {
-    ngx_http_wasm_phase_engine_t  *phase_engines[NGX_HTTP_LOG_PHASE + 1];
+    ngx_pool_t                      *pool;
+    ngx_http_request_t              *r;
+    ngx_wasm_vm_cache_t             *vmcache;
+} ngx_http_wasm_req_ctx_t;
+
+
+typedef struct {
+    ngx_uint_t                       isolation_mode;
+    ngx_wasm_vm_cache_t              vmcache;
+    ngx_http_wasm_phase_engine_t    *phase_engines[NGX_HTTP_LOG_PHASE + 1];
 } ngx_http_wasm_loc_conf_t;
 
 
 typedef struct {
-    u_short               phases[NGX_HTTP_LOG_PHASE + 1];
-    ngx_wasm_vm_t        *vm;
-} ngx_http_wasm_main_conf_t;
+    ngx_wasm_vm_cache_t              vmcache;
+} ngx_http_wasm_srv_conf_t;
 
 
 typedef struct {
-    ngx_http_request_t   *request;
-    ngx_wasm_vm_cache_t   vmcache;
-} ngx_http_wasm_req_ctx_t;
+    u_short                          phases[NGX_HTTP_LOG_PHASE + 1];
+    ngx_wasm_vm_cache_t              vmcache;
+    ngx_wasm_vm_t                   *vm;
+} ngx_http_wasm_main_conf_t;
 
 
 static void *ngx_http_wasm_create_main_conf(ngx_conf_t *cf);
+static void *ngx_http_wasm_create_srv_conf(ngx_conf_t *cf);
 static void *ngx_http_wasm_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_wasm_wasm_call_directive(ngx_conf_t *cf,
+static char *ngx_http_wasm_isolation_directive(ngx_conf_t *cf,
+    ngx_command_t *cmd, void *conf);
+static char *ngx_http_wasm_call_directive(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
 static char *ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent,
     void *child);
@@ -63,14 +82,57 @@ static ngx_int_t ngx_http_wasm_exec_phase(ngx_http_request_t *r,
     ngx_http_phases phase);
 
 
+static const char *
+ngx_http_wasm_isolation_name(ngx_http_wasm_isolation_mode_t mode)
+{
+    switch (mode) {
+
+    case NGX_HTTP_WASM_ISOLATION_SINGLE: return "single";
+    case NGX_HTTP_WASM_ISOLATION_SRV: return "server";
+    case NGX_HTTP_WASM_ISOLATION_LOC: return "location";
+    case NGX_HTTP_WASM_ISOLATION_REQ: return "request";
+    case NGX_HTTP_WASM_ISOLATION_FULL: return "full";
+    default: return NULL;
+
+    }
+}
+
+
+static ngx_uint_t
+ngx_http_wasm_isolation_mode(ngx_str_t *name)
+{
+#   define ngx_http_wasm_ismode(s, mode)                                     \
+        if (ngx_http_wasm_isolation_name(mode) &&                            \
+            ngx_strncmp(s->data, ngx_http_wasm_isolation_name(mode),         \
+                        s->len) == 0) return mode
+
+    ngx_http_wasm_ismode(name, NGX_HTTP_WASM_ISOLATION_SINGLE);
+    ngx_http_wasm_ismode(name, NGX_HTTP_WASM_ISOLATION_SRV);
+    ngx_http_wasm_ismode(name, NGX_HTTP_WASM_ISOLATION_LOC);
+    ngx_http_wasm_ismode(name, NGX_HTTP_WASM_ISOLATION_REQ);
+    ngx_http_wasm_ismode(name, NGX_HTTP_WASM_ISOLATION_FULL);
+
+    return NGX_CONF_UNSET_UINT;
+
+#   undef ngx_http_wasm_ismode
+}
+
+
 /* ngx_http_wasm_module */
 
 
 static ngx_command_t  ngx_http_wasm_module_cmds[] = {
 
+    { ngx_string("wasm_isolation"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_wasm_isolation_directive,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
     { ngx_string("wasm_call"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE3,
-      ngx_http_wasm_wasm_call_directive,
+      ngx_http_wasm_call_directive,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
@@ -86,7 +148,7 @@ static ngx_http_module_t  ngx_http_wasm_module_ctx = {
     ngx_http_wasm_create_main_conf,      /* create main configuration */
     NULL,                                /* init main configuration */
 
-    NULL,                                /* create server configuration */
+    ngx_http_wasm_create_srv_conf,       /* create server configuration */
     NULL,                                /* merge server configuration */
 
     ngx_http_wasm_create_loc_conf,       /* create location configuration */
@@ -131,7 +193,7 @@ static ngx_http_handler_pt  phase_handlers[NGX_HTTP_LOG_PHASE + 1] = {
 static void *
 ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
 {
-    ngx_http_wasm_main_conf_t       *mcf;
+    ngx_http_wasm_main_conf_t  *mcf;
 
     mcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_wasm_main_conf_t));
     if (mcf == NULL) {
@@ -143,15 +205,42 @@ ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
+    mcf->vmcache.pool = cf->pool;
+    mcf->vmcache.vm = mcf->vm;
+
+    ngx_wasm_vm_cache_init(&mcf->vmcache);
+
     return mcf;
+}
+
+
+static void *
+ngx_http_wasm_create_srv_conf(ngx_conf_t *cf)
+{
+    ngx_http_wasm_srv_conf_t  *srv;
+
+    srv = ngx_pcalloc(cf->pool, sizeof(ngx_http_wasm_srv_conf_t));
+    if (srv == NULL) {
+        return NULL;
+    }
+
+    srv->vmcache.pool = cf->pool;
+    srv->vmcache.vm = ngx_wasm_core_get_vm(cf->cycle);
+    if (srv->vmcache.vm == NULL) {
+        return NULL;
+    }
+
+    ngx_wasm_vm_cache_init(&srv->vmcache);
+
+    return srv;
 }
 
 
 static void *
 ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
 {
-    ngx_http_wasm_loc_conf_t        *lcf;
-    size_t                           i;
+    ngx_http_wasm_loc_conf_t  *lcf;
+    size_t                     i;
 
     lcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_wasm_loc_conf_t));
     if (lcf == NULL) {
@@ -162,12 +251,41 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
         lcf->phase_engines[i] = NGX_CONF_UNSET_PTR;
     }
 
+    lcf->isolation_mode = NGX_CONF_UNSET_UINT;
+    lcf->vmcache.pool = cf->pool;
+    lcf->vmcache.vm = ngx_wasm_core_get_vm(cf->cycle);
+    if (lcf->vmcache.vm == NULL) {
+        return NULL;
+    }
+
+    ngx_wasm_vm_cache_init(&lcf->vmcache);
+
     return lcf;
 }
 
 
 static char *
-ngx_http_wasm_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+ngx_http_wasm_isolation_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
+{
+    ngx_str_t                 *value;
+    ngx_http_wasm_loc_conf_t  *lcf = conf;
+
+    value = cf->args->elts;
+
+    lcf->isolation_mode = ngx_http_wasm_isolation_mode(&value[1]);
+    if (lcf->isolation_mode == NGX_CONF_UNSET_UINT) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "invalid isolation mode \"%V\"", &value[1]);
+        return NGX_CONF_ERROR;
+    }
+
+    return NGX_CONF_OK;
+}
+
+
+static char *
+ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf)
 {
     ngx_str_t                      *value, phase_name;
@@ -234,8 +352,8 @@ ngx_http_wasm_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     phase_engine = lcf->phase_engines[phase];
 
     if (phase_engine == NGX_CONF_UNSET_PTR) {
-        phase_engine = ngx_palloc(cf->pool,
-                                  sizeof(ngx_http_wasm_phase_engine_t));
+        phase_engine = ngx_pcalloc(cf->pool,
+                                   sizeof(ngx_http_wasm_phase_engine_t));
         if (phase_engine == NULL) {
             return NGX_CONF_ERROR;
         }
@@ -268,14 +386,17 @@ ngx_http_wasm_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 static char *
 ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-    size_t                         i;
-    ngx_http_wasm_loc_conf_t      *prev = parent;
-    ngx_http_wasm_loc_conf_t      *conf = child;
+    size_t                     i;
+    ngx_http_wasm_loc_conf_t  *prev = parent;
+    ngx_http_wasm_loc_conf_t  *conf = child;
 
     for (i = 0; i < NGX_HTTP_LOG_PHASE + 1; i++) {
         ngx_conf_merge_ptr_value(conf->phase_engines[i],
                                  prev->phase_engines[i], NULL);
     }
+
+    ngx_conf_merge_uint_value(conf->isolation_mode, prev->isolation_mode,
+                              NGX_HTTP_WASM_ISOLATION_SINGLE);
 
     return NGX_CONF_OK;
 }
@@ -335,30 +456,91 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
 }
 
 
+static ngx_inline void
+ngx_http_wasm_ctx_free(ngx_http_wasm_req_ctx_t *rctx)
+{
+    ngx_http_wasm_loc_conf_t  *lcf;
+
+    lcf = ngx_http_get_module_loc_conf(rctx->r, ngx_http_wasm_module);
+
+    if (lcf->isolation_mode == NGX_HTTP_WASM_ISOLATION_REQ) {
+        ngx_wasm_vm_cache_cleanup(rctx->vmcache);
+        ngx_pfree(rctx->pool, rctx->vmcache);
+    }
+}
+
+
 static ngx_http_wasm_req_ctx_t *
 ngx_http_wasm_ctx_new(ngx_http_request_t *r)
 {
     ngx_pool_cleanup_t         *cln;
     ngx_http_wasm_main_conf_t  *mcf;
-    ngx_http_wasm_req_ctx_t    *rctx;
+    ngx_http_wasm_srv_conf_t   *srv;
+    ngx_http_wasm_loc_conf_t   *lcf;
+    ngx_http_wasm_req_ctx_t    *rctx = NULL;
 
-    mcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
+    lcf = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
 
     rctx = ngx_palloc(r->pool, sizeof(ngx_http_wasm_req_ctx_t));
     if (rctx == NULL) {
         return NULL;
     }
 
-    rctx->request = r;
-    rctx->vmcache.pool = r->pool;
-    rctx->vmcache.vm = mcf->vm;
+    rctx->r = r;
+    rctx->pool = r->pool;
+    rctx->vmcache = NULL;
 
-    ngx_wasm_vm_cache_init(&rctx->vmcache);
+    switch (lcf->isolation_mode) {
+
+    case NGX_HTTP_WASM_ISOLATION_SINGLE:
+        mcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
+
+        rctx->vmcache = &mcf->vmcache;
+        break;
+
+    case NGX_HTTP_WASM_ISOLATION_SRV:
+        srv = ngx_http_get_module_srv_conf(r, ngx_http_wasm_module);
+
+        rctx->vmcache = &srv->vmcache;
+        break;
+
+    case NGX_HTTP_WASM_ISOLATION_LOC:
+        rctx->vmcache = &lcf->vmcache;
+        break;
+
+    case NGX_HTTP_WASM_ISOLATION_REQ:
+        mcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
+
+        rctx->vmcache = ngx_wasm_vm_cache_new(r->pool, mcf->vm);
+        if (rctx->vmcache == NULL) {
+            ngx_wasm_log_error(NGX_LOG_EMERG, r->connection->log, 0,
+                           "failed to create vm cache (isolation: \"%s\")",
+                           ngx_http_wasm_isolation_name(lcf->isolation_mode));
+            goto failed;
+        }
+
+        break;
+
+    case NGX_HTTP_WASM_ISOLATION_FULL:
+        break;
+
+    default:
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                      "NYI - http wasm: unsupported isolation mode \"%u\"",
+                      lcf->isolation_mode);
+
+        ngx_wasm_assert(0);
+        break;
+
+    }
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "[wasm] using \"%s\" isolation mode for request",
+                   ngx_http_wasm_isolation_name(lcf->isolation_mode));
 
     cln = ngx_pool_cleanup_add(r->pool, 0);
     if (cln == NULL) {
-        ngx_pfree(r->pool, rctx);
-        return NULL;
+        goto failed;
     }
 
     cln->handler = ngx_http_wasm_pool_cleanup;
@@ -367,6 +549,14 @@ ngx_http_wasm_ctx_new(ngx_http_request_t *r)
     ngx_http_set_ctx(r, rctx, ngx_http_wasm_module);
 
     return rctx;
+
+failed:
+
+    if (rctx) {
+        ngx_http_wasm_ctx_free(rctx);
+    }
+
+    return NULL;
 }
 
 
@@ -376,10 +566,11 @@ ngx_http_wasm_exec_phase(ngx_http_request_t *r, ngx_http_phases phase)
     size_t                         i;
     ngx_int_t                      rc;
     ngx_http_wasm_phase_engine_t  *phase_engine;
+    ngx_http_wasm_main_conf_t     *mcf;
     ngx_http_wasm_loc_conf_t      *lcf;
     ngx_http_wasm_req_ctx_t       *rctx;
     ngx_http_wasm_call_t          *call;
-    ngx_wasm_vm_instance_t        *instance;
+    ngx_wasm_vm_instance_t        *inst;
 
     lcf = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
 
@@ -400,19 +591,27 @@ ngx_http_wasm_exec_phase(ngx_http_request_t *r, ngx_http_phases phase)
         call = ((ngx_http_wasm_call_t **) phase_engine->calls->elts)[i];
 
         ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm: calling \"%V.%V\" in \"%V\" phase",
+                       "[wasm] calling \"%V.%V\" in \"%V\" phase",
                        &call->mod_name, &call->func_name,
                        &phase_engine->phase_name);
 
-        instance = ngx_wasm_vm_cache_get_instance(&rctx->vmcache,
+        if (rctx->vmcache) {
+            inst = ngx_wasm_vm_cache_get_instance(rctx->vmcache,
                                                   &call->mod_name);
-        if (instance == NULL) {
+
+        } else {
+            mcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
+
+            inst = ngx_wasm_vm_instance_new(mcf->vm, &call->mod_name);
+        }
+
+        if (inst == NULL) {
             return NGX_ERROR;
         }
 
-        ngx_wasm_vm_instance_bind_request(instance, r);
+        ngx_wasm_vm_instance_bind_request(inst, r);
 
-        rc = ngx_wasm_vm_instance_call(instance, &call->func_name);
+        rc = ngx_wasm_vm_instance_call(inst, &call->func_name);
         if (rc != NGX_OK) {
             return NGX_ERROR;
         }
@@ -427,5 +626,5 @@ ngx_http_wasm_pool_cleanup(void *data)
 {
     ngx_http_wasm_req_ctx_t  *rctx = data;
 
-    ngx_wasm_vm_cache_cleanup(&rctx->vmcache);
+    ngx_http_wasm_ctx_free(rctx);
 }

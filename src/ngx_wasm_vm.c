@@ -34,6 +34,7 @@ struct ngx_wasm_vm_instance_s {
     ngx_log_t                     *log;
     ngx_wasm_vm_t                 *vm;
     ngx_wasm_vm_module_t          *module;
+    ngx_queue_t                    queue;
     ngx_wasm_vm_log_ctx_t          log_ctx;
     ngx_wasm_hctx_t                hctx;
     ngx_wrt_instance_pt            wrt;
@@ -46,6 +47,7 @@ struct ngx_wasm_vm_module_s {
     ngx_str_t                      bytes;
     ngx_str_t                      name;
     ngx_str_t                      path;
+    ngx_queue_t                    instances_queue;
     ngx_wrt_module_pt              wrt;
 };
 
@@ -139,8 +141,10 @@ failed:
 void
 ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
 {
-    ngx_rbtree_node_t     **root, **sentinel;
-    ngx_wasm_vm_module_t   *module;
+    ngx_queue_t              *q;
+    ngx_rbtree_node_t       **root, **sentinel;
+    ngx_wasm_vm_module_t     *module;
+    ngx_wasm_vm_instance_t   *inst;
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
                    "[wasm] free \"%V\" vm (vm: %p)",
@@ -159,6 +163,13 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
                        " (vm: %p, module: %p)",
                        &module->name, &vm->name,
                        vm, module);
+
+        while (!ngx_queue_empty(&module->instances_queue)) {
+            q = ngx_queue_head(&module->instances_queue);
+
+            inst = ngx_queue_data(q, ngx_wasm_vm_instance_t, queue);
+            ngx_wasm_vm_instance_free(inst);
+        }
 
         vm->runtime->module_free(module->wrt);
 
@@ -393,6 +404,8 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
         goto close;
     }
 
+    ngx_queue_init(&module->instances_queue);
+
     module->flags |= NGX_WASM_MODULE_LOADED;
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
@@ -507,6 +520,8 @@ ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
         goto failed;
     }
 
+    ngx_queue_insert_tail(&module->instances_queue, &instance->queue);
+
     return instance;
 
 failed:
@@ -575,6 +590,8 @@ ngx_wasm_vm_instance_free(ngx_wasm_vm_instance_t *instance)
     if (instance->log) {
         ngx_pfree(instance->pool, instance->log);
     }
+
+    ngx_queue_remove(&instance->queue);
 
     ngx_pfree(instance->pool, instance);
 }

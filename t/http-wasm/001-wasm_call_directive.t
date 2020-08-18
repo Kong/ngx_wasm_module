@@ -172,7 +172,7 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
   (export "nop" (func $nop))
 )
 --- error_log
-wasm: calling "hello.nop" in "log" phase
+[wasm] calling "hello.nop" in "log" phase
 
 
 
@@ -194,7 +194,7 @@ wasm: calling "hello.nop" in "log" phase
   (export "nop" (func $nop))
 )
 --- error_log
-wasm: calling "hello.nop" in "rewrite" phase
+[wasm] calling "hello.nop" in "rewrite" phase
 
 
 
@@ -217,8 +217,8 @@ wasm: calling "hello.nop" in "rewrite" phase
   (export "nop" (func $nop))
 )
 --- error_log
-wasm: calling "hello.nop" in "log" phase
-wasm: calling "hello.nop" in "log" phase
+[wasm] calling "hello.nop" in "log" phase
+[wasm] calling "hello.nop" in "log" phase
 --- no_error_log
 
 
@@ -243,8 +243,8 @@ wasm: calling "hello.nop" in "log" phase
   (export "nop" (func $nop))
 )
 --- error_log
-wasm: calling "hello.nop" in "log" phase
-wasm: calling "hello.nop" in "log" phase
+[wasm] calling "hello.nop" in "log" phase
+[wasm] calling "hello.nop" in "log" phase
 --- no_error_log
 
 
@@ -270,9 +270,9 @@ wasm: calling "hello.nop" in "log" phase
   (export "nop2" (func $nop))
 )
 --- error_log
-wasm: calling "hello.nop2" in "log" phase
+[wasm] calling "hello.nop2" in "log" phase
 --- no_error_log
-wasm: calling "hello.nop" in "log" phase
+[wasm] calling "hello.nop" in "log" phase
 
 
 
@@ -301,7 +301,7 @@ wasm: calling "hello.nop" in "log" phase
   (export "nop3" (func $nop))
 )
 --- error_log
-wasm: calling "moduleA.nop" in "rewrite" phase
-wasm: calling "moduleB.nop3" in "log" phase
+[wasm] calling "moduleA.nop" in "rewrite" phase
+[wasm] calling "moduleB.nop3" in "log" phase
 --- no_error_log eval
-qr/wasm: calling "module[A|B]\.nop" in "log" phase/
+qr/\[wasm\] calling "module[A|B]\.nop" in "log" phase/

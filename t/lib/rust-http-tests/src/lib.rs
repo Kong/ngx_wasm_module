@@ -1,6 +1,11 @@
 use ngx::*;
 
 #[no_mangle]
+pub fn nop() {
+
+}
+
+#[no_mangle]
 pub fn log_notice_hello() {
     ngx_log!(Notice, "hello world");
 }

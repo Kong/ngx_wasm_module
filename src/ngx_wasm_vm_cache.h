@@ -17,6 +17,8 @@ typedef struct ngx_wasm_vm_cache_s {
 } ngx_wasm_vm_cache_t;
 
 
+ngx_wasm_vm_cache_t *ngx_wasm_vm_cache_new(ngx_pool_t *pool, ngx_wasm_vm_t *vm);
+
 void ngx_wasm_vm_cache_init(ngx_wasm_vm_cache_t *cache);
 
 ngx_wasm_vm_instance_t *ngx_wasm_vm_cache_get_instance(ngx_wasm_vm_cache_t *cache,

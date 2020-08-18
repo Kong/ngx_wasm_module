@@ -13,13 +13,37 @@
 
 typedef struct {
     ngx_wasm_rbtree_named_node_t   rbnode;
-    ngx_wasm_vm_instance_t        *instance;
+    ngx_wasm_vm_instance_t        *inst;
 } ngx_wasm_vm_cache_node_t;
 
 
-void
+ngx_wasm_vm_cache_t *
+ngx_wasm_vm_cache_new(ngx_pool_t *pool, ngx_wasm_vm_t *vm)
+{
+    ngx_wasm_vm_cache_t  *cache;
+
+    ngx_log_debug0(NGX_LOG_DEBUG_WASM, pool->log, 0, "[wasm] vm cache new");
+
+    cache = ngx_palloc(pool, sizeof(ngx_wasm_vm_cache_t));
+    if (cache == NULL) {
+        return NULL;
+    }
+
+    cache->pool = pool;
+    cache->vm = vm;
+
+    ngx_wasm_vm_cache_init(cache);
+
+    return cache;
+}
+
+
+ngx_inline void
 ngx_wasm_vm_cache_init(ngx_wasm_vm_cache_t *cache)
 {
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, cache->pool->log, 0,
+                   "[wasm] vm cache init (cache: %p)", cache);
+
     ngx_rbtree_init(&cache->rbtree, &cache->sentinel,
                     ngx_wasm_rbtree_insert_named_node);
 }
@@ -36,7 +60,7 @@ ngx_wasm_vm_cache_get_instance(ngx_wasm_vm_cache_t *cache, ngx_str_t *mod_name)
     if (n != NULL) {
         cn = (ngx_wasm_vm_cache_node_t *)
                  ((u_char *) n - offsetof(ngx_wasm_vm_cache_node_t, rbnode));
-        return cn->instance;
+        return cn->inst;
     }
 
     cn = ngx_palloc(cache->pool, sizeof(ngx_wasm_vm_cache_node_t));
@@ -44,8 +68,8 @@ ngx_wasm_vm_cache_get_instance(ngx_wasm_vm_cache_t *cache, ngx_str_t *mod_name)
         return NULL;
     }
 
-    cn->instance = ngx_wasm_vm_instance_new(cache->vm, mod_name);
-    if (cn->instance == NULL) {
+    cn->inst = ngx_wasm_vm_instance_new(cache->vm, mod_name);
+    if (cn->inst == NULL) {
         ngx_pfree(cache->pool, cn);
         return NULL;
     }
@@ -54,7 +78,7 @@ ngx_wasm_vm_cache_get_instance(ngx_wasm_vm_cache_t *cache, ngx_str_t *mod_name)
 
     ngx_rbtree_insert(&cache->rbtree, &cn->rbnode.node);
 
-    return cn->instance;
+    return cn->inst;
 }
 
 
@@ -75,7 +99,7 @@ ngx_wasm_vm_cache_cleanup(ngx_wasm_vm_cache_t *cache)
         cn = (ngx_wasm_vm_cache_node_t *)
                  ((u_char *) node - offsetof(ngx_wasm_vm_cache_node_t, rbnode));
 
-        ngx_wasm_vm_instance_free(cn->instance);
+        ngx_wasm_vm_instance_free(cn->inst);
 
         ngx_rbtree_delete(&cache->rbtree, node);
 
