@@ -119,6 +119,7 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
 
 
 === TEST 8: wasm_call directive: sanity in 'log' phase
+--- skip_no_debug: 3
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -140,6 +141,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 === TEST 9: wasm_call directive: sanity in 'rewrite' phase in location block
+--- skip_no_debug: 3
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -161,6 +163,7 @@ wasm: calling "hello.nop" in "rewrite" phase
 
 
 === TEST 10: wasm_call directive: multiple calls in a location block
+--- skip_no_debug: 3
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -185,6 +188,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 === TEST 11: wasm_call directive: multiple calls in main block
+--- skip_no_debug: 3
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -210,6 +214,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 === TEST 12: wasm_call directive: mixed main and location blocks
+--- skip_no_debug: 3
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -236,6 +241,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 === TEST 13: wasm_call directive: multiple modules, multiple calls, multiple phases, multiple blocks
+--- skip_no_debug: 4
 --- main_config
     wasm {
         module moduleA $TEST_NGINX_HTML_DIR/hello.wat;
