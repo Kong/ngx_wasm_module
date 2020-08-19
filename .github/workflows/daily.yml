@@ -26,6 +26,8 @@ jobs:
         wasmtime: [0.19.0]
         #hup: [1, 0]
         hup: [0]
+        #debug: [1, 0]
+        debug: [1]
     steps:
       - uses: actions/checkout@v2
       - name: "Set up cache - rustup toolchain"
@@ -59,6 +61,7 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.nginx }}
+          NGX_BUILD_DEBUG: ${{ matrix.debug }}
       - run: make test
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
