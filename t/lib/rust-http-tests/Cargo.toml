@@ -9,3 +9,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 ngx = { path = "../../../lib/ngx-rust" }
+
+[profile.release]
+debug = true

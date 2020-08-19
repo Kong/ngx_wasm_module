@@ -4,16 +4,20 @@ DIR_DOWNLOAD=$DIR_WORK/downloads
 DIR_CPANM=$DIR_DOWNLOAD/cpanm
 DIR_NOPOOL=$DIR_DOWNLOAD/no-pool-nginx
 DIR_ECHO=$DIR_DOWNLOAD/echo-nginx-module
-DIR_SRCROOT=$DIR_DOWNLOAD/nginx-patched
 DIR_BUILDROOT=$DIR_WORK/buildroot
-DIR_BUILDPREFIX=$NGX_WASM_DIR/t/servroot
+DIR_SRCROOT=$DIR_WORK/nginx-patched
 DIR_TESTS_LIB_WASM=$DIR_WORK/lib/wasm
+DIR_PREFIX=$NGX_WASM_DIR/t/servroot
 
 build_nginx() {
     local ngx_src=$1
     local ngx_ver=$2
     local build_name=(dev)
     local build_with_debug=""
+
+    NGX_BUILD_DIR_SRCROOT="${NGX_BUILD_DIR_SRCROOT:-$DIR_SRCROOT}"
+    NGX_BUILD_DIR_BUILDROOT="${NGX_BUILD_DIR_BUILDROOT:-$DIR_BUILDROOT}"
+    NGX_BUILD_DIR_PREFIX="${NGX_BUILD_DIR_BUILDROOT:-$DIR_PREFIX}"
 
     # Build options
 
@@ -58,30 +62,30 @@ build_nginx() {
 
     local hash=$(echo "$CC.$ngx_ver.$ngx_src.$build_name.$NGX_BUILD_CC_OPT.$NGX_BUILD_LD_OPT" | shasum | awk '{ print $1 }')
 
-    if [[ ! -d "$DIR_SRCROOT" \
-          || ! -f "$DIR_SRCROOT/.hash" \
-          || $(cat "$DIR_SRCROOT/.hash") != $(echo $hash) ]];
+    if [[ ! -d "$NGX_BUILD_DIR_SRCROOT" \
+          || ! -f "$NGX_BUILD_DIR_SRCROOT/.hash" \
+          || $(cat "$NGX_BUILD_DIR_SRCROOT/.hash") != $(echo $hash) ]];
     then
         NGX_BUILD_FORCE=1
 
-        rm -rf $DIR_SRCROOT
-        cp -R $ngx_src $DIR_SRCROOT
+        rm -rf $NGX_BUILD_DIR_SRCROOT
+        cp -R $ngx_src $NGX_BUILD_DIR_SRCROOT
 
         # Apply patches
 
         if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
             get_no_pool_nginx
 
-            apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $DIR_SRCROOT
+            apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $NGX_BUILD_DIR_SRCROOT
         fi
     fi
 
     # Build
 
-    pushd $DIR_SRCROOT
+    pushd $NGX_BUILD_DIR_SRCROOT
         if [[ "$NGX_BUILD_FORCE" == 1 \
               || ! -f "Makefile" \
-              || ! -d "$DIR_BUILDROOT" \
+              || ! -d "$NGX_BUILD_DIR_BUILDROOT" \
               || "$NGX_WASM_DIR/config" -nt "Makefile" \
               || "$NGX_WASM_DIR/Makefile" -nt "Makefile" \
               || "$NGX_WASM_DIR/util/build.sh" -nt "Makefile" \
@@ -95,15 +99,15 @@ build_nginx() {
 
             eval ./$configure \
                 "--build='ngx_wasm_module [${build_name[@]}]'" \
-                "--builddir=$DIR_BUILDROOT" \
-                "--prefix=$DIR_BUILDPREFIX" \
+                "--builddir=$NGX_BUILD_DIR_BUILDROOT" \
+                "--prefix=$NGX_BUILD_DIR_PREFIX" \
                 "--add-module=$NGX_WASM_DIR" \
                 "--add-dynamic-module=$DIR_ECHO" \
                 "--with-cc-opt='$NGX_BUILD_CC_OPT'" \
                 "--with-ld-opt='$NGX_BUILD_LD_OPT'" \
                 $build_with_debug
 
-            echo $hash > "$DIR_SRCROOT/.hash"
+            echo $hash > "$NGX_BUILD_DIR_SRCROOT/.hash"
         fi
 
         eval "$NGX_BUILD_CMD make -j${n_jobs}"

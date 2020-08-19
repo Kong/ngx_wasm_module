@@ -23,12 +23,12 @@ export TEST_NGINX_PORT=${TEST_NGINX_PORT:=1984}
 export TEST_NGINX_TIMEOUT=${TEST_NGINX_TIMEOUT:=10}
 export TEST_NGINX_RESOLVER=${TEST_NGINX_RESOLVER:=8.8.4.4}
 export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/asan.suppress"
-#export TEST_NGINX_RANDOMIZE=${TEST_NGINX_RANDOMIZE:=}
+#export TEST_NGINX_RANDOMIZE=
 #export TEST_NGINX_CHECK_LEAK=
 #export TEST_NGINX_USE_VALGRIND=
 #export TEST_NGINX_USE_STAP=
 #export TEST_NGINX_USE_HUP=
-#export TEST_NGINX_EVENT_TYPE=poll
+#export TEST_NGINX_EVENT_TYPE=epoll
 #export LD_PRELOAD=
 
 #if [[ ! -z "$TEST_NGINX_USE_STAP" ]]; then
@@ -45,6 +45,7 @@ fi
 
 cargo build \
     --quiet \
+    --lib \
     --manifest-path t/lib/rust-http-tests/Cargo.toml \
     --target wasm32-unknown-unknown \
     --out-dir $DIR_TESTS_LIB_WASM \
