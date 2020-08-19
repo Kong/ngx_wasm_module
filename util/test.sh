@@ -59,6 +59,11 @@ if [[ ! -z "$TEST_NGINX_USE_HUP" ]]; then
     echo "TEST_NGINX_USE_HUP=$TEST_NGINX_USE_HUP"
 fi
 
+if [[ ! -z "$TEST_NGINX_RANDOMIZE" ]]; then
+    echo "TEST_NGINX_RANDOMIZE=$TEST_NGINX_RANDOMIZE"
+    prove_opts="-j$(n_jobs)"
+fi
+
 echo $TEST_NGINX_BINARY
 echo
 eval "$TEST_NGINX_BINARY -V"
@@ -74,6 +79,6 @@ set -e
 
 echo
 
-exec prove "$@"
+exec prove $prove_opts $@
 
 # vim: ft=sh st=4 sts=4 sw=4:
