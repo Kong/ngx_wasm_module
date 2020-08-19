@@ -201,18 +201,6 @@ ngx_http_wasm_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    if (ngx_http_wasm_conf_parse_phase(cf, phase_name.data, &phase)
-        != NGX_CONF_OK)
-    {
-        return NGX_CONF_ERROR;
-    }
-
-    if (phase_handlers[phase] == NULL) {
-        ngx_conf_log_error(NGX_LOG_ALERT, cf, 0, "NYI - http wasm: "
-                           "unsupported phase \"%V\"", &phase_name);
-        return NGX_CONF_ERROR;
-    }
-
     if (call->mod_name.len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid module name \"%V\"",
                            &call->mod_name);
@@ -222,6 +210,18 @@ ngx_http_wasm_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     if (call->func_name.len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid function name \"%V\"",
                            &call->func_name);
+        return NGX_CONF_ERROR;
+    }
+
+    if (ngx_http_wasm_conf_parse_phase(cf, phase_name.data, &phase)
+        != NGX_CONF_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+
+    if (phase_handlers[phase] == NULL) {
+        ngx_conf_log_error(NGX_LOG_ALERT, cf, 0, "NYI - http wasm: "
+                           "unsupported phase \"%V\"", &phase_name);
         return NGX_CONF_ERROR;
     }
 

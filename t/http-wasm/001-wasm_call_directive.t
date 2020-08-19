@@ -33,7 +33,43 @@ qr/\[emerg\] .*? invalid number of arguments in "wasm_call" directive/
 
 
 
-=== TEST 3: wasm_call directive: invalid phase
+=== TEST 3: wasm_call directive: empty phase
+--- config
+    location /t {
+        wasm_call '' hello nop;
+        return 200;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid phase ""/
+--- must_die
+
+
+
+=== TEST 4: wasm_call directive: empty module name
+--- config
+    location /t {
+        wasm_call log '' nop;
+        return 200;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid module name ""/
+--- must_die
+
+
+
+=== TEST 5: wasm_call directive: empty function name
+--- config
+    location /t {
+        wasm_call log hello '';
+        return 200;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid function name ""/
+--- must_die
+
+
+
+=== TEST 6: wasm_call directive: unknown phase
 --- config
     location /t {
         wasm_call foo hello nop;
@@ -45,7 +81,7 @@ qr/\[emerg\] .*? unknown phase "foo"/
 
 
 
-=== TEST 4: wasm_call directive: NYI phase
+=== TEST 7: wasm_call directive: NYI phase
 --- config
     location /t {
         wasm_call post_read hello nop;
@@ -57,7 +93,7 @@ qr/\[alert\] .*? unsupported phase "post_read"/
 
 
 
-=== TEST 5: wasm_call directive: no such module
+=== TEST 8: wasm_call directive: no such module
 --- config
     location /t {
         wasm_call log hello nop;
@@ -69,7 +105,7 @@ qr/\[emerg\] .*? \[wasm\] no "hello" module defined/
 
 
 
-=== TEST 6: wasm_call directive: no such function
+=== TEST 9: wasm_call directive: no such function
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -92,7 +128,7 @@ qr/\[error\] .*? \[wasm\] no "nonexist" function defined in "hello" module <vm: 
 
 
 
-=== TEST 7: wasm_call directive: catch runtime error sanity
+=== TEST 10: wasm_call directive: catch runtime error sanity
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -118,7 +154,7 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
 
 
 
-=== TEST 8: wasm_call directive: sanity in 'log' phase
+=== TEST 11: wasm_call directive: sanity in 'log' phase
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -140,7 +176,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 
-=== TEST 9: wasm_call directive: sanity in 'rewrite' phase in location block
+=== TEST 12: wasm_call directive: sanity in 'rewrite' phase in location block
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -162,7 +198,7 @@ wasm: calling "hello.nop" in "rewrite" phase
 
 
 
-=== TEST 10: wasm_call directive: multiple calls in a location block
+=== TEST 13: wasm_call directive: multiple calls in a location block
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -187,7 +223,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 
-=== TEST 11: wasm_call directive: multiple calls in main block
+=== TEST 14: wasm_call directive: multiple calls in main block
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -213,7 +249,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 
-=== TEST 12: wasm_call directive: mixed main and location blocks
+=== TEST 15: wasm_call directive: mixed main and location blocks
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -240,7 +276,7 @@ wasm: calling "hello.nop" in "log" phase
 
 
 
-=== TEST 13: wasm_call directive: multiple modules, multiple calls, multiple phases, multiple blocks
+=== TEST 16: wasm_call directive: multiple modules, multiple calls, multiple phases, multiple blocks
 --- skip_no_debug: 4
 --- main_config
     wasm {
