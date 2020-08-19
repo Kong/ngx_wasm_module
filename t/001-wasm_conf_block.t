@@ -1,4 +1,6 @@
 # vim:set ft= ts=4 sw=4 et fdm=marker:
+
+use strict;
 use lib '.';
 use t::TestWasm;
 

@@ -11,6 +11,9 @@
 #include <ngx_wasm.h>
 
 
+#define ngx_wasm_vm_abi_version         0000001
+
+
 ngx_wasm_vm_t *ngx_wasm_vm_new(ngx_cycle_t *cycle, ngx_str_t *vm_name);
 
 void ngx_wasm_vm_free(ngx_wasm_vm_t *vm);

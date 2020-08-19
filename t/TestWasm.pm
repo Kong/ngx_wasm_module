@@ -1,5 +1,6 @@
 package t::TestWasm;
 
+use strict;
 use Test::Nginx::Socket::Lua -Base;
 use Cwd qw(cwd);
 
