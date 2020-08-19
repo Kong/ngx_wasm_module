@@ -35,6 +35,7 @@ test:
 .PHONY: style
 style:
 	@util/style.pl src/*
+	@!(grep -R -E -n -- '---\s+ONLY' t && echo "--- ONLY block detected") >&2
 
 .PHONY: reindex
 reindex:
