@@ -14,10 +14,13 @@ fi
 source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
+set +e
 
-pushd $DIR_SRCROOT
-    make clean
-popd
+if [[ -d "$DIR_SRCROOT" ]]; then
+    pushd $DIR_SRCROOT
+        make clean
+    popd
+fi
 
 if [[ "$1" == "--all" ]]; then
     rm -rf $DIR_WORK $DIR_PREFIX
