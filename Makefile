@@ -30,7 +30,11 @@ setup:
 
 .PHONY: test
 test:
-	@util/test.sh -r t/
+	@util/test.sh -r t/*-ngx-*
+
+.PHONY: test-build
+test-build:
+	@util/test.sh --no-test-nginx -r t/build/
 
 .PHONY: style
 style:

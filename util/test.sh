@@ -15,7 +15,34 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
 
+while (( "$#" )); do
+    case "$1" in
+        --no-test-nginx)
+            NO_TEST_NGINX=1
+            shift
+            ;;
+        *)
+            PARAMS="$PARAMS $1"
+            shift
+            ;;
+    esac
+done
+
+eval set -- "$PARAMS"
+
+if [[ ! -d "$DIR_CPANM/lib/perl5" ]]; then
+    fatal "missing $DIR_CPANM/lib/perl5 lib, run 'make setup first'"
+fi
+
 export PERL5LIB=$DIR_CPANM/lib/perl5:$PERL5LIB
+
+# Test::Build
+
+if [[ "$NO_TEST_NGINX" == 1 ]]; then
+    exec prove $@
+fi
+
+# Test::Nginx
 
 export TEST_NGINX_BINARY=${TEST_NGINX_BINARY:=$DIR_BUILDROOT/nginx}
 export TEST_NGINX_SLEEP=${TEST_NGINX_SLEEP:=0.002}
@@ -24,16 +51,10 @@ export TEST_NGINX_TIMEOUT=${TEST_NGINX_TIMEOUT:=10}
 export TEST_NGINX_RESOLVER=${TEST_NGINX_RESOLVER:=8.8.4.4}
 export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/asan.suppress"
 #export TEST_NGINX_RANDOMIZE=
-#export TEST_NGINX_CHECK_LEAK=
 #export TEST_NGINX_USE_VALGRIND=
-#export TEST_NGINX_USE_STAP=
 #export TEST_NGINX_USE_HUP=
 #export TEST_NGINX_EVENT_TYPE=epoll
 #export LD_PRELOAD=
-
-#if [[ ! -z "$TEST_NGINX_USE_STAP" ]]; then
-    #export PATH=/usr/local/opt/systemtap/bin:$PATH
-#fi
 
 if [[ ! -x "$TEST_NGINX_BINARY" ]]; then
     fatal "no nginx binary at $TEST_NGINX_BINARY"
