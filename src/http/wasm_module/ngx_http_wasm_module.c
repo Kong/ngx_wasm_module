@@ -435,7 +435,12 @@ ngx_http_wasm_init(ngx_conf_t *cf)
 }
 
 
-/* Runtime phases */
+/*
+ * Runtime phases
+ *
+ * Note: r->phase_handler is not reliable enough to track the current
+ * phase being executed.
+ */
 
 
 static ngx_int_t
