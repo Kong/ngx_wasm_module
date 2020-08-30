@@ -8,19 +8,20 @@
 #include "ddebug.h"
 
 #include <ngx_core.h>
+#include <ngx_wasm.h>
 #include <ngx_http.h>
-#include <ngx_wasm_hfuncs.h>
+#include <ngx_http_wasm_util.h>
 
 
 ngx_int_t
 ngx_http_wasm_hfunc_resp_get_status(ngx_wasm_hctx_t *hctx,
     const ngx_wasm_val_t args[], ngx_wasm_val_t rets[])
 {
-    ngx_http_request_t  *r = hctx->data.r;
+    ngx_http_request_t  *r = hctx->data;
     ngx_int_t            status;
 
     if (r->connection->fd == (ngx_socket_t) -1) {
-        return NGX_DECLINED;
+        return NGX_WASM_BAD_CTX;
     }
 
     if (r->err_status) {
@@ -39,7 +40,56 @@ ngx_http_wasm_hfunc_resp_get_status(ngx_wasm_hctx_t *hctx,
     rets[0].kind = NGX_WASM_I32;
     rets[0].value.I32 = status;
 
-    return NGX_OK;
+    return NGX_WASM_OK;
+}
+
+
+ngx_int_t
+ngx_http_wasm_hfunc_say(ngx_wasm_hctx_t *hctx,
+    const ngx_wasm_val_t args[], ngx_wasm_val_t rets[])
+{
+    int64_t              body_offset, len;
+    ngx_int_t            rc;
+    ngx_buf_t           *b;
+    ngx_chain_t         *cl;
+    ngx_http_request_t  *r = hctx->data;
+
+    body_offset = args[0].value.I32;
+    len = args[1].value.I32;
+
+    if (r->connection->fd == (ngx_socket_t) -1) {
+        return NGX_WASM_BAD_CTX;
+    }
+
+    b = ngx_create_temp_buf(r->pool, len + sizeof(LF));
+    if (b == NULL) {
+        return NGX_WASM_ERROR;
+    }
+
+    b->last = ngx_copy(b->last, hctx->mem_off + body_offset, len);
+    *b->last++ = LF;
+
+    b->last_buf = 1;
+    b->last_in_chain = 1;
+
+    cl = ngx_alloc_chain_link(r->connection->pool);
+    if (cl == NULL) {
+        return NGX_WASM_ERROR;
+    }
+
+    cl->buf = b;
+    cl->next = NULL;
+
+    rc = ngx_http_wasm_send_chain_link(r, cl);
+    if (rc == NGX_ERROR) {
+        return NGX_WASM_ERROR;
+
+    } else if (rc == NGX_AGAIN) {
+        /* TODO: NYI - NGX_WASM_AGAIN */
+        return NGX_AGAIN;
+    }
+
+    return NGX_WASM_SENT_LAST;
 }
 
 
@@ -49,6 +99,11 @@ static ngx_wasm_hfunc_decl_t  ngx_http_wasm_hfuncs[] = {
       &ngx_http_wasm_hfunc_resp_get_status,
       NGX_WASM_ARGS_NONE,
       NGX_WASM_RETS_I32 },
+
+    { ngx_string("ngx_http_say"),
+      &ngx_http_wasm_hfunc_say,
+      NGX_WASM_ARGS_I32_I32,
+      NGX_WASM_RETS_NONE },
 
     ngx_wasm_hfunc_null
 };

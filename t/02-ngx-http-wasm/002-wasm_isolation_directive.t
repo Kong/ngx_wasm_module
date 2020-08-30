@@ -28,7 +28,7 @@ __DATA__
 === TEST 1: wasm_isolation directive: no wasm{} configuration block
 --- main_config
 --- config
-    wasm_isolation single;
+    wasm_isolation main;
 
     location /t {
         return 200;
@@ -41,7 +41,7 @@ qr/\[emerg\] .*? no "wasm" section in configuration/
 
 === TEST 2: wasm_isolation directive: invalid number of arguments
 --- config
-    wasm_isolation single single;
+    wasm_isolation main main;
 
     location /t {
         return 200;
@@ -65,7 +65,7 @@ qr/\[emerg\] .*? invalid isolation mode "none"/
 
 
 
-=== TEST 4: wasm_isolation directive: defaults to "single"
+=== TEST 4: wasm_isolation directive: defaults to "main"
 --- skip_no_debug: 3
 --- config
     location /t {
@@ -73,11 +73,11 @@ qr/\[emerg\] .*? invalid isolation mode "none"/
         return 200;
     }
 --- error_log
-[wasm] using "single" isolation mode for request
+wasm using "main" isolation mode
 
 
 
-=== TEST 5: wasm_isolation 'single': one instance
+=== TEST 5: wasm_isolation 'main': one instance
 --- skip_no_debug: 3
 --- http_config
     server {
@@ -89,7 +89,7 @@ qr/\[emerg\] .*? invalid isolation mode "none"/
         }
     }
 --- config
-    wasm_isolation single;
+    wasm_isolation main;
 
     location /wasm/loc/a {
         wasm_call rewrite http_tests nop;
@@ -113,14 +113,14 @@ qr/\[emerg\] .*? invalid isolation mode "none"/
         echo_location /wasm/server;
     }
 --- grep_error_log eval
-qr/\[wasm\] (?:creating instance|calling) .*/
+qr/wasm (?:creating instance|calling) .*/
 --- grep_error_log_out eval
-qr/\A\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] calling \S+ in "rewrite" phase
+qr/\Awasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm calling \S+ in "rewrite" phase
+wasm calling \S+ in "rewrite" phase
+wasm calling \S+ in "rewrite" phase
 \z/
 
 
@@ -161,15 +161,15 @@ qr/\A\[wasm\] calling \S+ in "rewrite" phase
         echo_location /wasm/server;
     }
 --- grep_error_log eval
-qr/\[wasm\] (?:creating instance|calling) .*/
+qr/wasm (?:creating instance|calling) .*/
 --- grep_error_log_out eval
-qr/\A\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
+qr/\Awasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm calling \S+ in "rewrite" phase
+wasm calling \S+ in "rewrite" phase
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
 \z/
 
 
@@ -210,16 +210,16 @@ qr/\A\[wasm\] calling \S+ in "rewrite" phase
         echo_location /wasm/server;
     }
 --- grep_error_log eval
-qr/\[wasm\] (?:creating instance|calling) .*/
+qr/wasm (?:creating instance|calling) .*/
 --- grep_error_log_out eval
-qr/\A\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
+qr/\Awasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
 \z/
 
 
@@ -260,25 +260,25 @@ qr/\A\[wasm\] calling \S+ in "rewrite" phase
         echo_location /wasm/server;
     }
 --- grep_error_log eval
-qr/\[wasm\] (?:creating instance|calling) .*/
+qr/wasm (?:creating instance|calling) .*/
 --- grep_error_log_out eval
-qr/\A\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
+qr/\Awasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
 \z/
 
 
 
-=== TEST 9: wasm_isolation 'full': one instance by call
+=== TEST 9: wasm_isolation 'ephemeral': one instance by call
 --- skip_no_debug: 3
 --- http_config
-    wasm_isolation full;
+    wasm_isolation ephemeral;
 
     server {
         listen unix:$TEST_NGINX_HTML_DIR/nginx.sock;
@@ -311,18 +311,18 @@ qr/\A\[wasm\] calling \S+ in "rewrite" phase
         echo_location /wasm/server;
     }
 --- grep_error_log eval
-qr/\[wasm\] (?:creating instance|calling) .*/
+qr/wasm (?:creating instance|calling) .*/
 --- grep_error_log_out eval
-qr/\A\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
+qr/\Awasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
 \z/
 
 
@@ -348,7 +348,7 @@ qr/\A\[wasm\] calling \S+ in "rewrite" phase
     }
 
     location /wasm/loc/b {
-        wasm_isolation full;
+        wasm_isolation ephemeral;
         wasm_call rewrite http_tests nop;
         wasm_call rewrite http_tests nop;
         echo_flush;
@@ -365,17 +365,17 @@ qr/\A\[wasm\] calling \S+ in "rewrite" phase
         echo_location /wasm/server;
     }
 --- grep_error_log eval
-qr/\[wasm\] (?:creating instance|calling) .*/
+qr/wasm (?:creating instance|calling) .*/
 --- grep_error_log_out eval
-qr/\A\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
+qr/\Awasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
 \z/
 
 
@@ -387,7 +387,7 @@ qr/\A\[wasm\] calling \S+ in "rewrite" phase
 
     server {
         listen         unix:$TEST_NGINX_HTML_DIR/nginx.sock;
-        wasm_isolation single;
+        wasm_isolation main;
 
         location / {
             wasm_call rewrite http_tests nop;
@@ -402,7 +402,7 @@ qr/\A\[wasm\] calling \S+ in "rewrite" phase
     }
 
     location /wasm/loc/b {
-        wasm_isolation single;
+        wasm_isolation main;
         wasm_call rewrite http_tests nop;
         wasm_call rewrite http_tests nop;
         echo_flush;
@@ -419,14 +419,14 @@ qr/\A\[wasm\] calling \S+ in "rewrite" phase
         echo_location /wasm/server;
     }
 --- grep_error_log eval
-qr/\[wasm\] (?:creating instance|calling) .*/
+qr/wasm (?:creating instance|calling) .*/
 --- grep_error_log_out eval
-qr/\A\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] creating instance of \S+ module in \S+ vm .*?
-\[wasm\] calling \S+ in "rewrite" phase
-\[wasm\] calling \S+ in "rewrite" phase
+qr/\Awasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm creating instance of \S+ module in \S+ vm .*?
+wasm calling \S+ in "rewrite" phase
+wasm calling \S+ in "rewrite" phase
 \z/

@@ -15,6 +15,11 @@ pub fn log_resp_status() {
     ngx_log!(Notice, "resp status: {}", ngx_resp_get_status());
 }
 
+#[no_mangle]
+pub fn say_hello() {
+    ngx_say("hello say".into());
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

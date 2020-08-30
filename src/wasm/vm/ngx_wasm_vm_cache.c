@@ -8,7 +8,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm_vm_cache.h>
-#include <ngx_wasm_util.h>
+#include <ngx_wasm_vm_def.h>
 
 
 typedef struct {
@@ -18,18 +18,19 @@ typedef struct {
 
 
 ngx_wasm_vm_cache_t *
-ngx_wasm_vm_cache_new(ngx_pool_t *pool, ngx_wasm_vm_t *vm)
+ngx_wasm_vm_cache_new(ngx_wasm_vm_t *vm)
 {
     ngx_wasm_vm_cache_t  *cache;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_WASM, pool->log, 0, "[wasm] vm cache new");
-
-    cache = ngx_palloc(pool, sizeof(ngx_wasm_vm_cache_t));
+    cache = ngx_palloc(vm->pool, sizeof(ngx_wasm_vm_cache_t));
     if (cache == NULL) {
         return NULL;
     }
 
-    cache->pool = pool;
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
+                   "wasm new vm cache for \"%V\" vm (cache: %p)",
+                   &vm->name, cache);
+
     cache->vm = vm;
 
     ngx_wasm_vm_cache_init(cache);
@@ -41,8 +42,12 @@ ngx_wasm_vm_cache_new(ngx_pool_t *pool, ngx_wasm_vm_t *vm)
 ngx_inline void
 ngx_wasm_vm_cache_init(ngx_wasm_vm_cache_t *cache)
 {
+    ngx_wasm_assert(cache->vm);
+
+    cache->pool = cache->vm->pool;
+
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, cache->pool->log, 0,
-                   "[wasm] vm cache init (cache: %p)", cache);
+                   "wasm init vm cache (cache: %p)", cache);
 
     ngx_rbtree_init(&cache->rbtree, &cache->sentinel,
                     ngx_wasm_rbtree_insert_named_node);
@@ -89,7 +94,7 @@ ngx_wasm_vm_cache_cleanup(ngx_wasm_vm_cache_t *cache)
     ngx_wasm_vm_cache_node_t   *cn;
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, cache->pool->log, 0,
-                   "[wasm] vm cache cleanup (cache: %p)", cache);
+                   "wasm cleanup vm cache (cache: %p)", cache);
 
     root = &cache->rbtree.root;
     sentinel = &cache->rbtree.sentinel;
@@ -105,4 +110,16 @@ ngx_wasm_vm_cache_cleanup(ngx_wasm_vm_cache_t *cache)
 
         ngx_pfree(cache->pool, cn);
     }
+}
+
+
+void
+ngx_wasm_vm_cache_free(ngx_wasm_vm_cache_t *cache)
+{
+    ngx_wasm_vm_cache_cleanup(cache);
+
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, cache->pool->log, 0,
+                   "wasm free vm cache (cache: %p)", cache);
+
+    ngx_pfree(cache->pool, cache);
 }

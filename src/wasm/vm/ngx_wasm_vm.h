@@ -7,8 +7,8 @@
 
 
 #include <ngx_core.h>
-#include <ngx_http.h>
 #include <ngx_wasm.h>
+#include <ngx_wasm_hfuncs.h>
 
 
 #define ngx_wasm_vm_abi_version         0000001
@@ -34,8 +34,8 @@ ngx_int_t ngx_wasm_vm_load_modules(ngx_wasm_vm_t *vm);
 ngx_wasm_vm_instance_t *ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm,
     ngx_str_t *mod_name);
 
-void ngx_wasm_vm_instance_bind_request(ngx_wasm_vm_instance_t *instance,
-    ngx_http_request_t *r);
+void ngx_wasm_vm_instance_set_hctx(ngx_wasm_vm_instance_t *instance,
+    ngx_wasm_hctx_t *hctx);
 
 ngx_int_t ngx_wasm_vm_instance_call(ngx_wasm_vm_instance_t *instance,
     ngx_str_t *func_name);

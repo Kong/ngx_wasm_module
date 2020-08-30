@@ -10,8 +10,9 @@
 #include <ngx_http.h>
 
 
-char *ngx_http_wasm_conf_parse_phase(ngx_conf_t *cf, u_char *name,
-    ngx_http_phases *phase);
+ngx_int_t ngx_http_wasm_send_header(ngx_http_request_t *r);
+
+ngx_int_t ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in);
 
 
 #endif /* _NGX_HTTP_WASM_UTIL_H_INCLUDED_ */

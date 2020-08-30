@@ -7,9 +7,7 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_wasm_vm.h>
-#include <ngx_wasm_hfuncs.h>
-#include <ngx_wasm_util.h>
+#include <ngx_wasm_vm_def.h>
 
 
 #define ngx_wasm_vm_check_init(vm, ret)                                      \
@@ -20,53 +18,6 @@
         ngx_wasm_assert(0);                                                  \
         return ret;                                                          \
     }                                                                        \
-
-
-typedef struct ngx_wasm_vm_log_ctx_s {
-    ngx_wasm_vm_t                 *vm;
-    ngx_wasm_vm_instance_t        *instance;
-    ngx_log_t                     *orig_log;
-} ngx_wasm_vm_log_ctx_t;
-
-
-struct ngx_wasm_vm_instance_s {
-    ngx_pool_t                    *pool;
-    ngx_log_t                     *log;
-    ngx_wasm_vm_t                 *vm;
-    ngx_wasm_vm_module_t          *module;
-    ngx_queue_t                    queue;
-    ngx_wasm_vm_log_ctx_t          log_ctx;
-    ngx_wasm_hctx_t                hctx;
-    ngx_wrt_instance_pt            wrt;
-};
-
-
-struct ngx_wasm_vm_module_s {
-    ngx_wasm_rbtree_named_node_t   rbnode;
-    ngx_uint_t                     flags;
-    ngx_str_t                      bytes;
-    ngx_str_t                      name;
-    ngx_str_t                      path;
-    ngx_queue_t                    instances_queue;
-    ngx_wrt_module_pt              wrt;
-};
-
-
-typedef struct ngx_wasm_vm_modules_s {
-    ngx_rbtree_t                   rbtree;
-    ngx_rbtree_node_t              sentinel;
-} ngx_wasm_vm_modules_t;
-
-
-struct ngx_wasm_vm_s {
-    ngx_str_t                      name;
-    ngx_pool_t                    *pool;
-    ngx_log_t                     *log;
-    ngx_wasm_vm_log_ctx_t          log_ctx;
-    ngx_wasm_vm_modules_t          modules;
-    ngx_wrt_t                     *runtime;
-    ngx_wrt_engine_pt              wrt;
-};
 
 
 static void ngx_wasm_vm_log_error(ngx_uint_t level, ngx_log_t *log,
@@ -122,7 +73,7 @@ ngx_wasm_vm_new(ngx_cycle_t *cycle, ngx_str_t *vm_name)
                     ngx_wasm_rbtree_insert_named_node);
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, cycle->log, 0,
-                   "[wasm] created \"%V\" vm (vm: %p)",
+                   "wasm created \"%V\" vm (vm: %p)",
                    &vm->name, vm);
 
     return vm;
@@ -147,7 +98,7 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
     ngx_wasm_vm_instance_t   *inst;
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
-                   "[wasm] free \"%V\" vm (vm: %p)",
+                   "wasm free \"%V\" vm (vm: %p)",
                    &vm->name, vm);
 
     root = &vm->modules.rbtree.root;
@@ -159,7 +110,7 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
         ngx_rbtree_delete(&vm->modules.rbtree, &module->rbnode.node);
 
         ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
-                       "[wasm] free \"%V\" module in \"%V\" vm"
+                       "wasm free \"%V\" module in \"%V\" vm"
                        " (vm: %p, module: %p)",
                        &module->name, &vm->name,
                        vm, module);
@@ -242,7 +193,7 @@ ngx_wasm_vm_add_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name, ngx_str_t *path)
     ngx_rbtree_insert(&vm->modules.rbtree, &module->rbnode.node);
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                   "[wasm] registered \"%V\" module in \"%V\" vm"
+                   "wasm registered \"%V\" module in \"%V\" vm"
                    " (vm: %p, module: %p)",
                    &module->name, &vm->name,
                    vm, module);
@@ -409,7 +360,7 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
     module->flags |= NGX_WASM_MODULE_LOADED;
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                   "[wasm] loaded \"%V\" module in \"%V\" vm"
+                   "wasm loaded \"%V\" module in \"%V\" vm"
                    " (vm: %p, module: %p)",
                    &module->name, &vm->name,
                    vm, module);
@@ -506,7 +457,7 @@ ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
     instance->log->data = &instance->log_ctx;
 
     ngx_log_debug5(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                   "[wasm] creating instance of \"%V\" module in \"%V\" vm"
+                   "wasm creating instance of \"%V\" module in \"%V\" vm"
                    " (vm: %p, module: %p, instance: %p)",
                    &module->name, &vm->name,
                    vm, module, instance);
@@ -533,19 +484,21 @@ failed:
 
 
 void
-ngx_wasm_vm_instance_bind_request(ngx_wasm_vm_instance_t *instance,
-    ngx_http_request_t *r)
+ngx_wasm_vm_instance_set_hctx(ngx_wasm_vm_instance_t *instance,
+    ngx_wasm_hctx_t *hctx)
 {
     ngx_wasm_vm_log_ctx_t  *log_ctx;
 
+    ngx_wasm_assert(hctx->pool);
+    ngx_wasm_assert(hctx->log);
+
     log_ctx = (ngx_wasm_vm_log_ctx_t *) instance->log->data;
-    log_ctx->orig_log = r->connection->log;
+    log_ctx->orig_log = hctx->log;
 
-    ngx_memzero(&instance->hctx, sizeof(ngx_wasm_hctx_t));
-
+    instance->hctx.data = hctx->data;
+    instance->hctx.pool = hctx->pool;
     instance->hctx.log = instance->log;
-    instance->hctx.type = NGX_WASM_HTYPE_REQUEST;
-    instance->hctx.data.r = r;
+    instance->hctx.mem_off = NULL;
 }
 
 
@@ -578,7 +531,7 @@ void
 ngx_wasm_vm_instance_free(ngx_wasm_vm_instance_t *instance)
 {
     ngx_log_debug5(NGX_LOG_DEBUG_WASM, instance->vm->log, 0,
-                   "[wasm] free instance of \"%V\" module in \"%V\" vm"
+                   "wasm free instance of \"%V\" module in \"%V\" vm"
                    " (vm: %p, module: %p, instance: %p)",
                    &instance->module->name, &instance->vm->name,
                    instance->vm, instance->module, instance);
@@ -591,7 +544,9 @@ ngx_wasm_vm_instance_free(ngx_wasm_vm_instance_t *instance)
         ngx_pfree(instance->pool, instance->log);
     }
 
-    ngx_queue_remove(&instance->queue);
+    if (instance->queue.next) {
+        ngx_queue_remove(&instance->queue);
+    }
 
     ngx_pfree(instance->pool, instance);
 }

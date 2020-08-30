@@ -84,6 +84,10 @@ qr/\[emerg\] .*? unknown phase "foo"/
 
 
 === TEST 7: wasm_call directive: NYI phase
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+    }
 --- config
     location /t {
         wasm_call post_read hello nop;
@@ -156,29 +160,7 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
 
 
 
-=== TEST 11: wasm_call directive: sanity in 'log' phase
---- skip_no_debug: 3
---- main_config
-    wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
-    }
---- config
-    location /t {
-        wasm_call log hello nop;
-        return 200;
-    }
---- user_files
->>> hello.wat
-(module
-  (func $nop)
-  (export "nop" (func $nop))
-)
---- error_log
-[wasm] calling "hello.nop" in "log" phase
-
-
-
-=== TEST 12: wasm_call directive: sanity in 'rewrite' phase in location block
+=== TEST 11: wasm_call directive: sanity in 'rewrite' phase in location block
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -196,11 +178,58 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
   (export "nop" (func $nop))
 )
 --- error_log
-[wasm] calling "hello.nop" in "rewrite" phase
+wasm calling "hello.nop" in "rewrite" phase
 
 
 
-=== TEST 13: wasm_call directive: multiple calls in a location block
+=== TEST 12: wasm_call directive: sanity in 'content' phase in location block
+--- SKIP
+--- skip_no_debug: 4
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+    }
+--- config
+    location /t {
+        wasm_call content hello nop;
+    }
+--- user_files
+>>> hello.wat
+(module
+  (func $nop)
+  (export "nop" (func $nop))
+)
+--- error_code: 404
+--- error_log
+wasm calling "hello.nop" in "content" phase
+--- no_error_log
+[emerg]
+
+
+
+=== TEST 13: wasm_call directive: sanity in 'log' phase
+--- skip_no_debug: 3
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+    }
+--- config
+    location /t {
+        wasm_call log hello nop;
+        return 200;
+    }
+--- user_files
+>>> hello.wat
+(module
+  (func $nop)
+  (export "nop" (func $nop))
+)
+--- error_log
+wasm calling "hello.nop" in "log" phase
+
+
+
+=== TEST 14: wasm_call directive: multiple calls in a location block
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -219,13 +248,13 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
   (export "nop" (func $nop))
 )
 --- error_log
-[wasm] calling "hello.nop" in "log" phase
-[wasm] calling "hello.nop" in "log" phase
+wasm calling "hello.nop" in "log" phase
+wasm calling "hello.nop" in "log" phase
 --- no_error_log
 
 
 
-=== TEST 14: wasm_call directive: multiple calls in main block
+=== TEST 15: wasm_call directive: multiple calls in main block
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -245,13 +274,13 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
   (export "nop" (func $nop))
 )
 --- error_log
-[wasm] calling "hello.nop" in "log" phase
-[wasm] calling "hello.nop" in "log" phase
+wasm calling "hello.nop" in "log" phase
+wasm calling "hello.nop" in "log" phase
 --- no_error_log
 
 
 
-=== TEST 15: wasm_call directive: mixed main and location blocks
+=== TEST 16: wasm_call directive: mixed main and location blocks
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -272,13 +301,13 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
   (export "nop2" (func $nop))
 )
 --- error_log
-[wasm] calling "hello.nop2" in "log" phase
+wasm calling "hello.nop2" in "log" phase
 --- no_error_log
-[wasm] calling "hello.nop" in "log" phase
+wasm calling "hello.nop" in "log" phase
 
 
 
-=== TEST 16: wasm_call directive: multiple modules, multiple calls, multiple phases, multiple blocks
+=== TEST 17: wasm_call directive: multiple modules/calls/phases/blocks
 --- skip_no_debug: 4
 --- main_config
     wasm {
@@ -303,7 +332,7 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
   (export "nop3" (func $nop))
 )
 --- error_log
-[wasm] calling "moduleA.nop" in "rewrite" phase
-[wasm] calling "moduleB.nop3" in "log" phase
+wasm calling "moduleA.nop" in "rewrite" phase
+wasm calling "moduleB.nop3" in "log" phase
 --- no_error_log eval
-qr/\[wasm\] calling "module[A|B]\.nop" in "log" phase/
+qr/\[wasm\] calling "module[A|B]\.nop2" in "log" phase/

@@ -8,7 +8,7 @@
 #include "ddebug.h"
 
 #include <ngx_core.h>
-#include <ngx_wasm_module.h>
+#include <ngx_wasm.h>
 #include <ngx_wasm_hfuncs.h>
 
 #include <wasm.h>
@@ -202,7 +202,7 @@ ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
     ngx_wasmtime_trampoline_ctx_t  *ctx = env;
     wasm_message_t                  trap_msg;
 
-    ctx->hctx->memory_offset = wasm_memory_data(ctx->wrt->memory);
+    ctx->hctx->mem_off = wasm_memory_data(ctx->wrt->memory);
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->hctx->log, 0,
                    "wasmtime host function trampoline (hfunc: %V, ctx: %p)",
@@ -211,12 +211,16 @@ ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
     ngx_wasmtime_vals_lift(ngx_args, (wasm_val_t *) args, ctx->hfunc->nargs);
 
     rc = ctx->hfunc->ptr(ctx->hctx, ngx_args, ngx_rets);
-    if (rc == NGX_DECLINED) {
+    if (rc == NGX_WASM_ERROR) {
+        wasm_name_new_from_string(&trap_msg, "nginx error in host function");
+        return wasm_trap_new(ctx->wrt->store, &trap_msg);
+
+    } else if (rc == NGX_WASM_BAD_CTX) {
         wasm_name_new_from_string(&trap_msg, "bad context");
         return wasm_trap_new(ctx->wrt->store, &trap_msg);
     }
 
-    /* rc == NGX_OK */
+    /* NGX_WASM_OK, NGX_WASM_AGAIN */
 
     ngx_wasmtime_vals_lower(rets, ngx_rets, ctx->hfunc->nrets);
 

@@ -7,39 +7,20 @@
 
 
 #include <ngx_core.h>
-#include <ngx_http.h>
-#include <ngx_wasm_module.h>
+#include <ngx_wasm.h>
 
 
-#define NGX_WASM_ARGS_NONE           { 0, 0, 0, 0, 0, 0, 0, 0 }
-#define NGX_WASM_RETS_NONE           { 0 }
-
-#define NGX_WASM_ARGS_I32_I32_I32                                            \
-    { NGX_WASM_I32, NGX_WASM_I32, NGX_WASM_I32, 0, 0, 0, 0, 0 }
-
-#define NGX_WASM_RETS_I32                                                    \
-    { NGX_WASM_I32 }
-
-#define ngx_wasm_hfunc_null                                                  \
-    { ngx_null_string, NULL, NGX_WASM_ARGS_NONE, NGX_WASM_RETS_NONE }
+/* host functions */
 
 
-/* host context */
-
-
-typedef enum {
-    NGX_WASM_HTYPE_REQUEST = 1,
-} ngx_wasm_htype_t;
-
-
-struct ngx_wasm_hctx_s {
-    ngx_wasm_htype_t   type;
-    ngx_log_t         *log;
-    char              *memory_offset;
-
-    union {
-        ngx_http_request_t  *r;
-    } data;
+struct ngx_wasm_hfunc_s {
+    ngx_str_t               *name;
+    ngx_wasm_dfunc_pt        ptr;
+    ngx_wasm_val_kind        args[NGX_WASM_ARGS_MAX];
+    ngx_wasm_val_kind        rets[NGX_WASM_RETS_MAX];
+    ngx_uint_t               nargs;
+    ngx_uint_t               nrets;
+    ngx_wrt_functype_pt      wrt_functype;
 };
 
 

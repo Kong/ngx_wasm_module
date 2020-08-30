@@ -8,8 +8,7 @@
 #include "ddebug.h"
 
 #include <ngx_core.h>
-#include <ngx_wasm_module.h>
-#include <ngx_wasm_hfuncs.h>
+#include <ngx_wasm.h>
 
 
 ngx_int_t
@@ -23,9 +22,9 @@ ngx_wasm_hfuncs_log(ngx_wasm_hctx_t *hctx, const ngx_wasm_val_t args[],
     len = args[2].value.I32;
 
     ngx_log_error((ngx_uint_t) level, hctx->log, 0, "%*s",
-                  len, hctx->memory_offset + msg_offset);
+                  len, hctx->mem_off + msg_offset);
 
-    return NGX_OK;
+    return NGX_WASM_OK;
 }
 
 

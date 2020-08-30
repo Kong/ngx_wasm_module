@@ -35,7 +35,7 @@ ngx_wasm_hfuncs_store_new(ngx_cycle_t *cycle)
                     ngx_wasm_rbtree_insert_named_node);
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, cycle->log, 0,
-                   "[wasm] new host functions store (store: %p)",
+                   "wasm new host functions store (store: %p)",
                    store);
 
     return store;
@@ -97,7 +97,7 @@ ngx_wasm_hfuncs_store_add(ngx_wasm_hfuncs_store_t *store,
         }
 
         ngx_log_debug2(NGX_LOG_DEBUG_WASM, store->cycle->log, 0,
-                       "[wasm] registering \"%V.%V\" host function",
+                       "wasm registering \"%V.%V\" host function",
                        &mod->name, &decl->name);
 
         *declp = decl;
@@ -128,7 +128,7 @@ ngx_wasm_hfuncs_store_free(ngx_wasm_hfuncs_store_t *store)
     ngx_wasm_hfuncs_decls_module_t   *mod;
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, store->cycle->log, 0,
-                   "[wasm] free host functions store (store: %p)",
+                   "wasm free host functions store (store: %p)",
                    store);
 
     root = &store->rbtree.root;
@@ -141,7 +141,7 @@ ngx_wasm_hfuncs_store_free(ngx_wasm_hfuncs_store_t *store)
         ngx_rbtree_delete(&store->rbtree, &mod->rbnode.node);
 
         ngx_log_debug2(NGX_LOG_DEBUG_WASM, store->cycle->log, 0,
-                       "[wasm] free \"%V\" host functions (store: %p)",
+                       "wasm free \"%V\" host functions (store: %p)",
                        &mod->name, store);
 
         ngx_array_destroy(mod->decls);
@@ -266,7 +266,7 @@ ngx_wasm_hfuncs_resolver_new(ngx_cycle_t *cycle,
             decl = decls[i];
 
             ngx_log_debug4(NGX_LOG_DEBUG_WASM, resolver->log, 0,
-                           "[wasm] defining \"%V.%V\" host function"
+                           "wasm defining \"%V.%V\" host function"
                            " (%z/%z)", &mod->name, &decl->name,
                            i + 1, mod->decls->nelts);
 
@@ -390,7 +390,7 @@ ngx_wasm_hfuncs_resolver_free(ngx_wasm_hfuncs_resolver_t *resolver)
     ngx_wasm_assert(resolver != NULL);
 
     ngx_log_debug0(NGX_LOG_DEBUG_WASM, resolver->log, 0,
-                   "[wasm] free hfuncs resolver");
+                   "wasm free hfuncs resolver");
 
     if (resolver->modules) {
         ngx_pfree(resolver->pool, resolver->modules);
@@ -410,7 +410,7 @@ ngx_wasm_hfuncs_resolver_free(ngx_wasm_hfuncs_resolver_t *resolver)
                 hfunc = (ngx_wasm_hfunc_t *) fkeys[j].value;
 
                 ngx_log_debug2(NGX_LOG_DEBUG_WASM, resolver->log, 0,
-                               "[wasm] free \"%V.%V\" host function",
+                               "wasm free \"%V.%V\" host function",
                                &rmod->name, hfunc->name);
 
                 resolver->functype_free(hfunc->wrt_functype);

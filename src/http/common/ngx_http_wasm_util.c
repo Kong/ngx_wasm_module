@@ -10,38 +10,52 @@
 #include <ngx_http_wasm_util.h>
 
 
-static ngx_str_t ngx_http_wasm_phases[] = {
-    ngx_string("post_read"),
-    ngx_string("server_rewrite"),
-    ngx_string("find_config"),
-    ngx_string("rewrite"),
-    ngx_string("post_rewrite"),
-    ngx_string("pre_access"),
-    ngx_string("access"),
-    ngx_string("post_access"),
-    ngx_string("pre_content"),
-    ngx_string("content"),
-    ngx_string("log")
-};
-
-
-char *
-ngx_http_wasm_conf_parse_phase(ngx_conf_t *cf, u_char *name,
-    ngx_http_phases *phase)
+ngx_int_t
+ngx_http_wasm_send_header(ngx_http_request_t *r)
 {
-    size_t   i;
-
-    for (i = 0; i <= NGX_HTTP_LOG_PHASE; i++) {
-        if (ngx_strncmp(name, ngx_http_wasm_phases[i].data,
-                        ngx_http_wasm_phases[i].len) == 0)
-        {
-            *phase = i;
-            return NGX_CONF_OK;
-        }
+#define NGX_WASM_DEAD 0
+    if (r->header_sent) {
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                      "NYI - http wasm: catch header sent");
+        return NGX_ERROR;
     }
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown phase \"%s\"",
-                       name);
+    if (!r->headers_out.status) {
+        r->headers_out.status = NGX_HTTP_OK;
+    }
 
-    return NGX_CONF_ERROR;
+    if (ngx_http_set_content_type(r) != NGX_OK) {
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
+
+#if NGX_WASM_DEAD
+    ngx_http_clear_content_length(r);
+    ngx_http_clear_accept_ranges(r);
+#endif
+
+    return ngx_http_send_header(r);
+#undef NGX_WASM_DEAD
+}
+
+
+ngx_int_t
+ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
+{
+    ngx_int_t   rc;
+
+    rc = ngx_http_wasm_send_header(r);
+    if (rc == NGX_ERROR || rc > NGX_OK || r->header_only) {
+        return rc;
+    }
+
+    if (in == NULL) {
+        rc = ngx_http_send_special(r, NGX_HTTP_LAST);
+        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+            return rc;
+        }
+
+        return NGX_OK;
+    }
+
+    return ngx_http_output_filter(r, in);
 }
