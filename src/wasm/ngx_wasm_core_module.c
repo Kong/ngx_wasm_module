@@ -241,7 +241,7 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
             continue;
         }
 
-        if (ngx_strcmp(wm->runtime->name.data, NGX_WRT_DEFAULT) == 0) {
+        if (ngx_strcmp(wm->runtime->name.data, NGX_WASM_DEFAULT_RUNTIME) == 0) {
             default_runtime = wm->runtime;
         }
 
@@ -258,7 +258,7 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
     if (default_runtime == NULL) {
         ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
                            "missing default NGX_WASM_MODULE \"%s\"",
-                           NGX_WRT_DEFAULT);
+                           NGX_WASM_DEFAULT_RUNTIME);
         return NGX_CONF_ERROR;
     }
 

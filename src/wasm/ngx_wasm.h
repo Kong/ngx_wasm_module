@@ -27,7 +27,7 @@
 #define NGX_WASM_ARGS_MAX            8
 #define NGX_WASM_RETS_MAX            1
 
-#define NGX_WRT_DEFAULT              "wasmtime"
+#define NGX_WASM_DEFAULT_RUNTIME     "wasmtime"
 
 #define NGX_WASM_OK                  NGX_OK
 #define NGX_WASM_ERROR               NGX_ERROR
