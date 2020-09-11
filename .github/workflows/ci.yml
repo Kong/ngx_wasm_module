@@ -93,7 +93,7 @@ jobs:
         #debug: [1, 0]
         debug: [1]
     steps:
-      - run: sudo apt-get install -y valgrind
+      - run: sudo apt-get update && sudo apt-get install -y valgrind
       - uses: actions/checkout@v2
       - name: "Set up cache - rustup toolchain"
         uses: actions/cache@v2
