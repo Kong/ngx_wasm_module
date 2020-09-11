@@ -10,7 +10,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: wasm{} configuration block
+=== TEST 1: wasm{} block
 --- main_config
     wasm {}
 --- no_error_log

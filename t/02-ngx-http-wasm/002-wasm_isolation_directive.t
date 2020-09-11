@@ -25,7 +25,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: wasm_isolation directive: no wasm{} configuration block
+=== TEST 1: wasm_isolation directive: no wasm{} block
 --- main_config
 --- config
     wasm_isolation main;
@@ -125,7 +125,7 @@ wasm calling \S+ in "rewrite" phase
 
 
 
-=== TEST 6: wasm_isolation 'server': one instance by server
+=== TEST 6: wasm_isolation 'server': one instance per server
 --- skip_no_debug: 3
 --- http_config
     wasm_isolation server;
@@ -174,7 +174,7 @@ wasm creating instance of \S+ module in \S+ vm .*?
 
 
 
-=== TEST 7: wasm_isolation 'location': one instance by location
+=== TEST 7: wasm_isolation 'location': one instance per location
 --- skip_no_debug: 3
 --- http_config
     wasm_isolation location;
@@ -224,7 +224,7 @@ wasm creating instance of \S+ module in \S+ vm .*?
 
 
 
-=== TEST 8: wasm_isolation 'request': one instance by request
+=== TEST 8: wasm_isolation 'request': one instance per request
 --- skip_no_debug: 3
 --- http_config
     wasm_isolation request;
@@ -275,7 +275,7 @@ wasm creating instance of \S+ module in \S+ vm .*?
 
 
 
-=== TEST 9: wasm_isolation 'ephemeral': one instance by call
+=== TEST 9: wasm_isolation 'ephemeral': one instance per call
 --- skip_no_debug: 3
 --- http_config
     wasm_isolation ephemeral;

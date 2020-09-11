@@ -160,7 +160,7 @@ qr/\[error\] .*? \[wasm\] .*? wasm trap: integer divide by zero/
 
 
 
-=== TEST 11: wasm_call directive: sanity in 'rewrite' phase in location block
+=== TEST 11: wasm_call directive: sanity 'rewrite' phase in location{} block
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -182,7 +182,7 @@ wasm calling "hello.nop" in "rewrite" phase
 
 
 
-=== TEST 12: wasm_call directive: sanity in 'content' phase in location block
+=== TEST 12: wasm_call directive: sanity 'content' phase in location{} block
 --- SKIP
 --- skip_no_debug: 4
 --- main_config
@@ -207,7 +207,7 @@ wasm calling "hello.nop" in "content" phase
 
 
 
-=== TEST 13: wasm_call directive: sanity in 'log' phase
+=== TEST 13: wasm_call directive: sanity 'log' phase in location{} block
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -229,7 +229,7 @@ wasm calling "hello.nop" in "log" phase
 
 
 
-=== TEST 14: wasm_call directive: multiple calls in a location block
+=== TEST 14: wasm_call directive: multiple calls in location{} block
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -254,7 +254,7 @@ wasm calling "hello.nop" in "log" phase
 
 
 
-=== TEST 15: wasm_call directive: multiple calls in main block
+=== TEST 15: wasm_call directive: multiple calls in server{} block
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -280,7 +280,33 @@ wasm calling "hello.nop" in "log" phase
 
 
 
-=== TEST 16: wasm_call directive: mixed main and location blocks
+=== TEST 16: wasm_call directive: multiple calls in http{} block
+--- skip_no_debug: 3
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+    }
+--- http_config
+    wasm_call log hello nop;
+    wasm_call log hello nop;
+--- config
+    location /t {
+        return 200;
+    }
+--- user_files
+>>> hello.wat
+(module
+  (func $nop)
+  (export "nop" (func $nop))
+)
+--- error_log
+wasm calling "hello.nop" in "log" phase
+wasm calling "hello.nop" in "log" phase
+--- no_error_log
+
+
+
+=== TEST 17: wasm_call directive: mixed server{} and location{} blocks
 --- skip_no_debug: 3
 --- main_config
     wasm {
@@ -307,13 +333,16 @@ wasm calling "hello.nop" in "log" phase
 
 
 
-=== TEST 17: wasm_call directive: multiple modules/calls/phases/blocks
+=== TEST 18: wasm_call directive: multiple modules/calls/phases/blocks
 --- skip_no_debug: 4
 --- main_config
     wasm {
         module moduleA $TEST_NGINX_HTML_DIR/hello.wat;
         module moduleB $TEST_NGINX_HTML_DIR/hello.wat;
     }
+--- http_config
+    wasm_call rewrite moduleA nop2;
+    wasm_call rewrite moduleB nop;
 --- config
     wasm_call rewrite moduleA nop;
     wasm_call log moduleA nop2;
