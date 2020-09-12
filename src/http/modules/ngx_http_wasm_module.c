@@ -7,7 +7,6 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_http_wasm_util.h>
 #include <ngx_wasm_phase_engine.h>
 
 

@@ -15,7 +15,7 @@ __DATA__
 --- grep_nginxV
 ngx_wasm_module [dev debug]
 --with-debug
--Og -ggdb3 -gdwarf
+-O0 -ggdb3 -gdwarf
 
 
 
@@ -23,7 +23,7 @@ ngx_wasm_module [dev debug]
 --- build: make NGX_BUILD_DEBUG=0
 --- grep_nginxV
 ngx_wasm_module [dev]
--Og -ggdb3 -gdwarf
+-O0 -ggdb3 -gdwarf
 --- no_grep_nginxV
 --with-debug
 

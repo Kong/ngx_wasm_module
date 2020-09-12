@@ -23,7 +23,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: ngx_wasm_log: logs in 'log' phase
+=== TEST 1: log: logs in 'log' phase
 --- config
     location /t {
         wasm_call log http_tests log_notice_hello;
@@ -36,7 +36,7 @@ qr/\[notice\] .*? hello world <vm: \S+, runtime: \S+> while logging request/
 
 
 
-=== TEST 2: ngx_wasm_log: logs in 'rewrite' phase
+=== TEST 2: log: logs in 'rewrite' phase
 --- config
     location /t {
         wasm_call rewrite http_tests log_notice_hello;
