@@ -7,11 +7,12 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_wasm_vm_def.h>
+#include <ngx_wasm_vm.h>
+#include <ngx_wasm_core.h>
 
 
 #define ngx_wasm_vm_check_init(vm, ret)                                      \
-    if (vm->runtime == NULL) {                                               \
+    if (vm->wrt == NULL) {                                                   \
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,                        \
                            "\"%V\" vm not initialized (vm: %p)",             \
                            &vm->name, vm);                                   \
@@ -69,8 +70,7 @@ ngx_wasm_vm_new(ngx_cycle_t *cycle, ngx_str_t *vm_name)
     vm->log->handler = ngx_wasm_vm_log_error_handler;
     vm->log->data = &vm->log_ctx;
 
-    ngx_rbtree_init(&vm->modules.rbtree, &vm->modules.sentinel,
-                    ngx_wasm_rbtree_insert_named_node);
+    ngx_rbtree_init(&vm->mtree, &vm->sentinel, ngx_wasm_rbtree_insert_nn);
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, cycle->log, 0,
                    "wasm created \"%V\" vm (vm: %p)",
@@ -93,7 +93,8 @@ void
 ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
 {
     ngx_queue_t              *q;
-    ngx_rbtree_node_t       **root, **sentinel;
+    ngx_rbtree_node_t       **root, **sentinel, *node;
+    ngx_wasm_nn_t            *nn;
     ngx_wasm_vm_module_t     *module;
     ngx_wasm_vm_instance_t   *inst;
 
@@ -101,13 +102,15 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
                    "wasm free \"%V\" vm (vm: %p)",
                    &vm->name, vm);
 
-    root = &vm->modules.rbtree.root;
-    sentinel = &vm->modules.rbtree.sentinel;
+    root = &vm->mtree.root;
+    sentinel = &vm->mtree.sentinel;
 
     while (*root != *sentinel) {
-        module = (ngx_wasm_vm_module_t *) ngx_rbtree_min(*root, *sentinel);
+        node = ngx_rbtree_min(*root, *sentinel);
+        nn = ngx_wasm_nn_n2nn(node);
+        module = ngx_wasm_nn_data(nn, ngx_wasm_vm_module_t, nn);
 
-        ngx_rbtree_delete(&vm->modules.rbtree, &module->rbnode.node);
+        ngx_rbtree_delete(&vm->mtree, node);
 
         ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
                        "wasm free \"%V\" module in \"%V\" vm"
@@ -146,6 +149,24 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
     }
 
     ngx_pfree(vm->pool, vm);
+}
+
+
+static ngx_wasm_vm_module_t *
+ngx_wasm_vm_get_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
+{
+    ngx_wasm_nn_t         *nn;
+    ngx_wasm_vm_module_t  *module;
+
+    nn = ngx_wasm_nn_rbtree_lookup(&vm->mtree, mod_name->data,
+                                   mod_name->len);
+    if (nn == NULL) {
+        return NULL;
+    }
+
+    module = ngx_wasm_nn_data(nn, ngx_wasm_vm_module_t, nn);
+
+    return module;
 }
 
 
@@ -189,8 +210,8 @@ ngx_wasm_vm_add_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name, ngx_str_t *path)
         module->flags |= NGX_WASM_MODULE_ISWAT;
     }
 
-    ngx_wasm_rbtree_set_named_node(&module->rbnode, &module->name);
-    ngx_rbtree_insert(&vm->modules.rbtree, &module->rbnode.node);
+    ngx_wasm_nn_init(&module->nn, &module->name);
+    ngx_wasm_nn_rbtree_insert(&vm->mtree, &module->nn);
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
                    "wasm registered \"%V\" module in \"%V\" vm"
@@ -222,41 +243,56 @@ failed:
 }
 
 
-ngx_wasm_vm_module_t *
-ngx_wasm_vm_get_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
+ngx_uint_t
+ngx_wasm_vm_has_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
 {
-    ngx_rbtree_node_t     *n;
-    ngx_wasm_vm_module_t  *module;
-
-    n = ngx_wasm_rbtree_lookup_named_node(&vm->modules.rbtree, mod_name->data,
-                                          mod_name->len);
-    if (n != NULL) {
-        module = (ngx_wasm_vm_module_t *)
-                     ((u_char *) n - offsetof(ngx_wasm_vm_module_t, rbnode));
-        return module;
-    }
-
-    return NULL;
+    return ngx_wasm_vm_get_module(vm, mod_name) != NULL;
 }
 
 
 ngx_int_t
-ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wasm_hfuncs_resolver_t *hf_resolver,
-    ngx_wrt_t *runtime)
+ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wrt_t *runtime,
+    ngx_wasm_hfuncs_t *hfuncs)
 {
+    ngx_int_t              rc;
+    ngx_rbtree_node_t     *node, *root, *sentinel;
+    ngx_wasm_nn_t         *nn;
+    ngx_wasm_vm_module_t  *module;
+
     if (vm->wrt) {
         return NGX_DONE;
     }
 
     vm->runtime = runtime;
+    vm->hfuncs = hfuncs;
 
     if (runtime->engine_new) {
-        vm->wrt = runtime->engine_new(vm->pool, hf_resolver);
+        vm->wrt = runtime->engine_new(vm->pool);
         if (vm->wrt == NULL) {
             ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
                                "failed to initialize \"%V\" runtime "
                                "for \"%V\" vm", &vm->runtime->name, &vm->name);
             return NGX_ERROR;
+        }
+    }
+
+    sentinel = vm->mtree.sentinel;
+    root = vm->mtree.root;
+
+    if (root == sentinel) {
+        return NGX_OK;
+    }
+
+    for (node = ngx_rbtree_min(root, sentinel);
+         node;
+         node = ngx_rbtree_next(&vm->mtree, node))
+    {
+        nn = ngx_wasm_nn_n2nn(node);
+        module = ngx_wasm_nn_data(nn, ngx_wasm_vm_module_t, nn);
+
+        rc = ngx_wasm_vm_load_module(vm, &module->name);
+        if (rc != NGX_OK) {
+            return rc;
         }
     }
 
@@ -346,7 +382,8 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
                        "loading \"%V\" module from \"%V\"",
                        &module->name, &module->path);
 
-    module->wrt = vm->runtime->module_new(vm->wrt, &module->name, &module->bytes,
+    module->wrt = vm->runtime->module_new(vm->wrt, vm->hfuncs,
+                                          &module->name, &module->bytes,
                                           module->flags, &err);
     if (module->wrt == NULL) {
         ngx_wasm_vm_log_error(NGX_LOG_EMERG, vm->log, err, NULL,
@@ -375,38 +412,6 @@ close:
     }
 
     return rc;
-}
-
-
-ngx_int_t
-ngx_wasm_vm_load_modules(ngx_wasm_vm_t *vm)
-{
-    ngx_int_t              rc;
-    ngx_rbtree_node_t     *node, *root, *sentinel;
-    ngx_wasm_vm_module_t  *module;
-
-    ngx_wasm_vm_check_init(vm, NGX_ABORT);
-
-    sentinel = vm->modules.rbtree.sentinel;
-    root = vm->modules.rbtree.root;
-
-    if (root == sentinel) {
-        return NGX_OK;
-    }
-
-    for (node = ngx_rbtree_min(root, sentinel);
-         node;
-         node = ngx_rbtree_next(&vm->modules.rbtree, node))
-    {
-        module = (ngx_wasm_vm_module_t *) node;
-
-        rc = ngx_wasm_vm_load_module(vm, &module->name);
-        if (rc != NGX_OK) {
-            return rc;
-        }
-    }
-
-    return NGX_OK;
 }
 
 

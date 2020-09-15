@@ -9,7 +9,6 @@
 
 #include <ngx_core.h>
 #include <ngx_wasm.h>
-#include <ngx_wasm_hfuncs.h>
 
 #include <wasm.h>
 #include <wasmtime.h>
@@ -22,8 +21,6 @@ typedef struct ngx_wasmtime_instance_s  ngx_wasmtime_instance_t;
 typedef struct ngx_wasmtime_engine_s {
     ngx_pool_t                      *pool;
     ngx_log_t                       *log;
-    ngx_wasm_hfuncs_resolver_t      *hf_resolver;
-
     wasm_config_t                   *config;
     wasm_engine_t                   *engine;
     wasm_store_t                    *store;
@@ -34,7 +31,6 @@ typedef struct ngx_wasmtime_module_s {
     ngx_wasmtime_engine_t           *engine;
     ngx_str_t                       *name;
     ngx_array_t                     *imports_hfuncs;
-
     wasm_module_t                   *module;
     wasm_importtype_vec_t            imports;
     wasm_exporttype_vec_t            exports;
@@ -44,7 +40,6 @@ typedef struct ngx_wasmtime_module_s {
 struct ngx_wasmtime_instance_s {
     ngx_wasmtime_module_t           *module;
     ngx_wasmtime_trampoline_ctx_t   *ctxs;
-
     wasm_store_t                    *store;
     wasm_instance_t                 *instance;
     wasm_memory_t                   *memory;
@@ -206,7 +201,7 @@ ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->hctx->log, 0,
                    "wasmtime host function trampoline (hfunc: %V, ctx: %p)",
-                   ctx->hfunc->name, ctx);
+                   &ctx->hfunc->name, ctx);
 
     ngx_wasmtime_vals_lift(ngx_args, (wasm_val_t *) args, ctx->hfunc->nargs);
 
@@ -249,8 +244,7 @@ ngx_wasmtime_engine_free(ngx_wrt_engine_pt wrt)
 
 
 static ngx_wrt_engine_pt
-ngx_wasmtime_engine_new(ngx_pool_t *pool,
-    ngx_wasm_hfuncs_resolver_t *hf_resolver)
+ngx_wasmtime_engine_new(ngx_pool_t *pool)
 {
     ngx_wasmtime_engine_t  *engine;
 
@@ -261,7 +255,6 @@ ngx_wasmtime_engine_new(ngx_pool_t *pool,
 
     engine->pool = pool;
     engine->log = pool->log;
-    engine->hf_resolver = hf_resolver;
 
 #if 1
     engine->config = wasm_config_new();
@@ -314,8 +307,9 @@ ngx_wasmtime_module_free(ngx_wrt_module_pt wrt)
 
 
 static ngx_wrt_module_pt
-ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_str_t *mod_name,
-    ngx_str_t *bytes, ngx_uint_t flags, ngx_wrt_error_pt *error)
+ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_wasm_hfuncs_t *hfuncs,
+    ngx_str_t *mod_name, ngx_str_t *bytes, ngx_uint_t flags,
+    ngx_wrt_error_pt *err)
 {
     size_t                    i;
     ngx_wasm_hfunc_t         *hfunc, **hfuncp;
@@ -329,11 +323,11 @@ ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_str_t *mod_name,
     if (flags & NGX_WASM_MODULE_ISWAT) {
         wasm_byte_vec_new(&wat_bytes, bytes->len, (const char *) bytes->data);
 
-        *error = wasmtime_wat2wasm(&wat_bytes, &wasm_bytes);
+        *err = wasmtime_wat2wasm(&wat_bytes, &wasm_bytes);
 
         wasm_byte_vec_delete(&wat_bytes);
 
-        if (*error) {
+        if (*err) {
             return NULL;
         }
 
@@ -350,11 +344,11 @@ ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_str_t *mod_name,
     module->engine = engine;
     module->name = mod_name;
 
-    *error = wasmtime_module_new(engine->engine, &wasm_bytes, &module->module);
+    *err = wasmtime_module_new(engine->engine, &wasm_bytes, &module->module);
 
     wasm_byte_vec_delete(&wasm_bytes);
 
-    if (*error) {
+    if (*err) {
         goto failed;
     }
 
@@ -379,9 +373,9 @@ ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_str_t *mod_name,
         name_module = wasm_importtype_module(module->imports.data[i]);
         name_func = wasm_importtype_name(module->imports.data[i]);
 
-        hfunc = ngx_wasm_hfuncs_resolver_lookup(engine->hf_resolver,
-                    (u_char *) name_module->data, name_module->size,
-                    (u_char *) name_func->data, name_func->size);
+        hfunc = ngx_wasm_hfuncs_lookup(hfuncs,
+                               (u_char *) name_module->data, name_module->size,
+                               (u_char *) name_func->data, name_func->size);
         if (hfunc == NULL) {
             /* let instantiation fail later on */
             continue;
@@ -443,7 +437,7 @@ ngx_wasmtime_instance_free(ngx_wrt_instance_pt wrt)
 
 ngx_wrt_instance_pt
 ngx_wasmtime_instance_new(ngx_wrt_module_pt wrt,
-    ngx_wasm_hctx_t *hctx, ngx_wrt_error_pt *error,
+    ngx_wasm_hctx_t *hctx, ngx_wrt_error_pt *err,
     ngx_wrt_trap_pt *trap)
 {
     size_t                           i;
@@ -511,11 +505,11 @@ ngx_wasmtime_instance_new(ngx_wrt_module_pt wrt,
                    "wasmtime creating \"%V\" instance (imports: %d)",
                    module->name, i);
 
-    *error = wasmtime_instance_new(instance->store, module->module,
+    *err = wasmtime_instance_new(instance->store, module->module,
                                    (const wasm_extern_t * const *) instance->imports,
                                    i, &instance->instance,
                                    (wasm_trap_t **) trap);
-    if (*error || *trap) {
+    if (*err || *trap) {
         goto failed;
     }
 
@@ -563,7 +557,7 @@ done:
 
 static ngx_int_t
 ngx_wasmtime_instance_call(ngx_wrt_instance_pt wrt,
-    ngx_str_t *func_name, ngx_wrt_error_pt *error,
+    ngx_str_t *func_name, ngx_wrt_error_pt *err,
     ngx_wrt_trap_pt *trap)
 {
     size_t                    i;
@@ -600,8 +594,8 @@ ngx_wasmtime_instance_call(ngx_wrt_instance_pt wrt,
         return NGX_DECLINED;
     }
 
-    *error = wasmtime_func_call(func, NULL, 0, NULL, 0, (wasm_trap_t **) trap);
-    if (*error || *trap) {
+    *err = wasmtime_func_call(func, NULL, 0, NULL, 0, (wasm_trap_t **) trap);
+    if (*err || *trap) {
         goto failed;
     }
 
@@ -656,13 +650,13 @@ ngx_wasmtime_hfunctype_free(void *vm_data)
 
 
 static u_char *
-ngx_wasmtime_log_error_handler(ngx_wrt_error_pt error,
+ngx_wasmtime_log_error_handler(ngx_wrt_error_pt err,
     ngx_wrt_trap_pt trap, u_char *buf, size_t len)
 {
     u_char            *p = buf;
     wasm_byte_vec_t    error_msg, trap_msg;
     wasm_trap_t       *wtrap = trap;
-    wasmtime_error_t  *werror = error;
+    wasmtime_error_t  *werror = err;
 
     if (wtrap) {
         ngx_memzero(&trap_msg, sizeof(wasm_byte_vec_t));
@@ -718,6 +712,7 @@ static ngx_wrt_t  ngx_wasmtime_runtime = {
 
 static ngx_wasm_module_t  ngx_wasmtime_module_ctx = {
     &ngx_wasmtime_runtime,               /* runtime */
+    NULL,                                /* hfuncs */
     NULL,                                /* create configuration */
     NULL,                                /* init configuration */
     NULL,                                /* init module */

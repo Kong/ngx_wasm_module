@@ -8,7 +8,6 @@
 
 #include <ngx_core.h>
 #include <ngx_wasm.h>
-#include <ngx_wasm_hfuncs.h>
 
 
 #define ngx_wasm_vm_abi_version         0000001
@@ -21,15 +20,12 @@ void ngx_wasm_vm_free(ngx_wasm_vm_t *vm);
 ngx_int_t ngx_wasm_vm_add_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name,
     ngx_str_t *path);
 
-ngx_wasm_vm_module_t *ngx_wasm_vm_get_module(ngx_wasm_vm_t *vm,
-    ngx_str_t *mod_name);
+ngx_uint_t ngx_wasm_vm_has_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name);
 
-ngx_int_t ngx_wasm_vm_init(ngx_wasm_vm_t *vm,
-    ngx_wasm_hfuncs_resolver_t *hf_resolver, ngx_wrt_t *runtime);
+ngx_int_t ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wrt_t *runtime,
+    ngx_wasm_hfuncs_t *hfuncs);
 
 ngx_int_t ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name);
-
-ngx_int_t ngx_wasm_vm_load_modules(ngx_wasm_vm_t *vm);
 
 ngx_wasm_vm_instance_t *ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm,
     ngx_str_t *mod_name);

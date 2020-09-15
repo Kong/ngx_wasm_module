@@ -8,12 +8,13 @@
 #include "ddebug.h"
 
 #include <ngx_wasm_vm_cache.h>
-#include <ngx_wasm_vm_def.h>
+#include <ngx_wasm_vm.h>
+#include <ngx_wasm_core.h>
 
 
 typedef struct {
-    ngx_wasm_rbtree_named_node_t   rbnode;
-    ngx_wasm_vm_instance_t        *inst;
+    ngx_wasm_nn_t            nn;
+    ngx_wasm_vm_instance_t  *inst;
 } ngx_wasm_vm_cache_node_t;
 
 
@@ -50,40 +51,38 @@ ngx_wasm_vm_cache_init(ngx_wasm_vm_cache_t *cache)
                    "wasm init vm cache (cache: %p)", cache);
 
     ngx_rbtree_init(&cache->rbtree, &cache->sentinel,
-                    ngx_wasm_rbtree_insert_named_node);
+                    ngx_wasm_rbtree_insert_nn);
 }
 
 
 ngx_wasm_vm_instance_t *
 ngx_wasm_vm_cache_get_instance(ngx_wasm_vm_cache_t *cache, ngx_str_t *mod_name)
 {
-    ngx_rbtree_node_t         *n;
-    ngx_wasm_vm_cache_node_t  *cn;
+    ngx_wasm_nn_t             *nn;
+    ngx_wasm_vm_cache_node_t  *cnode;
 
-    n = ngx_wasm_rbtree_lookup_named_node(&cache->rbtree, mod_name->data,
-                                          mod_name->len);
-    if (n != NULL) {
-        cn = (ngx_wasm_vm_cache_node_t *)
-                 ((u_char *) n - offsetof(ngx_wasm_vm_cache_node_t, rbnode));
-        return cn->inst;
+    nn = ngx_wasm_nn_rbtree_lookup(&cache->rbtree, mod_name->data,
+                                   mod_name->len);
+    if (nn != NULL) {
+        cnode = (ngx_wasm_vm_cache_node_t *) ngx_wasm_nn_data(nn, ngx_wasm_vm_cache_node_t, nn);
+        return cnode->inst;
     }
 
-    cn = ngx_palloc(cache->pool, sizeof(ngx_wasm_vm_cache_node_t));
-    if (cn == NULL) {
+    cnode = ngx_palloc(cache->pool, sizeof(ngx_wasm_vm_cache_node_t));
+    if (cnode == NULL) {
         return NULL;
     }
 
-    cn->inst = ngx_wasm_vm_instance_new(cache->vm, mod_name);
-    if (cn->inst == NULL) {
-        ngx_pfree(cache->pool, cn);
+    cnode->inst = ngx_wasm_vm_instance_new(cache->vm, mod_name);
+    if (cnode->inst == NULL) {
+        ngx_pfree(cache->pool, cnode);
         return NULL;
     }
 
-    ngx_wasm_rbtree_set_named_node(&cn->rbnode, mod_name);
+    ngx_wasm_nn_init(&cnode->nn, mod_name);
+    ngx_wasm_nn_rbtree_insert(&cache->rbtree, &cnode->nn);
 
-    ngx_rbtree_insert(&cache->rbtree, &cn->rbnode.node);
-
-    return cn->inst;
+    return cnode->inst;
 }
 
 
@@ -91,7 +90,8 @@ void
 ngx_wasm_vm_cache_cleanup(ngx_wasm_vm_cache_t *cache)
 {
     ngx_rbtree_node_t         **root, **sentinel, *node;
-    ngx_wasm_vm_cache_node_t   *cn;
+    ngx_wasm_nn_t              *nn;
+    ngx_wasm_vm_cache_node_t   *cnode;
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, cache->pool->log, 0,
                    "wasm cleanup vm cache (cache: %p)", cache);
@@ -101,14 +101,14 @@ ngx_wasm_vm_cache_cleanup(ngx_wasm_vm_cache_t *cache)
 
     while (*root != *sentinel) {
         node = ngx_rbtree_min(*root, *sentinel);
-        cn = (ngx_wasm_vm_cache_node_t *)
-                 ((u_char *) node - offsetof(ngx_wasm_vm_cache_node_t, rbnode));
+        nn = ngx_wasm_nn_n2nn(node);
+        cnode = ngx_wasm_nn_data(nn, ngx_wasm_vm_cache_node_t, nn);
 
-        ngx_wasm_vm_instance_free(cn->inst);
+        ngx_wasm_vm_instance_free(cnode->inst);
 
         ngx_rbtree_delete(&cache->rbtree, node);
 
-        ngx_pfree(cache->pool, cn);
+        ngx_pfree(cache->pool, cnode);
     }
 }
 

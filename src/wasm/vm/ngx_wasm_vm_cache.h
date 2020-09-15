@@ -7,7 +7,7 @@
 
 
 #include <ngx_core.h>
-#include <ngx_wasm_vm.h>
+#include <ngx_wasm.h>
 
 
 typedef struct ngx_wasm_vm_cache_s {

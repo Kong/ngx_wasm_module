@@ -93,40 +93,33 @@ ngx_http_wasm_hfunc_say(ngx_wasm_hctx_t *hctx,
 }
 
 
-static ngx_wasm_hfunc_decl_t  ngx_http_wasm_hfuncs[] = {
+static ngx_wasm_hfuncs_decls_t  ngx_http_wasm_hfuncs = {
+    NGX_WASM_SUBSYS_HTTP,
 
-    { ngx_string("ngx_http_resp_get_status"),
-      &ngx_http_wasm_hfunc_resp_get_status,
-      NGX_WASM_ARGS_NONE,
-      NGX_WASM_RETS_I32 },
+    {
+      { ngx_string("ngx_http_resp_get_status"),
+        &ngx_http_wasm_hfunc_resp_get_status,
+        NGX_WASM_ARGS_NONE,
+        NGX_WASM_RETS_I32,
+        ngx_wasm_hfunc_padding },
 
-    { ngx_string("ngx_http_say"),
-      &ngx_http_wasm_hfunc_say,
-      NGX_WASM_ARGS_I32_I32,
-      NGX_WASM_RETS_NONE },
+      { ngx_string("ngx_http_say"),
+        &ngx_http_wasm_hfunc_say,
+        NGX_WASM_ARGS_I32_I32,
+        NGX_WASM_RETS_NONE,
+        ngx_wasm_hfunc_padding },
 
-    ngx_wasm_hfunc_null
+      ngx_wasm_hfunc_null
+    }
 };
 
 
-static ngx_int_t
-ngx_http_wasm_hfuncs_init(ngx_conf_t *cf)
-{
-    ngx_wasm_core_hfuncs_add(cf->cycle, ngx_http_wasm_hfuncs);
-
-    return NGX_OK;
-}
-
-
-static ngx_http_module_t  ngx_http_wasm_hfuncs_module_ctx = {
-    ngx_http_wasm_hfuncs_init,           /* preconfiguration */
-    NULL,                                /* postconfiguration */
-    NULL,                                /* create main configuration */
-    NULL,                                /* init main configuration */
-    NULL,                                /* create server configuration */
-    NULL,                                /* merge server configuration */
-    NULL,                                /* create location configuration */
-    NULL                                 /* merge location configuration */
+static ngx_wasm_module_t  ngx_http_wasm_hfuncs_module_ctx = {
+    NULL,                                  /* runtime */
+    &ngx_http_wasm_hfuncs,                 /* hfuncs */
+    NULL,                                  /* create configuration */
+    NULL,                                  /* init configuration */
+    NULL,                                  /* init module */
 };
 
 
@@ -134,7 +127,7 @@ ngx_module_t  ngx_http_wasm_hfuncs_module = {
     NGX_MODULE_V1,
     &ngx_http_wasm_hfuncs_module_ctx,    /* module context */
     NULL,                                /* module directives */
-    NGX_HTTP_MODULE,                     /* module type */
+    NGX_WASM_MODULE,                     /* module type */
     NULL,                                /* init master */
     NULL,                                /* init module */
     NULL,                                /* init process */

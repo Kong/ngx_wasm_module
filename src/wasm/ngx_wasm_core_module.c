@@ -7,9 +7,9 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_wasm.h>
+#include <ngx_wasm_core.h>
 #include <ngx_wasm_vm.h>
-#include <ngx_wasm_util.h>
+#include <ngx_wasm_hfuncs.h>
 
 
 #define ngx_wasm_core_cycle_get_conf(cycle)                                  \
@@ -26,10 +26,9 @@
 
 
 typedef struct {
-    ngx_wasm_hfuncs_store_t     *hfuncs_store;
-    ngx_wasm_hfuncs_resolver_t  *hfuncs_resolver;
-    ngx_wrt_t                   *runtime;
     ngx_wasm_vm_t               *vm;
+    ngx_wasm_hfuncs_t           *hfuncs;
+    ngx_wrt_t                   *runtime;
 } ngx_wasm_core_conf_t;
 
 
@@ -66,6 +65,7 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
 
 static ngx_wasm_module_t  ngx_wasm_core_module_ctx = {
     NULL,                                  /* runtime */
+    NULL,                                  /* hfuncs */
     ngx_wasm_core_create_conf,             /* create configuration */
     ngx_wasm_core_init_conf,               /* init configuration */
     ngx_wasm_core_init                     /* init module */
@@ -114,15 +114,14 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
     }
 
     wcf->runtime = NGX_CONF_UNSET_PTR;
-    wcf->hfuncs_resolver = NULL;
-
-    wcf->hfuncs_store = ngx_wasm_hfuncs_store_new(cycle);
-    if (wcf->hfuncs_store == NULL) {
-        return NULL;
-    }
 
     wcf->vm = ngx_wasm_vm_new(cycle, (ngx_str_t *) &core_vm_name);
     if (wcf->vm == NULL) {
+        return NULL;
+    }
+
+    wcf->hfuncs = ngx_wasm_hfuncs_new(cycle);
+    if (wcf->hfuncs == NULL) {
         return NULL;
     }
 
@@ -276,26 +275,27 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 static ngx_int_t
 ngx_wasm_core_init(ngx_cycle_t *cycle)
 {
-    ngx_wasm_core_conf_t    *wcf;
+    ngx_uint_t             i;
+    ngx_wasm_module_t     *wm;
+    ngx_wasm_core_conf_t  *wcf;
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
 
-    wcf->hfuncs_resolver = ngx_wasm_hfuncs_resolver_new(cycle,
-                               wcf->hfuncs_store, wcf->runtime);
-    if (wcf->hfuncs_resolver == NULL) {
-        return NGX_ERROR;
+    ngx_wasm_hfuncs_init(wcf->hfuncs, wcf->runtime);
+
+    for (i = 0; cycle->modules[i]; i++) {
+        if (cycle->modules[i]->type != NGX_WASM_MODULE) {
+            continue;
+        }
+
+        wm = cycle->modules[i]->ctx;
+
+        if (wm->hdecls) {
+            ngx_wasm_hfuncs_add(wcf->hfuncs, (u_char *) "env", wm->hdecls);
+        }
     }
 
-    ngx_wasm_hfuncs_store_free(wcf->hfuncs_store);
-    wcf->hfuncs_store = NULL;
-
-    if (ngx_wasm_vm_init(wcf->vm, wcf->hfuncs_resolver, wcf->runtime)
-        != NGX_OK)
-    {
-        return NGX_ERROR;
-    }
-
-    if (ngx_wasm_vm_load_modules(wcf->vm) != NGX_OK) {
+    if (ngx_wasm_vm_init(wcf->vm, wcf->runtime, wcf->hfuncs) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -315,15 +315,12 @@ ngx_wasm_core_exit_process(ngx_cycle_t *cycle)
         wcf->vm = NULL;
     }
 
-    if (wcf->hfuncs_resolver) {
-        ngx_wasm_hfuncs_resolver_free(wcf->hfuncs_resolver);
-        wcf->hfuncs_resolver = NULL;
+    if (wcf->hfuncs) {
+        ngx_wasm_hfuncs_free(wcf->hfuncs);
+        wcf->hfuncs = NULL;
     }
 
-    if (wcf->hfuncs_store) {
-        ngx_wasm_hfuncs_store_free(wcf->hfuncs_store);
-        wcf->hfuncs_store = NULL;
-    }
+    wcf->runtime = NULL;
 }
 
 
@@ -347,21 +344,4 @@ ngx_wasm_core_get_vm(ngx_cycle_t *cycle)
     }
 
     return wcf->vm;
-}
-
-
-void
-ngx_wasm_core_hfuncs_add(ngx_cycle_t *cycle,
-    const ngx_wasm_hfunc_decl_t decls[])
-{
-    ngx_wasm_core_conf_t  *wcf;
-
-    wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    if (wcf == NULL) {
-        ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                      "no \"wasm\" section in configuration");
-        return;
-    }
-
-    ngx_wasm_hfuncs_store_add(wcf->hfuncs_store, "env", decls);
 }

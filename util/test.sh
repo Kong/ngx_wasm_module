@@ -101,6 +101,6 @@ set -e
 
 echo
 
-exec prove $prove_opts $@
+exec prove -r $prove_opts $@
 
 # vim: ft=sh st=4 sts=4 sw=4:

@@ -71,8 +71,8 @@ ngx_module_incs="$ngx_addon_dir/src/wasm \
                  $ngx_addon_dir/src/common"
 ngx_module_libs=
 ngx_module_deps="$ngx_addon_dir/src/wasm/ngx_wasm.h \
+                 $ngx_addon_dir/src/wasm/ngx_wasm_core.h \
                  $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm.h \
-                 $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm_def.h \
                  $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm_cache.h \
                  $ngx_addon_dir/src/wasm/vm/ngx_wasm_hfuncs.h \
                  $ngx_addon_dir/src/common/ngx_wasm_phase_engine.h \

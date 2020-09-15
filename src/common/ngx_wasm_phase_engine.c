@@ -315,7 +315,7 @@ ngx_wasm_phase_engine_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *c
         return NGX_CONF_ERROR;
     }
 
-    if (ngx_wasm_vm_get_module(lcf->vm, &call->mod_name) == NULL) {
+    if (!ngx_wasm_vm_has_module(lcf->vm, &call->mod_name)) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "[wasm] no \"%V\" module defined", &call->mod_name);
         return NGX_CONF_ERROR;
@@ -472,11 +472,11 @@ ngx_wasm_phase_engine_vmcache(ngx_wasm_phase_engine_phase_ctx_t *pctx)
 ngx_int_t
 ngx_wasm_phase_engine_exec(ngx_wasm_phase_engine_phase_ctx_t *pctx)
 {
-    size_t                                  i;
-    ngx_int_t                               rc;
-    ngx_uint_t                              phase;
-    ngx_wasm_hctx_t                         hctx;
-    ngx_wasm_vm_instance_t                 *inst;
+    size_t                                   i;
+    ngx_int_t                                rc;
+    ngx_uint_t                               phase;
+    ngx_wasm_hctx_t                          hctx;
+    ngx_wasm_vm_instance_t                  *inst;
     ngx_wasm_phase_engine_phase_engine_t    *phase_engine;
     ngx_wasm_phase_engine_leaf_conf_annx_t  *lcf;
     ngx_wasm_phase_engine_rctx_t            *rctx;

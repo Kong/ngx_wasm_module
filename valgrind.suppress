@@ -100,7 +100,7 @@
    fun:wasmtime_module_new
    fun:ngx_wasmtime_module_new
    fun:ngx_wasm_vm_load_module
-   fun:ngx_wasm_vm_load_modules
+   fun:ngx_wasm_vm_init
    fun:ngx_wasm_core_init
    fun:ngx_wasm_init
    fun:ngx_init_modules
