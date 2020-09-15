@@ -185,7 +185,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 --- user_files
 >>> hello.wat
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] failed to load "hello" module from ".*?hello\.wat" \(expected at least one module field/
+qr/\[emerg\] .*? \[wasm\] failed to compile ".*?hello\.wat" to wasm \(expected at least one module field/
 --- no_error_log
 [error]
 --- must_die

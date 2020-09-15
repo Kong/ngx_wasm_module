@@ -21,9 +21,6 @@
 #define NGX_WASM_MODULE              0x5741534d   /* "WASM" */
 #define NGX_WASM_CONF                0x00300000
 
-#define NGX_WASM_MODULE_ISWAT        (1 << 0)
-#define NGX_WASM_MODULE_LOADED       (1 << 1)
-
 #define NGX_WASM_ARGS_MAX            8
 #define NGX_WASM_RETS_MAX            1
 
@@ -126,9 +123,12 @@ typedef void (*ngx_wrt_hfunctype_free_pt)(ngx_wrt_functype_pt func);
 
 typedef ngx_wrt_engine_pt (*ngx_wrt_engine_new_pt)(ngx_pool_t *pool);
 
+typedef ngx_wrt_error_pt (*ngx_wrt_wat2wasm_pt)(ngx_wrt_engine_pt engine, u_char *wat,
+    size_t len, ngx_str_t *wasm);
+
 typedef ngx_wrt_module_pt (*ngx_wrt_module_new_pt)(ngx_wrt_engine_pt engine,
     ngx_wasm_hfuncs_t *hfuncs, ngx_str_t *mod_name, ngx_str_t *bytes,
-    ngx_uint_t flags, ngx_wrt_error_pt *err);
+    ngx_wrt_error_pt *err);
 
 typedef ngx_wrt_instance_pt (*ngx_wrt_instance_new_pt)(
     ngx_wrt_module_pt module, ngx_wasm_hctx_t *hctx,
@@ -151,6 +151,7 @@ typedef struct {
     ngx_wrt_engine_new_pt         engine_new;
     ngx_wrt_engine_free_pt        engine_free;
 
+    ngx_wrt_wat2wasm_pt           wat2wasm;
     ngx_wrt_module_new_pt         module_new;
     ngx_wrt_module_free_pt        module_free;
 

@@ -11,6 +11,9 @@
 #include <ngx_wasm_core.h>
 
 
+#define NGX_WASM_MODULE_ISWAT        (1 << 0)
+#define NGX_WASM_MODULE_LOADED       (1 << 1)
+
 #define ngx_wasm_vm_check_init(vm, ret)                                      \
     if (vm->wrt == NULL) {                                                   \
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,                        \
@@ -304,9 +307,11 @@ ngx_int_t
 ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
 {
     ssize_t                n, fsize;
+    u_char                *file_bytes;
+    ngx_str_t              wasm_bytes;
     ngx_int_t              rc = NGX_ERROR;
-    ngx_file_t             file;
     ngx_fd_t               fd;
+    ngx_file_t             file;
     ngx_wasm_vm_module_t  *module;
     ngx_wrt_error_pt       err = NULL;
 
@@ -352,17 +357,16 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
 
     fsize = ngx_file_size(&file.info);
 
-    module->bytes.len = fsize;
-    module->bytes.data = ngx_pnalloc(vm->pool, module->bytes.len);
-    if (module->bytes.data == NULL) {
+    file_bytes = ngx_alloc(fsize, vm->log);
+    if (file_bytes == NULL) {
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
-                           "failed to allocate bytes for \"%V\" "
+                           "failed to allocate file_bytes for \"%V\" "
                            "module from \"%V\"",
                            &module->name, &module->path);
         goto close;
     }
 
-    n = ngx_read_file(&file, (u_char *) module->bytes.data, fsize, 0);
+    n = ngx_read_file(&file, file_bytes, fsize, 0);
     if (n == NGX_ERROR) {
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, ngx_errno,
                            ngx_read_file_n " \"%V\" failed",
@@ -373,18 +377,40 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
     if (n != fsize) {
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
                            ngx_read_file_n " \"%V\" returned only "
-                           "%z bytes instead of %uz", &file.name,
+                           "%z file_bytes instead of %uz", &file.name,
                            n, fsize);
         goto close;
+    }
+
+    ngx_memzero(&wasm_bytes, sizeof(ngx_str_t));
+
+    if (module->flags & NGX_WASM_MODULE_ISWAT) {
+        ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->log, 0,
+                       "wasm compiling \"%V\" module wat from \"%V\"",
+                       &module->name, &module->path);
+
+        err = vm->runtime->wat2wasm(vm->wrt, file_bytes, fsize, &wasm_bytes);
+
+        ngx_free(file_bytes);
+
+        if (wasm_bytes.data == NULL) {
+            ngx_wasm_vm_log_error(NGX_LOG_EMERG, vm->log, err, NULL,
+                                  "failed to compile \"%V\" to wasm",
+                                  &module->path);
+            goto close;
+        }
+
+    } else {
+        wasm_bytes.len = fsize;
+        wasm_bytes.data = file_bytes;
     }
 
     ngx_wasm_log_error(NGX_LOG_NOTICE, vm->log, 0,
                        "loading \"%V\" module from \"%V\"",
                        &module->name, &module->path);
 
-    module->wrt = vm->runtime->module_new(vm->wrt, vm->hfuncs,
-                                          &module->name, &module->bytes,
-                                          module->flags, &err);
+    module->wrt = vm->runtime->module_new(vm->wrt, vm->hfuncs, &module->name,
+                                          &wasm_bytes, &err);
     if (module->wrt == NULL) {
         ngx_wasm_vm_log_error(NGX_LOG_EMERG, vm->log, err, NULL,
                               "failed to load \"%V\" module from \"%V\"",
@@ -409,6 +435,10 @@ close:
     if (ngx_close_file(fd) == NGX_FILE_ERROR) {
         ngx_wasm_log_error(NGX_LOG_ERR, vm->log, ngx_errno,
                            ngx_close_file_n " \"%V\" failed", &file.name);
+    }
+
+    if (wasm_bytes.data) {
+        ngx_free(wasm_bytes.data);
     }
 
     return rc;

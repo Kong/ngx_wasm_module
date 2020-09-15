@@ -306,34 +306,52 @@ ngx_wasmtime_module_free(ngx_wrt_module_pt wrt)
 }
 
 
+static ngx_wrt_error_pt
+ngx_wasmtime_wat2wasm(ngx_wrt_engine_pt wrt, u_char *wat, size_t len,
+    ngx_str_t *wasm)
+{
+    ngx_wasmtime_engine_t  *engine = wrt;
+    wasm_byte_vec_t         wasm_bytes, wat_bytes;
+    wasmtime_error_t       *err;
+
+    wasm_byte_vec_new(&wat_bytes, len, (const char *) wat);
+
+    err = wasmtime_wat2wasm(&wat_bytes, &wasm_bytes);
+
+    wasm_byte_vec_delete(&wat_bytes);
+
+    if (err) {
+        return err;
+    }
+
+    wasm->len = wasm_bytes.size;
+    wasm->data = ngx_alloc(wasm->len, engine->log);
+    if (wasm->data == NULL) {
+        return NULL;
+    }
+
+    ngx_memcpy(wasm->data, wasm_bytes.data, wasm_bytes.size);
+
+    wasm_byte_vec_delete(&wasm_bytes);
+
+    return NULL;
+}
+
+
 static ngx_wrt_module_pt
 ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_wasm_hfuncs_t *hfuncs,
-    ngx_str_t *mod_name, ngx_str_t *bytes, ngx_uint_t flags,
-    ngx_wrt_error_pt *err)
+    ngx_str_t *mod_name, ngx_str_t *bytes, ngx_wrt_error_pt *err)
 {
     size_t                    i;
     ngx_wasm_hfunc_t         *hfunc, **hfuncp;
     ngx_wasmtime_engine_t    *engine = wrt;
     ngx_wasmtime_module_t    *module;
-    wasm_byte_vec_t           wasm_bytes, wat_bytes;
+    wasm_byte_vec_t           wasm_bytes;
     const wasm_externtype_t  *ext_type;
     wasm_externkind_t         ext_kind;
     const wasm_name_t        *name_module, *name_func;
 
-    if (flags & NGX_WASM_MODULE_ISWAT) {
-        wasm_byte_vec_new(&wat_bytes, bytes->len, (const char *) bytes->data);
-
-        *err = wasmtime_wat2wasm(&wat_bytes, &wasm_bytes);
-
-        wasm_byte_vec_delete(&wat_bytes);
-
-        if (*err) {
-            return NULL;
-        }
-
-    } else {
-        wasm_byte_vec_new(&wasm_bytes, bytes->len, (const char *) bytes->data);
-    }
+    wasm_byte_vec_new(&wasm_bytes, bytes->len, (const char *) bytes->data);
 
     module = ngx_pcalloc(engine->pool, sizeof(ngx_wasmtime_module_t));
     if (module == NULL) {
@@ -696,6 +714,7 @@ static ngx_wrt_t  ngx_wasmtime_runtime = {
     ngx_wasmtime_engine_new,
     ngx_wasmtime_engine_free,
 
+    ngx_wasmtime_wat2wasm,
     ngx_wasmtime_module_new,
     ngx_wasmtime_module_free,
 
