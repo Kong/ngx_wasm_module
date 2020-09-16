@@ -222,7 +222,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 17: 'module' directive - invalid (invalid module)
+=== TEST 17: 'module' directive - invalid (invalid .wat module)
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -231,6 +231,21 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 >>> hello.wat
 --- error_log eval
 qr/\[emerg\] .*? \[wasm\] failed to compile ".*?hello\.wat" to wasm \(expected at least one module field/
+--- no_error_log
+[error]
+--- must_die
+
+
+
+=== TEST 18: 'module' directive - invalid (invalid .wasm module)
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wasm;
+    }
+--- user_files
+>>> hello.wasm
+--- error_log eval
+qr/\[emerg\] .*? \[wasm\] failed to load "hello" module from ".*?hello\.wasm" \(Unexpected EOF/
 --- no_error_log
 [error]
 --- must_die
