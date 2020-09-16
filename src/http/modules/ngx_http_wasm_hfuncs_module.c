@@ -99,14 +99,14 @@ static ngx_wasm_hfuncs_decls_t  ngx_http_wasm_hfuncs = {
     {
       { ngx_string("ngx_http_resp_get_status"),
         &ngx_http_wasm_hfunc_resp_get_status,
-        NGX_WASM_ARGS_NONE,
-        NGX_WASM_RETS_I32,
+        ngx_wasm_args_none,
+        ngx_wasm_rets_i32,
         ngx_wasm_hfunc_padding },
 
       { ngx_string("ngx_http_say"),
         &ngx_http_wasm_hfunc_say,
-        NGX_WASM_ARGS_I32_I32,
-        NGX_WASM_RETS_NONE,
+        ngx_wasm_args_i32_i32,
+        ngx_wasm_rets_none,
         ngx_wasm_hfunc_padding },
 
       ngx_wasm_hfunc_null

@@ -21,9 +21,6 @@
 #define NGX_WASM_MODULE              0x5741534d   /* "WASM" */
 #define NGX_WASM_CONF                0x00300000
 
-#define NGX_WASM_ARGS_MAX            8
-#define NGX_WASM_RETS_MAX            1
-
 #define NGX_WASM_DEFAULT_RUNTIME     "wasmtime"
 
 #define NGX_WASM_OK                  NGX_OK
@@ -31,26 +28,8 @@
 #define NGX_WASM_BAD_CTX             NGX_DECLINED
 #define NGX_WASM_SENT_LAST           NGX_DONE
 
-#define NGX_WASM_ARGS_NONE           { 0, 0, 0, 0, 0, 0, 0, 0 }
-#define NGX_WASM_RETS_NONE           { 0 }
-
-#define NGX_WASM_ARGS_I32_I32                                                \
-    { NGX_WASM_I32, NGX_WASM_I32, 0, 0, 0, 0, 0, 0 }
-
-#define NGX_WASM_ARGS_I32_I32_I32                                            \
-    { NGX_WASM_I32, NGX_WASM_I32, NGX_WASM_I32, 0, 0, 0, 0, 0 }
-
-#define NGX_WASM_ARGS_I64_I32                                                \
-    { NGX_WASM_I64, NGX_WASM_I32, 0, 0, 0, 0, 0, 0 }
-
-#define NGX_WASM_RETS_I32                                                    \
-    { NGX_WASM_I32 }
-
-#define ngx_wasm_hfunc_padding   0, 0, 0, NULL
-
-#define ngx_wasm_hfunc_null                                                  \
-    { ngx_null_string, NULL, NGX_WASM_ARGS_NONE, NGX_WASM_RETS_NONE,         \
-      ngx_wasm_hfunc_padding}
+#define NGX_WASM_ARGS_MAX            8
+#define NGX_WASM_RETS_MAX            1
 
 
 /* wasm vm */
@@ -95,6 +74,27 @@ typedef struct {
 
 
 /* host functions */
+
+
+#define ngx_wasm_hfunc_padding       0, 0, 0, NULL
+#define ngx_wasm_hfunc_null                                                  \
+    { ngx_null_string, NULL, ngx_wasm_args_none, ngx_wasm_rets_none,         \
+      ngx_wasm_hfunc_padding}
+
+#define ngx_wasm_args_none           { 0, 0, 0, 0, 0, 0, 0, 0 }
+#define ngx_wasm_rets_none           { 0 }
+
+#define ngx_wasm_args_i32_i32                                                \
+    { NGX_WASM_I32, NGX_WASM_I32, 0, 0, 0, 0, 0, 0 }
+
+#define ngx_wasm_args_i32_i32_I32                                            \
+    { NGX_WASM_I32, NGX_WASM_I32, NGX_WASM_I32, 0, 0, 0, 0, 0 }
+
+#define ngx_wasm_args_i64_i32                                                \
+    { NGX_WASM_I64, NGX_WASM_I32, 0, 0, 0, 0, 0, 0 }
+
+#define ngx_wasm_rets_i32                                                    \
+    { NGX_WASM_I32 }
 
 
 typedef ngx_int_t (*ngx_wasm_hfunc_pt)(ngx_wasm_hctx_t *hctx,

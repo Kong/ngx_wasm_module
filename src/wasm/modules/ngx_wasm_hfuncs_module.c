@@ -34,8 +34,8 @@ static ngx_wasm_hfuncs_decls_t  ngx_wasm_hfuncs = {
     {
       { ngx_string("ngx_log"),
         &ngx_wasm_hfuncs_log,
-        NGX_WASM_ARGS_I32_I32_I32,
-        NGX_WASM_RETS_NONE,
+        ngx_wasm_args_i32_i32_I32,
+        ngx_wasm_rets_none,
         ngx_wasm_hfunc_padding },
 
       ngx_wasm_hfunc_null
