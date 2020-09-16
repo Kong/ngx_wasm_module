@@ -15,6 +15,7 @@ __DATA__
     wasm {}
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -22,6 +23,8 @@ __DATA__
 --- main_config
 --- error_log
 no "wasm" section in configuration
+--- no_error_log
+[error]
 --- must_die
 
 
@@ -32,21 +35,35 @@ no "wasm" section in configuration
     wasm {}
 --- error_log
 "wasm" directive is duplicate
+--- no_error_log
+[error]
 --- must_die
 
 
 
-=== TEST 4: wasm{} - 'use' directive
+=== TEST 4: wasm{} - default runtime (no 'use' directive)
+--- main_config
+    wasm {}
+--- error_log eval
+qr/\[notice\] .*? using the "wasmtime" wasm runtime/
+--- no_error_log
+[error]
+
+
+
+=== TEST 5: 'use' directive - sanity
 --- main_config
     wasm {
         use wasmtime;
     }
 --- error_log eval
 qr/\[notice\] .*? using the "wasmtime" wasm runtime/
+--- no_error_log
+[error]
 
 
 
-=== TEST 5: wasm{} - duplicated 'use' directive
+=== TEST 6: 'use' directive - duplicated
 --- main_config
     wasm {
         use wasmtime;
@@ -54,30 +71,27 @@ qr/\[notice\] .*? using the "wasmtime" wasm runtime/
     }
 --- error_log
 "use" directive is duplicate
+--- no_error_log
+[error]
 --- must_die
 
 
 
-=== TEST 6: wasm{} - invalid 'use' directive
+=== TEST 7: 'use' directive - invalid value
 --- main_config
     wasm {
         use foo;
     }
 --- error_log
 invalid wasm runtime "foo"
+--- no_error_log
+[error]
 --- must_die
 
 
 
-=== TEST 7: wasm{} - default runtime (no 'use' directive)
---- main_config
-    wasm {}
---- error_log eval
-qr/\[notice\] .*? using the "wasmtime" wasm runtime/
-
-
-
-=== TEST 8: wasm{} - 'module' directive loads module in core VM
+=== TEST 8: 'module' directive - sanity with .wat module
+--- skip_no_debug: 3
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -86,11 +100,31 @@ qr/\[notice\] .*? using the "wasmtime" wasm runtime/
 >>> hello.wat
 (module)
 --- error_log eval
-qr/\[notice\] .*? \[wasm\] loading "hello" module from ".*?hello\.wat" <vm: core, runtime: .*?>/
+[qr/\[debug\] .*? wasm compiling "hello" \.wat module at ".*?hello\.wat"/,
+qr/\[notice\] .*? \[wasm\] loading "hello" module from ".*?hello\.wat" <vm: core, runtime: .*?>/]
+--- no_error_log
 
 
 
-=== TEST 9: wasm{} - multiple 'module' directives
+=== TEST 9: 'module' directive - sanity with .wasm module
+--- skip_no_debug: 3
+--- main_config eval
+qq{
+    wasm {
+        module hello $t::TestWasm::crates/rust_http_tests.wasm;
+    }
+}
+--- user_files
+>>> hello.wat
+(module)
+--- error_log eval
+qr/\[notice\] .*? \[wasm\] loading "hello" module from ".*?\.wasm" <vm: core, runtime: .*?>/
+--- no_error_log
+wasm compiling "hello" .wat module
+
+
+
+=== TEST 10: 'module' directive - multiple modules
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -102,54 +136,63 @@ qr/\[notice\] .*? \[wasm\] loading "hello" module from ".*?hello\.wat" <vm: core
 --- error_log eval
 [qr/\[notice\] .*? \[wasm\] loading "hello" module from ".*?hello\.wat"/,
 qr/\[notice\] .*? \[wasm\] loading "world" module from ".*?hello\.wat"/]
+--- no_error_log
 
 
 
-=== TEST 10: wasm{} - invalid 'module' directive (no name)
+=== TEST 11: 'module' directive - invalid (no name)
 --- main_config
     wasm {
         module $TEST_NGINX_HTML_DIR/hello.wat;
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid number of arguments in "module" directive/
+--- no_error_log
+[error]
 --- must_die
 
 
 
-=== TEST 11: wasm{} - invalid 'module' directive (no path)
+=== TEST 12: 'module' directive - invalid (no path)
 --- main_config
     wasm {
         module hello;
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid number of arguments in "module" directive/
+--- no_error_log
+[error]
 --- must_die
 
 
 
-=== TEST 12: wasm{} - invalid 'module' directive (invalid name)
+=== TEST 13: 'module' directive - invalid (invalid name)
 --- main_config
     wasm {
         module '' $TEST_NGINX_HTML_DIR/hello.wat;
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid module name ""/
+--- no_error_log
+[error]
 --- must_die
 
 
 
-=== TEST 13: wasm{} - invalid 'module' directive (invalid path)
+=== TEST 14: 'module' directive - invalid (invalid path)
 --- main_config
     wasm {
         module hello '';
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid module path ""/
+--- no_error_log
+[error]
 --- must_die
 
 
 
-=== TEST 14: wasm{} - invalid 'module' directive (already defined)
+=== TEST 15: 'module' directive - invalid (already defined)
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -160,11 +203,13 @@ qr/\[emerg\] .*? invalid module path ""/
 (module)
 --- error_log eval
 qr/\[emerg\] .*? module "hello" already defined/
+--- no_error_log
+[error]
 --- must_die
 
 
 
-=== TEST 15: wasm{} - invalid 'module' directive (no such path)
+=== TEST 16: 'module' directive - invalid (no such path)
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/none.wat;
@@ -177,7 +222,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 16: wasm{} - invalid 'module' directive (invalid module)
+=== TEST 17: 'module' directive - invalid (invalid module)
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;

@@ -386,7 +386,7 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
 
     if (module->flags & NGX_WASM_MODULE_ISWAT) {
         ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                       "wasm compiling \"%V\" module wat from \"%V\"",
+                       "wasm compiling \"%V\" .wat module at \"%V\"",
                        &module->name, &module->path);
 
         err = vm->runtime->wat2wasm(vm->wrt, file_bytes, fsize, &wasm_bytes);
