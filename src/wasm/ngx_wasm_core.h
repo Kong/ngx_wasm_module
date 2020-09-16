@@ -2,8 +2,8 @@
  * Copyright (C) Thibault Charbonnier
  */
 
-#ifndef _NGX_WASM_VM_DEF_H_INCLUDED_
-#define _NGX_WASM_VM_DEF_H_INCLUDED_
+#ifndef _NGX_WASM_CORE_H_INCLUDED_
+#define _NGX_WASM_CORE_H_INCLUDED_
 
 
 #include <ngx_core.h>
@@ -57,4 +57,4 @@ struct ngx_wasm_vm_s {
 };
 
 
-#endif /* _NGX_WASM_VM_DEF_H_INCLUDED_ */
+#endif /* _NGX_WASM_CORE_H_INCLUDED_ */
