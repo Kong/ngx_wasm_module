@@ -201,9 +201,9 @@ ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->hctx->log, 0,
                    "wasmtime host function trampoline (hfunc: %V, ctx: %p)",
-                   &ctx->hfunc->name, ctx);
+                   ctx->hfunc->name, ctx);
 
-    ngx_wasmtime_vals_lift(ngx_args, (wasm_val_t *) args, ctx->hfunc->nargs);
+    ngx_wasmtime_vals_lift(ngx_args, (wasm_val_t *) args, ctx->hfunc->args.size);
 
     rc = ctx->hfunc->ptr(ctx->hctx, ngx_args, ngx_rets);
     if (rc == NGX_WASM_ERROR) {
@@ -217,7 +217,7 @@ ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
 
     /* NGX_WASM_OK, NGX_WASM_AGAIN */
 
-    ngx_wasmtime_vals_lower(rets, ngx_rets, ctx->hfunc->nrets);
+    ngx_wasmtime_vals_lower(rets, ngx_rets, ctx->hfunc->rets.size);
 
     return NULL;
 }
@@ -634,18 +634,18 @@ ngx_wasmtime_hfunctype_new(ngx_wasm_hfunc_t *hfunc)
     wasm_valtype_t      *valtype;
     wasm_functype_t     *functype;
 
-    wasm_valtype_vec_new_uninitialized(&args, hfunc->nargs);
-    wasm_valtype_vec_new_uninitialized(&rets, hfunc->nrets);
+    wasm_valtype_vec_new_uninitialized(&args, hfunc->args.size);
+    wasm_valtype_vec_new_uninitialized(&rets, hfunc->rets.size);
 
-    for (i = 0; i < hfunc->nargs; i++) {
-        valkind = ngx_wasmtime_valkind_lower(hfunc->args[i]);
+    for (i = 0; i < hfunc->args.size; i++) {
+        valkind = ngx_wasmtime_valkind_lower(hfunc->args.vals[i]);
         valtype = wasm_valtype_new(valkind);
         args.data[i] = wasm_valtype_copy(valtype);
         wasm_valtype_delete(valtype);
     }
 
-    for (i = 0; i < hfunc->nrets; i++) {
-        valkind = ngx_wasmtime_valkind_lower(hfunc->rets[i]);
+    for (i = 0; i < hfunc->rets.size; i++) {
+        valkind = ngx_wasmtime_valkind_lower(hfunc->rets.vals[i]);
         valtype = wasm_valtype_new(valkind);
         rets.data[i] = wasm_valtype_copy(valtype);
         wasm_valtype_delete(valtype);

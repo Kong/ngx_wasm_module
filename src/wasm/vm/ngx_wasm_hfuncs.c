@@ -43,11 +43,12 @@ failed:
 
 void
 ngx_wasm_hfuncs_add(ngx_wasm_hfuncs_t *hfuncs, u_char *mod_name,
-    ngx_wasm_hfuncs_decls_t *decls)
+    ngx_wasm_hdecls_t *hdecls)
 {
-    size_t                    mod_len;
+    size_t                    mod_len, nargs, nrets;
     u_char                   *err = NULL;
     ngx_wasm_nn_t            *nn;
+    ngx_wasm_hdecl_t         *hdecl;
     ngx_wasm_hfunc_t         *hf;
     ngx_wasm_hfuncs_fnode_t  *fnode;
     ngx_wasm_hfuncs_mnode_t  *mnode;
@@ -75,31 +76,61 @@ ngx_wasm_hfuncs_add(ngx_wasm_hfuncs_t *hfuncs, u_char *mod_name,
         ngx_wasm_nn_rbtree_insert(&hfuncs->mtree, &mnode->nn);
     }
 
-    hf = decls->hfuncs;
+    hdecl = hdecls->hdecls;
 
-    for (/* void */; hf->ptr; hf++) {
+    for (/* void */; hdecl->ptr; hdecl++) {
 
         ngx_log_debug2(NGX_LOG_DEBUG_WASM, hfuncs->cycle->log, 0,
                        "wasm registering \"%V.%V\" host function",
-                       &mnode->name, &hf->name);
+                       &mnode->name, &hdecl->name);
 
-        nn = ngx_wasm_nn_rbtree_lookup(&mnode->ftree, hf->name.data,
-                                       hf->name.len);
+        nn = ngx_wasm_nn_rbtree_lookup(&mnode->ftree, hdecl->name.data,
+                                       hdecl->name.len);
         if (nn) {
             ngx_sprintf(err, "\"%V.%V\" already defined",
-                        &mnode->name, &hf->name);
+                        &mnode->name, &hdecl->name);
             goto failed;
         }
 
-        hf->subsys = decls->subsys;
+        hf = ngx_pcalloc(hfuncs->pool, sizeof(ngx_wasm_hfunc_t));
+        if (hf == NULL) {
+            err = (u_char *) "no memory";
+            goto failed;
+        }
 
-        for (hf->nargs = 0;
-             hf->args[hf->nargs] && hf->nargs < NGX_WASM_ARGS_MAX;
-             hf->nargs++) { /* void */ }
+        hf->name = &hdecl->name;
+        hf->ptr = hdecl->ptr;
+        hf->subsys = hdecls->subsys;
 
-        for (hf->nrets = 0;
-             hf->rets[hf->nrets] && hf->nrets < NGX_WASM_RETS_MAX;
-             hf->nrets++) { /* void */ }
+        for (nargs = 0; hdecl->args[nargs] && nargs < NGX_WASM_ARGS_MAX;
+             nargs++) { /* void */ }
+
+        for (nrets = 0; hdecl->rets[nrets] && nrets < NGX_WASM_RETS_MAX;
+             nrets++) { /* void */ }
+
+        hf->args.size = nargs;
+        hf->args.vals = ngx_palloc(hfuncs->pool,
+                                   nargs * sizeof(ngx_wasm_val_kind));
+        if (hf->args.vals == NULL) {
+            err = (u_char *) "no memory";
+            goto failed;
+        }
+
+        hf->rets.size = nrets;
+        hf->rets.vals = ngx_palloc(hfuncs->pool,
+                                   nrets * sizeof(ngx_wasm_val_kind));
+        if (hf->rets.vals == NULL) {
+            err = (u_char *) "no memory";
+            goto failed;
+        }
+
+        for (nargs = 0; nargs < hf->args.size; nargs++) {
+            hf->args.vals[nargs] = hdecl->args[nargs];
+        }
+
+        for (nrets = 0; nrets < hf->rets.size; nrets++) {
+            hf->rets.vals[nrets] = hdecl->rets[nrets];
+        }
 
         fnode = ngx_pcalloc(hfuncs->pool, sizeof(ngx_wasm_hfuncs_fnode_t));
         if (fnode == NULL) {
@@ -109,7 +140,7 @@ ngx_wasm_hfuncs_add(ngx_wasm_hfuncs_t *hfuncs, u_char *mod_name,
 
         fnode->hfunc = hf;
 
-        ngx_wasm_nn_init(&fnode->nn, &hf->name);
+        ngx_wasm_nn_init(&fnode->nn, hf->name);
         ngx_wasm_nn_rbtree_insert(&mnode->ftree, &fnode->nn);
     }
 
@@ -233,6 +264,10 @@ ngx_wasm_hfuncs_free(ngx_wasm_hfuncs_t *hfuncs)
             if (hfuncs->hfunctype_free && hf->wrt_functype) {
                 hfuncs->hfunctype_free(hf->wrt_functype);
             }
+
+            ngx_pfree(hfuncs->pool, hf->args.vals);
+            ngx_pfree(hfuncs->pool, hf->rets.vals);
+            ngx_pfree(hfuncs->pool, hf);
         }
 
         ngx_pfree(hfuncs->pool, mnode);

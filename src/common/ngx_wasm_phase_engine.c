@@ -309,7 +309,7 @@ ngx_wasm_phase_engine_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *c
     }
 
     if (ngx_wasm_phase_engine_conf_parse_phase(cf, phase_name.data, &phase,
-                                              module_type)
+                                               module_type)
         != NGX_CONF_OK)
     {
         return NGX_CONF_ERROR;

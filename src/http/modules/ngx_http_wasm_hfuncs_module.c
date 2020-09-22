@@ -93,21 +93,19 @@ ngx_http_wasm_hfunc_say(ngx_wasm_hctx_t *hctx,
 }
 
 
-static ngx_wasm_hfuncs_decls_t  ngx_http_wasm_hfuncs = {
+static ngx_wasm_hdecls_t  ngx_http_wasm_hdecls = {
     NGX_WASM_SUBSYS_HTTP,
 
     {
       { ngx_string("ngx_http_resp_get_status"),
         &ngx_http_wasm_hfunc_resp_get_status,
         ngx_wasm_args_none,
-        ngx_wasm_rets_i32,
-        ngx_wasm_hfunc_padding },
+        ngx_wasm_rets_i32 },
 
       { ngx_string("ngx_http_say"),
         &ngx_http_wasm_hfunc_say,
         ngx_wasm_args_i32_i32,
-        ngx_wasm_rets_none,
-        ngx_wasm_hfunc_padding },
+        ngx_wasm_rets_none },
 
       ngx_wasm_hfunc_null
     }
@@ -116,7 +114,7 @@ static ngx_wasm_hfuncs_decls_t  ngx_http_wasm_hfuncs = {
 
 static ngx_wasm_module_t  ngx_http_wasm_hfuncs_module_ctx = {
     NULL,                                  /* runtime */
-    &ngx_http_wasm_hfuncs,                 /* hfuncs */
+    &ngx_http_wasm_hdecls,                 /* hdecls */
     NULL,                                  /* create configuration */
     NULL,                                  /* init configuration */
     NULL,                                  /* init module */

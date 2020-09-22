@@ -76,13 +76,11 @@ typedef struct {
 /* host functions */
 
 
-#define ngx_wasm_hfunc_padding       0, 0, 0, NULL
-#define ngx_wasm_hfunc_null                                                  \
-    { ngx_null_string, NULL, ngx_wasm_args_none, ngx_wasm_rets_none,         \
-      ngx_wasm_hfunc_padding}
-
 #define ngx_wasm_args_none           { 0, 0, 0, 0, 0, 0, 0, 0 }
 #define ngx_wasm_rets_none           { 0 }
+
+#define ngx_wasm_hfunc_null                                                  \
+    { ngx_null_string, NULL, ngx_wasm_args_none, ngx_wasm_rets_none }
 
 #define ngx_wasm_args_i32_i32                                                \
     { NGX_WASM_I32, NGX_WASM_I32, 0, 0, 0, 0, 0, 0 }
@@ -96,13 +94,28 @@ typedef struct {
 #define ngx_wasm_rets_i32                                                    \
     { NGX_WASM_I32 }
 
+typedef struct ngx_wasm_hfunc_s  ngx_wasm_hfunc_t;
+typedef struct ngx_wasm_hfuncs_s  ngx_wasm_hfuncs_t;
 
 typedef ngx_int_t (*ngx_wasm_hfunc_pt)(ngx_wasm_hctx_t *hctx,
     const ngx_wasm_val_t args[], ngx_wasm_val_t rets[]);
 
-typedef struct ngx_wasm_hfunc_s  ngx_wasm_hfunc_t;
-typedef struct ngx_wasm_hfuncs_s  ngx_wasm_hfuncs_t;
-typedef struct ngx_wasm_hfuncs_decls_s  ngx_wasm_hfuncs_decls_t;
+typedef struct {
+    ngx_str_t                      name;
+    ngx_wasm_hfunc_pt              ptr;
+    ngx_wasm_val_kind              args[NGX_WASM_ARGS_MAX];
+    ngx_wasm_val_kind              rets[NGX_WASM_RETS_MAX];
+} ngx_wasm_hdecl_t;
+
+typedef struct {
+    ngx_wasm_subsys_kind           subsys;
+    ngx_wasm_hdecl_t               hdecls[];
+} ngx_wasm_hdecls_t;
+
+typedef struct {
+    ngx_uint_t                     size;
+    ngx_wasm_val_kind             *vals;
+} ngx_wasm_hfunc_arity_t;
 
 ngx_wasm_hfunc_t *ngx_wasm_hfuncs_lookup(ngx_wasm_hfuncs_t *hfuncs,
     u_char *mod_name, size_t mod_len, u_char *func_name, size_t func_len);
@@ -170,37 +183,29 @@ typedef struct {
 
 
 struct ngx_wasm_hfunc_s {
-    ngx_str_t                      name;
+    ngx_str_t                     *name;
     ngx_wasm_hfunc_pt              ptr;
-    ngx_wasm_val_kind              args[NGX_WASM_ARGS_MAX];
-    ngx_wasm_val_kind              rets[NGX_WASM_RETS_MAX];
-    ngx_uint_t                     nargs;
-    ngx_uint_t                     nrets;
     ngx_wasm_subsys_kind           subsys;
+    ngx_wasm_hfunc_arity_t         args;
+    ngx_wasm_hfunc_arity_t         rets;
     ngx_wrt_functype_pt            wrt_functype;
-};
-
-
-struct ngx_wasm_hfuncs_decls_s {
-    ngx_wasm_subsys_kind           subsys;
-    ngx_wasm_hfunc_t               hfuncs[];
 };
 
 
 /* core wasm module ABI */
 
 
-extern ngx_module_t  ngx_wasm_module;
-
 typedef struct {
     ngx_wrt_t                     *runtime;
-    ngx_wasm_hfuncs_decls_t       *hdecls;
+    ngx_wasm_hdecls_t             *hdecls;
     void                          *(*create_conf)(ngx_cycle_t *cycle);
     char                          *(*init_conf)(ngx_cycle_t *cycle, void *conf);
     ngx_int_t                      (*init)(ngx_cycle_t *cycle);
 } ngx_wasm_module_t;
 
 ngx_wasm_vm_t *ngx_wasm_core_get_vm(ngx_cycle_t *cycle);
+
+extern ngx_module_t  ngx_wasm_module;
 
 
 #endif /* _NGX_WASM_H_INCLUDED_ */

@@ -28,15 +28,14 @@ ngx_wasm_hfuncs_log(ngx_wasm_hctx_t *hctx, const ngx_wasm_val_t args[],
 }
 
 
-static ngx_wasm_hfuncs_decls_t  ngx_wasm_hfuncs = {
+static ngx_wasm_hdecls_t  ngx_wasm_hdecls = {
     NGX_WASM_SUBSYS_ANY,
 
     {
       { ngx_string("ngx_log"),
         &ngx_wasm_hfuncs_log,
         ngx_wasm_args_i32_i32_I32,
-        ngx_wasm_rets_none,
-        ngx_wasm_hfunc_padding },
+        ngx_wasm_rets_none },
 
       ngx_wasm_hfunc_null
     }
@@ -45,7 +44,7 @@ static ngx_wasm_hfuncs_decls_t  ngx_wasm_hfuncs = {
 
 static ngx_wasm_module_t  ngx_wasm_hfuncs_module_ctx = {
     NULL,                                  /* runtime */
-    &ngx_wasm_hfuncs,                      /* hfuncs */
+    &ngx_wasm_hdecls,                      /* hdecls */
     NULL,                                  /* create configuration */
     NULL,                                  /* init configuration */
     NULL,                                  /* init module */

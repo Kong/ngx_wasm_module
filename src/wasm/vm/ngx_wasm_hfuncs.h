@@ -37,7 +37,7 @@ struct ngx_wasm_hfuncs_s {
 ngx_wasm_hfuncs_t *ngx_wasm_hfuncs_new(ngx_cycle_t *cycle);
 
 void ngx_wasm_hfuncs_add(ngx_wasm_hfuncs_t *hfuncs, u_char *mod_name,
-    ngx_wasm_hfuncs_decls_t *decls);
+    ngx_wasm_hdecls_t *hdecls);
 
 void ngx_wasm_hfuncs_init(ngx_wasm_hfuncs_t *hfuncs, ngx_wrt_t *runtime);
 
