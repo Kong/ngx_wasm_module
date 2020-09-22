@@ -317,6 +317,8 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
 
     ngx_wasm_vm_check_init(vm, NGX_ABORT);
 
+    ngx_memzero(&wasm_bytes, sizeof(ngx_str_t));
+
     module = ngx_wasm_vm_get_module(vm, mod_name);
     if (module == NULL) {
         ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
@@ -381,8 +383,6 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
                            n, fsize);
         goto close;
     }
-
-    ngx_memzero(&wasm_bytes, sizeof(ngx_str_t));
 
     if (module->flags & NGX_WASM_MODULE_ISWAT) {
         ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->log, 0,
