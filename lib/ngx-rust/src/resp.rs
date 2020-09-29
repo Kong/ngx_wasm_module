@@ -9,11 +9,11 @@ pub fn ngx_resp_get_status() -> i32 {
 }
 
 extern "C" {
-    fn ngx_http_say(body: *const u8, size: i32);
+    fn ngx_http_resp_say(body: *const u8, size: i32);
 }
 
-pub fn ngx_say(body: String) {
+pub fn ngx_resp_say(body: String) {
     unsafe {
-        ngx_http_say(body.as_ptr(), body.len() as i32)
+        ngx_http_resp_say(body.as_ptr(), body.len() as i32)
     }
 }

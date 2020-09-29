@@ -17,7 +17,7 @@ pub fn log_resp_status() {
 
 #[no_mangle]
 pub fn say_hello() {
-    ngx_say("hello say".into());
+    ngx_resp_say("hello say".into());
 }
 
 #[cfg(test)]

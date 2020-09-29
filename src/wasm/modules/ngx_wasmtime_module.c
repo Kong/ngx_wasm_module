@@ -8,14 +8,17 @@
 #include "ddebug.h"
 
 #include <ngx_core.h>
-#include <ngx_wasm.h>
+#include <ngx_wasm_core.h>
 
 #include <wasm.h>
 #include <wasmtime.h>
 
 
-typedef struct ngx_wasmtime_trampoline_ctx_s  ngx_wasmtime_trampoline_ctx_t;
-typedef struct ngx_wasmtime_instance_s  ngx_wasmtime_instance_t;
+typedef struct {
+    ngx_wasm_hctx_t              **hctx;
+    ngx_wasm_hfunc_t              *hfunc;
+    ngx_wrt_instance_pt            wrt;
+} ngx_wasmtime_tramp_ctx_t;
 
 
 typedef struct ngx_wasmtime_engine_s {
@@ -37,22 +40,15 @@ typedef struct ngx_wasmtime_module_s {
 } ngx_wasmtime_module_t;
 
 
-struct ngx_wasmtime_instance_s {
+typedef struct {
     ngx_wasmtime_module_t           *module;
-    ngx_wasmtime_trampoline_ctx_t   *ctxs;
+    ngx_wasmtime_tramp_ctx_t        *ctxs;
     wasm_store_t                    *store;
     wasm_instance_t                 *instance;
     wasm_memory_t                   *memory;
     wasm_extern_t                  **imports;
     wasm_extern_vec_t                externs;
-};
-
-
-struct ngx_wasmtime_trampoline_ctx_s {
-    ngx_wasm_hctx_t                 *hctx;
-    ngx_wasm_hfunc_t                *hfunc;
-    ngx_wasmtime_instance_t         *wrt;
-};
+} ngx_wasmtime_instance_t;
 
 
 /* utils */
@@ -194,30 +190,41 @@ ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
     ngx_int_t                       rc;
     ngx_wasm_val_t                  ngx_args[NGX_WASM_ARGS_MAX];
     ngx_wasm_val_t                  ngx_rets[NGX_WASM_RETS_MAX];
-    ngx_wasmtime_trampoline_ctx_t  *ctx = env;
+    ngx_wasm_hctx_t                *hctx;
+    ngx_wasmtime_tramp_ctx_t       *tctx = env;
+    ngx_wasmtime_instance_t        *wrt = (ngx_wasmtime_instance_t *) tctx->wrt;
     wasm_message_t                  trap_msg;
 
-    ctx->hctx->mem_off = wasm_memory_data(ctx->wrt->memory);
+    hctx = *tctx->hctx;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->hctx->log, 0,
-                   "wasmtime host function trampoline (hfunc: %V, ctx: %p)",
-                   ctx->hfunc->name, ctx);
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, hctx->log, 0,
+                   "wasmtime host function trampoline (hfunc: %V, tctx: %p)",
+                   tctx->hfunc->name, tctx);
 
-    ngx_wasmtime_vals_lift(ngx_args, (wasm_val_t *) args, ctx->hfunc->args.size);
+    if (tctx->hfunc->subsys != NGX_WASM_SUBSYS_ANY &&
+        tctx->hfunc->subsys != hctx->subsys)
+    {
+        wasm_name_new_from_string(&trap_msg, "bad subsystem");
+        return wasm_trap_new(wrt->store, &trap_msg);
+    }
 
-    rc = ctx->hfunc->ptr(ctx->hctx, ngx_args, ngx_rets);
+    ngx_wasmtime_vals_lift(ngx_args, (wasm_val_t *) args, tctx->hfunc->args.size);
+
+    hctx->mem_off = wasm_memory_data(wrt->memory);
+
+    rc = tctx->hfunc->ptr(hctx, ngx_args, ngx_rets);
     if (rc == NGX_WASM_ERROR) {
         wasm_name_new_from_string(&trap_msg, "nginx error in host function");
-        return wasm_trap_new(ctx->wrt->store, &trap_msg);
+        return wasm_trap_new(wrt->store, &trap_msg);
 
     } else if (rc == NGX_WASM_BAD_CTX) {
         wasm_name_new_from_string(&trap_msg, "bad context");
-        return wasm_trap_new(ctx->wrt->store, &trap_msg);
+        return wasm_trap_new(wrt->store, &trap_msg);
     }
 
     /* NGX_WASM_OK, NGX_WASM_AGAIN */
 
-    ngx_wasmtime_vals_lower(rets, ngx_rets, ctx->hfunc->rets.size);
+    ngx_wasmtime_vals_lower(rets, ngx_rets, tctx->hfunc->rets.size);
 
     return NULL;
 }
@@ -454,16 +461,15 @@ ngx_wasmtime_instance_free(ngx_wrt_instance_pt wrt)
 
 
 ngx_wrt_instance_pt
-ngx_wasmtime_instance_new(ngx_wrt_module_pt wrt,
-    ngx_wasm_hctx_t *hctx, ngx_wrt_error_pt *err,
-    ngx_wrt_trap_pt *trap)
+ngx_wasmtime_instance_new(ngx_wrt_module_pt wrt, ngx_wasm_hctx_t **hctx,
+    ngx_wrt_error_pt *err, ngx_wrt_trap_pt *trap)
 {
     size_t                           i;
     ngx_wasm_hfunc_t               **hfuncs, *hfunc;
     ngx_wasmtime_module_t           *module = wrt;
     ngx_wasmtime_engine_t           *engine;
     ngx_wasmtime_instance_t         *instance;
-    ngx_wasmtime_trampoline_ctx_t   *ctx;
+    ngx_wasmtime_tramp_ctx_t        *ctx;
     wasm_func_t                     *func;
     wasm_extern_t                   *ext;
     wasm_externkind_t                ext_kind;
@@ -493,7 +499,7 @@ ngx_wasmtime_instance_new(ngx_wrt_module_pt wrt,
     }
 
     instance->ctxs = ngx_palloc(engine->pool,
-                                sizeof(ngx_wasmtime_trampoline_ctx_t) *
+                                sizeof(ngx_wasmtime_tramp_ctx_t) *
                                 module->imports_hfuncs->nelts);
     if (instance->ctxs == NULL) {
         goto failed;
@@ -513,8 +519,7 @@ ngx_wasmtime_instance_new(ngx_wrt_module_pt wrt,
 
         func = wasm_func_new_with_env(instance->store,
                                       (wasm_functype_t *) hfunc->wrt_functype,
-                                      &ngx_wasmtime_trampoline,
-                                      ctx, NULL);
+                                      &ngx_wasmtime_trampoline, ctx, NULL);
 
         instance->imports[i] = wasm_func_as_extern(func);
     }

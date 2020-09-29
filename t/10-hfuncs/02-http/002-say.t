@@ -24,7 +24,6 @@ run_tests();
 __DATA__
 
 === TEST 1: say: produce response in 'rewrite' phase
---- SKIP
 --- config
     location /t {
         wasm_call rewrite http_tests say_hello;
@@ -36,7 +35,7 @@ hello say
 
 
 
-=== TEST 1: say: produce response in 'content' phase
+=== TEST 2: say: produce response in 'content' phase
 --- config
     location /t {
         wasm_call content http_tests say_hello;
@@ -45,6 +44,3 @@ hello say
 hello say
 --- no_error_log
 [error]
-
-
-

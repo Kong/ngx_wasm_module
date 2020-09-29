@@ -72,6 +72,10 @@ qr/\[emerg\] .*? invalid function name ""/
 
 
 === TEST 6: wasm_call directive: unknown phase
+--- main_config
+    wasm {
+        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+    }
 --- config
     location /t {
         wasm_call foo hello nop;

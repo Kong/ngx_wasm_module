@@ -257,7 +257,7 @@ ngx_wasm_hfuncs_free(ngx_wasm_hfuncs_t *hfuncs)
 
             ngx_log_debug3(NGX_LOG_DEBUG_WASM, hfuncs->cycle->log, 0,
                            "wasm free \"%V.%V\" host function (hfuncs: %p)",
-                           &mnode->name, &hf->name, hfuncs);
+                           &mnode->name, hf->name, hfuncs);
 
             ngx_rbtree_delete(&mnode->ftree, node);
 

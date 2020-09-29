@@ -472,6 +472,7 @@ ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
     }
 
     instance->vm = vm;
+    instance->hctx = NULL;
     instance->pool = vm->pool;
     instance->module = module;
     instance->log_ctx.vm = vm;
@@ -518,7 +519,7 @@ failed:
 }
 
 
-void
+ngx_inline void
 ngx_wasm_vm_instance_set_hctx(ngx_wasm_vm_instance_t *instance,
     ngx_wasm_hctx_t *hctx)
 {
@@ -529,11 +530,9 @@ ngx_wasm_vm_instance_set_hctx(ngx_wasm_vm_instance_t *instance,
 
     log_ctx = (ngx_wasm_vm_log_ctx_t *) instance->log->data;
     log_ctx->orig_log = hctx->log;
+    hctx->log = instance->log;
 
-    instance->hctx.data = hctx->data;
-    instance->hctx.pool = hctx->pool;
-    instance->hctx.log = instance->log;
-    instance->hctx.mem_off = NULL;
+    instance->hctx = hctx;
 }
 
 

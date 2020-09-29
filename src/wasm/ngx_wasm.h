@@ -57,23 +57,7 @@ typedef struct {
 } ngx_wasm_val_t;
 
 
-/* host context */
-
-
-typedef enum {
-    NGX_WASM_SUBSYS_ANY,
-    NGX_WASM_SUBSYS_HTTP
-} ngx_wasm_subsys_kind;
-
-typedef struct {
-    ngx_pool_t              *pool;
-    ngx_log_t               *log;
-    char                    *mem_off;
-    void                    *data;
-} ngx_wasm_hctx_t;
-
-
-/* host functions */
+/* host interface */
 
 
 #define ngx_wasm_args_none           { 0, 0, 0, 0, 0, 0, 0, 0 }
@@ -94,8 +78,15 @@ typedef struct {
 #define ngx_wasm_rets_i32                                                    \
     { NGX_WASM_I32 }
 
+
+typedef enum {
+    NGX_WASM_SUBSYS_ANY,
+    NGX_WASM_SUBSYS_HTTP
+} ngx_wasm_subsys_kind;
+
 typedef struct ngx_wasm_hfunc_s  ngx_wasm_hfunc_t;
 typedef struct ngx_wasm_hfuncs_s  ngx_wasm_hfuncs_t;
+typedef struct ngx_wasm_hctx_s  ngx_wasm_hctx_t;
 
 typedef ngx_int_t (*ngx_wasm_hfunc_pt)(ngx_wasm_hctx_t *hctx,
     const ngx_wasm_val_t args[], ngx_wasm_val_t rets[]);
@@ -116,6 +107,14 @@ typedef struct {
     ngx_uint_t                     size;
     ngx_wasm_val_kind             *vals;
 } ngx_wasm_hfunc_arity_t;
+
+struct ngx_wasm_hctx_s {
+    ngx_wasm_subsys_kind           subsys;
+    ngx_pool_t                    *pool;
+    ngx_log_t                     *log;
+    char                          *mem_off;
+    void                          *data;
+};
 
 ngx_wasm_hfunc_t *ngx_wasm_hfuncs_lookup(ngx_wasm_hfuncs_t *hfuncs,
     u_char *mod_name, size_t mod_len, u_char *func_name, size_t func_len);
@@ -144,7 +143,7 @@ typedef ngx_wrt_module_pt (*ngx_wrt_module_new_pt)(ngx_wrt_engine_pt engine,
     ngx_wrt_error_pt *err);
 
 typedef ngx_wrt_instance_pt (*ngx_wrt_instance_new_pt)(
-    ngx_wrt_module_pt module, ngx_wasm_hctx_t *hctx,
+    ngx_wrt_module_pt module, ngx_wasm_hctx_t **hctx,
     ngx_wrt_error_pt *err, ngx_wrt_trap_pt *trap);
 
 typedef ngx_int_t (*ngx_wrt_instance_call_pt)(

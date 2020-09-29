@@ -7,9 +7,9 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_core.h>
 #include <ngx_wasm.h>
 #include <ngx_http.h>
+#include <ngx_http_wasm_module.h>
 #include <ngx_http_wasm_util.h>
 
 
@@ -17,8 +17,9 @@ ngx_int_t
 ngx_http_wasm_hfunc_resp_get_status(ngx_wasm_hctx_t *hctx,
     const ngx_wasm_val_t args[], ngx_wasm_val_t rets[])
 {
-    ngx_http_request_t  *r = hctx->data;
-    ngx_int_t            status;
+    ngx_http_wasm_req_ctx_t  *rctx = hctx->data;
+    ngx_http_request_t       *r = rctx->r;
+    ngx_int_t                 status;
 
     if (r->connection->fd == (ngx_socket_t) -1) {
         return NGX_WASM_BAD_CTX;
@@ -45,14 +46,15 @@ ngx_http_wasm_hfunc_resp_get_status(ngx_wasm_hctx_t *hctx,
 
 
 ngx_int_t
-ngx_http_wasm_hfunc_say(ngx_wasm_hctx_t *hctx,
+ngx_http_wasm_hfunc_resp_say(ngx_wasm_hctx_t *hctx,
     const ngx_wasm_val_t args[], ngx_wasm_val_t rets[])
 {
-    int64_t              body_offset, len;
-    ngx_int_t            rc;
-    ngx_buf_t           *b;
-    ngx_chain_t         *cl;
-    ngx_http_request_t  *r = hctx->data;
+    int64_t                   body_offset, len;
+    ngx_int_t                 rc;
+    ngx_buf_t                *b;
+    ngx_chain_t              *cl;
+    ngx_http_wasm_req_ctx_t  *rctx = hctx->data;
+    ngx_http_request_t       *r = rctx->r;
 
     body_offset = args[0].value.I32;
     len = args[1].value.I32;
@@ -89,7 +91,9 @@ ngx_http_wasm_hfunc_say(ngx_wasm_hctx_t *hctx,
         return NGX_AGAIN;
     }
 
-    return NGX_WASM_SENT_LAST;
+    rctx->sent_last = 1;
+
+    return NGX_WASM_OK;
 }
 
 
@@ -102,8 +106,8 @@ static ngx_wasm_hdecls_t  ngx_http_wasm_hdecls = {
         ngx_wasm_args_none,
         ngx_wasm_rets_i32 },
 
-      { ngx_string("ngx_http_say"),
-        &ngx_http_wasm_hfunc_say,
+      { ngx_string("ngx_http_resp_say"),
+        &ngx_http_wasm_hfunc_resp_say,
         ngx_wasm_args_i32_i32,
         ngx_wasm_rets_none },
 

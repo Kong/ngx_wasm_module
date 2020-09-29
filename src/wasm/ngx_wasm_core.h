@@ -14,6 +14,13 @@
 typedef struct ngx_wasm_vm_module_s  ngx_wasm_vm_module_t;
 
 
+typedef struct {
+    ngx_wasm_hfunc_t              *hfunc;
+    ngx_wasm_vm_instance_t        *instance;
+    ngx_wrt_instance_pt            wrt;
+} ngx_wasm_vm_trampoline_ctx_t;
+
+
 typedef struct ngx_wasm_vm_log_ctx_s {
     ngx_wasm_vm_t                 *vm;
     ngx_wasm_vm_instance_t        *instance;
@@ -24,11 +31,11 @@ typedef struct ngx_wasm_vm_log_ctx_s {
 struct ngx_wasm_vm_instance_s {
     ngx_pool_t                    *pool;
     ngx_log_t                     *log;
+    ngx_wasm_hctx_t               *hctx;
     ngx_wasm_vm_t                 *vm;
     ngx_wasm_vm_module_t          *module;
-    ngx_queue_t                    queue;
     ngx_wasm_vm_log_ctx_t          log_ctx;
-    ngx_wasm_hctx_t                hctx;
+    ngx_queue_t                    queue;
     ngx_wrt_instance_pt            wrt;
 };
 
