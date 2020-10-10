@@ -245,7 +245,7 @@ qr/\[emerg\] .*? \[wasm\] failed to compile ".*?hello\.wat" to wasm \(expected a
 --- user_files
 >>> hello.wasm
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] failed to load "hello" module from ".*?hello\.wasm" \(Unexpected EOF/
+qr/\[emerg\] .*? \[wasm\] failed to load "hello" module from ".*?hello\.wasm"/
 --- no_error_log
 [error]
 --- must_die
