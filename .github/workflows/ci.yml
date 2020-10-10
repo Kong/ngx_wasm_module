@@ -140,7 +140,7 @@ jobs:
         if: failure()
         with:
           name: gh-failures-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
-          path: valgrind.log
+          path: valgrind.out
 
   style:
     name: 'Style'
