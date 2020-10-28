@@ -28,6 +28,18 @@ pushd $DIR_CPANM
     ./cpanm --notest --local-lib=$DIR_CPANM local::lib
     ./cpanm --notest --local-lib=$DIR_CPANM Test::Nginx
     ./cpanm --notest --local-lib=$DIR_CPANM IPC::Run
+
+    set +e
+    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
+    @@ -960,5 +960,5 @@ sub write_config_file ($$$) {
+             bail_out "Can't open $ConfFile for writing: $!\n";
+    +    print $out "daemon $DaemonEnabled;" if ($DaemonEnabled eq 'off');
+         print $out <<_EOC_;
+     worker_processes  $Workers;
+    -daemon $DaemonEnabled;
+     master_process $MasterProcessEnabled;
+EOF
+    set -e
 popd
 
 pushd $DIR_BIN
