@@ -43,7 +43,9 @@ style:
 
 .PHONY: reindex
 reindex:
-	@util/reindex.sh t/*.t t/**/*.t
+	@util/reindex.sh "t/*.t"
+	@util/reindex.sh "t/**/*.t"
+	@util/reindex.sh "t/**/**/*.t"
 
 .PHONY: clean
 clean:
