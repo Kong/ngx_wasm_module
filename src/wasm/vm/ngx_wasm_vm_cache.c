@@ -13,7 +13,7 @@
 
 
 typedef struct {
-    ngx_wasm_nn_t            nn;
+    ngx_str_node_t           sn;
     ngx_wasm_vm_instance_t  *inst;
 } ngx_wasm_vm_cache_node_t;
 
@@ -37,7 +37,7 @@ ngx_wasm_vm_cache_link_vm(ngx_wasm_vm_cache_t *cache, ngx_wasm_vm_t *vm)
     cache->pool = vm->pool;
 
     ngx_rbtree_init(&cache->rbtree, &cache->sentinel,
-                    ngx_wasm_rbtree_insert_nn);
+                    ngx_str_rbtree_insert_value);
 }
 
 
@@ -45,15 +45,14 @@ ngx_wasm_vm_instance_t *
 ngx_wasm_vm_cache_get_instance(ngx_wasm_vm_cache_t *cache,
     ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
 {
-    ngx_wasm_nn_t             *nn;
+    ngx_str_node_t            *sn;
     ngx_wasm_vm_cache_node_t  *cnode;
 
     ngx_wasm_vm_cache_link_vm(cache, vm);
 
-    nn = ngx_wasm_nn_rbtree_lookup(&cache->rbtree, mod_name->data,
-                                   mod_name->len);
-    if (nn != NULL) {
-        cnode = ngx_wasm_nn_data(nn, ngx_wasm_vm_cache_node_t, nn);
+    sn = ngx_wasm_sn_rbtree_lookup(&cache->rbtree, mod_name);
+    if (sn != NULL) {
+        cnode = ngx_wasm_sn_sn2data(sn, ngx_wasm_vm_cache_node_t, sn);
         return cnode->inst;
     }
 
@@ -68,8 +67,8 @@ ngx_wasm_vm_cache_get_instance(ngx_wasm_vm_cache_t *cache,
         return NULL;
     }
 
-    ngx_wasm_nn_init(&cnode->nn, mod_name);
-    ngx_wasm_nn_rbtree_insert(&cache->rbtree, &cnode->nn);
+    ngx_wasm_sn_init(&cnode->sn, mod_name);
+    ngx_wasm_sn_rbtree_insert(&cache->rbtree, &cnode->sn);
 
     return cnode->inst;
 }
@@ -79,7 +78,7 @@ void
 ngx_wasm_vm_cache_free(ngx_wasm_vm_cache_t *cache)
 {
     ngx_rbtree_node_t         **root, **sentinel, *node;
-    ngx_wasm_nn_t              *nn;
+    ngx_str_node_t             *sn;
     ngx_wasm_vm_cache_node_t   *cnode;
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, cache->pool->log, 0,
@@ -90,8 +89,8 @@ ngx_wasm_vm_cache_free(ngx_wasm_vm_cache_t *cache)
 
     while (*root != *sentinel) {
         node = ngx_rbtree_min(*root, *sentinel);
-        nn = ngx_wasm_nn_n2nn(node);
-        cnode = ngx_wasm_nn_data(nn, ngx_wasm_vm_cache_node_t, nn);
+        sn = ngx_wasm_sn_n2sn(node);
+        cnode = ngx_wasm_sn_sn2data(sn, ngx_wasm_vm_cache_node_t, sn);
 
         ngx_wasm_vm_instance_free(cnode->inst);
 

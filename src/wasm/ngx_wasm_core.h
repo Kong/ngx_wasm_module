@@ -46,7 +46,7 @@ struct ngx_wasm_vm_module_s {
     ngx_str_t                      name;
     ngx_str_t                      path;
     ngx_queue_t                    instances_queue;
-    ngx_wasm_nn_t                  nn;
+    ngx_str_node_t                 sn;
     ngx_wrt_module_pt              wrt;
 };
 

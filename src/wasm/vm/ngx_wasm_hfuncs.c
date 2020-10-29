@@ -25,7 +25,7 @@ ngx_wasm_hfuncs_new(ngx_cycle_t *cycle)
     hfuncs->pool = cycle->pool;
 
     ngx_rbtree_init(&hfuncs->mtree, &hfuncs->sentinel,
-                    ngx_wasm_rbtree_insert_nn);
+                    ngx_str_rbtree_insert_value);
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, cycle->log, 0,
                    "wasm new hfuncs store (hfuncs: %p)", hfuncs);
@@ -42,22 +42,24 @@ failed:
 
 
 void
-ngx_wasm_hfuncs_add(ngx_wasm_hfuncs_t *hfuncs, u_char *mod_name,
+ngx_wasm_hfuncs_add(ngx_wasm_hfuncs_t *hfuncs, u_char *mname,
     ngx_wasm_hdecls_t *hdecls)
 {
-    size_t                    mod_len, nargs, nrets;
+    size_t                    nargs, nrets;
     u_char                   *err = NULL;
-    ngx_wasm_nn_t            *nn;
+    ngx_str_t                 mod_name;
+    ngx_str_node_t           *sn;
     ngx_wasm_hdecl_t         *hdecl;
     ngx_wasm_hfunc_t         *hf;
     ngx_wasm_hfuncs_fnode_t  *fnode;
     ngx_wasm_hfuncs_mnode_t  *mnode;
 
-    mod_len = ngx_strlen(mod_name);
+    mod_name.len = ngx_strlen(mname);
+    mod_name.data = mname;
 
-    nn = ngx_wasm_nn_rbtree_lookup(&hfuncs->mtree, mod_name, mod_len);
-    if (nn) {
-        mnode = ngx_wasm_nn_data(nn, ngx_wasm_hfuncs_mnode_t, nn);
+    sn = ngx_wasm_sn_rbtree_lookup(&hfuncs->mtree, &mod_name);
+    if (sn) {
+        mnode = ngx_wasm_sn_sn2data(sn, ngx_wasm_hfuncs_mnode_t, sn);
 
     } else {
         mnode = ngx_pcalloc(hfuncs->pool, sizeof(ngx_wasm_hfuncs_mnode_t));
@@ -66,14 +68,14 @@ ngx_wasm_hfuncs_add(ngx_wasm_hfuncs_t *hfuncs, u_char *mod_name,
             goto failed;
         }
 
-        mnode->name.len = mod_len;
-        mnode->name.data = (u_char *) mod_name;
+        mnode->name.len = mod_name.len;
+        mnode->name.data = mod_name.data;
 
         ngx_rbtree_init(&mnode->ftree, &mnode->sentinel,
-                        ngx_wasm_rbtree_insert_nn);
+                        ngx_str_rbtree_insert_value);
 
-        ngx_wasm_nn_init(&mnode->nn, &mnode->name);
-        ngx_wasm_nn_rbtree_insert(&hfuncs->mtree, &mnode->nn);
+        ngx_wasm_sn_init(&mnode->sn, &mnode->name);
+        ngx_wasm_sn_rbtree_insert(&hfuncs->mtree, &mnode->sn);
     }
 
     hdecl = hdecls->hdecls;
@@ -84,9 +86,8 @@ ngx_wasm_hfuncs_add(ngx_wasm_hfuncs_t *hfuncs, u_char *mod_name,
                        "wasm registering \"%V.%V\" host function",
                        &mnode->name, &hdecl->name);
 
-        nn = ngx_wasm_nn_rbtree_lookup(&mnode->ftree, hdecl->name.data,
-                                       hdecl->name.len);
-        if (nn) {
+        sn = ngx_wasm_sn_rbtree_lookup(&mnode->ftree, &hdecl->name);
+        if (sn) {
             ngx_sprintf(err, "\"%V.%V\" already defined",
                         &mnode->name, &hdecl->name);
             goto failed;
@@ -140,8 +141,8 @@ ngx_wasm_hfuncs_add(ngx_wasm_hfuncs_t *hfuncs, u_char *mod_name,
 
         fnode->hfunc = hf;
 
-        ngx_wasm_nn_init(&fnode->nn, hf->name);
-        ngx_wasm_nn_rbtree_insert(&mnode->ftree, &fnode->nn);
+        ngx_wasm_sn_init(&fnode->sn, hf->name);
+        ngx_wasm_sn_rbtree_insert(&mnode->ftree, &fnode->sn);
     }
 
     return;
@@ -170,27 +171,34 @@ ngx_wasm_hfuncs_init(ngx_wasm_hfuncs_t *hfuncs, ngx_wrt_t *runtime)
 
 
 ngx_wasm_hfunc_t *
-ngx_wasm_hfuncs_lookup(ngx_wasm_hfuncs_t *hfuncs, u_char *mod_name,
-    size_t mod_len, u_char *func_name, size_t func_len)
+ngx_wasm_hfuncs_lookup(ngx_wasm_hfuncs_t *hfuncs, u_char *mname,
+    size_t mlen, u_char *fname, size_t flen)
 {
-    ngx_wasm_nn_t            *nn;
+    ngx_str_t                 mod_name, func_name;
+    ngx_str_node_t           *sn;
     ngx_wasm_hfunc_t         *hf;
     ngx_wasm_hfuncs_mnode_t  *mnode;
     ngx_wasm_hfuncs_fnode_t  *fnode;
 
-    nn = ngx_wasm_nn_rbtree_lookup(&hfuncs->mtree, mod_name, mod_len);
-    if (nn == NULL) {
+    mod_name.len = mlen;
+    mod_name.data = mname;
+
+    sn = ngx_wasm_sn_rbtree_lookup(&hfuncs->mtree, &mod_name);
+    if (sn == NULL) {
         return NULL;
     }
 
-    mnode = ngx_wasm_nn_data(nn, ngx_wasm_hfuncs_mnode_t, nn);
+    mnode = ngx_wasm_sn_sn2data(sn, ngx_wasm_hfuncs_mnode_t, sn);
 
-    nn = ngx_wasm_nn_rbtree_lookup(&mnode->ftree, func_name, func_len);
-    if (nn == NULL) {
+    func_name.len = flen;
+    func_name.data = fname;
+
+    sn = ngx_wasm_sn_rbtree_lookup(&mnode->ftree, &func_name);
+    if (sn == NULL) {
         return NULL;
     }
 
-    fnode = ngx_wasm_nn_data(nn, ngx_wasm_hfuncs_fnode_t, nn);
+    fnode = ngx_wasm_sn_sn2data(sn, ngx_wasm_hfuncs_fnode_t, sn);
 
     hf = fnode->hfunc;
 
@@ -222,7 +230,7 @@ ngx_wasm_hfuncs_free(ngx_wasm_hfuncs_t *hfuncs)
 {
     ngx_rbtree_node_t        **root, **sentinel, *node,
                              **root2, **sentinel2;
-    ngx_wasm_nn_t             *nn;
+    ngx_str_node_t            *sn;
     ngx_wasm_hfunc_t          *hf;
     ngx_wasm_hfuncs_mnode_t   *mnode;
     ngx_wasm_hfuncs_fnode_t   *fnode;
@@ -236,8 +244,8 @@ ngx_wasm_hfuncs_free(ngx_wasm_hfuncs_t *hfuncs)
 
     while (*root != *sentinel) {
         node = ngx_rbtree_min(*root, *sentinel);
-        nn = ngx_wasm_nn_n2nn(node);
-        mnode = ngx_wasm_nn_data(nn, ngx_wasm_hfuncs_mnode_t, nn);
+        sn = ngx_wasm_sn_n2sn(node);
+        mnode = ngx_wasm_sn_sn2data(sn, ngx_wasm_hfuncs_mnode_t, sn);
 
         ngx_rbtree_delete(&hfuncs->mtree, node);
 
@@ -250,8 +258,8 @@ ngx_wasm_hfuncs_free(ngx_wasm_hfuncs_t *hfuncs)
 
         while (*root2 != *sentinel2) {
             node = ngx_rbtree_min(*root2, *sentinel2);
-            nn = ngx_wasm_nn_n2nn(node);
-            fnode = ngx_wasm_nn_data(nn, ngx_wasm_hfuncs_fnode_t, nn);
+            sn = ngx_wasm_sn_n2sn(node);
+            fnode = ngx_wasm_sn_sn2data(sn, ngx_wasm_hfuncs_fnode_t, sn);
 
             hf = fnode->hfunc;
 

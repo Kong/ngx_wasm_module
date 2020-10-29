@@ -117,7 +117,7 @@ struct ngx_wasm_hctx_s {
 };
 
 ngx_wasm_hfunc_t *ngx_wasm_hfuncs_lookup(ngx_wasm_hfuncs_t *hfuncs,
-    u_char *mod_name, size_t mod_len, u_char *func_name, size_t func_len);
+    u_char *mname, size_t mlen, u_char *fname, size_t flen);
 
 
 /* wasm runtime */

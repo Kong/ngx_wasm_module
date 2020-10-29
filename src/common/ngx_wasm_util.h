@@ -22,32 +22,33 @@ void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 #endif
 
 
-/* named rbnode */
+/* ngx_str_node_t extensions */
 
 
-typedef struct {
-    ngx_rbtree_node_t   node;
-    ngx_str_t          *name;
-} ngx_wasm_nn_t;
+#define ngx_wasm_sn_rbtree_insert(rbtree, sn)                                \
+    ngx_rbtree_insert((rbtree), &(sn)->node)
 
-void ngx_wasm_rbtree_insert_nn(ngx_rbtree_node_t *temp,
-    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel);
+#define ngx_wasm_sn_init(sn, s)                                              \
+    (sn)->node.key = ngx_crc32_long((s)->data, (s)->len);                    \
+    (sn)->str.len = (s)->len;                                                \
+    (sn)->str.data = (s)->data
 
-#define ngx_wasm_nn_init(nn, str)                                           \
-    (nn)->node.key = ngx_crc32_short((str)->data, (str)->len);             \
-    (nn)->name = (str)
+#define ngx_wasm_sn_n2sn(n)                                                  \
+    (ngx_str_node_t *) ((u_char *) (n) - offsetof(ngx_str_node_t, node))
 
-#define ngx_wasm_nn_rbtree_insert(rbtree, nn)                                \
-    ngx_rbtree_insert((rbtree), &(nn)->node)
+#define ngx_wasm_sn_sn2data(sn, type, member)                                \
+    (type *) ((u_char *) &(sn)->node - offsetof(type, member))
 
-ngx_wasm_nn_t *ngx_wasm_nn_rbtree_lookup(ngx_rbtree_t *rbtree,
-    u_char *name, size_t len);
 
-#define ngx_wasm_nn_n2nn(n)                                                  \
-    (ngx_wasm_nn_t *) ((u_char *) (n) - offsetof(ngx_wasm_nn_t, node))
+static ngx_inline ngx_str_node_t *
+ngx_wasm_sn_rbtree_lookup(ngx_rbtree_t *rbtree, ngx_str_t *str)
+{
+    uint32_t   hash;
 
-#define ngx_wasm_nn_data(nn, type, member)                                   \
-    (type *) ((u_char *) &(nn)->node - offsetof(type, member))
+    hash = ngx_crc32_long(str->data, str->len);
+
+    return ngx_str_rbtree_lookup(rbtree, str, hash);
+}
 
 
 #endif /* _NGX_WASM_UTIL_H_INCLUDED_ */
