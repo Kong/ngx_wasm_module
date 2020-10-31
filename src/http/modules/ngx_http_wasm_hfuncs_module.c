@@ -8,6 +8,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm.h>
+#include <ngx_wasm_hfuncs.h>
 #include <ngx_http.h>
 #include <ngx_http_wasm_module.h>
 #include <ngx_http_wasm_util.h>
@@ -40,6 +41,38 @@ ngx_http_wasm_hfunc_resp_get_status(ngx_wasm_hctx_t *hctx,
 
     rets[0].kind = NGX_WASM_I32;
     rets[0].value.I32 = status;
+
+    return NGX_WASM_OK;
+}
+
+
+ngx_int_t
+ngx_http_wasm_hfunc_resp_set_status(ngx_wasm_hctx_t *hctx,
+    const ngx_wasm_val_t args[], ngx_wasm_val_t rets[])
+{
+    ngx_http_wasm_req_ctx_t  *rctx = hctx->data;
+    ngx_http_request_t       *r = rctx->r;
+    ngx_int_t                 status;
+
+    if (r->connection->fd == (ngx_socket_t) -1) {
+        return NGX_WASM_BAD_CTX;
+    }
+
+    if (r->header_sent) {
+        ngx_wasm_hctx_trapmsg(hctx, "headers already sent");
+        return NGX_WASM_BAD_USAGE;
+    }
+
+    status = args[0].value.I32;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, hctx->log, 0,
+                   "wasm set resp status to %d", status);
+
+    r->headers_out.status = status;
+
+    if (r->err_status) {
+        r->err_status = 0;
+    }
 
     return NGX_WASM_OK;
 }
@@ -105,6 +138,11 @@ static ngx_wasm_hdecls_t  ngx_http_wasm_hdecls = {
         &ngx_http_wasm_hfunc_resp_get_status,
         ngx_wasm_args_none,
         ngx_wasm_rets_i32 },
+
+      { ngx_string("ngx_http_resp_set_status"),
+        &ngx_http_wasm_hfunc_resp_set_status,
+        ngx_wasm_args_i32,
+        ngx_wasm_rets_none },
 
       { ngx_string("ngx_http_resp_say"),
         &ngx_http_wasm_hfunc_resp_say,

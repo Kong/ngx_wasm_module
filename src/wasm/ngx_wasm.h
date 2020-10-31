@@ -26,10 +26,13 @@
 #define NGX_WASM_OK                  NGX_OK
 #define NGX_WASM_ERROR               NGX_ERROR
 #define NGX_WASM_BAD_CTX             NGX_DECLINED
+#define NGX_WASM_BAD_USAGE           NGX_ABORT
 #define NGX_WASM_SENT_LAST           NGX_DONE
 
 #define NGX_WASM_ARGS_MAX            8
 #define NGX_WASM_RETS_MAX            1
+
+#define NGX_WASM_MAX_HOST_TRAP_STR  128
 
 
 /* wasm vm */
@@ -65,6 +68,9 @@ typedef struct {
 
 #define ngx_wasm_hfunc_null                                                  \
     { ngx_null_string, NULL, ngx_wasm_args_none, ngx_wasm_rets_none }
+
+#define ngx_wasm_args_i32                                                    \
+    { NGX_WASM_I32, 0, 0, 0, 0, 0, 0, 0 }
 
 #define ngx_wasm_args_i32_i32                                                \
     { NGX_WASM_I32, NGX_WASM_I32, 0, 0, 0, 0, 0, 0 }
@@ -112,6 +118,9 @@ struct ngx_wasm_hctx_s {
     ngx_wasm_subsys_kind           subsys;
     ngx_pool_t                    *pool;
     ngx_log_t                     *log;
+
+    size_t                         trapmsglen;
+    u_char                         trapmsg[NGX_WASM_MAX_HOST_TRAP_STR];
     char                          *mem_off;
     void                          *data;
 };

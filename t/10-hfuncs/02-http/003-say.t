@@ -23,37 +23,36 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: resp_get_status: 'rewrite' phase
---- SKIP
+=== TEST 1: say: produce response in 'rewrite' phase
 --- config
     location /t {
-        wasm_call rewrite http_tests log_resp_status;
-        return 200;
+        wasm_call rewrite http_tests say_hello;
     }
+--- response_body
+hello say
 --- no_error_log
 [error]
 
 
 
-=== TEST 2: resp_get_status: 'content' phase
---- SKIP
+=== TEST 2: say: produce response in 'content' phase
 --- config
     location /t {
-        wasm_call content http_tests log_resp_status;
-        return 200;
+        wasm_call content http_tests say_hello;
     }
+--- response_body
+hello say
 --- no_error_log
 [error]
 
 
 
-=== TEST 3: resp_get_status: gets status in 'log' phase
+=== TEST 3: say: 'log' phase
+--- SKIP
 --- config
     location /t {
-        wasm_call log http_tests log_resp_status;
-        return 200;
+        wasm_call log http_tests say_hello;
     }
---- error_log eval
-qr/\[notice\] .*? resp status: 200 <vm: \S+, runtime: \S+> while logging request/
+--- response_body
 --- no_error_log
 [error]

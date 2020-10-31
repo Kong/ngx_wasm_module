@@ -15,9 +15,9 @@
 
 
 typedef struct {
-    ngx_wasm_hctx_t              **hctx;
-    ngx_wasm_hfunc_t              *hfunc;
-    ngx_wrt_instance_pt            wrt;
+    ngx_wasm_hctx_t                **hctx;
+    ngx_wasm_hfunc_t                *hfunc;
+    ngx_wrt_instance_pt              wrt;
 } ngx_wasmtime_tramp_ctx_t;
 
 
@@ -187,15 +187,17 @@ ngx_wasmtime_vals_lower(wasm_val_t wasm_vals[], ngx_wasm_val_t ngx_vals[],
 static wasm_trap_t *
 ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_int_t                       rc;
-    ngx_wasm_val_t                  ngx_args[NGX_WASM_ARGS_MAX];
-    ngx_wasm_val_t                  ngx_rets[NGX_WASM_RETS_MAX];
-    ngx_wasm_hctx_t                *hctx;
-    ngx_wasmtime_tramp_ctx_t       *tctx = env;
-    ngx_wasmtime_instance_t        *wrt = (ngx_wasmtime_instance_t *) tctx->wrt;
-    wasm_message_t                  trap_msg;
-
-    hctx = *tctx->hctx;
+    ngx_wasmtime_tramp_ctx_t  *tctx = env;
+    ngx_wasmtime_instance_t   *wrt = (ngx_wasmtime_instance_t *) tctx->wrt;
+    ngx_wasm_hctx_t           *hctx = *tctx->hctx;
+    ngx_wasm_val_t             ngx_args[NGX_WASM_ARGS_MAX];
+    ngx_wasm_val_t             ngx_rets[NGX_WASM_RETS_MAX];
+    u_char                    *p, *buf;
+    char                      *trap = NULL;
+    size_t                     traplen, len;
+    ngx_int_t                  rc;
+    wasm_name_t                wtrapmsg;
+    wasm_trap_t               *wtrap = NULL;
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, hctx->log, 0,
                    "wasmtime host function trampoline (hfunc: %V, tctx: %p)",
@@ -204,29 +206,81 @@ ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
     if (tctx->hfunc->subsys != NGX_WASM_SUBSYS_ANY &&
         tctx->hfunc->subsys != hctx->subsys)
     {
-        wasm_name_new_from_string(&trap_msg, "bad subsystem");
-        return wasm_trap_new(wrt->store, &trap_msg);
+        trap = "bad subsystem";
+        goto trap;
     }
 
     ngx_wasmtime_vals_lift(ngx_args, (wasm_val_t *) args, tctx->hfunc->args.size);
 
+    hctx->trapmsglen = 0;
     hctx->mem_off = wasm_memory_data(wrt->memory);
 
     rc = tctx->hfunc->ptr(hctx, ngx_args, ngx_rets);
-    if (rc == NGX_WASM_ERROR) {
-        wasm_name_new_from_string(&trap_msg, "nginx error in host function");
-        return wasm_trap_new(wrt->store, &trap_msg);
 
-    } else if (rc == NGX_WASM_BAD_CTX) {
-        wasm_name_new_from_string(&trap_msg, "bad context");
-        return wasm_trap_new(wrt->store, &trap_msg);
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, hctx->log, 0,
+                   "wasmtime host function trampoline rc: %d", rc);
+
+    switch (rc) {
+
+        case NGX_WASM_OK:
+            break;
+
+        case NGX_WASM_ERROR:
+            trap = "nginx host error";
+            goto trap;
+
+        case NGX_WASM_BAD_CTX:
+            trap = "bad context";
+            goto trap;
+
+        case NGX_WASM_BAD_USAGE:
+            trap = "bad usage";
+            goto trap;
+
+        default:
+            trap = "NYI - host function rc";
+            goto trap;
+
     }
-
-    /* NGX_WASM_OK, NGX_WASM_AGAIN */
 
     ngx_wasmtime_vals_lower(rets, ngx_rets, tctx->hfunc->rets.size);
 
     return NULL;
+
+trap:
+
+    traplen = ngx_strlen(trap);
+    len = traplen;
+
+    if (hctx->trapmsglen) {
+        len += hctx->trapmsglen + 3;
+
+        buf = ngx_alloc(len, hctx->log);
+        if (buf != NULL) {
+            p = ngx_copy(buf, trap, traplen);
+
+            if (hctx->trapmsglen) {
+                p = ngx_snprintf(p, len - (p - buf), ": %*s",
+                                 hctx->trapmsglen, hctx->trapmsg);
+            }
+
+            *p++ = '\0';
+
+            wasm_name_new(&wtrapmsg, len, (const char *) buf);
+            wtrap = wasm_trap_new(wrt->store, &wtrapmsg);
+            wasm_name_delete(&wtrapmsg);
+
+            ngx_free(buf);
+        }
+    }
+
+    if (wtrap == NULL) {
+        wasm_name_new_from_string(&wtrapmsg, trap);
+        wtrap = wasm_trap_new(wrt->store, &wtrapmsg);
+        wasm_name_delete(&wtrapmsg);
+    }
+
+    return wtrap;
 }
 
 
@@ -686,8 +740,7 @@ ngx_wasmtime_log_error_handler(ngx_wrt_error_pt err,
 
         wasm_trap_message(wtrap, &trap_msg);
 
-        p = ngx_snprintf(buf, len, " trap: %*s",
-                         trap_msg.size, trap_msg.data);
+        p = ngx_snprintf(buf, len, "%*s", trap_msg.size, trap_msg.data);
         len -= p - buf;
         buf = p;
 

@@ -43,5 +43,13 @@ void ngx_wasm_hfuncs_init(ngx_wasm_hfuncs_t *hfuncs, ngx_wrt_t *runtime);
 
 void ngx_wasm_hfuncs_free(ngx_wasm_hfuncs_t *hfuncs);
 
+void ngx_wasm_hctx_trapmsg(ngx_wasm_hctx_t *hctx,
+#if (NGX_HAVE_VARIADIC_MACROS)
+    const char *fmt, ...);
+
+#else
+    const char *fmt, va_list args);
+#endif
+
 
 #endif /* _NGX_WASM_HFUNCS_H_INCLUDED_ */

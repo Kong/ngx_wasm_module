@@ -20,6 +20,11 @@ pub fn say_hello() {
     ngx_resp_say("hello say".into());
 }
 
+#[no_mangle]
+pub fn set_resp_status() {
+    ngx_resp_set_status(201);
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

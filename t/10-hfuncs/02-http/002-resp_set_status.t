@@ -23,24 +23,40 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: say: produce response in 'rewrite' phase
+=== TEST 1: resp_set_status: sets status code in 'rewrite' phase
+--- SKIP
 --- config
     location /t {
-        wasm_call rewrite http_tests say_hello;
+        wasm_call rewrite http_tests set_resp_status;
     }
 --- response_body
-hello say
 --- no_error_log
-[error]
+[emerg]
 
 
 
-=== TEST 2: say: produce response in 'content' phase
+=== TEST 2: resp_set_status: sets status code in 'content' phase
 --- config
     location /t {
+        wasm_call content http_tests set_resp_status;
         wasm_call content http_tests say_hello;
     }
+--- error_code: 201
 --- response_body
 hello say
 --- no_error_log
-[error]
+[emerg]
+
+
+
+=== TEST 3: resp_set_status: bad usage in 'log' phase
+--- config
+    location /t {
+        return 200;
+        wasm_call log http_tests set_resp_status;
+    }
+--- ignore_response_body
+--- error_log eval
+qr/\[error\] .*? bad usage: headers already sent/
+--- no_error_log
+[emerg]
