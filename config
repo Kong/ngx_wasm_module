@@ -73,13 +73,13 @@ ngx_module_libs=
 ngx_module_deps="$ngx_addon_dir/src/wasm/ngx_wasm.h \
                  $ngx_addon_dir/src/wasm/ngx_wasm_core.h \
                  $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm.h \
+                 $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm_host.h \
                  $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm_cache.h \
-                 $ngx_addon_dir/src/wasm/vm/ngx_wasm_host.h \
                  $ngx_addon_dir/src/common/ngx_wasm_util.h"
 ngx_module_srcs="$ngx_addon_dir/src/wasm/ngx_wasm.c \
                  $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm.c \
+                 $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm_host.c \
                  $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm_cache.c \
-                 $ngx_addon_dir/src/wasm/vm/ngx_wasm_host.c \
                  $ngx_addon_dir/src/common/ngx_wasm_util.c"
 ngx_module_link=ADDON
 

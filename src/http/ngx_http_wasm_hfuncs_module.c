@@ -4,7 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm.h>
-#include <ngx_wasm_host.h>
+#include <ngx_wasm_vm_host.h>
 #include <ngx_http.h>
 #include <ngx_http_wasm_module.h>
 #include <ngx_http_wasm_util.h>

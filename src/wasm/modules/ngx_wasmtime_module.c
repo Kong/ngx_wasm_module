@@ -5,7 +5,7 @@
 
 #include <ngx_core.h>
 #include <ngx_wasm_core.h>
-#include <ngx_wasm_host.h>
+#include <ngx_wasm_vm_host.h>
 
 #include <wasm.h>
 #include <wasmtime.h>

@@ -5,7 +5,7 @@
 
 #include <ngx_wasm_core.h>
 #include <ngx_wasm_vm.h>
-#include <ngx_wasm_host.h>
+#include <ngx_wasm_vm_host.h>
 
 
 extern ngx_wasm_hdef_func_t  ngx_wasm_core_hfuncs[];

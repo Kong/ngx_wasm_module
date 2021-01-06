@@ -3,7 +3,7 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_wasm_host.h>
+#include <ngx_wasm_vm_host.h>
 #include <ngx_wasm_util.h>
 
 

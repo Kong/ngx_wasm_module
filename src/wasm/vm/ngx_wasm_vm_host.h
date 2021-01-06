@@ -1,5 +1,5 @@
-#ifndef _NGX_WASM_HOST_H_INCLUDED_
-#define _NGX_WASM_HOST_H_INCLUDED_
+#ifndef _NGX_WASM_VM_HOST_H_INCLUDED_
+#define _NGX_WASM_VM_HOST_H_INCLUDED_
 
 
 #include <ngx_core.h>
@@ -51,4 +51,4 @@ void ngx_wasm_hctx_trapmsg(ngx_wasm_hctx_t *hctx,
 #endif
 
 
-#endif /* _NGX_WASM_HOST_H_INCLUDED_ */
+#endif /* _NGX_WASM_VM_HOST_H_INCLUDED_ */
