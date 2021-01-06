@@ -1,7 +1,3 @@
-/*
- * Copyright (C) Thibault Charbonnier
- */
-
 #ifndef DDEBUG
 #define DDEBUG 0
 #endif

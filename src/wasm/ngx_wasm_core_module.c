@@ -1,7 +1,3 @@
-/*
- * Copyright (C) Thibault Charbonnier
- */
-
 #ifndef DDEBUG
 #define DDEBUG 0
 #endif
@@ -9,7 +5,10 @@
 
 #include <ngx_wasm_core.h>
 #include <ngx_wasm_vm.h>
-#include <ngx_wasm_hfuncs.h>
+#include <ngx_wasm_host.h>
+
+
+extern ngx_wasm_hdef_func_t  ngx_wasm_core_hfuncs[];
 
 
 #define ngx_wasm_core_cycle_get_conf(cycle)                                  \
@@ -59,13 +58,19 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       0,
       NULL },
 
-      ngx_null_command
+    ngx_null_command
+};
+
+
+static ngx_wasm_hdefs_t  ngx_wasm_core_hdefs = {
+    NGX_WASM_HOST_SUBSYS_ANY,
+    ngx_wasm_core_hfuncs                   /* hfuncs */
 };
 
 
 static ngx_wasm_module_t  ngx_wasm_core_module_ctx = {
     NULL,                                  /* runtime */
-    NULL,                                  /* hfuncs */
+    &ngx_wasm_core_hdefs,                  /* hdefs */
     ngx_wasm_core_create_conf,             /* create configuration */
     ngx_wasm_core_init_conf,               /* init configuration */
     ngx_wasm_core_init                     /* init module */
@@ -290,8 +295,8 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
 
         wm = cycle->modules[i]->ctx;
 
-        if (wm->hdecls) {
-            ngx_wasm_hfuncs_add(wcf->hfuncs, (u_char *) "env", wm->hdecls);
+        if (wm->hdefs) {
+            ngx_wasm_hfuncs_add(wcf->hfuncs, (u_char *) "env", wm->hdefs);
         }
     }
 

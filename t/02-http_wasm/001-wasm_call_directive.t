@@ -98,7 +98,7 @@ qr/\[emerg\] .*? unknown phase "foo"/
         return 200;
     }
 --- error_log eval
-qr/\[alert\] .*? unsupported phase "post_read"/
+qr/\[emerg\] .*? unsupported phase "post_read"/
 --- must_die
 
 

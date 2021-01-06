@@ -1,9 +1,5 @@
-/*
- * Copyright (C) Thibault Charbonnier
- */
-
-#ifndef _NGX_WASM_HFUNCS_H_INCLUDED_
-#define _NGX_WASM_HFUNCS_H_INCLUDED_
+#ifndef _NGX_WASM_HOST_H_INCLUDED_
+#define _NGX_WASM_HOST_H_INCLUDED_
 
 
 #include <ngx_core.h>
@@ -37,9 +33,12 @@ struct ngx_wasm_hfuncs_s {
 ngx_wasm_hfuncs_t *ngx_wasm_hfuncs_new(ngx_cycle_t *cycle);
 
 void ngx_wasm_hfuncs_add(ngx_wasm_hfuncs_t *hfuncs, u_char *mname,
-    ngx_wasm_hdecls_t *hdecls);
+    ngx_wasm_hdefs_t *hdefs);
 
 void ngx_wasm_hfuncs_init(ngx_wasm_hfuncs_t *hfuncs, ngx_wrt_t *runtime);
+
+ngx_wasm_hfunc_t *ngx_wasm_hfuncs_lookup(ngx_wasm_hfuncs_t *hfuncs,
+    u_char *mname, size_t mlen, u_char *fname, size_t flen);
 
 void ngx_wasm_hfuncs_free(ngx_wasm_hfuncs_t *hfuncs);
 
@@ -52,4 +51,4 @@ void ngx_wasm_hctx_trapmsg(ngx_wasm_hctx_t *hctx,
 #endif
 
 
-#endif /* _NGX_WASM_HFUNCS_H_INCLUDED_ */
+#endif /* _NGX_WASM_HOST_H_INCLUDED_ */

@@ -1,7 +1,3 @@
-/*
- * Copyright (C) Thibault Charbonnier
- */
-
 #ifndef _NGX_WASM_VM_H_INCLUDED_
 #define _NGX_WASM_VM_H_INCLUDED_
 

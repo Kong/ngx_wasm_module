@@ -1,7 +1,3 @@
-/*
- * Copyright (C) Thibault Charbonnier
- */
-
 #ifndef DDEBUG
 #define DDEBUG 0
 #endif
@@ -9,6 +5,7 @@
 
 #include <ngx_core.h>
 #include <ngx_wasm_core.h>
+#include <ngx_wasm_host.h>
 
 #include <wasm.h>
 #include <wasmtime.h>
@@ -203,7 +200,7 @@ ngx_wasmtime_trampoline(void *env, const wasm_val_t args[], wasm_val_t rets[])
                    "wasmtime host function trampoline (hfunc: %V, tctx: %p)",
                    tctx->hfunc->name, tctx);
 
-    if (tctx->hfunc->subsys != NGX_WASM_SUBSYS_ANY &&
+    if (tctx->hfunc->subsys != NGX_WASM_HOST_SUBSYS_ANY &&
         tctx->hfunc->subsys != hctx->subsys)
     {
         trap = "bad subsystem";

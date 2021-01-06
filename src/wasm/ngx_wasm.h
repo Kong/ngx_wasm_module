@@ -1,7 +1,3 @@
-/*
- * Copyright (C) Thibault Charbonnier
- */
-
 #ifndef _NGX_WASM_H_INCLUDED_
 #define _NGX_WASM_H_INCLUDED_
 
@@ -86,13 +82,22 @@ typedef struct {
 
 
 typedef enum {
-    NGX_WASM_SUBSYS_ANY,
-    NGX_WASM_SUBSYS_HTTP
-} ngx_wasm_subsys_kind;
+    NGX_WASM_HOST_SUBSYS_ANY,
+    NGX_WASM_HOST_SUBSYS_HTTP
+} ngx_wasm_host_subsys_kind;
 
 typedef struct ngx_wasm_hfunc_s  ngx_wasm_hfunc_t;
 typedef struct ngx_wasm_hfuncs_s  ngx_wasm_hfuncs_t;
-typedef struct ngx_wasm_hctx_s  ngx_wasm_hctx_t;
+
+typedef struct {
+    ngx_wasm_host_subsys_kind      subsys;
+    ngx_pool_t                    *pool;
+    ngx_log_t                     *log;
+    size_t                         trapmsglen;
+    u_char                         trapmsg[NGX_WASM_MAX_HOST_TRAP_STR];
+    char                          *mem_off;
+    void                          *data;
+} ngx_wasm_hctx_t;
 
 typedef ngx_int_t (*ngx_wasm_hfunc_pt)(ngx_wasm_hctx_t *hctx,
     const ngx_wasm_val_t args[], ngx_wasm_val_t rets[]);
@@ -102,31 +107,12 @@ typedef struct {
     ngx_wasm_hfunc_pt              ptr;
     ngx_wasm_val_kind              args[NGX_WASM_ARGS_MAX];
     ngx_wasm_val_kind              rets[NGX_WASM_RETS_MAX];
-} ngx_wasm_hdecl_t;
+} ngx_wasm_hdef_func_t;
 
 typedef struct {
-    ngx_wasm_subsys_kind           subsys;
-    ngx_wasm_hdecl_t               hdecls[];
-} ngx_wasm_hdecls_t;
-
-typedef struct {
-    ngx_uint_t                     size;
-    ngx_wasm_val_kind             *vals;
-} ngx_wasm_hfunc_arity_t;
-
-struct ngx_wasm_hctx_s {
-    ngx_wasm_subsys_kind           subsys;
-    ngx_pool_t                    *pool;
-    ngx_log_t                     *log;
-
-    size_t                         trapmsglen;
-    u_char                         trapmsg[NGX_WASM_MAX_HOST_TRAP_STR];
-    char                          *mem_off;
-    void                          *data;
-};
-
-ngx_wasm_hfunc_t *ngx_wasm_hfuncs_lookup(ngx_wasm_hfuncs_t *hfuncs,
-    u_char *mname, size_t mlen, u_char *fname, size_t flen);
+    ngx_wasm_host_subsys_kind      subsys;
+    ngx_wasm_hdef_func_t          *funcs;
+} ngx_wasm_hdefs_t;
 
 
 /* wasm runtime */
@@ -190,10 +176,15 @@ typedef struct {
 /* definitions */
 
 
+typedef struct {
+    ngx_uint_t                     size;
+    ngx_wasm_val_kind             *vals;
+} ngx_wasm_hfunc_arity_t;
+
 struct ngx_wasm_hfunc_s {
     ngx_str_t                     *name;
+    ngx_wasm_host_subsys_kind      subsys;
     ngx_wasm_hfunc_pt              ptr;
-    ngx_wasm_subsys_kind           subsys;
     ngx_wasm_hfunc_arity_t         args;
     ngx_wasm_hfunc_arity_t         rets;
     ngx_wrt_functype_pt            wrt_functype;
@@ -205,7 +196,7 @@ struct ngx_wasm_hfunc_s {
 
 typedef struct {
     ngx_wrt_t                     *runtime;
-    ngx_wasm_hdecls_t             *hdecls;
+    ngx_wasm_hdefs_t              *hdefs;
     void                          *(*create_conf)(ngx_cycle_t *cycle);
     char                          *(*init_conf)(ngx_cycle_t *cycle, void *conf);
     ngx_int_t                      (*init)(ngx_cycle_t *cycle);

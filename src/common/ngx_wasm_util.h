@@ -1,7 +1,3 @@
-/*
- * Copyright (C) Thibault Charbonnier
- */
-
 #ifndef _NGX_WASM_UTIL_H_INCLUDED_
 #define _NGX_WASM_UTIL_H_INCLUDED_
 
@@ -9,9 +5,6 @@
 #include <ngx_core.h>
 #include <ngx_wasm.h>
 
-
-ngx_int_t ngx_wasm_conf_parse_phase(ngx_conf_t *cf, u_char *str,
-    ngx_uint_t module_type);
 
 void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 #if (NGX_HAVE_VARIADIC_MACROS)

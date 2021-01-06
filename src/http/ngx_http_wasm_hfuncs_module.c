@@ -1,21 +1,17 @@
-/*
- * Copyright (C) Thibault Charbonnier
- */
-
 #ifndef DDEBUG
 #define DDEBUG 0
 #endif
 #include "ddebug.h"
 
 #include <ngx_wasm.h>
-#include <ngx_wasm_hfuncs.h>
+#include <ngx_wasm_host.h>
 #include <ngx_http.h>
 #include <ngx_http_wasm_module.h>
 #include <ngx_http_wasm_util.h>
 
 
 ngx_int_t
-ngx_http_wasm_hfunc_resp_get_status(ngx_wasm_hctx_t *hctx,
+ngx_http_wasm_hfuncs_resp_get_status(ngx_wasm_hctx_t *hctx,
     const ngx_wasm_val_t args[], ngx_wasm_val_t rets[])
 {
     ngx_http_wasm_req_ctx_t  *rctx = hctx->data;
@@ -47,7 +43,7 @@ ngx_http_wasm_hfunc_resp_get_status(ngx_wasm_hctx_t *hctx,
 
 
 ngx_int_t
-ngx_http_wasm_hfunc_resp_set_status(ngx_wasm_hctx_t *hctx,
+ngx_http_wasm_hfuncs_resp_set_status(ngx_wasm_hctx_t *hctx,
     const ngx_wasm_val_t args[], ngx_wasm_val_t rets[])
 {
     ngx_http_wasm_req_ctx_t  *rctx = hctx->data;
@@ -79,7 +75,7 @@ ngx_http_wasm_hfunc_resp_set_status(ngx_wasm_hctx_t *hctx,
 
 
 ngx_int_t
-ngx_http_wasm_hfunc_resp_say(ngx_wasm_hctx_t *hctx,
+ngx_http_wasm_hfuncs_resp_say(ngx_wasm_hctx_t *hctx,
     const ngx_wasm_val_t args[], ngx_wasm_val_t rets[])
 {
     int64_t                   body_offset, len;
@@ -130,36 +126,39 @@ ngx_http_wasm_hfunc_resp_say(ngx_wasm_hctx_t *hctx,
 }
 
 
-static ngx_wasm_hdecls_t  ngx_http_wasm_hdecls = {
-    NGX_WASM_SUBSYS_HTTP,
+static ngx_wasm_hdef_func_t  ngx_http_wasm_hfuncs[] = {
 
-    {
-      { ngx_string("ngx_http_resp_get_status"),
-        &ngx_http_wasm_hfunc_resp_get_status,
-        ngx_wasm_args_none,
-        ngx_wasm_rets_i32 },
+    { ngx_string("ngx_http_resp_get_status"),
+      &ngx_http_wasm_hfuncs_resp_get_status,
+      ngx_wasm_args_none,
+      ngx_wasm_rets_i32 },
 
-      { ngx_string("ngx_http_resp_set_status"),
-        &ngx_http_wasm_hfunc_resp_set_status,
-        ngx_wasm_args_i32,
-        ngx_wasm_rets_none },
+    { ngx_string("ngx_http_resp_set_status"),
+      &ngx_http_wasm_hfuncs_resp_set_status,
+      ngx_wasm_args_i32,
+      ngx_wasm_rets_none },
 
-      { ngx_string("ngx_http_resp_say"),
-        &ngx_http_wasm_hfunc_resp_say,
-        ngx_wasm_args_i32_i32,
-        ngx_wasm_rets_none },
+    { ngx_string("ngx_http_resp_say"),
+      &ngx_http_wasm_hfuncs_resp_say,
+      ngx_wasm_args_i32_i32,
+      ngx_wasm_rets_none },
 
-      ngx_wasm_hfunc_null
-    }
+    ngx_wasm_hfunc_null
+};
+
+
+static ngx_wasm_hdefs_t  ngx_http_wasm_hdefs = {
+    NGX_WASM_HOST_SUBSYS_HTTP,
+    ngx_http_wasm_hfuncs
 };
 
 
 static ngx_wasm_module_t  ngx_http_wasm_hfuncs_module_ctx = {
-    NULL,                                  /* runtime */
-    &ngx_http_wasm_hdecls,                 /* hdecls */
-    NULL,                                  /* create configuration */
-    NULL,                                  /* init configuration */
-    NULL,                                  /* init module */
+    NULL,                                /* runtime */
+    &ngx_http_wasm_hdefs,                /* hdefs */
+    NULL,                                /* create configuration */
+    NULL,                                /* init configuration */
+    NULL,                                /* init module */
 };
 
 

@@ -74,14 +74,12 @@ ngx_module_deps="$ngx_addon_dir/src/wasm/ngx_wasm.h \
                  $ngx_addon_dir/src/wasm/ngx_wasm_core.h \
                  $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm.h \
                  $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm_cache.h \
-                 $ngx_addon_dir/src/wasm/vm/ngx_wasm_hfuncs.h \
-                 $ngx_addon_dir/src/common/ngx_wasm_phase_engine.h \
+                 $ngx_addon_dir/src/wasm/vm/ngx_wasm_host.h \
                  $ngx_addon_dir/src/common/ngx_wasm_util.h"
 ngx_module_srcs="$ngx_addon_dir/src/wasm/ngx_wasm.c \
                  $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm.c \
                  $ngx_addon_dir/src/wasm/vm/ngx_wasm_vm_cache.c \
-                 $ngx_addon_dir/src/wasm/vm/ngx_wasm_hfuncs.c \
-                 $ngx_addon_dir/src/common/ngx_wasm_phase_engine.c \
+                 $ngx_addon_dir/src/wasm/vm/ngx_wasm_host.c \
                  $ngx_addon_dir/src/common/ngx_wasm_util.c"
 ngx_module_link=ADDON
 
@@ -94,32 +92,33 @@ ngx_module_name=ngx_wasm_core_module
 ngx_module_incs=
 ngx_module_libs=
 ngx_module_deps=
-ngx_module_srcs="$ngx_addon_dir/src/wasm/ngx_wasm_core_module.c"
+ngx_module_srcs="$ngx_addon_dir/src/wasm/ngx_wasm_core_module.c \
+                 $ngx_addon_dir/src/wasm/ngx_wasm_core_hfuncs.c"
 ngx_module_link=ADDON
 
 . auto/module
+
+###############################################################################
+
+#ngx_module_type=WASM
+#ngx_module_name=ngx_wasm_hfuncs_module
+#ngx_module_incs=
+#ngx_module_libs=
+#ngx_module_deps=
+#ngx_module_srcs="$ngx_addon_dir/src/wasm/modules/ngx_wasm_hfuncs_module.c"
+#ngx_module_link=ADDON
+#
+#. auto/module
 
 ###############################################################################
 
 ngx_module_type=WASM
-ngx_module_name=ngx_wasm_hfuncs_module
-ngx_module_incs=
-ngx_module_libs=
-ngx_module_deps=
-ngx_module_srcs="$ngx_addon_dir/src/wasm/modules/ngx_wasm_hfuncs_module.c"
-ngx_module_link=ADDON
-
-. auto/module
-
-###############################################################################
-
-ngx_module_type=HTTP
 ngx_module_name=ngx_http_wasm_hfuncs_module
-ngx_module_incs="$ngx_addon_dir/src/http"
+ngx_module_incs="$ngx_addon_dir/src/http/common"
 ngx_module_libs=
-ngx_module_deps="$ngx_addon_dir/src/http/ngx_http_wasm_util.h"
-ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_util.c \
-                 $ngx_addon_dir/src/http/modules/ngx_http_wasm_hfuncs_module.c"
+ngx_module_deps="$ngx_addon_dir/src/http/common/ngx_http_wasm_util.h"
+ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_hfuncs_module.c \
+                 $ngx_addon_dir/src/http/common/ngx_http_wasm_util.c"
 ngx_module_link=ADDON
 
 . auto/module
@@ -127,23 +126,27 @@ ngx_module_link=ADDON
 ###############################################################################
 
 #ngx_module_type=HTTP
-#ngx_module_name=ngx_http_proxy_wasm_module
-#ngx_module_incs=
+#ngx_module_name=ngx_http_proxy_wasm_hfuncs_module
+#ngx_module_incs="$ngx_addon_dir/src/http"
 #ngx_module_libs=
-#ngx_module_deps=
-#ngx_module_srcs="$ngx_addon_dir/src/http/proxy_wasm_module/ngx_http_proxy_wasm_module.c"
+#ngx_module_deps="$ngx_addon_dir/src/http/common/ngx_http_wasm_util.h"
+#ngx_module_srcs="$ngx_addon_dir/src/http/common/ngx_http_wasm_util.c \
+#                 $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm_hfuncs_module.c"
 #ngx_module_link=ADDON
-
+#
 #. auto/module
 
 ###############################################################################
 
 ngx_module_type=HTTP
 ngx_module_name=ngx_http_wasm_module
-ngx_module_incs="$ngx_addon_dir/src/http/modules"
+ngx_module_incs="$ngx_addon_dir/src/http \
+                 $ngx_addon_dir/src/http/common"
 ngx_module_libs=
-ngx_module_deps="$ngx_addon_dir/src/http/modules/ngx_http_wasm_module.h"
-ngx_module_srcs="$ngx_addon_dir/src/http/modules/ngx_http_wasm_module.c"
+ngx_module_deps="$ngx_addon_dir/src/http/ngx_http_wasm_module.h \
+                 $ngx_addon_dir/src/common/ngx_wasm_phases.h"
+ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_module.c \
+                 $ngx_addon_dir/src/common/ngx_wasm_phases.c"
 ngx_module_link=ADDON
 
 . auto/module
