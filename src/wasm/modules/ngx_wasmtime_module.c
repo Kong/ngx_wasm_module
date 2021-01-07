@@ -5,7 +5,6 @@
 
 #include <ngx_core.h>
 #include <ngx_wasm_core.h>
-#include <ngx_wasm_vm_host.h>
 
 #include <wasm.h>
 #include <wasmtime.h>
@@ -397,17 +396,19 @@ ngx_wasmtime_wat2wasm(ngx_wrt_engine_pt wrt, u_char *wat, size_t len,
 
 
 static ngx_wrt_module_pt
-ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_wasm_hfuncs_t *hfuncs,
+ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_rbtree_t *hfuncs_tree,
     ngx_str_t *mod_name, ngx_str_t *bytes, ngx_wrt_error_pt *err)
 {
     size_t                    i;
-    ngx_wasm_hfunc_t         *hfunc, **hfuncp;
+    ngx_str_node_t           *sn;
+    ngx_wasm_hfunc_t         **hfuncp;
     ngx_wasmtime_engine_t    *engine = wrt;
     ngx_wasmtime_module_t    *module;
     wasm_byte_vec_t           wasm_bytes;
     const wasm_externtype_t  *ext_type;
     wasm_externkind_t         ext_kind;
-    const wasm_name_t        *name_module, *name_func;
+    const wasm_name_t        *hfunc_name;
+    ngx_str_t                 name;
 
     wasm_byte_vec_new(&wasm_bytes, bytes->len, (const char *) bytes->data);
 
@@ -446,13 +447,13 @@ ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_wasm_hfuncs_t *hfuncs,
             continue;
         }
 
-        name_module = wasm_importtype_module(module->imports.data[i]);
-        name_func = wasm_importtype_name(module->imports.data[i]);
+        hfunc_name = wasm_importtype_name(module->imports.data[i]);
 
-        hfunc = ngx_wasm_hfuncs_lookup(hfuncs,
-                               (u_char *) name_module->data, name_module->size,
-                               (u_char *) name_func->data, name_func->size);
-        if (hfunc == NULL) {
+        name.data = (u_char *) hfunc_name->data;
+        name.len = hfunc_name->size;
+
+        sn = ngx_wasm_sn_rbtree_lookup(hfuncs_tree, &name);
+        if (sn == NULL) {
             /* let instantiation fail later on */
             continue;
         }
@@ -462,7 +463,7 @@ ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_wasm_hfuncs_t *hfuncs,
             goto failed;
         }
 
-        *hfuncp = hfunc;
+        *hfuncp = ngx_wasm_sn_sn2data(sn, ngx_wasm_hfunc_t, sn);
     }
 
     return module;
@@ -681,7 +682,7 @@ failed:
 }
 
 
-static void *
+static ngx_wrt_functype_pt
 ngx_wasmtime_hfunctype_new(ngx_wasm_hfunc_t *hfunc)
 {
     size_t               i;
@@ -717,7 +718,7 @@ ngx_wasmtime_hfunctype_new(ngx_wasm_hfunc_t *hfunc)
 
 
 static void
-ngx_wasmtime_hfunctype_free(void *vm_data)
+ngx_wasmtime_hfunctype_free(ngx_wrt_functype_pt vm_data)
 {
     wasm_functype_delete((wasm_functype_t *) vm_data);
 }
@@ -786,7 +787,7 @@ static ngx_wrt_t  ngx_wasmtime_runtime = {
 
 static ngx_wasm_module_t  ngx_wasmtime_module_ctx = {
     &ngx_wasmtime_runtime,               /* runtime */
-    NULL,                                /* hfuncs */
+    NULL,                                /* hdefs */
     NULL,                                /* create configuration */
     NULL,                                /* init configuration */
     NULL,                                /* init module */

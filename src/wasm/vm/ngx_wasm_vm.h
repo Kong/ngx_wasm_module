@@ -18,8 +18,9 @@ ngx_int_t ngx_wasm_vm_add_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name,
 
 ngx_uint_t ngx_wasm_vm_has_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name);
 
-ngx_int_t ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wrt_t *runtime,
-    ngx_wasm_hfuncs_t *hfuncs);
+ngx_int_t ngx_wasm_vm_add_hdefs(ngx_wasm_vm_t *vm, ngx_wasm_hdefs_t *hdefs);
+
+ngx_int_t ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wrt_t *runtime);
 
 ngx_int_t ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name);
 

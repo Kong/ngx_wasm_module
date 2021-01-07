@@ -89,14 +89,14 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
 
 
 static ngx_http_module_t  ngx_http_wasm_module_ctx = {
-    NULL,                            /* preconfiguration */
-    ngx_http_wasm_init,              /* postconfiguration */
-    NULL,                            /* create main configuration */
-    NULL,                            /* init main configuration */
-    NULL,                            /* create server configuration */
-    NULL,                            /* merge server configuration */
-    ngx_http_wasm_create_loc_conf,   /* create location configuration */
-    ngx_http_wasm_merge_loc_conf     /* merge location configuration */
+    NULL,                                /* preconfiguration */
+    ngx_http_wasm_init,                  /* postconfiguration */
+    NULL,                                /* create main configuration */
+    NULL,                                /* init main configuration */
+    NULL,                                /* create server configuration */
+    NULL,                                /* merge server configuration */
+    ngx_http_wasm_create_loc_conf,       /* create location configuration */
+    ngx_http_wasm_merge_loc_conf         /* merge location configuration */
 };
 
 

@@ -12,9 +12,9 @@ typedef struct ngx_wasm_phases_ctx_s  ngx_wasm_phases_ctx_t;
 
 
 typedef struct {
-    ngx_str_t       name;
-    ngx_uint_t      index;
-    ngx_uint_t      on;
+    ngx_str_t                                name;
+    ngx_uint_t                               index;
+    ngx_uint_t                               on;
 } ngx_wasm_phase_t;
 
 

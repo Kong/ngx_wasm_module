@@ -28,13 +28,14 @@
 #define NGX_WASM_ARGS_MAX            8
 #define NGX_WASM_RETS_MAX            1
 
-#define NGX_WASM_MAX_HOST_TRAP_STR  128
+#define NGX_WASM_MAX_HOST_TRAP_STR   128
 
 
 /* wasm vm */
 
 
 typedef struct ngx_wasm_vm_s  ngx_wasm_vm_t;
+typedef struct ngx_wasm_vm_module_s  ngx_wasm_vm_module_t;
 typedef struct ngx_wasm_vm_instance_s  ngx_wasm_vm_instance_t;
 
 typedef enum {
@@ -81,13 +82,12 @@ typedef struct {
     { NGX_WASM_I32 }
 
 
+typedef struct ngx_wasm_hfunc_s  ngx_wasm_hfunc_t;
+
 typedef enum {
     NGX_WASM_HOST_SUBSYS_ANY,
     NGX_WASM_HOST_SUBSYS_HTTP
 } ngx_wasm_host_subsys_kind;
-
-typedef struct ngx_wasm_hfunc_s  ngx_wasm_hfunc_t;
-typedef struct ngx_wasm_hfuncs_s  ngx_wasm_hfuncs_t;
 
 typedef struct {
     ngx_wasm_host_subsys_kind      subsys;
@@ -134,7 +134,7 @@ typedef ngx_wrt_error_pt (*ngx_wrt_wat2wasm_pt)(ngx_wrt_engine_pt engine, u_char
     size_t len, ngx_str_t *wasm);
 
 typedef ngx_wrt_module_pt (*ngx_wrt_module_new_pt)(ngx_wrt_engine_pt engine,
-    ngx_wasm_hfuncs_t *hfuncs, ngx_str_t *mod_name, ngx_str_t *bytes,
+    ngx_rbtree_t *hfuncs_tree, ngx_str_t *mod_name, ngx_str_t *bytes,
     ngx_wrt_error_pt *err);
 
 typedef ngx_wrt_instance_pt (*ngx_wrt_instance_new_pt)(
@@ -171,24 +171,6 @@ typedef struct {
 
     ngx_wrt_trap_log_handler_pt   trap_log_handler;
 } ngx_wrt_t;
-
-
-/* definitions */
-
-
-typedef struct {
-    ngx_uint_t                     size;
-    ngx_wasm_val_kind             *vals;
-} ngx_wasm_hfunc_arity_t;
-
-struct ngx_wasm_hfunc_s {
-    ngx_str_t                     *name;
-    ngx_wasm_host_subsys_kind      subsys;
-    ngx_wasm_hfunc_pt              ptr;
-    ngx_wasm_hfunc_arity_t         args;
-    ngx_wasm_hfunc_arity_t         rets;
-    ngx_wrt_functype_pt            wrt_functype;
-};
 
 
 /* core wasm module ABI */

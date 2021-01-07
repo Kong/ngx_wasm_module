@@ -5,7 +5,6 @@
 
 #include <ngx_wasm_core.h>
 #include <ngx_wasm_vm.h>
-#include <ngx_wasm_vm_host.h>
 
 
 extern ngx_wasm_hdef_func_t  ngx_wasm_core_hfuncs[];
@@ -26,7 +25,6 @@ extern ngx_wasm_hdef_func_t  ngx_wasm_core_hfuncs[];
 
 typedef struct {
     ngx_wasm_vm_t               *vm;
-    ngx_wasm_hfuncs_t           *hfuncs;
     ngx_wrt_t                   *runtime;
 } ngx_wasm_core_conf_t;
 
@@ -125,13 +123,8 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
         return NULL;
     }
 
-    wcf->hfuncs = ngx_wasm_hfuncs_new(cycle);
-    if (wcf->hfuncs == NULL) {
-        return NULL;
-    }
-
 #ifdef NGX_WASM_NOPOOL
-    /* ensure hfuncs and vm are freed in master HUP reloads for Valgrind */
+    /* ensure vm is freed in master HUP reloads for Valgrind */
     cln = ngx_pool_cleanup_add(cycle->pool, 0);
     if (cln == NULL) {
         return NULL;
@@ -286,8 +279,6 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
 
-    ngx_wasm_hfuncs_init(wcf->hfuncs, wcf->runtime);
-
     for (i = 0; cycle->modules[i]; i++) {
         if (cycle->modules[i]->type != NGX_WASM_MODULE) {
             continue;
@@ -296,11 +287,11 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
         wm = cycle->modules[i]->ctx;
 
         if (wm->hdefs) {
-            ngx_wasm_hfuncs_add(wcf->hfuncs, (u_char *) "env", wm->hdefs);
+            ngx_wasm_vm_add_hdefs(wcf->vm, wm->hdefs);
         }
     }
 
-    if (ngx_wasm_vm_init(wcf->vm, wcf->runtime, wcf->hfuncs) != NGX_OK) {
+    if (ngx_wasm_vm_init(wcf->vm, wcf->runtime) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -318,11 +309,6 @@ ngx_wasm_core_exit_process(ngx_cycle_t *cycle)
     if (wcf->vm) {
         ngx_wasm_vm_free(wcf->vm);
         wcf->vm = NULL;
-    }
-
-    if (wcf->hfuncs) {
-        ngx_wasm_hfuncs_free(wcf->hfuncs);
-        wcf->hfuncs = NULL;
     }
 
     wcf->runtime = NULL;

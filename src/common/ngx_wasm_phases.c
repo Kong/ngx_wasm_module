@@ -33,7 +33,7 @@ static ngx_wasm_phase_t ngx_wasm_phases_http[] = {
       NGX_HTTP_LOG_PHASE,
       (1 << NGX_HTTP_LOG_PHASE) },
 
-    { ngx_null_string, 0, 0 },
+    { ngx_null_string, 0, 0 }
 };
 
 

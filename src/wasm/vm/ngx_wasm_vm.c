@@ -3,6 +3,7 @@
 #endif
 #include "ddebug.h"
 
+#include <ngx_core.h>
 #include <ngx_wasm_vm.h>
 #include <ngx_wasm_core.h>
 
@@ -69,7 +70,11 @@ ngx_wasm_vm_new(ngx_cycle_t *cycle, ngx_str_t *vm_name)
     vm->log->handler = ngx_wasm_vm_log_error_handler;
     vm->log->data = &vm->log_ctx;
 
-    ngx_rbtree_init(&vm->mtree, &vm->sentinel, ngx_str_rbtree_insert_value);
+    ngx_rbtree_init(&vm->modules_tree, &vm->modules_sentinel,
+                    ngx_str_rbtree_insert_value);
+
+    ngx_rbtree_init(&vm->hfuncs_tree, &vm->hfuncs_sentinel,
+                    ngx_str_rbtree_insert_value);
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, cycle->log, 0,
                    "wasm created \"%V\" vm (vm: %p)",
@@ -96,20 +101,21 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
     ngx_str_node_t           *sn;
     ngx_wasm_vm_module_t     *module;
     ngx_wasm_vm_instance_t   *inst;
+    ngx_wasm_hfunc_t         *hfunc;
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
                    "wasm free \"%V\" vm (vm: %p)",
                    &vm->name, vm);
 
-    root = &vm->mtree.root;
-    sentinel = &vm->mtree.sentinel;
+    root = &vm->modules_tree.root;
+    sentinel = &vm->modules_tree.sentinel;
 
     while (*root != *sentinel) {
         node = ngx_rbtree_min(*root, *sentinel);
         sn = ngx_wasm_sn_n2sn(node);
         module = ngx_wasm_sn_sn2data(sn, ngx_wasm_vm_module_t, sn);
 
-        ngx_rbtree_delete(&vm->mtree, node);
+        ngx_rbtree_delete(&vm->modules_tree, node);
 
         ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
                        "wasm free \"%V\" module in \"%V\" vm"
@@ -130,6 +136,27 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
         ngx_pfree(vm->pool, module->path.data);
         ngx_pfree(vm->pool, module->bytes.data);
         ngx_pfree(vm->pool, module);
+    } 
+
+    root = &vm->hfuncs_tree.root;
+    sentinel = &vm->hfuncs_tree.sentinel;
+
+    while (*root != *sentinel) {
+        node = ngx_rbtree_min(*root, *sentinel);
+        sn = ngx_wasm_sn_n2sn(node);
+        hfunc = ngx_wasm_sn_sn2data(sn, ngx_wasm_hfunc_t, sn);
+
+        ngx_log_debug1(NGX_LOG_DEBUG_WASM, vm->log, 0,
+                       "wasm free \"env.%V\" host function",
+                       hfunc->name);
+
+        ngx_rbtree_delete(&vm->hfuncs_tree, node);
+
+        if (vm->runtime->hfunctype_free && hfunc->wrt_functype) {
+           vm->runtime->hfunctype_free(hfunc->wrt_functype);
+        }
+
+        ngx_pfree(vm->pool, hfunc);
     }
 
     if (vm->runtime
@@ -157,7 +184,7 @@ ngx_wasm_vm_get_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
     ngx_str_node_t        *sn;
     ngx_wasm_vm_module_t  *module;
 
-    sn = ngx_wasm_sn_rbtree_lookup(&vm->mtree, mod_name);
+    sn = ngx_wasm_sn_rbtree_lookup(&vm->modules_tree, mod_name);
     if (sn == NULL) {
         return NULL;
     }
@@ -209,7 +236,7 @@ ngx_wasm_vm_add_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name, ngx_str_t *path)
     }
 
     ngx_wasm_sn_init(&module->sn, &module->name);
-    ngx_wasm_sn_rbtree_insert(&vm->mtree, &module->sn);
+    ngx_wasm_sn_rbtree_insert(&vm->modules_tree, &module->sn);
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
                    "wasm registered \"%V\" module in \"%V\" vm"
@@ -249,20 +276,97 @@ ngx_wasm_vm_has_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
 
 
 ngx_int_t
-ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wrt_t *runtime,
-    ngx_wasm_hfuncs_t *hfuncs)
+ngx_wasm_vm_add_hdefs(ngx_wasm_vm_t *vm, ngx_wasm_hdefs_t *hdefs)
+{
+    size_t                 nargs, nrets;
+    u_char                *err = NULL;
+    ngx_str_node_t        *sn;
+    ngx_wasm_hdef_func_t  *hfunc_def;
+    ngx_wasm_hfunc_t      *hfunc;
+
+    hfunc_def = hdefs->funcs;
+
+    for (/* void */; hfunc_def->ptr; hfunc_def++) {
+
+        ngx_log_debug1(NGX_LOG_DEBUG_WASM, vm->log, 0,
+                       "wasm registering \"env.%V\" host function",
+                       &hfunc_def->name);
+
+        sn = ngx_wasm_sn_rbtree_lookup(&vm->hfuncs_tree, &hfunc_def->name);
+        if (sn) {
+            ngx_sprintf(err, "\"env.%V\" already defined", &hfunc_def->name);
+            goto failed;
+        }
+
+        hfunc = ngx_pcalloc(vm->pool, sizeof(ngx_wasm_hfunc_t));
+        if (hfunc == NULL) {
+            err = (u_char *) "no memory";
+            goto failed;
+        }
+
+        hfunc->name = &hfunc_def->name;
+        hfunc->ptr = hfunc_def->ptr;
+        hfunc->subsys = hdefs->subsys;
+
+        for (nargs = 0; hfunc_def->args[nargs] && nargs < NGX_WASM_ARGS_MAX;
+             nargs++) { /* void */ }
+
+        for (nrets = 0; hfunc_def->rets[nrets] && nrets < NGX_WASM_RETS_MAX;
+             nrets++) { /* void */ }
+
+        hfunc->args.size = nargs;
+        hfunc->args.vals = ngx_palloc(vm->pool,
+                                      nargs * sizeof(ngx_wasm_val_kind));
+        if (hfunc->args.vals == NULL) {
+            err = (u_char *) "no memory";
+            goto failed;
+        }
+
+        hfunc->rets.size = nrets;
+        hfunc->rets.vals = ngx_palloc(vm->pool,
+                                      nrets * sizeof(ngx_wasm_val_kind));
+        if (hfunc->rets.vals == NULL) {
+            err = (u_char *) "no memory";
+            goto failed;
+        }
+
+        for (nargs = 0; nargs < hfunc->args.size; nargs++) {
+            hfunc->args.vals[nargs] = hfunc_def->args[nargs];
+        }
+
+        for (nrets = 0; nrets < hfunc->rets.size; nrets++) {
+            hfunc->rets.vals[nrets] = hfunc_def->rets[nrets];
+        }
+
+        ngx_wasm_sn_init(&hfunc->sn, hfunc->name);
+        ngx_wasm_sn_rbtree_insert(&vm->hfuncs_tree, &hfunc->sn);
+    }
+
+    return NGX_OK;
+
+failed:
+
+    ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
+                       "failed to register host functions: %s", err);
+
+    return NGX_ERROR;
+}
+
+
+ngx_int_t
+ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wrt_t *runtime)
 {
     ngx_int_t              rc;
     ngx_rbtree_node_t     *node, *root, *sentinel;
     ngx_str_node_t        *sn;
     ngx_wasm_vm_module_t  *module;
+    ngx_wasm_hfunc_t      *hfunc;
 
     if (vm->wrt) {
         return NGX_DONE;
     }
 
     vm->runtime = runtime;
-    vm->hfuncs = hfuncs;
 
     if (runtime->engine_new) {
         vm->wrt = runtime->engine_new(vm->pool);
@@ -274,8 +378,8 @@ ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wrt_t *runtime,
         }
     }
 
-    sentinel = vm->mtree.sentinel;
-    root = vm->mtree.root;
+    sentinel = vm->modules_tree.sentinel;
+    root = vm->modules_tree.root;
 
     if (root == sentinel) {
         return NGX_OK;
@@ -283,7 +387,7 @@ ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wrt_t *runtime,
 
     for (node = ngx_rbtree_min(root, sentinel);
          node;
-         node = ngx_rbtree_next(&vm->mtree, node))
+         node = ngx_rbtree_next(&vm->modules_tree, node))
     {
         sn = ngx_wasm_sn_n2sn(node);
         module = ngx_wasm_sn_sn2data(sn, ngx_wasm_vm_module_t, sn);
@@ -292,6 +396,23 @@ ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wrt_t *runtime,
         if (rc != NGX_OK) {
             return rc;
         }
+    }
+
+    root = vm->hfuncs_tree.root;
+    sentinel = vm->hfuncs_tree.sentinel;
+
+    if (root == sentinel) {
+        return NGX_OK;
+    }
+
+    for (node = ngx_rbtree_min(root, sentinel);
+         node;
+         node = ngx_rbtree_next(&vm->hfuncs_tree, node))
+    {
+        sn = ngx_wasm_sn_n2sn(node);
+        hfunc = ngx_wasm_sn_sn2data(sn, ngx_wasm_hfunc_t, sn);
+
+        hfunc->wrt_functype = vm->runtime->hfunctype_new(hfunc);
     }
 
     return NGX_OK;
@@ -404,8 +525,8 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
                        "loading \"%V\" module from \"%V\"",
                        &module->name, &module->path);
 
-    module->wrt = vm->runtime->module_new(vm->wrt, vm->hfuncs, &module->name,
-                                          &wasm_bytes, &err);
+    module->wrt = vm->runtime->module_new(vm->wrt, &vm->hfuncs_tree,
+                                          &module->name, &wasm_bytes, &err);
     if (module->wrt == NULL) {
         ngx_wasm_vm_log_error(NGX_LOG_EMERG, vm->log, err, NULL,
                               "failed to load \"%V\" module from \"%V\"",
