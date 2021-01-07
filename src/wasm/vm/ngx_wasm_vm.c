@@ -726,18 +726,16 @@ ngx_wasm_vm_log_error(ngx_uint_t level, ngx_log_t *log,
     last = errstr + NGX_MAX_ERROR_STR;
     p = &errstr[0];
 
-#if (NGX_HAVE_VARIADIC_MACROS)
     if (fmt) {
+#if (NGX_HAVE_VARIADIC_MACROS)
         va_start(args, fmt);
         p = ngx_vslprintf(p, last, fmt, args);
         va_end(args);
-    }
 
 #else
-    if (fmt) {
         p = ngx_vslprintf(p, last, fmt, args);
-    }
 #endif
+    }
 
     if (vm->runtime == NULL) {
         p = ngx_snprintf(p, last - p, " (\"%V\" vm not initialized)",

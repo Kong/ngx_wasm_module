@@ -10,7 +10,7 @@
 typedef struct {
     ngx_http_request_t              *r;
     ngx_wasm_vm_cache_t             *vmcache;
-    ngx_wasm_phases_ctx_t      pctx;
+    ngx_wasm_phases_ctx_t            pctx;
 
     /* control flow */
 

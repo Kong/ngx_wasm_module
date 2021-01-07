@@ -476,7 +476,7 @@ failed:
 }
 
 
-void
+static void
 ngx_wasmtime_instance_free(ngx_wrt_instance_pt wrt)
 {
     size_t                    i;
@@ -512,7 +512,7 @@ ngx_wasmtime_instance_free(ngx_wrt_instance_pt wrt)
 }
 
 
-ngx_wrt_instance_pt
+static ngx_wrt_instance_pt
 ngx_wasmtime_instance_new(ngx_wrt_module_pt wrt, ngx_wasm_hctx_t **hctx,
     ngx_wrt_error_pt *err, ngx_wrt_trap_pt *trap)
 {
