@@ -75,11 +75,11 @@ struct ngx_wasm_phases_ctx_s {
 };
 
 
-char *ngx_wasm_phases_conf_add_op_call(ngx_conf_t *cf,
+ngx_wasm_phases_op_t *ngx_wasm_phases_conf_add_op_call(ngx_conf_t *cf,
     ngx_wasm_phases_engine_t *phengine, ngx_str_t *phase_name,
     ngx_str_t *mod_name, ngx_str_t *func_name);
 
-char *ngx_wasm_phases_conf_add_op_proxy_wasm(ngx_conf_t *cf,
+ngx_wasm_phases_op_t *ngx_wasm_phases_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     ngx_wasm_phases_engine_t *phengine, ngx_str_t *mod_name);
 
 ngx_int_t ngx_wasm_phases_resume(ngx_wasm_phases_ctx_t *pctx,

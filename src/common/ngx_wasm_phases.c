@@ -17,6 +17,7 @@ static ngx_int_t ngx_wasm_phases_op_proxy_wasm_handler(
 
 
 static ngx_wasm_phase_t ngx_wasm_phases_http[] = {
+
     { ngx_string("post_read"),
       NGX_HTTP_POST_READ_PHASE,
       0 },
@@ -83,7 +84,7 @@ ngx_wasm_phases_add_op_helper(ngx_pool_t *pool,
 }
 
 
-char *
+ngx_wasm_phases_op_t *
 ngx_wasm_phases_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_phases_engine_t *phengine,
     ngx_str_t *phase_name, ngx_str_t *mod_name, ngx_str_t *func_name)
 {
@@ -94,7 +95,7 @@ ngx_wasm_phases_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_phases_engine_t *pheng
     if (phase_name->len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid phase \"%V\"",
                            phase_name);
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     switch (phengine->subsys) {
@@ -107,7 +108,7 @@ ngx_wasm_phases_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_phases_engine_t *pheng
         ngx_conf_log_error(NGX_LOG_ALERT, cf, 0,
                            "NYI - phases: unknown subsystem");
         ngx_wasm_assert(0);
-        return NGX_CONF_ERROR;
+        return NULL;
 
     }
 
@@ -122,30 +123,30 @@ ngx_wasm_phases_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_phases_engine_t *pheng
     if (subsys_phase->name.len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown phase \"%V\"",
                            phase_name);
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     if (subsys_phase->on == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unsupported phase \"%V\"",
                            phase_name);
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     if (mod_name->len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid module name \"%V\"",
                            mod_name);
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     if (func_name->len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid function name \"%V\"",
                            func_name);
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     op = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_phases_op_t));
     if (op == NULL) {
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     op->code = NGX_WASM_PHASES_OP_CALL;
@@ -156,7 +157,7 @@ ngx_wasm_phases_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_phases_engine_t *pheng
     op->conf.call.mod_name.data = ngx_pnalloc(cf->pool,
                                               op->conf.call.mod_name.len + 1);
     if (op->conf.call.mod_name.data == NULL) {
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     p = ngx_copy(op->conf.call.mod_name.data, mod_name->data,
@@ -167,7 +168,7 @@ ngx_wasm_phases_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_phases_engine_t *pheng
     op->conf.call.func_name.data = ngx_pnalloc(cf->pool,
                                                op->conf.call.func_name.len + 1);
     if (op->conf.call.func_name.data == NULL) {
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     p = ngx_copy(op->conf.call.func_name.data, func_name->data,
@@ -178,18 +179,18 @@ ngx_wasm_phases_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_phases_engine_t *pheng
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "[wasm] no \"%V\" module defined",
                            &op->conf.call.mod_name);
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     if (ngx_wasm_phases_add_op_helper(cf->pool, phengine, op) != NGX_OK) {
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
-    return NGX_CONF_OK;
+    return op;
 }
 
 
-char *
+ngx_wasm_phases_op_t *
 ngx_wasm_phases_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     ngx_wasm_phases_engine_t *phengine, ngx_str_t *mod_name)
 {
@@ -199,12 +200,12 @@ ngx_wasm_phases_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     if (mod_name->len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid module name \"%V\"",
                            mod_name);
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     op = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_phases_op_t));
     if (op == NULL) {
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     op->code = NGX_WASM_PHASES_OP_PROXY_WASM;
@@ -216,7 +217,7 @@ ngx_wasm_phases_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     op->conf.proxy_wasm.mod_name.data = ngx_pnalloc(cf->pool,
                                           op->conf.proxy_wasm.mod_name.len + 1);
     if (op->conf.proxy_wasm.mod_name.data == NULL) {
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     p = ngx_copy(op->conf.proxy_wasm.mod_name.data, mod_name->data,
@@ -224,10 +225,10 @@ ngx_wasm_phases_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     *p = '\0';
 
     if (ngx_wasm_phases_add_op_helper(cf->pool, phengine, op) != NGX_OK) {
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
-    return NGX_CONF_OK;
+    return op;
 }
 
 

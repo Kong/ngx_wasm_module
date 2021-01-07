@@ -195,27 +195,27 @@ ngx_http_wasm_isolation_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 char *
 ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_str_t                   *value;
-    ngx_http_core_loc_conf_t    *clcf;
-    ngx_http_wasm_loc_conf_t    *loc = conf;
+    ngx_str_t                 *value;
+    ngx_http_core_loc_conf_t  *clcf;
+    ngx_http_wasm_loc_conf_t  *loc = conf;
+    ngx_wasm_phases_op_t      *op;
 
     value = cf->args->elts;
 
-    if (ngx_wasm_phases_conf_add_op_call(cf, &loc->phengine, &value[1],
-                                         &value[2], &value[3])
-        != NGX_CONF_OK)
-    {
+    op = ngx_wasm_phases_conf_add_op_call(cf, &loc->phengine, &value[1],
+                                          &value[2], &value[3]);
+    if (op == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    //if (phase == NGX_HTTP_CONTENT_PHASE) {
+    if (op->on_phases & NGX_HTTP_CONTENT_PHASE) {
         clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
         if (clcf == NULL) {
             return NGX_CONF_ERROR;
         }
 
         clcf->handler = ngx_http_wasm_content_handler;
-    //}
+    }
 
     return NGX_CONF_OK;
 }
@@ -228,21 +228,23 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     ngx_str_t                 *value;
     ngx_http_core_loc_conf_t  *clcf;
     ngx_http_wasm_loc_conf_t  *loc = conf;
+    ngx_wasm_phases_op_t      *op;
 
     value = cf->args->elts;
 
-    if (ngx_wasm_phases_conf_add_op_proxy_wasm(cf, &loc->phengine, &value[1])
-        != NGX_CONF_OK)
-    {
+    op = ngx_wasm_phases_conf_add_op_proxy_wasm(cf, &loc->phengine, &value[1]);
+    if (op == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
-    if (clcf == NULL) {
-        return NGX_CONF_ERROR;
-    }
+    if (op->on_phases & NGX_HTTP_CONTENT_PHASE) {
+        clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
+        if (clcf == NULL) {
+            return NGX_CONF_ERROR;
+        }
 
-    clcf->handler = ngx_http_wasm_content_handler;
+        clcf->handler = ngx_http_wasm_content_handler;
+    }
 
     return NGX_CONF_OK;
 }
