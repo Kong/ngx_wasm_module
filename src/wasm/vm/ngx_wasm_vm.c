@@ -132,11 +132,13 @@ ngx_wasm_vm_free(ngx_wasm_vm_t *vm)
 
         vm->runtime->module_free(module->wrt);
 
+        ngx_array_destroy(module->exports_funcs);
+
         ngx_pfree(vm->pool, module->name.data);
         ngx_pfree(vm->pool, module->path.data);
         ngx_pfree(vm->pool, module->bytes.data);
         ngx_pfree(vm->pool, module);
-    } 
+    }
 
     root = &vm->hfuncs_tree.root;
     sentinel = &vm->hfuncs_tree.sentinel;
@@ -233,6 +235,11 @@ ngx_wasm_vm_add_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name, ngx_str_t *path)
 
     if (ngx_strncmp(&module->path.data[module->path.len - 4], ".wat", 4) == 0) {
         module->flags |= NGX_WASM_MODULE_ISWAT;
+    }
+
+    module->exports_funcs = ngx_array_create(vm->pool, 2, sizeof(ngx_str_t));
+    if (module->exports_funcs == NULL) {
+        goto failed;
     }
 
     ngx_wasm_sn_init(&module->sn, &module->name);
@@ -526,7 +533,8 @@ ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name)
                        &module->name, &module->path);
 
     module->wrt = vm->runtime->module_new(vm->wrt, &vm->hfuncs_tree,
-                                          &module->name, &wasm_bytes, &err);
+                                          &wasm_bytes, &module->name,
+                                          module->exports_funcs, &err);
     if (module->wrt == NULL) {
         ngx_wasm_vm_log_error(NGX_LOG_EMERG, vm->log, err, NULL,
                               "failed to load \"%V\" module from \"%V\"",

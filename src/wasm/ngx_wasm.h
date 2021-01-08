@@ -134,8 +134,8 @@ typedef ngx_wrt_error_pt (*ngx_wrt_wat2wasm_pt)(ngx_wrt_engine_pt engine, u_char
     size_t len, ngx_str_t *wasm);
 
 typedef ngx_wrt_module_pt (*ngx_wrt_module_new_pt)(ngx_wrt_engine_pt engine,
-    ngx_rbtree_t *hfuncs_tree, ngx_str_t *mod_name, ngx_str_t *bytes,
-    ngx_wrt_error_pt *err);
+    ngx_rbtree_t *hfuncs_tree, ngx_str_t *bytes, ngx_str_t *mod_name,
+    ngx_array_t *exports_funcs, ngx_wrt_error_pt *err);
 
 typedef ngx_wrt_instance_pt (*ngx_wrt_instance_new_pt)(
     ngx_wrt_module_pt module, ngx_wasm_hctx_t **hctx,

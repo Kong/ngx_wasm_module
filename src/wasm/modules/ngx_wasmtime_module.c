@@ -397,18 +397,19 @@ ngx_wasmtime_wat2wasm(ngx_wrt_engine_pt wrt, u_char *wat, size_t len,
 
 static ngx_wrt_module_pt
 ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_rbtree_t *hfuncs_tree,
-    ngx_str_t *mod_name, ngx_str_t *bytes, ngx_wrt_error_pt *err)
+    ngx_str_t *bytes, ngx_str_t *mod_name, ngx_array_t *exports_funcs,
+    ngx_wrt_error_pt *err)
 {
-    size_t                    i;
-    ngx_str_node_t           *sn;
+    size_t                     i;
+    ngx_str_node_t            *sn;
     ngx_wasm_hfunc_t         **hfuncp;
-    ngx_wasmtime_engine_t    *engine = wrt;
-    ngx_wasmtime_module_t    *module;
-    wasm_byte_vec_t           wasm_bytes;
-    const wasm_externtype_t  *ext_type;
-    wasm_externkind_t         ext_kind;
-    const wasm_name_t        *hfunc_name;
-    ngx_str_t                 name;
+    ngx_wasmtime_engine_t     *engine = wrt;
+    ngx_wasmtime_module_t     *module;
+    wasm_byte_vec_t            wasm_bytes;
+    const wasm_externtype_t   *ext_type;
+    wasm_externkind_t          ext_kind;
+    const wasm_name_t         *func_name;
+    ngx_str_t                  name, *namep;
 
     wasm_byte_vec_new(&wasm_bytes, bytes->len, (const char *) bytes->data);
 
@@ -447,10 +448,10 @@ ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_rbtree_t *hfuncs_tree,
             continue;
         }
 
-        hfunc_name = wasm_importtype_name(module->imports.data[i]);
+        func_name = wasm_importtype_name(module->imports.data[i]);
 
-        name.data = (u_char *) hfunc_name->data;
-        name.len = hfunc_name->size;
+        name.data = (u_char *) func_name->data;
+        name.len = func_name->size;
 
         sn = ngx_wasm_sn_rbtree_lookup(hfuncs_tree, &name);
         if (sn == NULL) {
@@ -464,6 +465,18 @@ ngx_wasmtime_module_new(ngx_wrt_engine_pt wrt, ngx_rbtree_t *hfuncs_tree,
         }
 
         *hfuncp = ngx_wasm_sn_sn2data(sn, ngx_wasm_hfunc_t, sn);
+    }
+
+    for (i = 0; i < module->exports.size; i++) {
+        namep = ngx_array_push(exports_funcs);
+        if (namep == NULL) {
+            goto failed;
+        }
+
+        func_name = wasm_exporttype_name(module->exports.data[i]);
+
+        namep->data = (u_char *) func_name->data;
+        namep->len = func_name->size;
     }
 
     return module;
