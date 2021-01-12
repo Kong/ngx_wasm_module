@@ -95,7 +95,15 @@ ngx_module_t  ngx_wasm_core_module = {
 static void
 ngx_wasm_core_cleanup_pool(void *data)
 {
-    if (ngx_process == NGX_PROCESS_MASTER) {
+    ngx_cycle_t  *cycle = data;
+    unsigned      run = (ngx_process == NGX_PROCESS_MASTER ||
+                         ngx_process == NGX_PROCESS_SINGLE);
+
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, cycle->log, 0,
+                  "wasm core: nopool patch cycle->pool cleanup: %s",
+                  run ? "yes" : "no");
+
+    if (run) {
         ngx_wasm_core_exit_process((ngx_cycle_t *) data);
     }
 }

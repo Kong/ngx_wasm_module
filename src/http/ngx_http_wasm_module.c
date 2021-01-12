@@ -300,10 +300,10 @@ ngx_http_wasm_init(ngx_conf_t *cf)
 static ngx_http_wasm_req_ctx_t *
 ngx_http_wasm_rctx(ngx_http_request_t *r)
 {
-    ngx_http_wasm_req_ctx_t      *rctx;
-    ngx_http_wasm_loc_conf_t     *loc;
-    ngx_wasm_phases_ctx_t  *pctx;
-    ngx_wasm_vm_cache_t          *vmcache;
+    ngx_http_wasm_req_ctx_t   *rctx;
+    ngx_http_wasm_loc_conf_t  *loc;
+    ngx_wasm_phases_ctx_t     *pctx;
+    ngx_wasm_vm_cache_t       *vmcache;
 
     rctx = ngx_http_get_module_ctx(r, ngx_http_wasm_module);
     if (rctx == NULL) {

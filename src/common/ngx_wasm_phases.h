@@ -13,8 +13,8 @@ typedef struct ngx_wasm_phases_ctx_s  ngx_wasm_phases_ctx_t;
 
 typedef struct {
     ngx_str_t                                name;
-    ngx_uint_t                               index;
-    ngx_uint_t                               on;
+    ngx_int_t                                index;
+    ngx_int_t                                on;
 } ngx_wasm_phase_t;
 
 
@@ -60,7 +60,7 @@ typedef struct {
 
 typedef struct {
     ngx_uint_t                               nphases;
-    ngx_wasm_host_subsys_kind                subsys;
+    ngx_wasm_hsubsys_kind                    subsys;
     ngx_wasm_vm_t                           *vm;
     ngx_wasm_phases_phase_t                **phases;
 } ngx_wasm_phases_engine_t;
@@ -83,7 +83,7 @@ ngx_wasm_phases_op_t *ngx_wasm_phases_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     ngx_wasm_phases_engine_t *phengine, ngx_str_t *mod_name);
 
 ngx_int_t ngx_wasm_phases_resume(ngx_wasm_phases_ctx_t *pctx,
-    ngx_uint_t phase_idx);
+    ngx_int_t phase_idx);
 
 
 #endif /* _NGX_WASM_PHASES_H_INCLUDED_ */

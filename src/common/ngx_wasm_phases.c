@@ -175,7 +175,7 @@ ngx_wasm_phases_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_phases_engine_t *pheng
                  op->conf.call.func_name.len);
     *p = '\0';
 
-    if (!ngx_wasm_vm_has_module(phengine->vm, &op->conf.call.mod_name)) {
+    if (ngx_wasm_vm_get_module(phengine->vm, &op->conf.call.mod_name) == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "[wasm] no \"%V\" module defined",
                            &op->conf.call.mod_name);
@@ -233,7 +233,7 @@ ngx_wasm_phases_conf_add_op_proxy_wasm(ngx_conf_t *cf,
 
 
 ngx_int_t
-ngx_wasm_phases_resume(ngx_wasm_phases_ctx_t *pctx, ngx_uint_t phase_idx)
+ngx_wasm_phases_resume(ngx_wasm_phases_ctx_t *pctx, ngx_int_t phase_idx)
 {
     size_t                    i;
     ngx_uint_t                rc;
@@ -249,7 +249,7 @@ ngx_wasm_phases_resume(ngx_wasm_phases_ctx_t *pctx, ngx_uint_t phase_idx)
 
     if (subsys_phase->index == 0) {
         ngx_wasm_log_error(NGX_LOG_ALERT, pctx->log, 0,
-                           "phase engine: unknown phase index '%u'",
+                           "phase engine: unknown phase index '%d'",
                            phase_idx);
         return NGX_ERROR;
     }

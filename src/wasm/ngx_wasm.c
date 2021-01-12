@@ -49,6 +49,24 @@ ngx_module_t  ngx_wasm_module = {
 };
 
 
+const wasm_valkind_t  ngx_wasm_i32 = WASM_I32;
+
+const wasm_valkind_t * ngx_wasm_arity_i32[] = {
+    &ngx_wasm_i32,
+    NULL
+};
+
+const wasm_valkind_t * ngx_wasm_arity_i32_i32[] = {
+    &ngx_wasm_i32, &ngx_wasm_i32,
+    NULL
+};
+
+const wasm_valkind_t * ngx_wasm_arity_i32_i32_i32[] = {
+    &ngx_wasm_i32, &ngx_wasm_i32, &ngx_wasm_i32,
+    NULL
+};
+
+
 static char *
 ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {

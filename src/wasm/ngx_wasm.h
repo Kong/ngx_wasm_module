@@ -4,6 +4,7 @@
 
 #include <ngx_core.h>
 
+#include <wasm.h>
 
 #if (NGX_DEBUG)
 #include <assert.h>
@@ -11,6 +12,7 @@
 #else
 #   define ngx_wasm_assert(a)
 #endif
+
 
 #define NGX_LOG_DEBUG_WASM           NGX_LOG_DEBUG_ALL
 
@@ -25,9 +27,6 @@
 #define NGX_WASM_BAD_USAGE           NGX_ABORT
 #define NGX_WASM_SENT_LAST           NGX_DONE
 
-#define NGX_WASM_ARGS_MAX            8
-#define NGX_WASM_RETS_MAX            1
-
 #define NGX_WASM_MAX_HOST_TRAP_STR   128
 
 
@@ -37,139 +36,88 @@
 typedef struct ngx_wasm_vm_s  ngx_wasm_vm_t;
 typedef struct ngx_wasm_vm_module_s  ngx_wasm_vm_module_t;
 typedef struct ngx_wasm_vm_instance_s  ngx_wasm_vm_instance_t;
-
-typedef enum {
-    NGX_WASM_I32 = 1,
-    NGX_WASM_I64,
-    NGX_WASM_F32,
-    NGX_WASM_F64
-} ngx_wasm_val_kind;
-
-typedef struct {
-    ngx_wasm_val_kind     kind;
-
-    union {
-        int32_t     I32;
-        int64_t     I64;
-        float       F32;
-        double      F64;
-    } value;
-} ngx_wasm_val_t;
+typedef struct ngx_wasm_vm_func_s  ngx_wasm_vm_func_t;
 
 
 /* host interface */
 
 
-#define ngx_wasm_args_none           { 0, 0, 0, 0, 0, 0, 0, 0 }
-#define ngx_wasm_rets_none           { 0 }
-
-#define ngx_wasm_hfunc_null                                                  \
-    { ngx_null_string, NULL, ngx_wasm_args_none, ngx_wasm_rets_none }
-
-#define ngx_wasm_args_i32                                                    \
-    { NGX_WASM_I32, 0, 0, 0, 0, 0, 0, 0 }
-
-#define ngx_wasm_args_i32_i32                                                \
-    { NGX_WASM_I32, NGX_WASM_I32, 0, 0, 0, 0, 0, 0 }
-
-#define ngx_wasm_args_i32_i32_I32                                            \
-    { NGX_WASM_I32, NGX_WASM_I32, NGX_WASM_I32, 0, 0, 0, 0, 0 }
-
-#define ngx_wasm_args_i64_i32                                                \
-    { NGX_WASM_I64, NGX_WASM_I32, 0, 0, 0, 0, 0, 0 }
-
-#define ngx_wasm_rets_i32                                                    \
-    { NGX_WASM_I32 }
+#define ngx_wasm_hfunc_null           { ngx_null_string, NULL, NULL, NULL }
 
 
+typedef struct ngx_wasm_hctx_s  ngx_wasm_hctx_t;
 typedef struct ngx_wasm_hfunc_s  ngx_wasm_hfunc_t;
 
-typedef enum {
-    NGX_WASM_HOST_SUBSYS_ANY,
-    NGX_WASM_HOST_SUBSYS_HTTP
-} ngx_wasm_host_subsys_kind;
+typedef ngx_int_t (*ngx_wasm_hfunc_pt)(ngx_wasm_hctx_t *hctx,
+    const wasm_val_t args[], wasm_val_t rets[]);
 
-typedef struct {
-    ngx_wasm_host_subsys_kind      subsys;
+typedef enum {
+    NGX_WASM_HOST_SUBSYS_ANY = 0,
+    NGX_WASM_HOST_SUBSYS_HTTP
+} ngx_wasm_hsubsys_kind;
+
+struct ngx_wasm_hctx_s {
     ngx_pool_t                    *pool;
     ngx_log_t                     *log;
-    size_t                         trapmsglen;
-    u_char                         trapmsg[NGX_WASM_MAX_HOST_TRAP_STR];
-    char                          *mem_off;
+    ngx_wasm_hsubsys_kind          subsys;
     void                          *data;
-} ngx_wasm_hctx_t;
 
-typedef ngx_int_t (*ngx_wasm_hfunc_pt)(ngx_wasm_hctx_t *hctx,
-    const ngx_wasm_val_t args[], ngx_wasm_val_t rets[]);
+    size_t                         trapmsglen;
+    u_char                        *trapmsg;
+    u_char                        *mem_offset;
+};
 
 typedef struct {
     ngx_str_t                      name;
     ngx_wasm_hfunc_pt              ptr;
-    ngx_wasm_val_kind              args[NGX_WASM_ARGS_MAX];
-    ngx_wasm_val_kind              rets[NGX_WASM_RETS_MAX];
+    const wasm_valkind_t         **args;
+    const wasm_valkind_t         **rets;
 } ngx_wasm_hdef_func_t;
 
 typedef struct {
-    ngx_wasm_host_subsys_kind      subsys;
+    ngx_wasm_hsubsys_kind          subsys;
     ngx_wasm_hdef_func_t          *funcs;
 } ngx_wasm_hdefs_t;
+
+
+extern const wasm_valkind_t * ngx_wasm_arity_i32[];
+extern const wasm_valkind_t * ngx_wasm_arity_i32_i32[];
+extern const wasm_valkind_t * ngx_wasm_arity_i32_i32_i32[];
 
 
 /* wasm runtime */
 
 
-typedef void *ngx_wrt_engine_pt;
-typedef void *ngx_wrt_module_pt;
-typedef void *ngx_wrt_instance_pt;
-typedef void *ngx_wrt_functype_pt;
 typedef void *ngx_wrt_error_pt;
-typedef void *ngx_wrt_trap_pt;
 
-typedef ngx_wrt_functype_pt (*ngx_wrt_hfunctype_new_pt)(ngx_wasm_hfunc_t *hfunc);
-typedef void (*ngx_wrt_hfunctype_free_pt)(ngx_wrt_functype_pt func);
+typedef ngx_int_t (*ngx_wrt_init_pt)(ngx_wasm_vm_t *vm);
 
-typedef ngx_wrt_engine_pt (*ngx_wrt_engine_new_pt)(ngx_pool_t *pool);
+typedef void (*ngx_wrt_shutdown_pt)(ngx_wasm_vm_t *vm);
 
-typedef ngx_wrt_error_pt (*ngx_wrt_wat2wasm_pt)(ngx_wrt_engine_pt engine, u_char *wat,
-    size_t len, ngx_str_t *wasm);
+typedef ngx_int_t (*ngx_wrt_wat2wasm_pt)(ngx_wasm_vm_t *vm, u_char *wat,
+    size_t len, wasm_byte_vec_t *bytes, ngx_wrt_error_pt *err);
 
-typedef ngx_wrt_module_pt (*ngx_wrt_module_new_pt)(ngx_wrt_engine_pt engine,
-    ngx_rbtree_t *hfuncs_tree, ngx_str_t *bytes, ngx_str_t *mod_name,
-    ngx_array_t *exports_funcs, ngx_wrt_error_pt *err);
+typedef ngx_int_t (*ngx_wrt_module_new_pt)(ngx_wasm_vm_module_t *module,
+    wasm_byte_vec_t *bytes, ngx_wrt_error_pt *err);
 
-typedef ngx_wrt_instance_pt (*ngx_wrt_instance_new_pt)(
-    ngx_wrt_module_pt module, ngx_wasm_hctx_t **hctx,
-    ngx_wrt_error_pt *err, ngx_wrt_trap_pt *trap);
+typedef ngx_int_t (*ngx_wrt_instance_new_pt)(ngx_wasm_vm_instance_t *instance,
+    wasm_trap_t **trap, ngx_wrt_error_pt *err);
 
-typedef ngx_int_t (*ngx_wrt_instance_call_pt)(
-    ngx_wrt_instance_pt instance, ngx_str_t *func_name,
-    ngx_wrt_error_pt *err, ngx_wrt_trap_pt *trap);
+typedef ngx_int_t (*ngx_wrt_func_call_pt)(wasm_func_t *func, wasm_trap_t **trap,
+    ngx_wrt_error_pt *err);
 
-typedef void (*ngx_wrt_instance_free_pt)(ngx_wrt_instance_pt instance);
-typedef void (*ngx_wrt_module_free_pt)(ngx_wrt_module_pt module);
-typedef void (*ngx_wrt_engine_free_pt)(ngx_wrt_engine_pt engine);
-
-typedef u_char *(*ngx_wrt_trap_log_handler_pt)(ngx_wrt_error_pt err,
-    ngx_wrt_trap_pt trap, u_char *buf, size_t len);
+typedef u_char *(*ngx_wrt_error_log_handler_pt)(ngx_wrt_error_pt err,
+    u_char *buf, size_t len);
 
 typedef struct {
     ngx_str_t                     name;
-
-    ngx_wrt_engine_new_pt         engine_new;
-    ngx_wrt_engine_free_pt        engine_free;
-
+    ngx_wrt_init_pt               init;
+    ngx_wrt_shutdown_pt           shutdown;
     ngx_wrt_wat2wasm_pt           wat2wasm;
     ngx_wrt_module_new_pt         module_new;
-    ngx_wrt_module_free_pt        module_free;
-
     ngx_wrt_instance_new_pt       instance_new;
-    ngx_wrt_instance_call_pt      instance_call;
-    ngx_wrt_instance_free_pt      instance_free;
-
-    ngx_wrt_hfunctype_new_pt      hfunctype_new;
-    ngx_wrt_hfunctype_free_pt     hfunctype_free;
-
-    ngx_wrt_trap_log_handler_pt   trap_log_handler;
+    ngx_wrt_func_call_pt          func_call;
+    ngx_wrt_error_log_handler_pt  error_log_handler;
 } ngx_wrt_t;
 
 

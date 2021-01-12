@@ -22,11 +22,11 @@ ngx_wasm_hctx_trapmsg(ngx_wasm_hctx_t *hctx,
     va_list  args;
 
     va_start(args, fmt);
-    p = ngx_vsnprintf(&hctx->trapmsg[0], maxlen, fmt, args);
+    p = ngx_vsnprintf(hctx->trapmsg, maxlen, fmt, args);
     va_end(args);
 
 #else
-    p = ngx_vsnprintf(&hctx->trapmsg[0], maxlen, fmt, args);
+    p = ngx_vsnprintf(hctx->trapmsg, maxlen, fmt, args);
 #endif
 
     *p++ = '\0';

@@ -13,16 +13,15 @@ ngx_wasm_vm_t *ngx_wasm_vm_new(ngx_cycle_t *cycle, ngx_str_t *vm_name);
 
 void ngx_wasm_vm_free(ngx_wasm_vm_t *vm);
 
-ngx_int_t ngx_wasm_vm_add_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name,
-    ngx_str_t *path);
-
-ngx_uint_t ngx_wasm_vm_has_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name);
-
 ngx_int_t ngx_wasm_vm_add_hdefs(ngx_wasm_vm_t *vm, ngx_wasm_hdefs_t *hdefs);
 
-ngx_int_t ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wrt_t *runtime);
+ngx_int_t ngx_wasm_vm_add_module(ngx_wasm_vm_t *vm, ngx_str_t *name,
+    ngx_str_t *path);
 
-ngx_int_t ngx_wasm_vm_load_module(ngx_wasm_vm_t *vm, ngx_str_t *mod_name);
+ngx_wasm_vm_module_t *ngx_wasm_vm_get_module(ngx_wasm_vm_t *vm,
+    ngx_str_t *name);
+
+ngx_int_t ngx_wasm_vm_init(ngx_wasm_vm_t *vm, ngx_wrt_t *runtime);
 
 ngx_wasm_vm_instance_t *ngx_wasm_vm_instance_new(ngx_wasm_vm_t *vm,
     ngx_str_t *mod_name);
