@@ -3,23 +3,21 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_wasm.h>
-#include <ngx_wasm_vm_host.h>
-#include <ngx_http.h>
-#include <ngx_http_wasm_module.h>
-#include <ngx_http_wasm_util.h>
+#include <ngx_wavm.h>
+
+#include <ngx_http_wasm.h>
 
 
 ngx_int_t
-ngx_http_wasm_hfuncs_resp_get_status(ngx_wasm_hctx_t *hctx,
+ngx_http_wasm_hfuncs_resp_get_status(ngx_wavm_instance_t *instance,
    const wasm_val_t args[], wasm_val_t rets[])
 {
-   ngx_http_wasm_req_ctx_t  *rctx = hctx->data;
+   ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
    ngx_http_request_t       *r = rctx->r;
    ngx_int_t                 status;
 
    if (r->connection->fd == (ngx_socket_t) -1) {
-       return NGX_WASM_BAD_CTX;
+       return NGX_WAVM_BAD_CTX;
    }
 
    if (r->err_status) {
@@ -38,30 +36,30 @@ ngx_http_wasm_hfuncs_resp_get_status(ngx_wasm_hctx_t *hctx,
    rets[0].kind = WASM_I32;
    rets[0].of.i32 = status;
 
-   return NGX_WASM_OK;
+   return NGX_WAVM_OK;
 }
 
 
 ngx_int_t
-ngx_http_wasm_hfuncs_resp_set_status(ngx_wasm_hctx_t *hctx,
+ngx_http_wasm_hfuncs_resp_set_status(ngx_wavm_instance_t *instance,
    const wasm_val_t args[], wasm_val_t rets[])
 {
-   ngx_http_wasm_req_ctx_t  *rctx = hctx->data;
+   ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
    ngx_http_request_t       *r = rctx->r;
    ngx_int_t                 status;
 
    if (r->connection->fd == (ngx_socket_t) -1) {
-       return NGX_WASM_BAD_CTX;
+       return NGX_WAVM_BAD_CTX;
    }
 
    if (r->header_sent) {
-       ngx_wasm_hctx_trapmsg(hctx, "headers already sent");
-       return NGX_WASM_BAD_USAGE;
+       ngx_wavm_instance_trap_printf(instance, "headers already sent");
+       return NGX_WAVM_BAD_USAGE;
    }
 
    status = args[0].of.i32;
 
-   ngx_log_debug1(NGX_LOG_DEBUG_WASM, hctx->log, 0,
+   ngx_log_debug1(NGX_LOG_DEBUG_WASM, instance->log, 0,
                   "wasm set resp status to %d", status);
 
    r->headers_out.status = status;
@@ -70,34 +68,34 @@ ngx_http_wasm_hfuncs_resp_set_status(ngx_wasm_hctx_t *hctx,
        r->err_status = 0;
    }
 
-   return NGX_WASM_OK;
+   return NGX_WAVM_OK;
 }
 
 
 ngx_int_t
-ngx_http_wasm_hfuncs_resp_say(ngx_wasm_hctx_t *hctx,
+ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
    const wasm_val_t args[], wasm_val_t rets[])
 {
    int64_t                   body_offset, len;
    ngx_int_t                 rc;
    ngx_buf_t                *b;
    ngx_chain_t              *cl;
-   ngx_http_wasm_req_ctx_t  *rctx = hctx->data;
+   ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
    ngx_http_request_t       *r = rctx->r;
 
    body_offset = args[0].of.i32;
    len = args[1].of.i32;
 
    if (r->connection->fd == (ngx_socket_t) -1) {
-       return NGX_WASM_BAD_CTX;
+       return NGX_WAVM_BAD_CTX;
    }
 
    b = ngx_create_temp_buf(r->pool, len + sizeof(LF));
    if (b == NULL) {
-       return NGX_WASM_ERROR;
+       return NGX_WAVM_ERROR;
    }
 
-   b->last = ngx_copy(b->last, hctx->mem_offset + body_offset, len);
+   b->last = ngx_copy(b->last, instance->mem_offset + body_offset, len);
    *b->last++ = LF;
 
    b->last_buf = 1;
@@ -105,7 +103,7 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wasm_hctx_t *hctx,
 
    cl = ngx_alloc_chain_link(r->connection->pool);
    if (cl == NULL) {
-       return NGX_WASM_ERROR;
+       return NGX_WAVM_ERROR;
    }
 
    cl->buf = b;
@@ -113,49 +111,42 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wasm_hctx_t *hctx,
 
    rc = ngx_http_wasm_send_chain_link(r, cl);
    if (rc == NGX_ERROR) {
-       return NGX_WASM_ERROR;
+       return NGX_WAVM_ERROR;
 
    } else if (rc == NGX_AGAIN) {
-       /* TODO: NYI - NGX_WASM_AGAIN */
+       /* TODO: NYI - NGX_WAVM_AGAIN */
        return NGX_AGAIN;
    }
 
    rctx->sent_last = 1;
 
-   return NGX_WASM_OK;
+   return NGX_WAVM_OK;
 }
 
 
-static ngx_wasm_hdef_func_t  ngx_http_wasm_hfuncs[] = {
+static ngx_wavm_hfunc_def_t  ngx_http_wasm_hfuncs[] = {
 
    { ngx_string("ngx_http_resp_get_status"),
      &ngx_http_wasm_hfuncs_resp_get_status,
      NULL,
-     ngx_wasm_arity_i32 },
+     ngx_wavm_arity_i32 },
 
    { ngx_string("ngx_http_resp_set_status"),
      &ngx_http_wasm_hfuncs_resp_set_status,
-     ngx_wasm_arity_i32,
+     ngx_wavm_arity_i32,
      NULL },
 
    { ngx_string("ngx_http_resp_say"),
      &ngx_http_wasm_hfuncs_resp_say,
-     ngx_wasm_arity_i32_i32,
+     ngx_wavm_arity_i32_i32,
      NULL },
 
-   ngx_wasm_hfunc_null
-};
-
-
-static ngx_wasm_hdefs_t  ngx_http_wasm_hdefs = {
-   NGX_WASM_HOST_SUBSYS_HTTP,
-   ngx_http_wasm_hfuncs
+   ngx_wavm_hfunc_null
 };
 
 
 static ngx_wasm_module_t  ngx_http_wasm_hfuncs_module_ctx = {
-   NULL,                                /* runtime */
-   &ngx_http_wasm_hdefs,                /* hdefs */
+   ngx_http_wasm_hfuncs,                /* hfuncs */
    NULL,                                /* create configuration */
    NULL,                                /* init configuration */
    NULL,                                /* init module */

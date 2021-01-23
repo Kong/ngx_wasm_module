@@ -1,16 +1,15 @@
-#ifndef _NGX_HTTP_WASM_MODULE_H_INCLUDED_
-#define _NGX_HTTP_WASM_MODULE_H_INCLUDED_
+#ifndef _NGX_HTTP_WASM_H_INCLUDED_
+#define _NGX_HTTP_WASM_H_INCLUDED_
 
 
 #include <ngx_http.h>
-#include <ngx_wasm_vm_cache.h>
-#include <ngx_wasm_phases.h>
+#include <ngx_wavm.h>
+#include <ngx_wasm_ops.h>
 
 
 typedef struct {
     ngx_http_request_t              *r;
-    ngx_wasm_vm_cache_t             *vmcache;
-    ngx_wasm_phases_ctx_t            pctx;
+    ngx_wasm_op_ctx_t                opctx;
 
     /* control flow */
 
@@ -18,4 +17,11 @@ typedef struct {
 } ngx_http_wasm_req_ctx_t;
 
 
-#endif /* _NGX_HTTP_WASM_MODULE_H_INCLUDED_ */
+ngx_int_t ngx_http_wasm_send_header(ngx_http_request_t *r);
+
+ngx_int_t ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in);
+
+extern ngx_module_t  ngx_http_wasm_hfuncs_module;
+
+
+#endif /* _NGX_HTTP_WASM_H_INCLUDED_ */

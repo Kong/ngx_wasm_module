@@ -10,7 +10,7 @@ static char *ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t ngx_wasm_init(ngx_cycle_t *cycle);
 
 
-static ngx_uint_t  ngx_wasm_max_module;
+ngx_uint_t  ngx_wasm_max_module;
 
 
 static ngx_command_t  ngx_wasm_cmds[] = {
@@ -46,24 +46,6 @@ ngx_module_t  ngx_wasm_module = {
     NULL,                              /* exit process */
     NULL,                              /* exit master */
     NGX_MODULE_V1_PADDING
-};
-
-
-const wasm_valkind_t  ngx_wasm_i32 = WASM_I32;
-
-const wasm_valkind_t * ngx_wasm_arity_i32[] = {
-    &ngx_wasm_i32,
-    NULL
-};
-
-const wasm_valkind_t * ngx_wasm_arity_i32_i32[] = {
-    &ngx_wasm_i32, &ngx_wasm_i32,
-    NULL
-};
-
-const wasm_valkind_t * ngx_wasm_arity_i32_i32_i32[] = {
-    &ngx_wasm_i32, &ngx_wasm_i32, &ngx_wasm_i32,
-    NULL
 };
 
 

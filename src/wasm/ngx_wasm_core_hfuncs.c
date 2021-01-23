@@ -3,12 +3,11 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_core.h>
-#include <ngx_wasm.h>
+#include <ngx_wavm.h>
 
 
 ngx_int_t
-ngx_wasm_hfuncs_log(ngx_wasm_hctx_t *hctx, const wasm_val_t args[],
+ngx_wasm_hfuncs_log(ngx_wavm_instance_t *instance, const wasm_val_t args[],
     wasm_val_t rets[])
 {
     int32_t  level, len, msg_offset;
@@ -17,19 +16,19 @@ ngx_wasm_hfuncs_log(ngx_wasm_hctx_t *hctx, const wasm_val_t args[],
     msg_offset = args[1].of.i32;
     len = args[2].of.i32;
 
-    ngx_log_error((ngx_uint_t) level, hctx->log, 0, "%*s",
-                  len, hctx->mem_offset + msg_offset);
+    ngx_log_error((ngx_uint_t) level, instance->log, 0, "%*s",
+                  len, instance->mem_offset + msg_offset);
 
-    return NGX_WASM_OK;
+    return NGX_WAVM_OK;
 }
 
 
-ngx_wasm_hdef_func_t  ngx_wasm_core_hfuncs[] = {
+ngx_wavm_hfunc_def_t  ngx_wasm_core_hfuncs[] = {
 
     { ngx_string("ngx_log"),
       &ngx_wasm_hfuncs_log,
-      ngx_wasm_arity_i32_i32_i32,
+      ngx_wavm_arity_i32_i32_i32,
       NULL },
 
-    ngx_wasm_hfunc_null
+    ngx_wavm_hfunc_null
 };

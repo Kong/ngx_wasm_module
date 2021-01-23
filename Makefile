@@ -30,11 +30,11 @@ setup:
 
 .PHONY: test
 test:
-	@util/test.sh t/{0,1}*
+	@util/test.sh t/0*
 
 .PHONY: test-build
 test-build:
-	@util/test.sh --no-test-nginx t/20-build
+	@util/test.sh --no-test-nginx t/10-build
 
 .PHONY: style
 style:

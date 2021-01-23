@@ -4,13 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 3 + 1);
+plan tests => repeat_each() * (blocks() * 4);
 
 run_tests();
 
 __DATA__
 
-=== TEST 1: wasm_call directive: no wasm{} configuration block
+=== TEST 1: wasm_call directive - no wasm{} configuration block
 --- main_config
 --- config
     location /t {
@@ -18,12 +18,15 @@ __DATA__
         return 200;
     }
 --- error_log eval
-qr/\[emerg\] .*? no "wasm" section in configuration/
+qr/\[emerg\] .*? "wasm_call" directive is specified but config has no "wasm" section/
+--- no_error_log
+[error]
+[crit]
 --- must_die
 
 
 
-=== TEST 2: wasm_call directive: invalid number of arguments
+=== TEST 2: wasm_call directive - invalid number of arguments
 --- config
     location /t {
         wasm_call log nop;
@@ -31,11 +34,14 @@ qr/\[emerg\] .*? no "wasm" section in configuration/
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid number of arguments in "wasm_call" directive/
+--- no_error_log
+[error]
+[crit]
 --- must_die
 
 
 
-=== TEST 3: wasm_call directive: empty phase
+=== TEST 3: wasm_call directive - empty phase
 --- config
     location /t {
         wasm_call '' hello nop;
@@ -43,11 +49,14 @@ qr/\[emerg\] .*? invalid number of arguments in "wasm_call" directive/
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid phase ""/
+--- no_error_log
+[error]
+[crit]
 --- must_die
 
 
 
-=== TEST 4: wasm_call directive: empty module name
+=== TEST 4: wasm_call directive - empty module name
 --- config
     location /t {
         wasm_call log '' nop;
@@ -55,11 +64,14 @@ qr/\[emerg\] .*? invalid phase ""/
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid module name ""/
+--- no_error_log
+[error]
+[crit]
 --- must_die
 
 
 
-=== TEST 5: wasm_call directive: empty function name
+=== TEST 5: wasm_call directive - empty function name
 --- config
     location /t {
         wasm_call log hello '';
@@ -67,11 +79,14 @@ qr/\[emerg\] .*? invalid module name ""/
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid function name ""/
+--- no_error_log
+[error]
+[crit]
 --- must_die
 
 
 
-=== TEST 6: wasm_call directive: unknown phase
+=== TEST 6: wasm_call directive - unknown phase
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -83,11 +98,14 @@ qr/\[emerg\] .*? invalid function name ""/
     }
 --- error_log eval
 qr/\[emerg\] .*? unknown phase "foo"/
+--- no_error_log
+[error]
+[crit]
 --- must_die
 
 
 
-=== TEST 7: wasm_call directive: NYI phase
+=== TEST 7: wasm_call directive - NYI phase
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -99,11 +117,14 @@ qr/\[emerg\] .*? unknown phase "foo"/
     }
 --- error_log eval
 qr/\[emerg\] .*? unsupported phase "post_read"/
+--- no_error_log
+[error]
+[crit]
 --- must_die
 
 
 
-=== TEST 8: wasm_call directive: no such module
+=== TEST 8: wasm_call directive - no such module
 --- config
     location /t {
         wasm_call log hello nop;
@@ -111,11 +132,14 @@ qr/\[emerg\] .*? unsupported phase "post_read"/
     }
 --- error_log eval
 qr/\[emerg\] .*? \[wasm\] no "hello" module defined/
+--- no_error_log
+[error]
+[crit]
 --- must_die
 
 
 
-=== TEST 9: wasm_call directive: no such function
+=== TEST 9: wasm_call directive - no such function
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -132,13 +156,14 @@ qr/\[emerg\] .*? \[wasm\] no "hello" module defined/
   (export "nop" (func $nop))
 )
 --- error_log eval
-qr/\[error\] .*? \[wasm\] no "nonexist" function defined in "hello" module <vm: .*?, runtime: .*?>/
+qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "hello" module <vm: .*?, runtime: .*?>/
 --- no_error_log
-[emerg]
+[error]
+[crit]
 
 
 
-=== TEST 10: wasm_call directive: catch runtime error sanity
+=== TEST 10: wasm_call directive - catch runtime error sanity
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -161,11 +186,12 @@ qr/\[error\] .*? \[wasm\] no "nonexist" function defined in "hello" module <vm: 
 qr/\[error\] .*? \[wasm\] wasm trap: integer divide by zero/
 --- no_error_log
 [emerg]
+[crit]
 
 
 
-=== TEST 11: wasm_call directive: sanity 'rewrite' phase in location{} block
---- skip_no_debug: 3
+=== TEST 11: wasm_call directive - sanity 'rewrite' phase in location{} block
+--- skip_no_debug: 4
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -183,10 +209,13 @@ qr/\[error\] .*? \[wasm\] wasm trap: integer divide by zero/
 )
 --- error_log
 wasm calling "hello.nop" in "rewrite" phase
+--- no_error_log
+[error]
+[emerg]
 
 
 
-=== TEST 12: wasm_call directive: sanity 'content' phase in location{} block
+=== TEST 12: wasm_call directive - sanity 'content' phase in location{} block
 --- SKIP
 --- skip_no_debug: 4
 --- main_config
@@ -211,8 +240,8 @@ wasm calling "hello.nop" in "content" phase
 
 
 
-=== TEST 13: wasm_call directive: sanity 'log' phase in location{} block
---- skip_no_debug: 3
+=== TEST 13: wasm_call directive - sanity 'log' phase in location{} block
+--- skip_no_debug: 4
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -230,11 +259,14 @@ wasm calling "hello.nop" in "content" phase
 )
 --- error_log
 wasm calling "hello.nop" in "log" phase
+--- no_error_log
+[error]
+[emerg]
 
 
 
-=== TEST 14: wasm_call directive: multiple calls in location{} block
---- skip_no_debug: 3
+=== TEST 14: wasm_call directive - multiple calls in location{} block
+--- skip_no_debug: 4
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -255,11 +287,12 @@ wasm calling "hello.nop" in "log" phase
 wasm calling "hello.nop" in "log" phase
 wasm calling "hello.nop" in "log" phase
 --- no_error_log
+[error]
 
 
 
-=== TEST 15: wasm_call directive: multiple calls in server{} block
---- skip_no_debug: 3
+=== TEST 15: wasm_call directive - multiple calls in server{} block
+--- skip_no_debug: 4
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -281,11 +314,12 @@ wasm calling "hello.nop" in "log" phase
 wasm calling "hello.nop" in "log" phase
 wasm calling "hello.nop" in "log" phase
 --- no_error_log
+[error]
 
 
 
-=== TEST 16: wasm_call directive: multiple calls in http{} block
---- skip_no_debug: 3
+=== TEST 16: wasm_call directive - multiple calls in http{} block
+--- skip_no_debug: 4
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -307,11 +341,12 @@ wasm calling "hello.nop" in "log" phase
 wasm calling "hello.nop" in "log" phase
 wasm calling "hello.nop" in "log" phase
 --- no_error_log
+[error]
 
 
 
-=== TEST 17: wasm_call directive: mixed server{} and location{} blocks
---- skip_no_debug: 3
+=== TEST 17: wasm_call directive - mixed server{} and location{} blocks
+--- skip_no_debug: 4
 --- main_config
     wasm {
         module hello $TEST_NGINX_HTML_DIR/hello.wat;
@@ -334,10 +369,11 @@ wasm calling "hello.nop" in "log" phase
 wasm calling "hello.nop2" in "log" phase
 --- no_error_log
 wasm calling "hello.nop" in "log" phase
+[error]
 
 
 
-=== TEST 18: wasm_call directive: multiple modules/calls/phases/blocks
+=== TEST 18: wasm_call directive - multiple modules/calls/phases/blocks
 --- skip_no_debug: 4
 --- main_config
     wasm {

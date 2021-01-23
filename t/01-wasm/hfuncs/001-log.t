@@ -30,7 +30,7 @@ __DATA__
         return 200;
     }
 --- error_log eval
-qr/\[notice\] .*? hello world <vm: \S+, runtime: \S+> while logging request/
+qr/\[notice\] .*? hello world <module: "http_tests", vm: "main", runtime: "\S+"> while logging request/
 --- no_error_log
 [error]
 
@@ -43,6 +43,6 @@ qr/\[notice\] .*? hello world <vm: \S+, runtime: \S+> while logging request/
         return 200;
     }
 --- error_log eval
-qr/\[notice\] .*? hello world <vm: \S+, runtime: \S+>, client: 127\.0\.0\.1/
+qr/\[notice\] .*? hello world <module: "http_tests", vm: "main", runtime: "\S+">, client: 127\.0\.0\.1/
 --- no_error_log
 [error]

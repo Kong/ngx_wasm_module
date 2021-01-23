@@ -30,10 +30,9 @@ build_nginx() {
         build_name+=" san:$NGX_BUILD_FSANITIZE"
         NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -Wno-unused-command-line-argument -g -fsanitize=$NGX_BUILD_FSANITIZE -fno-omit-frame-pointer"
         NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fsanitize=$NGX_BUILD_FSANITIZE -ldl -lm -lpthread -lrt"
-
-    else
-        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -Wl,-rpath,$WASMTIME_LIB"
     fi
+
+    NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -Wl,-rpath,$WASMTIME_LIB"
 
     if [[ "$NGX_BUILD_CLANG_ANALYZER" == 1 ]]; then
         build_name+=" clang-analyzer"
@@ -42,8 +41,8 @@ build_nginx() {
             -analyze-headers \
             --force-analyze-debug-code \
             --html-title='$NGX - ngx_wasm_module [${build_name[@]}]' \
-            --status-bugs \
-            --use-cc=$CC"
+            --status-bugs"
+            #--use-cc=$CC \
         NGX_BUILD_DEBUG=1
     fi
 

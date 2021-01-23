@@ -53,9 +53,9 @@ add_block_preprocessor(sub {
         $block->set_value("request", "GET /t");
     }
 
-    if (!defined $block->no_error_log) {
-        $block->set_value("no_error_log", "[error]");
-    }
+    #if (!defined $block->no_error_log) {
+    #    $block->set_value("no_error_log", "[error]\n[crit]");
+    #}
 
     # --- load_nginx_modules: ngx_http_echo_module
 

@@ -54,6 +54,6 @@ __DATA__
         return 200;
     }
 --- error_log eval
-qr/\[notice\] .*? resp status: 200 <vm: \S+, runtime: \S+> while logging request/
+qr/\[notice\] .*? resp status: 200/
 --- no_error_log
 [error]

@@ -19,122 +19,105 @@
 #define NGX_WASM_MODULE              0x5741534d   /* "WASM" */
 #define NGX_WASM_CONF                0x00300000
 
-#define NGX_WASM_DEFAULT_RUNTIME     "wasmtime"
-
-#define NGX_WASM_OK                  NGX_OK
-#define NGX_WASM_ERROR               NGX_ERROR
-#define NGX_WASM_BAD_CTX             NGX_DECLINED
-#define NGX_WASM_BAD_USAGE           NGX_ABORT
-#define NGX_WASM_SENT_LAST           NGX_DONE
-
-#define NGX_WASM_MAX_HOST_TRAP_STR   128
+#define NGX_WASM_CONF_ERR_NO_WASM    "is specified but config has no \"wasm\" section"
 
 
 /* wasm vm */
 
 
-typedef struct ngx_wasm_vm_s  ngx_wasm_vm_t;
-typedef struct ngx_wasm_vm_module_s  ngx_wasm_vm_module_t;
-typedef struct ngx_wasm_vm_instance_s  ngx_wasm_vm_instance_t;
-typedef struct ngx_wasm_vm_func_s  ngx_wasm_vm_func_t;
+#define NGX_WAVM_OK                  NGX_OK
+#define NGX_WAVM_ERROR               NGX_ERROR
+#define NGX_WAVM_BAD_CTX             NGX_DECLINED
+#define NGX_WAVM_BAD_USAGE           NGX_ABORT
+#define NGX_WAVM_SENT_LAST           NGX_DONE
 
 
-/* host interface */
+typedef struct ngx_wavm_s  ngx_wavm_t;
+typedef struct ngx_wavm_module_s  ngx_wavm_module_t;
+typedef struct ngx_wavm_ctx_s  ngx_wavm_ctx_t;
+typedef struct ngx_wavm_instance_s  ngx_wavm_instance_t;
+typedef struct ngx_wavm_func_s  ngx_wavm_func_t;
+typedef struct ngx_wavm_hfunc_def_s  ngx_wavm_hfunc_def_t;
 
 
-#define ngx_wasm_hfunc_null           { ngx_null_string, NULL, NULL, NULL }
+/* subsystems */
 
-
-typedef struct ngx_wasm_hctx_s  ngx_wasm_hctx_t;
-typedef struct ngx_wasm_hfunc_s  ngx_wasm_hfunc_t;
-
-typedef ngx_int_t (*ngx_wasm_hfunc_pt)(ngx_wasm_hctx_t *hctx,
-    const wasm_val_t args[], wasm_val_t rets[]);
-
-typedef enum {
-    NGX_WASM_HOST_SUBSYS_ANY = 0,
-    NGX_WASM_HOST_SUBSYS_HTTP
-} ngx_wasm_hsubsys_kind;
-
-struct ngx_wasm_hctx_s {
-    ngx_pool_t                    *pool;
-    ngx_log_t                     *log;
-    ngx_wasm_hsubsys_kind          subsys;
-    void                          *data;
-
-    size_t                         trapmsglen;
-    u_char                        *trapmsg;
-    u_char                        *mem_offset;
-};
 
 typedef struct {
-    ngx_str_t                      name;
-    ngx_wasm_hfunc_pt              ptr;
-    const wasm_valkind_t         **args;
-    const wasm_valkind_t         **rets;
-} ngx_wasm_hdef_func_t;
+    ngx_str_t                    name;
+    ngx_uint_t                   index;
+    ngx_uint_t                   on;
+} ngx_wasm_phase_t;
+
 
 typedef struct {
-    ngx_wasm_hsubsys_kind          subsys;
-    ngx_wasm_hdef_func_t          *funcs;
-} ngx_wasm_hdefs_t;
-
-
-extern const wasm_valkind_t * ngx_wasm_arity_i32[];
-extern const wasm_valkind_t * ngx_wasm_arity_i32_i32[];
-extern const wasm_valkind_t * ngx_wasm_arity_i32_i32_i32[];
-
-
-/* wasm runtime */
-
-
-typedef void *ngx_wrt_error_pt;
-
-typedef ngx_int_t (*ngx_wrt_init_pt)(ngx_wasm_vm_t *vm);
-
-typedef void (*ngx_wrt_shutdown_pt)(ngx_wasm_vm_t *vm);
-
-typedef ngx_int_t (*ngx_wrt_wat2wasm_pt)(ngx_wasm_vm_t *vm, u_char *wat,
-    size_t len, wasm_byte_vec_t *bytes, ngx_wrt_error_pt *err);
-
-typedef ngx_int_t (*ngx_wrt_module_new_pt)(ngx_wasm_vm_module_t *module,
-    wasm_byte_vec_t *bytes, ngx_wrt_error_pt *err);
-
-typedef ngx_int_t (*ngx_wrt_instance_new_pt)(ngx_wasm_vm_instance_t *instance,
-    wasm_trap_t **trap, ngx_wrt_error_pt *err);
-
-typedef ngx_int_t (*ngx_wrt_func_call_pt)(wasm_func_t *func, wasm_trap_t **trap,
-    ngx_wrt_error_pt *err);
-
-typedef u_char *(*ngx_wrt_error_log_handler_pt)(ngx_wrt_error_pt err,
-    u_char *buf, size_t len);
-
-typedef struct {
-    ngx_str_t                     name;
-    ngx_wrt_init_pt               init;
-    ngx_wrt_shutdown_pt           shutdown;
-    ngx_wrt_wat2wasm_pt           wat2wasm;
-    ngx_wrt_module_new_pt         module_new;
-    ngx_wrt_instance_new_pt       instance_new;
-    ngx_wrt_func_call_pt          func_call;
-    ngx_wrt_error_log_handler_pt  error_log_handler;
-} ngx_wrt_t;
+    ngx_uint_t                   nphases;
+    ngx_wasm_phase_t            *phases;
+} ngx_wasm_subsystem_t;
 
 
 /* core wasm module ABI */
 
 
+#define ngx_wasm_core_cycle_get_conf(cycle)                                  \
+    (ngx_get_conf(cycle->conf_ctx, ngx_wasm_module))                         \
+    ? (*(ngx_get_conf(cycle->conf_ctx, ngx_wasm_module)))                    \
+      [ngx_wasm_core_module.ctx_index]                                       \
+    : NULL
+
+
 typedef struct {
-    ngx_wrt_t                     *runtime;
-    ngx_wasm_hdefs_t              *hdefs;
-    void                          *(*create_conf)(ngx_cycle_t *cycle);
-    char                          *(*init_conf)(ngx_cycle_t *cycle, void *conf);
-    ngx_int_t                      (*init)(ngx_cycle_t *cycle);
+    ngx_wavm_hfunc_def_t        *hfuncs;
+    void                        *(*create_conf)(ngx_cycle_t *cycle);
+    char                        *(*init_conf)(ngx_cycle_t *cycle, void *conf);
+    ngx_int_t                    (*init)(ngx_cycle_t *cycle);
 } ngx_wasm_module_t;
 
-ngx_wasm_vm_t *ngx_wasm_core_get_vm(ngx_cycle_t *cycle);
 
+ngx_wavm_t *ngx_wasm_core_get_vm(ngx_cycle_t *cycle);
+
+ngx_int_t ngx_wasm_bytes_from_path(wasm_byte_vec_t *out, u_char *path,
+    ngx_log_t *log);
+
+void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
+#if (NGX_HAVE_VARIADIC_MACROS)
+    const char *fmt, ...);
+
+#else
+    const char *fmt, va_list args);
+#endif
+
+extern ngx_uint_t  ngx_wasm_max_module;
 extern ngx_module_t  ngx_wasm_module;
+
+
+/* ngx_str_node_t extensions */
+
+
+#define ngx_wasm_sn_rbtree_insert(rbtree, sn)                                \
+    ngx_rbtree_insert((rbtree), &(sn)->node)
+
+#define ngx_wasm_sn_init(sn, s)                                              \
+    (sn)->node.key = ngx_crc32_long((s)->data, (s)->len);                    \
+    (sn)->str.len = (s)->len;                                                \
+    (sn)->str.data = (s)->data
+
+#define ngx_wasm_sn_n2sn(n)                                                  \
+    (ngx_str_node_t *) ((u_char *) (n) - offsetof(ngx_str_node_t, node))
+
+#define ngx_wasm_sn_sn2data(sn, type, member)                                \
+    (type *) ((u_char *) &(sn)->node - offsetof(type, member))
+
+
+static ngx_inline ngx_str_node_t *
+ngx_wasm_sn_rbtree_lookup(ngx_rbtree_t *rbtree, ngx_str_t *str)
+{
+    uint32_t   hash;
+
+    hash = ngx_crc32_long(str->data, str->len);
+
+    return ngx_str_rbtree_lookup(rbtree, str, hash);
+}
 
 
 #endif /* _NGX_WASM_H_INCLUDED_ */
