@@ -488,6 +488,8 @@ ngx_wavm_init(ngx_wavm_t *vm, ngx_wavm_hfuncs_t *hfuncs)
     ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL, NULL,
                        "initializing \"%V\" wasm VM", vm->name);
 
+    ngx_wrt_config_init(vm->config);
+
     vm->hfuncs = hfuncs;
     vm->engine = wasm_engine_new_with_config(vm->config);
     if (vm->engine == NULL) {

@@ -33,6 +33,17 @@ ngx_wrt_module_new(wasm_engine_t *e, wasm_byte_vec_t *bytes,
 }
 
 
+static ngx_inline void
+ngx_wrt_config_init(wasm_config_t *config)
+{
+    wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_SPEED);
+    wasmtime_config_debug_info_set(config, true);
+    wasmtime_config_profiler_set(config, WASMTIME_PROFILING_STRATEGY_NONE);
+    wasmtime_config_strategy_set(config, WASMTIME_STRATEGY_AUTO);
+    //wasmtime_config_max_instances_set(config, 10000);
+}
+
+
 u_char *ngx_wrt_error_log_handler(ngx_wrt_res_t *res, u_char *buf,
     size_t len);
 
