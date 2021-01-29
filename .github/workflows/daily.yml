@@ -23,7 +23,7 @@ jobs:
         cc: [clang]
         #nginx: [1.18.0, 1.19.1]
         nginx: [1.19.3]
-        wasmtime: [0.20.0]
+        wasmtime: [0.22.1]
         #hup: [1, 0]
         hup: [0]
         #debug: [1, 0]
@@ -77,7 +77,7 @@ jobs:
       matrix:
         cc: [clang-9]
         nginx: [1.19.3]
-        wasmtime: [0.20.0]
+        wasmtime: [0.22.1]
     steps:
       - run: |
           sudo apt-get update
@@ -122,7 +122,7 @@ jobs:
         cc: [gcc-8]
         #nginx: [1.18.0, 1.19.1]
         nginx: [1.19.3]
-        wasmtime: [0.20.0]
+        wasmtime: [0.22.1]
         #hup: [1, 0]
         hup: [0]
         #debug: [1, 0]

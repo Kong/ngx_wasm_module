@@ -93,10 +93,7 @@
 {
    <wasmtime: false positive in Valgrind 3.13 (gone in 3.16.0)>
    Memcheck:Cond
-   fun:_ZN10wasmparser9validator9Validator3end17ha95b522b0cdb1d36E
-   fun:_ZN10wasmparser9validator9Validator7payload17h733feefbc6e445e9E
-   fun:_ZN10wasmparser9validator9Validator12validate_all17he98d0a18e3c85f62E
-   fun:_ZN8wasmtime6module6Module11from_binary17h484fbd4ae05bad13E
+   ...
    fun:wasmtime_module_new
    fun:ngx_wrt_module_new
    fun:ngx_wavm_module_load
