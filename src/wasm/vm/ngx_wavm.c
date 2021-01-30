@@ -842,11 +842,11 @@ ngx_wavm_log_error_handler(ngx_log_t *log, u_char *buf, size_t len)
 
     if (instance) {
         p = ngx_snprintf(buf, len, " <module: \"%V\", vm: \"%V\", runtime: \"%s\">",
-                         &instance->module->name, vm->name, NGX_WRT_NAME);
+                         &instance->module->name, vm->name, NGX_WASM_RUNTIME);
 
     } else {
         p = ngx_snprintf(buf, len, " <vm: \"%V\", runtime: \"%s\">",
-                         vm->name, NGX_WRT_NAME);
+                         vm->name, NGX_WASM_RUNTIME);
     }
 
     len -= p - buf;

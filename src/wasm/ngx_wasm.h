@@ -4,7 +4,7 @@
 
 #include <ngx_core.h>
 
-#include <wasm.h>
+#include <ngx_wrt.h>
 
 #if (NGX_DEBUG)
 #include <assert.h>

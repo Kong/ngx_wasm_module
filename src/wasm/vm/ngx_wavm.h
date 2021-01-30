@@ -4,8 +4,6 @@
 
 #include <ngx_wasm.h>
 
-#include <ngx_wrt.h>
-
 #include <ngx_wavm_hfuncs.h>
 
 

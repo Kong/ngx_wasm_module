@@ -2,12 +2,10 @@
 #define _NGX_WRT_H_INCLUDED_
 
 
-#include <ngx_wasm.h>
+#include <ngx_core.h>
 
+#include <wasm.h>
 #include <wasmtime.h>
-
-
-#define NGX_WRT_NAME             "wasmtime"
 
 
 typedef struct wasmtime_error_t  ngx_wrt_res_t;
@@ -48,4 +46,4 @@ u_char *ngx_wrt_error_log_handler(ngx_wrt_res_t *res, u_char *buf,
     size_t len);
 
 
-#endif /* _NGX_WRT_H_INCLUDED__ */
+#endif /* _NGX_WRT_H_INCLUDED_ */

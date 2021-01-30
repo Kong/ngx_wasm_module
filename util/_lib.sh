@@ -21,6 +21,10 @@ build_nginx() {
 
     # Build options
 
+    if [[ -n "$NGX_WASM_RUNTIME" ]]; then
+        build_name+=" $NGX_WASM_RUNTIME"
+    fi
+
     if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
         build_name+=" nopool"
         NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_NOPOOL -DNGX_DEBUG_MALLOC"
@@ -32,7 +36,7 @@ build_nginx() {
         NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fsanitize=$NGX_BUILD_FSANITIZE -ldl -lm -lpthread -lrt"
     fi
 
-    NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -Wl,-rpath,$WASMTIME_LIB"
+    NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -Wl,-rpath,$NGX_WASM_RUNTIME_LIB"
 
     if [[ "$NGX_BUILD_CLANG_ANALYZER" == 1 ]]; then
         build_name+=" clang-analyzer"
@@ -57,9 +61,11 @@ build_nginx() {
         build_with_debug="--with-debug"
     fi
 
+    local name="${build_name[@]}"
+
     # Build options hash to determine rebuild
 
-    local hash=$(echo "$CC.$ngx_ver.$ngx_src.$build_name.$NGX_BUILD_CC_OPT.$NGX_BUILD_LD_OPT" | shasum | awk '{ print $1 }')
+    local hash=$(echo "$CC.$ngx_ver.$ngx_src.$name.$NGX_BUILD_CC_OPT.$NGX_BUILD_LD_OPT" | shasum | awk '{ print $1 }')
 
     if [[ ! -d "$NGX_BUILD_DIR_SRCROOT" \
           || ! -f "$NGX_BUILD_DIR_SRCROOT/.hash" \
@@ -97,7 +103,7 @@ build_nginx() {
             fi
 
             eval ./$configure \
-                "--build='ngx_wasm_module [${build_name[@]}]'" \
+                "--build='ngx_wasm_module [$name]'" \
                 "--builddir=$NGX_BUILD_DIR_BUILDROOT" \
                 "--prefix=$NGX_BUILD_DIR_PREFIX" \
                 "--add-module=$NGX_WASM_DIR" \
@@ -213,4 +219,4 @@ fatal() {
 pushd() { builtin pushd $1 > /dev/null; }
 popd() { builtin popd > /dev/null; }
 
-# vim: ft=sh st=4 sts=4 sw=4:
+# vim: ft=sh ts=4 sts=4 sw=4:

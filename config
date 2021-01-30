@@ -1,53 +1,71 @@
-find_wasmtime() {
+find_runtime() {
     if [ $ngx_found = yes ]; then
         return
     fi
 
-    ngx_feature="wasmtime library"
+    ngx_feature="$NGX_WASM_RUNTIME library"
     ngx_feature_path=
     ngx_feature_libs=
 
     if [ -n "$1" ]; then
-        ngx_feature="$ngx_feature (-I $1"
+        ngx_feature="$ngx_feature, -I $1"
         ngx_feature_path="$1"
-
-        if [ -n "$3" ]; then
-            ngx_feature="$ngx_feature, $3)"
-            ngx_feature_libs="$3"
-
-        elif [ -n "$2" ]; then
-            ngx_feature="$ngx_feature, -L $2)"
-            ngx_feature_libs="-L $2 -lwasmtime"
-        fi
+    fi
+    if [ -n "$2" ]; then
+        ngx_feature="$ngx_feature, -L $2 -l$NGX_WASM_RUNTIME"
+        ngx_feature_libs="-L $2 -l$NGX_WASM_RUNTIME"
+    fi
+    if [ -n "$3" ]; then
+        ngx_feature="$ngx_feature ($3)"
+        ngx_feature_libs="$3"
     fi
 
-    ngx_feature_name="NGX_WASM_HAVE_WASMTIME"
     ngx_feature_run=no
-    ngx_feature_incs="#include <wasm.h>
-                      #include <wasmtime.h>"
     ngx_feature_test=
-    ngx_feature_libs="$ngx_feature_libs"
 
     . auto/feature
 }
 
-###############################################################################
+NGX_WASM_RUNTIME="${NGX_WASM_RUNTIME:-wasmtime}"
 
 ngx_found=no
 
-if [ -n "$WASMTIME_INC" -o -n "$WASMTIME_LIB" -o -n "$WASMTIME_LD_OPT" ]; then
-    find_wasmtime "$WASMTIME_INC" "$WASMTIME_LIB" "$WASMTIME_LD_OPT"
-fi
+case $NGX_WASM_RUNTIME in
+    wasmtime)
+        ngx_wasm_runtime_inc="$ngx_addon_dir/src/wasm/wasmtime"
 
-find_wasmtime
-find_wasmtime "/usr/local/opt/include" "/usr/local/opt/lib"
-find_wasmtime "/usr/local/include"     "/usr/local/lib"
+        ngx_feature_name="NGX_WASM_HAVE_WASMTIME"
+        ngx_feature_incs="#include <wasm.h>
+                          #include <wasmtime.h>"
+        ;;
+    WAVM)
+        ngx_wasm_runtime_inc="$ngx_addon_dir/src/wasm/wavm"
+
+        ngx_feature_name="NGX_WASM_HAVE_WAVM"
+        ngx_feature_incs="#include <wavm-c.h>"
+        ;;
+    *)
+        echo "$0: error: unsupported wasm runtime \"$NGX_WASM_RUNTIME\"."
+        echo "Supported runtime: wasmtime, WAVM."
+        echo
+        exit 1
+esac
+
+find_runtime "$NGX_WASM_RUNTIME_INC" "$NGX_WASM_RUNTIME_LIB" "$NGX_WASM_RUNTIME_LD_OPT"
+find_runtime "/usr/local/opt/include" "/usr/local/opt/lib"
+find_runtime "/usr/local/include"     "/usr/local/lib"
 
 if [ $ngx_found = no ]; then
-    echo "$0: error: $ngx_module_name could not find the wasmtime library (specify \$WASMTIME_INC and \$WASMTIME_LIB)."
+    cat << END
+$0: error: $ngx_module_name could not find the $NGX_WASM_RUNTIME library.
+You can set the \$NGX_WASM_RUNTIME_INC and \$NGX_WASM_RUNTIME_LIB environment variables."
+
+END
     echo
     exit 1
 fi
+
+have=NGX_WASM_RUNTIME value="\"$NGX_WASM_RUNTIME\"" . auto/define
 
 ###############################################################################
 
@@ -56,20 +74,20 @@ ngx_module_name=ngx_wasm_module
 ngx_module_incs="$ngx_feature_path \
                  $ngx_addon_dir/src/wasm \
                  $ngx_addon_dir/src/wasm/vm \
-                 $ngx_addon_dir/src/wasm/wasmtime \
-                 $ngx_addon_dir/src/common"
+                 $ngx_addon_dir/src/common \
+                 $ngx_wasm_runtime_inc"
 ngx_module_libs="$ngx_feature_libs"
 ngx_module_deps="$ngx_addon_dir/src/wasm/ngx_wasm.h \
-                 $ngx_addon_dir/src/wasm/wasmtime/ngx_wrt.h \
                  $ngx_addon_dir/src/wasm/vm/ngx_wavm.h \
                  $ngx_addon_dir/src/wasm/vm/ngx_wavm_hfuncs.h \
-                 $ngx_addon_dir/src/wasm/ngx_wasm_ops.h"
+                 $ngx_addon_dir/src/wasm/ngx_wasm_ops.h \
+                 $ngx_wasm_runtime_inc/ngx_wrt.h"
 ngx_module_srcs="$ngx_addon_dir/src/wasm/ngx_wasm.c \
-                 $ngx_addon_dir/src/wasm/wasmtime/ngx_wrt.c \
                  $ngx_addon_dir/src/wasm/vm/ngx_wavm.c \
                  $ngx_addon_dir/src/wasm/vm/ngx_wavm_hfuncs.c \
                  $ngx_addon_dir/src/wasm/ngx_wasm_ops.c \
-                 $ngx_addon_dir/src/wasm/ngx_wasm_util.c"
+                 $ngx_addon_dir/src/wasm/ngx_wasm_util.c \
+                 $ngx_wasm_runtime_inc/ngx_wrt.c"
 ngx_module_link=ADDON
 
 . auto/module
@@ -143,4 +161,4 @@ ngx_module_link=ADDON
 CORE_INCS="$CORE_INCS $WASM_INCS"
 CORE_MODULES="$CORE_MODULES $WASM_MODULES"
 
-# vim:ft=sh st=4 sts=4 sw=4:
+# vim:ft=sh ts=4 sts=4 sw=4:
