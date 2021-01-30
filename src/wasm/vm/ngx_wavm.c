@@ -554,6 +554,12 @@ ngx_int_t
 ngx_wavm_ctx_init(ngx_wavm_t *vm, ngx_wavm_ctx_t *ctx)
 {
     ctx->vm = vm;
+
+    ctx->store = wasm_store_new(vm->engine);
+    if (ctx->store == NULL) {
+        return NGX_ERROR;
+    }
+
     ctx->instances = ngx_pcalloc(ctx->pool, vm->modules_max *
                                             sizeof(ngx_wavm_instance_t *));
     if (ctx->instances == NULL) {
@@ -581,6 +587,10 @@ ngx_wavm_ctx_destroy(ngx_wavm_ctx_t *ctx)
 
         ngx_pfree(ctx->pool, ctx->instances);
     }
+
+    if (ctx->store) {
+        wasm_store_delete(ctx->store);
+    }
 }
 
 
@@ -600,15 +610,13 @@ ngx_wavm_module_instantiate(ngx_wavm_module_t *module, ngx_wavm_ctx_t *ctx,
 
     vm = module->vm;
 
-    if (ctx) {
-        instance = ctx->instances[module->ctx_idx];
-        if (instance) {
-            ngx_log_debug3(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                           "wasm reusing instance of \"%V\" module "
-                           "in \"%V\" vm (ctx: %p)",
-                           &module->name, vm->name, ctx);
-            return instance;
-        }
+    instance = ctx->instances[module->ctx_idx];
+    if (instance) {
+        ngx_log_debug3(NGX_LOG_DEBUG_WASM, vm->log, 0,
+                       "wasm reusing instance of \"%V\" module "
+                       "in \"%V\" vm (ctx: %p)",
+                       &module->name, vm->name, ctx);
+        return instance;
     }
 
     ngx_log_debug3(NGX_LOG_DEBUG_WASM, vm->log, 0,
@@ -641,18 +649,14 @@ ngx_wavm_module_instantiate(ngx_wavm_module_t *module, ngx_wavm_ctx_t *ctx,
     instance->log_ctx.instance = instance;
     instance->log_ctx.orig_log = NULL;
 
-    instance->store = wasm_store_new(vm->engine);
-    if (instance->store == NULL) {
-        goto error;
-    }
-
     /* link hfuncs */
 
     wasm_extern_vec_new_uninitialized(&instance->env, module->nhfuncs);
 
     if (module->nhfuncs) {
-        instance->tctxs = ngx_palloc(vm->pool, module->nhfuncs *
-                                               sizeof(ngx_wavm_hfunc_tctx_t));
+        instance->tctxs = ngx_palloc(instance->pool,
+                                     module->nhfuncs *
+                                     sizeof(ngx_wavm_hfunc_tctx_t));
         if (instance->tctxs == NULL) {
             goto error;
         }
@@ -674,7 +678,7 @@ ngx_wavm_module_instantiate(ngx_wavm_module_t *module, ngx_wavm_ctx_t *ctx,
             tctx->hfunc = hfunc;
             tctx->instance = instance;
 
-            func = wasm_func_new_with_env(instance->store, hfunc->functype,
+            func = wasm_func_new_with_env(ctx->store, hfunc->functype,
                                           &ngx_wavm_hfuncs_trampoline,
                                           tctx, NULL);
 
@@ -686,7 +690,7 @@ ngx_wavm_module_instantiate(ngx_wavm_module_t *module, ngx_wavm_ctx_t *ctx,
 
     ngx_wasm_assert(instance->env.size == module->nhfuncs);
 
-    instance->instance = wasm_instance_new(instance->store, module->module,
+    instance->instance = wasm_instance_new(ctx->store, module->module,
                            (const wasm_extern_t* const *) instance->env.data,
                            &trap);
     if (instance->instance == NULL) {
@@ -736,6 +740,7 @@ ngx_wavm_function_call(ngx_wavm_func_t *func,
     ngx_wasm_assert(func->module == instance->module);
 
     export = ((wasm_extern_t **) instance->exports.data)[func->exports_idx];
+
     ngx_wasm_assert(wasm_extern_kind(export) == WASM_EXTERN_FUNC);
 
     trap = wasm_func_call(wasm_extern_as_func(export), NULL, NULL);
@@ -756,10 +761,6 @@ ngx_wavm_instance_free(ngx_wavm_instance_t *instance)
                    " (vm: %p, module: %p, instance: %p)",
                    &instance->module->name, instance->module->vm->name,
                    instance->module->vm, instance->module, instance);
-
-    if (instance->store) {
-        wasm_store_delete(instance->store);
-    }
 
     if (instance->instance) {
         wasm_instance_delete(instance->instance);

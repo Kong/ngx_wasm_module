@@ -296,7 +296,7 @@ trap:
         wasm_byte_vec_new(&trapmsg, errlen, err);
     }
 
-    trap = wasm_trap_new(instance->store, &trapmsg);
+    trap = wasm_trap_new(instance->ctx->store, &trapmsg);
     wasm_byte_vec_delete(&trapmsg);
 
     return trap;

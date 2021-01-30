@@ -28,14 +28,12 @@ struct ngx_wavm_func_s {
 struct ngx_wavm_instance_s {
     ngx_wavm_ctx_t                    *ctx;
     ngx_wavm_module_t                 *module;
-    ngx_str_node_t                     sn;         /* store->instances_tree */
 
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
     ngx_wavm_log_ctx_t                 log_ctx;
     ngx_wavm_hfunc_tctx_t             *tctxs;
     wasm_instance_t                   *instance;
-    wasm_store_t                      *store;
     wasm_memory_t                     *memory;
     wasm_extern_vec_t                  env;
     wasm_extern_vec_t                  exports;
@@ -53,6 +51,7 @@ struct ngx_wavm_ctx_s {
     ngx_log_t                         *log;
     void                              *data;
 
+    wasm_store_t                      *store;
     ngx_wavm_instance_t              **instances;
 };
 
