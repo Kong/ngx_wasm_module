@@ -214,7 +214,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
     phase = ngx_wasm_ops_engine_phase_lookup(ops_engine, phaseidx);
     if (phase == NULL) {
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, ops_engine->log, 0,
-                       "wasm resume: no phase for index '%u'",
+                       "wasm resume: no phase for index '%ui'",
                        phase);
         return NGX_DECLINED;
     }

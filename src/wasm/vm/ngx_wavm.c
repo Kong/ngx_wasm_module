@@ -353,11 +353,11 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
             importname = wasm_importtype_name(importtype);
 
             ngx_log_debug7(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                           "wasm loading \"%V\" module import \"%*s.\"%*s\" (%u/%u)",
+                           "wasm loading \"%V\" module import \"%*s.\"%*s\" (%ui/%ui)",
                            &module->name,
                            importmodule->size, importmodule->data,
                            importname->size, importname->data,
-                           i, module->imports.size);
+                           i + 1, module->imports.size);
 
             if (ngx_strncmp(importmodule->data, "env", 3) != 0) {
                 continue;
@@ -520,7 +520,7 @@ ngx_wavm_init(ngx_wavm_t *vm, ngx_wavm_hfuncs_t *hfuncs)
 done:
 
     ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL, NULL,
-                       "\"%V\" wasm VM initialized (modules: %u)",
+                       "\"%V\" wasm VM initialized (modules: %ui)",
                        vm->name, vm->modules_max);
 
     return NGX_OK;
