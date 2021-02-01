@@ -102,5 +102,6 @@
    fun:ngx_wasm_init
    fun:ngx_init_modules
    fun:ngx_init_cycle
+   ...
    fun:main
 }
