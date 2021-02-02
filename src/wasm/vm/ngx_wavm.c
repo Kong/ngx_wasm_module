@@ -113,6 +113,10 @@ ngx_wavm_free(ngx_wavm_t *vm)
         ngx_wavm_module_free(module);
     }
 
+    if (vm->store) {
+        wasm_store_delete(vm->store);
+    }
+
     if (vm->engine) {
         wasm_engine_delete(vm->engine);
     }
@@ -318,12 +322,19 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
 
     /* load wasm */
 
-    if (ngx_wrt_module_new(vm->engine, bytes, &module->module, &res)
+    if (ngx_wrt_module_new(
+#if (NGX_WASM_HAVE_WASMTIME)
+            vm->engine,
+#else
+            vm->store,
+#endif
+            bytes, &module->module, &res)
         != NGX_OK)
     {
         err = (u_char *) "";
         goto error;
     }
+
 
     wasm_module_imports(module->module, &module->imports);
     wasm_module_exports(module->module, &module->exports);
@@ -497,6 +508,12 @@ ngx_wavm_init(ngx_wavm_t *vm, ngx_wavm_hfuncs_t *hfuncs)
         goto error;
     }
 
+    vm->store = wasm_store_new(vm->engine);
+    if (vm->store == NULL) {
+        err = (u_char *) "store init failure";
+        goto error;
+    }
+
     root = vm->modules_tree.root;
     sentinel = vm->modules_tree.sentinel;
 
@@ -607,6 +624,7 @@ ngx_wavm_module_instantiate(ngx_wavm_module_t *module, ngx_wavm_ctx_t *ctx,
     wasm_func_t            *func;
     wasm_extern_t          *export;
     wasm_trap_t            *trap = NULL;
+    ngx_wrt_res_t          *res;
 
     vm = module->vm;
 
@@ -690,10 +708,9 @@ ngx_wavm_module_instantiate(ngx_wavm_module_t *module, ngx_wavm_ctx_t *ctx,
 
     ngx_wasm_assert(instance->env.size == module->nhfuncs);
 
-    instance->instance = wasm_instance_new(ctx->store, module->module,
-                           (const wasm_extern_t* const *) instance->env.data,
-                           &trap);
-    if (instance->instance == NULL) {
+    if (ngx_wrt_instance_new(ctx->store, module->module, &instance->env,
+                             &instance->instance, &trap, &res) != NGX_OK)
+    {
         goto error;
     }
 
@@ -736,6 +753,7 @@ ngx_wavm_function_call(ngx_wavm_func_t *func,
 {
     wasm_extern_t  *export;
     wasm_trap_t    *trap;
+    ngx_wrt_res_t  *res = NULL;
 
     ngx_wasm_assert(func->module == instance->module);
 
@@ -743,9 +761,10 @@ ngx_wavm_function_call(ngx_wavm_func_t *func,
 
     ngx_wasm_assert(wasm_extern_kind(export) == WASM_EXTERN_FUNC);
 
-    trap = wasm_func_call(wasm_extern_as_func(export), NULL, NULL);
-    if (trap) {
-        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL, trap, NULL);
+    if (ngx_wrt_func_call(wasm_extern_as_func(export), NULL, NULL, &trap, &res)
+         != NGX_OK)
+    {
+        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, res, trap, NULL);
         return NGX_ERROR;
     }
 

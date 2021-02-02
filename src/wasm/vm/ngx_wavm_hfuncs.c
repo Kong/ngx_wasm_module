@@ -224,8 +224,13 @@ ngx_wavm_hfuncs_lookup(ngx_wavm_hfuncs_t *hfuncs, ngx_str_t *name,
 
 
 wasm_trap_t *
-ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_t args[],
-    wasm_val_t rets[])
+ngx_wavm_hfuncs_trampoline(void *env,
+#if (NGX_WASM_HAVE_WASMTIME)
+    const wasm_val_t args[], wasm_val_t rets[]
+#else
+    const wasm_val_vec_t* args, wasm_val_vec_t* rets
+#endif
+    )
 {
     size_t                  errlen, len;
     char                   *err = NULL;
@@ -234,8 +239,18 @@ ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_t args[],
     ngx_wavm_hfunc_tctx_t  *tctx = env;
     ngx_wavm_instance_t    *instance = tctx->instance;
     ngx_wavm_hfunc_t       *hfunc = tctx->hfunc;
+    wasm_val_t             *hargs, *hrets;
     wasm_byte_vec_t         trapmsg;
     wasm_trap_t            *trap = NULL;
+
+#if (NGX_WASM_HAVE_WASMTIME)
+    hargs = (wasm_val_t *) args;
+    hrets = (wasm_val_t *) rets;
+
+#else
+    hargs = (wasm_val_t *) args->data;
+    hrets = (wasm_val_t *) rets->data;
+#endif
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, instance->log, 0,
                    "wasm hfuncs trampoline (hfunc: %V, tctx: %p)",
@@ -246,7 +261,7 @@ ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_t args[],
     instance->trapbuf = (u_char *) &trapbuf;
     instance->mem_offset = (u_char *) wasm_memory_data(instance->memory);
 
-    rc = hfunc->def->ptr(instance, args, rets);
+    rc = hfunc->def->ptr(instance, hargs, hrets);
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, instance->log, 0,
                    "wasm hfuncs trampoline rc: %d", rc);

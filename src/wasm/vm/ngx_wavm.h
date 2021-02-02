@@ -91,6 +91,7 @@ struct ngx_wavm_s {
     ngx_rbtree_node_t                  modules_sentinel;
     wasm_config_t                     *config;
     wasm_engine_t                     *engine;
+    wasm_store_t                      *store;
 };
 
 

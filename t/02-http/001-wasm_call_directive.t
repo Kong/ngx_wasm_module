@@ -183,7 +183,7 @@ qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "hello" module <vm: .*?, run
         drop)
 )
 --- error_log eval
-qr/\[error\] .*? \[wasm\] wasm trap: integer divide by zero/
+qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?integer divide by zero/
 --- no_error_log
 [emerg]
 [crit]

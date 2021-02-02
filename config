@@ -44,9 +44,15 @@ case $NGX_WASM_RUNTIME in
         ngx_feature_name="NGX_WASM_HAVE_WAVM"
         ngx_feature_incs="#include <wavm-c.h>"
         ;;
+    wasmer)
+        ngx_wasm_runtime_inc="$ngx_addon_dir/src/wasm/wasmer"
+
+        ngx_feature_name="NGX_WASM_HAVE_WASMER"
+        ngx_feature_incs="#include <wasmer_wasm.h>"
+        ;;
     *)
         echo "$0: error: unsupported wasm runtime \"$NGX_WASM_RUNTIME\"."
-        echo "Supported runtime: wasmtime, WAVM."
+        echo "Supported runtime: wasmtime, wasmer, WAVM."
         echo
         exit 1
 esac

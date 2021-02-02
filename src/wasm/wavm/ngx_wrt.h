@@ -13,7 +13,7 @@ typedef void *  ngx_wrt_res_t;
 ngx_int_t ngx_wrt_wat2wasm(wasm_byte_vec_t *wat, wasm_byte_vec_t *wasm,
     ngx_wrt_res_t **res);
 
-ngx_int_t ngx_wrt_module_new(wasm_engine_t *e, wasm_byte_vec_t *bytes,
+ngx_int_t ngx_wrt_module_new(wasm_store_t *s, wasm_byte_vec_t *bytes,
     wasm_module_t **out, ngx_wrt_res_t **res);
 
 void ngx_wrt_config_init(wasm_config_t *config);
