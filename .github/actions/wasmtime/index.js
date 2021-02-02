@@ -55,8 +55,8 @@ async function main() {
     core.exportVariable("NGX_WASM_RUNTIME_INC", path.join(dir, "include"))
     core.exportVariable("NGX_WASM_RUNTIME_LIB", path.join(dir, "lib"))
 
-    core.info(`NGX_WASM_RUNTIME_INC = ${process.env.WASMTIME_INC}`)
-    core.info(`NGX_WASM_RUNTIME_LIB = ${process.env.WASMTIME_LIB}`)
+    core.info(`NGX_WASM_RUNTIME_INC = ${process.env.NGX_WASM_RUNTIME_INC}`)
+    core.info(`NGX_WASM_RUNTIME_LIB = ${process.env.NGX_WASM_RUNTIME_LIB}`)
 }
 
 main().catch(err => {
