@@ -112,7 +112,7 @@ ngx_wavm_instance_t *ngx_wavm_module_instantiate(ngx_wavm_module_t *module,
     ngx_wavm_ctx_t *ctx, ngx_module_t *m);
 
 ngx_int_t ngx_wavm_function_call(ngx_wavm_func_t *func,
-    ngx_wavm_instance_t *instance);
+    ngx_wavm_instance_t *instance, wasm_val_vec_t *args, wasm_val_vec_t *rets);
 
 ngx_int_t ngx_wavm_ctx_init(ngx_wavm_t *vm, ngx_wavm_ctx_t *ctx);
 

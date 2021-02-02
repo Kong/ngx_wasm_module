@@ -748,12 +748,21 @@ error:
 
 
 ngx_int_t
-ngx_wavm_function_call(ngx_wavm_func_t *func,
-    ngx_wavm_instance_t *instance)
+ngx_wavm_function_call(ngx_wavm_func_t *func, ngx_wavm_instance_t *instance,
+    wasm_val_vec_t *args, wasm_val_vec_t *rets)
 {
-    wasm_extern_t  *export;
-    wasm_trap_t    *trap;
-    ngx_wrt_res_t  *res = NULL;
+    wasm_extern_t   *export;
+    wasm_trap_t     *trap;
+    wasm_val_vec_t   dargs = WASM_EMPTY_VEC, drets = WASM_EMPTY_VEC;
+    ngx_wrt_res_t   *res = NULL;
+
+    if (args == NULL) {
+        args = &dargs;
+    }
+
+    if (rets == NULL) {
+        rets = &drets;
+    }
 
     ngx_wasm_assert(func->module == instance->module);
 
@@ -761,8 +770,8 @@ ngx_wavm_function_call(ngx_wavm_func_t *func,
 
     ngx_wasm_assert(wasm_extern_kind(export) == WASM_EXTERN_FUNC);
 
-    if (ngx_wrt_func_call(wasm_extern_as_func(export), NULL, NULL, &trap, &res)
-         != NGX_OK)
+    if (ngx_wrt_func_call(wasm_extern_as_func(export), args, rets, &trap, &res)
+        != NGX_OK)
     {
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, res, trap, NULL);
         return NGX_ERROR;

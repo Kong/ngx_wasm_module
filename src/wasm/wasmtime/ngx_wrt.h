@@ -8,6 +8,15 @@
 #include <wasmtime.h>
 
 
+#ifndef WASM_EMPTY_VEC
+#define WASM_EMPTY_VEC {0, NULL}
+#endif
+
+#ifndef WASM_ARRAY_VEC
+#define WASM_ARRAY_VEC(array) {sizeof(array)/sizeof(*(array)), array}
+#endif
+
+
 typedef struct wasmtime_error_t  ngx_wrt_res_t;
 
 
@@ -61,7 +70,7 @@ static ngx_inline ngx_int_t
 ngx_wrt_func_call(wasm_func_t *f, wasm_val_vec_t *args, wasm_val_vec_t *rets,
     wasm_trap_t **trap, ngx_wrt_res_t **res)
 {
-    *trap = wasm_func_call(f, NULL, NULL);
+    *trap = wasm_func_call(f, args->data, rets->data);
 
     return *trap == NULL ? NGX_OK : NGX_ERROR;
 }

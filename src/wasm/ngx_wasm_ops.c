@@ -275,7 +275,7 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wavm_instance_t *instance,
                    "wasm calling \"%V.%V\" in \"%V\" phase",
                    &module->name, &function->name, &phase->name);
 
-    rc = ngx_wavm_function_call(function, instance);
+    rc = ngx_wavm_function_call(function, instance, NULL, NULL);
 
     return rc;
 }

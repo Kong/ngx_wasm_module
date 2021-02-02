@@ -69,9 +69,7 @@ static ngx_inline ngx_int_t
 ngx_wrt_func_call(wasm_func_t *f, wasm_val_vec_t *args, wasm_val_vec_t *rets,
     wasm_trap_t **trap, ngx_wrt_res_t **res)
 {
-    wasm_val_vec_t  a = WASM_EMPTY_VEC, b = WASM_EMPTY_VEC;
-
-    *trap = wasm_func_call(f, &a, &b);
+    *trap = wasm_func_call(f, args, rets);
     if (*trap) {
         return NGX_ERROR;
     }
