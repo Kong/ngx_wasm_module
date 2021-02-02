@@ -5,6 +5,7 @@ t/lib/rust-http-tests/target/
 lib/ngx-rust/target/
 *.data*
 *.perf*
+*.svg
 *.log*
 *.gcov
 vgcore.*
