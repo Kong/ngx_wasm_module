@@ -44,7 +44,6 @@ ngx_wasm_ops_engine_new(ngx_pool_t *pool, ngx_wavm_t *vm,
     }
 
     ops_engine->pool = pool;
-    ops_engine->log = pool->log;
     ops_engine->vm = vm;
     ops_engine->subsystem = subsystem;
     ops_engine->pipelines = ngx_pcalloc(pool, subsystem->nphases *
@@ -207,14 +206,17 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
     ngx_wavm_instance_t      *instance;
     ngx_uint_t                rc;
 
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, ctx->log, 0,
+                   "wasm ops resuming phase index '%ui'", phaseidx);
+
     if (ops_engine == NULL) {
         return NGX_DECLINED;
     }
 
     phase = ngx_wasm_ops_engine_phase_lookup(ops_engine, phaseidx);
     if (phase == NULL) {
-        ngx_log_debug1(NGX_LOG_DEBUG_WASM, ops_engine->log, 0,
-                       "wasm resume: no phase for index '%ui'",
+        ngx_log_debug1(NGX_LOG_DEBUG_WASM, ctx->log, 0,
+                       "wasm ops resume: no phase for index '%ui'",
                        phase);
         return NGX_DECLINED;
     }
@@ -247,7 +249,6 @@ static ngx_int_t
 ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wavm_instance_t *instance,
     ngx_wasm_phase_t *phase, ngx_wasm_op_t *op)
 {
-    ngx_wavm_t          *vm = ctx->wv_ctx.vm;
     ngx_wasm_op_call_t  *call;
     ngx_wavm_module_t   *module;
     ngx_wavm_func_t     *function;
@@ -260,9 +261,10 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wavm_instance_t *instance,
     function = call->function;
 
     if (function == NULL) {
-        function = ngx_wavm_module_function_lookup(op->module, &call->func_name);
+        function = ngx_wavm_module_function_lookup(op->module,
+                                                   &call->func_name);
         if (function == NULL) {
-            ngx_wasm_log_error(NGX_LOG_EMERG, vm->log, 0,
+            ngx_wasm_log_error(NGX_LOG_EMERG, ctx->log, 0,
                                "no \"%V\" function in \"%V\" module",
                                &call->func_name, &module->name);
             return NGX_ERROR;
@@ -271,8 +273,8 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wavm_instance_t *instance,
         call->function = function;
     }
 
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                   "wasm calling \"%V.%V\" in \"%V\" phase",
+    ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
+                   "wasm ops calling \"%V.%V\" in \"%V\" phase",
                    &module->name, &function->name, &phase->name);
 
     rc = ngx_wavm_function_call(function, instance, NULL, NULL);

@@ -35,17 +35,12 @@ ngx_wavm_ready(ngx_wavm_t *vm)
 ngx_wavm_t *
 ngx_wavm_new(ngx_cycle_t *cycle, const ngx_str_t *name)
 {
-    //u_char      *err = (u_char *) "no memory";
     ngx_wavm_t  *vm;
 
     vm = ngx_pcalloc(cycle->pool, sizeof(ngx_wavm_t));
     if (vm == NULL) {
         goto error;
     }
-
-    //ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
-    //               "wasm creating \"%V\" vm (vm: %p)",
-    //               vm->name, vm);
 
     vm->name = name;
     vm->pool = cycle->pool;
@@ -78,8 +73,8 @@ ngx_wavm_new(ngx_cycle_t *cycle, const ngx_str_t *name)
 
 error:
 
-    //ngx_wasm_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0,
-    //                   "failed to create \"%V\" vm: %s", name, err);
+    ngx_wasm_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0,
+                      "failed to create \"%V\" vm: no memory", name);
 
     if (vm) {
         ngx_wavm_free(vm);
@@ -269,7 +264,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
     ngx_wavm_t         *vm;
     ngx_wavm_hfunc_t   *hfunc;
     ngx_wavm_func_t    *func;
-    ngx_wrt_res_t      *res;
+    ngx_wrt_res_t      *res = NULL;
     wasm_byte_vec_t     file_bytes, wasm_bytes, *bytes = NULL;
     wasm_importtype_t  *importtype;
     wasm_exporttype_t  *exporttype;
@@ -364,7 +359,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
             importname = wasm_importtype_name(importtype);
 
             ngx_log_debug7(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                           "wasm loading \"%V\" module import \"%*s.\"%*s\" (%ui/%ui)",
+                           "wasm loading \"%V\" module import \"%*s.%*s\" (%ui/%ui)",
                            &module->name,
                            importmodule->size, importmodule->data,
                            importname->size, importname->data,
@@ -384,7 +379,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
                 hfunc = ngx_wavm_hfuncs_lookup(vm->hfuncs, &s, NULL);
                 if (hfunc == NULL) {
                     ngx_wavm_log_error(NGX_LOG_ERR, vm->log, NULL, NULL,
-                                       "failed importing \"env.\"%V\": "
+                                       "failed importing \"env.%*s\": "
                                        "missing host function",
                                        importname->size, importname->data);
 
@@ -399,14 +394,13 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
             default:
                 ngx_wavm_log_error(NGX_LOG_ALERT, vm->log, NULL, NULL,
                                    "NYI: module import type not supported");
-                ngx_wasm_assert(0);
                 goto failed;
 
             }
         }
     }
 
-    ngx_wasm_assert(module->nhfuncs == module->imports.size);
+    //ngx_wasm_assert(module->nhfuncs == module->imports.size);
 
     /* build exports lookups */
 
@@ -417,10 +411,10 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
         exporttype = ((wasm_exporttype_t **) module->exports.data)[i];
         exportname = wasm_exporttype_name(exporttype);
 
-
         ngx_log_debug(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                      "wasm loading \"%V.%*s\" export",
-                      &module->name, exportname->size, exportname->data);
+                      "wasm loading \"%V.%*s\" module export (%ui/%ui)",
+                      &module->name, exportname->size, exportname->data,
+                      i + 1, module->exports.size);
 
         switch (wasm_externtype_kind(
                 wasm_exporttype_type(exporttype))) {
@@ -617,6 +611,7 @@ ngx_wavm_module_instantiate(ngx_wavm_module_t *module, ngx_wavm_ctx_t *ctx,
 {
     size_t                  i;
     u_char                 *err = (u_char *) "no memory";
+    ngx_wrt_res_t          *res = NULL;
     ngx_wavm_t             *vm;
     ngx_wavm_instance_t    *instance;
     ngx_wavm_hfunc_t       *hfunc, *hf;
@@ -624,7 +619,6 @@ ngx_wavm_module_instantiate(ngx_wavm_module_t *module, ngx_wavm_ctx_t *ctx,
     wasm_func_t            *func;
     wasm_extern_t          *export;
     wasm_trap_t            *trap = NULL;
-    ngx_wrt_res_t          *res;
 
     vm = module->vm;
 
@@ -751,10 +745,10 @@ ngx_int_t
 ngx_wavm_function_call(ngx_wavm_func_t *func, ngx_wavm_instance_t *instance,
     wasm_val_vec_t *args, wasm_val_vec_t *rets)
 {
+    ngx_wrt_res_t   *res = NULL;
     wasm_extern_t   *export;
     wasm_trap_t     *trap;
     wasm_val_vec_t   dargs = WASM_EMPTY_VEC, drets = WASM_EMPTY_VEC;
-    ngx_wrt_res_t   *res = NULL;
 
     if (args == NULL) {
         args = &dargs;

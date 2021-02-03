@@ -16,7 +16,7 @@ __DATA__
 --- main_config
 --- config
     location /t {
-        proxy_wasm hello;
+        proxy_wasm a;
         return 200;
     }
 --- error_log eval
@@ -31,7 +31,7 @@ qr/\[emerg\] .*? "proxy_wasm" directive is specified but config has no "wasm" se
 === TEST 2: proxy_wasm directive - invalid number of arguments
 --- config
     location /t {
-        proxy_wasm hello foo;
+        proxy_wasm a foo;
         return 200;
     }
 --- error_log eval
@@ -61,11 +61,11 @@ qr/\[emerg\] .*? invalid module name ""/
 === TEST 4: proxy_wasm directive - sanity
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
     location /t {
-        proxy_wasm hello;
+        proxy_wasm a;
         return 200;
     }
 --- response_body
@@ -73,7 +73,7 @@ qr/\[emerg\] .*? invalid module name ""/
 [error]
 [emerg]
 --- user_files
->>> hello.wat
+>>> a.wat
 (module
   (func $nop)
   (export "nop" (func $nop))

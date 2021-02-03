@@ -40,3 +40,31 @@ wasm VM
 [error]
 [crit]
 --- must_die
+
+
+
+=== TEST 4: wasm{} - unknown directive
+--- main_config
+    wasm {
+        unknown;
+    }
+--- error_log
+unknown directive "unknown"
+--- no_error_log
+[error]
+[crit]
+--- must_die
+
+
+
+=== TEST 5: wasm{} - unknown directive
+--- main_config
+    wasm {
+        {
+    }
+--- error_log
+unexpected "{"
+--- no_error_log
+[error]
+[crit]
+--- must_die

@@ -76,8 +76,7 @@ ngx_wrt_func_call(wasm_func_t *f, wasm_val_vec_t *args, wasm_val_vec_t *rets,
 }
 
 
-u_char *ngx_wrt_error_log_handler(ngx_wrt_res_t *res, u_char *buf,
-    size_t len);
+u_char *ngx_wrt_error_log_handler(ngx_wrt_res_t *res, u_char *buf, size_t len);
 
 
 #endif /* _NGX_WRT_H_INCLUDED_ */

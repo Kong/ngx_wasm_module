@@ -13,7 +13,8 @@ typedef struct {
 
 
 static void *ngx_http_wasm_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_wasm_op_post_handler(ngx_conf_t *cf, void *post, void *data);
+static char *ngx_http_wasm_op_post_handler(ngx_conf_t *cf, void *post,
+    void *data);
 char *ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
@@ -23,7 +24,6 @@ static ngx_int_t ngx_http_wasm_init(ngx_conf_t *cf);
 static ngx_int_t ngx_http_wasm_rewrite_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_content_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_log_handler(ngx_http_request_t *r);
-
 
 
 static ngx_wasm_phase_t  ngx_wasm_subsys_http[] = {
@@ -302,11 +302,13 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         rctx->r = r;
 
         opctx = &rctx->opctx;
+        opctx->log = r->connection->log;
         opctx->ops_engine = loc->ops_engine;
+        opctx->m = &ngx_http_wasm_hfuncs_module;
+
         opctx->wv_ctx.pool = r->pool;
         opctx->wv_ctx.log = r->connection->log;
         opctx->wv_ctx.data = rctx;
-        opctx->m = &ngx_http_wasm_hfuncs_module;
 
         if (ngx_wavm_ctx_init(loc->vm, &opctx->wv_ctx) != NGX_OK) {
             return NGX_ERROR;

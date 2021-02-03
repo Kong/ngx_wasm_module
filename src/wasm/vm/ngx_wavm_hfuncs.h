@@ -37,11 +37,10 @@ typedef struct {
 
 wasm_trap_t *ngx_wavm_hfuncs_trampoline(void *env,
 #if (NGX_WASM_HAVE_WASMTIME)
-    const wasm_val_t args[], wasm_val_t rets[]
+    const wasm_val_t args[], wasm_val_t rets[]);
 #else
-    const wasm_val_vec_t* args, wasm_val_vec_t* rets
+    const wasm_val_vec_t* args, wasm_val_vec_t* rets);
 #endif
-    );
 
 
 void ngx_wavm_instance_trap_printf(ngx_wavm_instance_t *instance,

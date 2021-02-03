@@ -9,7 +9,7 @@
 extern ngx_wavm_hfunc_def_t  ngx_wasm_core_hfuncs[];
 
 
-#define ngx_wasm_core_check_process()                                        \
+#define ngx_wasm_core_force_cleanup_pool()                                   \
     (!ngx_test_config &&                                                     \
      (ngx_process == NGX_PROCESS_SINGLE ||                                   \
       ngx_process == NGX_PROCESS_MASTER ||                                   \
@@ -73,14 +73,13 @@ static void
 ngx_wasm_core_cleanup_pool(void *data)
 {
     ngx_cycle_t  *cycle = data;
-    unsigned      run = (ngx_process == NGX_PROCESS_MASTER ||
-                         ngx_process == NGX_PROCESS_SINGLE);
+    unsigned      force = ngx_wasm_core_force_cleanup_pool();
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, cycle->log, 0,
-                  "wasm core: nopool patch cycle->pool cleanup: %s",
-                  run ? "yes" : "no");
+                  "wasm core: nopool patch force cycle->pool cleanup: %s",
+                  force ? "yes" : "no");
 
-    if (run) {
+    if (force) {
         ngx_wasm_core_exit_process(cycle);
     }
 }
@@ -243,8 +242,6 @@ ngx_wasm_core_get_vm(ngx_cycle_t *cycle)
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
     if (wcf == NULL) {
-        //ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
-        //              "no \"wasm\" section in configuration");
         return NULL;
     }
 

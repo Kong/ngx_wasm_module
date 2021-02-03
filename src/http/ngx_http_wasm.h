@@ -3,7 +3,7 @@
 
 
 #include <ngx_http.h>
-#include <ngx_wavm.h>
+
 #include <ngx_wasm_ops.h>
 
 

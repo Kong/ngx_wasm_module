@@ -1,5 +1,5 @@
-#ifndef _NGX_WASM_OP_H_INCLUDED_
-#define _NGX_WASM_OP_H_INCLUDED_
+#ifndef _NGX_WASM_OPS_H_INCLUDED_
+#define _NGX_WASM_OPS_H_INCLUDED_
 
 
 #include <ngx_wavm.h>
@@ -17,6 +17,7 @@ typedef ngx_int_t (*ngx_wasm_op_handler_pt)(ngx_wasm_op_ctx_t *ctx,
 struct ngx_wasm_op_ctx_s {
     ngx_wasm_ops_engine_t                   *ops_engine;
     ngx_wavm_ctx_t                           wv_ctx;
+    ngx_log_t                               *log;
     ngx_module_t                            *m;
 };
 
@@ -59,7 +60,6 @@ typedef struct {
 
 struct ngx_wasm_ops_engine_s {
     ngx_pool_t                              *pool;
-    ngx_log_t                               *log;
     ngx_wavm_t                              *vm;
     ngx_wasm_subsystem_t                    *subsystem;
     ngx_wasm_ops_pipeline_t                **pipelines;
@@ -79,4 +79,4 @@ ngx_wasm_op_t *ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
 ngx_int_t ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx);
 
 
-#endif /* _NGX_WASM_OP_H_INCLUDED_ */
+#endif /* _NGX_WASM_OPS_H_INCLUDED_ */

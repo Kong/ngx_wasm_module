@@ -14,7 +14,7 @@ __DATA__
 --- main_config
 --- config
     location /t {
-        wasm_call log hello nop;
+        wasm_call log a nop;
         return 200;
     }
 --- error_log eval
@@ -44,7 +44,7 @@ qr/\[emerg\] .*? invalid number of arguments in "wasm_call" directive/
 === TEST 3: wasm_call directive - empty phase
 --- config
     location /t {
-        wasm_call '' hello nop;
+        wasm_call '' a nop;
         return 200;
     }
 --- error_log eval
@@ -74,7 +74,7 @@ qr/\[emerg\] .*? invalid module name ""/
 === TEST 5: wasm_call directive - empty function name
 --- config
     location /t {
-        wasm_call log hello '';
+        wasm_call log a '';
         return 200;
     }
 --- error_log eval
@@ -89,11 +89,11 @@ qr/\[emerg\] .*? invalid function name ""/
 === TEST 6: wasm_call directive - unknown phase
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
     location /t {
-        wasm_call foo hello nop;
+        wasm_call foo a nop;
         return 200;
     }
 --- error_log eval
@@ -108,11 +108,11 @@ qr/\[emerg\] .*? unknown phase "foo"/
 === TEST 7: wasm_call directive - NYI phase
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
     location /t {
-        wasm_call post_read hello nop;
+        wasm_call post_read a nop;
         return 200;
     }
 --- error_log eval
@@ -127,11 +127,11 @@ qr/\[emerg\] .*? unsupported phase "post_read"/
 === TEST 8: wasm_call directive - no such module
 --- config
     location /t {
-        wasm_call log hello nop;
+        wasm_call log a nop;
         return 200;
     }
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] no "hello" module defined/
+qr/\[emerg\] .*? \[wasm\] no "a" module defined/
 --- no_error_log
 [error]
 [crit]
@@ -142,21 +142,21 @@ qr/\[emerg\] .*? \[wasm\] no "hello" module defined/
 === TEST 9: wasm_call directive - no such function
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
     location /t {
-        wasm_call log hello nonexist;
+        wasm_call log a nonexist;
         return 200;
     }
 --- user_files
->>> hello.wat
+>>> a.wat
 (module
   (func $nop)
   (export "nop" (func $nop))
 )
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "hello" module <vm: .*?, runtime: .*?>/
+qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "a" module/
 --- no_error_log
 [error]
 [crit]
@@ -166,15 +166,15 @@ qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "hello" module <vm: .*?, run
 === TEST 10: wasm_call directive - catch runtime error sanity
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
     location /t {
-        wasm_call log hello div0;
+        wasm_call log a div0;
         return 200;
     }
 --- user_files
->>> hello.wat
+>>> a.wat
 (module
     (func (export "div0")
         i32.const 0
@@ -194,21 +194,21 @@ qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?integer divide by zero/
 --- skip_no_debug: 4
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
     location /t {
-        wasm_call rewrite hello nop;
+        wasm_call rewrite a nop;
         return 200;
     }
 --- user_files
->>> hello.wat
+>>> a.wat
 (module
   (func $nop)
   (export "nop" (func $nop))
 )
 --- error_log
-wasm calling "hello.nop" in "rewrite" phase
+wasm ops calling "a.nop" in "rewrite" phase
 --- no_error_log
 [error]
 [emerg]
@@ -220,21 +220,21 @@ wasm calling "hello.nop" in "rewrite" phase
 --- skip_no_debug: 4
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
     location /t {
-        wasm_call content hello nop;
+        wasm_call content a nop;
     }
 --- user_files
->>> hello.wat
+>>> a.wat
 (module
   (func $nop)
   (export "nop" (func $nop))
 )
 --- error_code: 404
 --- error_log
-wasm calling "hello.nop" in "content" phase
+wasm ops calling "a.nop" in "content" phase
 --- no_error_log
 [emerg]
 
@@ -244,21 +244,21 @@ wasm calling "hello.nop" in "content" phase
 --- skip_no_debug: 4
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
     location /t {
-        wasm_call log hello nop;
+        wasm_call log a nop;
         return 200;
     }
 --- user_files
->>> hello.wat
+>>> a.wat
 (module
   (func $nop)
   (export "nop" (func $nop))
 )
 --- error_log
-wasm calling "hello.nop" in "log" phase
+wasm ops calling "a.nop" in "log" phase
 --- no_error_log
 [error]
 [emerg]
@@ -269,23 +269,23 @@ wasm calling "hello.nop" in "log" phase
 --- skip_no_debug: 4
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
     location /t {
-        wasm_call log hello nop;
-        wasm_call log hello nop;
+        wasm_call log a nop;
+        wasm_call log a nop;
         return 200;
     }
 --- user_files
->>> hello.wat
+>>> a.wat
 (module
   (func $nop)
   (export "nop" (func $nop))
 )
 --- error_log
-wasm calling "hello.nop" in "log" phase
-wasm calling "hello.nop" in "log" phase
+wasm ops calling "a.nop" in "log" phase
+wasm ops calling "a.nop" in "log" phase
 --- no_error_log
 [error]
 
@@ -295,24 +295,24 @@ wasm calling "hello.nop" in "log" phase
 --- skip_no_debug: 4
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
-    wasm_call log hello nop;
-    wasm_call log hello nop;
+    wasm_call log a nop;
+    wasm_call log a nop;
 
     location /t {
         return 200;
     }
 --- user_files
->>> hello.wat
+>>> a.wat
 (module
   (func $nop)
   (export "nop" (func $nop))
 )
 --- error_log
-wasm calling "hello.nop" in "log" phase
-wasm calling "hello.nop" in "log" phase
+wasm ops calling "a.nop" in "log" phase
+wasm ops calling "a.nop" in "log" phase
 --- no_error_log
 [error]
 
@@ -322,24 +322,24 @@ wasm calling "hello.nop" in "log" phase
 --- skip_no_debug: 4
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- http_config
-    wasm_call log hello nop;
-    wasm_call log hello nop;
+    wasm_call log a nop;
+    wasm_call log a nop;
 --- config
     location /t {
         return 200;
     }
 --- user_files
->>> hello.wat
+>>> a.wat
 (module
   (func $nop)
   (export "nop" (func $nop))
 )
 --- error_log
-wasm calling "hello.nop" in "log" phase
-wasm calling "hello.nop" in "log" phase
+wasm ops calling "a.nop" in "log" phase
+wasm ops calling "a.nop" in "log" phase
 --- no_error_log
 [error]
 
@@ -349,26 +349,26 @@ wasm calling "hello.nop" in "log" phase
 --- skip_no_debug: 4
 --- main_config
     wasm {
-        module hello $TEST_NGINX_HTML_DIR/hello.wat;
+        module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
-    wasm_call log hello nop;
+    wasm_call log a nop;
 
     location /t {
-        wasm_call log hello nop2;
+        wasm_call log a nop2;
         return 200;
     }
 --- user_files
->>> hello.wat
+>>> a.wat
 (module
   (func $nop)
   (export "nop" (func $nop))
   (export "nop2" (func $nop))
 )
 --- error_log
-wasm calling "hello.nop2" in "log" phase
+wasm ops calling "a.nop2" in "log" phase
 --- no_error_log
-wasm calling "hello.nop" in "log" phase
+wasm ops calling "a.nop" in "log" phase
 [error]
 
 
@@ -377,8 +377,8 @@ wasm calling "hello.nop" in "log" phase
 --- skip_no_debug: 4
 --- main_config
     wasm {
-        module moduleA $TEST_NGINX_HTML_DIR/hello.wat;
-        module moduleB $TEST_NGINX_HTML_DIR/hello.wat;
+        module moduleA $TEST_NGINX_HTML_DIR/a.wat;
+        module moduleB $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- http_config
     wasm_call rewrite moduleA nop2;
@@ -393,7 +393,7 @@ wasm calling "hello.nop" in "log" phase
         return 200;
     }
 --- user_files
->>> hello.wat
+>>> a.wat
 (module
   (func $nop)
   (export "nop" (func $nop))
@@ -401,7 +401,7 @@ wasm calling "hello.nop" in "log" phase
   (export "nop3" (func $nop))
 )
 --- error_log
-wasm calling "moduleA.nop" in "rewrite" phase
-wasm calling "moduleB.nop3" in "log" phase
+wasm ops calling "moduleA.nop" in "rewrite" phase
+wasm ops calling "moduleB.nop3" in "log" phase
 --- no_error_log eval
 qr/\[wasm\] calling "module[A|B]\.nop2" in "log" phase/
