@@ -34,10 +34,10 @@
 
 typedef struct ngx_wavm_s  ngx_wavm_t;
 typedef struct ngx_wavm_module_s  ngx_wavm_module_t;
+typedef struct ngx_wavm_linked_module_s  ngx_wavm_linked_module_t;
 typedef struct ngx_wavm_ctx_s  ngx_wavm_ctx_t;
 typedef struct ngx_wavm_instance_s  ngx_wavm_instance_t;
 typedef struct ngx_wavm_func_s  ngx_wavm_func_t;
-typedef struct ngx_wavm_hfunc_def_s  ngx_wavm_hfunc_def_t;
 
 
 /* subsystems */
@@ -67,7 +67,6 @@ typedef struct {
 
 
 typedef struct {
-    ngx_wavm_hfunc_def_t        *hfuncs;
     void                        *(*create_conf)(ngx_cycle_t *cycle);
     char                        *(*init_conf)(ngx_cycle_t *cycle, void *conf);
     ngx_int_t                    (*init)(ngx_cycle_t *cycle);
@@ -87,7 +86,6 @@ void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, va_list args);
 #endif
 
-extern ngx_uint_t  ngx_wasm_max_module;
 extern ngx_module_t  ngx_wasm_module;
 
 

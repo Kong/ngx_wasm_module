@@ -124,7 +124,7 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
 }
 
 
-static ngx_wavm_hfunc_def_t  ngx_http_wasm_hfuncs[] = {
+static ngx_wavm_host_func_def_t  ngx_http_wasm_hfuncs[] = {
 
    { ngx_string("ngx_http_resp_get_status"),
      &ngx_http_wasm_hfuncs_resp_get_status,
@@ -145,25 +145,7 @@ static ngx_wavm_hfunc_def_t  ngx_http_wasm_hfuncs[] = {
 };
 
 
-static ngx_wasm_module_t  ngx_http_wasm_hfuncs_module_ctx = {
-   ngx_http_wasm_hfuncs,                /* hfuncs */
-   NULL,                                /* create configuration */
-   NULL,                                /* init configuration */
-   NULL,                                /* init module */
-};
-
-
-ngx_module_t  ngx_http_wasm_hfuncs_module = {
-   NGX_MODULE_V1,
-   &ngx_http_wasm_hfuncs_module_ctx,    /* module context */
-   NULL,                                /* module directives */
-   NGX_WASM_MODULE,                     /* module type */
-   NULL,                                /* init master */
-   NULL,                                /* init module */
-   NULL,                                /* init process */
-   NULL,                                /* init thread */
-   NULL,                                /* exit thread */
-   NULL,                                /* exit process */
-   NULL,                                /* exit master */
-   NGX_MODULE_V1_PADDING
+ngx_wavm_host_def_t  ngx_http_wasm_host_interface = {
+    ngx_string("ngx_http_wasm"),
+    ngx_http_wasm_hfuncs,
 };

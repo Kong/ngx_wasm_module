@@ -6,7 +6,7 @@
 #include <ngx_wavm.h>
 
 
-extern ngx_wavm_hfunc_def_t  ngx_wasm_core_hfuncs[];
+extern ngx_wavm_host_def_t  ngx_wasm_core_interface;
 
 
 #define ngx_wasm_core_force_cleanup_pool()                                   \
@@ -18,7 +18,6 @@ extern ngx_wavm_hfunc_def_t  ngx_wasm_core_hfuncs[];
 
 typedef struct {
     ngx_wavm_t                        *vm;
-    ngx_wavm_hfuncs_t                 *hfuncs;
 } ngx_wasm_core_conf_t;
 
 
@@ -45,7 +44,6 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
 
 
 static ngx_wasm_module_t  ngx_wasm_core_module_ctx = {
-    NULL,                                  /* hfuncs */
     ngx_wasm_core_create_conf,             /* create configuration */
     ngx_wasm_core_init_conf,               /* init configuration */
     ngx_wasm_core_init                     /* init module */
@@ -100,13 +98,8 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
         return NULL;
     }
 
-    wcf->vm = ngx_wavm_new(cycle, &vm_name);
+    wcf->vm = ngx_wavm_new(cycle, &vm_name, &ngx_wasm_core_interface);
     if (wcf->vm == NULL) {
-        return NULL;
-    }
-
-    wcf->hfuncs = ngx_wavm_hfuncs_new(cycle);
-    if (wcf->hfuncs == NULL) {
         return NULL;
     }
 
@@ -137,8 +130,7 @@ ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     path = &value[2];
 
     if (name->len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid module name \"%V\"",
-                           name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid module name \"%V\"", name);
         return NGX_CONF_ERROR;
     }
 
@@ -174,33 +166,14 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 static ngx_int_t
 ngx_wasm_core_init(ngx_cycle_t *cycle)
 {
-    ngx_uint_t             i;
-    ngx_wasm_module_t     *wm;
-    ngx_wasm_core_conf_t  *wcf;
+    ngx_wavm_t  *vm;
 
-    wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    if (wcf == NULL) {
+    vm = ngx_wasm_core_get_vm(cycle);
+    if (vm == NULL) {
         return NGX_OK;
     }
 
-    ngx_wasm_log_error(NGX_LOG_INFO, cycle->log, 0,
-                       "registering host functions", wcf->vm->name);
-
-    for (i = 0; cycle->modules[i]; i++) {
-        if (cycle->modules[i]->type != NGX_WASM_MODULE) {
-            continue;
-        }
-
-        wm = cycle->modules[i]->ctx;
-
-        if (wm->hfuncs) {
-            ngx_wavm_hfuncs_add(wcf->hfuncs, wm->hfuncs, cycle->modules[i]);
-        }
-    }
-
-    ngx_wavm_hfuncs_add(wcf->hfuncs, ngx_wasm_core_hfuncs, NULL);
-
-    if (ngx_wavm_init(wcf->vm, wcf->hfuncs) != NGX_OK) {
+    if (ngx_wavm_init(vm) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -214,16 +187,9 @@ ngx_wasm_core_exit_process(ngx_cycle_t *cycle)
     ngx_wasm_core_conf_t  *wcf;
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    if (wcf) {
-        if (wcf->vm) {
-            ngx_wavm_free(wcf->vm);
-            wcf->vm = NULL;
-        }
-
-        if (wcf->hfuncs) {
-            ngx_wavm_hfuncs_free(wcf->hfuncs);
-            wcf->hfuncs = NULL;
-        }
+    if (wcf && wcf->vm) {
+        ngx_wavm_free(wcf->vm);
+        wcf->vm = NULL;
     }
 }
 

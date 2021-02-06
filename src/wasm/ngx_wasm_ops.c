@@ -57,24 +57,76 @@ ngx_wasm_ops_engine_new(ngx_pool_t *pool, ngx_wavm_t *vm,
 }
 
 
+ngx_int_t
+ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
+{
+    size_t                    i, j;
+    ngx_wasm_op_t            *op;
+    ngx_wasm_ops_pipeline_t  *pipeline;
+
+    for (i = 0; i < engine->subsystem->nphases; i++) {
+        pipeline = engine->pipelines[i];
+
+        if (pipeline == NULL) {
+            continue;
+        }
+
+        for (j = 0; j < pipeline->ops->nelts; j++) {
+            op = ((ngx_wasm_op_t **) pipeline->ops->elts)[j];
+
+            op->lmodule = ngx_wavm_module_link(op->module, op->host);
+            if (op->lmodule == NULL) {
+                ngx_wasm_log_error(NGX_LOG_EMERG, engine->pool->log, 0,
+                                   "failed linking \"%V\" module",
+                                   &op->module->name);
+                return NGX_ERROR;
+            }
+
+            switch (op->code) {
+
+            case NGX_WASM_OP_CALL:
+                op->conf.call.function = ngx_wavm_module_function_lookup(
+                                             op->module,
+                                             &op->conf.call.func_name);
+
+                if (op->conf.call.function == NULL) {
+                    ngx_wasm_log_error(NGX_LOG_EMERG, engine->pool->log, 0,
+                                       "no \"%V\" function in \"%V\" module",
+                                       &op->conf.call.func_name,
+                                       &op->module->name);
+                    return NGX_ERROR;
+                }
+                break;
+
+            default:
+                break;
+
+            }
+        }
+    }
+
+    return NGX_OK;
+}
+
+
 static ngx_int_t
 ngx_wasm_op_add_helper(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
-    ngx_wasm_op_t *op, ngx_str_t mod_name)
+    ngx_wasm_op_t *op, ngx_str_t *mod_name)
 {
     ngx_wasm_phase_t          *phase = ops_engine->subsystem->phases;
     ngx_wasm_ops_pipeline_t   *pipeline;
     ngx_wasm_op_t            **opp;
 
-    if (mod_name.len == 0) {
+    if (mod_name->len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid module name \"%V\"",
-                           &mod_name);
+                           mod_name);
         return NGX_ERROR;
     }
 
-    op->module = ngx_wavm_module_lookup(ops_engine->vm, &mod_name);
+    op->module = ngx_wavm_module_lookup(ops_engine->vm, mod_name);
     if (op->module == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "[wasm] no \"%V\" module defined", &mod_name);
+                           "[wasm] no \"%V\" module defined", mod_name);
         return NGX_ERROR;
     }
 
@@ -115,25 +167,30 @@ ngx_wasm_op_add_helper(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
 
 ngx_wasm_op_t *
 ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
-    ngx_str_t phase_name, ngx_str_t mod_name, ngx_str_t func_name)
+    ngx_wavm_host_def_t *host, ngx_str_t *value)
 {
-    ngx_wasm_phase_t   *phase = ops_engine->subsystem->phases;
-    ngx_wasm_op_t      *op;
+    ngx_wasm_op_t     *op;
+    ngx_wasm_phase_t  *phase = ops_engine->subsystem->phases;
+    ngx_str_t         *phase_name, *mod_name, *func_name;
 
-    if (phase_name.len == 0) {
+    phase_name = &value[1];
+    mod_name = &value[2];
+    func_name = &value[3];
+
+    if (phase_name->len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid phase \"%V\"",
-                           &phase_name);
+                           phase_name);
         return NULL;
     }
 
-    if (func_name.len == 0) {
+    if (func_name->len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid function name \"%V\"",
-                           &func_name);
+                           func_name);
         return NULL;
     }
 
     for (/* void */; phase->name.len; phase++) {
-        if (ngx_strncmp(phase_name.data, phase->name.data, phase->name.len)
+        if (ngx_strncmp(phase_name->data, phase->name.data, phase->name.len)
             == 0)
         {
             break;
@@ -142,13 +199,13 @@ ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
 
     if (phase->name.len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown phase \"%V\"",
-                           &phase_name);
+                           phase_name);
         return NULL;
     }
 
     if (phase->on == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unsupported phase \"%V\"",
-                           &phase_name);
+                           phase_name);
         return NULL;
     }
 
@@ -160,8 +217,9 @@ ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
     op->code = NGX_WASM_OP_CALL;
     op->handler = ngx_wasm_op_call_handler;
     op->on_phases = phase->on;
+    op->host = host;
 
-    op->conf.call.func_name = func_name;
+    op->conf.call.func_name = *func_name;
 
     if (ngx_wasm_op_add_helper(cf, ops_engine, op, mod_name) != NGX_OK) {
         return NULL;
@@ -173,9 +231,13 @@ ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
 
 ngx_wasm_op_t *
 ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
-    ngx_wasm_ops_engine_t *ops_engine, ngx_str_t mod_name)
+    ngx_wasm_ops_engine_t *ops_engine, ngx_wavm_host_def_t *host,
+    ngx_str_t *value)
 {
-    ngx_wasm_op_t      *op;
+    ngx_wasm_op_t  *op;
+    ngx_str_t      *mod_name;
+
+    mod_name = &value[1];
 
     op = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_op_t));
     if (op == NULL) {
@@ -186,6 +248,7 @@ ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     op->handler = ngx_wasm_op_proxy_wasm_handler;
     op->on_phases = (1 << NGX_HTTP_REWRITE_PHASE)
                     | (1 << NGX_HTTP_LOG_PHASE);
+    op->host = host;
 
     if (ngx_wasm_op_add_helper(cf, ops_engine, op, mod_name) != NGX_OK) {
         return NULL;
@@ -229,8 +292,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
     for (i = 0; i < pipeline->ops->nelts; i++) {
         op = ((ngx_wasm_op_t **) pipeline->ops->elts)[i];
 
-        instance = ngx_wavm_module_instantiate(op->module,
-                                               &ctx->wv_ctx, ctx->m);
+        instance = ngx_wavm_instance_create(op->lmodule, &ctx->wv_ctx);
         if (instance == NULL) {
             return NGX_ERROR;
         }
@@ -249,35 +311,18 @@ static ngx_int_t
 ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wavm_instance_t *instance,
     ngx_wasm_phase_t *phase, ngx_wasm_op_t *op)
 {
-    ngx_wasm_op_call_t  *call;
-    ngx_wavm_module_t   *module;
-    ngx_wavm_func_t     *function;
-    ngx_int_t            rc;
+    ngx_wavm_func_t    *function;
+    ngx_int_t           rc;
 
     ngx_wasm_assert(op->code == NGX_WASM_OP_CALL);
 
-    module = op->module;
-    call = &op->conf.call;
-    function = call->function;
-
-    if (function == NULL) {
-        function = ngx_wavm_module_function_lookup(op->module,
-                                                   &call->func_name);
-        if (function == NULL) {
-            ngx_wasm_log_error(NGX_LOG_EMERG, ctx->log, 0,
-                               "no \"%V\" function in \"%V\" module",
-                               &call->func_name, &module->name);
-            return NGX_ERROR;
-        }
-
-        call->function = function;
-    }
+    function = op->conf.call.function;
 
     ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
                    "wasm ops calling \"%V.%V\" in \"%V\" phase",
-                   &module->name, &function->name, &phase->name);
+                   &op->module->name, &function->name, &phase->name);
 
-    rc = ngx_wavm_function_call(function, instance, NULL, NULL);
+    rc = ngx_wavm_instance_call(instance, function, NULL, NULL);
 
     return rc;
 }
@@ -288,5 +333,7 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *ctx,
     ngx_wavm_instance_t *instance, ngx_wasm_phase_t *phase,
     ngx_wasm_op_t *op)
 {
+    ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);
+
     return NGX_OK;
 }

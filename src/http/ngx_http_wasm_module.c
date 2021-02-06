@@ -9,9 +9,17 @@
 typedef struct {
     ngx_wavm_t                        *vm;
     ngx_wasm_ops_engine_t             *ops_engine;
+    ngx_queue_t                        q;
 } ngx_http_wasm_loc_conf_t;
 
 
+typedef struct {
+    ngx_queue_t                        ops_engines;
+} ngx_http_wasm_main_conf_t;
+
+
+static void *ngx_http_wasm_create_main_conf(ngx_conf_t *cf);
+static char *ngx_http_wasm_init_main_conf(ngx_conf_t *cf, void *conf);
 static void *ngx_http_wasm_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_wasm_op_post_handler(ngx_conf_t *cf, void *post,
     void *data);
@@ -20,7 +28,9 @@ char *ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 char *ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
-static ngx_int_t ngx_http_wasm_init(ngx_conf_t *cf);
+static ngx_int_t ngx_http_wasm_postconfig(ngx_conf_t *cf);
+static ngx_int_t ngx_http_wasm_init(ngx_cycle_t *cycle);
+static ngx_int_t ngx_http_wasm_init_process(ngx_cycle_t *cycle);
 static ngx_int_t ngx_http_wasm_rewrite_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_content_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_log_handler(ngx_http_request_t *r);
@@ -80,9 +90,9 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
 
 static ngx_http_module_t  ngx_http_wasm_module_ctx = {
     NULL,                                /* preconfiguration */
-    ngx_http_wasm_init,                  /* postconfiguration */
-    NULL,                                /* create main configuration */
-    NULL,                                /* init main configuration */
+    ngx_http_wasm_postconfig,            /* postconfiguration */
+    ngx_http_wasm_create_main_conf,      /* create main configuration */
+    ngx_http_wasm_init_main_conf,        /* init main configuration */
     NULL,                                /* create server configuration */
     NULL,                                /* merge server configuration */
     ngx_http_wasm_create_loc_conf,       /* create location configuration */
@@ -96,8 +106,8 @@ ngx_module_t  ngx_http_wasm_module = {
     ngx_http_wasm_module_cmds,           /* module directives */
     NGX_HTTP_MODULE,                     /* module type */
     NULL,                                /* init master */
-    NULL,                                /* init module */
-    NULL,                                /* init process */
+    ngx_http_wasm_init,                  /* init module */
+    ngx_http_wasm_init_process,          /* init process */
     NULL,                                /* init thread */
     NULL,                                /* exit thread */
     NULL,                                /* exit process */
@@ -125,9 +135,34 @@ static ngx_http_handler_pt  phase_handlers[NGX_HTTP_LOG_PHASE + 1] = {
 
 
 static void *
+ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
+{
+    ngx_http_wasm_main_conf_t  *mcf;
+
+    mcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_wasm_main_conf_t));
+    if (mcf == NULL) {
+        return NULL;
+    }
+
+    return mcf;
+}
+
+
+static char *
+ngx_http_wasm_init_main_conf(ngx_conf_t *cf, void *conf)
+{
+    ngx_http_wasm_main_conf_t  *mcf = conf;
+
+    ngx_queue_init(&mcf->ops_engines);
+
+    return NGX_CONF_OK;
+}
+
+
+static void *
 ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
 {
-    ngx_http_wasm_loc_conf_t  *loc;
+    ngx_http_wasm_loc_conf_t   *loc;
 
     loc = ngx_pcalloc(cf->pool, sizeof(ngx_http_wasm_loc_conf_t));
     if (loc == NULL) {
@@ -169,7 +204,6 @@ ngx_http_wasm_op_post_handler(ngx_conf_t *cf, void *post, void *data)
 char *
 ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_str_t                 *value;
     ngx_http_wasm_loc_conf_t  *loc = conf;
     ngx_wasm_op_t             *op;
     ngx_conf_post_t           *post;
@@ -178,10 +212,9 @@ ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_WASM_CONF_ERR_NO_WASM;
     }
 
-    value = cf->args->elts;
-
-    op = ngx_wasm_conf_add_op_call(cf, loc->ops_engine, value[1], value[2],
-                                   value[3]);
+    op = ngx_wasm_conf_add_op_call(cf, loc->ops_engine,
+                                   &ngx_http_wasm_host_interface,
+                                   cf->args->elts);
     if (op == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -199,7 +232,6 @@ char *
 ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf)
 {
-    ngx_str_t                 *value;
     ngx_http_wasm_loc_conf_t  *loc = conf;
     ngx_wasm_op_t             *op;
     ngx_conf_post_t           *post;
@@ -208,9 +240,9 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_WASM_CONF_ERR_NO_WASM;
     }
 
-    value = cf->args->elts;
-
-    op = ngx_wasm_conf_add_op_proxy_wasm(cf, loc->ops_engine, value[1]);
+    op = ngx_wasm_conf_add_op_proxy_wasm(cf, loc->ops_engine,
+                                         &ngx_http_wasm_host_interface,
+                                         cf->args->elts);
     if (op == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -227,11 +259,16 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 char *
 ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-    size_t                     i;
-    ngx_http_wasm_loc_conf_t  *prev = parent;
-    ngx_http_wasm_loc_conf_t  *conf = child;
+    size_t                      i;
+    ngx_http_wasm_loc_conf_t   *prev = parent;
+    ngx_http_wasm_loc_conf_t   *conf = child;
+    ngx_http_wasm_main_conf_t  *mcf;
 
     if (conf->ops_engine) {
+        mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
+
+        ngx_queue_insert_tail(&mcf->ops_engines, &conf->q);
+
         for (i = 0; i < conf->ops_engine->subsystem->nphases; i++) {
             if (conf->ops_engine->pipelines[i] == NULL) {
                 conf->ops_engine->pipelines[i] = prev->ops_engine->pipelines[i];
@@ -244,7 +281,7 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
 
 static ngx_int_t
-ngx_http_wasm_init(ngx_conf_t *cf)
+ngx_http_wasm_postconfig(ngx_conf_t *cf)
 {
     size_t                      i;
     ngx_http_handler_pt        *h;
@@ -263,6 +300,37 @@ ngx_http_wasm_init(ngx_conf_t *cf)
         }
     }
 
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_wasm_init(ngx_cycle_t *cycle)
+{
+    ngx_queue_t                *q;
+    ngx_http_wasm_main_conf_t  *mcf;
+    ngx_http_wasm_loc_conf_t   *loc;
+
+    mcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_wasm_module);
+
+    for (q = ngx_queue_head(&mcf->ops_engines);
+         q != ngx_queue_sentinel(&mcf->ops_engines);
+         q = ngx_queue_next(q))
+    {
+        loc = ngx_queue_data(q, ngx_http_wasm_loc_conf_t, q);
+
+        if (ngx_wasm_ops_engine_init(loc->ops_engine) != NGX_OK) {
+            return NGX_ERROR;
+        }
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_wasm_init_process(ngx_cycle_t *cycle)
+{
     return NGX_OK;
 }
 
@@ -302,9 +370,9 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         rctx->r = r;
 
         opctx = &rctx->opctx;
+
         opctx->log = r->connection->log;
         opctx->ops_engine = loc->ops_engine;
-        opctx->m = &ngx_http_wasm_hfuncs_module;
 
         opctx->wv_ctx.pool = r->pool;
         opctx->wv_ctx.log = r->connection->log;

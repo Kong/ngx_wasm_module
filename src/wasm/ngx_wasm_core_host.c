@@ -23,7 +23,7 @@ ngx_wasm_hfuncs_log(ngx_wavm_instance_t *instance, const wasm_val_t args[],
 }
 
 
-ngx_wavm_hfunc_def_t  ngx_wasm_core_hfuncs[] = {
+static ngx_wavm_host_func_def_t  ngx_wasm_core_hfuncs[] = {
 
     { ngx_string("ngx_log"),
       &ngx_wasm_hfuncs_log,
@@ -31,4 +31,10 @@ ngx_wavm_hfunc_def_t  ngx_wasm_core_hfuncs[] = {
       NULL },
 
     ngx_wavm_hfunc_null
+};
+
+
+ngx_wavm_host_def_t  ngx_wasm_core_interface = {
+    ngx_string("ngx_wasm_core"),
+    ngx_wasm_core_hfuncs,
 };

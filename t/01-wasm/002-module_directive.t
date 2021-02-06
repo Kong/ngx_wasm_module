@@ -160,7 +160,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 >>> a.wat
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] failed to load "a" module:/,
+    qr/\[emerg\] .*? \[wasm\] failed loading "a" module:/,
     qr/expected at least one module field/
 ]
 --- no_error_log
@@ -178,7 +178,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 >>> a.wasm
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] failed to load "a" module:/,
+    qr/\[emerg\] .*? \[wasm\] failed loading "a" module:/,
     qr/Unexpected EOF/
 ]
 --- no_error_log
@@ -200,7 +200,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 )
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] failed to load "a" module:/,
+    qr/\[emerg\] .*? \[wasm\] failed loading "a" module:/,
     qr/extra tokens remaining after parse/
 ]
 --- no_error_log
@@ -232,6 +232,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 === TEST 14: module directive - invalid module (missing host function)
+--- SKIP
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -244,6 +245,6 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 [
     qr/\[info\] .*? \[wasm\] loading "a" module from ".*?a\.wat" <vm: "main", runtime: ".*?">/,
     qr/\[error\] .*? \[wasm\] failed importing "env.ngx_unknown": missing host function <vm: "main", runtime: ".*?">/,
-    qr/\[emerg\] .*? \[wasm\] failed to load "a" module: incompatible host interface/
+    qr/\[emerg\] .*? \[wasm\] failed loading "a" module: incompatible host interface/
 ]
 --- must_die

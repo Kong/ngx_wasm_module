@@ -21,7 +21,7 @@ ngx_int_t ngx_http_wasm_send_header(ngx_http_request_t *r);
 
 ngx_int_t ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in);
 
-extern ngx_module_t  ngx_http_wasm_hfuncs_module;
+extern ngx_wavm_host_def_t  ngx_http_wasm_host_interface;
 
 
 #endif /* _NGX_HTTP_WASM_H_INCLUDED_ */

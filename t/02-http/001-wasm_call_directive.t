@@ -160,6 +160,7 @@ qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "a" module/
 --- no_error_log
 [error]
 [crit]
+--- must_die
 
 
 
