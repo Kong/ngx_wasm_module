@@ -2,7 +2,13 @@
 #define _NGX_PROXY_WASM_H_INCLUDED_
 
 
-#include <ngx_core.h>
+#include <ngx_wasm.h>
+
+
+#define ngx_proxy_wasm_result_ok()                                           \
+    (wasm_val_t) WASM_I32_VAL(NGX_PROXY_WASM_RESULT_OK)
+#define ngx_proxy_wasm_result_bad_arg()                                      \
+    (wasm_val_t) WASM_I32_VAL(NGX_PROXY_WASM_RESULT_BAD_ARGUMENT)
 
 
 typedef enum {
@@ -25,14 +31,14 @@ typedef enum {
 
 
 typedef enum {
-    NGX_PROXY_WASM_RES_OK = 0,
-    NGX_PROXY_WASM_RES_EMPTY = 1,
-    NGX_PROXY_WASM_RES_NOT_FOUND = 2,
-    NGX_PROXY_WASM_RES_NOT_ALLOWED = 3,
-    NGX_PROXY_WASM_RES_BAD_ARGUMENT = 4,
-    NGX_PROXY_WASM_RES_BAD_MEM_ACCESS = 5,
-    NGX_PROXY_WASM_RES_BAD_OPERATION = 6,
-    NGX_PROXY_WASM_RES_CAS_MISMATCH = 7
+    NGX_PROXY_WASM_RESULT_OK = 0,
+    NGX_PROXY_WASM_RESULT_EMPTY = 1,
+    NGX_PROXY_WASM_RESULT_NOT_FOUND = 2,
+    NGX_PROXY_WASM_RESULT_NOT_ALLOWED = 3,
+    NGX_PROXY_WASM_RESULT_BAD_ARGUMENT = 4,
+    NGX_PROXY_WASM_RESULT_BAD_MEM_ACCESS = 5,
+    NGX_PROXY_WASM_RESULT_BAD_OPERATION = 6,
+    NGX_PROXY_WASM_RESULT_CAS_MISMATCH = 7
 } ngx_proxy_wasm_result;
 
 

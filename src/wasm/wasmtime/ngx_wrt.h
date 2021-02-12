@@ -16,6 +16,30 @@
 #define WASM_ARRAY_VEC(array) {sizeof(array)/sizeof(*(array)), array}
 #endif
 
+#ifndef WASM_I32_VAL
+#define WASM_I32_VAL(i) {.kind = WASM_I32, .of = {.i32 = i}}
+#endif
+
+#ifndef WASM_I64_VAL
+#define WASM_I64_VAL(i) {.kind = WASM_I64, .of = {.i64 = i}}
+#endif
+
+#ifndef WASM_F32_VAL
+#define WASM_F32_VAL(z) {.kind = WASM_F32, .of = {.f32 = z}}
+#endif
+
+#ifndef WASM_F64_VAL
+#define WASM_F64_VAL(z) {.kind = WASM_F64, .of = {.f64 = z}}
+#endif
+
+#ifndef WASM_REF_VAL
+#define WASM_REF_VAL(r) {.kind = WASM_ANYREF, .of = {.ref = r}}
+#endif
+
+#ifndef WASM_INIT_VAL
+#define WASM_INIT_VAL {.kind = WASM_ANYREF, .of = {.ref = NULL}}
+#endif
+
 
 typedef struct wasmtime_error_t  ngx_wrt_res_t;
 
