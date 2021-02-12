@@ -27,7 +27,7 @@ static ngx_wavm_host_func_def_t  ngx_wasm_core_hfuncs[] = {
 
     { ngx_string("ngx_log"),
       &ngx_wasm_hfuncs_log,
-      ngx_wavm_arity_i32_i32_i32,
+      ngx_wavm_arity_i32x3,
       NULL },
 
     ngx_wavm_hfunc_null

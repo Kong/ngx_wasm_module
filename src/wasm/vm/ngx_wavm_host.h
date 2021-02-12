@@ -30,9 +30,17 @@ struct ngx_wavm_host_def_s {
 };
 
 
-extern const wasm_valkind_t * ngx_wavm_arity_i32[];
-extern const wasm_valkind_t * ngx_wavm_arity_i32_i32[];
-extern const wasm_valkind_t * ngx_wavm_arity_i32_i32_i32[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32x2[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32x3[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32x4[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32x5[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32x6[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32x8[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32x9[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32x10[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32x12[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32_i64[];
 
 
 /* hfuncs */

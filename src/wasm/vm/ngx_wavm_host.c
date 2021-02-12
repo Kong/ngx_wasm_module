@@ -6,21 +6,71 @@
 #include <ngx_wavm.h>
 
 
-const wasm_valkind_t  ngx_wavm_i32 = WASM_I32;
+static const wasm_valkind_t  ngx_wavm_i32 = WASM_I32;
+static const wasm_valkind_t  ngx_wavm_i64 = WASM_I64;
 
-const wasm_valkind_t * ngx_wavm_arity_i32[] = {
+
+const wasm_valkind_t *ngx_wavm_arity_i32[] = {
     &ngx_wavm_i32,
     NULL
 };
 
-const wasm_valkind_t * ngx_wavm_arity_i32_i32[] = {
+const wasm_valkind_t *ngx_wavm_arity_i32x2[] = {
     &ngx_wavm_i32, &ngx_wavm_i32,
     NULL
 };
 
-const wasm_valkind_t * ngx_wavm_arity_i32_i32_i32[] = {
+const wasm_valkind_t *ngx_wavm_arity_i32x3[] = {
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
     NULL
+};
+
+const wasm_valkind_t *ngx_wavm_arity_i32x4[] = {
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    NULL
+};
+
+const wasm_valkind_t *ngx_wavm_arity_i32x5[] = {
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    &ngx_wavm_i32,
+    NULL
+};
+
+const wasm_valkind_t *ngx_wavm_arity_i32x6[] = {
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    &ngx_wavm_i32, &ngx_wavm_i32,
+    NULL
+};
+
+const wasm_valkind_t *ngx_wavm_arity_i32x8[] = {
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    NULL
+};
+
+const wasm_valkind_t *ngx_wavm_arity_i32x9[] = {
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    &ngx_wavm_i32,
+    NULL
+};
+
+const wasm_valkind_t *ngx_wavm_arity_i32x10[] = {
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    &ngx_wavm_i32, &ngx_wavm_i32,
+    NULL
+};
+
+const wasm_valkind_t *ngx_wavm_arity_i32x12[] = {
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
+    NULL
+};
+
+const wasm_valkind_t *ngx_wavm_arity_i32_i64[] = {
+    &ngx_wavm_i32, &ngx_wavm_i64,
 };
 
 
