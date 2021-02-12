@@ -49,7 +49,7 @@ ngx_wavm_host_kindvec2typevec(const wasm_valkind_t **valkinds,
 
 
 ngx_wavm_hfunc_t *
-ngx_wavm_host_hfunc(ngx_pool_t *pool, ngx_wavm_host_def_t *host,
+ngx_wavm_host_hfunc_create(ngx_pool_t *pool, ngx_wavm_host_def_t *host,
     ngx_str_t *name)
 {
     ngx_wavm_hfunc_t          *hfunc = NULL;
@@ -70,12 +70,21 @@ ngx_wavm_host_hfunc(ngx_pool_t *pool, ngx_wavm_host_def_t *host,
             break;
         }
 
+        hfunc->pool = pool;
         hfunc->def = func;
         hfunc->functype = wasm_functype_new(&args, &rets);
         break;
     }
 
     return hfunc;
+}
+
+
+void
+ngx_wavm_host_hfunc_destroy(ngx_wavm_hfunc_t *hfunc)
+{
+    wasm_functype_delete(hfunc->functype);
+    ngx_pfree(hfunc->pool, hfunc);
 }
 
 

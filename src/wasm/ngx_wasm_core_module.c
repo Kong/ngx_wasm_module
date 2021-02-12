@@ -6,19 +6,11 @@
 #include <ngx_wavm.h>
 
 
-extern ngx_wavm_host_def_t  ngx_wasm_core_interface;
-
-
 #define ngx_wasm_core_force_cleanup_pool()                                   \
     (!ngx_test_config &&                                                     \
      (ngx_process == NGX_PROCESS_SINGLE ||                                   \
       ngx_process == NGX_PROCESS_MASTER ||                                   \
       ngx_process == NGX_PROCESS_WORKER))
-
-
-typedef struct {
-    ngx_wavm_t                        *vm;
-} ngx_wasm_core_conf_t;
 
 
 static void *ngx_wasm_core_create_conf(ngx_cycle_t *cycle);
@@ -28,6 +20,13 @@ static char *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
 static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
 static void ngx_wasm_core_exit_process(ngx_cycle_t *cycle);
 static void ngx_wasm_core_exit_master(ngx_cycle_t *cycle);
+
+extern ngx_wavm_host_def_t  ngx_wasm_core_interface;
+
+
+typedef struct {
+    ngx_wavm_t                        *vm;
+} ngx_wasm_core_conf_t;
 
 
 static ngx_command_t  ngx_wasm_core_commands[] = {
@@ -98,7 +97,7 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
         return NULL;
     }
 
-    wcf->vm = ngx_wavm_new(cycle, &vm_name, &ngx_wasm_core_interface);
+    wcf->vm = ngx_wavm_create(cycle, &vm_name, &ngx_wasm_core_interface);
     if (wcf->vm == NULL) {
         return NULL;
     }
@@ -168,7 +167,7 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
 {
     ngx_wavm_t  *vm;
 
-    vm = ngx_wasm_core_get_vm(cycle);
+    vm = ngx_wasm_main_vm(cycle);
     if (vm == NULL) {
         return NGX_OK;
     }
@@ -188,7 +187,7 @@ ngx_wasm_core_exit_process(ngx_cycle_t *cycle)
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
     if (wcf && wcf->vm) {
-        ngx_wavm_free(wcf->vm);
+        ngx_wavm_destroy(wcf->vm);
         wcf->vm = NULL;
     }
 }
@@ -202,7 +201,7 @@ ngx_wasm_core_exit_master(ngx_cycle_t *cycle)
 
 
 ngx_inline ngx_wavm_t *
-ngx_wasm_core_get_vm(ngx_cycle_t *cycle)
+ngx_wasm_main_vm(ngx_cycle_t *cycle)
 {
     ngx_wasm_core_conf_t  *wcf;
 

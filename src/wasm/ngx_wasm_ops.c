@@ -4,7 +4,6 @@
 #include "ddebug.h"
 
 #include <ngx_http.h>
-
 #include <ngx_wasm_ops.h>
 
 
@@ -85,10 +84,8 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
             switch (op->code) {
 
             case NGX_WASM_OP_CALL:
-                op->conf.call.function = ngx_wavm_module_function_lookup(
-                                             op->module,
+                op->conf.call.function = ngx_wavm_module_func_lookup(op->module,
                                              &op->conf.call.func_name);
-
                 if (op->conf.call.function == NULL) {
                     ngx_wasm_log_error(NGX_LOG_EMERG, engine->pool->log, 0,
                                        "no \"%V\" function in \"%V\" module",
@@ -96,6 +93,7 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
                                        &op->module->name);
                     return NGX_ERROR;
                 }
+
                 break;
 
             default:

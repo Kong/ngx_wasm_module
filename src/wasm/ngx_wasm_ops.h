@@ -5,6 +5,19 @@
 #include <ngx_wavm.h>
 
 
+typedef struct {
+    ngx_str_t                                name;
+    ngx_uint_t                               index;
+    ngx_uint_t                               on;
+} ngx_wasm_phase_t;
+
+
+typedef struct {
+    ngx_uint_t                               nphases;
+    ngx_wasm_phase_t                        *phases;
+} ngx_wasm_subsystem_t;
+
+
 typedef struct ngx_wasm_op_s  ngx_wasm_op_t;
 typedef struct ngx_wasm_op_ctx_s  ngx_wasm_op_ctx_t;
 typedef struct ngx_wasm_ops_engine_s  ngx_wasm_ops_engine_t;

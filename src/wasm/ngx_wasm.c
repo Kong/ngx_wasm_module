@@ -9,7 +9,6 @@
 static char *ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t ngx_wasm_init(ngx_cycle_t *cycle);
 
-
 ngx_uint_t  ngx_wasm_max_module;
 
 

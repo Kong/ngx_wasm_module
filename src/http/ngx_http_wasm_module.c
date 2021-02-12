@@ -169,7 +169,7 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    loc->vm = ngx_wasm_core_get_vm(cf->cycle);
+    loc->vm = ngx_wasm_main_vm(cf->cycle);
     if (loc->vm) {
         loc->ops_engine = ngx_wasm_ops_engine_new(cf->pool, loc->vm,
                                                   &ngx_http_wasm_subsystem);
