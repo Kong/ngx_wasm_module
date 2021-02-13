@@ -313,11 +313,11 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
 #endif
                              *exportname, *importmodule;
 
+    vm = module->vm;
+
     if (ngx_wavm_module_loaded(module)) {
         goto loaded;
     }
-
-    vm = module->vm;
 
     if (!ngx_wavm_ready(vm)) {
         goto unreachable;
@@ -549,8 +549,7 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
     const wasm_name_t         *importmodule, *importname;
 
     if (!ngx_wavm_module_loaded(module)) {
-        err = (u_char *) "module not loaded";
-        goto error;
+        goto unreachable;
     }
 
     vm = module->vm;
@@ -634,8 +633,15 @@ error:
                        "host interface: %s",
                        &module->name, &host->name, err);
 
-    ngx_wavm_linked_module_free(lmodule);
+    if (lmodule) {
+        ngx_wavm_linked_module_free(lmodule);
+    }
 
+    return NULL;
+
+unreachable:
+
+    ngx_wasm_assert(0);
     return NULL;
 }
 
