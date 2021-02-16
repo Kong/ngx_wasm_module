@@ -58,10 +58,61 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 
-=== TEST 4: proxy_wasm directive - sanity
+=== TEST 4: proxy_wasm directive - unknown ABI version
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- config
+    location /t {
+        proxy_wasm a;
+        return 200;
+    }
+--- user_files
+>>> a.wat
+(module
+  (func $nop)
+  (export "nop" (func $nop))
+)
+--- error_log eval
+qr/\[emerg\] .*? \[wasm\] unknown proxy_wasm ABI version/
+--- no_error_log
+[error]
+[alert]
+--- must_die
+
+
+
+=== TEST 5: proxy_wasm directive - bad ABI version
+--- main_config
+    wasm {
+        module a $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- config
+    location /t {
+        proxy_wasm a;
+        return 200;
+    }
+--- user_files
+>>> a.wat
+(module
+  (func $nop)
+  (export "proxy_abi_version_0_2_0" (func $nop))
+)
+--- error_log eval
+qr/\[emerg\] .*? \[wasm\] incompatible proxy_wasm ABI version/
+--- no_error_log
+[error]
+[alert]
+--- must_die
+
+
+
+=== TEST 6: proxy_wasm directive - hello_world example
+--- SKIP
+--- main_config
+    wasm {
+        module a /home/chasum/code/proxy-wasm-rust-sdk/target/wasm32-unknown-unknown/debug/examples/hello_world.wasm;
     }
 --- config
     location /t {

@@ -241,7 +241,6 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     }
 
     op = ngx_wasm_conf_add_op_proxy_wasm(cf, loc->ops_engine,
-                                         &ngx_http_wasm_host_interface,
                                          cf->args->elts);
     if (op == NULL) {
         return NGX_CONF_ERROR;

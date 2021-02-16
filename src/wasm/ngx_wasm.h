@@ -20,12 +20,15 @@
 #define NGX_WASM_CONF_ERR_NO_WASM                                            \
     "is specified but config has no \"wasm\" section"
 
-
 #define ngx_wasm_core_cycle_get_conf(cycle)                                  \
     (ngx_get_conf(cycle->conf_ctx, ngx_wasm_module))                         \
     ? (*(ngx_get_conf(cycle->conf_ctx, ngx_wasm_module)))                    \
       [ngx_wasm_core_module.ctx_index]                                       \
     : NULL
+
+#define ngx_wasm_set_i32(val, i)                                             \
+    val.kind = WASM_I32;                                                     \
+    val.of.i32 = i
 
 
 typedef struct ngx_wavm_s  ngx_wavm_t;

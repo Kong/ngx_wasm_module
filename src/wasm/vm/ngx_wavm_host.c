@@ -15,6 +15,11 @@ const wasm_valkind_t *ngx_wavm_arity_i32[] = {
     NULL
 };
 
+const wasm_valkind_t *ngx_wavm_arity_i64[] = {
+    &ngx_wavm_i64,
+    NULL
+};
+
 const wasm_valkind_t *ngx_wavm_arity_i32x2[] = {
     &ngx_wavm_i32, &ngx_wavm_i32,
     NULL

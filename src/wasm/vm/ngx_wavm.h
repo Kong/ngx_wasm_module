@@ -129,7 +129,8 @@ void ngx_wavm_ctx_destroy(ngx_wavm_ctx_t *ctx);
 ngx_wavm_instance_t *ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule,
     ngx_wavm_ctx_t *ctx);
 ngx_int_t ngx_wavm_instance_call(ngx_wavm_instance_t *instance,
-    ngx_wavm_func_t *func, wasm_val_vec_t *args, wasm_val_vec_t *rets);
+    ngx_wavm_func_t *func, wasm_val_t args[], ngx_uint_t nargs,
+    wasm_val_t rets[], ngx_uint_t nrets);
 void ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance);
 
 

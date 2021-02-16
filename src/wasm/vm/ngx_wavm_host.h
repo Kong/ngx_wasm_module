@@ -31,6 +31,7 @@ struct ngx_wavm_host_def_s {
 
 
 extern const wasm_valkind_t *ngx_wavm_arity_i32[];
+extern const wasm_valkind_t *ngx_wavm_arity_i64[];
 extern const wasm_valkind_t *ngx_wavm_arity_i32x2[];
 extern const wasm_valkind_t *ngx_wavm_arity_i32x3[];
 extern const wasm_valkind_t *ngx_wavm_arity_i32x4[];

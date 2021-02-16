@@ -8,14 +8,6 @@
 
 
 ngx_int_t
-ngx_proxy_wasm_hfuncs_proxy_abi_version(ngx_wavm_instance_t *instance,
-   const wasm_val_t args[], wasm_val_t rets[])
-{
-   return NGX_WAVM_OK;
-}
-
-
-ngx_int_t
 ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
     const wasm_val_t args[], wasm_val_t rets[])
 {
@@ -59,12 +51,87 @@ ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
 }
 
 
+ngx_int_t
+ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
+    const wasm_val_t args[], wasm_val_t rets[])
+{
+    return NGX_WAVM_OK;
+}
+
+
 static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
 
-    /* integration */
+   /* 0.1.0 */
 
-   { ngx_string("proxy_abi_version_0_2_1"),
-     &ngx_proxy_wasm_hfuncs_proxy_abi_version,
+   { ngx_string("proxy_set_tick_period_milliseconds"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_get_current_time_nanoseconds"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_get_configuration"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x2,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_get_buffer_bytes"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x5,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_get_header_map_pairs"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x3,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_get_property"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x4,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_set_property"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x4,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_get_shared_data"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x5,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_set_shared_data"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x5,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_register_shared_queue"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x3,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_resolve_shared_queue"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x5,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_dequeue_shared_queue"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x3,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_enqueue_shared_queue"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x3,
+     ngx_wavm_arity_i32 },
+
+   /* integration */
+
+   { ngx_string("proxy_abi_version_0_1_0"),
+     &ngx_proxy_wasm_hfuncs_nop,
      NULL,
      NULL },
 
@@ -73,22 +140,32 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
      ngx_wavm_arity_i32x3,
      ngx_wavm_arity_i32 },
 
+   { ngx_string("proxy_http_call"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x10,
+     ngx_wavm_arity_i32 },
+
+   { ngx_string("proxy_done"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     NULL,
+     ngx_wavm_arity_i32 },
+
    /* context lifecycle */
 
    { ngx_string("proxy_set_effective_context"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_context_finalize"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      NULL,
      ngx_wavm_arity_i32 },
 
    /* stream */
 
    { ngx_string("proxy_resume_stream"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 
@@ -100,178 +177,178 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
    /* http */
 
    { ngx_string("proxy_send_http_response"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x8,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_resume_http_stream"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_close_http_stream"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_close_http_stream"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 
    /* buffers */
 
    { ngx_string("proxy_get_buffer"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x5,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_set_buffer"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x5,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_get_map_values"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x5,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_set_map_values"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x5,
      ngx_wavm_arity_i32 },
 
    /* shared k/v store */
 
    { ngx_string("proxy_open_shared_kvstore"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x4,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_get_shared_kvstore_key_values"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x6,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_set_shared_kvstore_key_values"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x6,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_add_shared_kvstore_key_values"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x6,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_remove_shared_kvstore_key"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x6,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_delete_shared_kvstore"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x6,
      ngx_wavm_arity_i32 },
 
    /* shared queue */
 
    { ngx_string("proxy_open_shared_queue"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x4,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_dequeue_shared_queue_item"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x4,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_enqueue_shared_queue_item"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x4,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_delete_shared_queue"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x4,
      ngx_wavm_arity_i32 },
 
    /* timers */
 
    { ngx_string("proxy_create_timer"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x3,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_delete_timer"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 
    /* stats/metrics */
 
    { ngx_string("proxy_create_metric"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x4,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_get_metric_value"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x2,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_set_metric_value"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32_i64,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_increment_metric_value"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32_i64,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_delete_metric"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 
    /* http callouts */
 
    { ngx_string("proxy_dispatch_http_call"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x10,
      ngx_wavm_arity_i32 },
 
    /* grpc callouts */
 
    { ngx_string("proxy_dispatch_grpc_call"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x12,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_open_grpc_stream"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x9,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_send_grpc_stream_message"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x3,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_cancel_grpc_call"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_close_grpc_call"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 
    /* custom */
 
    { ngx_string("proxy_call_custom_function"),
-     NULL,
+     &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x5,
      ngx_wavm_arity_i32 },
 

@@ -820,6 +820,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
     if (ngx_wrt_instance_new(ctx->store, module->module, &instance->env,
                              &instance->instance, &trap, &res) != NGX_OK)
     {
+        err = NGX_WAVM_EMPTY_CHAR;
         goto error;
     }
 
@@ -852,21 +853,18 @@ error:
 
 
 ngx_int_t
-ngx_wavm_instance_call(ngx_wavm_instance_t *instance, ngx_wavm_func_t *func,
-    wasm_val_vec_t *args, wasm_val_vec_t *rets)
+ngx_wavm_instance_call(ngx_wavm_instance_t *instance,
+    ngx_wavm_func_t *func, wasm_val_t args[], ngx_uint_t nargs,
+    wasm_val_t rets[], ngx_uint_t nrets)
 {
+    ngx_int_t        rc;
     ngx_wrt_res_t   *res = NULL;
     wasm_extern_t   *export;
     wasm_trap_t     *trap;
-    wasm_val_vec_t   dargs = WASM_EMPTY_VEC, drets = WASM_EMPTY_VEC;
+    wasm_val_vec_t   vargs, vrets;
 
-    if (args == NULL) {
-        args = &dargs;
-    }
-
-    if (rets == NULL) {
-        rets = &drets;
-    }
+    wasm_val_vec_new(&vargs, nargs, args);
+    wasm_val_vec_new(&vrets, nrets, rets);
 
     ngx_wasm_assert(func->module == instance->module);
 
@@ -874,14 +872,16 @@ ngx_wavm_instance_call(ngx_wavm_instance_t *instance, ngx_wavm_func_t *func,
 
     ngx_wasm_assert(wasm_extern_kind(export) == WASM_EXTERN_FUNC);
 
-    if (ngx_wrt_func_call(wasm_extern_as_func(export), args, rets, &trap, &res)
-        != NGX_OK)
-    {
+    rc = ngx_wrt_func_call(wasm_extern_as_func(export),
+                           &vargs, &vrets, &trap, &res);
+    if (rc != NGX_OK) {
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, res, trap, NULL);
-        return NGX_ERROR;
     }
 
-    return NGX_OK;
+    wasm_val_vec_delete(&vargs);
+    wasm_val_vec_delete(&vrets);
+
+    return rc;
 }
 
 

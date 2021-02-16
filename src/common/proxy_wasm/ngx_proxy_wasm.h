@@ -2,8 +2,10 @@
 #define _NGX_PROXY_WASM_H_INCLUDED_
 
 
-#include <ngx_wasm.h>
+#include <ngx_wavm.h>
 
+
+#define NGX_PROXY_WASM_ROOT_CTX_ID  0
 
 #define ngx_proxy_wasm_result_ok()                                           \
     (wasm_val_t) WASM_I32_VAL(NGX_PROXY_WASM_RESULT_OK)
@@ -12,6 +14,7 @@
 
 
 typedef enum {
+    NGX_PROXY_WASM_UNKNOWN,
     NGX_PROXY_WASM_0_1_0,
     NGX_PROXY_WASM_0_2_0,
     NGX_PROXY_WASM_0_2_1,
@@ -103,7 +106,17 @@ typedef enum {
 } ngx_proxy_wasm_metric_type;
 
 
-typedef struct {
+typedef struct ngx_proxy_wasm_module_s  ngx_proxy_wasm_module_t;
+
+struct ngx_proxy_wasm_module_s {
+
+    ngx_pool_t                    *pool;
+    ngx_log_t                     *log;
+    ngx_wavm_module_t             *module;
+    ngx_wavm_linked_module_t      *lmodule;
+
+    ngx_uint_t                     ctxid;
+    ngx_proxy_wasm_abi_version     abi_version;
 
     /* integration */
 
@@ -117,7 +130,8 @@ typedef struct {
     /* configuration */
 
     ngx_wavm_func_t               *proxy_on_vm_start;
-    ngx_wavm_func_t               *proxy_on_plugin_start;
+    ngx_wavm_func_t               *proxy_on_configure; /* 0.1.0 */
+    //ngx_wavm_func_t               *proxy_on_plugin_start; /* vNEXT */
 
     /* stream */
 
@@ -157,7 +171,12 @@ typedef struct {
 
     ngx_wavm_func_t               *proxy_on_custom_callback;
 
-} ngx_proxy_wasm_module_t;
+};
+
+
+ngx_int_t ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwmodule);
+
+extern ngx_wavm_host_def_t  ngx_proxy_wasm_host;
 
 
 #endif /* _NGX_PROXY_WASM_H_INCLUDED_ */

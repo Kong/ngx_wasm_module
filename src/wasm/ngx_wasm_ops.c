@@ -96,6 +96,26 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
 
                 break;
 
+            case NGX_WASM_OP_PROXY_WASM:
+                op->conf.proxy_wasm.pwmodule = ngx_pcalloc(engine->pool,
+                                                    sizeof(ngx_proxy_wasm_module_t));
+                if (op->conf.proxy_wasm.pwmodule == NULL) {
+                    return NGX_ERROR;
+                }
+
+                op->conf.proxy_wasm.pwmodule->pool = engine->pool;
+                op->conf.proxy_wasm.pwmodule->log = engine->pool->log;
+                op->conf.proxy_wasm.pwmodule->module = op->module;
+                op->conf.proxy_wasm.pwmodule->lmodule = op->lmodule;
+
+                if (ngx_proxy_wasm_module_init(op->conf.proxy_wasm.pwmodule)
+                    != NGX_OK)
+                {
+                    return NGX_ERROR;
+                }
+
+                break;
+
             default:
                 break;
 
@@ -229,8 +249,7 @@ ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
 
 ngx_wasm_op_t *
 ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
-    ngx_wasm_ops_engine_t *ops_engine, ngx_wavm_host_def_t *host,
-    ngx_str_t *value)
+    ngx_wasm_ops_engine_t *ops_engine, ngx_str_t *value)
 {
     ngx_wasm_op_t  *op;
     ngx_str_t      *mod_name;
@@ -246,7 +265,7 @@ ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     op->handler = ngx_wasm_op_proxy_wasm_handler;
     op->on_phases = (1 << NGX_HTTP_REWRITE_PHASE)
                     | (1 << NGX_HTTP_LOG_PHASE);
-    op->host = host;
+    op->host = &ngx_proxy_wasm_host;
 
     if (ngx_wasm_op_add_helper(cf, ops_engine, op, mod_name) != NGX_OK) {
         return NULL;
@@ -320,7 +339,7 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wavm_instance_t *instance,
                    "wasm ops calling \"%V.%V\" in \"%V\" phase",
                    &op->module->name, &function->name, &phase->name);
 
-    rc = ngx_wavm_instance_call(instance, function, NULL, NULL);
+    rc = ngx_wavm_instance_call(instance, function, NULL, 0, NULL, 0);
 
     return rc;
 }
