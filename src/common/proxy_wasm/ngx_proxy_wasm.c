@@ -136,7 +136,8 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
     pwm->proxy_on_custom_callback =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_custom_callback");
 
-    if (pwm->proxy_on_vm_start
+    if (pwm->proxy_on_context_create
+        || pwm->proxy_on_vm_start
         || pwm->proxy_on_configure)
     {
         vm = pwm->module->vm;
@@ -145,7 +146,7 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
 
         instance = ngx_wavm_instance_create(pwm->lmodule, &ctx);
         if (instance == NULL) {
-            return NGX_ERROR;
+            goto error;
         }
 
         if (pwm->proxy_on_context_create) {
@@ -158,7 +159,7 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
             rc = ngx_wavm_instance_call(instance, pwm->proxy_on_vm_start,
                                         args, 2, NULL, 0);
             if (rc != NGX_OK) {
-                return NGX_ERROR;
+                goto error;
             }
         }
 
@@ -169,11 +170,11 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
             rc = ngx_wavm_instance_call(instance, pwm->proxy_on_vm_start,
                                         args, 2, rets, 1);
             if (rc != NGX_OK) {
-                return NGX_ERROR;
+                goto error;
             }
 
             if (!rets[0].of.i32) {
-                return NGX_ERROR;
+                goto error;
             }
         }
 
@@ -184,14 +185,22 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
             rc = ngx_wavm_instance_call(instance, pwm->proxy_on_vm_start,
                                         args, 2, rets, 1);
             if (rc != NGX_OK) {
-                return NGX_ERROR;
+                goto error;
             }
 
             if (!rets[0].of.i32) {
-                return NGX_ERROR;
+                goto error;
             }
         }
+
+        ngx_wavm_ctx_destroy(&ctx);
     }
 
     return NGX_OK;
+
+error:
+
+    ngx_wavm_ctx_destroy(&ctx);
+
+    return NGX_ERROR;
 }

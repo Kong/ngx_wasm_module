@@ -417,10 +417,10 @@ loaded:
         exporttype = ((wasm_exporttype_t **) module->exports.data)[i];
         exportname = wasm_exporttype_name(exporttype);
 
-        ngx_log_debug(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                      "wasm loading \"%V.%*s\" module export (%ui/%ui)",
-                      &module->name, exportname->size, exportname->data,
-                      i + 1, module->exports.size);
+        ngx_log_debug5(NGX_LOG_DEBUG_WASM, vm->log, 0,
+                       "wasm caching \"%V\" module export \"%*s\" (%ui/%ui)",
+                       &module->name, exportname->size, exportname->data,
+                       i + 1, module->exports.size);
 
         switch (wasm_externtype_kind(
                 wasm_exporttype_type(exporttype))) {

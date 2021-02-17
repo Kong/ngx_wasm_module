@@ -4,8 +4,6 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-#plan skip_all => 'NYI: ngx_http_wasm_proxy_module';
-
 plan tests => repeat_each() * (blocks() * 4);
 
 run_tests();
@@ -109,23 +107,16 @@ qr/\[emerg\] .*? \[wasm\] incompatible proxy_wasm ABI version/
 
 
 === TEST 6: proxy_wasm directive - hello_world example
---- SKIP
 --- main_config
     wasm {
-        module a /home/chasum/code/proxy-wasm-rust-sdk/target/wasm32-unknown-unknown/debug/examples/hello_world.wasm;
+        module hello_world $TEST_NGINX_CRATES_DIR/proxy_wasm_hello_world.wasm;
     }
 --- config
     location /t {
-        proxy_wasm a;
+        proxy_wasm hello_world;
         return 200;
     }
 --- response_body
 --- no_error_log
 [error]
 [emerg]
---- user_files
->>> a.wat
-(module
-  (func $nop)
-  (export "nop" (func $nop))
-)
