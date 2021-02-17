@@ -1,0 +1,8 @@
+[profile.release]
+debug = true
+
+[workspace]
+members = [
+    "ngx-rust-tests",
+    "proxy-wasm/hello-world",
+]

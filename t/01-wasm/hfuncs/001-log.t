@@ -10,7 +10,7 @@ add_block_preprocessor(sub {
     my $block = shift;
     my $main_config = <<_EOC_;
         wasm {
-            module http_tests $t::TestWasm::crates/rust_http_tests.wasm;
+            module ngx_rust_tests $t::TestWasm::crates/ngx_rust_tests.wasm;
         }
 _EOC_
 
@@ -26,11 +26,11 @@ __DATA__
 === TEST 1: log: logs in 'log' phase
 --- config
     location /t {
-        wasm_call log http_tests log_notice_hello;
+        wasm_call log ngx_rust_tests log_notice_hello;
         return 200;
     }
 --- error_log eval
-qr/\[notice\] .*? hello world <module: "http_tests", vm: "main", runtime: "\S+"> while logging request/
+qr/\[notice\] .*? hello world <module: "ngx_rust_tests", vm: "main", runtime: "\S+"> while logging request/
 --- no_error_log
 [error]
 
@@ -39,10 +39,10 @@ qr/\[notice\] .*? hello world <module: "http_tests", vm: "main", runtime: "\S+">
 === TEST 2: log: logs in 'rewrite' phase
 --- config
     location /t {
-        wasm_call rewrite http_tests log_notice_hello;
+        wasm_call rewrite ngx_rust_tests log_notice_hello;
         return 200;
     }
 --- error_log eval
-qr/\[notice\] .*? hello world <module: "http_tests", vm: "main", runtime: "\S+">, client: 127\.0\.0\.1/
+qr/\[notice\] .*? hello world <module: "ngx_rust_tests", vm: "main", runtime: "\S+">, client: 127\.0\.0\.1/
 --- no_error_log
 [error]

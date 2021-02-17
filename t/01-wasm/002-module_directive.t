@@ -30,11 +30,11 @@ qr/\[info\] .*? \[wasm\] loading "a" module from ".*?a\.wat" <vm: "main", runtim
 --- main_config eval
 qq{
     wasm {
-        module http_tests $t::TestWasm::crates/rust_http_tests.wasm;
+        module ngx-rust-tests $t::TestWasm::crates/ngx_rust_tests.wasm;
     }
 }
 --- error_log eval
-qr/\[info\] .*? \[wasm\] loading "http_tests" module from ".*?rust_http_tests\.wasm" <vm: "main", runtime: ".*?">/
+qr/\[info\] .*? \[wasm\] loading "ngx-rust-tests" module from ".*?ngx_rust_tests\.wasm" <vm: "main", runtime: ".*?">/
 --- no_error_log
 [error]
 [emerg]

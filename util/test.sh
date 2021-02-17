@@ -31,7 +31,7 @@ done
 eval set -- "$PARAMS"
 
 if [[ ! -d "$DIR_CPANM/lib/perl5" ]]; then
-    fatal "missing $DIR_CPANM/lib/perl5 lib, run 'make setup first'"
+    fatal "missing $DIR_CPANM/lib/perl5 lib, run 'make setup' first"
 fi
 
 export PERL5LIB=$DIR_CPANM/lib/perl5:$PERL5LIB
@@ -76,7 +76,7 @@ fi
 cargo build \
     --quiet \
     --lib \
-    --manifest-path t/lib/rust-http-tests/Cargo.toml \
+    --manifest-path t/lib/rust-tests/Cargo.toml \
     --target wasm32-unknown-unknown \
     --out-dir $DIR_TESTS_LIB_WASM \
     -Z unstable-options

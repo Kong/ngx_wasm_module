@@ -10,7 +10,7 @@ add_block_preprocessor(sub {
     my $block = shift;
     my $main_config = <<_EOC_;
         wasm {
-            module http_tests $t::TestWasm::crates/rust_http_tests.wasm;
+            module ngx_rust_tests $t::TestWasm::crates/ngx_rust_tests.wasm;
         }
 _EOC_
 
@@ -27,7 +27,7 @@ __DATA__
 --- SKIP
 --- config
     location /t {
-        wasm_call rewrite http_tests log_resp_status;
+        wasm_call rewrite ngx_rust_tests log_resp_status;
         return 200;
     }
 --- no_error_log
@@ -39,7 +39,7 @@ __DATA__
 --- SKIP
 --- config
     location /t {
-        wasm_call content http_tests log_resp_status;
+        wasm_call content ngx_rust_tests log_resp_status;
         return 200;
     }
 --- no_error_log
@@ -50,7 +50,7 @@ __DATA__
 === TEST 3: resp_get_status: gets status in 'log' phase
 --- config
     location /t {
-        wasm_call log http_tests log_resp_status;
+        wasm_call log ngx_rust_tests log_resp_status;
         return 200;
     }
 --- error_log eval
