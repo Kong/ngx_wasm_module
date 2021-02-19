@@ -12,6 +12,13 @@
 #define NGX_WAVM_BAD_USAGE           NGX_ABORT
 #define NGX_WAVM_SENT_LAST           NGX_DONE
 
+
+#define NGX_WAVM_INIT                (1 << 0)
+#define NGX_WAVM_LOADED              (1 << 1)
+
+#define ngx_wavm_initialized(vm)     (vm->state & NGX_WAVM_INIT)
+#define ngx_wavm_loaded(vm)          (vm->state & NGX_WAVM_LOADED)
+
 #define NGX_WAVM_MODULE_ISWAT        (1 << 0)
 #define NGX_WAVM_MODULE_LOADED       (1 << 1)
 #define NGX_WAVM_MODULE_READY        (1 << 2)
@@ -95,6 +102,7 @@ struct ngx_wavm_module_s {
 
 struct ngx_wavm_s {
     const ngx_str_t                   *name;
+    ngx_uint_t                         state;
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
     ngx_wavm_log_ctx_t                 log_ctx;
@@ -111,6 +119,7 @@ struct ngx_wavm_s {
 ngx_wavm_t *ngx_wavm_create(ngx_cycle_t *cycle, const ngx_str_t *name,
     ngx_wavm_host_def_t *core_host);
 ngx_int_t ngx_wavm_init(ngx_wavm_t *vm);
+void ngx_wavm_shutdown(ngx_wavm_t *vm);
 void ngx_wavm_destroy(ngx_wavm_t *vm);
 
 

@@ -27,7 +27,7 @@ ngx_wavm_ready(ngx_wavm_t *vm)
         return 0;
     }
 
-    if (vm->engine == NULL) {
+    if (!ngx_wavm_initialized(vm)) {
         ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL, NULL,
                            "vm not initialized");
         ngx_wasm_assert(0);
@@ -98,9 +98,8 @@ ngx_wavm_init(ngx_wavm_t *vm)
     ngx_rbtree_node_t  *root, *sentinel, *node;
     ngx_wavm_module_t  *module;
 
-    if (vm->engine) {
-        err = (u_char *) "already initialized";
-        goto error;
+    if (ngx_wavm_initialized(vm)) {
+        goto load;
     }
 
     ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL, NULL,
@@ -112,6 +111,7 @@ ngx_wavm_init(ngx_wavm_t *vm)
 
     vm->engine = wasm_engine_new_with_config(vm->config);
     if (vm->engine == NULL) {
+        wasm_config_delete(vm->config);
         err = (u_char *) "engine init failure";
         goto error;
     }
@@ -121,6 +121,10 @@ ngx_wavm_init(ngx_wavm_t *vm)
         err = (u_char *) "store init failure";
         goto error;
     }
+
+    vm->state |= NGX_WAVM_INIT;
+
+load:
 
     root = vm->modules_tree.root;
     sentinel = vm->modules_tree.sentinel;
@@ -143,6 +147,8 @@ ngx_wavm_init(ngx_wavm_t *vm)
 
 done:
 
+    vm->state |= NGX_WAVM_LOADED;
+
     ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL, NULL,
                        "\"%V\" wasm VM initialized",
                        vm->name);
@@ -156,30 +162,23 @@ error:
 
 failed:
 
-    if (vm->store) {
-        wasm_store_delete(vm->store);
-    }
-
-    if (vm->engine) {
-        wasm_engine_delete(vm->engine);
-        vm->engine = NULL;
-    }
+    ngx_wavm_shutdown(vm);
 
     return NGX_ERROR;
 }
 
 
-void
-ngx_wavm_destroy(ngx_wavm_t *vm)
+static void
+ngx_wavm_destroy_helper(ngx_wavm_t *vm, unsigned free)
 {
     ngx_rbtree_node_t    **root, **sentinel, *node;
     ngx_str_node_t        *sn;
     ngx_wavm_module_t     *module;
 
 #if 1
-    ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
-                  "wasm free \"%V\" vm (vm: %p)",
-                  vm->name, vm);
+    ngx_log_debug3(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
+                  "wasm %s \"%V\" vm (vm: %p)",
+                  free ? "free" : "shutdown", vm->name, vm);
 #endif
 
     root = &vm->modules_tree.root;
@@ -195,12 +194,22 @@ ngx_wavm_destroy(ngx_wavm_t *vm)
         ngx_wavm_module_free(module);
     }
 
+    vm->state &= ~(1 << NGX_WAVM_LOADED);
+
     if (vm->store) {
         wasm_store_delete(vm->store);
+        vm->store = NULL;
     }
 
     if (vm->engine) {
         wasm_engine_delete(vm->engine);
+        vm->engine = NULL;
+    }
+
+    vm->state &= ~(1 << NGX_WAVM_INIT);
+
+    if (!free) {
+        return;
     }
 
     if (vm->log) {
@@ -208,6 +217,20 @@ ngx_wavm_destroy(ngx_wavm_t *vm)
     }
 
     ngx_pfree(vm->pool, vm);
+}
+
+
+void
+ngx_wavm_shutdown(ngx_wavm_t *vm)
+{
+    ngx_wavm_destroy_helper(vm, 0);
+}
+
+
+void
+ngx_wavm_destroy(ngx_wavm_t *vm)
+{
+    ngx_wavm_destroy_helper(vm, 1);
 }
 
 
@@ -688,6 +711,10 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
 ngx_int_t
 ngx_wavm_ctx_init(ngx_wavm_t *vm, ngx_wavm_ctx_t *ctx)
 {
+    if (!ngx_wavm_ready(vm)) {
+        return NGX_ERROR;
+    }
+
     ctx->vm = vm;
     ctx->store = wasm_store_new(vm->engine);
     if (ctx->store == NULL) {
