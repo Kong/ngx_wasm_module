@@ -6,18 +6,12 @@
 #include <ngx_wavm.h>
 
 
-#define ngx_wasm_core_force_cleanup_pool()                                   \
-    (!ngx_test_config &&                                                     \
-     (ngx_process == NGX_PROCESS_SINGLE ||                                   \
-      ngx_process == NGX_PROCESS_MASTER ||                                   \
-      ngx_process == NGX_PROCESS_WORKER))
-
-
 static void *ngx_wasm_core_create_conf(ngx_cycle_t *cycle);
 static char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
 static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
+static ngx_int_t ngx_wasm_core_init_process(ngx_cycle_t *cycle);
 static void ngx_wasm_core_exit_process(ngx_cycle_t *cycle);
 static void ngx_wasm_core_exit_master(ngx_cycle_t *cycle);
 
@@ -56,7 +50,7 @@ ngx_module_t  ngx_wasm_core_module = {
     NGX_WASM_MODULE,                       /* module type */
     NULL,                                  /* init master */
     NULL,                                  /* init module */
-    NULL,                                  /* init process */
+    ngx_wasm_core_init_process,            /* init process */
     NULL,                                  /* init thread */
     NULL,                                  /* exit thread */
     ngx_wasm_core_exit_process,            /* exit process */
@@ -65,22 +59,13 @@ ngx_module_t  ngx_wasm_core_module = {
 };
 
 
-#ifdef NGX_WASM_NOPOOL
 static void
 ngx_wasm_core_cleanup_pool(void *data)
 {
     ngx_cycle_t  *cycle = data;
-    unsigned      force = ngx_wasm_core_force_cleanup_pool();
 
-    ngx_log_debug1(NGX_LOG_DEBUG_WASM, cycle->log, 0,
-                  "wasm core: nopool patch force cycle->pool cleanup: %s",
-                  force ? "yes" : "no");
-
-    if (force) {
-        ngx_wasm_core_exit_process(cycle);
-    }
+    ngx_wasm_core_exit_process(cycle);
 }
-#endif
 
 
 static void *
@@ -88,9 +73,7 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
 {
     static const ngx_str_t vm_name = ngx_string("main");
     ngx_wasm_core_conf_t  *wcf;
-#ifdef NGX_WASM_NOPOOL
     ngx_pool_cleanup_t    *cln;
-#endif
 
     wcf = ngx_palloc(cycle->pool, sizeof(ngx_wasm_core_conf_t));
     if (wcf == NULL) {
@@ -102,8 +85,6 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
         return NULL;
     }
 
-#ifdef NGX_WASM_NOPOOL
-    /* ensure vm is freed in master HUP reloads for Valgrind */
     cln = ngx_pool_cleanup_add(cycle->pool, 0);
     if (cln == NULL) {
         return NULL;
@@ -111,7 +92,6 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
 
     cln->handler = ngx_wasm_core_cleanup_pool;
     cln->data = cycle;
-#endif
 
     return wcf;
 }
@@ -129,13 +109,14 @@ ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     path = &value[2];
 
     if (name->len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid module name \"%V\"", name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] invalid module name \"%V\"", name);
         return NGX_CONF_ERROR;
     }
 
     if (path->len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid module path \"%V\"",
-                           path);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] invalid module path \"%V\"", path);
         return NGX_CONF_ERROR;
     }
 
@@ -146,7 +127,7 @@ ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                                "[wasm] module \"%V\" already defined", name);
         }
 
-        /* rc == NGX_ERROR */
+        /* NGX_ERROR, NGX_ABORT */
 
         return NGX_CONF_ERROR;
     }
@@ -165,7 +146,10 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 static ngx_int_t
 ngx_wasm_core_init(ngx_cycle_t *cycle)
 {
-    ngx_wavm_t  *vm;
+    ngx_wavm_t       *vm;
+
+    ngx_wasm_log_error(NGX_LOG_NOTICE, cycle->log, 0,
+                       "wasm core INIT");
 
     vm = ngx_wasm_main_vm(cycle);
     if (vm == NULL) {
@@ -175,6 +159,25 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
     if (ngx_wavm_init(vm) != NGX_OK) {
         return NGX_ERROR;
     }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_wasm_core_init_process(ngx_cycle_t *cycle)
+{
+    ngx_wavm_t  *vm;
+
+    ngx_wasm_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0,
+                       "wasm core INIT PROCESS");
+
+    vm = ngx_wasm_main_vm(cycle);
+    if (vm == NULL) {
+        return NGX_OK;
+    }
+
+    ngx_wavm_load(vm);
 
     return NGX_OK;
 }

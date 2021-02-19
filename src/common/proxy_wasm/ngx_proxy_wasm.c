@@ -6,6 +6,34 @@
 #include <ngx_proxy_wasm.h>
 
 
+static void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
+    ngx_proxy_wasm_err_t err, const char *fmt, ...);
+
+
+static ngx_str_t  ngx_proxy_wasm_errlist[] = {
+    ngx_null_string,
+    ngx_string("unknown ABI version"),
+    ngx_string("incompatible ABI version"),
+    ngx_string("incompatible host interface"),
+    ngx_string("unknown error")
+};
+
+
+static u_char *
+ngx_proxy_wasm_strerror(ngx_proxy_wasm_err_t err, u_char *buf, size_t size)
+{
+    ngx_str_t  *msg;
+
+    msg = ((ngx_uint_t) err < NGX_PROXY_WASM_ERR_UNKNOWN)
+              ? &ngx_proxy_wasm_errlist[err]
+              : &ngx_proxy_wasm_errlist[NGX_PROXY_WASM_ERR_UNKNOWN];
+
+    size = ngx_min(size, msg->len);
+
+    return ngx_cpymem(buf, msg->data, size);
+}
+
+
 static ngx_inline ngx_wavm_func_t *
 ngx_proxy_wasm_module_func_lookup(ngx_proxy_wasm_module_t *pwm, const char *n)
 {
@@ -27,15 +55,21 @@ ngx_proxy_wasm_module_abi_version(ngx_proxy_wasm_module_t *pwm)
         exporttype = ((wasm_exporttype_t **) module->exports.data)[i];
         exportname = wasm_exporttype_name(exporttype);
 
-        if (ngx_strcmp(exportname->data, "proxy_abi_version_0_2_1") == 0) {
+        if (ngx_strncmp(exportname->data, "proxy_abi_version_0_2_1",
+                        exportname->size) == 0)
+        {
             return NGX_PROXY_WASM_0_2_1;
         }
 
-        if (ngx_strcmp(exportname->data, "proxy_abi_version_0_2_0") == 0) {
+        if (ngx_strncmp(exportname->data, "proxy_abi_version_0_2_0",
+                        exportname->size) == 0)
+        {
             return NGX_PROXY_WASM_0_2_0;
         }
 
-        if (ngx_strcmp(exportname->data, "proxy_abi_version_0_1_0") == 0) {
+        if (ngx_strncmp(exportname->data, "proxy_abi_version_0_1_0",
+                        exportname->size) == 0)
+        {
             return NGX_PROXY_WASM_0_1_0;
         }
     }
@@ -56,7 +90,17 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
     ngx_wasm_assert(pwm->pool);
     ngx_wasm_assert(pwm->log);
     ngx_wasm_assert(pwm->module);
-    ngx_wasm_assert(pwm->lmodule);
+
+    pwm->ecode = 0;
+
+    /* linked module check */
+
+    if (pwm->lmodule == NULL) {
+        pwm->ecode = NGX_PROXY_WASM_ERR_BAD_HOST_INTERFACE;
+        return NGX_ERROR;
+    }
+
+    /* abi version compat */
 
     pwm->abi_version = ngx_proxy_wasm_module_abi_version(pwm);
 
@@ -66,13 +110,13 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
         break;
 
     case NGX_PROXY_WASM_UNKNOWN:
-        ngx_wasm_log_error(NGX_LOG_EMERG, pwm->log, 0,
-                           "unknown proxy_wasm ABI version");
+        pwm->ecode = NGX_PROXY_WASM_ERR_UNKNOWN_ABI;
+        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode, NULL);
         return NGX_ERROR;
 
     default:
-        ngx_wasm_log_error(NGX_LOG_EMERG, pwm->log, 0,
-                           "incompatible proxy_wasm ABI version");
+        pwm->ecode = NGX_PROXY_WASM_ERR_BAD_ABI;
+        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode, NULL);
         return NGX_ERROR;
 
     }
@@ -203,4 +247,41 @@ error:
     ngx_wavm_ctx_destroy(&ctx);
 
     return NGX_ERROR;
+}
+
+
+ngx_int_t
+ngx_proxy_wasm_module_resume(ngx_proxy_wasm_module_t *pwm,
+    ngx_wasm_phase_t *phase)
+{
+    /* stub */
+
+    if (pwm->ecode) {
+        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode, NULL);
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
+
+static void
+ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
+    ngx_proxy_wasm_err_t err, const char *fmt, ...)
+{
+    va_list   args;
+    u_char   *p, *last, buf[NGX_MAX_ERROR_STR];
+
+    last = buf + NGX_MAX_ERROR_STR;
+    p = &buf[0];
+
+    if (fmt) {
+        va_start(args, fmt);
+        p = ngx_vsnprintf(buf, NGX_MAX_ERROR_STR, fmt, args);
+        va_end(args);
+    }
+
+    p = ngx_proxy_wasm_strerror(err, buf, last - buf);
+
+    ngx_wasm_log_error(level, log, 0, "%*s", p - buf, buf);
 }

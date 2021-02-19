@@ -82,6 +82,7 @@ cargo build \
     -Z unstable-options
 
 if [[ ! -z "$TEST_NGINX_USE_VALGRIND" ]]; then
+    #export TEST_NGINX_SLEEP=0.5
     echo "TEST_NGINX_USE_VALGRIND=$TEST_NGINX_USE_VALGRIND"
     valgrind --version
 fi

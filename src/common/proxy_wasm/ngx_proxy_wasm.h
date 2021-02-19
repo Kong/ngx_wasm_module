@@ -14,6 +14,14 @@
 
 
 typedef enum {
+    NGX_PROXY_WASM_ERR_UNKNOWN_ABI = 1,
+    NGX_PROXY_WASM_ERR_BAD_ABI,
+    NGX_PROXY_WASM_ERR_BAD_HOST_INTERFACE,
+    NGX_PROXY_WASM_ERR_UNKNOWN
+} ngx_proxy_wasm_err_t;
+
+
+typedef enum {
     NGX_PROXY_WASM_UNKNOWN,
     NGX_PROXY_WASM_0_1_0,
     NGX_PROXY_WASM_0_2_0,
@@ -115,6 +123,7 @@ struct ngx_proxy_wasm_module_s {
     ngx_wavm_module_t             *module;
     ngx_wavm_linked_module_t      *lmodule;
 
+    ngx_uint_t                     ecode;
     ngx_uint_t                     ctxid;
     ngx_proxy_wasm_abi_version     abi_version;
 
@@ -175,6 +184,8 @@ struct ngx_proxy_wasm_module_s {
 
 
 ngx_int_t ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwmodule);
+ngx_int_t ngx_proxy_wasm_module_resume(ngx_proxy_wasm_module_t *pwmodule,
+    ngx_wasm_phase_t *phase);
 
 extern ngx_wavm_host_def_t  ngx_proxy_wasm_host;
 

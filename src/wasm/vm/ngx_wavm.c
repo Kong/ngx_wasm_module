@@ -6,36 +6,20 @@
 #include <ngx_wavm.h>
 
 
+static ngx_int_t ngx_wavm_engine_init(ngx_wavm_t *vm);
+static void ngx_wavm_engine_destroy(ngx_wavm_t *vm);
 static void ngx_wavm_module_free(ngx_wavm_module_t *module);
+static ngx_int_t ngx_wavm_module_load_bytes(ngx_wavm_module_t *module);
 static ngx_int_t ngx_wavm_module_load(ngx_wavm_module_t *module);
 static void ngx_wavm_linked_module_free(ngx_wavm_linked_module_t *lmodule);
+static void ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log,
+    ngx_wavm_err_t *e, const char *fmt, ...);
 static u_char *ngx_wavm_log_error_handler(ngx_log_t *log, u_char *buf,
     size_t len);
 
 
 static u_char  NGX_WAVM_NOMEM_CHAR[] = "no memory";
 static u_char  NGX_WAVM_EMPTY_CHAR[] = "";
-
-
-static ngx_uint_t
-ngx_wavm_ready(ngx_wavm_t *vm)
-{
-    if (vm == NULL) {
-        ngx_wavm_log_error(NGX_LOG_EMERG, ngx_cycle->log, NULL, NULL,
-                           "null pointer to vm");
-        ngx_wasm_assert(0);
-        return 0;
-    }
-
-    if (!ngx_wavm_initialized(vm)) {
-        ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL, NULL,
-                           "vm not initialized");
-        ngx_wasm_assert(0);
-        return 0;
-    }
-
-    return 1;
-}
 
 
 ngx_wavm_t *
@@ -69,6 +53,7 @@ ngx_wavm_create(ngx_cycle_t *cycle, const ngx_str_t *name,
     vm->log_ctx.instance = NULL;
     vm->log_ctx.orig_log = &cycle->new_log;
 
+    vm->state = 0;
     vm->lmodules_max = 0;
 
     ngx_rbtree_init(&vm->modules_tree, &vm->modules_sentinel,
@@ -90,41 +75,124 @@ error:
 }
 
 
-ngx_int_t
-ngx_wavm_init(ngx_wavm_t *vm)
+static ngx_int_t
+ngx_wavm_engine_init(ngx_wavm_t *vm)
 {
-    u_char             *err = NULL;
-    ngx_str_node_t     *sn;
-    ngx_rbtree_node_t  *root, *sentinel, *node;
-    ngx_wavm_module_t  *module;
+    wasm_config_t  *config;
 
-    if (ngx_wavm_initialized(vm)) {
-        goto load;
+    if (vm->engine || vm->store) {
+        /* reentrant */
+        return NGX_ABORT;
     }
 
-    ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL, NULL,
-                       "initializing \"%V\" wasm VM", vm->name);
+    config = wasm_config_new();
 
-    vm->config = wasm_config_new();
+    ngx_wrt_config_init(config);
 
-    ngx_wrt_config_init(vm->config);
-
-    vm->engine = wasm_engine_new_with_config(vm->config);
+    vm->engine = wasm_engine_new_with_config(config);
     if (vm->engine == NULL) {
-        wasm_config_delete(vm->config);
-        err = (u_char *) "engine init failure";
+        wasm_config_delete(config);
         goto error;
     }
 
     vm->store = wasm_store_new(vm->engine);
     if (vm->store == NULL) {
-        err = (u_char *) "store init failure";
         goto error;
     }
 
-    vm->state |= NGX_WAVM_INIT;
+    return NGX_OK;
 
-load:
+error:
+
+    ngx_wavm_engine_destroy(vm);
+
+    return NGX_ERROR;
+}
+
+
+static void
+ngx_wavm_engine_destroy(ngx_wavm_t *vm)
+{
+    if (vm->store) {
+        wasm_store_delete(vm->store);
+        vm->store = NULL;
+    }
+
+    if (vm->engine) {
+        wasm_engine_delete(vm->engine);
+        vm->engine = NULL;
+    }
+}
+
+
+ngx_int_t
+ngx_wavm_init(ngx_wavm_t *vm)
+{
+    ngx_uint_t          rc = NGX_ERROR;
+    ngx_str_node_t     *sn;
+    ngx_rbtree_node_t  *root, *sentinel, *node;
+    ngx_wavm_module_t  *module;
+
+    ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL,
+                       "initializing \"%V\" wasm VM", vm->name);
+
+    if (ngx_wavm_engine_init(vm) != NGX_OK) {
+        goto error;
+    }
+
+    root = vm->modules_tree.root;
+    sentinel = vm->modules_tree.sentinel;
+
+    if (root == sentinel) {
+        goto empty;
+    }
+
+    for (node = ngx_rbtree_min(root, sentinel);
+         node;
+         node = ngx_rbtree_next(&vm->modules_tree, node))
+    {
+        sn = ngx_wasm_sn_n2sn(node);
+        module = ngx_wasm_sn_sn2data(sn, ngx_wavm_module_t, sn);
+
+        if (ngx_wavm_module_load_bytes(module) != NGX_OK) {
+            goto done;
+        }
+    }
+
+empty:
+
+    ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL,
+                       "\"%V\" wasm VM initialized",
+                       vm->name);
+
+    rc = NGX_OK;
+    goto done;
+
+error:
+
+    ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL,
+                       "failed to initialize wasm VM");
+
+done:
+
+    ngx_wavm_engine_destroy(vm);
+
+    return rc;
+}
+
+
+ngx_int_t
+ngx_wavm_load(ngx_wavm_t *vm)
+{
+    ngx_str_node_t     *sn;
+    ngx_rbtree_node_t  *root, *sentinel, *node;
+    ngx_wavm_module_t  *module;
+
+    if (ngx_wavm_engine_init(vm) != NGX_OK) {
+        ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL,
+                           "failed init engine");
+        return NGX_ERROR;
+    }
 
     root = vm->modules_tree.root;
     sentinel = vm->modules_tree.sentinel;
@@ -141,44 +209,29 @@ load:
         module = ngx_wasm_sn_sn2data(sn, ngx_wavm_module_t, sn);
 
         if (ngx_wavm_module_load(module) != NGX_OK) {
-            goto failed;
+            return NGX_ERROR;
         }
     }
 
 done:
 
-    vm->state |= NGX_WAVM_LOADED;
-
-    ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL, NULL,
-                       "\"%V\" wasm VM initialized",
-                       vm->name);
+    vm->state |= NGX_WAVM_READY;
 
     return NGX_OK;
-
-error:
-
-    ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL, NULL,
-                       "failed to initialize wasm VM: %s", err);
-
-failed:
-
-    ngx_wavm_shutdown(vm);
-
-    return NGX_ERROR;
 }
 
 
-static void
-ngx_wavm_destroy_helper(ngx_wavm_t *vm, unsigned free)
+void
+ngx_wavm_destroy(ngx_wavm_t *vm)
 {
     ngx_rbtree_node_t    **root, **sentinel, *node;
     ngx_str_node_t        *sn;
     ngx_wavm_module_t     *module;
 
 #if 1
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
-                  "wasm %s \"%V\" vm (vm: %p)",
-                  free ? "free" : "shutdown", vm->name, vm);
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
+                  "wasm free \"%V\" vm (vm: %p)",
+                   vm->name, vm);
 #endif
 
     root = &vm->modules_tree.root;
@@ -194,43 +247,13 @@ ngx_wavm_destroy_helper(ngx_wavm_t *vm, unsigned free)
         ngx_wavm_module_free(module);
     }
 
-    vm->state &= ~(1 << NGX_WAVM_LOADED);
-
-    if (vm->store) {
-        wasm_store_delete(vm->store);
-        vm->store = NULL;
-    }
-
-    if (vm->engine) {
-        wasm_engine_delete(vm->engine);
-        vm->engine = NULL;
-    }
-
-    vm->state &= ~(1 << NGX_WAVM_INIT);
-
-    if (!free) {
-        return;
-    }
+    ngx_wavm_engine_destroy(vm);
 
     if (vm->log) {
         ngx_pfree(vm->pool, vm->log);
     }
 
     ngx_pfree(vm->pool, vm);
-}
-
-
-void
-ngx_wavm_shutdown(ngx_wavm_t *vm)
-{
-    ngx_wavm_destroy_helper(vm, 0);
-}
-
-
-void
-ngx_wavm_destroy(ngx_wavm_t *vm)
-{
-    ngx_wavm_destroy_helper(vm, 1);
 }
 
 
@@ -254,6 +277,11 @@ ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path)
     u_char             *p, *err = NGX_WAVM_NOMEM_CHAR;
     ngx_wavm_module_t  *module;
 
+    if (ngx_wavm_state(vm, NGX_WAVM_READY)) {
+        /* frozen */
+        return NGX_ABORT;
+    }
+
     module = ngx_wavm_module_lookup(vm, name);
     if (module) {
         return NGX_DECLINED;
@@ -272,6 +300,7 @@ ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path)
     }
 
     module->vm = vm;
+    module->state = 0;
     module->memory_idx = -1;
     module->name.len = name->len;
     module->name.data = ngx_pnalloc(vm->pool, module->name.len + 1);
@@ -306,7 +335,7 @@ ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path)
 
 error:
 
-    ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL, NULL,
+    ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL,
                        "failed to add \"%V\" module from \"%V\": %s",
                        name, path, err);
 
@@ -319,44 +348,21 @@ error:
 
 
 static ngx_int_t
-ngx_wavm_module_load(ngx_wavm_module_t *module)
+ngx_wavm_module_load_bytes(ngx_wavm_module_t *module)
 {
-    size_t                    i;
     u_char                   *err = NGX_WAVM_NOMEM_CHAR;
     ngx_uint_t                rc;
     ngx_wavm_t               *vm;
-    ngx_wavm_func_t          *func;
-    ngx_wrt_res_t            *res = NULL;
-    wasm_byte_vec_t           file_bytes, wasm_bytes, *bytes = NULL;
-    wasm_exporttype_t        *exporttype;
-    const wasm_importtype_t  *importtype;
-    const wasm_name_t
-#if (NGX_DEBUG)
-                             *importname,
-#endif
-                             *exportname, *importmodule;
+    ngx_wavm_err_t            e;
+    wasm_byte_vec_t           file_bytes;
 
     vm = module->vm;
 
-    if (ngx_wavm_module_loaded(module)) {
-        goto loaded;
-    }
-
-    if (!ngx_wavm_ready(vm)) {
-        goto unreachable;
-    }
-
-    if (!module->path.len) {
-        ngx_wavm_log_error(NGX_LOG_ALERT, vm->log, NULL, NULL,
-                           "NYI: module loading only supported via path");
-        goto unreachable;
-    }
-
-    /* load_from_path */
-
-    ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL, NULL,
-                       "loading \"%V\" module from \"%V\"",
-                       &module->name, &module->path);
+    ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
+                   "wasm loading \"%V\" module bytes from \"%V\""
+                   " (module: %p, engine: %p)",
+                   &module->name, &module->path,
+                   module->module, module->vm->engine);
 
     if (ngx_wasm_bytes_from_path(&file_bytes, module->path.data, vm->log)
         != NGX_OK)
@@ -364,24 +370,82 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
         goto failed;
     }
 
-    if (ngx_wavm_module_is_wat(module)) {
-        ngx_log_debug1(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                       "wasm compiling wat at \"%V\"", &module->path);
+    ngx_wavm_err_init(&e);
 
-        if (ngx_wrt_wat2wasm(&file_bytes, &wasm_bytes, &res) != NGX_OK) {
+    if (ngx_wavm_state(module, NGX_WAVM_MODULE_ISWAT)) {
+        ngx_log_debug1(NGX_LOG_DEBUG_WASM, vm->log, 0,
+                       "wasm compiling wat at \"%V\"",
+                       &module->path);
+
+        rc = ngx_wrt_wat2wasm(&file_bytes, &module->bytes, &e);
+
+        wasm_byte_vec_delete(&file_bytes);
+
+        if (rc != NGX_OK) {
             err = NGX_WAVM_EMPTY_CHAR;
             goto error;
         }
 
-        wasm_byte_vec_delete(&file_bytes);
-
-        bytes = &wasm_bytes;
-
     } else {
-        bytes = &file_bytes;
+        module->bytes.size = file_bytes.size;
+        module->bytes.data = file_bytes.data;
     }
 
-    /* load wasm */
+    rc = ngx_wrt_module_validate(vm->store, &module->bytes, &e);
+    if (rc != NGX_OK) {
+        err = NGX_WAVM_EMPTY_CHAR;
+        goto error;
+    }
+
+    module->state |= NGX_WAVM_MODULE_LOADED;
+
+    rc = NGX_OK;
+    goto done;
+
+error:
+
+    ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, &e,
+                       "failed loading \"%V\" module bytes: %s",
+                       &module->name, err);
+
+failed:
+
+    rc = NGX_ERROR;
+
+done:
+
+    return rc;
+}
+
+
+static ngx_int_t
+ngx_wavm_module_load(ngx_wavm_module_t *module)
+{
+    size_t                    i;
+    u_char                   *p, *err = NGX_WAVM_NOMEM_CHAR;
+    ngx_uint_t                rc;
+    ngx_wavm_t               *vm;
+    ngx_wavm_func_t          *func;
+    ngx_wavm_err_t            e;
+    wasm_exporttype_t        *exporttype;
+    const wasm_importtype_t  *importtype;
+    const wasm_name_t        *exportname, *importmodule;
+
+    if (ngx_wavm_state(module, NGX_WAVM_MODULE_READY)) {
+        return NGX_OK;
+    }
+
+    vm = module->vm;
+
+    if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LOADED)) {
+        goto unreachable;
+    }
+
+    ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL,
+                       "loading \"%V\" module",
+                       &module->name);
+
+    ngx_wavm_err_init(&e);
 
     if (ngx_wrt_module_new(
 #if (NGX_WASM_HAVE_WASMTIME)
@@ -389,34 +453,20 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
 #else
             vm->store,
 #endif
-            bytes, &module->module, &res)
+            &module->bytes, &module->module, &e)
         != NGX_OK)
     {
         err = NGX_WAVM_EMPTY_CHAR;
         goto error;
     }
 
-    module->state |= NGX_WAVM_MODULE_LOADED;
-
-loaded:
-
     wasm_module_imports(module->module, &module->imports);
     wasm_module_exports(module->module, &module->exports);
 
+#if 1
     for (i = 0; i < module->imports.size; i++) {
         importtype = ((wasm_importtype_t **) module->imports.data)[i];
         importmodule = wasm_importtype_module(importtype);
-#if (NGX_DEBUG)
-        importname = wasm_importtype_name(importtype);
-#endif
-
-        ngx_log_debug7(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                       "wasm checking \"%V\" module import \"%*s.%*s\" "
-                       "(%ui/%ui)",
-                       &module->name,
-                       importmodule->size, importmodule->data,
-                       importname->size, importname->data,
-                       i + 1, module->imports.size);
 
         if (ngx_strncmp(importmodule->data, "env", 3) != 0) {
             continue;
@@ -425,11 +475,12 @@ loaded:
         if (wasm_externtype_kind(wasm_importtype_type(importtype))
             != WASM_EXTERN_FUNC)
         {
-            ngx_wavm_log_error(NGX_LOG_ALERT, vm->log, NULL, NULL,
+            ngx_wavm_log_error(NGX_LOG_ALERT, vm->log, NULL,
                                "NYI: module import type not supported");
             goto failed;
         }
     }
+#endif
 
     /* build exports lookups */
 
@@ -454,10 +505,16 @@ loaded:
                 goto error;
             }
 
+            func->exports_idx = i;
             func->module = module;
             func->name.len = exportname->size;
-            func->name.data = (u_char *) exportname->data;
-            func->exports_idx = i;
+            func->name.data = ngx_pnalloc(vm->pool, func->name.len + 1);
+            if (func->name.data == NULL) {
+                goto error;
+            }
+
+            p = ngx_copy(func->name.data, exportname->data, func->name.len);
+            *p = '\0';
 
             ngx_wasm_sn_init(&func->sn, &func->name);
             ngx_wasm_sn_rbtree_insert(&module->funcs_tree, &func->sn);
@@ -476,24 +533,23 @@ loaded:
     module->state |= NGX_WAVM_MODULE_READY;
 
     rc = NGX_OK;
-
     goto done;
 
 error:
 
-    ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, res, NULL,
+    ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, &e,
                        "failed loading \"%V\" module: %s",
                        &module->name, err);
 
 failed:
 
+    module->state |= NGX_WAVM_MODULE_INVALID;
+
     rc = NGX_ERROR;
 
 done:
 
-    if (bytes) {
-        wasm_byte_vec_delete(bytes);
-    }
+    wasm_byte_vec_delete(&module->bytes);
 
     return rc;
 
@@ -505,74 +561,25 @@ unreachable:
 }
 
 
-static void
-ngx_wavm_module_free(ngx_wavm_module_t *module)
-{
-    ngx_queue_t                *q;
-    ngx_str_node_t             *sn;
-    ngx_rbtree_node_t         **root, **sentinel, *node;
-    ngx_wavm_t                 *vm = module->vm;
-    ngx_wavm_linked_module_t   *lmodule;
-    ngx_wavm_func_t            *func;
-
-    ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                   "wasm free \"%V\" module in \"%V\" vm"
-                   " (vm: %p, module: %p)",
-                   &module->name, vm->name, vm, module);
-
-    root = &module->funcs_tree.root;
-    sentinel = &module->funcs_tree.sentinel;
-
-    while (*root != *sentinel) {
-        node = ngx_rbtree_min(*root, *sentinel);
-        sn = ngx_wasm_sn_n2sn(node);
-        func = ngx_wasm_sn_sn2data(sn, ngx_wavm_func_t, sn);
-
-        ngx_rbtree_delete(&module->funcs_tree, node);
-
-        ngx_pfree(vm->pool, func);
-    }
-
-    if (module->module) {
-        wasm_module_delete(module->module);
-        wasm_importtype_vec_delete(&module->imports);
-        wasm_exporttype_vec_delete(&module->exports);
-    }
-
-    while (!ngx_queue_empty(&module->lmodules)) {
-       q = ngx_queue_head(&module->lmodules);
-       lmodule = ngx_queue_data(q, ngx_wavm_linked_module_t, q);
-       ngx_queue_remove(&lmodule->q);
-
-       ngx_wavm_linked_module_free(lmodule);
-    }
-
-    if (module->name.data) {
-        ngx_pfree(vm->pool, module->name.data);
-    }
-
-    if (module->path.data) {
-        ngx_pfree(vm->pool, module->path.data);
-    }
-
-    ngx_pfree(vm->pool, module);
-}
-
-
 ngx_wavm_linked_module_t *
 ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
 {
     size_t                     i;
     u_char                    *err = NGX_WAVM_NOMEM_CHAR;
     ngx_str_t                  s;
-    ngx_wavm_t                *vm;
+    ngx_wavm_t                *vm = NULL;
     ngx_wavm_hfunc_t          *hfunc, **hfuncp;
-    ngx_wavm_linked_module_t  *lmodule;
+    ngx_wavm_linked_module_t  *lmodule = NULL;
     const wasm_importtype_t   *importtype;
     const wasm_name_t         *importmodule, *importname;
 
-    if (!ngx_wavm_module_loaded(module)) {
+    if (!ngx_wavm_state(module, NGX_WAVM_MODULE_READY)) {
         goto unreachable;
+    }
+
+    if (ngx_wavm_state(module, NGX_WAVM_MODULE_INVALID)) {
+        err = (u_char *) "invalid module";
+        goto error;
     }
 
     vm = module->vm;
@@ -611,8 +618,8 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
                        i + 1, module->imports.size);
 
 #if (NGX_DEBUG)
-        ngx_wasm_assert(wasm_externtype_kind(wasm_importtype_type(importtype))
-                        == WASM_EXTERN_FUNC);
+       ngx_wasm_assert(wasm_externtype_kind(wasm_importtype_type(importtype))
+                       == WASM_EXTERN_FUNC);
 #endif
 
         s.len = importname->size;
@@ -624,7 +631,7 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
         }
 
         if (hfunc == NULL) {
-            ngx_wavm_log_error(NGX_LOG_ERR, vm->log, NULL, NULL,
+            ngx_wavm_log_error(NGX_LOG_ERR, vm->log, NULL,
                                "failed importing \"env.%*s\": "
                                "missing host function",
                                importname->size, importname->data);
@@ -651,7 +658,7 @@ done:
 
 error:
 
-    ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL, NULL,
+    ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL,
                        "failed linking \"%V\" module with \"%V\" "
                        "host interface: %s",
                        &module->name, &host->name, err);
@@ -666,6 +673,64 @@ unreachable:
 
     ngx_wasm_assert(0);
     return NULL;
+}
+
+
+static void
+ngx_wavm_module_free(ngx_wavm_module_t *module)
+{
+    ngx_queue_t                *q;
+    ngx_str_node_t             *sn;
+    ngx_rbtree_node_t         **root, **sentinel, *node;
+    ngx_wavm_t                 *vm = module->vm;
+    ngx_wavm_linked_module_t   *lmodule;
+    ngx_wavm_func_t            *func;
+
+    ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
+                   "wasm free \"%V\" module in \"%V\" vm"
+                   " (vm: %p, module: %p)",
+                   &module->name, vm->name, vm, module);
+
+    root = &module->funcs_tree.root;
+    sentinel = &module->funcs_tree.sentinel;
+
+    while (*root != *sentinel) {
+        node = ngx_rbtree_min(*root, *sentinel);
+        sn = ngx_wasm_sn_n2sn(node);
+        func = ngx_wasm_sn_sn2data(sn, ngx_wavm_func_t, sn);
+
+        ngx_rbtree_delete(&module->funcs_tree, node);
+
+        ngx_pfree(vm->pool, func);
+    }
+
+    if (module->module) {
+        wasm_module_delete(module->module);
+        wasm_importtype_vec_delete(&module->imports);
+        wasm_exporttype_vec_delete(&module->exports);
+    }
+
+    if (module->bytes.size) {
+        wasm_byte_vec_delete(&module->bytes);
+    }
+
+    while (!ngx_queue_empty(&module->lmodules)) {
+       q = ngx_queue_head(&module->lmodules);
+       lmodule = ngx_queue_data(q, ngx_wavm_linked_module_t, q);
+       ngx_queue_remove(&lmodule->q);
+
+       ngx_wavm_linked_module_free(lmodule);
+    }
+
+    if (module->name.data) {
+        ngx_pfree(vm->pool, module->name.data);
+    }
+
+    if (module->path.data) {
+        ngx_pfree(vm->pool, module->path.data);
+    }
+
+    ngx_pfree(vm->pool, module);
 }
 
 
@@ -695,7 +760,7 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
 {
     ngx_str_node_t  *sn;
 
-    if (!ngx_wavm_module_ready(module)) {
+    if (!ngx_wavm_state(module, NGX_WAVM_MODULE_READY)) {
         return NULL;
     }
 
@@ -711,10 +776,6 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
 ngx_int_t
 ngx_wavm_ctx_init(ngx_wavm_t *vm, ngx_wavm_ctx_t *ctx)
 {
-    if (!ngx_wavm_ready(vm)) {
-        return NGX_ERROR;
-    }
-
     ctx->vm = vm;
     ctx->store = wasm_store_new(vm->engine);
     if (ctx->store == NULL) {
@@ -760,15 +821,14 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
 {
     size_t                  i;
     u_char                 *err = NGX_WAVM_NOMEM_CHAR;
-    ngx_wrt_res_t          *res = NULL;
     ngx_wavm_t             *vm;
     ngx_wavm_module_t      *module;
     ngx_wavm_instance_t    *instance;
     ngx_wavm_hfunc_tctx_t  *tctx;
     ngx_wavm_hfunc_t       *hfunc;
+    ngx_wavm_err_t          e;
     wasm_func_t            *func;
     wasm_extern_t          *export;
-    wasm_trap_t            *trap = NULL;
 
     module = lmodule->module;
     vm = module->vm;
@@ -844,8 +904,10 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
 
     /* instantiate */
 
+    ngx_wavm_err_init(&e);
+
     if (ngx_wrt_instance_new(ctx->store, module->module, &instance->env,
-                             &instance->instance, &trap, &res) != NGX_OK)
+                             &instance->instance, &e) != NGX_OK)
     {
         err = NGX_WAVM_EMPTY_CHAR;
         goto error;
@@ -867,7 +929,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
 
 error:
 
-    ngx_wavm_log_error(NGX_LOG_ERR, vm->log, NULL, trap,
+    ngx_wavm_log_error(NGX_LOG_ERR, vm->log, &e,
                        "failed to instantiate \"%V\" module: %s",
                        &module->name, err);
 
@@ -885,9 +947,8 @@ ngx_wavm_instance_call(ngx_wavm_instance_t *instance,
     wasm_val_t rets[], ngx_uint_t nrets)
 {
     ngx_int_t        rc;
-    ngx_wrt_res_t   *res = NULL;
+    ngx_wavm_err_t   e;
     wasm_extern_t   *export;
-    wasm_trap_t     *trap;
     wasm_val_vec_t   vargs, vrets;
 
     wasm_val_vec_new(&vargs, nargs, args);
@@ -899,10 +960,12 @@ ngx_wavm_instance_call(ngx_wavm_instance_t *instance,
 
     ngx_wasm_assert(wasm_extern_kind(export) == WASM_EXTERN_FUNC);
 
+    ngx_wavm_err_init(&e);
+
     rc = ngx_wrt_func_call(wasm_extern_as_func(export),
-                           &vargs, &vrets, &trap, &res);
+                           &vargs, &vrets, &e);
     if (rc != NGX_OK) {
-        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, res, trap, NULL);
+        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &e, NULL);
     }
 
     wasm_val_vec_delete(&vargs);
@@ -939,46 +1002,35 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
 }
 
 
-void
-ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log,
-    ngx_wrt_res_t *res, wasm_trap_t *trap,
-#if (NGX_HAVE_VARIADIC_MACROS)
+static void
+ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wavm_err_t *e,
     const char *fmt, ...)
-
-#else
-    const char *fmt, va_list args)
-#endif
 {
-#if (NGX_HAVE_VARIADIC_MACROS)
-    va_list              args;
-#endif
-    u_char              *p, *last, errstr[NGX_MAX_ERROR_STR];
-    wasm_message_t       trapmsg;
+    va_list          args;
+    u_char          *p, *last, errstr[NGX_MAX_ERROR_STR];
+    wasm_message_t   trapmsg;
 
     last = errstr + NGX_MAX_ERROR_STR;
     p = &errstr[0];
 
     if (fmt) {
-#if (NGX_HAVE_VARIADIC_MACROS)
         va_start(args, fmt);
         p = ngx_vslprintf(p, last, fmt, args);
         va_end(args);
-
-#else
-        p = ngx_vslprintf(p, last, fmt, args);
-#endif
     }
 
-    if (trap) {
-        wasm_trap_message(trap, &trapmsg);
+    if (e && e->trap) {
+        wasm_trap_message(e->trap, &trapmsg);
 
         p = ngx_slprintf(p, last, "%*s", trapmsg.size, trapmsg.data);
 
         wasm_byte_vec_delete(&trapmsg);
-        wasm_trap_delete(trap);
+        wasm_trap_delete(e->trap);
     }
 
-    p = ngx_wrt_error_log_handler(res, p, last - p);
+    if (e && e->res) {
+        p = ngx_wrt_error_log_handler(e->res, p, last - p);
+    }
 
     ngx_wasm_log_error(level, log, 0, "%*s", p - errstr, errstr);
 }

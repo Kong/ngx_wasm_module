@@ -52,11 +52,7 @@ ngx_int_t ngx_wasm_bytes_from_path(wasm_byte_vec_t *out, u_char *path,
     ngx_log_t *log);
 
 void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
-#if (NGX_HAVE_VARIADIC_MACROS)
     const char *fmt, ...);
-#else
-    const char *fmt, va_list args);
-#endif
 
 extern ngx_module_t  ngx_wasm_module;
 
@@ -84,6 +80,22 @@ ngx_wasm_sn_rbtree_lookup(ngx_rbtree_t *rbtree, ngx_str_t *str)
 
     return ngx_str_rbtree_lookup(rbtree, str, hash);
 }
+
+
+/* subsystems & phases */
+
+
+typedef struct {
+    ngx_str_t                                name;
+    ngx_uint_t                               index;
+    ngx_uint_t                               on;
+} ngx_wasm_phase_t;
+
+
+typedef struct {
+    ngx_uint_t                               nphases;
+    ngx_wasm_phase_t                        *phases;
+} ngx_wasm_subsystem_t;
 
 
 #endif /* _NGX_WASM_H_INCLUDED_ */

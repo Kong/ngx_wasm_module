@@ -306,6 +306,13 @@ ngx_http_wasm_postconfig(ngx_conf_t *cf)
 static ngx_int_t
 ngx_http_wasm_init(ngx_cycle_t *cycle)
 {
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_wasm_init_process(ngx_cycle_t *cycle)
+{
     ngx_queue_t                *q;
     ngx_http_wasm_main_conf_t  *mcf;
     ngx_http_wasm_loc_conf_t   *loc;
@@ -318,18 +325,9 @@ ngx_http_wasm_init(ngx_cycle_t *cycle)
     {
         loc = ngx_queue_data(q, ngx_http_wasm_loc_conf_t, q);
 
-        if (ngx_wasm_ops_engine_init(loc->ops_engine) != NGX_OK) {
-            return NGX_ERROR;
-        }
+        ngx_wasm_ops_engine_init(loc->ops_engine);
     }
 
-    return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_wasm_init_process(ngx_cycle_t *cycle)
-{
     return NGX_OK;
 }
 
@@ -411,6 +409,12 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_REWRITE_PHASE);
     if (rc != NGX_OK) {
+        if (rc == NGX_ERROR) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        /* NGX_DECLINED */
+
         return rc;
     }
 

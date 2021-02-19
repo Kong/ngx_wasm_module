@@ -80,6 +80,15 @@ add_block_preprocessor(sub {
     {
         $block->set_value("skip_eval", sprintf '%d: $::nginxV !~ m/--with-debug/', $1);
     }
+
+    # --- skip_valgrind: 3
+
+    if (defined $block->skip_valgrind
+        && !defined $block->skip_eval
+        && $block->skip_valgrind =~ m/\s*(\d+)/)
+    {
+        $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND}', $1);
+    }
 });
 
 no_long_string();

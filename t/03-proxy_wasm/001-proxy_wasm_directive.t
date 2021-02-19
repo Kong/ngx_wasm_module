@@ -72,12 +72,12 @@ qr/\[emerg\] .*? invalid module name ""/
   (func $nop)
   (export "nop" (func $nop))
 )
+--- error_code: 500
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] unknown proxy_wasm ABI version/
+qr/\[emerg\] .*? \[wasm\] unknown ABI version/
 --- no_error_log
 [error]
 [alert]
---- must_die
 
 
 
@@ -97,16 +97,17 @@ qr/\[emerg\] .*? \[wasm\] unknown proxy_wasm ABI version/
   (func $nop)
   (export "proxy_abi_version_0_2_0" (func $nop))
 )
+--- error_code: 500
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] incompatible proxy_wasm ABI version/
+qr/\[emerg\] .*? \[wasm\] incompatible ABI version/
 --- no_error_log
 [error]
 [alert]
---- must_die
 
 
 
 === TEST 6: proxy_wasm directive - hello_world example
+--- skip_valgrind: 4
 --- main_config
     wasm {
         module hello_world $TEST_NGINX_CRATES_DIR/proxy_wasm_hello_world.wasm;

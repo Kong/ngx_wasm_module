@@ -10,23 +10,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: module directive - sanity empty .wat module
---- main_config
-    wasm {
-        module a $TEST_NGINX_HTML_DIR/a.wat;
-    }
---- user_files
->>> a.wat
-(module)
---- error_log eval
-qr/\[info\] .*? \[wasm\] loading "a" module from ".*?a\.wat" <vm: "main", runtime: ".*?">/
---- no_error_log
-[error]
-[emerg]
-
-
-
-=== TEST 2: module directive - sanity empty .wasm module
+=== TEST 1: module directive - valid .wasm module
 --- main_config eval
 qq{
     wasm {
@@ -34,14 +18,14 @@ qq{
     }
 }
 --- error_log eval
-qr/\[info\] .*? \[wasm\] loading "ngx-rust-tests" module from ".*?ngx_rust_tests\.wasm" <vm: "main", runtime: ".*?">/
+qr/\[info\] .*? \[wasm\] loading "ngx-rust-tests" module <vm: "main", runtime: ".*?">/
 --- no_error_log
 [error]
 [emerg]
 
 
 
-=== TEST 3: module directive - sanity module imports (functions only)
+=== TEST 2: module directive - valid .wat module
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -53,14 +37,15 @@ qr/\[info\] .*? \[wasm\] loading "ngx-rust-tests" module from ".*?ngx_rust_tests
    (import "env" "ngx_log" (func))
 )
 --- error_log eval
-qr/\[info\] .*? \[wasm\] loading "a" module from ".*?a\.wat" <vm: "main", runtime: ".*?">/
+qr/\[info\] .*? \[wasm\] loading "a" module <vm: "main", runtime: ".*?">/
 --- no_error_log
 [error]
 [emerg]
 
 
 
-=== TEST 4: module directive - multiple modules
+=== TEST 3: module directive - multiple valid modules
+--- skip_no_debug: 4
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -70,14 +55,14 @@ qr/\[info\] .*? \[wasm\] loading "a" module from ".*?a\.wat" <vm: "main", runtim
 >>> a.wat
 (module)
 --- error_log eval
-[qr/\[info\] .*? \[wasm\] loading "a" module from ".*?a\.wat"/,
-qr/\[info\] .*? \[wasm\] loading "b" module from ".*?a\.wat"/]
+[qr/\[debug\] .*? wasm loading "a" module bytes from ".*?a\.wat"/,
+qr/\[debug\] .*? wasm loading "b" module bytes from ".*?a\.wat"/]
 --- no_error_log
 [emerg]
 
 
 
-=== TEST 5: module directive - invalid arguments
+=== TEST 4: module directive - invalid arguments
 --- main_config
     wasm {
         module $TEST_NGINX_HTML_DIR/a.wat;
@@ -91,7 +76,7 @@ qr/\[emerg\] .*? invalid number of arguments in "module" directive/
 
 
 
-=== TEST 6: module directive - bad name
+=== TEST 5: module directive - bad name
 --- main_config
     wasm {
         module '' $TEST_NGINX_HTML_DIR/a.wat;
@@ -105,7 +90,7 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 
-=== TEST 7: module directive - bad path
+=== TEST 6: module directive - bad path
 --- main_config
     wasm {
         module a '';
@@ -119,7 +104,7 @@ qr/\[emerg\] .*? invalid module path ""/
 
 
 
-=== TEST 8: module directive - already defined
+=== TEST 7: module directive - already defined
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -137,7 +122,7 @@ qr/\[emerg\] .*? module "a" already defined/
 
 
 
-=== TEST 9: module directive - no such path
+=== TEST 8: module directive - no such path
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/none.wat;
@@ -151,7 +136,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 10: module directive - no .wat bytes
+=== TEST 9: module directive - no .wat bytes
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -160,8 +145,8 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 >>> a.wat
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] failed loading "a" module:/,
-    qr/expected at least one module field/
+    qr/\[info\] .*? \[wasm\] initializing "main" wasm VM/,
+    qr/\[emerg\] .*? \[wasm\] failed loading "a" module bytes: expected at least one module field/
 ]
 --- no_error_log
 [error]
@@ -169,7 +154,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 11: module directive - no .wasm bytes
+=== TEST 10: module directive - no .wasm bytes
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wasm;
@@ -178,8 +163,8 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 >>> a.wasm
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] failed loading "a" module:/,
-    qr/Unexpected EOF/
+    qr/\[info\] .*? \[wasm\] initializing "main" wasm VM/,
+    qr/\[emerg\] .*? \[wasm\] failed loading "a" module bytes: Unexpected EOF/
 ]
 --- no_error_log
 [error]
@@ -187,7 +172,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 12: module directive - invalid module
+=== TEST 11: module directive - invalid .wat module
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -200,8 +185,8 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 )
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] failed loading "a" module:/,
-    qr/extra tokens remaining after parse/
+    qr/\[info\] .*? \[wasm\] initializing "main" wasm VM/,
+    qr/\[emerg\] .*? \[wasm\] failed loading "a" module bytes: extra tokens remaining after parse/
 ]
 --- no_error_log
 [error]
@@ -209,7 +194,8 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 13: module directive - invalid module (NYI import types)
+=== TEST 12: module directive - invalid module (NYI import types)
+--- SKIP
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -221,17 +207,14 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
     (import "env" "global" (global f32))
 )
 --- error_log eval
-[
-    qr/\[info\] .*? \[wasm\] loading "a" module from ".*?a\.wat" <vm: "main", runtime: ".*?">/,
-    qr/\[alert\] .*? \[wasm\] NYI: module import type not supported <vm: "main", runtime: ".*?">/
-]
+qr/\[alert\] .*? \[wasm\] NYI: module import type not supported <vm: "main", runtime: ".*?">/
 --- no_error_log
 [error]
---- must_die
+[emerg]
 
 
 
-=== TEST 14: module directive - invalid module (missing host function)
+=== TEST 13: module directive - invalid module (missing host function)
 --- SKIP
 --- main_config
     wasm {

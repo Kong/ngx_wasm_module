@@ -139,7 +139,7 @@ qr/\[emerg\] .*? \[wasm\] no "a" module defined/
 
 
 
-=== TEST 9: wasm_call directive - no such function
+=== TEST 9: wasm_call directive - no such function in log phase
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -160,18 +160,42 @@ qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "a" module/
 --- no_error_log
 [error]
 [crit]
---- must_die
 
 
 
-=== TEST 10: wasm_call directive - catch runtime error sanity
+=== TEST 10: wasm_call directive - no such function in rewrite phase
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
     location /t {
-        wasm_call log a div0;
+        wasm_call rewrite a nonexist;
+        return 200;
+    }
+--- user_files
+>>> a.wat
+(module
+  (func $nop)
+  (export "nop" (func $nop))
+)
+--- error_code: 500
+--- error_log eval
+qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "a" module/
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 11: wasm_call directive - catch runtime error sanity
+--- main_config
+    wasm {
+        module a $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- config
+    location /t {
+        wasm_call rewrite a div0;
         return 200;
     }
 --- user_files
@@ -183,6 +207,7 @@ qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "a" module/
         i32.div_u
         drop)
 )
+--- error_code: 500
 --- error_log eval
 qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?integer divide by zero/
 --- no_error_log
@@ -191,7 +216,7 @@ qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?integer divide by zero/
 
 
 
-=== TEST 11: wasm_call directive - sanity 'rewrite' phase in location{} block
+=== TEST 12: wasm_call directive - sanity 'rewrite' phase in location{} block
 --- skip_no_debug: 4
 --- main_config
     wasm {
@@ -216,7 +241,7 @@ wasm ops calling "a.nop" in "rewrite" phase
 
 
 
-=== TEST 12: wasm_call directive - sanity 'content' phase in location{} block
+=== TEST 13: wasm_call directive - sanity 'content' phase in location{} block
 --- SKIP
 --- skip_no_debug: 4
 --- main_config
@@ -241,7 +266,7 @@ wasm ops calling "a.nop" in "content" phase
 
 
 
-=== TEST 13: wasm_call directive - sanity 'log' phase in location{} block
+=== TEST 14: wasm_call directive - sanity 'log' phase in location{} block
 --- skip_no_debug: 4
 --- main_config
     wasm {
@@ -266,7 +291,7 @@ wasm ops calling "a.nop" in "log" phase
 
 
 
-=== TEST 14: wasm_call directive - multiple calls in location{} block
+=== TEST 15: wasm_call directive - multiple calls in location{} block
 --- skip_no_debug: 4
 --- main_config
     wasm {
@@ -292,7 +317,7 @@ wasm ops calling "a.nop" in "log" phase
 
 
 
-=== TEST 15: wasm_call directive - multiple calls in server{} block
+=== TEST 16: wasm_call directive - multiple calls in server{} block
 --- skip_no_debug: 4
 --- main_config
     wasm {
@@ -319,7 +344,7 @@ wasm ops calling "a.nop" in "log" phase
 
 
 
-=== TEST 16: wasm_call directive - multiple calls in http{} block
+=== TEST 17: wasm_call directive - multiple calls in http{} block
 --- skip_no_debug: 4
 --- main_config
     wasm {
@@ -346,7 +371,7 @@ wasm ops calling "a.nop" in "log" phase
 
 
 
-=== TEST 17: wasm_call directive - mixed server{} and location{} blocks
+=== TEST 18: wasm_call directive - mixed server{} and location{} blocks
 --- skip_no_debug: 4
 --- main_config
     wasm {
@@ -374,7 +399,7 @@ wasm ops calling "a.nop" in "log" phase
 
 
 
-=== TEST 18: wasm_call directive - multiple modules/calls/phases/blocks
+=== TEST 19: wasm_call directive - multiple modules/calls/phases/blocks
 --- skip_no_debug: 4
 --- main_config
     wasm {
