@@ -131,7 +131,7 @@ ngx_int_t ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path);
 ngx_wavm_module_t *ngx_wavm_module_lookup(ngx_wavm_t *vm, ngx_str_t *name);
 ngx_wavm_linked_module_t *ngx_wavm_module_link(ngx_wavm_module_t *module,
     ngx_wavm_host_def_t *host);
-ngx_wavm_func_t *ngx_wavm_module_func_lookup(ngx_wavm_module_t *module,
+ngx_wavm_funcref_t *ngx_wavm_module_func_lookup(ngx_wavm_module_t *module,
     ngx_str_t *name);
 
 
@@ -141,12 +141,15 @@ void ngx_wavm_ctx_destroy(ngx_wavm_ctx_t *ctx);
 
 ngx_wavm_instance_t *ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule,
     ngx_wavm_ctx_t *ctx);
-ngx_int_t ngx_wavm_instance_call(ngx_wavm_instance_t *instance,
-    ngx_wavm_func_t *func, wasm_val_t args[], ngx_uint_t nargs,
+ngx_int_t ngx_wavm_instance_callref(ngx_wavm_instance_t *instance,
+    ngx_wavm_funcref_t *func, wasm_val_t args[], ngx_uint_t nargs,
     wasm_val_t rets[], ngx_uint_t nrets);
-ngx_int_t ngx_wavm_instance_call2(ngx_wavm_instance_t *instance,
-    ngx_wavm_func_t *func, wasm_val_vec_t *args, wasm_val_vec_t *rets);
+ngx_int_t ngx_wavm_instance_callref2(ngx_wavm_instance_t *instance,
+    ngx_wavm_funcref_t *func, wasm_val_vec_t *args, wasm_val_vec_t *rets);
 void ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance);
+
+ngx_int_t ngx_wavm_func_call(wasm_func_t *f, wasm_val_vec_t *args,
+    wasm_val_vec_t *rets, ngx_wavm_err_t *e);
 
 
 #endif /* _NGX_WAVM_H_INCLUDED_ */

@@ -146,10 +146,7 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 static ngx_int_t
 ngx_wasm_core_init(ngx_cycle_t *cycle)
 {
-    ngx_wavm_t       *vm;
-
-    ngx_wasm_log_error(NGX_LOG_NOTICE, cycle->log, 0,
-                       "wasm core INIT");
+    ngx_wavm_t  *vm;
 
     vm = ngx_wasm_main_vm(cycle);
     if (vm == NULL) {
@@ -168,9 +165,6 @@ static ngx_int_t
 ngx_wasm_core_init_process(ngx_cycle_t *cycle)
 {
     ngx_wavm_t  *vm;
-
-    ngx_wasm_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0,
-                       "wasm core INIT PROCESS");
 
     vm = ngx_wasm_main_vm(cycle);
     if (vm == NULL) {

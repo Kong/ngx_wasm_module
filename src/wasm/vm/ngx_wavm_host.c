@@ -172,9 +172,8 @@ ngx_wavm_hfuncs_trampoline(void *env,
     hrets = (wasm_val_t *) rets->data;
 #endif
 
-    ngx_log_debug2(NGX_LOG_DEBUG_WASM, instance->log, 0,
-                   "wasm hfuncs trampoline (hfunc: \"%V\", tctx: %p)",
-                   &hfunc->def->name, tctx);
+    dd("wasm hfuncs trampoline (hfunc: \"%V\", tctx: %p)",
+       &hfunc->def->name, tctx);
 
     ngx_str_null(&instance->trapmsg);
 
@@ -183,8 +182,7 @@ ngx_wavm_hfuncs_trampoline(void *env,
 
     rc = hfunc->def->ptr(instance, hargs, hrets);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_WASM, instance->log, 0,
-                   "wasm hfuncs trampoline rc: \"%d\"", rc);
+    dd("wasm hfuncs trampoline rc: %d", rc);
 
     switch (rc) {
 

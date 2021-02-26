@@ -81,9 +81,9 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
             switch (op->code) {
 
             case NGX_WASM_OP_CALL:
-                op->conf.call.function = ngx_wavm_module_func_lookup(op->module,
+                op->conf.call.funcref = ngx_wavm_module_func_lookup(op->module,
                                              &op->conf.call.func_name);
-                if (op->conf.call.function == NULL) {
+                if (op->conf.call.funcref == NULL) {
                     ngx_wasm_log_error(NGX_LOG_EMERG, engine->pool->log, 0,
                                        "no \"%V\" function in \"%V\" module",
                                        &op->conf.call.func_name,
@@ -132,15 +132,15 @@ ngx_wasm_op_add_helper(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
     ngx_wasm_op_t            **opp;
 
     if (mod_name->len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid module name \"%V\"",
-                           mod_name);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "invalid module name \"%V\"", mod_name);
         return NGX_ERROR;
     }
 
     op->module = ngx_wavm_module_lookup(ops_engine->vm, mod_name);
     if (op->module == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "[wasm] no \"%V\" module defined", mod_name);
+                           "no \"%V\" module defined", mod_name);
         return NGX_ERROR;
     }
 
@@ -259,9 +259,9 @@ ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
 
     op->code = NGX_WASM_OP_PROXY_WASM;
     op->handler = ngx_wasm_op_proxy_wasm_handler;
+    op->host = &ngx_proxy_wasm_host;
     op->on_phases = (1 << NGX_HTTP_REWRITE_PHASE)
                     | (1 << NGX_HTTP_LOG_PHASE);
-    op->host = &ngx_proxy_wasm_host;
 
     if (ngx_wasm_op_add_helper(cf, ops_engine, op, mod_name) != NGX_OK) {
         return NULL;
@@ -322,26 +322,26 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wasm_phase_t *phase,
     ngx_wasm_op_t *op)
 {
     ngx_wavm_instance_t  *instance;
-    ngx_wavm_func_t      *function;
+    ngx_wavm_funcref_t   *funcref;
     ngx_int_t             rc;
 
     ngx_wasm_assert(op->code == NGX_WASM_OP_CALL);
 
-    function = op->conf.call.function;
-    if (function == NULL) {
+    funcref = op->conf.call.funcref;
+    if (funcref == NULL) {
         return NGX_ERROR;
     }
 
     ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
                    "wasm ops calling \"%V.%V\" in \"%V\" phase",
-                   &op->module->name, &function->name, &phase->name);
+                   &op->module->name, &funcref->name, &phase->name);
 
     instance = ngx_wavm_instance_create(op->lmodule, &ctx->wv_ctx);
     if (instance == NULL) {
         return NGX_ERROR;
     }
 
-    rc = ngx_wavm_instance_call(instance, function, NULL, 0, NULL, 0);
+    rc = ngx_wavm_instance_callref(instance, funcref, NULL, 0, NULL, 0);
 
     return rc;
 }

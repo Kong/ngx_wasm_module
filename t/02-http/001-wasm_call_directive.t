@@ -131,7 +131,7 @@ qr/\[emerg\] .*? unsupported phase "post_read"/
         return 200;
     }
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] no "a" module defined/
+qr/\[emerg\] .*? no "a" module defined/
 --- no_error_log
 [error]
 [crit]
@@ -156,7 +156,7 @@ qr/\[emerg\] .*? \[wasm\] no "a" module defined/
   (export "nop" (func $nop))
 )
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "a" module/
+qr/\[emerg\] .*? no "nonexist" function in "a" module/
 --- no_error_log
 [error]
 [crit]

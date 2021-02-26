@@ -11,8 +11,6 @@ static void ngx_wavm_engine_destroy(ngx_wavm_t *vm);
 static void ngx_wavm_module_free(ngx_wavm_module_t *module);
 static ngx_int_t ngx_wavm_module_load_bytes(ngx_wavm_module_t *module);
 static ngx_int_t ngx_wavm_module_load(ngx_wavm_module_t *module);
-static ngx_int_t ngx_wavm_func_call(wasm_func_t *f, wasm_val_vec_t *args,
-    wasm_val_vec_t *rets, ngx_wavm_err_t *e);
 static void ngx_wavm_linked_module_free(ngx_wavm_linked_module_t *lmodule);
 static void ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log,
     ngx_wavm_err_t *e, const char *fmt, ...);
@@ -377,8 +375,7 @@ ngx_wavm_module_load_bytes(ngx_wavm_module_t *module)
 
     if (ngx_wavm_state(module, NGX_WAVM_MODULE_ISWAT)) {
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                       "wasm compiling wat at \"%V\"",
-                       &module->path);
+                       "wasm compiling wat at \"%V\"", &module->path);
 
         rc = ngx_wrt_wat2wasm(&file_bytes, &module->bytes, &e);
 
@@ -428,7 +425,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
     u_char                   *p, *err = NGX_WAVM_NOMEM_CHAR;
     ngx_uint_t                rc;
     ngx_wavm_t               *vm;
-    ngx_wavm_func_t          *func;
+    ngx_wavm_funcref_t       *func;
     ngx_wavm_err_t            e;
     wasm_exporttype_t        *exporttype;
     const wasm_importtype_t  *importtype;
@@ -494,16 +491,15 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
         exporttype = ((wasm_exporttype_t **) module->exports.data)[i];
         exportname = wasm_exporttype_name(exporttype);
 
-        ngx_log_debug5(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                       "wasm caching \"%V\" module export \"%*s\" (%ui/%ui)",
-                       &module->name, exportname->size, exportname->data,
-                       i + 1, module->exports.size);
+        dd("wasm caching \"%V\" module export \"%*s\" (%ui/%ui)",
+           &module->name, exportname->size, exportname->data,
+           i + 1, module->exports.size);
 
         switch (wasm_externtype_kind(
                 wasm_exporttype_type(exporttype))) {
 
         case WASM_EXTERN_FUNC:
-            func = ngx_palloc(vm->pool, sizeof(ngx_wavm_func_t));
+            func = ngx_palloc(vm->pool, sizeof(ngx_wavm_funcref_t));
             if (func == NULL) {
                 goto error;
             }
@@ -524,9 +520,6 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
 
             if (ngx_strncmp(exportname->data, "_start", 6) == 0) {
                 module->start_idx = i;
-                ngx_log_debug1(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                               "wasm caching _start at idx: %d", i);
-
             }
 
             break;
@@ -620,13 +613,9 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
             continue;
         }
 
-        ngx_log_debug7(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                       "wasm loading \"%V\" module import \"%*s.%*s\" "
-                       "(%ui/%ui)",
-                       &module->name,
-                       importmodule->size, importmodule->data,
-                       importname->size, importname->data,
-                       i + 1, module->imports.size);
+        dd("wasm loading \"%V\" module import \"%*s.%*s\" (%ui/%ui)",
+           &module->name, importmodule->size, importmodule->data,
+           importname->size, importname->data, i + 1, module->imports.size);
 
 #if (NGX_DEBUG)
        ngx_wasm_assert(wasm_externtype_kind(wasm_importtype_type(importtype))
@@ -695,7 +684,7 @@ ngx_wavm_module_free(ngx_wavm_module_t *module)
     ngx_rbtree_node_t         **root, **sentinel, *node;
     ngx_wavm_t                 *vm = module->vm;
     ngx_wavm_linked_module_t   *lmodule;
-    ngx_wavm_func_t            *func;
+    ngx_wavm_funcref_t         *func;
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
                    "wasm free \"%V\" module in \"%V\" vm"
@@ -708,7 +697,7 @@ ngx_wavm_module_free(ngx_wavm_module_t *module)
     while (*root != *sentinel) {
         node = ngx_rbtree_min(*root, *sentinel);
         sn = ngx_wasm_sn_n2sn(node);
-        func = ngx_wasm_sn_sn2data(sn, ngx_wavm_func_t, sn);
+        func = ngx_wasm_sn_sn2data(sn, ngx_wavm_funcref_t, sn);
 
         ngx_rbtree_delete(&module->funcs_tree, node);
 
@@ -766,7 +755,7 @@ ngx_wavm_linked_module_free(ngx_wavm_linked_module_t *lmodule)
 }
 
 
-ngx_wavm_func_t *
+ngx_wavm_funcref_t *
 ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
 {
     ngx_str_node_t  *sn;
@@ -780,7 +769,7 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
         return NULL;
     }
 
-    return ngx_wasm_sn_sn2data(sn, ngx_wavm_func_t, sn);
+    return ngx_wasm_sn_sn2data(sn, ngx_wavm_funcref_t, sn);
 }
 
 
@@ -968,7 +957,7 @@ error:
 }
 
 
-static ngx_int_t
+ngx_int_t
 ngx_wavm_func_call(wasm_func_t *f, wasm_val_vec_t *args, wasm_val_vec_t *rets,
     ngx_wavm_err_t *e)
 {
@@ -1002,8 +991,9 @@ ngx_wavm_func_call(wasm_func_t *f, wasm_val_vec_t *args, wasm_val_vec_t *rets,
 
 
 ngx_int_t
-ngx_wavm_instance_call(ngx_wavm_instance_t *instance, ngx_wavm_func_t *func,
-    wasm_val_t args[], ngx_uint_t nargs, wasm_val_t rets[], ngx_uint_t nrets)
+ngx_wavm_instance_callref(ngx_wavm_instance_t *instance,
+    ngx_wavm_funcref_t *func, wasm_val_t args[], ngx_uint_t nargs,
+    wasm_val_t rets[], ngx_uint_t nrets)
 {
     ngx_int_t        rc;
     wasm_val_vec_t   vargs, vrets;
@@ -1011,7 +1001,7 @@ ngx_wavm_instance_call(ngx_wavm_instance_t *instance, ngx_wavm_func_t *func,
     wasm_val_vec_new(&vargs, nargs, args);
     wasm_val_vec_new(&vrets, nrets, rets);
 
-    rc = ngx_wavm_instance_call2(instance, func, &vargs, &vrets);
+    rc = ngx_wavm_instance_callref2(instance, func, &vargs, &vrets);
 
     wasm_val_vec_delete(&vargs);
     wasm_val_vec_delete(&vrets);
@@ -1021,8 +1011,8 @@ ngx_wavm_instance_call(ngx_wavm_instance_t *instance, ngx_wavm_func_t *func,
 
 
 ngx_int_t
-ngx_wavm_instance_call2(ngx_wavm_instance_t *instance, ngx_wavm_func_t *func,
-    wasm_val_vec_t *args, wasm_val_vec_t *rets)
+ngx_wavm_instance_callref2(ngx_wavm_instance_t *instance,
+    ngx_wavm_funcref_t *func, wasm_val_vec_t *args, wasm_val_vec_t *rets)
 {
     ngx_int_t        rc;
     ngx_wavm_err_t   e;

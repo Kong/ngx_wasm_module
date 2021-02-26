@@ -129,56 +129,56 @@ struct ngx_proxy_wasm_module_s {
 
     /* integration */
 
-    ngx_wavm_func_t               *proxy_on_memory_allocate;
+    ngx_wavm_funcref_t            *proxy_on_memory_allocate;
 
     /* context */
 
-    ngx_wavm_func_t               *proxy_on_context_create;
-    ngx_wavm_func_t               *proxy_on_context_finalize;
+    ngx_wavm_funcref_t            *proxy_on_context_create;
+    ngx_wavm_funcref_t            *proxy_on_context_finalize;
 
     /* configuration */
 
-    ngx_wavm_func_t               *proxy_on_vm_start;
-    ngx_wavm_func_t               *proxy_on_configure; /* 0.1.0 */
-    //ngx_wavm_func_t               *proxy_on_plugin_start; /* vNEXT */
+    ngx_wavm_funcref_t            *proxy_on_vm_start;
+    ngx_wavm_funcref_t            *proxy_on_configure; /* 0.1.0 */
+    //ngx_wavm_funcref_t            *proxy_on_plugin_start; /* vNEXT */
 
     /* stream */
 
-    ngx_wavm_func_t               *proxy_on_new_connection;
-    ngx_wavm_func_t               *proxy_on_downstream_data;
-    ngx_wavm_func_t               *proxy_on_downstream_close;
-    ngx_wavm_func_t               *proxy_on_upstream_data;
-    ngx_wavm_func_t               *proxy_on_upstream_close;
+    ngx_wavm_funcref_t            *proxy_on_new_connection;
+    ngx_wavm_funcref_t            *proxy_on_downstream_data;
+    ngx_wavm_funcref_t            *proxy_on_downstream_close;
+    ngx_wavm_funcref_t            *proxy_on_upstream_data;
+    ngx_wavm_funcref_t            *proxy_on_upstream_close;
 
     /* http */
 
-    ngx_wavm_func_t               *proxy_on_http_request_headers;
-    ngx_wavm_func_t               *proxy_on_http_request_body;
-    ngx_wavm_func_t               *proxy_on_http_request_trailers;
-    ngx_wavm_func_t               *proxy_on_http_request_metadata;
-    ngx_wavm_func_t               *proxy_on_http_response_headers;
-    ngx_wavm_func_t               *proxy_on_http_response_body;
-    ngx_wavm_func_t               *proxy_on_http_response_trailers;
-    ngx_wavm_func_t               *proxy_on_http_response_metadata;
+    ngx_wavm_funcref_t            *proxy_on_http_request_headers;
+    ngx_wavm_funcref_t            *proxy_on_http_request_body;
+    ngx_wavm_funcref_t            *proxy_on_http_request_trailers;
+    ngx_wavm_funcref_t            *proxy_on_http_request_metadata;
+    ngx_wavm_funcref_t            *proxy_on_http_response_headers;
+    ngx_wavm_funcref_t            *proxy_on_http_response_body;
+    ngx_wavm_funcref_t            *proxy_on_http_response_trailers;
+    ngx_wavm_funcref_t            *proxy_on_http_response_metadata;
 
     /* shared queue */
 
-    ngx_wavm_func_t               *proxy_on_queue_ready;
+    ngx_wavm_funcref_t            *proxy_on_queue_ready;
 
     /* http callouts */
 
-    ngx_wavm_func_t               *proxy_on_http_call_response;
+    ngx_wavm_funcref_t            *proxy_on_http_call_response;
 
     /* grpc callouts */
 
-    ngx_wavm_func_t               *proxy_on_grpc_call_response_header_metadata;
-    ngx_wavm_func_t               *proxy_on_grpc_call_response_message;
-    ngx_wavm_func_t               *proxy_on_grpc_call_response_trailer_metadata;
-    ngx_wavm_func_t               *proxy_on_grpc_call_close;
+    ngx_wavm_funcref_t            *proxy_on_grpc_call_response_header_metadata;
+    ngx_wavm_funcref_t            *proxy_on_grpc_call_response_message;
+    ngx_wavm_funcref_t            *proxy_on_grpc_call_response_trailer_metadata;
+    ngx_wavm_funcref_t            *proxy_on_grpc_call_close;
 
     /* custom */
 
-    ngx_wavm_func_t               *proxy_on_custom_callback;
+    ngx_wavm_funcref_t            *proxy_on_custom_callback;
 
 };
 

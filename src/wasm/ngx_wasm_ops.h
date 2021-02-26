@@ -30,7 +30,7 @@ typedef enum {
 
 typedef struct {
     ngx_str_t                                func_name;
-    ngx_wavm_func_t                         *function;
+    ngx_wavm_funcref_t                      *funcref;
 } ngx_wasm_op_call_t;
 
 
