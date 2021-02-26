@@ -98,6 +98,7 @@ struct ngx_wavm_module_s {
     wasm_importtype_vec_t              imports;
     wasm_exporttype_vec_t              exports;
     ngx_int_t                          memory_idx;
+    ngx_int_t                          start_idx;
     ngx_rbtree_t                       funcs_tree;
     ngx_rbtree_node_t                  funcs_sentinel;
     ngx_queue_t                        lmodules;
@@ -143,6 +144,8 @@ ngx_wavm_instance_t *ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule,
 ngx_int_t ngx_wavm_instance_call(ngx_wavm_instance_t *instance,
     ngx_wavm_func_t *func, wasm_val_t args[], ngx_uint_t nargs,
     wasm_val_t rets[], ngx_uint_t nrets);
+ngx_int_t ngx_wavm_instance_call2(ngx_wavm_instance_t *instance,
+    ngx_wavm_func_t *func, wasm_val_vec_t *args, wasm_val_vec_t *rets);
 void ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance);
 
 
