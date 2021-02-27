@@ -122,6 +122,8 @@ struct ngx_proxy_wasm_module_s {
     ngx_log_t                     *log;
     ngx_wavm_module_t             *module;
     ngx_wavm_linked_module_t      *lmodule;
+    ngx_wavm_instance_t           *instance;
+    ngx_wavm_ctx_t                 wv_ctx;
 
     ngx_uint_t                     ecode;
     ngx_uint_t                     ctxid;

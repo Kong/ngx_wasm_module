@@ -73,16 +73,16 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
         for (j = 0; j < pipeline->ops->nelts; j++) {
             op = ((ngx_wasm_op_t **) pipeline->ops->elts)[j];
 
-            op->lmodule = ngx_wavm_module_link(op->module, op->host);
-            if (op->lmodule == NULL) {
-                return;
-            }
-
             switch (op->code) {
 
             case NGX_WASM_OP_CALL:
+                op->lmodule = ngx_wavm_module_link(op->module, op->host);
+                if (op->lmodule == NULL) {
+                    return;
+                }
+
                 op->conf.call.funcref = ngx_wavm_module_func_lookup(op->module,
-                                             &op->conf.call.func_name);
+                                            &op->conf.call.func_name);
                 if (op->conf.call.funcref == NULL) {
                     ngx_wasm_log_error(NGX_LOG_EMERG, engine->pool->log, 0,
                                        "no \"%V\" function in \"%V\" module",
@@ -93,15 +93,15 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
                 break;
 
             case NGX_WASM_OP_PROXY_WASM:
-                op->conf.proxy_wasm.pwmodule = ngx_pcalloc(engine->pool,
-                                                    sizeof(ngx_proxy_wasm_module_t));
-                if (op->conf.proxy_wasm.pwmodule == NULL) {
+                if (op->conf.proxy_wasm.pwmodule->lmodule) {
+                    break;
+                }
+
+                op->lmodule = ngx_wavm_module_link(op->module, op->host);
+                if (op->lmodule == NULL) {
                     return;
                 }
 
-                op->conf.proxy_wasm.pwmodule->pool = engine->pool;
-                op->conf.proxy_wasm.pwmodule->log = engine->pool->log;
-                op->conf.proxy_wasm.pwmodule->module = op->module;
                 op->conf.proxy_wasm.pwmodule->lmodule = op->lmodule;
 
                 if (ngx_proxy_wasm_module_init(op->conf.proxy_wasm.pwmodule)
@@ -245,7 +245,8 @@ ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
 
 ngx_wasm_op_t *
 ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
-    ngx_wasm_ops_engine_t *ops_engine, ngx_str_t *value)
+    ngx_wasm_ops_engine_t *ops_engine, ngx_str_t *value,
+    ngx_proxy_wasm_module_t *pwmodule)
 {
     ngx_wasm_op_t  *op;
     ngx_str_t      *mod_name;
@@ -266,6 +267,9 @@ ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     if (ngx_wasm_op_add_helper(cf, ops_engine, op, mod_name) != NGX_OK) {
         return NULL;
     }
+
+    op->conf.proxy_wasm.pwmodule = pwmodule;
+    op->conf.proxy_wasm.pwmodule->module = op->module;
 
     return op;
 }

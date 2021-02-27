@@ -76,7 +76,8 @@ ngx_wasm_op_t *ngx_wasm_conf_add_op_call(ngx_conf_t *cf,
     ngx_wasm_ops_engine_t *ops_engine, ngx_wavm_host_def_t *host,
     ngx_str_t *value);
 ngx_wasm_op_t *ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
-    ngx_wasm_ops_engine_t *ops_engine, ngx_str_t *value);
+    ngx_wasm_ops_engine_t *ops_engine, ngx_str_t *value,
+    ngx_proxy_wasm_module_t *pwmodule);
 
 ngx_int_t ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx);
 

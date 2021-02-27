@@ -87,7 +87,6 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
     ngx_int_t             rc;
     ngx_wavm_t           *vm;
     ngx_wavm_instance_t  *instance;
-    ngx_wavm_ctx_t        ctx;
     wasm_val_t            args[2], rets[1];
     wasm_val_vec_t        vargs;
 
@@ -191,13 +190,13 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
     {
         vm = pwm->module->vm;
 
-        ctx.pool = pwm->pool;
-        ctx.log = pwm->log;
-        ctx.data = NULL;
+        pwm->wv_ctx.pool = pwm->pool;
+        pwm->wv_ctx.log = pwm->log;
+        pwm->wv_ctx.data = NULL;
 
-        ngx_wavm_ctx_init(vm, &ctx);
+        ngx_wavm_ctx_init(vm, &pwm->wv_ctx);
 
-        instance = ngx_wavm_instance_create(pwm->lmodule, &ctx);
+        instance = ngx_wavm_instance_create(pwm->lmodule, &pwm->wv_ctx);
         if (instance == NULL) {
             goto error;
         }
@@ -218,6 +217,8 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
                 goto error;
             }
         }
+
+        ngx_wasm_assert(pwm->ctxid);
 
         if (pwm->proxy_on_vm_start) {
             ngx_wasm_set_i32(args[0], pwm->ctxid);
@@ -241,14 +242,19 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
             }
         }
 
-        ngx_wavm_ctx_destroy(&ctx);
+        pwm->instance = instance;
+
+        //ngx_wavm_ctx_destroy(&ctx);
     }
 
     return NGX_OK;
 
 error:
 
-    ngx_wavm_ctx_destroy(&ctx);
+    ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, 0,
+                             "failed initializing proxy_wasm module");
+
+    ngx_wavm_ctx_destroy(&pwm->wv_ctx);
 
     return NGX_ERROR;
 }
@@ -285,7 +291,7 @@ ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
         va_end(args);
     }
 
-    p = ngx_proxy_wasm_strerror(err, buf, last - buf);
+    p = ngx_proxy_wasm_strerror(err, p, last - p);
 
     ngx_wasm_log_error(level, log, 0, "%*s", p - buf, buf);
 }

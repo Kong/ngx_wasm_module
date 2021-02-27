@@ -442,8 +442,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
     }
 
     ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL,
-                       "loading \"%V\" module",
-                       &module->name);
+                       "loading \"%V\" module", &module->name);
 
     ngx_wavm_err_init(&e);
 
@@ -491,9 +490,9 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
         exporttype = ((wasm_exporttype_t **) module->exports.data)[i];
         exportname = wasm_exporttype_name(exporttype);
 
-        dd("wasm caching \"%V\" module export \"%*s\" (%ui/%ui)",
-           &module->name, exportname->size, exportname->data,
-           i + 1, module->exports.size);
+        dd("wasm caching \"%*s\" module export \"%*s\" (%lu/%lu)",
+           (int) module->name.len, module->name.data, (int) exportname->size,
+           exportname->data, i + 1, module->exports.size);
 
         switch (wasm_externtype_kind(
                 wasm_exporttype_type(exporttype))) {
@@ -588,6 +587,11 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
 
     vm = module->vm;
 
+    ngx_log_debug5(NGX_LOG_DEBUG_WASM, vm->log, 0,
+                   "wasm linking \"%V\" module to \"%V\" host interface"
+                   " (vm: %p, module: %p, host: %p)",
+                   &module->name, &host->name, vm, module, host);
+
     lmodule = ngx_pcalloc(vm->pool, sizeof(ngx_wavm_linked_module_t));
     if (lmodule == NULL) {
         goto error;
@@ -613,9 +617,11 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
             continue;
         }
 
-        dd("wasm loading \"%V\" module import \"%*s.%*s\" (%ui/%ui)",
-           &module->name, importmodule->size, importmodule->data,
-           importname->size, importname->data, i + 1, module->imports.size);
+        dd("wasm loading \"%*s\" module import \"env.%*s\" (%lu/%lu) "
+           "(importname->size: %d)",
+           (int) module->name.len, module->name.data,
+           (int) importname->size, importname->data,
+           i + 1, module->imports.size, (int) importname->size);
 
 #if (NGX_DEBUG)
        ngx_wasm_assert(wasm_externtype_kind(wasm_importtype_type(importtype))
@@ -831,7 +837,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
     ngx_wavm_hfunc_t       *hfunc;
     ngx_wavm_err_t          e;
     wasm_func_t            *func;
-    wasm_extern_t          *export;
+    wasm_extern_t          *wextern;
 
     module = lmodule->module;
     vm = module->vm;
@@ -921,17 +927,17 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
     wasm_instance_exports(instance->instance, &instance->exports);
 
     if (module->memory_idx >= 0) {
-        export = ((wasm_extern_t **) instance->exports.data)[module->memory_idx];
-        ngx_wasm_assert(wasm_extern_kind(export) == WASM_EXTERN_MEMORY);
-        instance->memory = wasm_extern_as_memory(export);
+        wextern = ((wasm_extern_t **) instance->exports.data)[module->memory_idx];
+        ngx_wasm_assert(wasm_extern_kind(wextern) == WASM_EXTERN_MEMORY);
+        instance->memory = wasm_extern_as_memory(wextern);
     }
 
     /* _start */
 
     if (module->start_idx >= 0) {
-        export = ((wasm_extern_t **) instance->exports.data)[module->start_idx];
+        wextern = ((wasm_extern_t **) instance->exports.data)[module->start_idx];
 
-        if (ngx_wavm_func_call(wasm_extern_as_func(export), NULL, NULL, &e)
+        if (ngx_wavm_func_call(wasm_extern_as_func(wextern), NULL, NULL, &e)
             != NGX_OK)
         {
             err = NGX_WAVM_EMPTY_CHAR;
@@ -961,22 +967,25 @@ ngx_int_t
 ngx_wavm_func_call(wasm_func_t *f, wasm_val_vec_t *args, wasm_val_vec_t *rets,
     ngx_wavm_err_t *e)
 {
-    ngx_int_t        rc;
-    wasm_val_vec_t   vargs, vrets;
+    ngx_int_t           rc;
+    wasm_val_vec_t      vargs, vrets;
 
-    (args == NULL) ? wasm_val_vec_new_empty(&vargs)
-                   : wasm_val_vec_copy(&vargs, args);
+    if (args == NULL) {
+        wasm_val_vec_new_empty(&vargs);
+    }
 
-    (rets == NULL) ? wasm_val_vec_new_empty(&vrets)
-                   : wasm_val_vec_copy(&vrets, rets);
-
-    dd("wasm calling \"%V\"", &func->name);
+    if (rets == NULL) {
+        wasm_val_vec_new_empty(&vrets);
+    }
 
     ngx_wavm_err_init(e);
 
-    rc = ngx_wrt_func_call(f, &vargs, &vrets, e);
+    rc = ngx_wrt_func_call(f,
+                           args ? args : &vargs,
+                           rets ? rets : &vrets,
+                           e);
 
-    dd("wasm call to \"%V\" rc: %d", &func->name, rc);
+    dd("wasm func call rc: %ld", rc);
 
     if (args == NULL) {
         wasm_val_vec_delete(&vargs);
@@ -995,13 +1004,20 @@ ngx_wavm_instance_callref(ngx_wavm_instance_t *instance,
     ngx_wavm_funcref_t *func, wasm_val_t args[], ngx_uint_t nargs,
     wasm_val_t rets[], ngx_uint_t nrets)
 {
+    size_t           i;
     ngx_int_t        rc;
     wasm_val_vec_t   vargs, vrets;
 
+    //ngx_memzero(rets, nrets * sizeof(wasm_val_t));
+
     wasm_val_vec_new(&vargs, nargs, args);
-    wasm_val_vec_new(&vrets, nrets, rets);
+    wasm_val_vec_new_uninitialized(&vrets, nrets);
 
     rc = ngx_wavm_instance_callref2(instance, func, &vargs, &vrets);
+
+    for (i = 0; i < nrets; i++) {
+        rets[i] = vrets.data[i];
+    }
 
     wasm_val_vec_delete(&vargs);
     wasm_val_vec_delete(&vrets);
@@ -1016,15 +1032,18 @@ ngx_wavm_instance_callref2(ngx_wavm_instance_t *instance,
 {
     ngx_int_t        rc;
     ngx_wavm_err_t   e;
-    wasm_extern_t   *export;
+    wasm_extern_t   *wextern;
 
     ngx_wasm_assert(func->module == instance->module);
 
-    export = ((wasm_extern_t **) instance->exports.data)[func->exports_idx];
+    wextern = ((wasm_extern_t **) instance->exports.data)[func->exports_idx];
 
-    ngx_wasm_assert(wasm_extern_kind(export) == WASM_EXTERN_FUNC);
+    ngx_wasm_assert(wasm_extern_kind(wextern) == WASM_EXTERN_FUNC);
 
-    rc = ngx_wavm_func_call(wasm_extern_as_func(export), args, rets, &e);
+    dd("wasm instance calling \"%*s\" func (nargs: %p, nrets: %p)",
+       (int) func->name.len, func->name.data, args, rets);
+
+    rc = ngx_wavm_func_call(wasm_extern_as_func(wextern), args, rets, &e);
     if (rc != NGX_OK) {
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &e, NULL);
     }

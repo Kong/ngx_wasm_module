@@ -9,6 +9,7 @@
 typedef struct {
     ngx_wavm_t                        *vm;
     ngx_wasm_ops_engine_t             *ops_engine;
+    ngx_proxy_wasm_module_t           *pwmodule;
     ngx_queue_t                        q;
 } ngx_http_wasm_loc_conf_t;
 
@@ -240,8 +241,20 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_WASM_CONF_ERR_NO_WASM;
     }
 
-    op = ngx_wasm_conf_add_op_proxy_wasm(cf, loc->ops_engine,
-                                         cf->args->elts);
+    if (loc->pwmodule) {
+        return "is duplicate";
+    }
+
+    loc->pwmodule = ngx_pcalloc(cf->pool, sizeof(ngx_proxy_wasm_module_t));
+    if (loc->pwmodule == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    loc->pwmodule->log = &cf->cycle->new_log;
+    loc->pwmodule->pool = cf->pool;
+
+    op = ngx_wasm_conf_add_op_proxy_wasm(cf, loc->ops_engine, cf->args->elts,
+                                         loc->pwmodule);
     if (op == NULL) {
         return NGX_CONF_ERROR;
     }
