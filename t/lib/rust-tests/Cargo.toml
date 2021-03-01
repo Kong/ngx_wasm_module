@@ -4,5 +4,5 @@ debug = true
 [workspace]
 members = [
     "ngx-rust-tests",
-    "proxy-wasm/hello-world",
+    "proxy-wasm/on-tick",
 ]

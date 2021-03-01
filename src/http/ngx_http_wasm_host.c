@@ -9,11 +9,11 @@
 
 ngx_int_t
 ngx_http_wasm_hfuncs_resp_get_status(ngx_wavm_instance_t *instance,
-   const wasm_val_t args[], wasm_val_t rets[])
+   wasm_val_t args[], wasm_val_t rets[])
 {
    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
    ngx_http_request_t       *r = rctx->r;
-   ngx_int_t                 status;
+   uint32_t                  status;
 
    if (r->connection->fd == (ngx_socket_t) -1) {
        return NGX_WAVM_BAD_CTX;
@@ -41,11 +41,11 @@ ngx_http_wasm_hfuncs_resp_get_status(ngx_wavm_instance_t *instance,
 
 ngx_int_t
 ngx_http_wasm_hfuncs_resp_set_status(ngx_wavm_instance_t *instance,
-   const wasm_val_t args[], wasm_val_t rets[])
+   wasm_val_t args[], wasm_val_t rets[])
 {
    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
    ngx_http_request_t       *r = rctx->r;
-   ngx_int_t                 status;
+   uint32_t                  status;
 
    if (r->connection->fd == (ngx_socket_t) -1) {
        return NGX_WAVM_BAD_CTX;
@@ -73,9 +73,9 @@ ngx_http_wasm_hfuncs_resp_set_status(ngx_wavm_instance_t *instance,
 
 ngx_int_t
 ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
-   const wasm_val_t args[], wasm_val_t rets[])
+   wasm_val_t args[], wasm_val_t rets[])
 {
-   int64_t                   body_offset, len;
+   uint64_t                  body_offset, len;
    ngx_int_t                 rc;
    ngx_buf_t                *b;
    ngx_chain_t              *cl;

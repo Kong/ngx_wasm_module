@@ -53,11 +53,11 @@ typedef enum {
 
 
 typedef enum {
-    NGX_PROXY_WASM_LOG_TRACE = 1,
-    NGX_PROXY_WASM_LOG_DEBUG = 2,
-    NGX_PROXY_WASM_LOG_INFO = 3,
-    NGX_PROXY_WASM_LOG_WARNING = 4,
-    NGX_PROXY_WASM_LOG_ERROR = 5,
+    NGX_PROXY_WASM_LOG_TRACE = 0,
+    NGX_PROXY_WASM_LOG_DEBUG = 1,
+    NGX_PROXY_WASM_LOG_INFO = 2,
+    NGX_PROXY_WASM_LOG_WARNING = 3,
+    NGX_PROXY_WASM_LOG_ERROR = 4,
 } ngx_proxy_wasm_log_level;
 
 
@@ -124,14 +124,18 @@ struct ngx_proxy_wasm_module_s {
     ngx_wavm_linked_module_t      *lmodule;
     ngx_wavm_instance_t           *instance;
     ngx_wavm_ctx_t                 wv_ctx;
+    ngx_proxy_wasm_abi_version     abi_version;
+
+    /* control flow */
 
     ngx_uint_t                     ecode;
     ngx_uint_t                     ctxid;
-    ngx_proxy_wasm_abi_version     abi_version;
+    uint32_t                       tick_period;
 
     /* integration */
 
     ngx_wavm_funcref_t            *proxy_on_memory_allocate;
+    ngx_wavm_funcref_t            *proxy_on_tick;
 
     /* context */
 

@@ -1008,8 +1008,6 @@ ngx_wavm_instance_callref(ngx_wavm_instance_t *instance,
     ngx_int_t        rc;
     wasm_val_vec_t   vargs, vrets;
 
-    //ngx_memzero(rets, nrets * sizeof(wasm_val_t));
-
     wasm_val_vec_new(&vargs, nargs, args);
     wasm_val_vec_new_uninitialized(&vrets, nrets);
 

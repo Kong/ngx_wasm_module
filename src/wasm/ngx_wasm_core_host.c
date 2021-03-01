@@ -7,10 +7,10 @@
 
 
 ngx_int_t
-ngx_wasm_hfuncs_log(ngx_wavm_instance_t *instance, const wasm_val_t args[],
-    wasm_val_t rets[])
+ngx_wasm_hfuncs_log(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
 {
-    int32_t  level, len, msg_offset;
+    uint32_t   level, len, msg_offset;
 
     level = args[0].of.i32;
     msg_offset = args[1].of.i32;

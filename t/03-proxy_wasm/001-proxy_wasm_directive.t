@@ -4,7 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 4);
+plan tests => repeat_each() * (blocks() * 6);
 
 run_tests();
 
@@ -20,7 +20,9 @@ __DATA__
 --- error_log eval
 qr/\[emerg\] .*? "proxy_wasm" directive is specified but config has no "wasm" section/
 --- no_error_log
+[warn]
 [error]
+[alert]
 [crit]
 --- must_die
 
@@ -35,7 +37,9 @@ qr/\[emerg\] .*? "proxy_wasm" directive is specified but config has no "wasm" se
 --- error_log eval
 qr/\[emerg\] .*? invalid number of arguments in "proxy_wasm" directive/
 --- no_error_log
+[warn]
 [error]
+[alert]
 [crit]
 --- must_die
 
@@ -50,7 +54,9 @@ qr/\[emerg\] .*? invalid number of arguments in "proxy_wasm" directive/
 --- error_log eval
 qr/\[emerg\] .*? invalid module name ""/
 --- no_error_log
+[warn]
 [error]
+[alert]
 [crit]
 --- must_die
 
@@ -76,8 +82,10 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_log eval
 qr/\[emerg\] .*? \[wasm\] unknown ABI version/
 --- no_error_log
+[warn]
 [error]
 [alert]
+[crit]
 
 
 
@@ -101,23 +109,34 @@ qr/\[emerg\] .*? \[wasm\] unknown ABI version/
 --- error_log eval
 qr/\[emerg\] .*? \[wasm\] incompatible ABI version/
 --- no_error_log
+[warn]
 [error]
 [alert]
+[crit]
 
 
 
-=== TEST 6: proxy_wasm directive - hello_world example
---- skip_valgrind: 4
+=== TEST 6: proxy_wasm directive - on_tick
+--- skip_valgrind: 6
+--- timeout: 30s
+--- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
-        module hello_world $TEST_NGINX_CRATES_DIR/proxy_wasm_hello_world.wasm;
+        module on_tick $TEST_NGINX_CRATES_DIR/proxy_wasm_on_tick.wasm;
     }
 --- config
     location /t {
-        proxy_wasm hello_world;
-        return 200;
+        proxy_wasm on_tick;
+        echo_sleep 0.25;
+        echo_status 200;
     }
---- response_body
+--- ignore_response_body
+--- error_log eval
+[
+qr/\[info\] .*? \[wasm\] Ticking at 2\d+.*? UTC/,
+qr/\[info\] .*? \[wasm\] Ticking at 2\d+.*? UTC/
+]
 --- no_error_log
 [error]
+[alert]
 [emerg]

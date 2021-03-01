@@ -95,6 +95,7 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
     ngx_wasm_assert(pwm->module);
 
     pwm->ecode = 0;
+    pwm->tick_period = 0;
 
     /* linked module check */
 
@@ -126,6 +127,8 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
 
     pwm->proxy_on_memory_allocate =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_memory_allocate");
+    pwm->proxy_on_tick =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_tick");
 
     pwm->proxy_on_context_create =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_context_create");
@@ -192,7 +195,7 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
 
         pwm->wv_ctx.pool = pwm->pool;
         pwm->wv_ctx.log = pwm->log;
-        pwm->wv_ctx.data = NULL;
+        pwm->wv_ctx.data = pwm;
 
         ngx_wavm_ctx_init(vm, &pwm->wv_ctx);
 
@@ -213,6 +216,8 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
             rc = ngx_wavm_instance_callref2(instance,
                                             pwm->proxy_on_context_create,
                                             &vargs, NULL);
+            wasm_val_vec_delete(&vargs);
+
             if (rc != NGX_OK) {
                 goto error;
             }
@@ -244,7 +249,7 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
 
         pwm->instance = instance;
 
-        //ngx_wavm_ctx_destroy(&ctx);
+        //ngx_wavm_ctx_destroy(&pwm->wv_ctx);
     }
 
     return NGX_OK;

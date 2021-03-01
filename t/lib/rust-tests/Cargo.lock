@@ -96,10 +96,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "proxy-wasm-hello-world"
+name = "proxy-wasm-on-tick"
 version = "0.1.0"
 dependencies = [
- "cfg-if",
  "chrono",
  "log",
  "proxy-wasm",

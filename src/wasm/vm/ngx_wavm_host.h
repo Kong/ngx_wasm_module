@@ -13,7 +13,7 @@ typedef struct ngx_wavm_host_def_s  ngx_wavm_host_def_t;
 
 
 typedef ngx_int_t (*ngx_wavm_hfunc_pt)(ngx_wavm_instance_t *instance,
-    const wasm_val_t args[], wasm_val_t rets[]);
+    wasm_val_t args[], wasm_val_t rets[]);
 
 
 struct ngx_wavm_host_func_def_s {

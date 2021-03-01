@@ -5,18 +5,21 @@
 
 #include <ngx_proxy_wasm.h>
 #include <ngx_wavm.h>
+#include <ngx_event.h>
 
 
-ngx_int_t
+static ngx_int_t
 ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
-    const wasm_val_t args[], wasm_val_t rets[])
+    wasm_val_t args[], wasm_val_t rets[])
 {
     ngx_uint_t   level;
-    int32_t      log_level, msg_size, msg_data;
+    uint32_t     log_level, msg_size, msg_data;
 
     log_level = args[0].of.i32;
     msg_data = args[1].of.i32;
     msg_size = args[2].of.i32;
+
+    dd("level: %d", log_level);
 
     switch (log_level) {
 
@@ -43,18 +46,127 @@ ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
 
     }
 
-    ngx_log_error(level, instance->log, 0, "%*s",
-                  msg_size, instance->mem_offset + msg_data);
+    ngx_wasm_log_error(level, instance->log, 0, "%*s",
+                       msg_size, instance->mem_offset + msg_data);
 
     rets[0] = ngx_proxy_wasm_result_ok();
     return NGX_WAVM_OK;
 }
 
 
-ngx_int_t
-ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
-    const wasm_val_t args[], wasm_val_t rets[])
+static void
+ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
 {
+    ngx_int_t                 rc;
+    ngx_proxy_wasm_module_t  *pwm = ev->data;
+    wasm_val_t                args[1];
+    wasm_val_vec_t            vargs;
+
+    ngx_free(ev);
+
+    if (pwm->proxy_on_tick) {
+        ngx_wasm_set_i32(args[0], pwm->ctxid);
+
+        wasm_val_vec_new(&vargs, 1, args);
+
+        rc = ngx_wavm_instance_callref2(pwm->instance, pwm->proxy_on_tick,
+                                        &vargs, NULL);
+        wasm_val_vec_delete(&vargs);
+
+        if (!ngx_exiting) {
+            ev = ngx_calloc(sizeof(ngx_event_t), pwm->instance->log);
+            if (ev == NULL) {
+                goto nomem;
+            }
+
+            ev->handler = ngx_proxy_wasm_tick_handler;
+            ev->data = pwm;
+            ev->log = pwm->log;
+
+            ngx_add_timer(ev, pwm->tick_period);
+        }
+
+        if (rc != NGX_OK) {
+            return;
+        }
+    }
+
+    return;
+
+nomem:
+
+    ngx_wasm_log_error(NGX_LOG_EMERG, pwm->instance->log, 0,
+                       "tick_handler: no memory");
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_event_t              *ev;
+    ngx_proxy_wasm_module_t  *pwm;
+    uint32_t                  period = args[0].of.i32;
+
+    pwm = instance->ctx->data;
+
+    if (ngx_exiting) {
+        ngx_wavm_instance_trap_printf(instance, "process exiting");
+        return NGX_WAVM_ERROR;
+    }
+
+    if (pwm->tick_period) {
+        ngx_wavm_instance_trap_printf(instance, "tick_period already set");
+        return NGX_WAVM_ERROR;
+    }
+
+    pwm->tick_period = period;
+
+    ev = ngx_calloc(sizeof(ngx_event_t), instance->log);
+    if (ev == NULL) {
+        goto nomem;
+    }
+
+    ev->handler = ngx_proxy_wasm_tick_handler;
+    ev->data = pwm;
+    ev->log = pwm->log;
+
+    ngx_add_timer(ev, pwm->tick_period);
+
+    return NGX_WAVM_OK;
+
+nomem:
+
+    ngx_wavm_instance_trap_printf(instance, "no memory");
+    return NGX_WAVM_ERROR;
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_get_current_time(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_time_t  *tp;
+    uint64_t    *ret_time = (uint64_t *) (instance->mem_offset + args[0].of.i64);
+
+    ngx_time_update();
+
+    tp = ngx_timeofday();
+
+    *ret_time = (tp->sec * 1000 + tp->msec) * 1e6;
+
+    rets[0] = ngx_proxy_wasm_result_ok();
+    return NGX_WAVM_OK;
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    //ngx_wasm_log_error(NGX_LOG_ALERT, instance->log, 0,
+    //                   "NYI: proxy_wasm hfunc");
+
     return NGX_WAVM_OK;
 }
 
@@ -64,12 +176,12 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
    /* 0.1.0 */
 
    { ngx_string("proxy_set_tick_period_milliseconds"),
-     &ngx_proxy_wasm_hfuncs_nop,
+     &ngx_proxy_wasm_hfuncs_set_tick_period,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_get_current_time_nanoseconds"),
-     &ngx_proxy_wasm_hfuncs_nop,
+     &ngx_proxy_wasm_hfuncs_get_current_time,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 

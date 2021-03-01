@@ -1,5 +1,5 @@
 [package]
-name = "proxy-wasm-hello-world"
+name = "proxy-wasm-on-tick"
 version = "0.1.0"
 authors = ["Thibault Charbonnier <thibaultcha@me.com>"]
 edition = "2018"
@@ -10,5 +10,4 @@ crate-type = ["cdylib"]
 [dependencies]
 proxy-wasm = "0.1"
 log = "0.4"
-cfg-if = "1.0"
 chrono = "0.4"
