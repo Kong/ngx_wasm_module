@@ -38,7 +38,7 @@ typedef struct {
 } ngx_wavm_log_ctx_t;
 
 
-struct ngx_wavm_func_s {
+struct ngx_wavm_funcref_s {
     ngx_wavm_module_t                 *module;
     ngx_str_node_t                     sn;         /* module->funcs */
 
