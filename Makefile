@@ -40,6 +40,7 @@ test-build:
 .PHONY: style
 style:
 	@util/style.pl src/*
+	@!(grep -R -E -n -- '#define\s+DDEBUG\s+1' src && echo "DDEBUG detected in sources") >&2
 	@!(grep -R -E -n -- '---\s+ONLY' t && echo "--- ONLY block detected") >&2
 
 .PHONY: reindex
