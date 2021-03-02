@@ -33,7 +33,7 @@ ngx_wrt_wat2wasm(wasm_byte_vec_t *wat, wasm_byte_vec_t *wasm,
 
 ngx_int_t
 ngx_wrt_module_validate(wasm_store_t *s, wasm_byte_vec_t *bytes,
-    ngx_wrt_res_t **res)
+    ngx_wavm_err_t *err)
 {
     if (!wasm_module_validate(s, bytes)) {
         ngx_wasmer_last_err(&err->res);
@@ -45,7 +45,7 @@ ngx_wrt_module_validate(wasm_store_t *s, wasm_byte_vec_t *bytes,
 
 
 ngx_int_t
-ngx_wrt_module_new(wasm_engine_t *e, wasm_byte_vec_t *bytes,
+ngx_wrt_module_new(wasm_store_t *s, wasm_byte_vec_t *bytes,
     wasm_module_t **out, ngx_wavm_err_t *err)
 {
     *out = wasm_module_new(s, bytes);
@@ -139,8 +139,8 @@ ngx_wasmer_last_err(ngx_wrt_res_t **res)
     }
 #if (NGX_DEBUG)
     else {
-        ngx_wasm_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0,
-                           "no wasmer error to retrieve");
+        ngx_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0,
+                      "no wasmer error to retrieve");
     }
 #endif
 
@@ -148,8 +148,8 @@ ngx_wasmer_last_err(ngx_wrt_res_t **res)
 
 error:
 
-    ngx_wasm_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0, NULL,
-                       "failed to retrieve last wasmer error: %s", err);
+    ngx_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0, NULL,
+                  "failed to retrieve last wasmer error: %s", err);
 
     if (werr) {
         if (werr->data) {

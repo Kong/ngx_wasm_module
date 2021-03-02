@@ -6,6 +6,32 @@
 #include <ngx_http_wasm.h>
 
 
+ngx_uint_t
+ngx_http_wasm_req_headers_count(ngx_http_request_t *r)
+{
+    ngx_uint_t        c;
+    ngx_list_part_t  *part;
+
+    part = &r->headers_in.headers.part;
+    c = part->nelts;
+
+    while (part->next != NULL) {
+        part = part->next;
+        c += part->nelts;
+    }
+
+    if (c > NGX_HTTP_WASM_MAX_REQ_HEADERS) {
+        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                           "truncated request headers to %d",
+                           NGX_HTTP_WASM_MAX_REQ_HEADERS);
+
+        return NGX_HTTP_WASM_MAX_REQ_HEADERS;
+    }
+
+    return c;
+}
+
+
 ngx_int_t
 ngx_http_wasm_send_header(ngx_http_request_t *r)
 {

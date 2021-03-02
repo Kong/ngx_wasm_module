@@ -140,3 +140,29 @@ qr/\[info\] .*? \[wasm\] Ticking at 2\d+.*? UTC/
 [error]
 [alert]
 [emerg]
+
+
+
+=== TEST 7: proxy_wasm directive - on_req_headers
+--- skip_valgrind: 6
+--- load_nginx_modules: ngx_http_echo_module
+--- timeout: 10s
+--- main_config
+    wasm {
+        module on_req_headers $TEST_NGINX_CRATES_DIR/proxy_wasm_on_req_headers.wasm;
+    }
+--- config
+    location /t {
+        proxy_wasm on_req_headers;
+        echo ok;
+    }
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[debug\] .*? \[wasm\] #1 -> Host: localhost/,
+    qr/\[debug\] .*? \[wasm\] #1 -> Connection: close/
+]
+--- no_error_log
+[error]
+[alert]
+[emerg]

@@ -51,6 +51,8 @@ struct ngx_wasm_op_s {
         ngx_wasm_op_call_t                   call;
         ngx_wasm_op_proxy_wasm_t             proxy_wasm;
     } conf;
+
+    unsigned                                 opbreak:1;
 };
 
 

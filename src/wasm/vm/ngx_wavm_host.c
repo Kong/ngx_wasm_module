@@ -113,6 +113,11 @@ ngx_wavm_host_hfunc_create(ngx_pool_t *pool, ngx_wavm_host_def_t *host,
 
     for (func = host->funcs; func->ptr; func++) {
 
+        dd("strncmp: \"%.*s\", \"%.*s\", %d",
+           (int) func->name.len, func->name.data,
+           (int) name->len, name->data,
+           (int) name->len);
+
         if (ngx_strncmp(func->name.data, name->data, name->len) != 0) {
             continue;
         }
@@ -211,9 +216,8 @@ ngx_wavm_hfuncs_trampoline(void *env,
 
 trap:
 
-    errlen = ngx_strlen(err);
-
     if (instance->trapmsg.len) {
+        errlen = ngx_strlen(err);
         len = errlen + instance->trapmsg.len + 2;
 
         wasm_byte_vec_new_uninitialized(&trapmsg, len);
@@ -226,7 +230,7 @@ trap:
         ngx_wasm_assert( ((size_t) (p - buf)) == len );
 
     } else {
-        wasm_byte_vec_new(&trapmsg, errlen, err);
+        wasm_name_new_from_string(&trapmsg, err);
     }
 
     trap = wasm_trap_new(instance->ctx->store, &trapmsg);

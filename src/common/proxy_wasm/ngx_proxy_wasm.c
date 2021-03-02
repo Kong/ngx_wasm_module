@@ -3,11 +3,12 @@
 #endif
 #include "ddebug.h"
 
+#include <ngx_http_wasm.h>
 #include <ngx_proxy_wasm.h>
 
 
-static void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
-    ngx_proxy_wasm_err_t err, const char *fmt, ...);
+static ngx_int_t ngx_proxy_wasm_on_http_request_headers(
+    ngx_proxy_wasm_module_t *pwm);
 
 
 static ngx_str_t  ngx_proxy_wasm_errlist[] = {
@@ -126,7 +127,7 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
     }
 
     pwm->proxy_on_memory_allocate =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_memory_allocate");
+        ngx_proxy_wasm_module_func_lookup(pwm, "malloc");
     pwm->proxy_on_tick =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_tick");
 
@@ -151,22 +152,22 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
     pwm->proxy_on_upstream_close =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_upstream_close");
 
-    pwm->proxy_on_http_request_headers =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_request_headers");
-    pwm->proxy_on_http_request_body =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_request_body");
-    pwm->proxy_on_http_request_trailers =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_request_trailers");
-    pwm->proxy_on_http_request_metadata =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_request_metadata");
-    pwm->proxy_on_http_response_headers =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_response_headers");
-    pwm->proxy_on_http_response_body =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_response_body");
-    pwm->proxy_on_http_response_trailers =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_response_trailers");
-    pwm->proxy_on_http_response_metadata =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_response_metadata");
+    pwm->proxy_on_request_headers =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_headers");
+    pwm->proxy_on_request_body =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_body");
+    pwm->proxy_on_request_trailers =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_trailers");
+    pwm->proxy_on_request_metadata =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_metadata");
+    pwm->proxy_on_response_headers =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_headers");
+    pwm->proxy_on_response_body =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_body");
+    pwm->proxy_on_response_trailers =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_trailers");
+    pwm->proxy_on_response_metadata =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_metadata");
 
     pwm->proxy_on_queue_ready =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_queue_ready");
@@ -267,20 +268,116 @@ error:
 
 ngx_int_t
 ngx_proxy_wasm_module_resume(ngx_proxy_wasm_module_t *pwm,
-    ngx_wasm_phase_t *phase)
+    ngx_wasm_phase_t *phase, ngx_wavm_ctx_t *ctx)
 {
-    /* stub */
+    ngx_uint_t   rc;
 
     if (pwm->ecode) {
-        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode, NULL);
+        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, ctx->log, pwm->ecode,
+                                 "failed to resume proxy_wasm execution "
+                                 "in \"%V\" phase: ", &phase->name);
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
+
+    ngx_wavm_ctx_update(&pwm->wv_ctx, ctx->log, ctx->data);
+
+    switch (phase->index) {
+
+    case NGX_HTTP_REWRITE_PHASE:
+        return NGX_DECLINED;
+
+    case NGX_HTTP_PREACCESS_PHASE:
+        rc = ngx_proxy_wasm_on_http_request_headers(pwm);
+        if (rc != NGX_OK) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        break;
+
+    default:
+        rc = NGX_DECLINED;
+        break;
+
+    }
+
+    return rc;
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_on_http_request_headers(ngx_proxy_wasm_module_t *pwm)
+{
+    ngx_uint_t                rc;
+    ngx_int_t                 ctxid;
+    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_http_request_t       *r;
+    ngx_wavm_ctx_t           *ctx;
+    ngx_wavm_instance_t      *instance;
+    wasm_val_t                args[2], rets[1];
+
+    if (!pwm->proxy_on_request_headers) {
+        return NGX_OK;
+    }
+
+    instance = pwm->instance;
+    ctx = instance->ctx;
+
+    ngx_wasm_assert(ctx == &pwm->wv_ctx);
+
+    rctx = (ngx_http_wasm_req_ctx_t *) ctx->data;
+    r = rctx->r;
+
+    ngx_wasm_assert(r);
+
+    if (r->connection->fd == (ngx_socket_t) -1) {
         return NGX_ERROR;
+    }
+
+    /* TODO: 64 bits ctxid */
+    ctxid = r->connection->number;
+
+    dd("pwm->ctxid: %ld, ctxid: %ld", pwm->ctxid, ctxid);
+
+    ngx_proxy_wasm_pairs_size(&r->headers_in.headers);
+
+    ngx_wasm_set_i32(args[0], ctxid);
+    ngx_wasm_set_i32(args[1], pwm->ctxid);
+
+    rc = ngx_wavm_instance_callref(instance, pwm->proxy_on_context_create,
+                                   args, 2, rets, 0);
+    if (rc != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    ngx_wasm_set_i32(args[0], ctxid);
+    ngx_wasm_set_i32(args[1], ngx_http_wasm_req_headers_count(r));
+
+    /* TODO: on_request_headers_abi_ */
+
+    rc = ngx_wavm_instance_callref(instance, pwm->proxy_on_request_headers,
+                                   args, 2, rets, 1);
+    if (rc != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    switch (rets[0].of.i32) {
+
+    case NGX_PROXY_WASM_ACTION_CONTINUE:
+        break;
+
+    case NGX_PROXY_WASM_ACTION_PAUSE:
+        break;
+
+    default:
+        break;
+
     }
 
     return NGX_OK;
 }
 
 
-static void
+void
 ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
     ngx_proxy_wasm_err_t err, const char *fmt, ...)
 {

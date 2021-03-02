@@ -63,8 +63,13 @@ ngx_int_t ngx_wrt_wat2wasm(wasm_byte_vec_t *wat, wasm_byte_vec_t *wasm,
     ngx_wavm_err_t *err);
 ngx_int_t ngx_wrt_module_validate(wasm_store_t *s, wasm_byte_vec_t *bytes,
     ngx_wavm_err_t *err);
+#if NGX_WASM_HAVE_WASMTIME
 ngx_int_t ngx_wrt_module_new(wasm_engine_t *e, wasm_byte_vec_t *bytes,
     wasm_module_t **out, ngx_wavm_err_t *err);
+#else
+ngx_int_t ngx_wrt_module_new(wasm_store_t *s, wasm_byte_vec_t *bytes,
+    wasm_module_t **out, ngx_wavm_err_t *err);
+#endif
 ngx_int_t ngx_wrt_instance_new(wasm_store_t *s, wasm_module_t *m,
     wasm_extern_vec_t *imports, wasm_instance_t **instance,
     ngx_wavm_err_t *err);

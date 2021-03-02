@@ -33,6 +33,8 @@ static ngx_int_t ngx_http_wasm_postconfig(ngx_conf_t *cf);
 static ngx_int_t ngx_http_wasm_init(ngx_cycle_t *cycle);
 static ngx_int_t ngx_http_wasm_init_process(ngx_cycle_t *cycle);
 static ngx_int_t ngx_http_wasm_rewrite_handler(ngx_http_request_t *r);
+static ngx_int_t ngx_http_wasm_preaccess_handler(ngx_http_request_t *r);
+static ngx_int_t ngx_http_wasm_access_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_content_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_log_handler(ngx_http_request_t *r);
 
@@ -43,9 +45,25 @@ static ngx_wasm_phase_t  ngx_wasm_subsys_http[] = {
       NGX_HTTP_POST_READ_PHASE,
       0 },
 
+    /* server_rewrite */
+    /* find_config */
+
     { ngx_string("rewrite"),
       NGX_HTTP_REWRITE_PHASE,
       (1 << NGX_HTTP_REWRITE_PHASE) },
+
+    /* post_rewrite */
+
+    { ngx_string("preaccess"),
+      NGX_HTTP_PREACCESS_PHASE,
+      (1 << NGX_HTTP_PREACCESS_PHASE) },
+
+    { ngx_string("access"),
+      NGX_HTTP_ACCESS_PHASE,
+      (1 << NGX_HTTP_ACCESS_PHASE) },
+
+    /* post_access */
+    /* precontent */
 
     { ngx_string("content"),
       NGX_HTTP_CONTENT_PHASE,
@@ -123,8 +141,8 @@ static ngx_http_handler_pt  phase_handlers[NGX_HTTP_LOG_PHASE + 1] = {
     NULL,                                /* find_config */
     ngx_http_wasm_rewrite_handler,       /* rewrite */
     NULL,                                /* post_rewrite */
-    NULL,                                /* pre_access */
-    NULL,                                /* access */
+    ngx_http_wasm_preaccess_handler,     /* pre_access */
+    ngx_http_wasm_access_handler,        /* access */
     NULL,                                /* post_access*/
     NULL,                                /* pre_content */
     ngx_http_wasm_content_handler,       /* content */
@@ -421,21 +439,46 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_REWRITE_PHASE);
-    if (rc != NGX_OK) {
-        if (rc == NGX_ERROR) {
-            return NGX_HTTP_INTERNAL_SERVER_ERROR;
-        }
-
-        /* NGX_DECLINED */
-
-        return rc;
-    }
 
     if (rctx->sent_last) {
         return NGX_OK;
     }
 
-    return NGX_DECLINED;
+    return rc;
+}
+
+
+static ngx_int_t
+ngx_http_wasm_preaccess_handler(ngx_http_request_t *r)
+{
+    ngx_int_t                 rc;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    rc = ngx_http_wasm_rctx(r, &rctx);
+    if (rc != NGX_OK) {
+        return rc;
+    }
+
+    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_PREACCESS_PHASE);
+
+    return rc;
+}
+
+
+static ngx_int_t
+ngx_http_wasm_access_handler(ngx_http_request_t *r)
+{
+    ngx_int_t                 rc;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    rc = ngx_http_wasm_rctx(r, &rctx);
+    if (rc != NGX_OK) {
+        return rc;
+    }
+
+    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_ACCESS_PHASE);
+
+    return rc;
 }
 
 
@@ -451,14 +494,11 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE);
-    if (rc != NGX_OK) {
-        return rc;
-    }
 
     /* NYI */
     //return NGX_DECLINED
 
-    return NGX_DONE;
+    return rc;
 }
 
 

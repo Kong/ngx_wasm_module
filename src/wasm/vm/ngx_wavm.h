@@ -8,9 +8,11 @@
 
 #define NGX_WAVM_OK                  NGX_OK
 #define NGX_WAVM_ERROR               NGX_ERROR
+#define NGX_WAVM_AGAIN               NGX_AGAIN
+#define NGX_WAVM_BUSY                NGX_BUSY
+#define NGX_WAVM_SENT_LAST           NGX_DONE
 #define NGX_WAVM_BAD_CTX             NGX_DECLINED
 #define NGX_WAVM_BAD_USAGE           NGX_ABORT
-#define NGX_WAVM_SENT_LAST           NGX_DONE
 
 #define ngx_wavm_state(m, s)         (m->state & s)
 
@@ -137,6 +139,20 @@ ngx_wavm_funcref_t *ngx_wavm_module_func_lookup(ngx_wavm_module_t *module,
 
 ngx_int_t ngx_wavm_ctx_init(ngx_wavm_t *vm, ngx_wavm_ctx_t *ctx);
 void ngx_wavm_ctx_destroy(ngx_wavm_ctx_t *ctx);
+static ngx_inline void
+ngx_wavm_ctx_update(ngx_wavm_ctx_t *ctx, ngx_log_t *log, void *data)
+{
+    size_t                i;
+    ngx_wavm_instance_t  *instance;
+
+    ctx->log = log;
+    ctx->data = data;
+
+    for (i = 0; i < ctx->vm->lmodules_max; i++) {
+        instance = ctx->instances[i];
+        instance->log_ctx.orig_log = log;
+    }
+}
 
 
 ngx_wavm_instance_t *ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule,

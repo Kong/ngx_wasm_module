@@ -164,7 +164,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] initializing "main" wasm VM/,
-    qr/\[emerg\] .*? \[wasm\] failed loading "a" module bytes: Unexpected EOF/
+    qr/\[emerg\] .*? \[wasm\] failed loading "a" module bytes: .*?Unexpected EOF/
 ]
 --- no_error_log
 [error]

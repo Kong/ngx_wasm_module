@@ -490,7 +490,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
         exporttype = ((wasm_exporttype_t **) module->exports.data)[i];
         exportname = wasm_exporttype_name(exporttype);
 
-        dd("wasm caching \"%*s\" module export \"%*s\" (%lu/%lu)",
+        dd("wasm caching \"%.*s\" module export \"%.*s\" (%lu/%lu)",
            (int) module->name.len, module->name.data, (int) exportname->size,
            exportname->data, i + 1, module->exports.size);
 
@@ -617,13 +617,12 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
             continue;
         }
 
-        dd("wasm loading \"%*s\" module import \"env.%*s\" (%lu/%lu) "
-           "(importname->size: %d)",
+#if (NGX_DEBUG)
+        dd("wasm loading \"%.*s\" module import \"env.%.*s\" (%lu/%lu)",
            (int) module->name.len, module->name.data,
            (int) importname->size, importname->data,
-           i + 1, module->imports.size, (int) importname->size);
+           i + 1, module->imports.size);
 
-#if (NGX_DEBUG)
        ngx_wasm_assert(wasm_externtype_kind(wasm_importtype_type(importtype))
                        == WASM_EXTERN_FUNC);
 #endif
@@ -844,14 +843,15 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
 
     instance = ctx->instances[lmodule->idx];
     if (instance) {
-        ngx_log_debug3(NGX_LOG_DEBUG_WASM, vm->log, 0,
+        ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
                        "wasm reusing instance of \"%V\" module "
                        "in \"%V\" vm (ctx: %p)",
                        &module->name, vm->name, ctx);
+
         return instance;
     }
 
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, vm->log, 0,
+    ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
                    "wasm creating instance of \"%V\" module in \"%V\" vm "
                    "(ctx: %p)", &module->name, vm->name, ctx);
 
@@ -878,7 +878,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
     instance->log->handler = ngx_wavm_log_error_handler;
     instance->log->data = &instance->log_ctx;
 
-    instance->log_ctx.vm = vm;
+    instance->log_ctx.vm = module->vm;
     instance->log_ctx.instance = instance;
     instance->log_ctx.orig_log = ctx->log;
 
@@ -951,7 +951,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
 
 error:
 
-    ngx_wavm_log_error(NGX_LOG_ERR, vm->log, &e,
+    ngx_wavm_log_error(NGX_LOG_ERR, ctx->log, &e,
                        "failed to instantiate \"%V\" module: %s",
                        &module->name, err);
 
@@ -1038,7 +1038,7 @@ ngx_wavm_instance_callref2(ngx_wavm_instance_t *instance,
 
     ngx_wasm_assert(wasm_extern_kind(wextern) == WASM_EXTERN_FUNC);
 
-    dd("wasm instance calling \"%*s\" func (nargs: %p, nrets: %p)",
+    dd("wasm instance calling \"%.*s\" func (args: %p, rets: %p)",
        (int) func->name.len, func->name.data, args, rets);
 
     rc = ngx_wavm_func_call(wasm_extern_as_func(wextern), args, rets, &e);
