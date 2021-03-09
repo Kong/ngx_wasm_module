@@ -168,13 +168,13 @@ struct ngx_proxy_wasm_module_s {
     /* context */
 
     ngx_wavm_funcref_t            *proxy_on_context_create;
+    ngx_wavm_funcref_t            *proxy_on_log; /* 0.1.0 */
     ngx_wavm_funcref_t            *proxy_on_context_finalize;
 
     /* configuration */
 
     ngx_wavm_funcref_t            *proxy_on_vm_start;
-    ngx_wavm_funcref_t            *proxy_on_configure; /* 0.1.0 */
-    //ngx_wavm_funcref_t            *proxy_on_plugin_start; /* vNEXT */
+    ngx_wavm_funcref_t            *proxy_on_plugin_start;
 
     /* stream */
 

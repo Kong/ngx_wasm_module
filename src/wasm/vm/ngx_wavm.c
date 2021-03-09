@@ -553,6 +553,7 @@ failed:
 done:
 
     wasm_byte_vec_delete(&module->bytes);
+    module->bytes.size = 0;
 
     return rc;
 
