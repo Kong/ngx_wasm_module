@@ -32,6 +32,7 @@ char *ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 static ngx_int_t ngx_http_wasm_postconfig(ngx_conf_t *cf);
 static ngx_int_t ngx_http_wasm_init(ngx_cycle_t *cycle);
 static ngx_int_t ngx_http_wasm_init_process(ngx_cycle_t *cycle);
+static void ngx_http_wasm_exit_process(ngx_cycle_t *cycle);
 static ngx_int_t ngx_http_wasm_rewrite_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_preaccess_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_access_handler(ngx_http_request_t *r);
@@ -129,7 +130,7 @@ ngx_module_t  ngx_http_wasm_module = {
     ngx_http_wasm_init_process,          /* init process */
     NULL,                                /* init thread */
     NULL,                                /* exit thread */
-    NULL,                                /* exit process */
+    ngx_http_wasm_exit_process,          /* exit process */
     NULL,                                /* exit master */
     NGX_MODULE_V1_PADDING
 };
@@ -360,6 +361,26 @@ ngx_http_wasm_init_process(ngx_cycle_t *cycle)
     }
 
     return NGX_OK;
+}
+
+
+static void
+ngx_http_wasm_exit_process(ngx_cycle_t *cycle)
+{
+    ngx_queue_t                *q;
+    ngx_http_wasm_main_conf_t  *mcf;
+    ngx_http_wasm_loc_conf_t   *loc;
+
+    mcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_wasm_module);
+
+    for (q = ngx_queue_head(&mcf->ops_engines);
+         q != ngx_queue_sentinel(&mcf->ops_engines);
+         q = ngx_queue_next(q))
+    {
+        loc = ngx_queue_data(q, ngx_http_wasm_loc_conf_t, q);
+
+        ngx_wasm_ops_engine_destroy(loc->ops_engine);
+    }
 }
 
 

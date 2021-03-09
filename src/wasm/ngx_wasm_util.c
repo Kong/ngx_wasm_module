@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm.h>
+#include <ngx_event.h>
 
 
 void
@@ -93,4 +94,79 @@ close:
     }
 
     return rc;
+}
+
+
+ngx_connection_t *
+ngx_wasm_connection_create(ngx_pool_t *pool)
+{
+    ngx_log_t         *log;
+    ngx_connection_t  *c, *orig = NULL;
+
+    if (ngx_cycle->files) {
+        orig = ngx_cycle->files[0];
+    }
+
+    c = ngx_get_connection(0, ngx_cycle->log);
+
+    if (orig) {
+        ngx_cycle->files[0] = orig;
+    }
+
+    if (c == NULL) {
+        return NULL;
+    }
+
+    c->fd = NGX_WASM_BAD_FD;
+    c->number = ngx_atomic_fetch_add(ngx_connection_counter, 1);
+    c->pool = pool;
+
+    log = ngx_pcalloc(c->pool, sizeof(ngx_log_t));
+    if (log == NULL) {
+        goto failed;
+    }
+
+    c->log = log;
+    c->log_error = NGX_ERROR_INFO;
+    c->log->connection = c->number;
+    c->log->action = NULL;
+    c->log->data = NULL;
+    c->error = 1;
+
+    return c;
+
+failed:
+
+    ngx_wasm_connection_destroy(c);
+    return NULL;
+}
+
+
+void
+ngx_wasm_connection_destroy(ngx_connection_t *c)
+{
+    ngx_connection_t  *orig = NULL;
+
+    if (c->read->timer_set) {
+        ngx_del_timer(c->read);
+    }
+
+    if (c->write->timer_set) {
+        ngx_del_timer(c->write);
+    }
+
+    c->read->closed = 1;
+    c->write->closed = 1;
+    c->destroyed = 1;
+
+    if (ngx_cycle->files) {
+        orig = ngx_cycle->files[0];
+    }
+
+    c->fd = 0;
+    ngx_free_connection(c);
+
+    if (orig) {
+        ngx_cycle->files[0] = orig;
+    }
 }

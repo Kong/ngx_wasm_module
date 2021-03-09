@@ -16,19 +16,19 @@ ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
 {
     ngx_int_t                 rc;
     ngx_proxy_wasm_module_t  *pwm = ev->data;
-    wasm_val_t                args[1];
-    wasm_val_vec_t            vargs;
+    wasm_val_vec_t            args;
 
     ngx_free(ev);
 
     if (pwm->proxy_on_tick) {
-        ngx_wasm_set_i32(args[0], pwm->ctxid);
+        ngx_wavm_ctx_update(pwm->instance->ctx, NULL, NULL);
 
-        wasm_val_vec_new(&vargs, 1, args);
+        wasm_val_vec_new_uninitialized(&args, 1);
+        ngx_wasm_vec_set_i32(&args, 0, pwm->ctxid);
 
-        rc = ngx_wavm_instance_callref2(pwm->instance, pwm->proxy_on_tick,
-                                        &vargs, NULL);
-        wasm_val_vec_delete(&vargs);
+        rc = ngx_wavm_instance_call_funcref(pwm->instance, pwm->proxy_on_tick,
+                                            &args, NULL);
+        wasm_val_vec_delete(&args);
 
         if (!ngx_exiting) {
             ev = ngx_calloc(sizeof(ngx_event_t), pwm->instance->log);

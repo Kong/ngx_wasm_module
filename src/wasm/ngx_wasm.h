@@ -17,6 +17,8 @@
 #define NGX_WASM_MODULE              0x5741534d   /* "WASM" */
 #define NGX_WASM_CONF                0x00300000
 
+#define NGX_WASM_BAD_FD              (ngx_socket_t) -1
+
 #define NGX_WASM_CONF_ERR_NO_WASM                                            \
     "is specified but config has no \"wasm\" section"
 
@@ -26,9 +28,9 @@
       [ngx_wasm_core_module.ctx_index]                                       \
     : NULL
 
-#define ngx_wasm_set_i32(val, i)                                             \
-    val.kind = WASM_I32;                                                     \
-    val.of.i32 = i
+#define ngx_wasm_vec_set_i32(vec, i, v)                                      \
+    (((wasm_val_vec_t *) (vec))->data[i].kind = WASM_I32);                   \
+     ((wasm_val_vec_t *) (vec))->data[i].of.i32 = v                          \
 
 
 typedef struct ngx_wavm_s  ngx_wavm_t;
@@ -37,6 +39,7 @@ typedef struct ngx_wavm_linked_module_s  ngx_wavm_linked_module_t;
 typedef struct ngx_wavm_ctx_s  ngx_wavm_ctx_t;
 typedef struct ngx_wavm_instance_s  ngx_wavm_instance_t;
 typedef struct ngx_wavm_funcref_s  ngx_wavm_funcref_t;
+typedef struct ngx_wavm_func_s  ngx_wavm_func_t;
 
 
 typedef struct {
@@ -50,6 +53,8 @@ ngx_wavm_t *ngx_wasm_main_vm(ngx_cycle_t *cycle);
 
 ngx_int_t ngx_wasm_bytes_from_path(wasm_byte_vec_t *out, u_char *path,
     ngx_log_t *log);
+ngx_connection_t *ngx_wasm_connection_create(ngx_pool_t *pool);
+void ngx_wasm_connection_destroy(ngx_connection_t *c);
 
 void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, ...);

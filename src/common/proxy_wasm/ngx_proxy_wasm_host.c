@@ -23,11 +23,11 @@ ngx_proxy_wasm_hfuncs_on_memory_allocate(ngx_wavm_instance_t *instance,
 
     p = ngx_alloc(size, instance->log);
     if (p == NULL) {
-        ngx_wasm_set_i32(rets[0], (uintptr_t) 0);
+        ngx_wasm_vec_set_i32(rets, 0, (uintptr_t) 0);
         return NGX_WAVM_OK;
     }
 
-    ngx_wasm_set_i32(rets[0], (uintptr_t) p);
+    ngx_wasm_vec_set_i32(rets, 0, (uintptr_t) p);
 
     return NGX_WAVM_OK;
 }
@@ -202,29 +202,33 @@ static uint32_t
 ngx_proxy_wasm_alloc(ngx_proxy_wasm_module_t *pwm, size_t size)
 {
    uint32_t              p;
-   ngx_wavm_instance_t  *instance;
-   wasm_val_t            args[1], rets[1];
    ngx_int_t             rc;
+   ngx_wavm_instance_t  *instance;
+   wasm_val_vec_t        args, *rets;
 
    instance = pwm->instance;
 
-   ngx_wasm_set_i32(args[0], (uint32_t) size);
+   wasm_val_vec_new_uninitialized(&args, 1);
+   ngx_wasm_vec_set_i32(&args, 0, (uint32_t) size);
 
-   rc = ngx_wavm_instance_callref(instance,
-                                  pwm->proxy_on_memory_allocate,
-                                  args, 1, rets, 1);
+   rc = ngx_wavm_instance_call_funcref(instance, pwm->proxy_on_memory_allocate,
+                                       &args, &rets);
    if (rc != NGX_OK) {
        ngx_wasm_log_error(NGX_LOG_EMERG, instance->log, 0,
                           "proxy_wasm_alloc(%uz) failed", size);
+       wasm_val_vec_delete(&args);
        return 0;
    }
 
    instance->mem_offset = (u_char *) wasm_memory_data(instance->memory);
 
-   p = rets[0].of.i64;
+   p = rets->data[0].of.i64;
 
    ngx_log_debug2(NGX_LOG_DEBUG_WASM, instance->log, 0,
                   "proxy_wasm_alloc: %p:%uz", p, size);
+
+   wasm_val_vec_delete(&args);
+
    return p;
 }
 

@@ -73,6 +73,7 @@ struct ngx_wasm_ops_engine_s {
 ngx_wasm_ops_engine_t *ngx_wasm_ops_engine_new(ngx_pool_t *pool,
     ngx_wavm_t *vm, ngx_wasm_subsystem_t *subsystem);
 void ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine);
+void ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine);
 
 ngx_wasm_op_t *ngx_wasm_conf_add_op_call(ngx_conf_t *cf,
     ngx_wasm_ops_engine_t *ops_engine, ngx_wavm_host_def_t *host,

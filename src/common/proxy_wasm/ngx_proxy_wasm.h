@@ -220,6 +220,7 @@ struct ngx_proxy_wasm_module_s {
 ngx_int_t ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwmodule);
 ngx_int_t ngx_proxy_wasm_module_resume(ngx_proxy_wasm_module_t *pwm,
     ngx_wasm_phase_t *phase, ngx_wavm_ctx_t *ctx);
+void ngx_proxy_wasm_module_destroy(ngx_proxy_wasm_module_t *pwmodule);
 void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
     ngx_proxy_wasm_err_t err, const char *fmt, ...);
 

@@ -123,6 +123,40 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
 }
 
 
+void
+ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine)
+{
+    size_t                    i, j;
+    ngx_wasm_op_t            *op;
+    ngx_wasm_ops_pipeline_t  *pipeline;
+
+    for (i = 0; i < engine->subsystem->nphases; i++) {
+        pipeline = engine->pipelines[i];
+
+        if (pipeline == NULL) {
+            continue;
+        }
+
+        for (j = 0; j < pipeline->ops->nelts; j++) {
+            op = ((ngx_wasm_op_t **) pipeline->ops->elts)[j];
+
+            switch (op->code) {
+
+            case NGX_WASM_OP_PROXY_WASM:
+                ngx_proxy_wasm_module_destroy(op->conf.proxy_wasm.pwmodule);
+                break;
+
+            default:
+                ngx_wasm_log_error(NGX_LOG_ALERT, engine->pool->log, 0,
+                                   "unknown wasm op code: %d", op->code);
+                break;
+
+            }
+        }
+    }
+}
+
+
 static ngx_int_t
 ngx_wasm_op_add_helper(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
     ngx_wasm_op_t *op, ngx_str_t *mod_name)
@@ -400,7 +434,7 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wasm_phase_t *phase,
         return NGX_ERROR;
     }
 
-    return ngx_wavm_instance_callref(instance, funcref, NULL, 0, NULL, 0);
+    return ngx_wavm_instance_call_funcref(instance, funcref, NULL, NULL);
 }
 
 
