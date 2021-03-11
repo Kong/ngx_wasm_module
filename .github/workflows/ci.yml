@@ -18,7 +18,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
-        nginx: [1.19.3]
+        nginx: [1.19.8]
         wasmtime: [0.24.0]
         hup: [1, 0]
         debug: [1, 0]
@@ -83,7 +83,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
-        nginx: [1.19.3]
+        nginx: [1.19.8]
         wasmtime: [0.24.0]
         hup: [1, 0]
         #debug: [1, 0]

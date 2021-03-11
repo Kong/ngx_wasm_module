@@ -1,4 +1,4 @@
-NGX ?= 1.19.3
+NGX ?= 1.19.8
 NGX_BUILD_CC_OPT ?= -O0 -ggdb3 -gdwarf
 NGX_BUILD_LD_OPT ?=
 NGX_BUILD_DEBUG ?= 1
