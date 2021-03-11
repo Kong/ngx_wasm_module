@@ -8,6 +8,7 @@ DIR_BUILDROOT=$DIR_WORK/buildroot
 DIR_SRCROOT=$DIR_WORK/nginx-patched
 DIR_TESTS_LIB_WASM=$DIR_WORK/lib/wasm
 DIR_PREFIX=$NGX_WASM_DIR/t/servroot
+RUST_TESTS_MANIFEST_PATH=t/lib/rust-tests/Cargo.toml
 
 build_nginx() {
     local ngx_src=$1

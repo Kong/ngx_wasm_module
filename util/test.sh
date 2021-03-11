@@ -73,10 +73,19 @@ if [[ ! -x "$(command -v cargo)" ]]; then
     fatal "missing 'cargo', is the rust toolchain installed?"
 fi
 
+if [[ "$CI" == 'true' ]]; then
+    export TEST_WASMX_CARGO_BUILD_FORCE=1
+fi
+
+if [[ ! -z "$TEST_WASMX_CARGO_BUILD_FORCE" ]]; then
+    cargo clean --manifest-path $RUST_TESTS_MANIFEST_PATH
+    echo "Cleaned $RUST_TESTS_MANIFEST_PATH crate"
+fi
+
 cargo build \
     --quiet \
     --lib \
-    --manifest-path t/lib/rust-tests/Cargo.toml \
+    --manifest-path $RUST_TESTS_MANIFEST_PATH \
     --target wasm32-unknown-unknown \
     --out-dir $DIR_TESTS_LIB_WASM \
     -Z unstable-options
