@@ -23,7 +23,7 @@ jobs:
         cc: [clang]
         #nginx: [1.18.0, 1.19.1]
         nginx: [1.19.3]
-        wasmtime: [0.22.1]
+        wasmtime: [0.24.0]
         #hup: [1, 0]
         hup: [0]
         #debug: [1, 0]

@@ -52,8 +52,8 @@ ngx_wrt_instance_new(wasm_store_t *s, wasm_module_t *m,
     wasm_extern_vec_t *imports, wasm_instance_t **instance,
     ngx_wavm_err_t *err)
 {
-    *instance = wasm_instance_new(s, m,
-                    (const wasm_extern_t * const *) imports->data, &err->trap);
+    *instance = wasm_instance_new(s, m, (const wasm_extern_vec_t *) imports,
+                                  &err->trap);
     if (*instance == NULL) {
         return NGX_ERROR;
     }
@@ -66,7 +66,7 @@ ngx_int_t
 ngx_wrt_func_call(wasm_func_t *f, wasm_val_vec_t *args, wasm_val_vec_t *rets,
     ngx_wavm_err_t *err)
 {
-    err->trap = wasm_func_call(f, args->data, rets->data);
+    err->trap = wasm_func_call(f, args, rets);
 
     return err->trap == NULL ? NGX_OK : NGX_ERROR;
 }

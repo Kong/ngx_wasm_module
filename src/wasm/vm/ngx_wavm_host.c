@@ -149,13 +149,8 @@ ngx_wavm_host_hfunc_destroy(ngx_wavm_hfunc_t *hfunc)
 
 
 wasm_trap_t *
-ngx_wavm_hfuncs_trampoline(void *env,
-#if (NGX_WASM_HAVE_WASMTIME)
-    const wasm_val_t args[], wasm_val_t rets[]
-#else
-    const wasm_val_vec_t* args, wasm_val_vec_t* rets
-#endif
-    )
+ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
+    wasm_val_vec_t* rets)
 {
     size_t                  errlen, len;
     char                   *err = NULL;
@@ -168,14 +163,8 @@ ngx_wavm_hfuncs_trampoline(void *env,
     wasm_byte_vec_t         trapmsg;
     wasm_trap_t            *trap = NULL;
 
-#if (NGX_WASM_HAVE_WASMTIME)
-    hargs = (wasm_val_t *) args;
-    hrets = (wasm_val_t *) rets;
-
-#else
     hargs = (wasm_val_t *) args->data;
     hrets = (wasm_val_t *) rets->data;
-#endif
 
     dd("wasm hfuncs trampoline (hfunc: \"%*s\", tctx: %p)",
        (int) hfunc->def->name.len, hfunc->def->name.data, tctx);
