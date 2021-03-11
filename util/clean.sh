@@ -24,7 +24,7 @@ fi
 
 if [[ "$1" == "--all" ]]; then
     rm -rf $DIR_WORK $DIR_PREFIX
-    cargo clean --manifest-path=t/lib/rust-http-tests/Cargo.toml
+    cargo clean --manifest-path=t/lib/rust-tests/Cargo.toml
     cargo clean --manifest-path=lib/ngx-rust/Cargo.toml
 fi
 
