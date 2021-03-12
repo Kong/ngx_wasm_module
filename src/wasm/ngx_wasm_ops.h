@@ -41,7 +41,7 @@ typedef struct {
 
 struct ngx_wasm_op_s {
     ngx_uint_t                               on_phases;
-    ngx_wasm_op_code_t                       code;
+    ngx_uint_t                               code;
     ngx_wasm_op_handler_pt                   handler;
     ngx_wavm_host_def_t                     *host;
     ngx_wavm_module_t                       *module;

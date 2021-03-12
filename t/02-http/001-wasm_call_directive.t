@@ -378,10 +378,10 @@ wasm ops calling "a.nop" in "log" phase
         module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
-    wasm_call log a nop;
+    wasm_call log a nocall;
 
     location /t {
-        wasm_call log a nop2;
+        wasm_call log a nop;
         return 200;
     }
 --- user_files
@@ -389,12 +389,12 @@ wasm ops calling "a.nop" in "log" phase
 (module
   (func $nop)
   (export "nop" (func $nop))
-  (export "nop2" (func $nop))
+  (export "nocall" (func $nop))
 )
 --- error_log
-wasm ops calling "a.nop2" in "log" phase
---- no_error_log
 wasm ops calling "a.nop" in "log" phase
+--- no_error_log
+wasm ops calling "a.nocall" in "log" phase
 [error]
 
 
@@ -407,15 +407,15 @@ wasm ops calling "a.nop" in "log" phase
         module moduleB $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- http_config
-    wasm_call rewrite moduleA nop2;
+    wasm_call rewrite moduleA nocall;
     wasm_call rewrite moduleB nop;
 --- config
     wasm_call rewrite moduleA nop;
-    wasm_call log moduleA nop2;
-    wasm_call log moduleB nop2;
+    wasm_call log moduleA nocall;
+    wasm_call log moduleB nocall;
 
     location /t {
-        wasm_call log moduleB nop3;
+        wasm_call log moduleB othernop;
         return 200;
     }
 --- user_files
@@ -423,11 +423,11 @@ wasm ops calling "a.nop" in "log" phase
 (module
   (func $nop)
   (export "nop" (func $nop))
-  (export "nop2" (func $nop))
-  (export "nop3" (func $nop))
+  (export "nocall" (func $nop))
+  (export "othernop" (func $nop))
 )
 --- error_log
 wasm ops calling "moduleA.nop" in "rewrite" phase
-wasm ops calling "moduleB.nop3" in "log" phase
+wasm ops calling "moduleB.othernop" in "log" phase
 --- no_error_log eval
-qr/\[wasm\] calling "module[A|B]\.nop2" in "log" phase/
+qr/\[wasm\] calling "module[A|B]\.nocall" in "log" phase/

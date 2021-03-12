@@ -142,6 +142,9 @@ ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine)
 
             switch (op->code) {
 
+            case NGX_WASM_OP_CALL:
+                break;
+
             case NGX_WASM_OP_PROXY_WASM:
                 ngx_proxy_wasm_module_destroy(op->conf.proxy_wasm.pwmodule);
                 break;
