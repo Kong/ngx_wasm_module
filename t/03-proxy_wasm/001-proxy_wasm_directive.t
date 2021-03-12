@@ -159,8 +159,8 @@ qr/\[info\] .*? \[wasm\] Ticking at 2\d+.*? UTC/
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[debug\] .*? \[wasm\] #1 -> Host: localhost/,
-    qr/\[debug\] .*? \[wasm\] #1 -> Connection: close/
+    qr/\[debug\] .*? \[wasm\] #\d+ -> Host: localhost/,
+    qr/\[debug\] .*? \[wasm\] #\d+ -> Connection: close/
 ]
 --- no_error_log
 [error]

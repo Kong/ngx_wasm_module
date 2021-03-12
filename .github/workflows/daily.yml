@@ -55,8 +55,7 @@ jobs:
         uses: ./.github/actions/wasmtime
         with:
           version: ${{ matrix.wasmtime }}
-      - if: steps.cache.outputs.cache-hit != 'true'
-        run: make setup
+      - run: make setup
       - run: make
         env:
           CC: ${{ matrix.cc }}
@@ -96,8 +95,7 @@ jobs:
         uses: ./.github/actions/wasmtime
         with:
           version: ${{ matrix.wasmtime }}
-      - if: steps.cache.outputs.cache-hit != 'true'
-        run: make setup
+      - run: make setup
       - run: make
         env:
           CC: ${{ matrix.cc }}
@@ -154,6 +152,5 @@ jobs:
         uses: ./.github/actions/wasmtime
         with:
           version: ${{ matrix.wasmtime }}
-      - if: steps.cache.outputs.cache-hit != 'true'
-        run: make setup
+      - run: make setup
       - run: make test-build

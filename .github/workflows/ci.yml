@@ -51,8 +51,7 @@ jobs:
         uses: ./.github/actions/wasmtime
         with:
           version: ${{ matrix.wasmtime }}
-      - if: steps.cache.outputs.cache-hit != 'true'
-        run: make setup
+      - run: make setup
       - run: make
         env:
           CC: ${{ matrix.cc }}
@@ -116,8 +115,7 @@ jobs:
         uses: ./.github/actions/wasmtime
         with:
           version: ${{ matrix.wasmtime }}
-      - if: steps.cache.outputs.cache-hit != 'true'
-        run: make setup
+      - run: make setup
       - run: make
         env:
           CC: ${{ matrix.cc }}
@@ -150,8 +148,7 @@ jobs:
             work
             !work/scans
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
-      - if: steps.cache.outputs.cache-hit != 'true'
-        run: make setup
+      - run: make setup
       - run: make style
       - run: |
           if [[ $(make reindex 2>&1 | tee reindex.out | grep -c done) -gt 0 ]]; then
