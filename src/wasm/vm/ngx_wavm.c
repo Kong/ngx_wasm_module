@@ -20,8 +20,8 @@ static u_char *ngx_wavm_log_error_handler(ngx_log_t *log, u_char *buf,
     size_t len);
 
 
-static u_char  NGX_WAVM_NOMEM_CHAR[] = "no memory";
-static u_char  NGX_WAVM_EMPTY_CHAR[] = "";
+static const char  NGX_WAVM_NOMEM_CHAR[] = "no memory";
+static const char  NGX_WAVM_EMPTY_CHAR[] = "";
 
 
 ngx_wavm_t *
@@ -296,7 +296,8 @@ ngx_wavm_module_lookup(ngx_wavm_t *vm, ngx_str_t *name)
 ngx_int_t
 ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path)
 {
-    u_char             *p, *err = NGX_WAVM_NOMEM_CHAR;
+    u_char             *p;
+    const char         *err = NGX_WAVM_NOMEM_CHAR;
     ngx_wavm_module_t  *module;
 
     if (ngx_wavm_state(vm, NGX_WAVM_READY)) {
@@ -371,11 +372,11 @@ error:
 static ngx_int_t
 ngx_wavm_module_load_bytes(ngx_wavm_module_t *module)
 {
-    u_char                   *err = NGX_WAVM_NOMEM_CHAR;
-    ngx_uint_t                rc;
-    ngx_wavm_t               *vm;
-    ngx_wavm_err_t            e;
-    wasm_byte_vec_t           file_bytes;
+    const char       *err = NGX_WAVM_NOMEM_CHAR;
+    ngx_uint_t        rc;
+    ngx_wavm_t       *vm;
+    ngx_wavm_err_t    e;
+    wasm_byte_vec_t   file_bytes;
 
     vm = module->vm;
 
@@ -441,22 +442,23 @@ done:
 static ngx_int_t
 ngx_wavm_module_load(ngx_wavm_module_t *module)
 {
-    size_t                     i;
-    u_char                    *p, *err = NGX_WAVM_NOMEM_CHAR;
-    ngx_uint_t                 rc;
-    ngx_wavm_t                *vm;
-    ngx_wavm_funcref_t        *funcref;
-    ngx_wavm_err_t             e;
-    wasm_exporttype_t         *exporttype;
-    const wasm_externtype_t   *externtype;
-    const wasm_importtype_t   *importtype;
-    const wasm_name_t         *exportname, *importmodule;
+    size_t                    i;
+    u_char                   *p;
+    const char               *err = NGX_WAVM_NOMEM_CHAR;
+    ngx_uint_t                rc;
+    ngx_wavm_t               *vm;
+    ngx_wavm_funcref_t       *funcref;
+    ngx_wavm_err_t            e;
+    wasm_exporttype_t        *exporttype;
+    const wasm_externtype_t  *externtype;
+    const wasm_importtype_t  *importtype;
+    const wasm_name_t        *exportname, *importmodule;
+
+    vm = module->vm;
 
     if (ngx_wavm_state(module, NGX_WAVM_MODULE_READY)) {
         return NGX_OK;
     }
-
-    vm = module->vm;
 
     if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LOADED)) {
         goto unreachable;
@@ -587,7 +589,7 @@ ngx_wavm_linked_module_t *
 ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
 {
     size_t                     i;
-    u_char                    *err = NGX_WAVM_NOMEM_CHAR;
+    const char                *err = NGX_WAVM_NOMEM_CHAR;
     ngx_str_t                  s;
     ngx_wavm_t                *vm = NULL;
     ngx_wavm_hfunc_t          *hfunc, **hfuncp;
@@ -597,13 +599,12 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
 
     vm = module->vm;
 
-    if (!ngx_wavm_state(module, NGX_WAVM_MODULE_READY)) {
-        goto unreachable;
-    }
-
     if (ngx_wavm_state(module, NGX_WAVM_MODULE_INVALID)) {
-        err = (u_char *) "invalid module";
+        err = "invalid module";
         goto error;
+
+    } else if (!ngx_wavm_state(module, NGX_WAVM_MODULE_READY)) {
+        goto unreachable;
     }
 
     ngx_log_debug5(NGX_LOG_DEBUG_WASM, vm->log, 0,
@@ -660,7 +661,7 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
                                "missing host function",
                                importname->size, importname->data);
 
-            err = (u_char *) "incompatible host interface";
+            err = "incompatible host interface";
             goto error;
         }
 
@@ -838,7 +839,7 @@ ngx_wavm_instance_t *
 ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
 {
     size_t                     i;
-    u_char                    *err = NGX_WAVM_NOMEM_CHAR;
+    const char                *err = NGX_WAVM_NOMEM_CHAR;
     ngx_wavm_t                *vm;
     ngx_wavm_module_t         *module;
     ngx_wavm_instance_t       *instance;
@@ -991,7 +992,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
 
         case WASM_EXTERN_MEMORY:
             if (instance->memory) {
-                err = (u_char *) "memory already set";
+                err = "memory already set";
                 goto error;
             }
 
@@ -1060,7 +1061,7 @@ ngx_wavm_instance_call_func(ngx_wavm_instance_t *instance,
     ngx_wavm_func_t *func, wasm_val_vec_t *args, wasm_val_vec_t **rets)
 {
     size_t           i;
-    u_char          *err = NULL;
+    const char      *err = NULL;
     ngx_int_t        rc;
     ngx_wavm_err_t   e;
 
@@ -1071,7 +1072,7 @@ ngx_wavm_instance_call_func(ngx_wavm_instance_t *instance,
             }
 
         } else {
-            err = (u_char *) "bad args";
+            err = "bad args";
             goto error;
         }
     }

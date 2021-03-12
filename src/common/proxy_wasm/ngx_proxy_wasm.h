@@ -225,10 +225,11 @@ void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
     ngx_proxy_wasm_err_t err, const char *fmt, ...);
 
 
-void ngx_proxy_wasm_tick_handler(ngx_event_t *ev);
+uint32_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_module_t *pwm, size_t size);
 ngx_uint_t ngx_proxy_wasm_pairs_count(ngx_list_t *list);
 size_t ngx_proxy_wasm_pairs_size(ngx_list_t *list);
 void ngx_proxy_wasm_marshal_pairs(ngx_list_t *list, u_char *buf);
+void ngx_proxy_wasm_tick_handler(ngx_event_t *ev);
 
 
 static ngx_inline ngx_int_t

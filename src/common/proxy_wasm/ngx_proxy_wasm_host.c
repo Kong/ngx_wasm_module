@@ -34,55 +34,6 @@ ngx_proxy_wasm_hfuncs_on_memory_allocate(ngx_wavm_instance_t *instance,
 
 
 static ngx_int_t
-ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    ngx_uint_t   level;
-    uint32_t     log_level, msg_size, msg_data;
-
-    log_level = args[0].of.i32;
-    msg_data = args[1].of.i32;
-    msg_size = args[2].of.i32;
-
-    switch (log_level) {
-
-    case NGX_PROXY_WASM_LOG_TRACE:
-    case NGX_PROXY_WASM_LOG_DEBUG:
-        level = NGX_LOG_DEBUG;
-        break;
-
-    case NGX_PROXY_WASM_LOG_INFO:
-        level = NGX_LOG_INFO;
-        break;
-
-    case NGX_PROXY_WASM_LOG_WARNING:
-        level = NGX_LOG_WARN;
-        break;
-
-    case NGX_PROXY_WASM_LOG_ERROR:
-        level = NGX_LOG_ERR;
-        break;
-
-    case NGX_PROXY_WASM_LOG_CRITICAL:
-        level = NGX_LOG_CRIT;
-        break;
-
-    default:
-        ngx_wasm_log_error(NGX_LOG_ALERT, instance->log, 0,
-                           "NYI: unknown log level \"%d\"", log_level);
-
-        return ngx_proxy_wasm_result_badarg(rets);
-
-    }
-
-    ngx_wasm_log_error(level, instance->log, 0, "%*s",
-                       msg_size, instance->mem_offset + msg_data);
-
-    return ngx_proxy_wasm_result_ok(rets);
-}
-
-
-static ngx_int_t
 ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -143,23 +94,49 @@ ngx_proxy_wasm_hfuncs_get_current_time(ngx_wavm_instance_t *instance,
 
 
 static ngx_int_t
-ngx_proxy_wasm_hfuncs_set_buffer_bytes(ngx_wavm_instance_t *instance,
+ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    uint32_t   buf_type;//, buf_start, max_size;
-    buf_type = args[0].of.i32;
+    ngx_uint_t   level;
+    uint32_t     log_level, msg_size, msg_data;
 
-    if (buf_type > NGX_PROXY_WASM_BUFFER_HTTP_CALL_RESPONSE_BODY) {
-        return NGX_WAVM_BAD_USAGE;
-    }
+    log_level = args[0].of.i32;
+    msg_data = args[1].of.i32;
+    msg_size = args[2].of.i32;
 
-    switch (buf_type) {
+    switch (log_level) {
 
-    default:
-        ngx_wasm_log_error(NGX_LOG_ALERT, instance->log, 0, "NYI");
+    case NGX_PROXY_WASM_LOG_TRACE:
+    case NGX_PROXY_WASM_LOG_DEBUG:
+        level = NGX_LOG_DEBUG;
         break;
 
+    case NGX_PROXY_WASM_LOG_INFO:
+        level = NGX_LOG_INFO;
+        break;
+
+    case NGX_PROXY_WASM_LOG_WARNING:
+        level = NGX_LOG_WARN;
+        break;
+
+    case NGX_PROXY_WASM_LOG_ERROR:
+        level = NGX_LOG_ERR;
+        break;
+
+    case NGX_PROXY_WASM_LOG_CRITICAL:
+        level = NGX_LOG_CRIT;
+        break;
+
+    default:
+        ngx_wasm_log_error(NGX_LOG_ALERT, instance->log, 0,
+                           "NYI: unknown log level \"%d\"", log_level);
+
+        return ngx_proxy_wasm_result_badarg(rets);
+
     }
+
+    ngx_wasm_log_error(level, instance->log, 0, "%*s",
+                       msg_size, instance->mem_offset + msg_data);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -198,38 +175,27 @@ ngx_proxy_wasm_hfuncs_get_buffer_bytes(ngx_wavm_instance_t *instance,
 }
 
 
-static uint32_t
-ngx_proxy_wasm_alloc(ngx_proxy_wasm_module_t *pwm, size_t size)
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_set_buffer_bytes(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
 {
-   uint32_t              p;
-   ngx_int_t             rc;
-   ngx_wavm_instance_t  *instance;
-   wasm_val_vec_t        args, *rets;
+    uint32_t   buf_type;//, buf_start, max_size;
 
-   instance = pwm->instance;
+    buf_type = args[0].of.i32;
 
-   wasm_val_vec_new_uninitialized(&args, 1);
-   ngx_wasm_vec_set_i32(&args, 0, (uint32_t) size);
+    if (buf_type > NGX_PROXY_WASM_BUFFER_HTTP_CALL_RESPONSE_BODY) {
+        return NGX_WAVM_BAD_USAGE;
+    }
 
-   rc = ngx_wavm_instance_call_funcref(instance, pwm->proxy_on_memory_allocate,
-                                       &args, &rets);
-   if (rc != NGX_OK) {
-       ngx_wasm_log_error(NGX_LOG_EMERG, instance->log, 0,
-                          "proxy_wasm_alloc(%uz) failed", size);
-       wasm_val_vec_delete(&args);
-       return 0;
-   }
+    switch (buf_type) {
 
-   instance->mem_offset = (u_char *) wasm_memory_data(instance->memory);
+    default:
+        ngx_wasm_log_error(NGX_LOG_ALERT, instance->log, 0, "NYI");
+        break;
 
-   p = rets->data[0].of.i64;
+    }
 
-   ngx_log_debug2(NGX_LOG_DEBUG_WASM, instance->log, 0,
-                  "proxy_wasm_alloc: %p:%uz", p, size);
-
-   wasm_val_vec_delete(&args);
-
-   return p;
+    return ngx_proxy_wasm_result_ok(rets);
 }
 
 
@@ -264,7 +230,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_pairs(ngx_wavm_instance_t *instance,
         }
 
         ngx_proxy_wasm_marshal_pairs(&r->headers_in.headers,
-                                     (instance->mem_offset + p));
+                                     instance->mem_offset + p);
         *rbuf = p;
         *rsize = size;
         break;
