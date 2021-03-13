@@ -54,6 +54,7 @@ struct ngx_wavm_func_s {
 
     const wasm_name_t                 *name;
     wasm_func_t                       *func;
+    const wasm_valtype_vec_t          *argstypes;
     wasm_val_vec_t                     args;
     wasm_val_vec_t                     rets;
 };
@@ -170,9 +171,13 @@ ngx_wavm_ctx_update(ngx_wavm_ctx_t *ctx, ngx_log_t *log, void *data)
 ngx_wavm_instance_t *ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule,
     ngx_wavm_ctx_t *ctx);
 ngx_int_t ngx_wavm_instance_call_func(ngx_wavm_instance_t *instance,
-    ngx_wavm_func_t *func, wasm_val_vec_t *args, wasm_val_vec_t **rets);
+    ngx_wavm_func_t *f, wasm_val_vec_t **rets, ...);
+ngx_int_t ngx_wavm_instance_call_func_vec(ngx_wavm_instance_t *instance,
+    ngx_wavm_func_t *f, wasm_val_vec_t **rets, wasm_val_vec_t *args);
 ngx_int_t ngx_wavm_instance_call_funcref(ngx_wavm_instance_t *instance,
-    ngx_wavm_funcref_t *funcref, wasm_val_vec_t *args, wasm_val_vec_t **rets);
+    ngx_wavm_funcref_t *funcref, wasm_val_vec_t **rets, ...);
+ngx_int_t ngx_wavm_instance_call_funcref_vec(ngx_wavm_instance_t *instance,
+    ngx_wavm_funcref_t *funcref, wasm_val_vec_t **rets, wasm_val_vec_t *args);
 void ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance);
 
 

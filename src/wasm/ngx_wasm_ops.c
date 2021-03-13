@@ -437,7 +437,7 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wasm_phase_t *phase,
         return NGX_ERROR;
     }
 
-    return ngx_wavm_instance_call_funcref(instance, funcref, NULL, NULL);
+    return ngx_wavm_instance_call_funcref_vec(instance, funcref, NULL, NULL);
 }
 
 

@@ -30,7 +30,16 @@
 
 #define ngx_wasm_vec_set_i32(vec, i, v)                                      \
     (((wasm_val_vec_t *) (vec))->data[i].kind = WASM_I32);                   \
-     ((wasm_val_vec_t *) (vec))->data[i].of.i32 = v                          \
+     ((wasm_val_vec_t *) (vec))->data[i].of.i32 = v
+#define ngx_wasm_vec_set_i64(vec, i, v)                                      \
+    (((wasm_val_vec_t *) (vec))->data[i].kind = WASM_I64);                   \
+     ((wasm_val_vec_t *) (vec))->data[i].of.i64 = v
+#define ngx_wasm_vec_set_f32(vec, i, v)                                      \
+    (((wasm_val_vec_t *) (vec))->data[i].kind = WASM_F32);                   \
+     ((wasm_val_vec_t *) (vec))->data[i].of.f32 = v
+#define ngx_wasm_vec_set_f64(vec, i, v)                                      \
+    (((wasm_val_vec_t *) (vec))->data[i].kind = WASM_F64);                   \
+     ((wasm_val_vec_t *) (vec))->data[i].of.f64 = v
 
 
 typedef struct ngx_wavm_s  ngx_wavm_t;

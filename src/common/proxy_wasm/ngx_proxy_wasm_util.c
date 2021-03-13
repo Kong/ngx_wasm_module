@@ -17,19 +17,15 @@ ngx_proxy_wasm_alloc(ngx_proxy_wasm_module_t *pwm, size_t size)
    uint32_t              p;
    ngx_int_t             rc;
    ngx_wavm_instance_t  *instance;
-   wasm_val_vec_t        args, *rets;
+   wasm_val_vec_t        *rets;
 
    instance = pwm->instance;
 
-   wasm_val_vec_new_uninitialized(&args, 1);
-   ngx_wasm_vec_set_i32(&args, 0, (uint32_t) size);
-
    rc = ngx_wavm_instance_call_funcref(instance, pwm->proxy_on_memory_allocate,
-                                       &args, &rets);
+                                       &rets, size);
    if (rc != NGX_OK) {
        ngx_wasm_log_error(NGX_LOG_EMERG, instance->log, 0,
                           "proxy_wasm_alloc(%uz) failed", size);
-       wasm_val_vec_delete(&args);
        return 0;
    }
 
@@ -39,8 +35,6 @@ ngx_proxy_wasm_alloc(ngx_proxy_wasm_module_t *pwm, size_t size)
 
    ngx_log_debug2(NGX_LOG_DEBUG_WASM, instance->log, 0,
                   "proxy_wasm_alloc: %p:%uz", p, size);
-
-   wasm_val_vec_delete(&args);
 
    return p;
 }
@@ -170,8 +164,8 @@ ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
         wasm_val_vec_new_uninitialized(&args, 1);
         ngx_wasm_vec_set_i32(&args, 0, pwm->ctxid);
 
-        rc = ngx_wavm_instance_call_funcref(pwm->instance, pwm->proxy_on_tick,
-                                            &args, NULL);
+        rc = ngx_wavm_instance_call_funcref_vec(pwm->instance, pwm->proxy_on_tick,
+                                                NULL, &args);
         wasm_val_vec_delete(&args);
 
         if (!ngx_exiting) {
