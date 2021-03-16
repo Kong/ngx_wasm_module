@@ -166,3 +166,56 @@ qr/\[info\] .*? \[wasm\] Ticking at 2\d+.*? UTC/
 [error]
 [alert]
 [emerg]
+
+
+
+=== TEST 8: proxy_wasm directive - on_done
+--- skip_valgrind: 6
+--- timeout: 30s
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config
+    wasm {
+        module on_req_headers $TEST_NGINX_CRATES_DIR/proxy_wasm_on_req_headers.wasm;
+    }
+--- config
+    location /t {
+        proxy_wasm on_req_headers;
+        echo ok;
+    }
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[debug\] .*? \[wasm\] #\d+ completed/,
+    qr/\[debug\] .*? \[wasm\] #\d+ completed/
+]
+--- no_error_log
+[error]
+[alert]
+[emerg]
+
+
+
+=== TEST 9: proxy_wasm directive - on_tick + on_req_headers
+--- skip_valgrind: 6
+--- timeout: 30s
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config
+    wasm {
+        module on_tick $TEST_NGINX_CRATES_DIR/proxy_wasm_on_tick.wasm;
+    }
+--- config
+    location /t {
+        proxy_wasm on_tick;
+        echo_sleep 0.25;
+        echo_status 200;
+    }
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[info\] .*? \[wasm\] Ticking at 2\d+.*? UTC/,
+    qr/\[info\] .*? \[wasm\] #\d+ -> Host: localhost/,
+    qr/\[info\] .*? \[wasm\] #\d+ -> Connection: close/,
+    qr/\[info\] .*? \[wasm\] Ticking at 2\d+.*? UTC/
+]
+--- no_error_log
+[error]

@@ -11,17 +11,14 @@ pub fn _start() {
 }
 
 struct OnTick;
-
 impl Context for OnTick {}
-impl HttpContext for OnTick {}
-
 impl RootContext for OnTick {
     fn get_type(&self) -> Option<ContextType> {
         Some(ContextType::HttpContext)
     }
 
-    fn create_http_context(&self, _: u32) -> Option<Box<dyn HttpContext>> {
-        Some(Box::new(OnTick))
+    fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
+        Some(Box::new(OnTickHttp { context_id }))
     }
 
     fn on_vm_start(&mut self, _: usize) -> bool {
@@ -32,5 +29,20 @@ impl RootContext for OnTick {
     fn on_tick(&mut self) {
         let now: DateTime<Utc> = self.get_current_time().into();
         info!("Ticking at {}", now);
+    }
+}
+
+struct OnTickHttp {
+    context_id: u32,
+}
+
+impl Context for OnTickHttp {}
+impl HttpContext for OnTickHttp {
+    fn on_http_request_headers(&mut self, _: usize) -> Action {
+        for (name, value) in &self.get_http_request_headers() {
+            info!("#{} -> {}: {}", self.context_id, name, value);
+        }
+
+        Action::Continue
     }
 }

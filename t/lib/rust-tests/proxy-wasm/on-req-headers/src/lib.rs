@@ -48,4 +48,8 @@ impl HttpContext for HttpHeaders {
         //    _ => Action::Continue,
         //}
     }
+
+    fn on_log(&mut self) {
+        trace!("#{} completed", self.context_id);
+    }
 }
