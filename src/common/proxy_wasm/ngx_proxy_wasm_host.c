@@ -336,6 +336,129 @@ found:
 
 
 static ngx_int_t
+ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    size_t                      i;
+    int32_t                     status, reason_len, body_len, headers_len
+#if (NGX_DEBUG)
+                                , grpc_status
+#endif
+                                ;
+    u_char                     *reason, *body, *marsh_headers, *p;
+    ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
+    ngx_http_request_t         *r = rctx->r;
+    //ngx_proxy_wasm_module_t  *pwm;
+    ngx_int_t                   rc;
+    ngx_array_t                *headers;
+    ngx_table_elt_t            *elt;
+    ngx_buf_t                  *b;
+    ngx_chain_t                *cl;
+
+    //pwm = ngx_proxy_wasm_get_pwm(instance);
+
+    if (r->connection->fd == NGX_WASM_BAD_FD || rctx->sent_last) {
+        return NGX_WAVM_BAD_CTX;
+    }
+
+    status = args[0].of.i32;
+    reason = instance->mem_offset + args[1].of.i32;
+    reason_len = args[2].of.i32;
+    body = instance->mem_offset + args[3].of.i32;
+    body_len = args[4].of.i32;
+    marsh_headers = instance->mem_offset + args[5].of.i32;
+    headers_len = args[6].of.i32;
+#if (NGX_DEBUG)
+    grpc_status = args[7].of.i32;
+
+    ngx_wasm_assert(grpc_status == -1);
+#endif
+
+    /* status */
+
+    r->headers_out.status = status;
+
+    if (r->err_status) {
+        r->err_status = 0;
+    }
+
+    /* reason */
+
+    if (reason_len) {
+        if (status < 100 || status > 999) {
+            return ngx_proxy_wasm_result_badarg(rets);
+        }
+
+        reason_len += 5; /* "ddd <reason>\0" */
+        p = ngx_palloc(r->pool, reason_len);
+        ngx_snprintf(p, reason_len, "%03ui %s", status, reason);
+
+        r->headers_out.status_line.data = p;
+        r->headers_out.status_line.len = reason_len - 1;
+    }
+
+    /* headers */
+
+    if (headers_len) {
+        headers = ngx_proxy_wasm_pairs_unmarshal(r->pool, marsh_headers,
+                                                 headers_len);
+        if (headers == NULL) {
+            return ngx_proxy_wasm_result_err(rets);
+        }
+
+        for (i = 0; i < headers->nelts; i++) {
+            elt = &((ngx_table_elt_t *) headers->elts)[i];
+
+            rc = ngx_http_wasm_set_resp_header(r, elt->key, elt->value, 1);
+            if (rc != NGX_OK) {
+                return ngx_proxy_wasm_result_err(rets);
+            }
+        }
+    }
+
+    /* body */
+
+    if (body_len) {
+        b = ngx_create_temp_buf(r->pool, body_len + sizeof(LF));
+        if (b == NULL) {
+            return ngx_proxy_wasm_result_err(rets);
+        }
+
+        b->last = ngx_copy(b->last, body, body_len);
+        *b->last++ = LF;
+
+        b->last_buf = 1;
+        b->last_in_chain = 1;
+
+        cl = ngx_alloc_chain_link(r->connection->pool);
+        if (cl == NULL) {
+            return ngx_proxy_wasm_result_err(rets);
+        }
+
+        cl->buf = b;
+        cl->next = NULL;
+
+        if (ngx_http_wasm_set_resp_content_length(r, body_len) != NGX_OK) {
+            return ngx_proxy_wasm_result_err(rets);
+        }
+    }
+
+    rc = ngx_http_wasm_send_chain_link(r, cl);
+    if (rc == NGX_ERROR) {
+        return NGX_WAVM_ERROR;
+
+    } else if (rc == NGX_AGAIN) {
+        /* TODO: NYI - NGX_WAVM_AGAIN */
+        return NGX_AGAIN;
+    }
+
+    rctx->sent_last = 1;
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_int_t
 ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -421,7 +544,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_send_local_response"),
-     &ngx_proxy_wasm_hfuncs_nop,
+     &ngx_proxy_wasm_hfuncs_send_local_response,
      ngx_wavm_arity_i32x8,
      ngx_wavm_arity_i32 },
 

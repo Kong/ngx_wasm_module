@@ -229,6 +229,8 @@ uint32_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_module_t *pwm, size_t size);
 ngx_uint_t ngx_proxy_wasm_pairs_count(ngx_list_t *list);
 size_t ngx_proxy_wasm_pairs_size(ngx_list_t *list);
 void ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf);
+ngx_array_t *ngx_proxy_wasm_pairs_unmarshal(ngx_pool_t *pool, u_char *buf,
+    size_t len);
 ngx_str_t *ngx_proxy_wasm_get_map_value(ngx_list_t *map, u_char *key,
     size_t key_len);
 void ngx_proxy_wasm_tick_handler(ngx_event_t *ev);

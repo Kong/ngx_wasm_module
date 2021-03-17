@@ -35,17 +35,22 @@ impl HttpContext for HttpHeaders {
         }
 
         match self.get_http_request_header(":path") {
-            //self.send_http_response(
-            //    200,
-            //    vec![("Hello", "World"), ("Powered-By", "proxy-wasm")],
-            //    Some(b"Hello, World!\n"),
-            //);
-            //Action::Pause
             Some(path) => {
                 trace!("path: {}", path);
-                Action::Continue
+
+                self.send_http_response(
+                    200,
+                    vec![("Hello", "World"), ("Powered-By", "proxy-wasm")],
+                    Some(b"Hello, World!\n"),
+                );
+                Action::Pause
             }
             _ => Action::Continue,
+            //Some(path) => {
+            //    trace!("path: {}", path);
+            //    Action::Continue
+            //}
+            //_ => Action::Continue,
         }
     }
 

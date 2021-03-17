@@ -149,6 +149,74 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf)
 }
 
 
+ngx_array_t *
+ngx_proxy_wasm_pairs_unmarshal(ngx_pool_t *pool, u_char *buf, size_t len)
+{
+    size_t            i;
+    uint32_t          count;
+    ngx_table_elt_t  *elt;
+    ngx_array_t      *a;
+
+    count = *((uint32_t *) buf);
+    buf += NGX_PROXY_WASM_PTR_SIZE;
+
+    a = ngx_array_create(pool, count, sizeof(ngx_table_elt_t));
+    if (a == NULL) {
+        return NULL;
+    }
+
+    for (i = 0; i < count; i++) {
+        elt = ngx_array_push(a);
+        if (elt == NULL) {
+            goto failed;
+        }
+
+        elt->hash = 0;
+        elt->lowcase_key = NULL;
+
+        elt->key.len = *((uint32_t *) buf);
+        buf += NGX_PROXY_WASM_PTR_SIZE;
+        elt->value.len = *((uint32_t *) buf);
+        buf += NGX_PROXY_WASM_PTR_SIZE;
+    }
+
+    for (i = 0; i < a->nelts; i++) {
+        elt = &((ngx_table_elt_t *) a->elts)[i];
+
+        elt->key.data = ngx_pnalloc(pool, elt->key.len + 1);
+        if (elt->key.data == NULL) {
+            goto failed;
+        }
+
+        ngx_memcpy(elt->key.data, buf, elt->key.len + 1);
+        buf += elt->key.len + 1;
+
+        elt->value.data = ngx_pnalloc(pool, elt->value.len + 1);
+        if (elt->value.data == NULL) {
+            goto failed;
+        }
+
+        ngx_memcpy(elt->value.data, buf, elt->value.len + 1);
+        buf += elt->value.len + 1;
+    }
+
+    return a;
+
+failed:
+
+    for (i = 0; i < a->nelts; i++) {
+        elt = ((ngx_table_elt_t **) a->elts)[i];
+        if (elt) {
+            ngx_pfree(pool, elt);
+        }
+    }
+
+    ngx_array_destroy(a);
+
+    return NULL;
+}
+
+
 ngx_str_t *
 ngx_proxy_wasm_get_map_value(ngx_list_t *map, u_char *key, size_t key_len)
 {
