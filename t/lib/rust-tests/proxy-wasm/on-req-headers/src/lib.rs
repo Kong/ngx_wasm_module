@@ -34,19 +34,19 @@ impl HttpContext for HttpHeaders {
             trace!("#{} -> {}: {}", self.context_id, name, value);
         }
 
-        Action::Continue
-
-        //match self.get_http_request_header(":path") {
-        //    Some(path) if path == "/hello" => {
-        //        self.send_http_response(
-        //            200,
-        //            vec![("Hello", "World"), ("Powered-By", "proxy-wasm")],
-        //            Some(b"Hello, World!\n"),
-        //        );
-        //        Action::Pause
-        //    }
-        //    _ => Action::Continue,
-        //}
+        match self.get_http_request_header(":path") {
+            //self.send_http_response(
+            //    200,
+            //    vec![("Hello", "World"), ("Powered-By", "proxy-wasm")],
+            //    Some(b"Hello, World!\n"),
+            //);
+            //Action::Pause
+            Some(path) => {
+                trace!("path: {}", path);
+                Action::Continue
+            }
+            _ => Action::Continue,
+        }
     }
 
     fn on_log(&mut self) {

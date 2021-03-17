@@ -97,7 +97,7 @@ ngx_proxy_wasm_pairs_size(ngx_list_t *list)
 
 
 void
-ngx_proxy_wasm_marshal_pairs(ngx_list_t *list, u_char *buf)
+ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf)
 {
     size_t            i;
     uint32_t          count;
@@ -146,6 +146,45 @@ ngx_proxy_wasm_marshal_pairs(ngx_list_t *list, u_char *buf)
         buf = ngx_cpymem(buf, elt[i].value.data, elt[i].value.len);
         *buf++ = 0;
     }
+}
+
+
+ngx_str_t *
+ngx_proxy_wasm_get_map_value(ngx_list_t *map, u_char *key, size_t key_len)
+{
+    size_t            i;
+    ngx_table_elt_t  *elt;
+    ngx_list_part_t  *part;
+
+    part = &map->part;
+    elt = part->elts;
+
+    for (i = 0; /* void */; i++) {
+
+        if (i >= part->nelts) {
+            if (part->next == NULL) {
+                break;
+            }
+
+            part = part->next;
+            elt = part->elts;
+            i = 0;
+        }
+
+#if 1
+        dd("key: %.*s, value: %.*s",
+           (int) elt[i].key.len, elt[i].key.data,
+           (int) elt[i].value.len, elt[i].value.data);
+#endif
+
+        if (key_len == elt[i].key.len
+            && ngx_strncasecmp(elt[i].key.data, key, key_len) == 0)
+        {
+            return &elt[i].value;
+        }
+    }
+
+    return NULL;
 }
 
 

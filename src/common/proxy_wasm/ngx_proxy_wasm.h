@@ -228,7 +228,9 @@ void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
 uint32_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_module_t *pwm, size_t size);
 ngx_uint_t ngx_proxy_wasm_pairs_count(ngx_list_t *list);
 size_t ngx_proxy_wasm_pairs_size(ngx_list_t *list);
-void ngx_proxy_wasm_marshal_pairs(ngx_list_t *list, u_char *buf);
+void ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf);
+ngx_str_t *ngx_proxy_wasm_get_map_value(ngx_list_t *map, u_char *key,
+    size_t key_len);
 void ngx_proxy_wasm_tick_handler(ngx_event_t *ev);
 
 
@@ -253,6 +255,12 @@ ngx_proxy_wasm_result_badarg(wasm_val_t rets[])
     return NGX_WAVM_OK;
 }
 
+static ngx_inline ngx_int_t
+ngx_proxy_wasm_result_notfound(wasm_val_t rets[])
+{
+    rets[0] = (wasm_val_t) WASM_I32_VAL(NGX_PROXY_WASM_RESULT_NOT_FOUND);
+    return NGX_WAVM_OK;
+}
 
 extern ngx_wavm_host_def_t  ngx_proxy_wasm_host;
 
