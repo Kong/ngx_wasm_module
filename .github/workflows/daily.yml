@@ -45,7 +45,7 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.nginx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
@@ -90,7 +90,7 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.nginx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up wasmtime
         uses: ./.github/actions/wasmtime
         with:
@@ -142,7 +142,7 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.nginx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
