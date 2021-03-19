@@ -10,5 +10,6 @@ incremental = false
 members = [
     "ngx-rust-tests",
     "proxy-wasm/on-tick",
-    "proxy-wasm/on-req-headers",
+    "proxy-wasm/on-http-phases",
+    "proxy-wasm/hostcalls",
 ]

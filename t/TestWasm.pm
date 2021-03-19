@@ -19,10 +19,19 @@ our @EXPORT = qw(
     $nginxV
     skip_no_debug
     load_nginx_modules
+    skip_valgrind
 );
 
 $ENV{TEST_NGINX_HTML_DIR} = html_dir;
 $ENV{TEST_NGINX_CRATES_DIR} = $crates;
+
+sub skip_valgrind {
+    if ($ENV{TEST_NGINX_USE_VALGRIND}
+        && $nginxV =~ m{\[.*?wasmtime.*?\]}s)
+    {
+        plan skip_all => 'wasmtime too slow with Valgrind';
+    }
+}
 
 sub skip_no_debug {
     if ($nginxV !~ m/--with-debug/) {
@@ -41,10 +50,6 @@ add_block_preprocessor(sub {
         $block->set_value("log_level", "debug");
     }
 
-    if (!defined $block->main_config) {
-        $block->set_value("main_config", "wasm {}");
-    }
-
     if (!defined $block->config) {
         $block->set_value("config", "location /t { return 200; }");
     }
@@ -53,14 +58,27 @@ add_block_preprocessor(sub {
         $block->set_value("request", "GET /t");
     }
 
-    #if (!defined $block->no_error_log) {
-    #    $block->set_value("no_error_log", "[error]\n[crit]");
-    #}
+    # --- wasm_modules: on_http_phases
+
+    if (!defined $block->main_config) {
+        my @dyn_modules;
+        my $wasm_modules = $block->wasm_modules;
+        if (defined $wasm_modules) {
+            splice @dyn_modules, 0, 0, split('/\s+/', $wasm_modules);
+        }
+
+        if (@dyn_modules) {
+            my @modules = map { "module $_ $crates/$_.wasm;" } @dyn_modules;
+            $block->set_value("main_config",
+                              "wasm {\n" .
+                              (join "\n", @modules) . "\n" .
+                              "}\n");
+        }
+    }
 
     # --- load_nginx_modules: ngx_http_echo_module
 
     my @dyn_modules = @nginx_modules;
-
     my $load_nginx_modules = $block->load_nginx_modules;
     if (defined $load_nginx_modules) {
         splice @dyn_modules, 0, 0, split('/\s+/', $load_nginx_modules);

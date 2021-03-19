@@ -13,7 +13,7 @@ __DATA__
 === TEST 1: make (default)
 --- build: make
 --- grep_nginxV
-ngx_wasm_module [dev debug]
+ngx_wasm_module [dev debug
 --with-debug
 -O0 -ggdb3 -gdwarf
 
@@ -22,7 +22,7 @@ ngx_wasm_module [dev debug]
 === TEST 2: make no debug
 --- build: make NGX_BUILD_DEBUG=0
 --- grep_nginxV
-ngx_wasm_module [dev]
+ngx_wasm_module [dev
 -O0 -ggdb3 -gdwarf
 --- no_grep_nginxV
 --with-debug

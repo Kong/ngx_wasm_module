@@ -46,6 +46,8 @@ qr/\[emerg\] .*? invalid number of arguments in "proxy_wasm" directive/
 
 
 === TEST 3: proxy_wasm directive - empty module name
+--- main_config
+    wasm {}
 --- config
     location /t {
         proxy_wasm '';
@@ -63,6 +65,7 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 === TEST 4: proxy_wasm directive - unknown ABI version
+--- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -70,7 +73,7 @@ qr/\[emerg\] .*? invalid module name ""/
 --- config
     location /t {
         proxy_wasm a;
-        return 200;
+        echo ok;
     }
 --- user_files
 >>> a.wat
@@ -90,6 +93,7 @@ qr/\[emerg\] .*? \[wasm\] unknown ABI version/
 
 
 === TEST 5: proxy_wasm directive - bad ABI version
+--- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -97,7 +101,7 @@ qr/\[emerg\] .*? \[wasm\] unknown ABI version/
 --- config
     location /t {
         proxy_wasm a;
-        return 200;
+        echo ok;
     }
 --- user_files
 >>> a.wat
@@ -116,106 +120,22 @@ qr/\[emerg\] .*? \[wasm\] incompatible ABI version/
 
 
 
-=== TEST 6: proxy_wasm directive - on_tick
---- skip_valgrind: 6
---- timeout: 30s
---- load_nginx_modules: ngx_http_echo_module
+=== TEST 6: proxy_wasm directive - duplicated
 --- main_config
     wasm {
-        module on_tick $TEST_NGINX_CRATES_DIR/proxy_wasm_on_tick.wasm;
+        module on_tick $TEST_NGINX_CRATES_DIR/on_tick.wasm;
     }
 --- config
     location /t {
         proxy_wasm on_tick;
-        echo_sleep 0.25;
-        echo_status 200;
-    }
---- ignore_response_body
---- error_log eval
-[
-qr/\[info\] .*? \[wasm\] Ticking at 2\d+.*? UTC/,
-qr/\[info\] .*? \[wasm\] Ticking at 2\d+.*? UTC/
-]
---- no_error_log
-[error]
-[alert]
-[emerg]
-
-
-
-=== TEST 7: proxy_wasm directive - on_req_headers
---- skip_valgrind: 6
---- timeout: 30s
---- load_nginx_modules: ngx_http_echo_module
---- main_config
-    wasm {
-        module on_req_headers $TEST_NGINX_CRATES_DIR/proxy_wasm_on_req_headers.wasm;
-    }
---- config
-    location /t {
-        proxy_wasm on_req_headers;
-        echo ok;
-    }
---- ignore_response_body
---- error_log eval
-[
-    qr/\[debug\] .*? \[wasm\] #\d+ -> Host: localhost/,
-    qr/\[debug\] .*? \[wasm\] #\d+ -> Connection: close/
-]
---- no_error_log
-[error]
-[alert]
-[emerg]
-
-
-
-=== TEST 8: proxy_wasm directive - on_done
---- skip_valgrind: 6
---- timeout: 30s
---- load_nginx_modules: ngx_http_echo_module
---- main_config
-    wasm {
-        module on_req_headers $TEST_NGINX_CRATES_DIR/proxy_wasm_on_req_headers.wasm;
-    }
---- config
-    location /t {
-        proxy_wasm on_req_headers;
-        echo ok;
-    }
---- ignore_response_body
---- error_log eval
-[
-    qr/\[debug\] .*? \[wasm\] #\d+ completed/,
-    qr/\[debug\] .*? \[wasm\] #\d+ completed/
-]
---- no_error_log
-[error]
-[alert]
-[emerg]
-
-
-
-=== TEST 9: proxy_wasm directive - on_tick + on_req_headers
---- skip_valgrind: 6
---- timeout: 30s
---- load_nginx_modules: ngx_http_echo_module
---- main_config
-    wasm {
-        module on_tick $TEST_NGINX_CRATES_DIR/proxy_wasm_on_tick.wasm;
-    }
---- config
-    location /t {
         proxy_wasm on_tick;
-        echo_sleep 0.25;
-        echo_status 200;
+        return 200;
     }
---- ignore_response_body
 --- error_log eval
-[
-    qr/\[info\] .*? \[wasm\] Ticking at 2\d+.*? UTC/,
-    qr/\[info\] .*? \[wasm\] #\d+ -> Host: localhost/,
-    qr/\[info\] .*? \[wasm\] #\d+ -> Connection: close/,
-    qr/\[info\] .*? \[wasm\] Ticking at 2\d+.*? UTC/
-]
+qr/\[emerg\] .*? "proxy_wasm" directive is duplicate/
 --- no_error_log
+[warn]
 [error]
+[alert]
+[crit]
+--- must_die

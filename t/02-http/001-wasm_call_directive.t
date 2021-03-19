@@ -11,7 +11,6 @@ run_tests();
 __DATA__
 
 === TEST 1: wasm_call directive - no wasm{} configuration block
---- main_config
 --- config
     location /t {
         wasm_call log a nop;
@@ -27,6 +26,8 @@ qr/\[emerg\] .*? "wasm_call" directive is specified but config has no "wasm" sec
 
 
 === TEST 2: wasm_call directive - invalid number of arguments
+--- main_config
+    wasm {}
 --- config
     location /t {
         wasm_call log nop;
@@ -42,6 +43,8 @@ qr/\[emerg\] .*? invalid number of arguments in "wasm_call" directive/
 
 
 === TEST 3: wasm_call directive - empty phase
+--- main_config
+    wasm {}
 --- config
     location /t {
         wasm_call '' a nop;
@@ -57,6 +60,8 @@ qr/\[emerg\] .*? invalid phase ""/
 
 
 === TEST 4: wasm_call directive - empty module name
+--- main_config
+    wasm {}
 --- config
     location /t {
         wasm_call log '' nop;
@@ -72,6 +77,8 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 === TEST 5: wasm_call directive - empty function name
+--- main_config
+    wasm {}
 --- config
     location /t {
         wasm_call log a '';
@@ -125,6 +132,8 @@ qr/\[emerg\] .*? unsupported phase "post_read"/
 
 
 === TEST 8: wasm_call directive - no such module
+--- main_config
+    wasm {}
 --- config
     location /t {
         wasm_call log a nop;

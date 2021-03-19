@@ -353,7 +353,7 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     ngx_array_t                *headers;
     ngx_table_elt_t            *elt;
     ngx_buf_t                  *b;
-    ngx_chain_t                *cl;
+    ngx_chain_t                *cl = NULL;
 
     //pwm = ngx_proxy_wasm_get_pwm(instance);
 
@@ -425,7 +425,7 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
         }
 
         b->last = ngx_copy(b->last, body, body_len);
-        *b->last++ = LF;
+        //*b->last++ = LF;
 
         b->last_buf = 1;
         b->last_in_chain = 1;

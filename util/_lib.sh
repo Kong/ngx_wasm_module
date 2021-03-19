@@ -22,10 +22,6 @@ build_nginx() {
 
     # Build options
 
-    if [[ -n "$NGX_WASM_RUNTIME" ]]; then
-        build_name+=" $NGX_WASM_RUNTIME"
-    fi
-
     if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
         build_name+=" nopool"
         NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_NOPOOL -DNGX_DEBUG_MALLOC"
@@ -60,6 +56,10 @@ build_nginx() {
     if [[ "$NGX_BUILD_DEBUG" == 1 ]]; then
         build_name+=" debug"
         build_with_debug="--with-debug"
+    fi
+
+    if [[ -n "$NGX_WASM_RUNTIME" ]]; then
+        build_name+=" $NGX_WASM_RUNTIME"
     fi
 
     local name="${build_name[@]}"

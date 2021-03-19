@@ -9,10 +9,10 @@
 void
 ngx_wrt_config_init(wasm_config_t *config)
 {
-    wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_SPEED);
+    //wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_NONE);
     wasmtime_config_debug_info_set(config, false);
-    wasmtime_config_profiler_set(config, WASMTIME_PROFILING_STRATEGY_NONE);
-    wasmtime_config_strategy_set(config, WASMTIME_STRATEGY_AUTO);
+    //wasmtime_config_profiler_set(config, WASMTIME_PROFILING_STRATEGY_NONE);
+    //wasmtime_config_strategy_set(config, WASMTIME_STRATEGY_LIGHTBEAM);
     //wasmtime_config_max_instances_set(config, 10000);
 }
 

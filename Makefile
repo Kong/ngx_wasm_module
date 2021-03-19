@@ -8,7 +8,7 @@ NGX_BUILD_CLANG_ANALYZER ?= 0
 NGX_BUILD_GCOV ?= 0
 NGX_BUILD_FORCE ?= 0
 
-export NGX_WASM_RUNTIME ?=
+export NGX_WASM_RUNTIME ?= wasmtime
 export NGX_WASM_RUNTIME_INC ?= /usr/local/opt/include
 export NGX_WASM_RUNTIME_LIB ?= /usr/local/opt/lib
 export NGX_WASM_RUNTIME_LD_OPT ?=

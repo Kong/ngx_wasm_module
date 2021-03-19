@@ -290,7 +290,12 @@ ngx_int_t
 ngx_proxy_wasm_module_resume(ngx_proxy_wasm_module_t *pwm,
     ngx_wasm_phase_t *phase, ngx_wavm_ctx_t *ctx)
 {
-    ngx_uint_t   rc;
+    ngx_uint_t                rc;
+    ngx_http_request_t       *r;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    rctx = (ngx_http_wasm_req_ctx_t *) ctx->data;
+    r = rctx->r;
 
     if (pwm->ecode) {
         ngx_proxy_wasm_log_error(NGX_LOG_EMERG, ctx->log, pwm->ecode,
@@ -302,9 +307,6 @@ ngx_proxy_wasm_module_resume(ngx_proxy_wasm_module_t *pwm,
     ngx_wavm_ctx_update(&pwm->wv_ctx, ctx->log, ctx->data);
 
     switch (phase->index) {
-
-    case NGX_HTTP_REWRITE_PHASE:
-        return NGX_DECLINED;
 
     case NGX_HTTP_PREACCESS_PHASE:
         rc = ngx_proxy_wasm_on_http_request_headers(pwm);
@@ -326,6 +328,16 @@ ngx_proxy_wasm_module_resume(ngx_proxy_wasm_module_t *pwm,
         rc = NGX_DECLINED;
         break;
 
+    }
+
+    if (rctx->sent_last) {
+        rc = NGX_DONE;
+
+        if (!rctx->finalized) {
+            rctx->finalized = 1;
+
+            ngx_http_finalize_request(r, rc);
+        }
     }
 
     return rc;

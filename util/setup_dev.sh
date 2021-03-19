@@ -24,6 +24,8 @@ pushd $DIR_CPANM
         chmod +x cpanm
     fi
 
+    export PERL5LIB=$DIR_CPANM
+
     notice "downloading Test::Nginx dependencies..."
     ./cpanm --notest --local-lib=$DIR_CPANM local::lib
     ./cpanm --notest --local-lib=$DIR_CPANM Test::Nginx

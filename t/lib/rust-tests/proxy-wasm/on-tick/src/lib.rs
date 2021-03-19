@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use log::info;
 use proxy_wasm::traits::*;
 use proxy_wasm::types::*;
@@ -22,13 +21,12 @@ impl RootContext for OnTick {
     }
 
     fn on_vm_start(&mut self, _: usize) -> bool {
-        self.set_tick_period(Duration::from_millis(100));
+        self.set_tick_period(Duration::from_millis(400));
         true
     }
 
     fn on_tick(&mut self) {
-        let now: DateTime<Utc> = self.get_current_time().into();
-        info!("Ticking at {}", now);
+        info!("Ticking");
     }
 }
 
@@ -39,10 +37,7 @@ struct OnTickHttp {
 impl Context for OnTickHttp {}
 impl HttpContext for OnTickHttp {
     fn on_http_request_headers(&mut self, _: usize) -> Action {
-        for (name, value) in &self.get_http_request_headers() {
-            info!("#{} -> {}: {}", self.context_id, name, value);
-        }
-
+        info!("from http_request_headers");
         Action::Continue
     }
 }

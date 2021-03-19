@@ -298,8 +298,7 @@ ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     op->code = NGX_WASM_OP_PROXY_WASM;
     op->handler = ngx_wasm_op_proxy_wasm_handler;
     op->host = &ngx_proxy_wasm_host;
-    op->on_phases = (1 << NGX_HTTP_REWRITE_PHASE)
-                    | (1 << NGX_HTTP_PREACCESS_PHASE)
+    op->on_phases = (1 << NGX_HTTP_PREACCESS_PHASE)
                     | (1 << NGX_HTTP_ACCESS_PHASE)
                     | (1 << NGX_HTTP_LOG_PHASE);
 

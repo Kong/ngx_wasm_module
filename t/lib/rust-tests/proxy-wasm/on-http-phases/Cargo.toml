@@ -1,5 +1,5 @@
 [package]
-name = "proxy-wasm-on-req-headers"
+name = "on-http-phases"
 version = "0.1.0"
 authors = ["Thibault Charbonnier <thibaultcha@me.com>"]
 edition = "2018"
