@@ -62,8 +62,10 @@ ngx_wavm_t *ngx_wasm_main_vm(ngx_cycle_t *cycle);
 
 ngx_int_t ngx_wasm_bytes_from_path(wasm_byte_vec_t *out, u_char *path,
     ngx_log_t *log);
+#if 0
 ngx_connection_t *ngx_wasm_connection_create(ngx_pool_t *pool);
 void ngx_wasm_connection_destroy(ngx_connection_t *c);
+#endif
 
 void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, ...);

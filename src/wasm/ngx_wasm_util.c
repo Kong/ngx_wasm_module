@@ -97,6 +97,7 @@ close:
 }
 
 
+#if 0
 ngx_connection_t *
 ngx_wasm_connection_create(ngx_pool_t *pool)
 {
@@ -170,3 +171,4 @@ ngx_wasm_connection_destroy(ngx_connection_t *c)
         ngx_cycle->files[0] = orig;
     }
 }
+#endif

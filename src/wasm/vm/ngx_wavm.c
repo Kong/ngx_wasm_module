@@ -720,6 +720,34 @@ ngx_wavm_module_free(ngx_wavm_module_t *module)
                    " (vm: %p, module: %p)",
                    &module->name, vm->name, vm, module);
 
+    if (module->module) {
+#if 0
+        size_t              i;
+        wasm_exporttype_t  *exporttype;
+        wasm_importtype_t  *importtype;
+
+        for (i = 0; i < module->exports.size; i++) {
+            exporttype = ((wasm_exporttype_t **) module->exports.data)[i];
+
+            if (exporttype) {
+                wasm_exporttype_delete(exporttype);
+            }
+        }
+
+        for (i = 0; i < module->imports.size; i++) {
+            importtype = ((wasm_importtype_t **) module->imports.data)[i];
+
+            if (importtype) {
+                wasm_importtype_delete(importtype);
+            }
+        }
+#endif
+
+        wasm_importtype_vec_delete(&module->imports);
+        wasm_exporttype_vec_delete(&module->exports);
+        wasm_module_delete(module->module);
+    }
+
     root = &module->funcs_tree.root;
     sentinel = &module->funcs_tree.sentinel;
 
@@ -731,12 +759,6 @@ ngx_wavm_module_free(ngx_wavm_module_t *module)
         ngx_rbtree_delete(&module->funcs_tree, node);
 
         ngx_pfree(vm->pool, funcref);
-    }
-
-    if (module->module) {
-        wasm_module_delete(module->module);
-        wasm_importtype_vec_delete(&module->imports);
-        wasm_exporttype_vec_delete(&module->exports);
     }
 
     if (module->bytes.size) {
@@ -881,7 +903,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
     }
 
     instance->ctx = ctx;
-    instance->module = module;
+    instance->lmodule = lmodule;
     instance->pool = vm->pool;
     instance->tctxs = NULL;
     instance->funcs = NULL;
@@ -1202,7 +1224,7 @@ ngx_wavm_instance_call_funcref(ngx_wavm_instance_t *instance,
     ngx_int_t         rc;
     ngx_wavm_func_t  *f;
 
-    ngx_wasm_assert(funcref->module == instance->module);
+    ngx_wasm_assert(funcref->module == instance->lmodule->module);
 
     f = instance->funcs[funcref->exports_idx];
 
@@ -1222,7 +1244,7 @@ ngx_wavm_instance_call_funcref_vec(ngx_wavm_instance_t *instance,
 {
     ngx_wavm_func_t  *f;
 
-    ngx_wasm_assert(funcref->module == instance->module);
+    ngx_wasm_assert(funcref->module == instance->lmodule->module);
 
     f = instance->funcs[funcref->exports_idx];
 
@@ -1235,31 +1257,52 @@ ngx_wavm_instance_call_funcref_vec(ngx_wavm_instance_t *instance,
 void
 ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
 {
-    size_t            i;
-    ngx_wavm_func_t  *func;
+    size_t                     i;
+    ngx_wavm_func_t           *f;
+    ngx_wavm_linked_module_t  *lmodule;
+
+    lmodule = instance->lmodule;
 
     ngx_log_debug5(NGX_LOG_DEBUG_WASM, instance->pool->log, 0,
                    "wasm free instance of \"%V\" module in \"%V\" vm"
                    " (vm: %p, module: %p, instance: %p)",
-                   &instance->module->name, instance->module->vm->name,
-                   instance->module->vm, instance->module, instance);
+                   &lmodule->module->name, lmodule->module->vm->name,
+                   lmodule->module->vm, lmodule->module, instance);
 
-    if (instance->funcs) {
-        for (i = 0; i < instance->module->exports.size; i++) {
-            func = instance->funcs[i];
+    if (instance->instance) {
+#if 0
+        wasm_func_t  *func;
+
+        for (i = 0; i < instance->env.size; i++) {
+            func = wasm_extern_as_func(instance->env.data[i]);
 
             if (func) {
-                ngx_pfree(instance->pool, func);
+                wasm_func_delete(func);
+            }
+        }
+#endif
+
+        wasm_extern_vec_delete(&instance->env);
+        wasm_extern_vec_delete(&instance->exports);
+        wasm_instance_delete(instance->instance);
+    }
+
+    if (instance->funcs) {
+        for (i = 0; i < lmodule->module->exports.size; i++) {
+            f = instance->funcs[i];
+
+            if (f) {
+#if 0
+               wasm_func_delete(f->func);
+#endif
+               wasm_val_vec_delete(&f->args);
+               wasm_val_vec_delete(&f->rets);
+
+               ngx_pfree(instance->pool, f);
             }
         }
 
         ngx_pfree(instance->pool, instance->funcs);
-    }
-
-    if (instance->instance) {
-        wasm_instance_delete(instance->instance);
-        wasm_extern_vec_delete(&instance->exports);
-        wasm_extern_vec_delete(&instance->env);
     }
 
     if (instance->tctxs) {
@@ -1326,7 +1369,8 @@ ngx_wavm_log_error_handler(ngx_log_t *log, u_char *buf, size_t len)
     if (instance) {
         p = ngx_snprintf(buf, len,
                          " <module: \"%V\", vm: \"%V\", runtime: \"%s\">",
-                         &instance->module->name, vm->name, NGX_WASM_RUNTIME);
+                         &instance->lmodule->module->name, vm->name,
+                         NGX_WASM_RUNTIME);
 
     } else {
         p = ngx_snprintf(buf, len, " <vm: \"%V\", runtime: \"%s\">",

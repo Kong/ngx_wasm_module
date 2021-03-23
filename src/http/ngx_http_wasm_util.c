@@ -247,6 +247,8 @@ ngx_http_wasm_set_resp_header(ngx_http_request_t *r, ngx_str_t key,
         hv.handler = handlers[i].handler;
     }
 
+    ngx_wasm_assert(hv.handler);
+
     return hv.handler(r, &hv, &value);
 }
 
