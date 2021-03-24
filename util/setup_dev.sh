@@ -25,11 +25,11 @@ pushd $DIR_CPANM
     fi
 
     export PERL5LIB=$DIR_CPANM
+    PERL_ARGS="--notest -L $DIR_CPANM"
 
     notice "downloading Test::Nginx dependencies..."
-    ./cpanm --notest --local-lib=$DIR_CPANM local::lib
-    ./cpanm --notest --local-lib=$DIR_CPANM Test::Nginx
-    ./cpanm --notest --local-lib=$DIR_CPANM IPC::Run
+    HOME=$DIR_CPANM ./cpanm $PERL_ARGS Test::Nginx
+    HOME=$DIR_CPANM ./cpanm $PERL_ARGS IPC::Run
 
     set +e
     patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'

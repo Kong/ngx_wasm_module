@@ -1,6 +1,6 @@
 work/
 buildroot/
-t/servroot/
+t/servroot*
 t/lib/rust-tests/target/
 lib/ngx-rust/target/
 *.data*

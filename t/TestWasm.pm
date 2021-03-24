@@ -26,7 +26,7 @@ $ENV{TEST_NGINX_HTML_DIR} = html_dir;
 $ENV{TEST_NGINX_CRATES_DIR} = $crates;
 
 sub skip_valgrind {
-    if ($ENV{TEST_NGINX_USE_VALGRIND}
+    if ($ENV{TEST_NGINX_USE_VALGRIND} && $ENV{CI}
         && $nginxV =~ m{\[.*?wasmtime.*?\]}s)
     {
         plan skip_all => 'wasmtime too slow with Valgrind';

@@ -21,6 +21,10 @@ while (( "$#" )); do
             NO_TEST_NGINX=1
             shift
             ;;
+        -j)
+            export TEST_NGINX_RANDOMIZE=1
+            shift
+            ;;
         *)
             PARAMS="$PARAMS $1"
             shift
@@ -83,7 +87,6 @@ if [[ ! -z "$TEST_WASMX_CARGO_BUILD_FORCE" ]]; then
 fi
 
 cargo build \
-    --quiet \
     --lib \
     --manifest-path $RUST_TESTS_MANIFEST_PATH \
     --target wasm32-unknown-unknown \

@@ -49,6 +49,11 @@ reindex:
 	@util/reindex.sh "t/**/*.t"
 	@util/reindex.sh "t/**/**/*.t"
 
+.PHONY: act
+act: cleanall
+	@docker build -t ubuntu-wasmx-dev ./util/ubuntu-wasmx-dev
+	@act
+
 .PHONY: clean
 clean:
 	@util/clean.sh

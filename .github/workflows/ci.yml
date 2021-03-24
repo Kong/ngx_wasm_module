@@ -1,11 +1,18 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    branches: master
+  pull_request:
+    branches: '*'
+
 defaults:
   run:
     shell: bash
 
-jobs:
+env:
+  TEST_NGINX_RANDOMIZE: 1
 
+jobs:
   tests:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
@@ -26,6 +33,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: "Set up cache - rustup toolchain"
         uses: actions/cache@v2
+        if: ${{ !env.ACT }}
         with:
           path: |
             ~/.rustup/settings.toml
@@ -34,6 +42,7 @@ jobs:
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
       - name: "Set up cache - ngx_wasm work/ dir"
         uses: actions/cache@v2
+        if: ${{ !env.ACT }}
         id: cache
         with:
           path: |
@@ -61,6 +70,7 @@ jobs:
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
       - uses: codecov/codecov-action@v1
+        if: ${{ !env.ACT }}
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
         with:
@@ -92,6 +102,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: "Set up cache - rustup toolchain"
         uses: actions/cache@v2
+        if: ${{ !env.ACT }}
         with:
           path: |
             ~/.rustup/settings.toml
@@ -100,6 +111,7 @@ jobs:
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
       - name: "Set up cache - ngx_wasm work/ dir"
         uses: actions/cache@v2
+        if: ${{ !env.ACT }}
         id: cache
         with:
           path: |
@@ -142,6 +154,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
+        if: ${{ !env.ACT }}
         id: cache
         with:
           path: |
@@ -155,3 +168,96 @@ jobs:
             cat reindex.out >&2
             exit 1
           fi
+
+  analyzer:
+    name: 'Clang analyzer'
+    runs-on: ubuntu-latest
+    env:
+      NGX_BUILD_FORCE: 1
+      NGX_BUILD_CLANG_ANALYZER: 1
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [clang-9]
+        nginx: [1.19.8]
+        wasmtime: [0.24.0]
+    steps:
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y $(echo ${{ matrix.cc }} | sed s/clang/clang-tools/)
+          sudo update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/$(echo ${{ matrix.cc }} | sed s/clang/scan-build/) 100
+      - uses: actions/checkout@v2
+      - name: "Set up cache - ngx_wasm work/ dir"
+        uses: actions/cache@v2
+        if: ${{ !env.ACT }}
+        id: cache
+        with:
+          path: |
+            work
+            !work/scans
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+      - name: Set up wasmtime
+        uses: ./.github/actions/wasmtime
+        with:
+          version: ${{ matrix.wasmtime }}
+      - run: make setup
+      - run: make
+        env:
+          CC: ${{ matrix.cc }}
+          NGX: ${{ matrix.nginx }}
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: gh-failures-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: work/scans/*
+
+  build:
+    name: 'Tests - build'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      max-parallel: 2
+      fail-fast: false
+      matrix:
+        #os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
+        #cc: [gcc-8, gcc-9, clang]
+        cc: [gcc-8]
+        #nginx: [1.18.0, 1.19.1]
+        nginx: [1.19.8]
+        wasmtime: [0.24.0]
+        #hup: [1, 0]
+        hup: [0]
+        #debug: [1, 0]
+        debug: [1]
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Set up cache - rustup toolchain"
+        uses: actions/cache@v2
+        if: ${{ !env.ACT }}
+        with:
+          path: |
+            ~/.rustup/settings.toml
+            ~/.rustup/toolchains/*
+            ~/.rustup/update-hashes/*
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+      - name: "Set up cache - ngx_wasm work/ dir"
+        uses: actions/cache@v2
+        if: ${{ !env.ACT }}
+        id: cache
+        with:
+          path: |
+            work
+            !work/scans
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+      - name: Set up rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          target: wasm32-unknown-unknown
+      - name: Set up wasmtime
+        uses: ./.github/actions/wasmtime
+        with:
+          version: ${{ matrix.wasmtime }}
+      - run: make setup
+      - run: make test-build
