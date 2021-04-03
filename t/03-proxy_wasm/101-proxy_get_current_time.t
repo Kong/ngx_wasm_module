@@ -21,7 +21,7 @@ __DATA__
         echo ok;
     }
 --- request
-GET /t/get_current_time
+GET /t/log_current_time
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] now: 2.*? UTC/,

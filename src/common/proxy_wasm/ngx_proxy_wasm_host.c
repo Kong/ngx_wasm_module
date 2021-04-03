@@ -376,6 +376,10 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
 
     /* status */
 
+    if (status < 100 || status > 999) {
+        return ngx_proxy_wasm_result_badarg(rets);
+    }
+
     r->headers_out.status = status;
 
     if (r->err_status) {
@@ -385,10 +389,6 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     /* reason */
 
     if (reason_len) {
-        if (status < 100 || status > 999) {
-            return ngx_proxy_wasm_result_badarg(rets);
-        }
-
         reason_len += 5; /* "ddd <reason>\0" */
         p = ngx_palloc(r->pool, reason_len);
         ngx_snprintf(p, reason_len, "%03ui %s", status, reason);

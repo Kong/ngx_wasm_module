@@ -12,7 +12,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - get_http_request_headers()
+=== TEST 1: proxy_wasm - get_http_request_headers() sanity
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -21,7 +21,7 @@ __DATA__
         echo ok;
     }
 --- request
-GET /t/get_http_request_headers
+GET /t/log_http_request_headers
 --- more_headers
 Hello: world
 --- ignore_response_body
