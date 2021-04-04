@@ -17,6 +17,7 @@ static ngx_str_t  ngx_proxy_wasm_errlist[] = {
     ngx_string("unknown ABI version"),
     ngx_string("incompatible ABI version"),
     ngx_string("incompatible host interface"),
+    ngx_string("incompatible sdk interface"),
     ngx_string("unknown error")
 };
 
@@ -48,7 +49,7 @@ ngx_proxy_wasm_module_func_lookup(ngx_proxy_wasm_module_t *pwm, const char *n)
 }
 
 
-static ngx_proxy_wasm_abi_version
+static ngx_proxy_wasm_abi_version_t
 ngx_proxy_wasm_module_abi_version(ngx_proxy_wasm_module_t *pwm)
 {
     size_t                    i;
@@ -88,7 +89,6 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
 {
     ngx_int_t             rc;
     ngx_wavm_t           *vm;
-    ngx_wavm_instance_t  *instance;
     wasm_val_vec_t       *rets;
 
     ngx_wasm_assert(pwm->pool);
@@ -97,6 +97,9 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
 
     pwm->ecode = 0;
     pwm->tick_period = 0;
+    pwm->max_pairs = NGX_HTTP_WASM_MAX_REQ_HEADERS;
+
+    vm = pwm->module->vm;
 
     /* linked module check */
 
@@ -112,90 +115,150 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
     switch (pwm->abi_version) {
 
     case NGX_PROXY_WASM_0_1_0:
+    case NGX_PROXY_WASM_0_2_0:
+    case NGX_PROXY_WASM_0_2_1:
         break;
 
     case NGX_PROXY_WASM_UNKNOWN:
-        pwm->ecode = NGX_PROXY_WASM_ERR_UNKNOWN_ABI;
-        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode, NULL);
-        return NGX_ERROR;
-
     default:
-        pwm->ecode = NGX_PROXY_WASM_ERR_BAD_ABI;
+        pwm->ecode = NGX_PROXY_WASM_ERR_UNKNOWN_ABI;
         ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode, NULL);
         return NGX_ERROR;
 
     }
 
-    /* integration */
+    /* retrieve SDK */
 
     pwm->proxy_on_memory_allocate =
         ngx_proxy_wasm_module_func_lookup(pwm, "malloc");
-    pwm->proxy_on_tick =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_tick");
+
+    if (pwm->proxy_on_memory_allocate == NULL) {
+        pwm->proxy_on_memory_allocate =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_memory_allocate");
+        if (pwm->proxy_on_memory_allocate == NULL) {
+            pwm->ecode = NGX_PROXY_WASM_ERR_BAD_MODULE_INTERFACE;
+            ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode,
+                                     "missing malloc");
+            return NGX_ERROR;
+        }
+    }
 
     /* context */
 
     pwm->proxy_on_context_create =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_context_create");
+    pwm->proxy_on_context_finalize =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_context_finalize");
 
-    if (pwm->abi_version == NGX_PROXY_WASM_0_1_0) {
+    if (pwm->abi_version < NGX_PROXY_WASM_VNEXT) {
+        /* 0.1.0 - 0.2.1 */
+        pwm->proxy_on_done =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_done");
         pwm->proxy_on_log =
             ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_log");
         pwm->proxy_on_context_finalize =
             ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_delete");
-
-    } else {
-        pwm->proxy_on_context_finalize =
-            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_context_finalize");
     }
 
     /* configuration */
 
     pwm->proxy_on_vm_start =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_vm_start");
+    pwm->proxy_on_plugin_start =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_plugin_start");
 
-    if (pwm->abi_version == NGX_PROXY_WASM_0_1_0) {
+    if (pwm->abi_version < NGX_PROXY_WASM_VNEXT) {
+        /* 0.1.0 - 0.2.1 */
         pwm->proxy_on_plugin_start =
             ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_configure");
-
-    } else {
-        pwm->proxy_on_plugin_start =
-            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_plugin_start");
     }
+
+    /* stream */
 
     pwm->proxy_on_new_connection =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_new_connection");
     pwm->proxy_on_downstream_data =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_downstream_data");
-    pwm->proxy_on_downstream_close =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_downstream_close");
     pwm->proxy_on_upstream_data =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_upstream_data");
+    pwm->proxy_on_downstream_close =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_downstream_close");
     pwm->proxy_on_upstream_close =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_upstream_close");
 
-    pwm->proxy_on_request_headers =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_headers");
-    pwm->proxy_on_request_body =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_body");
-    pwm->proxy_on_request_trailers =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_trailers");
-    pwm->proxy_on_request_metadata =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_metadata");
-    pwm->proxy_on_response_headers =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_headers");
-    pwm->proxy_on_response_body =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_body");
-    pwm->proxy_on_response_trailers =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_trailers");
-    pwm->proxy_on_response_metadata =
-        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_metadata");
+    if (pwm->abi_version < NGX_PROXY_WASM_VNEXT) {
+        /* 0.1.0 - 0.2.1 */
+        pwm->proxy_on_downstream_close =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_downstream_connection_close");
+        pwm->proxy_on_upstream_close =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_upstream_connection_close");
+    }
+
+    /* http */
+
+    pwm->proxy_on_http_request_headers =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_request_headers");
+    pwm->proxy_on_http_request_body =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_request_body");
+    pwm->proxy_on_http_request_trailers =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_request_trailers");
+    pwm->proxy_on_http_request_metadata =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_request_metadata");
+    pwm->proxy_on_http_response_headers =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_response_headers");
+    pwm->proxy_on_http_response_body =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_response_body");
+    pwm->proxy_on_http_response_trailers =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_response_trailers");
+    pwm->proxy_on_http_response_metadata =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_response_metadata");
+
+    if (pwm->abi_version < NGX_PROXY_WASM_VNEXT) {
+        /* 0.1.0 - 0.2.1 */
+        pwm->proxy_on_http_request_headers =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_headers");
+        pwm->proxy_on_http_request_body =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_body");
+        pwm->proxy_on_http_request_trailers =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_trailers");
+        pwm->proxy_on_http_request_metadata =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_request_metadata");
+        pwm->proxy_on_http_response_headers =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_headers");
+        pwm->proxy_on_http_response_body =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_body");
+        pwm->proxy_on_http_response_trailers =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_trailers");
+        pwm->proxy_on_http_response_metadata =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_response_metadata");
+    }
+
+    /* shared queue */
 
     pwm->proxy_on_queue_ready =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_queue_ready");
 
+    /* timers */
+
+    pwm->proxy_create_timer =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_create_timer");
+    pwm->proxy_delete_timer =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_delete_timer");
+    pwm->proxy_on_timer_ready =
+        ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_timer_ready");
+
+    if (pwm->abi_version < NGX_PROXY_WASM_VNEXT) {
+        /* 0.1.0 - 0.2.1 */
+        pwm->proxy_on_timer_ready =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_tick");
+    }
+
+    /* http callouts */
+
     pwm->proxy_on_http_call_response =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_http_call_response");
+
+    /* grpc callouts */
 
     pwm->proxy_on_grpc_call_response_header_metadata =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_grpc_call_response_header_metadata");
@@ -206,61 +269,67 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
     pwm->proxy_on_grpc_call_close =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_grpc_call_close");
 
+    /* custom extensions */
+
     pwm->proxy_on_custom_callback =
         ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_custom_callback");
 
+    if (pwm->abi_version < NGX_PROXY_WASM_VNEXT) {
+        /* 0.2.0 - 0.2.1 */
+        pwm->proxy_on_custom_callback =
+            ngx_proxy_wasm_module_func_lookup(pwm, "proxy_on_foreign_function");
+    }
 
-    if (pwm->proxy_on_context_create
-        || pwm->proxy_on_vm_start
-        || pwm->proxy_on_plugin_start)
+    /* validate */
+
+    if (pwm->proxy_on_context_create == NULL
+        || pwm->proxy_on_vm_start == NULL
+        || pwm->proxy_on_plugin_start == NULL)
     {
-        vm = pwm->module->vm;
+        pwm->ecode = NGX_PROXY_WASM_ERR_BAD_MODULE_INTERFACE;
+        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode,
+                                 "missing context init");
+        return NGX_ERROR;
+    }
 
-        pwm->wv_ctx.pool = pwm->pool;
-        pwm->wv_ctx.log = pwm->log;
-        pwm->wv_ctx.data = pwm;
+    /* init plugin */
 
-        ngx_wavm_ctx_init(vm, &pwm->wv_ctx);
+    pwm->wv_ctx.pool = pwm->pool;
+    pwm->wv_ctx.log = pwm->log;
+    pwm->wv_ctx.data = pwm;
 
-        instance = ngx_wavm_instance_create(pwm->lmodule, &pwm->wv_ctx);
-        if (instance == NULL) {
-            goto error;
-        }
+    if (ngx_wavm_ctx_init(vm, &pwm->wv_ctx) != NGX_OK) {
+        return NGX_ERROR;
+    }
 
-        if (pwm->proxy_on_context_create) {
-            pwm->ctxid = ngx_crc32_long(pwm->module->name.data,
-                                        pwm->module->name.len);
+    pwm->instance = ngx_wavm_instance_create(pwm->lmodule, &pwm->wv_ctx);
+    if (pwm->instance == NULL) {
+        goto error;
+    }
 
-            rc = ngx_wavm_instance_call_funcref(instance,
-                                                pwm->proxy_on_context_create,
-                                                &rets, pwm->ctxid,
-                                                NGX_PROXY_WASM_ROOT_CTX_ID);
-            if (rc != NGX_OK) {
-                goto error;
-            }
-        }
+    pwm->ctxid = ngx_crc32_long(pwm->module->name.data, pwm->module->name.len);
 
-        ngx_wasm_assert(pwm->ctxid);
+    /* start plugin */
 
-        if (pwm->proxy_on_vm_start) {
-            rc = ngx_wavm_instance_call_funcref(instance,
-                                                    pwm->proxy_on_vm_start,
-                                                    &rets, pwm->ctxid, 0);
-            if (rc != NGX_OK || !rets->data[0].of.i32) {
-                goto error;
-            }
-        }
+    rc = ngx_wavm_instance_call_funcref(pwm->instance,
+                                        pwm->proxy_on_context_create, &rets,
+                                        pwm->ctxid, NGX_PROXY_WASM_ROOT_CTX_ID);
+    if (rc != NGX_OK) {
+        goto error;
+    }
 
-        if (pwm->proxy_on_plugin_start) {
-            rc = ngx_wavm_instance_call_funcref(instance,
-                                                pwm->proxy_on_plugin_start,
-                                                &rets, pwm->ctxid, 0);
-            if (rc != NGX_OK || !rets->data[0].of.i32) {
-                goto error;
-            }
-        }
+    rc = ngx_wavm_instance_call_funcref(pwm->instance,
+                                        pwm->proxy_on_vm_start, &rets,
+                                        pwm->ctxid, 0); // TODO: size
+    if (rc != NGX_OK || !rets->data[0].of.i32) {
+        goto error;
+    }
 
-        pwm->instance = instance;
+    rc = ngx_wavm_instance_call_funcref(pwm->instance,
+                                        pwm->proxy_on_plugin_start, &rets,
+                                        pwm->ctxid, 0); // TODO: size
+    if (rc != NGX_OK || !rets->data[0].of.i32) {
+        goto error;
     }
 
     return NGX_OK;
@@ -300,7 +369,7 @@ ngx_proxy_wasm_module_resume(ngx_proxy_wasm_module_t *pwm,
     if (pwm->ecode) {
         ngx_proxy_wasm_log_error(NGX_LOG_EMERG, ctx->log, pwm->ecode,
                                  "failed to resume proxy_wasm execution "
-                                 "in \"%V\" phase: ", &phase->name);
+                                 "in \"%V\" phase", &phase->name);
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
@@ -352,15 +421,13 @@ ngx_proxy_wasm_on_http_request_headers(ngx_proxy_wasm_module_t *pwm)
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_http_request_t       *r;
     ngx_wavm_ctx_t           *ctx;
-    ngx_wavm_instance_t      *instance;
     wasm_val_vec_t           *rets;
 
-    if (!pwm->proxy_on_request_headers) {
-        return NGX_OK;
-    }
+    //if (!pwm->proxy_on_http_request_headers) {
+    //    return NGX_OK;
+    //}
 
-    instance = pwm->instance;
-    ctx = instance->ctx;
+    ctx = pwm->instance->ctx;
 
     ngx_wasm_assert(ctx == &pwm->wv_ctx);
 
@@ -372,19 +439,28 @@ ngx_proxy_wasm_on_http_request_headers(ngx_proxy_wasm_module_t *pwm)
 
     dd("pwm->ctxid: %ld, ctxid: %ld", pwm->ctxid, ctxid);
 
-    ngx_proxy_wasm_pairs_size(&r->headers_in.headers);
-
-    rc = ngx_wavm_instance_call_funcref(instance, pwm->proxy_on_context_create,
-                                        &rets, ctxid, pwm->ctxid);
-    if (rc != NGX_OK) {
+    if (ngx_wavm_instance_call_funcref(pwm->instance, pwm->proxy_on_context_create,
+                                       &rets, ctxid, pwm->ctxid) != NGX_OK)
+    {
         return NGX_ERROR;
     }
 
-    /* TODO: on_request_headers_abi_ */
+    if (pwm->abi_version == NGX_PROXY_WASM_0_1_0) {
+        /* 0.1.0 */
+        rc = ngx_wavm_instance_call_funcref(pwm->instance,
+                                            pwm->proxy_on_http_request_headers,
+                                            &rets, ctxid,
+                                            ngx_http_wasm_req_headers_count(r));
 
-    rc = ngx_wavm_instance_call_funcref(instance, pwm->proxy_on_request_headers,
-                                        &rets, ctxid,
-                                        ngx_http_wasm_req_headers_count(r));
+    } else {
+        /* 0.2.0+ */
+        rc = ngx_wavm_instance_call_funcref(pwm->instance,
+                                            pwm->proxy_on_http_request_headers,
+                                            &rets, ctxid,
+                                            ngx_http_wasm_req_headers_count(r),
+                                            0); // TODO: end_of_stream
+    }
+
     if (rc != NGX_OK) {
         return NGX_ERROR;
     }
@@ -409,15 +485,12 @@ ngx_proxy_wasm_on_http_request_headers(ngx_proxy_wasm_module_t *pwm)
 static ngx_int_t
 ngx_proxy_wasm_on_log(ngx_proxy_wasm_module_t *pwm)
 {
-    ngx_uint_t                rc;
     ngx_int_t                 ctxid;
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_http_request_t       *r;
     ngx_wavm_ctx_t           *ctx;
-    ngx_wavm_instance_t      *instance;
 
-    instance = pwm->instance;
-    ctx = instance->ctx;
+    ctx = pwm->instance->ctx;
 
     ngx_wasm_assert(ctx == &pwm->wv_ctx);
 
@@ -429,17 +502,21 @@ ngx_proxy_wasm_on_log(ngx_proxy_wasm_module_t *pwm)
 
     dd("pwm->ctxid: %ld, ctxid: %ld", pwm->ctxid, ctxid);
 
-    if (pwm->abi_version == NGX_PROXY_WASM_0_1_0) {
-        rc = ngx_wavm_instance_call_funcref(instance, pwm->proxy_on_log,
-                                            NULL, ctxid);
-        if (rc != NGX_OK) {
+    if (pwm->abi_version < NGX_PROXY_WASM_VNEXT) {
+        /* 0.1.0 - 0.2.1 */
+        if (ngx_wavm_instance_call_funcref(pwm->instance, pwm->proxy_on_done,
+                                           NULL, ctxid) != NGX_OK
+            || ngx_wavm_instance_call_funcref(pwm->instance, pwm->proxy_on_log,
+                                              NULL, ctxid) != NGX_OK)
+        {
             return NGX_ERROR;
         }
     }
 
-    rc = ngx_wavm_instance_call_funcref(instance, pwm->proxy_on_context_finalize,
-                                        NULL, ctxid);
-    if (rc != NGX_OK) {
+    if (ngx_wavm_instance_call_funcref(pwm->instance,
+                                       pwm->proxy_on_context_finalize,
+                                       NULL, ctxid) != NGX_OK)
+    {
         return NGX_ERROR;
     }
 
@@ -457,13 +534,20 @@ ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
     last = buf + NGX_MAX_ERROR_STR;
     p = &buf[0];
 
-    if (fmt) {
-        va_start(args, fmt);
-        p = ngx_vsnprintf(buf, NGX_MAX_ERROR_STR, fmt, args);
-        va_end(args);
+    if (err) {
+        p = ngx_proxy_wasm_strerror(err, p, last - p);
     }
 
-    p = ngx_proxy_wasm_strerror(err, p, last - p);
+    if (fmt) {
+        if (err && p + 2 <= last) {
+            *p++ = ':';
+            *p++ = ' ';
+        }
+
+        va_start(args, fmt);
+        p = ngx_vslprintf(p, last, fmt, args);
+        va_end(args);
+    }
 
     ngx_wasm_log_error(level, log, 0, "%*s", p - buf, buf);
 }

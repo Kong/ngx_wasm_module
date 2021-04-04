@@ -721,28 +721,6 @@ ngx_wavm_module_free(ngx_wavm_module_t *module)
                    &module->name, vm->name, vm, module);
 
     if (module->module) {
-#if 0
-        size_t              i;
-        wasm_exporttype_t  *exporttype;
-        wasm_importtype_t  *importtype;
-
-        for (i = 0; i < module->exports.size; i++) {
-            exporttype = ((wasm_exporttype_t **) module->exports.data)[i];
-
-            if (exporttype) {
-                wasm_exporttype_delete(exporttype);
-            }
-        }
-
-        for (i = 0; i < module->imports.size; i++) {
-            importtype = ((wasm_importtype_t **) module->imports.data)[i];
-
-            if (importtype) {
-                wasm_importtype_delete(importtype);
-            }
-        }
-#endif
-
         wasm_importtype_vec_delete(&module->imports);
         wasm_exporttype_vec_delete(&module->exports);
         wasm_module_delete(module->module);
@@ -939,7 +917,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
             goto error;
         }
 
-        for (i = 0; i < lmodule->hfuncs_imports->nelts; i++) {
+        for (i = 0; i < instance->env.size; i++) {
             hfunc = ((ngx_wavm_hfunc_t **) lmodule->hfuncs_imports->elts)[i];
 
             tctx = &instance->tctxs[i];
@@ -1270,18 +1248,6 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
                    lmodule->module->vm, lmodule->module, instance);
 
     if (instance->instance) {
-#if 0
-        wasm_func_t  *func;
-
-        for (i = 0; i < instance->env.size; i++) {
-            func = wasm_extern_as_func(instance->env.data[i]);
-
-            if (func) {
-                wasm_func_delete(func);
-            }
-        }
-#endif
-
         wasm_extern_vec_delete(&instance->env);
         wasm_extern_vec_delete(&instance->exports);
         wasm_instance_delete(instance->instance);
@@ -1292,9 +1258,6 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
             f = instance->funcs[i];
 
             if (f) {
-#if 0
-               wasm_func_delete(f->func);
-#endif
                wasm_val_vec_delete(&f->args);
                wasm_val_vec_delete(&f->rets);
 

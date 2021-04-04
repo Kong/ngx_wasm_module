@@ -10,14 +10,14 @@ ngx_int_t
 ngx_wasm_hfuncs_log(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    uint32_t   level, len, msg_offset;
+    uint32_t         level, len;
+    ngx_wavm_ptr_t  *msg;
 
     level = args[0].of.i32;
-    msg_offset = args[1].of.i32;
+    msg = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
     len = args[2].of.i32;
 
-    ngx_log_error((ngx_uint_t) level, instance->log, 0, "%*s",
-                  len, instance->mem_offset + msg_offset);
+    ngx_log_error((ngx_uint_t) level, instance->log, 0, "%*s", len, msg);
 
     return NGX_WAVM_OK;
 }

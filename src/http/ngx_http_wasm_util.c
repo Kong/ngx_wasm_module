@@ -141,14 +141,6 @@ ngx_http_wasm_req_headers_count(ngx_http_request_t *r)
         c += part->nelts;
     }
 
-    if (c > NGX_HTTP_WASM_MAX_REQ_HEADERS) {
-        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                           "truncated request headers to %d",
-                           NGX_HTTP_WASM_MAX_REQ_HEADERS);
-
-        return NGX_HTTP_WASM_MAX_REQ_HEADERS;
-    }
-
     return c;
 }
 
@@ -297,21 +289,6 @@ ngx_http_set_header_helper(ngx_http_request_t *r, ngx_http_wasm_header_val_t *hv
     if (hv->no_override) {
         goto new_header;
     }
-
-#if 0
-    if (r->headers_out.location
-        && r->headers_out.location->value.len
-        && r->headers_out.location->value.data[0] == '/')
-    {
-        /* XXX ngx_http_core_find_config_phase, for example,
-         * may not initialize the "key" and "hash" fields
-         * for a nasty optimization purpose, and
-         * we have to work-around it here */
-
-        r->headers_out.location->hash = ngx_http_wasm_location_hash;
-        ngx_str_set(&r->headers_out.location->key, "Location");
-    }
-#endif
 
     part = &r->headers_out.headers.part;
     h = part->elts;

@@ -172,7 +172,6 @@ ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
     ngx_str_null(&instance->trapmsg);
 
     instance->trapbuf = (u_char *) &trapbuf;
-    instance->mem_offset = (u_char *) wasm_memory_data(instance->memory);
 
     rc = hfunc->def->ptr(instance, hargs, hrets);
 

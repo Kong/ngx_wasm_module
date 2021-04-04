@@ -11,13 +11,13 @@
 #define NGX_PROXY_WASM_PTR_SIZE  4
 
 
-uint32_t
+ngx_wavm_ptr_t
 ngx_proxy_wasm_alloc(ngx_proxy_wasm_module_t *pwm, size_t size)
 {
-   uint32_t              p;
+   ngx_wavm_ptr_t        p;
    ngx_int_t             rc;
    ngx_wavm_instance_t  *instance;
-   wasm_val_vec_t        *rets;
+   wasm_val_vec_t       *rets;
 
    instance = pwm->instance;
 
@@ -29,14 +29,44 @@ ngx_proxy_wasm_alloc(ngx_proxy_wasm_module_t *pwm, size_t size)
        return 0;
    }
 
-   instance->mem_offset = (u_char *) wasm_memory_data(instance->memory);
+   p = rets->data[0].of.i32;
 
-   p = rets->data[0].of.i64;
-
-   ngx_log_debug2(NGX_LOG_DEBUG_WASM, instance->log, 0,
-                  "proxy_wasm_alloc: %p:%uz", p, size);
+#if (NGX_DEBUG)
+   ngx_log_debug3(NGX_LOG_DEBUG_WASM, instance->log, 0,
+                  "proxy_wasm_alloc: %uz:%uz:%uz",
+                  wasm_memory_data_size(instance->memory), p, size);
+#endif
 
    return p;
+}
+
+
+unsigned
+ngx_proxy_wasm_marshal(ngx_proxy_wasm_module_t *pwm, ngx_list_t *list,
+    ngx_wavm_ptr_t *out, size_t *len, u_char *truncated)
+{
+    ngx_wavm_ptr_t   p;
+    size_t           le;
+
+    le = ngx_proxy_wasm_pairs_size(list, pwm->max_pairs);
+    p = ngx_proxy_wasm_alloc(pwm, le);
+    if (!p) {
+        return 0;
+    }
+
+    if (p + le > wasm_memory_data_size(pwm->instance->memory)) {
+        return 0;
+    }
+
+    ngx_proxy_wasm_pairs_marshal(list,
+        ngx_wavm_memory_lift(pwm->instance->memory, p),
+        pwm->max_pairs,
+        truncated);
+
+    *out = p;
+    *len = le;
+
+    return 1;
 }
 
 
@@ -59,9 +89,9 @@ ngx_proxy_wasm_pairs_count(ngx_list_t *list)
 
 
 size_t
-ngx_proxy_wasm_pairs_size(ngx_list_t *list)
+ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_uint_t max)
 {
-    size_t            i, size;
+    size_t            i, n, size;
     ngx_table_elt_t  *elt;
     ngx_list_part_t  *part;
 
@@ -70,7 +100,11 @@ ngx_proxy_wasm_pairs_size(ngx_list_t *list)
 
     size = NGX_PROXY_WASM_PTR_SIZE; /* headers count */
 
-    for (i = 0; /* void */; i++) {
+    for (i = 0, n = 0; /* void */; i++, n++) {
+
+        if (max && n >= max) {
+            break;
+        }
 
         if (i >= part->nelts) {
             if (part->next == NULL) {
@@ -97,9 +131,9 @@ ngx_proxy_wasm_pairs_size(ngx_list_t *list)
 
 
 void
-ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf)
+ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf, ngx_uint_t max, u_char *truncated)
 {
-    size_t            i;
+    size_t            i, n;
     uint32_t          count;
     ngx_table_elt_t  *elt;
     ngx_list_part_t  *part;
@@ -108,10 +142,23 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf)
     elt = part->elts;
 
     count = ngx_proxy_wasm_pairs_count(list);
+
+    if (max && count > max) {
+        count = max;
+
+        if (truncated) {
+            *truncated = 1;
+        }
+    }
+
     *((uint32_t *) buf) = count;
     buf += NGX_PROXY_WASM_PTR_SIZE;
 
-    for (i = 0; /* void */; i++) {
+    for (i = 0, n = 0; /* void */; i++, n++) {
+
+        if (max && n >= max) {
+            break;
+        }
 
         if (i >= part->nelts) {
             if (part->next == NULL) {
@@ -129,7 +176,14 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf)
         buf += NGX_PROXY_WASM_PTR_SIZE;
     }
 
-    for (i = 0; /* void */; i++) {
+    part = &list->part;
+    elt = part->elts;
+
+    for (i = 0, n = 0; /* void */; i++, n++) {
+
+        if (max && n >= max) {
+            break;
+        }
 
         if (i >= part->nelts) {
             if (part->next == NULL) {
@@ -142,9 +196,9 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf)
         }
 
         buf = ngx_cpymem(buf, elt[i].key.data, elt[i].key.len);
-        *buf++ = 0;
+        *buf++ = '\0';
         buf = ngx_cpymem(buf, elt[i].value.data, elt[i].value.len);
-        *buf++ = 0;
+        *buf++ = '\0';
     }
 }
 
@@ -239,7 +293,7 @@ ngx_proxy_wasm_get_map_value(ngx_list_t *map, u_char *key, size_t key_len)
             i = 0;
         }
 
-#if 1
+#if 0
         dd("key: %.*s, value: %.*s",
            (int) elt[i].key.len, elt[i].key.data,
            (int) elt[i].value.len, elt[i].value.data);
@@ -265,13 +319,14 @@ ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
 
     ngx_free(ev);
 
-    if (pwm->proxy_on_tick) {
+    if (pwm->proxy_on_timer_ready) {
         ngx_wavm_ctx_update(pwm->instance->ctx, NULL, NULL);
 
         wasm_val_vec_new_uninitialized(&args, 1);
         ngx_wasm_vec_set_i32(&args, 0, pwm->ctxid);
 
-        rc = ngx_wavm_instance_call_funcref_vec(pwm->instance, pwm->proxy_on_tick,
+        rc = ngx_wavm_instance_call_funcref_vec(pwm->instance,
+                                                pwm->proxy_on_timer_ready,
                                                 NULL, &args);
         wasm_val_vec_delete(&args);
 

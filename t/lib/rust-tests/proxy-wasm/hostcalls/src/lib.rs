@@ -2,6 +2,7 @@ mod test_cases;
 
 use crate::test_cases::*;
 use chrono::{DateTime, Utc};
+use http::StatusCode;
 use log::*;
 use proxy_wasm::traits::*;
 use proxy_wasm::types::*;
@@ -19,7 +20,37 @@ struct TestHttpHostcalls {
 }
 
 impl TestHttpHostcalls {
-    fn exec(&self, uri: String) -> Action {
+    fn send_plain_response(&mut self, status: StatusCode, body: Option<String>) {
+        if let Some(b) = body {
+            self.send_http_response(status.as_u16() as u32, vec![], Some(b.as_bytes()))
+        } else {
+            self.send_http_response(status.as_u16() as u32, vec![], None)
+        }
+    }
+
+    fn test_echo(&mut self, path: &str) {
+        match &path as &str {
+            "headers" => {
+                let headers = self
+                    .get_http_request_headers()
+                    .iter()
+                    .map(|(name, value)| format!("{}: {}", name, value))
+                    .collect::<Vec<String>>()
+                    .join("\r\n");
+
+                self.send_plain_response(StatusCode::OK, Some(headers));
+            }
+            "status" => {
+                match StatusCode::from_bytes(path.as_bytes()).map_err(|_| StatusCode::BAD_REQUEST) {
+                    Ok(status) => self.send_plain_response(status, None),
+                    Err(status) => self.send_plain_response(status, None),
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn exec(&mut self, uri: String) -> Action {
         /*
          * GET /t/<endpoint>/<path...>
          */
@@ -40,6 +71,7 @@ impl TestHttpHostcalls {
             "log_http_request_headers" => test_log_http_request_headers(path.as_str(), self),
             "send_http_response" => test_send_http_response(path.as_str(), self),
             "get_http_request_header" => test_get_http_request_header(path.as_str(), self),
+            "echo" => self.test_echo(path.as_str()),
             _ => self.send_http_response(404, vec![], None),
         }
 

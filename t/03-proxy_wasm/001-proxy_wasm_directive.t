@@ -64,7 +64,7 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 
-=== TEST 4: proxy_wasm directive - unknown ABI version
+=== TEST 4: proxy_wasm directive - missing ABI version
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -92,7 +92,7 @@ qr/\[emerg\] .*? \[wasm\] unknown ABI version/
 
 
 
-=== TEST 5: proxy_wasm directive - bad ABI version
+=== TEST 5: proxy_wasm directive - unknown ABI version
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -107,11 +107,11 @@ qr/\[emerg\] .*? \[wasm\] unknown ABI version/
 >>> a.wat
 (module
   (func $nop)
-  (export "proxy_abi_version_0_2_0" (func $nop))
+  (export "proxy_abi_version_0_0_0" (func $nop))
 )
 --- error_code: 500
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] incompatible ABI version/
+qr/\[emerg\] .*? \[wasm\] unknown ABI version/
 --- no_error_log
 [warn]
 [error]

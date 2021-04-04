@@ -75,14 +75,15 @@ ngx_int_t
 ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
    wasm_val_t args[], wasm_val_t rets[])
 {
-   uint64_t                  body_offset, len;
+   size_t                    len;
+   u_char                   *body;
    ngx_int_t                 rc;
    ngx_buf_t                *b;
    ngx_chain_t              *cl;
    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
    ngx_http_request_t       *r = rctx->r;
 
-   body_offset = args[0].of.i32;
+   body = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
    len = args[1].of.i32;
 
    if (r->connection->fd == (ngx_socket_t) -1) {
@@ -94,7 +95,7 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
        return NGX_WAVM_ERROR;
    }
 
-   b->last = ngx_copy(b->last, instance->mem_offset + body_offset, len);
+   b->last = ngx_copy(b->last, body, len);
    *b->last++ = LF;
 
    b->last_buf = 1;

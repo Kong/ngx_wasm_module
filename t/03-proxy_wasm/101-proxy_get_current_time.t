@@ -12,7 +12,8 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - get_current_time()
+=== TEST 1: get_current_time() gets current time
+should produce a log with the current time (ms as ~ns)
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config

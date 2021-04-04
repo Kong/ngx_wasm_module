@@ -77,7 +77,6 @@ struct ngx_wavm_instance_s {
 
     ngx_str_t                          trapmsg;
     u_char                            *trapbuf;
-    u_char                            *mem_offset;
 };
 
 
@@ -179,6 +178,29 @@ ngx_int_t ngx_wavm_instance_call_funcref(ngx_wavm_instance_t *instance,
 ngx_int_t ngx_wavm_instance_call_funcref_vec(ngx_wavm_instance_t *instance,
     ngx_wavm_funcref_t *funcref, wasm_val_vec_t **rets, wasm_val_vec_t *args);
 void ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance);
+
+
+static ngx_inline void *
+ngx_wavm_memory_lift(wasm_memory_t *mem, ngx_wavm_ptr_t p)
+{
+    ngx_wasm_assert(mem);
+
+    return ((u_char *) wasm_memory_data(mem) + p);
+}
+
+static ngx_inline unsigned
+ngx_wavm_memory_memcpy(wasm_memory_t *mem, ngx_wavm_ptr_t p, u_char *buf,
+    size_t len)
+{
+    ngx_wasm_assert(mem);
+
+    if (p + len > wasm_memory_data_size(mem)) {
+       return 0;
+    }
+
+    ngx_memcpy(ngx_wavm_memory_lift(mem, p), buf, len);
+    return 1;
+}
 
 
 #endif /* _NGX_WAVM_H_INCLUDED_ */

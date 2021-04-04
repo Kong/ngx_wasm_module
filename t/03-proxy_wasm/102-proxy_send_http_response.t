@@ -14,8 +14,8 @@ __DATA__
 
 === TEST 1: send_http_response() set status code
 should produce response with valid code
---- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
 --- config
     location /t {
         proxy_wasm hostcalls;
@@ -24,7 +24,7 @@ should produce response with valid code
 --- request
 GET /t/send_http_response/status/204
 --- error_code: 204
---- response_body eval: ""
+--- response_body
 --- no_error_log
 [error]
 [alert]
@@ -34,8 +34,8 @@ GET /t/send_http_response/status/204
 === TEST 2: send_http_response() set status code (bad argument)
 should produce error page content from a panic, not from echo
 --- TODO: handle "already borrowed mut" panic in log phase
---- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
 --- config
     location /t {
         proxy_wasm hostcalls;
@@ -49,15 +49,15 @@ qr/500 Internal Server Error/
 --- error_log eval
 [
     qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
-    qr/\[error\] .*? wasm trap: unreachable/,
+    qr/\[error\] .*? \[wasm\] (?:wasm trap\:)?unreachable/,
 ]
 
 
 
 === TEST 3: send_http_response() set headers
 should inject headers a produced response, not from echo
---- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
 --- config
     location /t {
         proxy_wasm hostcalls;
@@ -75,8 +75,8 @@ Powered-By: proxy-wasm
 
 === TEST 4: send_http_response() set body
 should produce a response body, not from echo
---- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
 --- config
     location /t {
         proxy_wasm hostcalls;

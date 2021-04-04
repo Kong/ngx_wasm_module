@@ -95,8 +95,9 @@ cargo build \
 
 if [[ ! -z "$TEST_NGINX_USE_VALGRIND" ]]; then
     export TEST_NGINX_SLEEP=0.5
-    export TEST_NGINX_TIMEOUT=30
+    export TEST_NGINX_TIMEOUT=${TEST_NGINX_TIMEOUT:=30}
     echo "TEST_NGINX_USE_VALGRIND=$TEST_NGINX_USE_VALGRIND"
+    echo "TEST_NGINX_TIMEOUT=$TEST_NGINX_TIMEOUT"
     valgrind --version
 fi
 
