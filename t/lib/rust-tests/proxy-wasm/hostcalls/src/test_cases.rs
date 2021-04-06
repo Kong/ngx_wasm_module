@@ -48,6 +48,17 @@ pub(crate) fn test_send_http_response(path: &str, ctx: &TestHttpHostcalls) {
             ],
             None,
         ),
+        "escaping" => ctx.send_http_response(
+            200,
+            vec![
+                ("Escape-Colon:", "value"),
+                ("Escape-Parenthesis()", "value"),
+                ("Escape-Quote\"", "value"),
+                ("Escape-Comps<>", "value"),
+                ("Escape-Equal=", "value"),
+            ],
+            None,
+        ),
         _ => {}
     }
 }

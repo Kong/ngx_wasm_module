@@ -180,3 +180,23 @@ Content-Type: text/plain
 Cache-Control: no-cache
 Link: </feed>; rel="alternate"
 --- ignore_response_body
+
+
+
+=== TEST 9: send_http_response() set escaped header names
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls;
+        echo fail;
+    }
+--- request
+GET /t/send_http_response/escaping
+--- response_headers
+Escape-Colon%3A: value
+Escape-Parenthesis%28%29: value
+Escape-Quote%22: value
+Escape-Comps%3C%3E: value
+Escape-Equal%3D: value
+--- ignore_response_body
