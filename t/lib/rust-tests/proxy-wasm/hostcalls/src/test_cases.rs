@@ -21,7 +21,33 @@ pub(crate) fn test_send_http_response(path: &str, ctx: &TestHttpHostcalls) {
         "status/204" => ctx.send_http_response(204, vec![], None),
         "status/1000" => ctx.send_http_response(1000, vec![], None),
         "headers" => ctx.send_http_response(200, vec![("Powered-By", "proxy-wasm")], None),
-        "body" => ctx.send_http_response(200, vec![], Some("Hello world".as_bytes())),
+        "body" => ctx.send_http_response(
+            200,
+            vec![("Content-Length", "0")],
+            Some("Hello world".as_bytes()),
+        ),
+        "special_headers" => ctx.send_http_response(
+            200,
+            vec![
+                ("Server", "proxy-wasm"),
+                ("Date", "Wed, 22 Oct 2020 07:28:00 GMT"),
+                ("Content-Length", "0"),
+                ("Content-Encoding", "gzip"),
+                ("Location", "/index.html"),
+                ("Refresh", "5; url=http://www.w3.org/index.html"),
+                ("Last-Modified", "Tue, 15 Nov 1994 12:45:26 GMT"),
+                ("Content-Range", "bytes 21010-47021/47022"),
+                ("Accept-Ranges", "bytes"),
+                ("WWW-Authenticate", "Basic"),
+                ("Expires", "Thu, 01 Dec 1994 16:00:00 GMT"),
+                //("ETag", "737060cd8c284d8af7ad3082f209582d"), // TODO
+                ("E-Tag", "377060cd8c284d8af7ad3082f20958d2"),
+                ("Content-Type", "text/plain"),
+                ("Cache-Control", "no-cache"),
+                ("Link", "</feed>; rel=\"alternate\""),
+            ],
+            None,
+        ),
         _ => {}
     }
 }
