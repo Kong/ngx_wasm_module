@@ -92,7 +92,64 @@ qr/\[emerg\] .*? \[wasm\] unknown ABI version/
 
 
 
-=== TEST 5: proxy_wasm directive - unknown ABI version
+=== TEST 5: proxy_wasm directive - missing malloc + proxy_on_memory_allocate
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config
+    wasm {
+        module a $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- config
+    location /t {
+        proxy_wasm a;
+        echo ok;
+    }
+--- user_files
+>>> a.wat
+(module
+  (func $nop)
+  (export "proxy_abi_version_0_2_1" (func $nop))
+)
+--- error_code: 500
+--- error_log eval
+qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing malloc/
+--- no_error_log
+[warn]
+[error]
+[alert]
+[crit]
+
+
+
+=== TEST 6: proxy_wasm directive - missing malloc, fallback proxy_on_memory_allocate
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config
+    wasm {
+        module a $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- config
+    location /t {
+        proxy_wasm a;
+        echo ok;
+    }
+--- user_files
+>>> a.wat
+(module
+  (func $nop)
+  (export "proxy_abi_version_0_2_1" (func $nop))
+  (export "proxy_on_memory_allocate" (func $nop))
+)
+--- error_code: 500
+--- error_log eval
+qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing context init/
+--- no_error_log
+[warn]
+[error]
+[alert]
+[crit]
+
+
+
+=== TEST 7: proxy_wasm directive - unknown ABI version
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -120,7 +177,7 @@ qr/\[emerg\] .*? \[wasm\] unknown ABI version/
 
 
 
-=== TEST 6: proxy_wasm directive - duplicated
+=== TEST 8: proxy_wasm directive - duplicated
 --- main_config
     wasm {
         module on_tick $TEST_NGINX_CRATES_DIR/on_tick.wasm;
