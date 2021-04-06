@@ -25,9 +25,7 @@ __DATA__
     }
 --- ignore_response_body
 --- error_log eval
-[
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers/,
-]
+qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/
 --- no_error_log
 [error]
 [emerg]

@@ -26,7 +26,7 @@ pub(crate) fn test_send_http_response(path: &str, ctx: &TestHttpHostcalls) {
             vec![("Content-Length", "0")],
             Some("Hello world".as_bytes()),
         ),
-        "special_headers" => ctx.send_http_response(
+        "set_special_headers" => ctx.send_http_response(
             200,
             vec![
                 ("Server", "proxy-wasm"),
@@ -42,7 +42,7 @@ pub(crate) fn test_send_http_response(path: &str, ctx: &TestHttpHostcalls) {
                 ("Expires", "Thu, 01 Dec 1994 16:00:00 GMT"),
                 //("ETag", "737060cd8c284d8af7ad3082f209582d"), // TODO
                 ("E-Tag", "377060cd8c284d8af7ad3082f20958d2"),
-                ("Content-Type", "text/plain"),
+                ("Content-Type", "text/plain; charset=UTF-8"),
                 ("Cache-Control", "no-cache"),
                 ("Link", "</feed>; rel=\"alternate\""),
             ],

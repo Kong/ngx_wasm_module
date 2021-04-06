@@ -97,7 +97,9 @@ impl RootContext for TestHttpHostcalls {
 impl Context for TestHttpHostcalls {}
 
 impl HttpContext for TestHttpHostcalls {
-    fn on_http_request_headers(&mut self, _: usize) -> Action {
+    fn on_http_request_headers(&mut self, nheaders: usize) -> Action {
+        info!("number of request headers: {}", nheaders);
+
         match self.get_http_request_header(":path") {
             Some(path) => self.exec(path),
             _ => Action::Continue,

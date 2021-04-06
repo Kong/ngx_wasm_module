@@ -153,7 +153,7 @@ Hello world
         echo fail;
     }
 --- request
-GET /t/send_http_response/special_headers
+GET /t/send_http_response/set_special_headers
 --- response_headers
 Server: proxy-wasm
 Date: Wed, 22 Oct 2020 07:28:00 GMT
@@ -173,7 +173,7 @@ Last-Modified: Tue, 15 Nov 1994 12:45:26 GMT
         echo fail;
     }
 --- request
-GET /t/send_http_response/special_headers
+GET /t/send_http_response/set_special_headers
 --- response_headers
 Content-Range: bytes 21010-47021/47022
 Accept-Ranges: bytes
@@ -193,11 +193,11 @@ E-Tag: 377060cd8c284d8af7ad3082f20958d2
         echo fail;
     }
 --- request
-GET /t/send_http_response/special_headers
+GET /t/send_http_response/set_special_headers
 --- response_headers
 Content-Length: 0
 Content-Encoding: gzip
-Content-Type: text/plain
+Content-Type: text/plain; charset=UTF-8
 Cache-Control: no-cache
 Link: </feed>; rel="alternate"
 --- ignore_response_body

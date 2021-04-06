@@ -26,8 +26,11 @@ struct HttpHeaders {
 
 impl Context for HttpHeaders {}
 impl HttpContext for HttpHeaders {
-    fn on_http_request_headers(&mut self, _: usize) -> Action {
-        info!("#{} on_request_headers", self.context_id);
+    fn on_http_request_headers(&mut self, nheaders: usize) -> Action {
+        info!(
+            "#{} on_request_headers, {} headers",
+            self.context_id, nheaders
+        );
         Action::Continue
     }
 

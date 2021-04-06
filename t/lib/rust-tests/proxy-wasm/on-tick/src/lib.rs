@@ -17,7 +17,9 @@ impl RootContext for OnTick {
     }
 
     fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
-        Some(Box::new(OnTickHttp { context_id }))
+        Some(Box::new(OnTickHttp {
+            _context_id: context_id,
+        }))
     }
 
     fn on_vm_start(&mut self, _: usize) -> bool {
@@ -31,7 +33,7 @@ impl RootContext for OnTick {
 }
 
 struct OnTickHttp {
-    context_id: u32,
+    _context_id: u32,
 }
 
 impl Context for OnTickHttp {}
