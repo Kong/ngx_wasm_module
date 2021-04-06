@@ -177,7 +177,35 @@ qr/\[emerg\] .*? \[wasm\] unknown ABI version/
 
 
 
-=== TEST 8: proxy_wasm directive - duplicated
+=== TEST 8: proxy_wasm directive - incompatible ABI version
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config
+    wasm {
+        module a $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- config
+    location /t {
+        proxy_wasm a;
+        echo fail;
+    }
+--- user_files
+>>> a.wat
+(module
+  (func $nop)
+  (export "proxy_abi_version_0_2_0" (func $nop))
+)
+--- error_code: 500
+--- error_log eval
+qr/\[emerg\] .*? \[wasm\] incompatible ABI version/
+--- no_error_log
+[warn]
+[error]
+[alert]
+[crit]
+
+
+
+=== TEST 9: proxy_wasm directive - duplicated
 --- main_config
     wasm {
         module on_tick $TEST_NGINX_CRATES_DIR/on_tick.wasm;

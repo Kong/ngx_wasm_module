@@ -29,7 +29,10 @@ impl TestHttpHostcalls {
     }
 
     fn test_echo(&mut self, path: &str) {
-        match &path as &str {
+        let mut segments: Vec<&str> = path.split("/").collect::<Vec<&str>>();
+        let endpoint = segments.remove(0);
+
+        match &endpoint as &str {
             "headers" => {
                 let headers = self
                     .get_http_request_headers()
@@ -41,7 +44,9 @@ impl TestHttpHostcalls {
                 self.send_plain_response(StatusCode::OK, Some(headers));
             }
             "status" => {
-                match StatusCode::from_bytes(path.as_bytes()).map_err(|_| StatusCode::BAD_REQUEST) {
+                let arg = segments.remove(0);
+
+                match StatusCode::from_bytes(arg.as_bytes()).map_err(|_| StatusCode::BAD_REQUEST) {
                     Ok(status) => self.send_plain_response(status, None),
                     Err(status) => self.send_plain_response(status, None),
                 }

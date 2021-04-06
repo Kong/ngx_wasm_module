@@ -115,13 +115,16 @@ ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwm)
     switch (pwm->abi_version) {
 
     case NGX_PROXY_WASM_0_1_0:
-    case NGX_PROXY_WASM_0_2_0:
     case NGX_PROXY_WASM_0_2_1:
         break;
 
     case NGX_PROXY_WASM_UNKNOWN:
-    default:
         pwm->ecode = NGX_PROXY_WASM_ERR_UNKNOWN_ABI;
+        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode, NULL);
+        return NGX_ERROR;
+
+    default:
+        pwm->ecode = NGX_PROXY_WASM_ERR_BAD_ABI;
         ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode, NULL);
         return NGX_ERROR;
 

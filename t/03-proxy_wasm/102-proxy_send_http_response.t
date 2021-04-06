@@ -33,7 +33,28 @@ GET /t/send_http_response/status/204
 
 
 
-=== TEST 2: send_http_response() set status code (bad argument)
+=== TEST 2: send_http_response() set status code (special response, HTTP >= 300)
+should produce response with valid code
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls;
+        echo fail;
+    }
+--- request
+GET /t/echo/status/300
+--- error_code: 300
+--- response_body
+--- no_error_log
+[warn]
+[error]
+[alert]
+[emerg]
+
+
+
+=== TEST 3: send_http_response() set status code (bad argument)
 should produce error page content from a panic, not from echo
 --- TODO: handle "already borrowed mut" panic in log phase
 --- load_nginx_modules: ngx_http_echo_module
@@ -59,7 +80,7 @@ qr/500 Internal Server Error/
 
 
 
-=== TEST 3: send_http_response() set headers
+=== TEST 4: send_http_response() set headers
 should inject headers a produced response, not from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -80,7 +101,7 @@ Powered-By: proxy-wasm
 
 
 
-=== TEST 4: send_http_response() set body
+=== TEST 5: send_http_response() set body
 should produce a response body, not from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -101,7 +122,7 @@ Hello world
 
 
 
-=== TEST 5: send_http_response() set content-length when body
+=== TEST 6: send_http_response() set content-length when body
 should produce a response body, not from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -123,7 +144,7 @@ Hello world
 
 
 
-=== TEST 6: send_http_response() set special headers (1/?)
+=== TEST 7: send_http_response() set special headers (1/?)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -143,7 +164,7 @@ Last-Modified: Tue, 15 Nov 1994 12:45:26 GMT
 
 
 
-=== TEST 7: send_http_response() set special headers (2/?)
+=== TEST 8: send_http_response() set special headers (2/?)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -163,7 +184,7 @@ E-Tag: 377060cd8c284d8af7ad3082f20958d2
 
 
 
-=== TEST 8: send_http_response() set special headers (3/?)
+=== TEST 9: send_http_response() set special headers (3/?)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -183,7 +204,7 @@ Link: </feed>; rel="alternate"
 
 
 
-=== TEST 9: send_http_response() set escaped header names
+=== TEST 10: send_http_response() set escaped header names
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
