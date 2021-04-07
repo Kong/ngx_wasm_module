@@ -238,7 +238,9 @@ ngx_wavm_destroy_instances(ngx_wavm_t *vm)
     while (!ngx_queue_empty(&vm->instances)) {
        q = ngx_queue_head(&vm->instances);
        instance = ngx_queue_data(q, ngx_wavm_instance_t, q);
-       ngx_queue_remove(&instance->q);
+
+       /* for ngx_wavm_ctx_destroy */
+       instance->ctx->instances = NULL;
 
        ngx_wavm_instance_destroy(instance);
     }
@@ -827,7 +829,18 @@ ngx_wavm_ctx_init(ngx_wavm_t *vm, ngx_wavm_ctx_t *ctx)
 void
 ngx_wavm_ctx_destroy(ngx_wavm_ctx_t *ctx)
 {
+    size_t                i;
+    ngx_wavm_instance_t  *instance;
+
     if (ctx->instances) {
+        for (i = 0; i < ctx->vm->lmodules_max; i++) {
+            instance = ctx->instances[i];
+
+            if (instance) {
+                ngx_wavm_instance_destroy(instance);
+            }
+        }
+
         ngx_pfree(ctx->pool, ctx->instances);
         ctx->instances = NULL;
     }
@@ -1275,6 +1288,8 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
     if (instance->log) {
         ngx_pfree(instance->pool, instance->log);
     }
+
+    ngx_queue_remove(&instance->q);
 
     ngx_pfree(instance->pool, instance);
 }
