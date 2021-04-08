@@ -3,7 +3,7 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_http.h>
+#include <ngx_http_wasm.h>
 #include <ngx_wasm_ops.h>
 
 
@@ -104,7 +104,7 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
 
                 op->conf.proxy_wasm.pwmodule->lmodule = op->lmodule;
 
-                if (ngx_proxy_wasm_module_init(op->conf.proxy_wasm.pwmodule)
+                if (ngx_proxy_wasm_init(op->conf.proxy_wasm.pwmodule)
                     != NGX_OK)
                 {
                     return;
@@ -115,9 +115,13 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
             default:
                 ngx_wasm_log_error(NGX_LOG_ALERT, engine->pool->log, 0,
                                    "unknown wasm op code: %d", op->code);
-                break;
+                return;
 
             }
+        }
+
+        if (pipeline->ops->nelts) {
+            ngx_http_wasm_header_filter_init();
         }
     }
 }
@@ -146,7 +150,7 @@ ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine)
                 break;
 
             case NGX_WASM_OP_PROXY_WASM:
-                ngx_proxy_wasm_module_destroy(op->conf.proxy_wasm.pwmodule);
+                ngx_proxy_wasm_destroy(op->conf.proxy_wasm.pwmodule);
                 break;
 
             default:
@@ -283,7 +287,7 @@ ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
 ngx_wasm_op_t *
 ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     ngx_wasm_ops_engine_t *ops_engine, ngx_str_t *value,
-    ngx_proxy_wasm_module_t *pwmodule)
+    ngx_proxy_wasm_t *pwmodule)
 {
     ngx_wasm_op_t  *op;
     ngx_str_t      *mod_name;
@@ -300,6 +304,7 @@ ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     op->host = &ngx_proxy_wasm_host;
     op->on_phases = (1 << NGX_HTTP_PREACCESS_PHASE)
                     | (1 << NGX_HTTP_ACCESS_PHASE)
+                    | (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE)
                     | (1 << NGX_HTTP_LOG_PHASE);
 
     if (ngx_wasm_op_add_helper(cf, ops_engine, op, mod_name) != NGX_OK) {
@@ -336,8 +341,9 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
         return NGX_DECLINED;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_WASM, ctx->log, 0,
-                   "wasm ops resuming phase index '%ui'", phaseidx);
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->log, 0,
+                   "wasm ops resuming \"%V\" phase (idx: %ui)",
+                   &phase->name, phaseidx);
 
     pipeline = ctx->ops_engine->pipelines[phase->index];
     if (pipeline == NULL) {
@@ -353,7 +359,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
         rc = op->handler(ctx, phase, op);
 
         if (op->opbreak) {
-            dd("opbreak rc: %ld", rc);
+            dd("wasm ops opbreak rc: %ld", rc);
             return rc;
         }
 
@@ -431,7 +437,7 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wasm_phase_t *phase,
                    "wasm ops calling \"%V.%V\" in \"%V\" phase",
                    &op->module->name, &funcref->name, &phase->name);
 
-    instance = ngx_wavm_instance_create(op->lmodule, &ctx->wv_ctx);
+    instance = ngx_wavm_instance_create(op->lmodule, &ctx->wvctx);
     if (instance == NULL) {
         return NGX_ERROR;
     }
@@ -444,18 +450,14 @@ static ngx_int_t
 ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *ctx, ngx_wasm_phase_t *phase,
     ngx_wasm_op_t *op)
 {
-    ngx_proxy_wasm_module_t  *pwmodule;
+    ngx_proxy_wasm_t  *pwmodule;
 
     ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);
-
-    ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->log, 0,
-                   "wasm ops proxy_wasm \"%V\" module in \"%V\" phase",
-                   &op->module->name, &phase->name);
 
     pwmodule = op->conf.proxy_wasm.pwmodule;
     if (pwmodule == NULL) {
         return NGX_ERROR;
     }
 
-    return ngx_proxy_wasm_module_resume(pwmodule, phase, &ctx->wv_ctx);
+    return ngx_proxy_wasm_resume(pwmodule, phase, &ctx->wvctx);
 }

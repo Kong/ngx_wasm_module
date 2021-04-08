@@ -117,27 +117,35 @@ typedef enum {
 } ngx_proxy_wasm_metric_type_t;
 
 
-typedef struct ngx_proxy_wasm_module_s  ngx_proxy_wasm_module_t;
+typedef struct ngx_proxy_wasm_s  ngx_proxy_wasm_t;
 
-struct ngx_proxy_wasm_module_s {
+typedef ngx_int_t (*ngx_proxy_wasm_resume_pt)(ngx_proxy_wasm_t *pwm,
+    ngx_wasm_phase_t *phase, ngx_wavm_ctx_t *wvctx);
+typedef ngx_uint_t (*ngx_proxy_wasm_ctxid_pt)(ngx_proxy_wasm_t *pwm);
+typedef ngx_uint_t (*ngx_proxy_wasm_ecode_pt)(ngx_proxy_wasm_t *pwm, ngx_uint_t ecode);
 
-    ngx_pool_t                    *pool;
-    ngx_log_t                     *log;
-    ngx_wavm_module_t             *module;
-    ngx_wavm_linked_module_t      *lmodule;
-    ngx_wavm_instance_t           *instance;
-    ngx_wavm_ctx_t                 wv_ctx;
-    ngx_proxy_wasm_abi_version_t   abi_version;
+struct ngx_proxy_wasm_s {
+
+    ngx_proxy_wasm_resume_pt           resume_;
+    ngx_proxy_wasm_ctxid_pt            ctxid_;
+    ngx_proxy_wasm_ecode_pt            ecode_;
+    ngx_pool_t                        *pool;
+    ngx_log_t                         *log;
+    ngx_wavm_module_t                 *module;
+    ngx_wavm_linked_module_t          *lmodule;
+    ngx_wavm_instance_t               *instance;
+    ngx_wavm_ctx_t                     wvctx;
+    ngx_proxy_wasm_abi_version_t       abi_version;
 
     /* dyn config */
 
-    ngx_uint_t                     max_pairs;
+    ngx_uint_t                         max_pairs;
 
     /* control flow */
 
-    ngx_uint_t                     ecode;
-    ngx_uint_t                     ctxid;
-    ngx_uint_t                     tick_period;
+    ngx_uint_t                         ecode;
+    ngx_uint_t                         rctxid;
+    ngx_uint_t                         tick_period;
 
     /**
      * SDK
@@ -147,80 +155,82 @@ struct ngx_proxy_wasm_module_s {
      * - tested: 0.1.0
      */
 
-    ngx_wavm_funcref_t            *proxy_on_memory_allocate;
+    ngx_wavm_funcref_t                *proxy_on_memory_allocate;
 
     /* context */
 
-    ngx_wavm_funcref_t            *proxy_on_context_create;
-    ngx_wavm_funcref_t            *proxy_on_context_finalize;
-    ngx_wavm_funcref_t            *proxy_on_done; // legacy: 0.1.0 - 0.2.1
-    ngx_wavm_funcref_t            *proxy_on_log; // legacy: 0.1.0 - 0.2.1
+    ngx_wavm_funcref_t                *proxy_on_context_create;
+    ngx_wavm_funcref_t                *proxy_on_context_finalize;
+    ngx_wavm_funcref_t                *proxy_on_done; // legacy: 0.1.0 - 0.2.1
+    ngx_wavm_funcref_t                *proxy_on_log; // legacy: 0.1.0 - 0.2.1
 
     /* configuration */
 
-    ngx_wavm_funcref_t            *proxy_on_vm_start;
-    ngx_wavm_funcref_t            *proxy_on_plugin_start;
+    ngx_wavm_funcref_t                *proxy_on_vm_start;
+    ngx_wavm_funcref_t                *proxy_on_plugin_start;
 
     /* stream */
 
-    ngx_wavm_funcref_t            *proxy_on_new_connection;
-    ngx_wavm_funcref_t            *proxy_on_downstream_data;
-    ngx_wavm_funcref_t            *proxy_on_upstream_data;
-    ngx_wavm_funcref_t            *proxy_on_downstream_close;
-    ngx_wavm_funcref_t            *proxy_on_upstream_close;
+    ngx_wavm_funcref_t                *proxy_on_new_connection;
+    ngx_wavm_funcref_t                *proxy_on_downstream_data;
+    ngx_wavm_funcref_t                *proxy_on_upstream_data;
+    ngx_wavm_funcref_t                *proxy_on_downstream_close;
+    ngx_wavm_funcref_t                *proxy_on_upstream_close;
 
     /* http */
 
-    ngx_wavm_funcref_t            *proxy_on_http_request_headers;
-    ngx_wavm_funcref_t            *proxy_on_http_request_body;
-    ngx_wavm_funcref_t            *proxy_on_http_request_trailers;
-    ngx_wavm_funcref_t            *proxy_on_http_request_metadata;
-    ngx_wavm_funcref_t            *proxy_on_http_response_headers;
-    ngx_wavm_funcref_t            *proxy_on_http_response_body;
-    ngx_wavm_funcref_t            *proxy_on_http_response_trailers;
-    ngx_wavm_funcref_t            *proxy_on_http_response_metadata;
+    ngx_wavm_funcref_t                *proxy_on_http_request_headers;
+    ngx_wavm_funcref_t                *proxy_on_http_request_body;
+    ngx_wavm_funcref_t                *proxy_on_http_request_trailers;
+    ngx_wavm_funcref_t                *proxy_on_http_request_metadata;
+    ngx_wavm_funcref_t                *proxy_on_http_response_headers;
+    ngx_wavm_funcref_t                *proxy_on_http_response_body;
+    ngx_wavm_funcref_t                *proxy_on_http_response_trailers;
+    ngx_wavm_funcref_t                *proxy_on_http_response_metadata;
 
     /* shared queue */
 
-    ngx_wavm_funcref_t            *proxy_on_queue_ready;
+    ngx_wavm_funcref_t                *proxy_on_queue_ready;
 
     /* timers */
 
-    ngx_wavm_funcref_t            *proxy_create_timer;
-    ngx_wavm_funcref_t            *proxy_delete_timer;
-    ngx_wavm_funcref_t            *proxy_on_timer_ready;
+    ngx_wavm_funcref_t                *proxy_create_timer;
+    ngx_wavm_funcref_t                *proxy_delete_timer;
+    ngx_wavm_funcref_t                *proxy_on_timer_ready;
 
     /* http callouts */
 
-    ngx_wavm_funcref_t            *proxy_on_http_call_response;
+    ngx_wavm_funcref_t                *proxy_on_http_call_response;
 
     /* grpc callouts */
 
-    ngx_wavm_funcref_t            *proxy_on_grpc_call_response_header_metadata;
-    ngx_wavm_funcref_t            *proxy_on_grpc_call_response_message;
-    ngx_wavm_funcref_t            *proxy_on_grpc_call_response_trailer_metadata;
-    ngx_wavm_funcref_t            *proxy_on_grpc_call_close;
+    ngx_wavm_funcref_t                *proxy_on_grpc_call_response_header_metadata;
+    ngx_wavm_funcref_t                *proxy_on_grpc_call_response_message;
+    ngx_wavm_funcref_t                *proxy_on_grpc_call_response_trailer_metadata;
+    ngx_wavm_funcref_t                *proxy_on_grpc_call_close;
 
     /* custom extensions */
 
-    ngx_wavm_funcref_t            *proxy_on_custom_callback;
+    ngx_wavm_funcref_t                *proxy_on_custom_callback;
 
 };
 
 
-ngx_int_t ngx_proxy_wasm_module_init(ngx_proxy_wasm_module_t *pwmodule);
-ngx_int_t ngx_proxy_wasm_module_resume(ngx_proxy_wasm_module_t *pwm,
-    ngx_wasm_phase_t *phase, ngx_wavm_ctx_t *ctx);
-void ngx_proxy_wasm_module_destroy(ngx_proxy_wasm_module_t *pwmodule);
-void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
-    ngx_proxy_wasm_err_t err, const char *fmt, ...);
+/* ngx_proxy_wasm_t */
+ngx_int_t ngx_proxy_wasm_init(ngx_proxy_wasm_t *pwmodule);
+void ngx_proxy_wasm_destroy(ngx_proxy_wasm_t *pwmodule);
 
-
-ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_module_t *pwm, size_t size);
-unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_module_t *pwm, ngx_list_t *list,
+/* ngx_proxy_wasm_t utils */
+ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_t *pwm, size_t size);
+unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_t *pwm, ngx_list_t *list,
     ngx_wavm_ptr_t *out, size_t *len, u_char *truncated);
 
+/* phases */
+ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
+     ngx_wavm_ctx_t *wvctx);
+ngx_int_t ngx_proxy_wasm_on_log(ngx_proxy_wasm_t *pwm);
 
+/* utils */
 ngx_uint_t ngx_proxy_wasm_pairs_count(ngx_list_t *list);
 size_t ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_uint_t max);
 void ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf, ngx_uint_t max, u_char *truncated);
@@ -229,6 +239,8 @@ ngx_array_t *ngx_proxy_wasm_pairs_unmarshal(ngx_pool_t *pool, u_char *buf,
 ngx_str_t *ngx_proxy_wasm_get_map_value(ngx_list_t *map, u_char *key,
     size_t key_len);
 void ngx_proxy_wasm_tick_handler(ngx_event_t *ev);
+void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
+    ngx_proxy_wasm_err_t err, const char *fmt, ...);
 
 
 static ngx_inline ngx_int_t

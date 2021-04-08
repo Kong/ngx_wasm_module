@@ -10,8 +10,8 @@
 
 
 #define ngx_proxy_wasm_get_pwm(instance)                                     \
-    ((ngx_proxy_wasm_module_t *)                                             \
-     ((u_char *) (instance)->ctx - offsetof(ngx_proxy_wasm_module_t, wv_ctx)))
+    ((ngx_proxy_wasm_t *)                                             \
+     ((u_char *) (instance)->ctx - offsetof(ngx_proxy_wasm_t, wvctx)))
 
 
 static ngx_list_t *
@@ -42,9 +42,9 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_event_t              *ev;
-    ngx_proxy_wasm_module_t  *pwm;
-    uint32_t                  period = args[0].of.i32;
+    ngx_event_t       *ev;
+    ngx_proxy_wasm_t  *pwm;
+    uint32_t           period = args[0].of.i32;
 
     pwm = instance->ctx->data;
 
@@ -155,7 +155,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_pairs(ngx_wavm_instance_t *instance,
 {
     size_t                     *rlen;
     ngx_wavm_ptr_t             *rbuf;
-    ngx_proxy_wasm_module_t    *pwm;
+    ngx_proxy_wasm_t           *pwm;
     ngx_proxy_wasm_map_type_t   map_type;
     ngx_list_t                 *list;
     u_char                      truncated = 0;
@@ -198,7 +198,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
     u_char                     *key;
     ngx_list_t                 *list;
     ngx_str_t                  *value;
-    ngx_proxy_wasm_module_t    *pwm;
+    ngx_proxy_wasm_t           *pwm;
     static const u_char         empty[] = "";
     ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
     ngx_http_request_t         *r = rctx->r;
@@ -384,6 +384,8 @@ ngx_proxy_wasm_hfuncs_send_http_response(ngx_wavm_instance_t *instance,
         /* TODO: NYI - NGX_WAVM_AGAIN */
         return NGX_AGAIN;
     }
+
+    /* NGX_OK */
 
     rctx->sent_last = 1;
 

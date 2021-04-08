@@ -177,6 +177,9 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_int_t   rc;
 
     rc = ngx_http_wasm_send_header(r);
+
+    /* NGX_OK, NGX_ERROR, NGX_AGAIN, NGX_HTTP_* */
+
     if (rc == NGX_ERROR || rc > NGX_OK || r->header_only) {
         return rc;
     }
