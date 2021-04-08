@@ -262,3 +262,19 @@ jobs:
           version: ${{ matrix.wasmtime }}
       - run: make setup
       - run: make test-build
+
+  codeql:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v2
+        - name: Set up CodeQL
+          uses: github/codeql-action/init@v1
+          # Override language selection by uncommenting this and choosing your languages
+          # with:
+          #   languages: go, javascript, csharp, python, cpp, java
+        - run: |
+            make setup
+            make
+        - name: CodeQL Analysis
+          uses: github/codeql-action/analyze@v1
