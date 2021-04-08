@@ -68,7 +68,7 @@ build_nginx() {
 
     # Build options hash to determine rebuild
 
-    local hash=$(echo "$CC.$ngx_ver.$ngx_src.$name.$NGX_BUILD_CC_OPT.$NGX_BUILD_LD_OPT" | shasum | awk '{ print $1 }')
+    local hash=$(echo "$CC.$ngx_ver.$ngx_src.$name.$NGX_BUILD_CC_OPT.$NGX_BUILD_LD_OPT.$NGX_BUILD_CONFIGURE" | shasum | awk '{ print $1 }')
 
     if [[ ! -d "$NGX_BUILD_DIR_SRCROOT" \
           || ! -f "$NGX_BUILD_DIR_SRCROOT/.hash" \
@@ -113,7 +113,9 @@ build_nginx() {
                 "--add-dynamic-module=$DIR_ECHO" \
                 "--with-cc-opt='$NGX_BUILD_CC_OPT'" \
                 "--with-ld-opt='$NGX_BUILD_LD_OPT'" \
-                $build_with_debug
+                "$build_with_debug" \
+                "$NGX_BUILD_CONFIGURE" \
+
 
             echo $hash > "$NGX_BUILD_DIR_SRCROOT/.hash"
         fi
