@@ -10,7 +10,6 @@ RUN apt-get update && \
         gcc-9 \
         gcc-8 \
         libpcre3-dev \
-        libssl-dev \
         libgd-dev \
         valgrind \
         gcovr \

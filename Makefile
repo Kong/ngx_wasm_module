@@ -9,8 +9,8 @@ NGX_BUILD_GCOV ?= 0
 NGX_BUILD_FORCE ?= 0
 
 export NGX_WASM_RUNTIME ?= wasmtime
-export NGX_WASM_RUNTIME_INC ?= /usr/local/opt/include
-export NGX_WASM_RUNTIME_LIB ?= /usr/local/opt/lib
+export NGX_WASM_RUNTIME_INC ?=
+export NGX_WASM_RUNTIME_LIB ?=
 export NGX_WASM_RUNTIME_LD_OPT ?=
 
 .PHONY: build
@@ -37,8 +37,8 @@ test:
 test-build:
 	@util/test.sh --no-test-nginx t/10-build
 
-.PHONY: style
-style:
+.PHONY: lint
+lint:
 	@util/style.pl src/*
 	@!(grep -R -E -n -- '#define\s+DDEBUG\s+1' src && echo "DDEBUG detected in sources") >&2
 	@!(grep -R -E -n -- '---\s+ONLY' t && echo "--- ONLY block detected") >&2
@@ -50,7 +50,7 @@ reindex:
 	@util/reindex.sh "t/**/**/*.t"
 
 .PHONY: act
-act: cleanall
+act:
 	@docker build -t ubuntu-wasmx-dev ./util/ubuntu-wasmx-dev
 	@act
 
@@ -58,6 +58,6 @@ act: cleanall
 clean:
 	@util/clean.sh
 
-.PHONY: cleanall
-cleanall:
+.PHONY: cleanup
+cleanup:
 	@util/clean.sh --all

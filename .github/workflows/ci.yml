@@ -81,7 +81,7 @@ jobs:
           fail_ci_if_error: true
 
   valgrind:
-    name: 'Tests - valgrind'
+    name: 'Tests - unit (valgrind)'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
@@ -149,8 +149,8 @@ jobs:
           name: gh-failures-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: valgrind.out
 
-  style:
-    name: 'Style'
+  lint:
+    name: 'Lint'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -163,7 +163,7 @@ jobs:
             !work/scans
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.nginx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - run: make setup
-      - run: make style
+      - run: make lint
       - run: |
           if [[ $(make reindex 2>&1 | tee reindex.out | grep -c done) -gt 0 ]]; then
             cat reindex.out >&2
@@ -232,7 +232,6 @@ jobs:
         #debug: [1, 0]
         debug: [1]
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y gcc-8
       - uses: actions/checkout@v2
       - name: "Set up cache - rustup toolchain"
         uses: actions/cache@v2

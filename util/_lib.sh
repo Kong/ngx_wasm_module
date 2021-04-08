@@ -33,7 +33,9 @@ build_nginx() {
         NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fsanitize=$NGX_BUILD_FSANITIZE -ldl -lm -lpthread -lrt"
     fi
 
-    NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -Wl,-rpath,$NGX_WASM_RUNTIME_LIB"
+    if [[ -n "$NGX_WASM_RUNTIME_LIB" ]]; then
+        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -Wl,-rpath,$NGX_WASM_RUNTIME_LIB"
+    fi
 
     if [[ "$NGX_BUILD_CLANG_ANALYZER" == 1 ]]; then
         build_name+=" clang-analyzer"
