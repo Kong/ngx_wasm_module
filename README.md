@@ -52,7 +52,7 @@ http {
 
 The
 [proxy-wasm-filter-echo](https://github.com/wasmx-proxy/proxy-wasm-filter-echo/)
-project showcases available the host capabilities of ngx_wasm_module and is
+project showcases the available host capabilities of ngx_wasm_module and is
 compatible with the Envoy runtime.
 
 ## Requirements
