@@ -3,11 +3,12 @@
 
 
 #include <ngx_http.h>
-
 #include <ngx_wasm_ops.h>
 
 
 #define NGX_HTTP_WASM_MAX_REQ_HEADERS  100
+
+#define NGX_HTTP_WASM_HEADER_FILTER_PHASE  (NGX_HTTP_LOG_PHASE + 1)
 
 
 typedef enum {
@@ -28,6 +29,9 @@ typedef struct {
     unsigned                         sent_last:1;
     unsigned                         finalized:1;
 } ngx_http_wasm_req_ctx_t;
+
+
+void ngx_http_wasm_header_filter_init(void);
 
 
 ngx_uint_t ngx_http_wasm_req_headers_count(ngx_http_request_t *r);

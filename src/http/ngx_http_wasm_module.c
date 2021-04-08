@@ -4,12 +4,13 @@
 #include "ddebug.h"
 
 #include <ngx_http_wasm.h>
+#include <ngx_http_proxy_wasm.h>
 
 
 typedef struct {
     ngx_wavm_t                        *vm;
     ngx_wasm_ops_engine_t             *ops_engine;
-    ngx_proxy_wasm_module_t           *pwmodule;
+    ngx_proxy_wasm_t                  *pwmodule;
     ngx_queue_t                        q;
 } ngx_http_wasm_loc_conf_t;
 
@@ -37,6 +38,7 @@ static ngx_int_t ngx_http_wasm_rewrite_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_preaccess_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_access_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_content_handler(ngx_http_request_t *r);
+static ngx_int_t ngx_http_wasm_header_filter_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_log_handler(ngx_http_request_t *r);
 
 
@@ -70,6 +72,10 @@ static ngx_wasm_phase_t  ngx_wasm_subsys_http[] = {
       NGX_HTTP_CONTENT_PHASE,
       (1 << NGX_HTTP_CONTENT_PHASE) },
 
+    { ngx_string("header_filter"),
+      NGX_HTTP_WASM_HEADER_FILTER_PHASE,
+      (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE) },
+
     { ngx_string("log"),
       NGX_HTTP_LOG_PHASE,
       (1 << NGX_HTTP_LOG_PHASE) },
@@ -79,7 +85,7 @@ static ngx_wasm_phase_t  ngx_wasm_subsys_http[] = {
 
 
 static ngx_wasm_subsystem_t  ngx_http_wasm_subsystem = {
-    NGX_HTTP_LOG_PHASE + 1,
+    NGX_HTTP_LOG_PHASE + 1 + 1, /* +1: 0-based, +1: header_filter */
     ngx_wasm_subsys_http,
 };
 
@@ -149,6 +155,9 @@ static ngx_http_handler_pt  phase_handlers[NGX_HTTP_LOG_PHASE + 1] = {
     ngx_http_wasm_content_handler,       /* content */
     ngx_http_wasm_log_handler            /* log */
 };
+
+
+static ngx_http_output_header_filter_pt  ngx_http_next_header_filter;
 
 
 /* configuration & init */
@@ -264,13 +273,18 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return "is duplicate";
     }
 
-    loc->pwmodule = ngx_pcalloc(cf->pool, sizeof(ngx_proxy_wasm_module_t));
+    loc->pwmodule = ngx_pcalloc(cf->pool, sizeof(ngx_proxy_wasm_t));
     if (loc->pwmodule == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    loc->pwmodule->log = &cf->cycle->new_log;
     loc->pwmodule->pool = cf->pool;
+    loc->pwmodule->log = &cf->cycle->new_log;
+    loc->pwmodule->resume_ = ngx_http_proxy_wasm_resume;
+    loc->pwmodule->ctxid_ = ngx_http_proxy_wasm_ctxid;
+    loc->pwmodule->ecode_ = ngx_http_proxy_wasm_ecode;
+
+    loc->pwmodule->max_pairs = NGX_HTTP_WASM_MAX_REQ_HEADERS;
 
     op = ngx_wasm_conf_add_op_proxy_wasm(cf, loc->ops_engine, cf->args->elts,
                                          loc->pwmodule);
@@ -423,11 +437,11 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         opctx->log = r->connection->log;
         opctx->ops_engine = loc->ops_engine;
 
-        opctx->wv_ctx.pool = r->pool;
-        opctx->wv_ctx.log = r->connection->log;
-        opctx->wv_ctx.data = rctx;
+        opctx->wvctx.pool = r->pool;
+        opctx->wvctx.log = r->connection->log;
+        opctx->wvctx.data = rctx;
 
-        if (ngx_wavm_ctx_init(loc->vm, &opctx->wv_ctx) != NGX_OK) {
+        if (ngx_wavm_ctx_init(loc->vm, &opctx->wvctx) != NGX_OK) {
             return NGX_ERROR;
         }
 
@@ -439,7 +453,7 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         }
 
         cln->handler = ngx_http_wasm_cleanup;
-        cln->data = &opctx->wv_ctx;
+        cln->data = &opctx->wvctx;
     }
 
     *out = rctx;
@@ -520,6 +534,51 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
     //return NGX_DECLINED
 
     return rc;
+}
+
+
+void
+ngx_http_wasm_header_filter_init(void)
+{
+    static unsigned c = 0;
+
+    if (!c) {
+        ngx_http_next_header_filter = ngx_http_top_header_filter;
+        ngx_http_top_header_filter = ngx_http_wasm_header_filter_handler;
+        c = 1;
+    }
+}
+
+
+static ngx_int_t
+ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
+{
+    ngx_int_t                  rc;
+    ngx_http_wasm_req_ctx_t   *rctx;
+
+    ngx_log_debug0(NGX_LOG_DEBUG_CORE, r->connection->log, 0,
+                   "proxy wasm header filter");
+
+    rc = ngx_http_wasm_rctx(r, &rctx);
+    if (rc != NGX_OK) {
+        return rc;
+    }
+
+    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_HEADER_FILTER_PHASE);
+    if (rc == NGX_DECLINED) {
+        goto next_filter;
+
+    } else if (rc != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    //if (body_filter) {
+    //    r->filter_need_in_memory = 1;
+    //}
+
+next_filter:
+
+    return ngx_http_next_header_filter(r);
 }
 
 

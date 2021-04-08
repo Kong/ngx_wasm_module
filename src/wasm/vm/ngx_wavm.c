@@ -827,6 +827,22 @@ ngx_wavm_ctx_init(ngx_wavm_t *vm, ngx_wavm_ctx_t *ctx)
 
 
 void
+ngx_wavm_ctx_update(ngx_wavm_ctx_t *ctx, ngx_log_t *log, void *data)
+{
+    size_t                i;
+    ngx_wavm_instance_t  *instance;
+
+    ctx->log = log;
+    ctx->data = data;
+
+    for (i = 0; i < ctx->vm->lmodules_max; i++) {
+        instance = ctx->instances[i];
+        instance->log_ctx.orig_log = log;
+    }
+}
+
+
+void
 ngx_wavm_ctx_destroy(ngx_wavm_ctx_t *ctx)
 {
     size_t                i;

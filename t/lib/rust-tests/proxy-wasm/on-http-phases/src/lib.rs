@@ -34,6 +34,14 @@ impl HttpContext for HttpHeaders {
         Action::Continue
     }
 
+    fn on_http_response_headers(&mut self, nheaders: usize) -> Action {
+        info!(
+            "#{} on_response_headers, {} headers",
+            self.context_id, nheaders
+        );
+        Action::Continue
+    }
+
     fn on_log(&mut self) {
         info!("#{} on_done", self.context_id);
     }

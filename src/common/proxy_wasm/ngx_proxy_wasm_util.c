@@ -11,63 +11,32 @@
 #define NGX_PROXY_WASM_PTR_SIZE  4
 
 
-ngx_wavm_ptr_t
-ngx_proxy_wasm_alloc(ngx_proxy_wasm_module_t *pwm, size_t size)
+static ngx_str_t  ngx_proxy_wasm_errlist[] = {
+    ngx_null_string,
+    ngx_string("unknown ABI version"),
+    ngx_string("incompatible ABI version"),
+    ngx_string("incompatible host interface"),
+    ngx_string("incompatible sdk interface"),
+    ngx_string("unknown error")
+};
+
+
+static u_char *
+ngx_proxy_wasm_strerror(ngx_proxy_wasm_err_t err, u_char *buf, size_t size)
 {
-   ngx_wavm_ptr_t        p;
-   ngx_int_t             rc;
-   ngx_wavm_instance_t  *instance;
-   wasm_val_vec_t       *rets;
+    ngx_str_t  *msg;
 
-   instance = pwm->instance;
+    msg = ((ngx_uint_t) err < NGX_PROXY_WASM_ERR_UNKNOWN)
+              ? &ngx_proxy_wasm_errlist[err]
+              : &ngx_proxy_wasm_errlist[NGX_PROXY_WASM_ERR_UNKNOWN];
 
-   rc = ngx_wavm_instance_call_funcref(instance, pwm->proxy_on_memory_allocate,
-                                       &rets, size);
-   if (rc != NGX_OK) {
-       ngx_wasm_log_error(NGX_LOG_EMERG, instance->log, 0,
-                          "proxy_wasm_alloc(%uz) failed", size);
-       return 0;
-   }
+    size = ngx_min(size, msg->len);
 
-   p = rets->data[0].of.i32;
-
-#if (NGX_DEBUG)
-   ngx_log_debug3(NGX_LOG_DEBUG_WASM, instance->log, 0,
-                  "proxy_wasm_alloc: %uz:%uz:%uz",
-                  wasm_memory_data_size(instance->memory), p, size);
-#endif
-
-   return p;
+    return ngx_cpymem(buf, msg->data, size);
 }
 
 
-unsigned
-ngx_proxy_wasm_marshal(ngx_proxy_wasm_module_t *pwm, ngx_list_t *list,
-    ngx_wavm_ptr_t *out, size_t *len, u_char *truncated)
-{
-    ngx_wavm_ptr_t   p;
-    size_t           le;
-
-    le = ngx_proxy_wasm_pairs_size(list, pwm->max_pairs);
-    p = ngx_proxy_wasm_alloc(pwm, le);
-    if (!p) {
-        return 0;
-    }
-
-    if (p + le > wasm_memory_data_size(pwm->instance->memory)) {
-        return 0;
-    }
-
-    ngx_proxy_wasm_pairs_marshal(list,
-        ngx_wavm_memory_lift(pwm->instance->memory, p),
-        pwm->max_pairs,
-        truncated);
-
-    *out = p;
-    *len = le;
-
-    return 1;
-}
+/* utils */
 
 
 ngx_uint_t
@@ -313,9 +282,9 @@ ngx_proxy_wasm_get_map_value(ngx_list_t *map, u_char *key, size_t key_len)
 void
 ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
 {
-    ngx_int_t                 rc;
-    ngx_proxy_wasm_module_t  *pwm = ev->data;
-    wasm_val_vec_t            args;
+    ngx_int_t          rc;
+    ngx_proxy_wasm_t  *pwm = ev->data;
+    wasm_val_vec_t     args;
 
     ngx_free(ev);
 
@@ -323,7 +292,7 @@ ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
         ngx_wavm_ctx_update(pwm->instance->ctx, NULL, NULL);
 
         wasm_val_vec_new_uninitialized(&args, 1);
-        ngx_wasm_vec_set_i32(&args, 0, pwm->ctxid);
+        ngx_wasm_vec_set_i32(&args, 0, pwm->rctxid);
 
         rc = ngx_wavm_instance_call_funcref_vec(pwm->instance,
                                                 pwm->proxy_on_timer_ready,
@@ -354,4 +323,33 @@ nomem:
 
     ngx_wasm_log_error(NGX_LOG_EMERG, pwm->instance->log, 0,
                        "tick_handler: no memory");
+}
+
+
+void
+ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
+    ngx_proxy_wasm_err_t err, const char *fmt, ...)
+{
+    va_list   args;
+    u_char   *p, *last, buf[NGX_MAX_ERROR_STR];
+
+    last = buf + NGX_MAX_ERROR_STR;
+    p = &buf[0];
+
+    if (err) {
+        p = ngx_proxy_wasm_strerror(err, p, last - p);
+    }
+
+    if (fmt) {
+        if (err && p + 2 <= last) {
+            *p++ = ':';
+            *p++ = ' ';
+        }
+
+        va_start(args, fmt);
+        p = ngx_vslprintf(p, last, fmt, args);
+        va_end(args);
+    }
+
+    ngx_wasm_log_error(level, log, 0, "%*s", p - buf, buf);
 }
