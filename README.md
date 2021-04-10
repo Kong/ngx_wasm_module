@@ -4,11 +4,11 @@
 
 This module enables the embedding of [WebAssembly](https://webassembly.org/)
 runtimes inside of [Nginx](https://nginx.org/) and aims at offering several host
-SDK abstractions for the purpose of customization and/or introspection of the
-Nginx web server/proxy runtime.
+SDK abstractions for the purpose of extending, and/or introspecting the Nginx
+web server/proxy runtime.
 
 Currently, the module aims at supporting the
-[proxy-spec](https://github.com/proxy-wasm/spec) host SDK and support Wasm
+[proxy-wasm](https://github.com/proxy-wasm/spec) host SDK and support Wasm
 filters identical to those running on
 [Envoy today](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter.html).
 
@@ -19,8 +19,8 @@ filters identical to those running on
 events {}
 
 # nginx master process gets a default 'main' VM
-# a new top-level Nginx configuration block receives all configuration for
-# this main VM.
+# a new top-level configuration block receives all configuration for
+# the main VM
 wasm {
     #      [name]    [path.{wasm,wat}]
     module my_filter /path/to/filter.wasm;
