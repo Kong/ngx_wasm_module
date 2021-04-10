@@ -75,52 +75,58 @@ ngx_int_t
 ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
    wasm_val_t args[], wasm_val_t rets[])
 {
-   size_t                    len;
-   u_char                   *body;
-   ngx_int_t                 rc;
-   ngx_buf_t                *b;
-   ngx_chain_t              *cl;
-   ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
-   ngx_http_request_t       *r = rctx->r;
+    size_t                    len;
+    u_char                   *body;
+    ngx_int_t                 rc;
+    ngx_buf_t                *b;
+    ngx_chain_t              *cl;
+    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
+    ngx_http_request_t       *r = rctx->r;
 
-   body = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
-   len = args[1].of.i32;
+    body = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
+    len = args[1].of.i32;
 
-   if (r->connection->fd == (ngx_socket_t) -1) {
-       return NGX_WAVM_BAD_CTX;
-   }
+    if (r->connection->fd == (ngx_socket_t) -1) {
+        return NGX_WAVM_BAD_CTX;
+    }
 
-   b = ngx_create_temp_buf(r->pool, len + sizeof(LF));
-   if (b == NULL) {
-       return NGX_WAVM_ERROR;
-   }
+    if (rctx->finalized) {
+        return NGX_WAVM_BAD_USAGE;
+    }
 
-   b->last = ngx_copy(b->last, body, len);
-   *b->last++ = LF;
+    b = ngx_create_temp_buf(r->pool, len + sizeof(LF));
+    if (b == NULL) {
+        return NGX_WAVM_ERROR;
+    }
 
-   b->last_buf = 1;
-   b->last_in_chain = 1;
+    b->last = ngx_copy(b->last, body, len);
+    *b->last++ = LF;
 
-   cl = ngx_alloc_chain_link(r->connection->pool);
-   if (cl == NULL) {
-       return NGX_WAVM_ERROR;
-   }
+    b->last_buf = 1;
+    b->last_in_chain = 1;
 
-   cl->buf = b;
-   cl->next = NULL;
+    cl = ngx_alloc_chain_link(r->connection->pool);
+    if (cl == NULL) {
+        return NGX_WAVM_ERROR;
+    }
 
-   rc = ngx_http_wasm_send_chain_link(r, cl);
-   if (rc == NGX_ERROR) {
-       return NGX_WAVM_ERROR;
+    cl->buf = b;
+    cl->next = NULL;
 
-   } else if (rc == NGX_AGAIN) {
-       /* TODO: NYI - NGX_WAVM_AGAIN */
-       return NGX_AGAIN;
-   }
+    rc = ngx_http_wasm_send_chain_link(r, cl);
+    if (rc == NGX_ERROR) {
+        return NGX_WAVM_ERROR;
 
-   rctx->sent_last = 1;
+    } else if (rc == NGX_AGAIN) {
+        /* TODO: NYI - NGX_WAVM_AGAIN */
+        return NGX_WAVM_AGAIN;
+    }
 
-   return NGX_WAVM_OK;
+    ngx_wasm_assert(rc == NGX_DONE || rc == NGX_OK);
+
+    rctx->sent_last = 1;
+
+    return NGX_WAVM_OK;
 }
 
 

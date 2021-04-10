@@ -113,15 +113,11 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
                 break;
 
             default:
-                ngx_wasm_log_error(NGX_LOG_ALERT, engine->pool->log, 0,
+                ngx_wasm_log_error(NGX_LOG_WASM_NYI, engine->pool->log, 0,
                                    "unknown wasm op code: %d", op->code);
                 return;
 
             }
-        }
-
-        if (pipeline->ops->nelts) {
-            ngx_http_wasm_header_filter_init();
         }
     }
 }
@@ -154,7 +150,7 @@ ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine)
                 break;
 
             default:
-                ngx_wasm_log_error(NGX_LOG_ALERT, engine->pool->log, 0,
+                ngx_wasm_log_error(NGX_LOG_WASM_NYI, engine->pool->log, 0,
                                    "unknown wasm op code: %d", op->code);
                 break;
 
@@ -259,7 +255,7 @@ ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
     }
 
     if (phase->on == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unsupported phase \"%V\"",
+        ngx_conf_log_error(NGX_LOG_WASM_NYI, cf, 0, "unsupported phase \"%V\"",
                            phase_name);
         return NULL;
     }
@@ -302,8 +298,7 @@ ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
     op->code = NGX_WASM_OP_PROXY_WASM;
     op->handler = ngx_wasm_op_proxy_wasm_handler;
     op->host = &ngx_proxy_wasm_host;
-    op->on_phases = (1 << NGX_HTTP_PREACCESS_PHASE)
-                    | (1 << NGX_HTTP_ACCESS_PHASE)
+    op->on_phases = (1 << NGX_HTTP_REWRITE_PHASE)
                     | (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE)
                     | (1 << NGX_HTTP_LOG_PHASE);
 
@@ -313,8 +308,6 @@ ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
 
     op->conf.proxy_wasm.pwmodule = pwmodule;
     op->conf.proxy_wasm.pwmodule->module = op->module;
-
-    op->opbreak = 1;
 
     return op;
 }
@@ -328,7 +321,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
     ngx_wasm_ops_engine_t    *ops_engine = ctx->ops_engine;
     ngx_wasm_ops_pipeline_t  *pipeline;
     ngx_wasm_op_t            *op;
-    ngx_int_t                 rc = NGX_OK;
+    ngx_int_t                 rc = NGX_DECLINED;
 
     if (ops_engine == NULL) {
         return NGX_DECLINED;
@@ -336,9 +329,10 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
 
     phase = ngx_wasm_ops_engine_phase_lookup(ops_engine, phaseidx);
     if (phase == NULL) {
-        ngx_log_debug1(NGX_LOG_DEBUG_WASM, ctx->log, 0,
-                       "wasm ops resume: no phase for index '%ui'", phase);
-        return NGX_DECLINED;
+        ngx_wasm_log_error(NGX_LOG_WARN, ctx->log, 0,
+                           "ops resume: no phase for index '%ui'",
+                           phase);
+        goto rc;
     }
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->log, 0,
@@ -347,73 +341,38 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
 
     pipeline = ctx->ops_engine->pipelines[phase->index];
     if (pipeline == NULL) {
-        return NGX_DECLINED;
+        goto rc;
     }
 
     for (i = 0; i < pipeline->ops->nelts; i++) {
         op = ((ngx_wasm_op_t **) pipeline->ops->elts)[i];
         if (op->lmodule == NULL) {
-            return NGX_ERROR;
+            rc = NGX_ERROR;
+            goto rc;
         }
 
         rc = op->handler(ctx, phase, op);
 
-        if (op->opbreak) {
-            dd("wasm ops opbreak rc: %ld", rc);
-            return rc;
-        }
-
-        /* NGX_OK, NGX_ERROR */
-
-        if (rc == NGX_ERROR) {
+        if (rc == NGX_ERROR || rc > NGX_OK) {
+            /* NGX_ERROR, NGX_HTTP_* */
             break;
         }
+
+        if (rc == NGX_OK) {
+            goto rc;
+        }
+
+        ngx_wasm_assert(rc != NGX_AGAIN);
+        ngx_wasm_assert(rc != NGX_DONE);
+
+        /* NGX_DECLINED, NGX_HTTP_* */
     }
 
-    switch (phaseidx) {
+rc:
 
-    case NGX_HTTP_REWRITE_PHASE:
-        if (rc == NGX_ERROR) {
-            return NGX_HTTP_INTERNAL_SERVER_ERROR;
-        }
-
-        rc = NGX_DECLINED;
-        break;
-
-    case NGX_HTTP_PREACCESS_PHASE:
-        if (rc == NGX_ERROR) {
-            return NGX_HTTP_INTERNAL_SERVER_ERROR;
-        }
-
-        rc = NGX_DECLINED;
-        break;
-
-    case NGX_HTTP_ACCESS_PHASE:
-        if (rc == NGX_ERROR) {
-            return NGX_HTTP_INTERNAL_SERVER_ERROR;
-        }
-
-        rc = NGX_DECLINED;
-        break;
-
-    case NGX_HTTP_CONTENT_PHASE:
-        if (rc == NGX_ERROR) {
-            return NGX_ERROR;
-        }
-
-        /* NYI: NGX_DECLINED */
-
-        rc = NGX_DONE;
-        break;
-
-    case NGX_HTTP_LOG_PHASE:
-        if (rc != NGX_OK) {
-            rc = NGX_ERROR;
-        }
-
-        break;
-
-    }
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->log, 0,
+                   "wasm ops \"%V\" phase rc: %d",
+                   &phase->name, rc);
 
     return rc;
 }
@@ -423,6 +382,7 @@ static ngx_int_t
 ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wasm_phase_t *phase,
     ngx_wasm_op_t *op)
 {
+    ngx_int_t             rc;
     ngx_wavm_instance_t  *instance;
     ngx_wavm_funcref_t   *funcref;
 
@@ -442,7 +402,14 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wasm_phase_t *phase,
         return NGX_ERROR;
     }
 
-    return ngx_wavm_instance_call_funcref_vec(instance, funcref, NULL, NULL);
+    rc = ngx_wavm_instance_call_funcref_vec(instance, funcref, NULL, NULL);
+    if (rc == NGX_ERROR) {
+        return rc;
+    }
+
+    ngx_wasm_assert(rc == NGX_OK);
+
+    return NGX_DECLINED;
 }
 
 

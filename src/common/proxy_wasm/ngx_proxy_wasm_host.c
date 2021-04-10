@@ -27,7 +27,7 @@ ngx_proxy_wasm_get_map(ngx_wavm_instance_t *instance,
         return &r->headers_in.headers;
 
     default:
-        ngx_wasm_log_error(NGX_LOG_ALERT, instance->log, 0,
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
                            "NYI - get_map: %d", map_type);
         return NULL;
 
@@ -135,7 +135,7 @@ ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
         break;
 
     default:
-        ngx_wasm_log_error(NGX_LOG_ALERT, instance->log, 0,
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
                            "NYI: unknown log level \"%d\"", log_level);
 
         return ngx_proxy_wasm_result_badarg(rets);
@@ -274,24 +274,16 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_send_http_response(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t                      i;
-    int32_t                     status, reason_len, body_len, headers_len
+    int32_t                   status, reason_len, body_len, headers_len
 #if (NGX_DEBUG)
-                                , grpc_status
+                              , grpc_status
 #endif
-                                ;
-    u_char                     *reason, *body, *marsh_headers, *p;
-    ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
-    ngx_http_request_t         *r = rctx->r;
-    ngx_int_t                   rc;
-    ngx_array_t                *headers;
-    ngx_table_elt_t            *elt;
-    ngx_buf_t                  *b;
-    ngx_chain_t                *cl = NULL;
-
-    if (r->connection->fd == NGX_WASM_BAD_FD || rctx->sent_last) {
-        return NGX_WAVM_BAD_CTX;
-    }
+                              ;
+    u_char                   *reason, *body, *marsh_headers;
+    ngx_int_t                 rc;
+    ngx_array_t              *headers = NULL;
+    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
+    ngx_http_request_t       *r = rctx->r;
 
     status = args[0].of.i32;
     reason = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
@@ -306,90 +298,39 @@ ngx_proxy_wasm_hfuncs_send_http_response(ngx_wavm_instance_t *instance,
     ngx_wasm_assert(grpc_status == -1);
 #endif
 
-    /* status */
-
-    if (status < 100 || status > 999) {
-        return ngx_proxy_wasm_result_badarg(rets);
-    }
-
-    r->headers_out.status = status;
-
-    if (r->err_status) {
-        r->err_status = 0;
-    }
-
-    /* reason */
-
-    if (reason_len) {
-        reason_len += 5; /* "ddd <reason>\0" */
-        p = ngx_palloc(r->pool, reason_len);
-        ngx_snprintf(p, reason_len, "%03ui %s", status, reason);
-
-        r->headers_out.status_line.data = p;
-        r->headers_out.status_line.len = reason_len - 1;
-    }
-
-    /* headers */
-
     if (headers_len) {
-        /* free (ngx_array_destroy): r->pool */
         headers = ngx_proxy_wasm_pairs_unmarshal(r->pool, marsh_headers,
                                                  headers_len);
         if (headers == NULL) {
             return ngx_proxy_wasm_result_err(rets);
         }
-
-        for (i = 0; i < headers->nelts; i++) {
-            elt = &((ngx_table_elt_t *) headers->elts)[i];
-
-            rc = ngx_http_wasm_set_resp_header(r, elt->key, elt->value, 1);
-            if (rc != NGX_OK) {
-                return ngx_proxy_wasm_result_err(rets);
-            }
-        }
     }
 
-    /* body */
+    rc = ngx_http_wasm_stash_local_response(rctx, status, reason, reason_len,
+                                            headers, body, body_len);
+    switch (rc) {
 
-    if (body_len) {
-        b = ngx_create_temp_buf(r->pool, body_len + sizeof(LF));
-        if (b == NULL) {
-            return ngx_proxy_wasm_result_err(rets);
-        }
+    case NGX_OK:
+        return ngx_proxy_wasm_result_ok(rets);
 
-        b->last = ngx_copy(b->last, body, body_len);
-        //*b->last++ = LF;
+    case NGX_ERROR:
+        return ngx_proxy_wasm_result_err(rets);
 
-        b->last_buf = 1;
-        b->last_in_chain = 1;
+    case NGX_DECLINED:
+        return ngx_proxy_wasm_result_badarg(rets);
 
-        cl = ngx_alloc_chain_link(r->connection->pool);
-        if (cl == NULL) {
-            return ngx_proxy_wasm_result_err(rets);
-        }
+    case NGX_ABORT:
+        return NGX_WAVM_BAD_USAGE;
 
-        cl->buf = b;
-        cl->next = NULL;
+    default:
+        break;
 
-        if (ngx_http_wasm_set_resp_content_length(r, body_len) != NGX_OK) {
-            return ngx_proxy_wasm_result_err(rets);
-        }
     }
 
-    rc = ngx_http_wasm_send_chain_link(r, cl);
-    if (rc == NGX_ERROR) {
-        return NGX_WAVM_ERROR;
+    /* unreachable */
 
-    } else if (rc == NGX_AGAIN) {
-        /* TODO: NYI - NGX_WAVM_AGAIN */
-        return NGX_AGAIN;
-    }
-
-    /* NGX_OK */
-
-    rctx->sent_last = 1;
-
-    return ngx_proxy_wasm_result_ok(rets);
+    ngx_wasm_assert(0);
+    return NGX_WAVM_BUSY;
 }
 
 
@@ -397,7 +338,7 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_wasm_log_error(NGX_LOG_ALERT, instance->log, 0,
+    ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
                        "NYI: proxy_wasm hfunc");
 
     return NGX_WAVM_BUSY; /* NYI */

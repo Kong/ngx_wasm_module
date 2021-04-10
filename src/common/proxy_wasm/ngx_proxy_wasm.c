@@ -18,7 +18,7 @@ ngx_proxy_wasm_func_lookup(ngx_proxy_wasm_t *pwm, const char *n)
 }
 
 
-static ngx_proxy_wasm_abi_version_t
+static ngx_proxy_wasm_abi_version_e
 ngx_proxy_wasm_abi_version(ngx_proxy_wasm_t *pwm)
 {
     size_t                    i;
@@ -89,7 +89,7 @@ ngx_proxy_wasm_init(ngx_proxy_wasm_t *pwm)
 
     case NGX_PROXY_WASM_UNKNOWN:
         pwm->ecode = NGX_PROXY_WASM_ERR_UNKNOWN_ABI;
-        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode, NULL);
+        ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwm->log, pwm->ecode, NULL);
         return NGX_ERROR;
 
     default:

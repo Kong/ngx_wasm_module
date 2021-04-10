@@ -72,7 +72,7 @@ ngx_wavm_create(ngx_cycle_t *cycle, const ngx_str_t *name,
 error:
 
     ngx_wasm_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0,
-                      "failed to create \"%V\" vm: %s",
+                      "failed creating \"%V\" vm: %s",
                       name, NGX_WAVM_NOMEM_CHAR);
 
     if (vm) {
@@ -179,7 +179,7 @@ empty:
 error:
 
     ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL,
-                       "failed to initialize wasm VM");
+                       "failed initializing wasm VM");
 
 done:
 
@@ -198,7 +198,7 @@ ngx_wavm_load(ngx_wavm_t *vm)
 
     if (ngx_wavm_engine_init(vm) != NGX_OK) {
         ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL,
-                           "failed init engine");
+                           "failed initializing engine");
         return NGX_ERROR;
     }
 
@@ -364,7 +364,7 @@ ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path)
 error:
 
     ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL,
-                       "failed to add \"%V\" module from \"%V\": %s",
+                       "failed adding \"%V\" module from \"%V\": %s",
                        name, path, err);
 
     if (module) {
@@ -503,7 +503,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
         if (wasm_externtype_kind(wasm_importtype_type(importtype))
             != WASM_EXTERN_FUNC)
         {
-            ngx_wavm_log_error(NGX_LOG_ALERT, vm->log, NULL,
+            ngx_wavm_log_error(NGX_LOG_WASM_NYI, vm->log, NULL,
                                "NYI: module import type not supported");
             goto failed;
         }
@@ -1135,7 +1135,7 @@ ngx_wavm_val_vec_set(wasm_val_vec_t *out, const wasm_valtype_vec_t *valtypes,
             break;
 
         default:
-            ngx_wasm_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0,
+            ngx_wasm_log_error(NGX_LOG_WASM_NYI, ngx_cycle->log, 0,
                                "NYI - variadic arg of valkind \"%u\"",
                                valkind);
 

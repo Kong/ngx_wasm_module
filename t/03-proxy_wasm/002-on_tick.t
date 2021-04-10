@@ -57,10 +57,10 @@ __DATA__
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] Ticking/,
-    qr/\[info\] .*? \[wasm\] from http_request_headers/,
-    qr/\[info\] .*? \[wasm\] from http_request_headers/,
-    qr/\[info\] .*? \[wasm\] Ticking/
+    qr/\[info\] .*? \[wasm\] Ticking \<.*?\>$/,
+    qr/\[info\] .*? \[wasm\] from http_request_headers \<.*?\>, client: .*?, server: .*?, request:/,
+    qr/\[info\] .*? \[wasm\] from http_request_headers \<.*?\>, client: .*?, server: .*?, request:/,
+    qr/\[info\] .*? \[wasm\] Ticking \<.*?\>$/,
 ]
 --- no_error_log
 [error]

@@ -83,11 +83,13 @@ qr/\[emerg\] .*? invalid module name ""/
 )
 --- error_code: 500
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] unknown ABI version/
+[
+    qr/\[alert\] .*? \[wasm\] unknown ABI version/,
+    qr/\[emerg\] .*? \[wasm\] unknown ABI version: proxy_wasm failed to resume/
+]
 --- no_error_log
 [warn]
 [error]
-[alert]
 [crit]
 
 
@@ -168,11 +170,13 @@ qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing context init/
 )
 --- error_code: 500
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] unknown ABI version/
+[
+    qr/\[alert\] .*? \[wasm\] unknown ABI version/,
+    qr/\[emerg\] .*? \[wasm\] unknown ABI version: proxy_wasm failed to resume/
+]
 --- no_error_log
 [warn]
 [error]
-[alert]
 [crit]
 
 
