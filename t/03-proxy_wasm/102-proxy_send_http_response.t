@@ -56,7 +56,6 @@ GET /t/echo/status/300
 
 === TEST 3: send_http_response() set status code (bad argument)
 should produce error page content from a panic, not from echo
---- TODO: handle "already borrowed mut" panic in log phase
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

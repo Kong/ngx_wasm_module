@@ -7,18 +7,21 @@
 #include <ngx_event.h>
 
 
-void
-ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
-    const char *fmt, ...)
+ngx_uint_t
+ngx_wasm_list_nelts(ngx_list_t *list)
 {
-    va_list   args;
-    u_char   *p, errstr[NGX_MAX_ERROR_STR];
+    ngx_uint_t        c;
+    ngx_list_part_t  *part;
 
-    va_start(args, fmt);
-    p = ngx_vsnprintf(errstr, NGX_MAX_ERROR_STR, fmt, args);
-    va_end(args);
+    part = &list->part;
+    c = part->nelts;
 
-    ngx_log_error_core(level, log, err, "[wasm] %*s", p - errstr, errstr);
+    while (part->next != NULL) {
+        part = part->next;
+        c += part->nelts;
+    }
+
+    return c;
 }
 
 
@@ -94,6 +97,19 @@ close:
     }
 
     return rc;
+}
+void
+ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
+    const char *fmt, ...)
+{
+    va_list   args;
+    u_char   *p, errstr[NGX_MAX_ERROR_STR];
+
+    va_start(args, fmt);
+    p = ngx_vsnprintf(errstr, NGX_MAX_ERROR_STR, fmt, args);
+    va_end(args);
+
+    ngx_log_error_core(level, log, err, "[wasm] %*s", p - errstr, errstr);
 }
 
 

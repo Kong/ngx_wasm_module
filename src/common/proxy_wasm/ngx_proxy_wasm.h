@@ -24,7 +24,7 @@ typedef enum {
     NGX_PROXY_WASM_0_2_1 = 2,
     NGX_PROXY_WASM_VNEXT = 3,
     NGX_PROXY_WASM_UNKNOWN = 4,
-} ngx_proxy_wasm_abi_version_t;
+} ngx_proxy_wasm_abi_version_e;
 
 
 typedef enum {
@@ -133,9 +133,6 @@ struct ngx_proxy_wasm_s {
     ngx_log_t                         *log;
     ngx_wavm_module_t                 *module;
     ngx_wavm_linked_module_t          *lmodule;
-    ngx_wavm_instance_t               *instance;
-    ngx_wavm_ctx_t                     wvctx;
-    ngx_proxy_wasm_abi_version_t       abi_version;
 
     /* dyn config */
 
@@ -154,6 +151,10 @@ struct ngx_proxy_wasm_s {
      *            0.2.1 (cpp-sdk)
      * - tested: 0.1.0
      */
+
+    ngx_wavm_ctx_t                     wvctx;
+    ngx_wavm_instance_t               *instance;
+    ngx_proxy_wasm_abi_version_e       abi_version;
 
     ngx_wavm_funcref_t                *proxy_on_memory_allocate;
 
@@ -213,6 +214,9 @@ struct ngx_proxy_wasm_s {
 
     ngx_wavm_funcref_t                *proxy_on_custom_callback;
 
+    /* control flow: flags */
+
+    unsigned                           trap:1;
 };
 
 

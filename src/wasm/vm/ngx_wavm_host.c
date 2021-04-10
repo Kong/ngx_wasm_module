@@ -187,11 +187,11 @@ ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
         goto trap;
 
     case NGX_WAVM_BAD_CTX:
-        err = "bad context";
+        err = "nginx hfuncs bad context";
         goto trap;
 
     case NGX_WAVM_BAD_USAGE:
-        err = "bad usage";
+        err = "nginx hfuncs bad usage";
         goto trap;
 
     default:

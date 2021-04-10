@@ -127,76 +127,6 @@ static ngx_http_wasm_header_t  ngx_http_wasm_headers[] = {
 };
 
 
-ngx_uint_t
-ngx_http_wasm_req_headers_count(ngx_http_request_t *r)
-{
-    ngx_uint_t        c;
-    ngx_list_part_t  *part;
-
-    part = &r->headers_in.headers.part;
-    c = part->nelts;
-
-    while (part->next != NULL) {
-        part = part->next;
-        c += part->nelts;
-    }
-
-    return c;
-}
-
-
-ngx_int_t
-ngx_http_wasm_send_header(ngx_http_request_t *r)
-{
-    if (r->header_sent) {
-        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                      "NYI - http wasm: catch header sent");
-        return NGX_ERROR;
-    }
-
-    if (!r->headers_out.status) {
-        r->headers_out.status = NGX_HTTP_OK;
-    }
-
-    if (ngx_http_set_content_type(r) != NGX_OK) {
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-    }
-
-#if 0
-    ngx_http_clear_content_length(r);
-    ngx_http_clear_accept_ranges(r);
-#endif
-
-    return ngx_http_send_header(r);
-}
-
-
-ngx_int_t
-ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
-{
-    ngx_int_t   rc;
-
-    rc = ngx_http_wasm_send_header(r);
-
-    /* NGX_OK, NGX_ERROR, NGX_AGAIN, NGX_HTTP_* */
-
-    if (rc == NGX_ERROR || rc > NGX_OK || r->header_only) {
-        return rc;
-    }
-
-    if (in == NULL) {
-        rc = ngx_http_send_special(r, NGX_HTTP_LAST);
-        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-            return rc;
-        }
-
-        return NGX_OK;
-    }
-
-    return ngx_http_output_filter(r, in);
-}
-
-
 ngx_int_t
 ngx_http_wasm_set_resp_header(ngx_http_request_t *r, ngx_str_t key,
     ngx_str_t value, unsigned override)
@@ -607,4 +537,209 @@ ngx_http_copy_escaped(ngx_str_t *dst, ngx_pool_t *pool,
     }
 
     return dst;
+}
+
+
+ngx_int_t
+ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
+{
+    ngx_int_t   rc;
+
+    if (!r->headers_out.status) {
+        r->headers_out.status = NGX_HTTP_OK;
+    }
+
+    rc = ngx_http_send_header(r);
+
+    if (rc == NGX_ERROR || rc > NGX_OK || r->header_only) {
+        /* NGX_ERROR, NGX_HTTP_* */
+        return rc;
+    }
+
+    /* NGX_OK, NGX_AGAIN */
+
+    if (in == NULL) {
+        rc = ngx_http_send_special(r, NGX_HTTP_LAST);
+        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+            /* >= 300 */
+            return rc;
+        }
+
+        return NGX_OK;
+    }
+
+    return ngx_http_output_filter(r, in);
+}
+
+
+/* ops */
+
+
+void
+ngx_http_wasm_discard_local_response(ngx_http_wasm_req_ctx_t *rctx)
+{
+    ngx_http_request_t  *r;
+
+    r = rctx->r;
+
+    rctx->local_resp = 0;
+    rctx->local_resp_status = 0;
+    rctx->local_resp_body_len = 0;
+    rctx->local_resp_reason.len = 0;
+
+    if (rctx->local_resp_reason.data) {
+        ngx_pfree(r->pool, rctx->local_resp_reason.data);
+    }
+
+    if (rctx->local_resp_headers) {
+        ngx_array_destroy(rctx->local_resp_headers);
+        rctx->local_resp_headers = NULL;
+    }
+
+    if (rctx->local_resp_body) {
+        ngx_free_chain(r->pool, rctx->local_resp_body);
+        rctx->local_resp_body = NULL;
+    }
+}
+
+ngx_int_t
+ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
+    ngx_int_t status, u_char *reason, size_t reason_len, ngx_array_t *headers,
+    u_char *body, size_t body_len)
+{
+    u_char              *p = NULL;
+    ngx_buf_t           *b = NULL;
+    ngx_chain_t         *cl = NULL;
+    ngx_http_request_t  *r = rctx->r;
+
+    if (rctx->local_resp) {
+        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                           "local response already stashed");
+        return NGX_ABORT;
+    }
+
+    /* status */
+
+    if (status < 100 || status > 999) {
+        return NGX_DECLINED;
+    }
+
+    rctx->local_resp_status = status;
+
+    /* reason */
+
+    if (reason_len) {
+        reason_len += 5; /* "ddd <reason>\0" */
+        p = ngx_pnalloc(r->pool, reason_len);
+        if (p == NULL) {
+            goto fail;
+        }
+
+        ngx_snprintf(p, reason_len, "%03ui %s", status, reason);
+
+        rctx->local_resp_reason.data = p;
+        rctx->local_resp_reason.len = reason_len;
+    }
+
+    /* headers */
+
+    rctx->local_resp_headers = headers;
+
+    /* body */
+
+    if (body_len) {
+        b = ngx_create_temp_buf(r->pool, body_len + sizeof(LF));
+        if (b == NULL) {
+            goto fail;
+        }
+
+        b->last = ngx_copy(b->last, body, body_len);
+        //*b->last++ = LF;
+
+        b->last_buf = 1;
+        b->last_in_chain = 1;
+
+        cl = ngx_alloc_chain_link(r->connection->pool);
+        if (cl == NULL) {
+            goto fail;
+        }
+
+        cl->buf = b;
+        cl->next = NULL;
+
+        rctx->local_resp_body = cl;
+        rctx->local_resp_body_len = body_len;
+    }
+
+    rctx->local_resp = 1;
+
+    return NGX_OK;
+
+fail:
+
+    ngx_http_wasm_discard_local_response(rctx);
+
+    return NGX_ERROR;
+}
+
+
+ngx_int_t
+ngx_http_wasm_flush_local_response(ngx_http_request_t *r,
+    ngx_http_wasm_req_ctx_t *rctx)
+{
+    size_t                    i;
+    ngx_int_t                 rc;
+    ngx_table_elt_t          *elt;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "wasm flushing local_response: %d", rctx->local_resp);
+
+    if (!rctx->local_resp) {
+        return NGX_DECLINED;
+    }
+
+    rc = ngx_http_discard_request_body(r);
+    if (rc != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    r->headers_out.status = rctx->local_resp_status;
+
+    if (r->err_status) {
+        r->err_status = 0;
+    }
+
+    if (rctx->local_resp_reason.len) {
+        r->headers_out.status_line.data = rctx->local_resp_reason.data;
+        r->headers_out.status_line.len = rctx->local_resp_reason.len;
+    }
+
+    if (rctx->local_resp_headers) {
+        for (i = 0; i < rctx->local_resp_headers->nelts; i++) {
+            elt = &((ngx_table_elt_t *) rctx->local_resp_headers->elts)[i];
+
+            rc = ngx_http_wasm_set_resp_header(r, elt->key, elt->value, 1);
+            if (rc != NGX_OK) {
+                return NGX_ERROR;
+            }
+        }
+    }
+
+    if (rctx->local_resp_body_len) {
+        if (ngx_http_set_content_type(r) != NGX_OK) {
+            return NGX_ERROR;
+        }
+
+        if (ngx_http_wasm_set_resp_content_length(r, rctx->local_resp_body_len)
+            != NGX_OK)
+        {
+            return NGX_ERROR;
+        }
+    }
+
+    rc = ngx_http_wasm_send_chain_link(r, rctx->local_resp_body);
+
+    rctx->sent_last = 1;
+
+    return rc;
 }
