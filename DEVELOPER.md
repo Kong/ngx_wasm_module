@@ -110,8 +110,7 @@ You may specify a different path for the WebAssembly runtimes headers and shared
 libraries, like so:
 
 ```
-$ NGX_WASM_RUNTIME_INC=/path/to/headers/ NGX_WASM_RUNTIME_LIB=/path/to/libs/
-make
+$ NGX_WASM_RUNTIME_INC=/path/to/headers/ NGX_WASM_RUNTIME_LIB=/path/to/libs/ make
 ```
 
 [Back to TOC](#table-of-contents)
