@@ -4,8 +4,8 @@
 
 This module enables the embedding of [WebAssembly](https://webassembly.org/)
 runtimes inside of [Nginx](https://nginx.org/) and aims at offering several host
-SDK abstractions for the purpose of extending, and/or introspecting the Nginx
-web server/proxy runtime.
+SDK abstractions for the purpose of extending and/or introspecting the Nginx web
+server/proxy runtime.
 
 Currently, the module aims at supporting the
 [proxy-wasm](https://github.com/proxy-wasm/spec) host SDK and support Wasm
@@ -19,16 +19,14 @@ filters identical to those running on
 events {}
 
 # nginx master process gets a default 'main' VM
-# a new top-level configuration block receives all configuration for
-# the main VM
+# a new top-level configuration block receives all configuration for this main VM
 wasm {
     #      [name]    [path.{wasm,wat}]
     module my_filter /path/to/filter.wasm;
     module my_module /path/to/module.wasm;
 }
 
-# each nginx worker process is able to instantiate wasm modules in its
-# subsystems
+# each nginx worker process is able to instantiate wasm modules in its subsystems
 http {
     server {
         listen 9000;
@@ -63,7 +61,8 @@ Several runtimes are supported, and at least one of them must be installed:
 
 - [Wasmtime](https://docs.wasmtime.dev/c-api/) (see "Installing the C API").
 - [Wasmer](https://github.com/wasmerio/wasmer) (see [Building from
-  source](https://docs.wasmer.io/ecosystem/wasmer/building-from-source), "Wasmer C API").
+  source](https://docs.wasmer.io/ecosystem/wasmer/building-from-source), "Wasmer
+  C API").
 
 These runtimes' shared libraries should reside somewhere your linker can find
 them. By default, ngx_wasm_module will also look for these libraries in
@@ -122,8 +121,8 @@ $ nginx -V # should contain '--add-module=.../ngx_wasm_module'
 ```
 
 > Make sure that the `nginx` binary in your `$PATH` is the one that you just
-  installed, or else specify the intended binary appropriately to the shell (e.g.
-  `$ /path/to/nginx ...`).
+  installed, or else specify the intended binary appropriately to the shell
+  (e.g.  `$ /path/to/nginx ...`).
 
 ## Documentation
 

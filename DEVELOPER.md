@@ -317,17 +317,17 @@ contain individual jobs, each for a specific testing mode:
     - Tests - unit (large)
 
 Unit tests refer to `t/*.t` test files, and each unit tests job is ran as many
-times as the workflow's matrix specifies. Currently, the matrixes specifies that
+times as the workflow's matrix specifies. Currently, the matrices specifies that
 jobs run:
 
 - For several Operating Systems (Ubuntu, macOS)
-- For muliple compilers (GCC, Clang)
+- For multiple compilers (GCC, Clang)
 - For several Nginx and WebAssembly runtimes versions (Note: for the moment,
   Wasmtime is the only supported runtime on the CI environment).
 - With and without the Nginx "HUP reload" mode (`SIGHUP`).
 - With and without the Nginx debug mode (`--with-debug`).
 
-The `ci-large` workflow specifies larger matrixes that take longer to run, and
+The `ci-large` workflow specifies larger matrices that take longer to run, and
 thus only do so during daily scheduled jobs.
 
 [Back to TOC](#table-of-contents)
