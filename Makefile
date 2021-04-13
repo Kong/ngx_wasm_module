@@ -51,6 +51,10 @@ reindex:
 	@util/reindex.sh "t/**/*.t"
 	@util/reindex.sh "t/**/**/*.t"
 
+.PHONY: todo
+todo:
+	@/bin/grep -n -R -F -- 'TODO' src/ t/
+
 .PHONY: act
 act:
 	@docker build -t ubuntu-wasmx-dev ./util/ubuntu-wasmx-dev

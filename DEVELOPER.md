@@ -294,6 +294,7 @@ $ util/test.sh --no-test-nginx t/10-build
 | `test-build`       | Run the build options test suite
 | `lint`             | Lint the sources and test cases
 | `reindex`          | Automatically format the `.t` test files
+| `todo`             | Search the project for "TODOs" (source + tests)
 | `act`              | Build and run the CI environment
 | `clean`            | Clean the latest build
 | `cleanup`          | Destroy the build environment

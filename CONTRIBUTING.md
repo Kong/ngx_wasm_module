@@ -2,9 +2,9 @@
 
 [Pending]
 
-## TODO
+## TODOs
 
-No contribution guidelines have been drafted yet, but here is a list of things
+Contribution guidelines have not been drafted yet, but here is a list of things
 that are currently being worked on or should eventually receive attention:
 
 - Test the building process on as many platforms as possible (see
@@ -18,6 +18,12 @@ that are currently being worked on or should eventually receive attention:
 - Implement configuration directives for the Wasm runtimes.
 - Implement a `wasm_log` directive with Wasm-only logs.
 - Load Wasm bytecode at runtime (consider a dedicated nginx process type?).
+
+List the annotated "TODOs" in the sources and test cases with:
+
+```
+$ make todo
+```
 
 ## Building from source
 
