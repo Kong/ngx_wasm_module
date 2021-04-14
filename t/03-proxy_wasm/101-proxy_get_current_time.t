@@ -22,7 +22,7 @@ should produce a log with the current time (ms as ~ns)
         echo ok;
     }
 --- request
-GET /t/log_current_time
+GET /t/log/current_time
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] now: 2.*? UTC/,

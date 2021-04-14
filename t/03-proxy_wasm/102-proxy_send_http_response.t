@@ -12,7 +12,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: send_http_response() set status code
+=== TEST 1: send_local_response() set status code
 should produce response with valid code
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -22,7 +22,7 @@ should produce response with valid code
         echo fail;
     }
 --- request
-GET /t/send_http_response/status/204
+GET /t/send_local_response/status/204
 --- error_code: 204
 --- response_body
 --- no_error_log
@@ -33,7 +33,7 @@ GET /t/send_http_response/status/204
 
 
 
-=== TEST 2: send_http_response() set status code (special response, HTTP >= 300)
+=== TEST 2: send_local_response() set status code (special response, HTTP >= 300)
 should produce response with valid code
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -43,7 +43,7 @@ should produce response with valid code
         echo fail;
     }
 --- request
-GET /t/echo/status/300
+GET /t/send_local_response/status/300
 --- error_code: 300
 --- response_body
 --- no_error_log
@@ -54,7 +54,7 @@ GET /t/echo/status/300
 
 
 
-=== TEST 3: send_http_response() set status code (bad argument)
+=== TEST 3: send_local_response() set status code (bad argument)
 should produce error page content from a panic, not from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -64,7 +64,7 @@ should produce error page content from a panic, not from echo
         echo fail;
     }
 --- request
-GET /t/send_http_response/status/1000
+GET /t/send_local_response/status/1000
 --- error_code: 500
 --- response_body eval
 qr/500 Internal Server Error/
@@ -79,7 +79,7 @@ qr/500 Internal Server Error/
 
 
 
-=== TEST 4: send_http_response() set headers
+=== TEST 4: send_local_response() set headers
 should inject headers a produced response, not from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -89,7 +89,7 @@ should inject headers a produced response, not from echo
         echo fail;
     }
 --- request
-GET /t/send_http_response/headers
+GET /t/send_local_response/headers
 --- response_headers
 Powered-By: proxy-wasm
 --- response_body
@@ -100,7 +100,7 @@ Powered-By: proxy-wasm
 
 
 
-=== TEST 5: send_http_response() set body
+=== TEST 5: send_local_response() set body
 should produce a response body, not from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -110,7 +110,7 @@ should produce a response body, not from echo
         echo fail;
     }
 --- request
-GET /t/send_http_response/body
+GET /t/send_local_response/body
 --- response_body chomp
 Hello world
 --- no_error_log
@@ -121,7 +121,7 @@ Hello world
 
 
 
-=== TEST 6: send_http_response() set content-length when body
+=== TEST 6: send_local_response() set content-length when body
 should produce a response body, not from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -131,7 +131,7 @@ should produce a response body, not from echo
         echo fail;
     }
 --- request
-GET /t/send_http_response/body
+GET /t/send_local_response/body
 --- response_headers
 Content-Length: 11
 --- response_body chomp
@@ -143,7 +143,7 @@ Hello world
 
 
 
-=== TEST 7: send_http_response() set special headers (1/?)
+=== TEST 7: send_local_response() set special headers (1/?)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -152,7 +152,7 @@ Hello world
         echo fail;
     }
 --- request
-GET /t/send_http_response/set_special_headers
+GET /t/send_local_response/set_special_headers
 --- response_headers
 Server: proxy-wasm
 Date: Wed, 22 Oct 2020 07:28:00 GMT
@@ -163,7 +163,7 @@ Last-Modified: Tue, 15 Nov 1994 12:45:26 GMT
 
 
 
-=== TEST 8: send_http_response() set special headers (2/?)
+=== TEST 8: send_local_response() set special headers (2/?)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -172,7 +172,7 @@ Last-Modified: Tue, 15 Nov 1994 12:45:26 GMT
         echo fail;
     }
 --- request
-GET /t/send_http_response/set_special_headers
+GET /t/send_local_response/set_special_headers
 --- response_headers
 Content-Range: bytes 21010-47021/47022
 Accept-Ranges: bytes
@@ -183,7 +183,7 @@ E-Tag: 377060cd8c284d8af7ad3082f20958d2
 
 
 
-=== TEST 9: send_http_response() set special headers (3/?)
+=== TEST 9: send_local_response() set special headers (3/?)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -192,7 +192,7 @@ E-Tag: 377060cd8c284d8af7ad3082f20958d2
         echo fail;
     }
 --- request
-GET /t/send_http_response/set_special_headers
+GET /t/send_local_response/set_special_headers
 --- response_headers
 Content-Length: 0
 Content-Encoding: gzip
@@ -203,7 +203,7 @@ Link: </feed>; rel="alternate"
 
 
 
-=== TEST 10: send_http_response() set escaped header names
+=== TEST 10: send_local_response() set escaped header names
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -212,7 +212,7 @@ Link: </feed>; rel="alternate"
         echo fail;
     }
 --- request
-GET /t/send_http_response/escaping
+GET /t/send_local_response/set_headers_escaping
 --- response_headers
 Escape-Colon%3A: value
 Escape-Parenthesis%28%29: value

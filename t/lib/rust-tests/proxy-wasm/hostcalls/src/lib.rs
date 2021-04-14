@@ -1,22 +1,14 @@
+mod echo;
 mod test_cases;
 
-use crate::test_cases::*;
-use chrono::{DateTime, Utc};
-use http::StatusCode;
+use crate::{echo::*, test_cases::*};
+use http::{Method, StatusCode};
 use log::*;
 use proxy_wasm::traits::*;
 use proxy_wasm::types::*;
 
-#[no_mangle]
-pub fn _start() {
-    proxy_wasm::set_log_level(LogLevel::Trace);
-    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
-        Box::new(TestHttpHostcalls { context_id: 0 })
-    });
-}
-
 struct TestHttpHostcalls {
-    context_id: u32,
+    _context_id: u32,
 }
 
 impl TestHttpHostcalls {
@@ -28,59 +20,46 @@ impl TestHttpHostcalls {
         }
     }
 
-    fn test_echo(&mut self, path: &str) {
-        let mut segments: Vec<&str> = path.split("/").collect::<Vec<&str>>();
-        let endpoint = segments.remove(0);
-
-        match &endpoint as &str {
-            "headers" => {
-                let headers = self
-                    .get_http_request_headers()
-                    .iter()
-                    .map(|(name, value)| format!("{}: {}", name, value))
-                    .collect::<Vec<String>>()
-                    .join("\r\n");
-
-                self.send_plain_response(StatusCode::OK, Some(headers));
-            }
-            "status" => {
-                let arg = segments.remove(0);
-
-                match StatusCode::from_bytes(arg.as_bytes()).map_err(|_| StatusCode::BAD_REQUEST) {
-                    Ok(status) => self.send_plain_response(status, None),
-                    Err(status) => self.send_plain_response(status, None),
-                }
-            }
-            _ => {}
-        }
+    fn send_not_found(&mut self) {
+        self.send_plain_response(StatusCode::NOT_FOUND, None)
     }
 
-    fn exec(&mut self, uri: String) -> Action {
-        /*
-         * GET /t/<endpoint>/<path...>
-         */
-        let (endpoint, path);
-        {
-            let p = uri.strip_prefix("/t").unwrap_or_else(|| uri.as_str());
-            let mut segments: Vec<&str> = p.split("/").collect::<Vec<&str>>().split_off(1);
-            endpoint = segments.remove(0);
-            path = segments.join("/");
+    fn exec_tests(&mut self) {
+        let method: Method = self
+            .get_http_request_header(":method")
+            .unwrap()
+            .parse()
+            .unwrap();
+
+        let path = self.get_http_request_header(":path").unwrap();
+        if path.starts_with("/t/echo/header/") {
+            let header_name = path
+                .split('/')
+                .collect::<Vec<&str>>()
+                .split_off(4)
+                .pop()
+                .unwrap();
+
+            echo_header(self, header_name);
+            return;
         }
 
-        match endpoint {
-            "log" => test_log(path.as_str(), self),
-            "log_current_time" => {
-                let now: DateTime<Utc> = self.get_current_time().into();
-                info!("now: {}", now)
-            }
-            "log_http_request_headers" => test_log_http_request_headers(path.as_str(), self),
-            "send_http_response" => test_send_http_response(path.as_str(), self),
-            "get_http_request_header" => test_get_http_request_header(path.as_str(), self),
-            "echo" => self.test_echo(path.as_str()),
-            _ => self.send_http_response(404, vec![], None),
+        match method {
+            Method::GET => match path.as_str() {
+                "/t/log/levels" => test_log_levels(self),
+                "/t/log/current_time" => test_log_current_time(self),
+                "/t/send_local_response/status/204" => test_send_status(self, 204),
+                "/t/send_local_response/status/300" => test_send_status(self, 300),
+                "/t/send_local_response/status/1000" => test_send_status(self, 1000),
+                "/t/send_local_response/headers" => test_send_headers(self),
+                "/t/send_local_response/body" => test_send_body(self),
+                "/t/send_local_response/set_special_headers" => test_set_special_headers(self),
+                "/t/send_local_response/set_headers_escaping" => test_set_headers_escaping(self),
+                "/t/echo/headers" => echo_headers(self),
+                _ => self.send_not_found(),
+            },
+            _ => self.send_plain_response(StatusCode::METHOD_NOT_ALLOWED, None),
         }
-
-        Action::Continue
     }
 }
 
@@ -89,20 +68,24 @@ impl RootContext for TestHttpHostcalls {
         Some(ContextType::HttpContext)
     }
 
-    fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
-        Some(Box::new(TestHttpHostcalls { context_id }))
+    fn create_http_context(&self, _context_id: u32) -> Option<Box<dyn HttpContext>> {
+        Some(Box::new(TestHttpHostcalls { _context_id }))
     }
 }
 
 impl Context for TestHttpHostcalls {}
-
 impl HttpContext for TestHttpHostcalls {
     fn on_http_request_headers(&mut self, nheaders: usize) -> Action {
         info!("number of request headers: {}", nheaders);
-
-        match self.get_http_request_header(":path") {
-            Some(path) => self.exec(path),
-            _ => Action::Continue,
-        }
+        self.exec_tests();
+        Action::Continue
     }
+}
+
+#[no_mangle]
+pub fn _start() {
+    proxy_wasm::set_log_level(LogLevel::Trace);
+    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
+        Box::new(TestHttpHostcalls { _context_id: 0 })
+    });
 }
