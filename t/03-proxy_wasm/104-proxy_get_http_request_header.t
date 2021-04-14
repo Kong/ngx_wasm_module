@@ -20,8 +20,8 @@ __DATA__
     }
 --- request eval
 [
-    "GET /t/get_http_request_header/Hello",
-    "GET /t/get_http_request_header/hello"
+    "GET /t/echo/header/Hello",
+    "GET /t/echo/header/hello"
 ]
 --- more_headers
 Hello: world
@@ -44,8 +44,8 @@ Hello: world
     }
 --- request eval
 [
-    "GET /t/get_http_request_header/:method",
-    "POST /t/get_http_request_header/:method"
+    "GET /t/echo/header/:method",
+    "POST /t/echo/header/:method"
 ]
 --- response_body eval
 [
@@ -65,9 +65,9 @@ Hello: world
         proxy_wasm hostcalls;
     }
 --- request
-GET /t/get_http_request_header/:path
+GET /t/echo/header/:path
 --- response_body chomp
-:path: /t/get_http_request_header/:path
+:path: /t/echo/header/:path
 --- no_error_log
 [warn]
 [error]

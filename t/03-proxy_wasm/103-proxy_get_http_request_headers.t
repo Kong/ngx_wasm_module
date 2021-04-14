@@ -13,28 +13,25 @@ run_tests();
 __DATA__
 
 === TEST 1: get_http_request_headers() gets request headers
-should produce logs with headers, yield content production
---- load_nginx_modules: ngx_http_echo_module
+should produce a response with headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
         proxy_wasm hostcalls;
-        echo ok;
     }
 --- request
-GET /t/log_http_request_headers
+GET /t/echo/headers
 --- more_headers
 Hello: world
---- response_body
-ok
---- error_log eval
-[
-    qr/\[wasm\] #\d+ -> Host: localhost/,
-    qr/\[wasm\] #\d+ -> Connection: close/,
-    qr/\[wasm\] #\d+ -> Hello: world/
-]
+--- response_body eval
+qq{Host: localhost\r
+Connection: close\r
+Hello: world}
 --- no_error_log
+[error]
+[crit]
 [alert]
+[emerg]
 
 
 
