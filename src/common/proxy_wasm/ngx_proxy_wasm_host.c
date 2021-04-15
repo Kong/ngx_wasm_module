@@ -199,7 +199,6 @@ ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
     ngx_list_t                 *list;
     ngx_str_t                  *value;
     ngx_proxy_wasm_t           *pwm;
-    static const u_char         empty[] = "";
     ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
     ngx_http_request_t         *r = rctx->r;
 
@@ -244,7 +243,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
     value = ngx_proxy_wasm_get_map_value(list, (u_char *) key, key_len);
     if (value == NULL) {
         if (pwm->abi_version == NGX_PROXY_WASM_0_1_0) {
-            *rbuf = (uintptr_t) &empty;
+            rbuf = NULL;
             *rlen = 0;
             return ngx_proxy_wasm_result_ok(rets);
         }
