@@ -21,8 +21,8 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         #cc: [gcc-8, gcc-9, clang]
         cc: [clang]
-        #nginx: [1.18.0, 1.19.1]
-        nginx: [1.19.10]
+        #ngx: [1.18.0, 1.19.1]
+        ngx: [1.19.10]
         wasmtime: [0.24.0]
         #hup: [1, 0]
         hup: [0]
@@ -47,7 +47,7 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.nginx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
@@ -61,7 +61,7 @@ jobs:
       - run: make
         env:
           CC: ${{ matrix.cc }}
-          NGX: ${{ matrix.nginx }}
+          NGX: ${{ matrix.ngx }}
           NGX_BUILD_DEBUG: ${{ matrix.debug }}
       - run: make test
         env:
