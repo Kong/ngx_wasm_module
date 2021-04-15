@@ -22,7 +22,7 @@ jobs:
         #cc: [gcc-8, gcc-9, clang]
         cc: [clang]
         #nginx: [1.18.0, 1.19.1]
-        nginx: [1.19.8]
+        nginx: [1.19.10]
         wasmtime: [0.24.0]
         #hup: [1, 0]
         hup: [0]
