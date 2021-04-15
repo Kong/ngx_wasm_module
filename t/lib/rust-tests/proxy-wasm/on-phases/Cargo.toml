@@ -1,5 +1,5 @@
 [package]
-name = "on-http-phases"
+name = "on-phases"
 version = "0.1.0"
 authors = ["Thibault Charbonnier <thibaultcha@me.com>"]
 edition = "2018"

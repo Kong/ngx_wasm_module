@@ -104,7 +104,7 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       &ngx_http_wasm_op_post },
 
     { ngx_string("proxy_wasm"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
       ngx_http_wasm_proxy_wasm_directive,
       NGX_HTTP_LOC_CONF_OFFSET,
       NGX_HTTP_MODULE,
@@ -286,8 +286,8 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 
     loc->pwmodule->max_pairs = NGX_HTTP_WASM_MAX_REQ_HEADERS;
 
-    op = ngx_wasm_conf_add_op_proxy_wasm(cf, loc->ops_engine, cf->args->elts,
-                                         loc->pwmodule);
+    op = ngx_wasm_conf_add_op_proxy_wasm(cf, loc->ops_engine, cf->args->nelts,
+                                         cf->args->elts, loc->pwmodule);
     if (op == NULL) {
         return NGX_CONF_ERROR;
     }

@@ -162,22 +162,22 @@ ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine)
 
 static ngx_int_t
 ngx_wasm_op_add_helper(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
-    ngx_wasm_op_t *op, ngx_str_t *mod_name)
+    ngx_wasm_op_t *op, ngx_str_t *arg_name)
 {
     ngx_wasm_phase_t          *phase = ops_engine->subsystem->phases;
     ngx_wasm_ops_pipeline_t   *pipeline;
     ngx_wasm_op_t            **opp;
 
-    if (mod_name->len == 0) {
+    if (arg_name->len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid module name \"%V\"", mod_name);
+                           "invalid module name \"%V\"", arg_name);
         return NGX_ERROR;
     }
 
-    op->module = ngx_wavm_module_lookup(ops_engine->vm, mod_name);
+    op->module = ngx_wavm_module_lookup(ops_engine->vm, arg_name);
     if (op->module == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "no \"%V\" module defined", mod_name);
+                           "no \"%V\" module defined", arg_name);
         return NGX_ERROR;
     }
 
@@ -222,10 +222,10 @@ ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
 {
     ngx_wasm_op_t     *op;
     ngx_wasm_phase_t  *phase = ops_engine->subsystem->phases;
-    ngx_str_t         *phase_name, *mod_name, *func_name;
+    ngx_str_t         *phase_name, *arg_name, *func_name;
 
     phase_name = &value[1];
-    mod_name = &value[2];
+    arg_name = &value[2];
     func_name = &value[3];
 
     if (phase_name->len == 0) {
@@ -272,7 +272,7 @@ ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
 
     op->conf.call.func_name = *func_name;
 
-    if (ngx_wasm_op_add_helper(cf, ops_engine, op, mod_name) != NGX_OK) {
+    if (ngx_wasm_op_add_helper(cf, ops_engine, op, arg_name) != NGX_OK) {
         return NULL;
     }
 
@@ -282,13 +282,18 @@ ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
 
 ngx_wasm_op_t *
 ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
-    ngx_wasm_ops_engine_t *ops_engine, ngx_str_t *value,
+    ngx_wasm_ops_engine_t *ops_engine, ngx_uint_t nvalues, ngx_str_t *value,
     ngx_proxy_wasm_t *pwmodule)
 {
-    ngx_wasm_op_t  *op;
-    ngx_str_t      *mod_name;
+    u_char         *p;
+    ngx_wasm_op_t  *op = NULL;
+    ngx_str_t      *arg_name, *arg_config = NULL, *mod_config;
 
-    mod_name = &value[1];
+    arg_name = &value[1];
+
+    if (nvalues > 2) {
+        arg_config = &value[2];
+    }
 
     op = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_op_t));
     if (op == NULL) {
@@ -302,14 +307,35 @@ ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
                     | (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE)
                     | (1 << NGX_HTTP_LOG_PHASE);
 
-    if (ngx_wasm_op_add_helper(cf, ops_engine, op, mod_name) != NGX_OK) {
-        return NULL;
+    if (ngx_wasm_op_add_helper(cf, ops_engine, op, arg_name) != NGX_OK) {
+        goto error;
     }
 
     op->conf.proxy_wasm.pwmodule = pwmodule;
     op->conf.proxy_wasm.pwmodule->module = op->module;
 
+    if (arg_config) {
+        mod_config = &op->conf.proxy_wasm.pwmodule->config;
+
+        mod_config->len = arg_config->len;
+        mod_config->data = ngx_pnalloc(pwmodule->pool, mod_config->len + 1);
+        if (mod_config->data == NULL) {
+            goto error;
+        }
+
+        p = ngx_copy(mod_config->data, arg_config->data, mod_config->len);
+        *p = '\0';
+    }
+
     return op;
+
+error:
+
+    if (op) {
+        ngx_pfree(cf->pool, op);
+    }
+
+    return NULL;
 }
 
 

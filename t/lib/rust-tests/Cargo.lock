@@ -127,7 +127,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "on-http-phases"
+name = "on-phases"
 version = "0.1.0"
 dependencies = [
  "log",

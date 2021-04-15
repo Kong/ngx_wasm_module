@@ -59,7 +59,7 @@ add_block_preprocessor(sub {
         $block->set_value("request", "GET /t");
     }
 
-    # --- wasm_modules: on_http_phases
+    # --- wasm_modules: on_phases
 
     if (!defined $block->main_config) {
         my @dyn_modules;
