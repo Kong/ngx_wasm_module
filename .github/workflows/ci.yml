@@ -25,7 +25,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
-        nginx: [1.19.10]
+        ngx: [1.19.10]
         wasmtime: [0.24.0]
         hup: [1, 0]
         debug: [1, 0]
@@ -49,7 +49,7 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.nginx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up gcov
         run: sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/$(echo ${{ matrix.cc }} | sed s/gcc/gcov/) 100
       - name: Set up rust
@@ -65,7 +65,7 @@ jobs:
       - run: make
         env:
           CC: ${{ matrix.cc }}
-          NGX: ${{ matrix.nginx }}
+          NGX: ${{ matrix.ngx }}
           NGX_BUILD_DEBUG: ${{ matrix.debug }}
       - run: make test
         env:
@@ -93,7 +93,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
-        nginx: [1.19.10]
+        ngx: [1.19.10]
         wasmtime: [0.24.0]
         hup: [1, 0]
         #debug: [1, 0]
@@ -118,7 +118,7 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.nginx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
@@ -132,7 +132,7 @@ jobs:
       - run: make
         env:
           CC: ${{ matrix.cc }}
-          NGX: ${{ matrix.nginx }}
+          NGX: ${{ matrix.ngx }}
           NGX_BUILD_DEBUG: ${{ matrix.debug }}
       - run: make test 2>&1 | tee valgrind.out
         env:
@@ -161,7 +161,7 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.nginx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - run: make setup
       - run: make lint
       - run: |
@@ -180,7 +180,7 @@ jobs:
       fail-fast: false
       matrix:
         cc: [clang-9]
-        nginx: [1.19.10]
+        ngx: [1.19.10]
         wasmtime: [0.24.0]
     steps:
       - run: |
@@ -205,7 +205,7 @@ jobs:
       - run: make
         env:
           CC: ${{ matrix.cc }}
-          NGX: ${{ matrix.nginx }}
+          NGX: ${{ matrix.ngx }}
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -224,8 +224,8 @@ jobs:
         os: [ubuntu-latest]
         #cc: [gcc-8, gcc-9, clang]
         cc: [gcc-8]
-        #nginx: [1.18.0, 1.19.1]
-        nginx: [1.19.10]
+        #ngx: [1.18.0, 1.19.1]
+        ngx: [1.19.10]
         wasmtime: [0.24.0]
         #hup: [1, 0]
         hup: [0]
