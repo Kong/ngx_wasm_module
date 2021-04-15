@@ -18,11 +18,11 @@ __DATA__
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
-        module on_http_phases $TEST_NGINX_CRATES_DIR/on_http_phases.wasm;
+        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
     }
 --- config
     location /t {
-        proxy_wasm on_http_phases;
+        proxy_wasm on_phases;
         echo ok;
     }
 --- response_body
@@ -42,11 +42,11 @@ should log 0 response headers (TODO: include default headers)
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
-        module on_http_phases $TEST_NGINX_CRATES_DIR/on_http_phases.wasm;
+        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
     }
 --- config
     location /t {
-        proxy_wasm on_http_phases;
+        proxy_wasm on_phases;
         echo ok;
     }
 --- response_body
@@ -65,11 +65,11 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
-        module on_http_phases $TEST_NGINX_CRATES_DIR/on_http_phases.wasm;
+        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
     }
 --- config
     location /t {
-        proxy_wasm on_http_phases;
+        proxy_wasm on_phases;
         echo ok;
     }
 --- response_body
@@ -89,11 +89,11 @@ should cause HTTP 404 from static module (default content handler)
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
-        module on_http_phases $TEST_NGINX_CRATES_DIR/on_http_phases.wasm;
+        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
     }
 --- config
     location /t {
-        proxy_wasm on_http_phases;
+        proxy_wasm on_phases;
         echo_status 201;
     }
 --- error_code: 404
@@ -115,11 +115,11 @@ qr/404 Not Found/
 should produce a response in and of itself, proxy_wasm wraps around
 --- main_config
     wasm {
-        module on_http_phases $TEST_NGINX_CRATES_DIR/on_http_phases.wasm;
+        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
     }
 --- config
     location /t {
-        proxy_wasm on_http_phases;
+        proxy_wasm on_phases;
         return 201;
     }
 --- error_code: 201
@@ -140,7 +140,7 @@ should produce a response in and of itself, proxy_wasm wraps around
 should produce a response from proxy_pass, proxy_wasm wraps around
 --- main_config
     wasm {
-        module on_http_phases $TEST_NGINX_CRATES_DIR/on_http_phases.wasm;
+        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
     }
 --- http_config eval
 qq{
@@ -158,7 +158,7 @@ qq{
 }
 --- config
     location /t {
-        proxy_wasm on_http_phases;
+        proxy_wasm on_phases;
         proxy_pass http://test_upstream/;
     }
 --- error_code: 201
@@ -180,12 +180,12 @@ should not execute a log phase
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
-        module on_http_phases $TEST_NGINX_CRATES_DIR/on_http_phases.wasm;
+        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
     }
 --- config
     location /subrequest {
         internal;
-        proxy_wasm on_http_phases;
+        proxy_wasm on_phases;
         return 201;
     }
 

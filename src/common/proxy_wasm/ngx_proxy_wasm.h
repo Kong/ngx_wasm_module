@@ -126,6 +126,7 @@ typedef ngx_uint_t (*ngx_proxy_wasm_ecode_pt)(ngx_proxy_wasm_t *pwm, ngx_uint_t 
 
 struct ngx_proxy_wasm_s {
 
+    ngx_str_t                          config;
     ngx_proxy_wasm_resume_pt           resume_;
     ngx_proxy_wasm_ctxid_pt            ctxid_;
     ngx_proxy_wasm_ecode_pt            ecode_;

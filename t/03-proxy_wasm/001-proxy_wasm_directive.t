@@ -31,7 +31,7 @@ qr/\[emerg\] .*? "proxy_wasm" directive is specified but config has no "wasm" se
 === TEST 2: proxy_wasm directive - invalid number of arguments
 --- config
     location /t {
-        proxy_wasm a foo;
+        proxy_wasm a foo bar;
         return 200;
     }
 --- error_log eval

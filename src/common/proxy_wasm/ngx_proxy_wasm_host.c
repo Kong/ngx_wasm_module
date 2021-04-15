@@ -334,6 +334,39 @@ ngx_proxy_wasm_hfuncs_send_http_response(ngx_wavm_instance_t *instance,
 
 
 static ngx_int_t
+ngx_proxy_wasm_hfuncs_get_configuration(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    size_t                     *rlen;
+    ngx_wavm_ptr_t             *rbuf, p;
+    ngx_proxy_wasm_t           *pwm;
+
+    pwm = ngx_proxy_wasm_get_pwm(instance);
+
+    rbuf = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
+    rlen = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
+
+    if (pwm->config.len) {
+        p = ngx_proxy_wasm_alloc(pwm, pwm->config.len);
+        if (p == 0) {
+            return ngx_proxy_wasm_result_err(rets);
+        }
+
+        if (!ngx_wavm_memory_memcpy(instance->memory, p,
+                                    pwm->config.data, pwm->config.len))
+        {
+            return ngx_proxy_wasm_result_invalid_mem(rets);
+        }
+
+        *rbuf = p;
+        *rlen = pwm->config.len;
+    }
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_int_t
 ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -744,7 +777,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_get_configuration"),
-     &ngx_proxy_wasm_hfuncs_nop,
+     &ngx_proxy_wasm_hfuncs_get_configuration,
      ngx_wavm_arity_i32x2,
      ngx_wavm_arity_i32 },
 
