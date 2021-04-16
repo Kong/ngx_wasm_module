@@ -58,15 +58,26 @@ pushd $DIR_BIN
     chmod +x style
 popd
 
-if [[ -d "$DIR_ECHO" ]]; then
+if [[ -d "$DIR_NGX_ECHO_MODULE" ]]; then
     notice "updating the echo-nginx-module repository..."
-    pushd $DIR_ECHO
+    pushd $DIR_NGX_ECHO_MODULE
         git fetch
         git reset --hard origin/master
     popd
 else
     notice "cloning the echo-nginx-module repository..."
-    git clone https://github.com/openresty/echo-nginx-module.git $DIR_ECHO
+    git clone https://github.com/openresty/echo-nginx-module.git $DIR_NGX_ECHO_MODULE
+fi
+
+if [[ -d "$DIR_NGX_HEADERS_MORE_MODULE" ]]; then
+    notice "updating the headers-more-nginx-module repository..."
+    pushd $DIR_NGX_HEADERS_MORE_MODULE
+        git fetch
+        git reset --hard origin/master
+    popd
+else
+    notice "cloning the headers-more-nginx-module repository..."
+    git clone https://github.com/openresty/headers-more-nginx-module.git $DIR_NGX_HEADERS_MORE_MODULE
 fi
 
 get_no_pool_nginx 1

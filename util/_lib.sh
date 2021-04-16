@@ -3,7 +3,8 @@ DIR_BIN=$DIR_WORK/bin
 DIR_DOWNLOAD=$DIR_WORK/downloads
 DIR_CPANM=$DIR_DOWNLOAD/cpanm
 DIR_NOPOOL=$DIR_DOWNLOAD/no-pool-nginx
-DIR_ECHO=$DIR_DOWNLOAD/echo-nginx-module
+DIR_NGX_ECHO_MODULE=$DIR_DOWNLOAD/echo-nginx-module
+DIR_NGX_HEADERS_MORE_MODULE=$DIR_DOWNLOAD/headers-more-nginx-module
 DIR_BUILDROOT=$DIR_WORK/buildroot
 DIR_SRCROOT=$DIR_WORK/nginx-patched
 DIR_TESTS_LIB_WASM=$DIR_WORK/lib/wasm
@@ -117,7 +118,8 @@ build_nginx() {
                 "--builddir=$NGX_BUILD_DIR_BUILDROOT" \
                 "--prefix=$NGX_BUILD_DIR_PREFIX" \
                 "--add-module=$NGX_WASM_DIR" \
-                "--add-dynamic-module=$DIR_ECHO" \
+                "--add-dynamic-module=$DIR_NGX_ECHO_MODULE" \
+                "--add-dynamic-module=$DIR_NGX_HEADERS_MORE_MODULE" \
                 "--with-cc-opt='$NGX_BUILD_CC_OPT'" \
                 "--with-ld-opt='$NGX_BUILD_LD_OPT'" \
                 "$build_with_debug" \
