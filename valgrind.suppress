@@ -91,6 +91,16 @@
    fun:ngx_event_process_init
 }
 {
+    <nginx 1.19.10: ngx_pass_open_channel has uninitialized bytes>
+    Memcheck:Param
+    sendmsg(msg.msg_iov[0])
+    ...
+    fun:ngx_pass_open_channel
+    fun:ngx_start_worker_processes
+    fun:ngx_master_process_cycle
+    fun:main
+}
+{
    <wasmtime: wasmtime_module_new false positive in Valgrind 3.13 (gone in 3.16.0)>
    Memcheck:Cond
    ...
