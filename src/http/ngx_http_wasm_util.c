@@ -654,6 +654,7 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
             goto fail;
         }
 
+        b->sync = 1;
         b->last = ngx_copy(b->last, body, body_len);
         //*b->last++ = LF;
 

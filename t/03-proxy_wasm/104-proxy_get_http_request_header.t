@@ -95,3 +95,51 @@ GET /t/echo/header/:path
 [alert]
 [crit]
 [stderr]
+
+
+
+=== TEST 5: proxy_wasm - get_http_request_header() retrieves ':path' from r->uri (parsed)
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls;
+    }
+--- request
+GET //t/echo//header/:path
+--- response_body chomp
+:path: /t/echo/header/:path
+--- no_error_log
+[warn]
+[error]
+[emerg]
+[alert]
+[crit]
+[stderr]
+
+
+
+=== TEST 6: proxy_wasm - get_http_request_header() retrieves ':path' as a subrequest
+should respond with the subrequest's path (/t/echo/header/...) and not the main
+request's path (/t)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t/echo/header/ {
+        proxy_wasm hostcalls;
+    }
+
+    location /t {
+        echo_subrequest GET /t/echo/header/:path;
+        echo_flush;
+    }
+--- request
+GET /t
+--- response_body chomp
+:path: /t/echo/header/:path
+--- no_error_log
+[warn]
+[error]
+[crit]
+[emerg]
+[alert]
+[stderr]

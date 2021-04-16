@@ -598,9 +598,12 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     case NGX_OK:
         /* flushed response */
-        rctx->sent_last = 1;
         rc = ngx_http_wasm_check_finalize(r, rctx, rc);
         ngx_wasm_assert(rc == NGX_DONE);
+        if (r != r->main) {
+            rc = NGX_OK;
+        }
+
         break;
 
     case NGX_DECLINED:

@@ -216,7 +216,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
 
     case 5:
         if (ngx_strncmp(key, ":path", key_len) == 0) {
-            value = &r->unparsed_uri;
+            value = &r->uri;
             goto found;
         }
 

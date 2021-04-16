@@ -11,17 +11,9 @@ struct HttpHeadersRoot {
 
 impl Context for HttpHeadersRoot {}
 impl RootContext for HttpHeadersRoot {
-    fn get_type(&self) -> Option<ContextType> {
-        Some(ContextType::HttpContext)
-    }
-
-    fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
-        Some(Box::new(HttpHeaders { context_id }))
-    }
-
     fn on_vm_start(&mut self, config_size: usize) -> bool {
         info!("#{} on_vm_start, config_size: {}", ROOT_ID, config_size);
-        true
+        true // TODO: catch/test
     }
 
     fn on_configure(&mut self, config_size: usize) -> bool {
@@ -39,7 +31,15 @@ impl RootContext for HttpHeadersRoot {
             info!("#{} config: {:?}", ROOT_ID, self.config.as_ref().unwrap());
         }
 
-        true
+        true // TODO: catch/test
+    }
+
+    fn get_type(&self) -> Option<ContextType> {
+        Some(ContextType::HttpContext)
+    }
+
+    fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
+        Some(Box::new(HttpHeaders { context_id }))
     }
 }
 
