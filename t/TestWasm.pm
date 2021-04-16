@@ -65,7 +65,7 @@ add_block_preprocessor(sub {
         my @dyn_modules;
         my $wasm_modules = $block->wasm_modules;
         if (defined $wasm_modules) {
-            splice @dyn_modules, 0, 0, split('/\s+/', $wasm_modules);
+            @dyn_modules = split /\s+/, $wasm_modules;
         }
 
         if (@dyn_modules) {
@@ -82,7 +82,7 @@ add_block_preprocessor(sub {
     my @dyn_modules = @nginx_modules;
     my $load_nginx_modules = $block->load_nginx_modules;
     if (defined $load_nginx_modules) {
-        splice @dyn_modules, 0, 0, split('/\s+/', $load_nginx_modules);
+        @dyn_modules = split /\s+/, $load_nginx_modules;
     }
 
     if (@dyn_modules) {
