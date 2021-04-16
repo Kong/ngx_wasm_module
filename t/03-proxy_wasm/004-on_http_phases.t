@@ -203,3 +203,40 @@ should not execute a log phase
 on_done
 [error]
 [crit]
+
+
+
+=== TEST 8: proxy_wasm - same module, multiple locations
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config
+    wasm {
+        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
+    }
+--- config
+    location /subrequest/a {
+        proxy_wasm on_phases;
+        echo A;
+    }
+
+    location /subrequest/b {
+        proxy_wasm on_phases;
+        echo B;
+    }
+
+    location /t {
+        echo_subrequest GET '/subrequest/a';
+        echo_subrequest GET '/subrequest/b';
+    }
+--- error_code: 200
+--- response_body
+A
+B
+--- error_log eval
+[
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
+]
+--- no_error_log
+[error]

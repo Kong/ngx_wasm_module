@@ -349,10 +349,6 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
     ngx_wasm_op_t            *op;
     ngx_int_t                 rc = NGX_DECLINED;
 
-    if (ops_engine == NULL) {
-        return NGX_DECLINED;
-    }
-
     phase = ngx_wasm_ops_engine_phase_lookup(ops_engine, phaseidx);
     if (phase == NULL) {
         ngx_wasm_log_error(NGX_LOG_WARN, ctx->log, 0,
