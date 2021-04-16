@@ -1070,10 +1070,6 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
 
     ctx->instances[lmodule->idx] = instance;
 
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
-                   "wasm instance of \"%V\" module inserted with lmodule->idx: %d"
-                   " (ctx: %p)", &module->name, lmodule->idx, ctx);
-
     ngx_queue_insert_tail(&vm->instances, &instance->q);
 
     return instance;
