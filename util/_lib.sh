@@ -84,7 +84,14 @@ build_nginx() {
         if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
             get_no_pool_nginx
 
+            set +e
             apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $NGX_BUILD_DIR_SRCROOT
+            if ! [[ $? -eq 0 ]]; then
+                notice "failed applying the no-pool patch, trying again"
+                get_no_pool_nginx 1
+                apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $NGX_BUILD_DIR_SRCROOT
+            fi
+            set -e
         fi
     fi
 
