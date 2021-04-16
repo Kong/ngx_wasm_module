@@ -27,9 +27,9 @@ typedef enum {
 
 typedef enum {
     NGX_WAVM_MODULE_ISWAT = (1 << 0),
-    NGX_WAVM_MODULE_LOADED = (1 << 1),
-    NGX_WAVM_MODULE_INVALID = (1 << 2),
-    NGX_WAVM_MODULE_READY = (1 << 3),
+    NGX_WAVM_MODULE_LOADED_BYTES = (1 << 1),
+    NGX_WAVM_MODULE_LOADED = (1 << 2),
+    NGX_WAVM_MODULE_INVALID = (1 << 3),
 } ngx_wavm_module_state;
 
 
@@ -96,6 +96,7 @@ struct ngx_wavm_linked_module_s {
     ngx_queue_t                        q;          /* module->lmodules */
 
     ngx_uint_t                         idx;
+    ngx_wavm_host_def_t               *host_def;
     ngx_array_t                       *hfuncs_imports;
 };
 

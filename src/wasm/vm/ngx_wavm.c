@@ -424,7 +424,7 @@ ngx_wavm_module_load_bytes(ngx_wavm_module_t *module)
         goto error;
     }
 
-    module->state |= NGX_WAVM_MODULE_LOADED;
+    module->state |= NGX_WAVM_MODULE_LOADED_BYTES;
 
     rc = NGX_OK;
     goto done;
@@ -462,11 +462,11 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
 
     vm = module->vm;
 
-    if (ngx_wavm_state(module, NGX_WAVM_MODULE_READY)) {
+    if (ngx_wavm_state(module, NGX_WAVM_MODULE_LOADED)) {
         return NGX_OK;
     }
 
-    if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LOADED)) {
+    if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LOADED_BYTES)) {
         goto unreachable;
     }
 
@@ -559,7 +559,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
         }
     }
 
-    module->state |= NGX_WAVM_MODULE_READY;
+    module->state |= NGX_WAVM_MODULE_LOADED;
 
     rc = NGX_OK;
     goto done;
@@ -597,6 +597,7 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
     size_t                     i;
     const char                *err = NGX_WAVM_NOMEM_CHAR;
     ngx_str_t                  s;
+    ngx_queue_t               *q;
     ngx_wavm_t                *vm = NULL;
     ngx_wavm_hfunc_t          *hfunc, **hfuncp;
     ngx_wavm_linked_module_t  *lmodule = NULL;
@@ -609,8 +610,23 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
         err = "invalid module";
         goto error;
 
-    } else if (!ngx_wavm_state(module, NGX_WAVM_MODULE_READY)) {
+    } else if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LOADED)) {
         goto unreachable;
+    }
+
+    for (q = ngx_queue_head(&module->lmodules);
+         q != ngx_queue_sentinel(&module->lmodules);
+         q = ngx_queue_next(q))
+    {
+        lmodule = ngx_queue_data(q, ngx_wavm_linked_module_t, q);
+
+        if (lmodule->host_def == host) {
+            ngx_log_debug5(NGX_LOG_DEBUG_WASM, vm->log, 0,
+                           "wasm \"%V\" module already linked to \"%V\" host "
+                           "interface (vm: %p, module: %p, host: %p)",
+                           &module->name, &host->name, vm, module, host);
+            return lmodule;
+        }
     }
 
     ngx_log_debug5(NGX_LOG_DEBUG_WASM, vm->log, 0,
@@ -623,6 +639,7 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
         goto error;
     }
 
+    lmodule->host_def = host;
     lmodule->module = module;
     lmodule->hfuncs_imports = ngx_array_create(vm->pool, 2,
                                                sizeof(ngx_wavm_hfunc_t *));
@@ -791,7 +808,7 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
 {
     ngx_str_node_t  *sn;
 
-    if (!ngx_wavm_state(module, NGX_WAVM_MODULE_READY)) {
+    if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LOADED)) {
         return NULL;
     }
 
@@ -1052,6 +1069,10 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
     }
 
     ctx->instances[lmodule->idx] = instance;
+
+    ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
+                   "wasm instance of \"%V\" module inserted with lmodule->idx: %d"
+                   " (ctx: %p)", &module->name, lmodule->idx, ctx);
 
     ngx_queue_insert_tail(&vm->instances, &instance->q);
 
