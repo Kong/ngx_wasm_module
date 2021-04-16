@@ -130,7 +130,6 @@ request's path (/t)
 
     location /t {
         echo_subrequest GET /t/echo/header/:path;
-        echo_flush;
     }
 --- request
 GET /t

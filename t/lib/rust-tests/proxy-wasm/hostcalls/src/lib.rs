@@ -6,9 +6,55 @@ use http::{Method, StatusCode};
 use log::*;
 use proxy_wasm::traits::*;
 use proxy_wasm::types::*;
+use std::collections::HashMap;
+
+#[derive(Debug, PartialEq, enum_utils::FromStr)]
+#[enumeration(rename_all = "snake_case")]
+enum TestPhase {
+    HttpRequestHeaders,
+    HttpResponseHeaders,
+    Done,
+}
+
+struct TestRoot {
+    config: HashMap<String, String>,
+}
+
+impl Context for TestRoot {}
+impl RootContext for TestRoot {
+    fn on_configure(&mut self, _: usize) -> bool {
+        if let Some(config_bytes) = self.get_configuration() {
+            let config_str = String::from_utf8(config_bytes).unwrap();
+            self.config = config_str
+                .split_whitespace()
+                .filter_map(|s| s.split_once('='))
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect();
+        } else {
+            self.config = HashMap::new();
+        }
+
+        true
+    }
+
+    fn get_type(&self) -> Option<ContextType> {
+        Some(ContextType::HttpContext)
+    }
+
+    fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
+        Some(Box::new(TestHttpHostcalls {
+            context_id,
+            on_phase: self
+                .config
+                .get("on_phase")
+                .map_or(TestPhase::HttpRequestHeaders, |s| s.parse().unwrap()),
+        }))
+    }
+}
 
 struct TestHttpHostcalls {
-    _context_id: u32,
+    context_id: u32,
+    on_phase: TestPhase,
 }
 
 impl TestHttpHostcalls {
@@ -24,16 +70,48 @@ impl TestHttpHostcalls {
         self.send_plain_response(StatusCode::NOT_FOUND, None)
     }
 
-    fn exec_tests(&mut self) {
+    fn exec_tests(&mut self, cur_phase: TestPhase) {
+        if cur_phase != self.on_phase {
+            return;
+        }
+
+        debug!(
+            "[tests] #{} entering \"{:?}\"",
+            self.context_id, self.on_phase
+        );
+
+        let test_case;
+        {
+            let path = self.get_http_request_header(":path").unwrap();
+            let header_override = self.get_http_request_header("pwm-test-case");
+            if let Some(h) = header_override {
+                // Subrequests currently retrieve their own location path (r->uri)
+                // with :path, which means on_phases test cases would see the test
+                // case's name as "/t/on_request_headers" instead of "/t/log/levels"
+                // if we were to rely entirely on it.
+                // This "override header" allows specifying a string which will be
+                // the one evaluated against test cases below (e.g. "/t/log/levels"),
+                // or in other words, a request header which will be here considered
+                // the request's URL determining the test case.
+                test_case = h;
+                debug!(
+                    "#{} overriding test case from Pwm-Test-Case header: \"{}\"",
+                    self.context_id, test_case
+                );
+            } else {
+                test_case = path;
+            }
+        }
+
         let method: Method = self
             .get_http_request_header(":method")
             .unwrap()
             .parse()
             .unwrap();
 
-        let path = self.get_http_request_header(":path").unwrap();
-        if path.starts_with("/t/echo/header/") {
-            let header_name = path
+        if test_case.starts_with("/t/echo/header/") {
+            // /t/echo/header/{header_name: String}
+            let header_name = test_case
                 .split('/')
                 .collect::<Vec<&str>>()
                 .split_off(4)
@@ -45,7 +123,7 @@ impl TestHttpHostcalls {
         }
 
         match method {
-            Method::GET => match path.as_str() {
+            Method::GET => match test_case.as_str() {
                 "/t/log/levels" => test_log_levels(self),
                 "/t/log/current_time" => test_log_current_time(self),
                 "/t/send_local_response/status/204" => test_send_status(self, 204),
@@ -63,22 +141,22 @@ impl TestHttpHostcalls {
     }
 }
 
-impl RootContext for TestHttpHostcalls {
-    fn get_type(&self) -> Option<ContextType> {
-        Some(ContextType::HttpContext)
-    }
-
-    fn create_http_context(&self, _context_id: u32) -> Option<Box<dyn HttpContext>> {
-        Some(Box::new(TestHttpHostcalls { _context_id }))
-    }
-}
-
 impl Context for TestHttpHostcalls {}
 impl HttpContext for TestHttpHostcalls {
     fn on_http_request_headers(&mut self, nheaders: usize) -> Action {
         info!("number of request headers: {}", nheaders);
-        self.exec_tests();
+        self.exec_tests(TestPhase::HttpRequestHeaders);
         Action::Continue
+    }
+
+    fn on_http_response_headers(&mut self, nheaders: usize) -> Action {
+        info!("number of response headers: {}", nheaders);
+        self.exec_tests(TestPhase::HttpResponseHeaders);
+        Action::Continue
+    }
+
+    fn on_log(&mut self) {
+        self.exec_tests(TestPhase::Done);
     }
 }
 
@@ -86,6 +164,8 @@ impl HttpContext for TestHttpHostcalls {
 pub fn _start() {
     proxy_wasm::set_log_level(LogLevel::Trace);
     proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
-        Box::new(TestHttpHostcalls { _context_id: 0 })
+        Box::new(TestRoot {
+            config: HashMap::new(),
+        })
     });
 }
