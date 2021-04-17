@@ -2,22 +2,26 @@
 
 [Pending]
 
-## TODOs
+Contribution guidelines have not been drafted yet, but below is a list of
+resources that can already be helpful in getting involved.
 
-Contribution guidelines have not been drafted yet, but here is a list of things
-that are currently being worked on or should eventually receive attention:
+## Roadmap
 
-- Test the building process on as many platforms as possible (see
-  [DEVELOPER.md](DEVELOPER.md)).
-- Add [Wasmer](https://github.com/wasmerio/wasmer) support to the CI tests
-  matrix (see Wasmtime's [action.yml](.github/actions/wasmtime/action.yml)).
-- Support for building ngx_wasm_module as a shared object (i.e. "dynamic
-  module").
-- Finishing the [proxy-wasm](https://github.com/proxy-wasm/spec) HTTP specification.
-- Consider a build process with [Bazel](https://bazel.build/).
-- Implement configuration directives for the Wasm runtimes.
-- Implement a `wasm_log` directive with Wasm-only logs.
+This module's roadmap is documented via [GitHub
+projects](https://github.com/Kong/ngx_wasm_module/projects).
+
+A non-exhaustive list of ideas WasmX aims to explore:
+
+- Improve nginx's telemetry reporting.
+- Improve nginx's hot-reloading capabilities.
 - Load Wasm bytecode at runtime (consider a dedicated nginx process type?).
+- Support for Envoy's [xDS
+  API](https://www.envoyproxy.io/docs/envoy/latest/api/api_supported_versions).
+- Consider multiplexing & routing connections at a lower level than currently
+  offered by stock nginx modules.
+- Consider a build process with [Bazel](https://bazel.build/).
+
+## TODOs
 
 List the annotated "TODOs" in the sources and test cases with:
 
