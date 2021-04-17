@@ -42,8 +42,8 @@ test-build:
 .PHONY: lint
 lint:
 	@util/style.pl src/*
-	@!(grep -R -E -n -- '#define\s+DDEBUG\s+1' src && echo "DDEBUG detected in sources") >&2
-	@!(grep -R -E -n -- '---\s+ONLY' t && echo "--- ONLY block detected") >&2
+	@!(grep -REIn -- '#define\s+DDEBUG\s+1' src && echo "DDEBUG detected in sources") >&2
+	@!(grep -REIn -- '---\s+ONLY' t && echo "--- ONLY block detected") >&2
 
 .PHONY: reindex
 reindex:
@@ -53,7 +53,7 @@ reindex:
 
 .PHONY: todo
 todo:
-	@/bin/grep -n -R -F -- 'TODO' src/ t/
+	@/bin/grep -RIFn -- 'TODO' src/ t/
 
 .PHONY: act
 act:
