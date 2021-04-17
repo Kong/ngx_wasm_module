@@ -23,10 +23,11 @@ should produce a log with the current time (ms as ~ns)
     }
 --- request
 GET /t/log/current_time
+--- response_body
+ok
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] now: 2.*? UTC/,
 ]
 --- no_error_log
 [error]
-[alert]

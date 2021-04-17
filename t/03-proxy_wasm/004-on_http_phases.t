@@ -16,10 +16,7 @@ __DATA__
 
 === TEST 1: proxy_wasm - on_request_headers
 --- load_nginx_modules: ngx_http_echo_module
---- main_config
-    wasm {
-        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
-    }
+--- wasm_modules: on_phases
 --- config
     location /t {
         proxy_wasm on_phases;
@@ -40,10 +37,7 @@ qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/
 === TEST 2: proxy_wasm - on_response_headers
 should log 0 response headers (TODO: include default headers)
 --- load_nginx_modules: ngx_http_echo_module
---- main_config
-    wasm {
-        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
-    }
+--- wasm_modules: on_phases
 --- config
     location /t {
         proxy_wasm on_phases;
@@ -63,10 +57,7 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/
 
 === TEST 3: proxy_wasm - on_done
 --- load_nginx_modules: ngx_http_echo_module
---- main_config
-    wasm {
-        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
-    }
+--- wasm_modules: on_phases
 --- config
     location /t {
         proxy_wasm on_phases;
@@ -87,10 +78,7 @@ qr/\[info\] .*? \[wasm\] #\d+ on_done/
 === TEST 4: proxy_wasm - missing default content handler
 should cause HTTP 404 from static module (default content handler)
 --- load_nginx_modules: ngx_http_echo_module
---- main_config
-    wasm {
-        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
-    }
+--- wasm_modules: on_phases
 --- config
     location /t {
         proxy_wasm on_phases;
@@ -113,10 +101,7 @@ qr/404 Not Found/
 
 === TEST 5: proxy_wasm - with 'return' (rewrite)
 should produce a response in and of itself, proxy_wasm wraps around
---- main_config
-    wasm {
-        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
-    }
+--- wasm_modules: on_phases
 --- config
     location /t {
         proxy_wasm on_phases;
@@ -136,12 +121,52 @@ should produce a response in and of itself, proxy_wasm wraps around
 
 
 
-=== TEST 6: proxy_wasm - with 'proxy_pass' (content)
-should produce a response from proxy_pass, proxy_wasm wraps around
---- main_config
-    wasm {
-        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
+=== TEST 6: proxy_wasm - before content producer 'echo'
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        proxy_wasm on_phases;
+        echo ok;
     }
+--- error_code: 200
+--- response_body
+ok
+--- error_log eval
+--- no_error_log
+[warn]
+[error]
+[crit]
+[emerg]
+[alert]
+
+
+
+=== TEST 7: proxy_wasm - after content producer 'echo'
+should produce a response from echo, even if proxy_wasm was added
+below it, it should wrap around echo
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        echo ok;
+        proxy_wasm on_phases;
+    }
+--- response_body
+ok
+--- error_log eval
+--- no_error_log
+[warn]
+[error]
+[crit]
+[emerg]
+[alert]
+
+
+
+=== TEST 8: proxy_wasm - before content producer 'proxy_pass'
+should produce a response from proxy_pass, proxy_wasm wraps around
+--- wasm_modules: on_phases
 --- http_config eval
 qq{
     upstream test_upstream {
@@ -175,13 +200,10 @@ qq{
 
 
 
-=== TEST 7: proxy_wasm - as subrequest
+=== TEST 9: proxy_wasm - as a subrequest
 should not execute a log phase
+--- wasm_modules: on_phases
 --- load_nginx_modules: ngx_http_echo_module
---- main_config
-    wasm {
-        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
-    }
 --- config
     location /subrequest {
         internal;
@@ -206,12 +228,9 @@ on_done
 
 
 
-=== TEST 8: proxy_wasm - same module, multiple locations
+=== TEST 10: proxy_wasm - same module, multiple locations
 --- load_nginx_modules: ngx_http_echo_module
---- main_config
-    wasm {
-        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
-    }
+--- wasm_modules: on_phases
 --- config
     location /subrequest/a {
         proxy_wasm on_phases;

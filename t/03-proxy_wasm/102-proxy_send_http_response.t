@@ -28,7 +28,7 @@ GET /t/send_local_response/status/204
 --- no_error_log
 [warn]
 [error]
-[alert]
+[crit]
 [emerg]
 
 
@@ -49,7 +49,7 @@ GET /t/send_local_response/status/300
 --- no_error_log
 [warn]
 [error]
-[alert]
+[crit]
 [emerg]
 
 
@@ -95,7 +95,7 @@ Powered-By: proxy-wasm
 --- response_body
 --- no_error_log
 [error]
-[alert]
+[crit]
 [emerg]
 
 
@@ -116,7 +116,7 @@ Hello world
 --- no_error_log
 [warn]
 [error]
-[alert]
+[crit]
 [emerg]
 
 
@@ -138,7 +138,7 @@ Content-Length: 11
 Hello world
 --- no_error_log
 [error]
-[alert]
+[crit]
 [emerg]
 
 

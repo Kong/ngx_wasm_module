@@ -111,9 +111,9 @@ GET //t/echo//header/:path
 --- no_error_log
 [warn]
 [error]
+[crit]
 [emerg]
 [alert]
-[crit]
 [stderr]
 
 

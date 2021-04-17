@@ -23,8 +23,6 @@ typedef struct {
 static void *ngx_http_wasm_create_main_conf(ngx_conf_t *cf);
 static char *ngx_http_wasm_init_main_conf(ngx_conf_t *cf, void *conf);
 static void *ngx_http_wasm_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_wasm_op_post_handler(ngx_conf_t *cf, void *post,
-    void *data);
 char *ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
@@ -92,10 +90,6 @@ static ngx_wasm_subsystem_t  ngx_http_wasm_subsystem = {
 };
 
 
-static ngx_conf_post_t  ngx_http_wasm_op_post =
-    { ngx_http_wasm_op_post_handler };
-
-
 static ngx_command_t  ngx_http_wasm_module_cmds[] = {
 
     { ngx_string("wasm_call"),
@@ -103,14 +97,14 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       ngx_http_wasm_call_directive,
       NGX_HTTP_LOC_CONF_OFFSET,
       NGX_HTTP_MODULE,
-      &ngx_http_wasm_op_post },
+      NULL },
 
     { ngx_string("proxy_wasm"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
       ngx_http_wasm_proxy_wasm_directive,
       NGX_HTTP_LOC_CONF_OFFSET,
       NGX_HTTP_MODULE,
-      &ngx_http_wasm_op_post },
+      NULL },
 
       ngx_null_command
 };
@@ -215,25 +209,6 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
     }
 
     return loc;
-}
-
-
-static char *
-ngx_http_wasm_op_post_handler(ngx_conf_t *cf, void *post, void *data)
-{
-    ngx_wasm_op_t             *op = data;
-    ngx_http_core_loc_conf_t  *clcf;
-
-    if (op->on_phases & NGX_HTTP_CONTENT_PHASE) {
-        clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
-        if (clcf == NULL) {
-            return NGX_CONF_ERROR;
-        }
-
-        clcf->handler = ngx_http_wasm_content_handler;
-    }
-
-    return NGX_CONF_OK;
 }
 
 
@@ -601,6 +576,7 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
         rc = ngx_http_wasm_check_finalize(r, rctx, rc);
         ngx_wasm_assert(rc == NGX_DONE);
         if (r != r->main) {
+            /* subrequests */
             rc = NGX_OK;
         }
 
