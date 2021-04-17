@@ -15,10 +15,7 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm - on_vm_start
---- main_config
-    wasm {
-        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
-    }
+--- wasm_modules: on_phases
 --- config
     location /t {
         proxy_wasm on_phases;
@@ -36,10 +33,7 @@ qr/\[info\] .*? \[wasm\] #0 on_vm_start, config_size: 0/
 
 
 === TEST 2: proxy_wasm - on_configure without configuration
---- main_config
-    wasm {
-        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
-    }
+--- wasm_modules: on_phases
 --- config
     location /t {
         proxy_wasm on_phases;
@@ -57,10 +51,7 @@ qr/\[info\] .*? \[wasm\] #0 on_configure, config_size: 0/
 
 
 === TEST 3: proxy_wasm - on_configure with configuration
---- main_config
-    wasm {
-        module on_phases $TEST_NGINX_CRATES_DIR/on_phases.wasm;
-    }
+--- wasm_modules: on_phases
 --- config
     location /t {
         proxy_wasm on_phases 'key=value foo=bar';

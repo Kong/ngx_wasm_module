@@ -22,6 +22,8 @@ __DATA__
     }
 --- request
 GET /t/log/levels
+--- response_body
+ok
 --- error_log eval
 [
     qr/\[debug\] .*? \[wasm\] proxy_log trace$/,
@@ -33,7 +35,6 @@ GET /t/log/levels
 --- no_error_log
 [alert]
 stub1
-stub2
 
 
 
