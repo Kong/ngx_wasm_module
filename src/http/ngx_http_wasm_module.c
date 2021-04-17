@@ -35,8 +35,10 @@ static ngx_int_t ngx_http_wasm_init(ngx_cycle_t *cycle);
 static ngx_int_t ngx_http_wasm_init_process(ngx_cycle_t *cycle);
 static void ngx_http_wasm_exit_process(ngx_cycle_t *cycle);
 static ngx_int_t ngx_http_wasm_rewrite_handler(ngx_http_request_t *r);
+#if (NGX_DEBUG)
 static ngx_int_t ngx_http_wasm_preaccess_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_access_handler(ngx_http_request_t *r);
+#endif
 static ngx_int_t ngx_http_wasm_content_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_header_filter_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_log_handler(ngx_http_request_t *r);
@@ -148,8 +150,13 @@ static ngx_http_handler_pt  phase_handlers[NGX_HTTP_LOG_PHASE + 1] = {
     NULL,                                /* find_config */
     ngx_http_wasm_rewrite_handler,       /* rewrite */
     NULL,                                /* post_rewrite */
+#if (NGX_DEBUG)
     ngx_http_wasm_preaccess_handler,     /* pre_access */
     ngx_http_wasm_access_handler,        /* access */
+#else
+    NULL,
+    NULL,
+#endif
     NULL,                                /* post_access*/
     NULL,                                /* pre_content */
     ngx_http_wasm_content_handler,       /* content */
@@ -527,6 +534,7 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
 }
 
 
+#if (NGX_DEBUG)
 static ngx_int_t
 ngx_http_wasm_preaccess_handler(ngx_http_request_t *r)
 {
@@ -559,6 +567,7 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
 
     return ngx_http_wasm_check_finalize(r, rctx, rc);
 }
+#endif
 
 
 static ngx_int_t
