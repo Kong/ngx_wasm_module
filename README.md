@@ -12,6 +12,21 @@ Currently, the module aims at supporting the
 filters identical to those running on
 [Envoy today](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter.html).
 
+## Table of Contents
+
+- [Synopsys](#synopsys)
+- [Example](#example)
+- [Requirements](#requirements)
+    - [WebAssembly runtime](#webassembly-runtime)
+    - [Nginx](#nginx)
+- [Installation](#installation)
+- [What is WasmX?](#what-is-wasmx)
+- [Resources](#resources)
+    - [Documentation](#documentation)
+    - [Roadmap](#roadmap)
+- [Getting involved](#getting-involved)
+- [License](#license)
+
 ## Synopsis
 
 ```nginx
@@ -46,12 +61,16 @@ http {
 }
 ```
 
+[Back to TOC](#table-of-contents)
+
 ## Example
 
 The
 [proxy-wasm-filter-echo](https://github.com/wasmx-proxy/proxy-wasm-filter-echo/)
 project showcases the available host capabilities of ngx_wasm_module and is
 compatible with the Envoy runtime.
+
+[Back to TOC](#table-of-contents)
 
 ## Requirements
 
@@ -91,6 +110,16 @@ Likewise, headers can be placed in `/usr/local/opt/include` or
   `$NGX_WASM_RUNTIME_LIB` environment variables can be specified to respectively
   customize their paths.
 
+[Back to TOC](#table-of-contents)
+
+### Nginx
+
+Ensure that you have all the necessary dependencies to build Nginx on your
+system. See [DEVELOPER.md](#developer.md) for a list of platform-specific
+dependencies.
+
+[Back to TOC](#table-of-contents)
+
 ## Installation
 
 To compile this module alongside Nginx, first obtain a copy of the desired
@@ -124,9 +153,36 @@ $ nginx -V # should contain '--add-module=.../ngx_wasm_module'
   installed, or else specify the intended binary appropriately to the shell
   (e.g.  `$ /path/to/nginx ...`).
 
-## Documentation
+[Back to TOC](#table-of-contents)
+
+## What is WasmX?
+
+WasmX aims at extending Nginx for the modern Web infrastructure. This includes -
+but is not limited to - supporting [CNCF](https://www.cncf.io/) projects &
+standards, supporting WebAssembly runtimes (by way of ngx_wasm_module), easing
+the contribution learning curve, etc...
+
+While WasmX offers obvious benefits to Kong Inc. today (i.e. embedding
+WebAssembly filters inside of Kong Gateway), it could become its own proxy
+runtime if it proves itself valuable alongside Envoy, that is: unique in its own
+proposition value, in terms of performance & footprint compromises.
+
+[Back to TOC](#table-of-contents)
+
+## Resources
+
+### Documentation
 
 [Pending]
+
+[Back to TOC](#table-of-contents)
+
+### Roadmap
+
+This project's roadmap is documented via [GitHub
+projects](https://github.com/Kong/ngx_wasm_module/projects).
+
+[Back to TOC](#table-of-contents)
 
 ## Getting involved
 
@@ -135,6 +191,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) to find ways of getting involved.
 See [DEVELOPER.md](DEVELOPER.md) for developer resources on building this module
 from source and other general development processes.
 
+[Back to TOC](#table-of-contents)
+
 ## License
 
 [Pending]
+
+[Back to TOC](#table-of-contents)
