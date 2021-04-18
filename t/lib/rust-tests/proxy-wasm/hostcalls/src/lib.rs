@@ -13,7 +13,7 @@ use std::collections::HashMap;
 enum TestPhase {
     HttpRequestHeaders,
     HttpResponseHeaders,
-    Done,
+    Log,
 }
 
 struct TestRoot {
@@ -47,7 +47,9 @@ impl RootContext for TestRoot {
             on_phase: self
                 .config
                 .get("on_phase")
-                .map_or(TestPhase::HttpRequestHeaders, |s| s.parse().unwrap()),
+                .map_or(TestPhase::HttpRequestHeaders, |s| {
+                    s.parse().expect(format!("unknown phase: {:?}", s).as_str())
+                }),
         }))
     }
 }
@@ -75,7 +77,7 @@ impl TestHttpHostcalls {
             return;
         }
 
-        debug!(
+        info!(
             "[tests] #{} entering \"{:?}\"",
             self.context_id, self.on_phase
         );
@@ -131,6 +133,7 @@ impl TestHttpHostcalls {
                 "/t/send_local_response/status/1000" => test_send_status(self, 1000),
                 "/t/send_local_response/headers" => test_send_headers(self),
                 "/t/send_local_response/body" => test_send_body(self),
+                "/t/send_local_response/twice" => test_send_twice(self),
                 "/t/send_local_response/set_special_headers" => test_set_special_headers(self),
                 "/t/send_local_response/set_headers_escaping" => test_set_headers_escaping(self),
                 "/t/echo/headers" => echo_headers(self),
@@ -156,7 +159,8 @@ impl HttpContext for TestHttpHostcalls {
     }
 
     fn on_log(&mut self) {
-        self.exec_tests(TestPhase::Done);
+        info!("#{} on_log", self.context_id);
+        self.exec_tests(TestPhase::Log);
     }
 }
 

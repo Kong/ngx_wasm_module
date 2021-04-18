@@ -152,7 +152,7 @@ wasm_trap_t *
 ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
     wasm_val_vec_t* rets)
 {
-    size_t                  errlen, len;
+    size_t                  errlen = 0, len;
     char                   *err = NULL;
     u_char                 *p, *buf, trapbuf[NGX_WAVM_HFUNCS_MAX_TRAP_LEN];
     ngx_int_t               rc;
@@ -180,45 +180,58 @@ ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
     switch (rc) {
 
     case NGX_WAVM_OK:
+        if (!instance->trapmsg.len) {
+            return NULL;
+        }
+
         break;
 
     case NGX_WAVM_ERROR:
-        err = "nginx hfuncs error";
-        goto trap;
-
-    case NGX_WAVM_BAD_CTX:
-        err = "nginx hfuncs bad context";
-        goto trap;
+        err = "host internal error";
+        break;
 
     case NGX_WAVM_BAD_USAGE:
-        err = "nginx hfuncs bad usage";
-        goto trap;
+        err = "bad host usage";
+        break;
+
+    case NGX_WAVM_BAD_ARG:
+        err = "bad host argument";
+        break;
 
     default:
-        err = "NYI - hfuncs trampoline rc";
-        goto trap;
+        err = "NYI - unknown host trampoline rc";
+        break;
 
     }
 
-    return NULL;
-
-trap:
-
-    if (instance->trapmsg.len) {
-        errlen = ngx_strlen(err);
-        len = errlen + instance->trapmsg.len + 2;
+    len = instance->trapmsg.len;
+    if (len) {
+        if (err) {
+            errlen = ngx_strlen(err);
+            len += errlen + 2; /* ': ' */
+        }
 
         wasm_byte_vec_new_uninitialized(&trapmsg, len);
-
         buf = (u_char *) trapmsg.data;
-        p = ngx_copy(buf, err, errlen);
-        p = ngx_snprintf(p, len - (p - buf), ": %V", &instance->trapmsg);
-        //*p++ = '\0'; /* trapmsg null terminated */
+        p = buf;
+
+        if (err) {
+            p = ngx_copy(p, err, errlen);
+            p = ngx_copy(p, (u_char *) ": ", 2);
+        }
+
+        p = ngx_snprintf(p, len - (p - buf), "%V", &instance->trapmsg);
 
         ngx_wasm_assert( ((size_t) (p - buf)) == len );
 
     } else {
-        wasm_name_new_from_string(&trapmsg, err);
+        wasm_name_new(&trapmsg,
+                      ngx_strlen(err)
+#ifdef NGX_WASM_HAVE_WASMTIME
+                      /* wasm_trap_new requires a null-terminated string */
+                      + 1
+#endif
+                      , err);
     }
 
     trap = wasm_trap_new(instance->ctx->store, &trapmsg);

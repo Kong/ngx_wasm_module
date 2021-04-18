@@ -66,7 +66,7 @@ impl HttpContext for HttpHeaders {
     }
 
     fn on_log(&mut self) {
-        info!("#{} on_done", self.context_id);
+        info!("#{} on_log", self.context_id);
     }
 }
 

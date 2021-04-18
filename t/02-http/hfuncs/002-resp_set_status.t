@@ -56,7 +56,8 @@ hello say
         wasm_call log ngx_rust_tests set_resp_status;
     }
 --- ignore_response_body
---- error_log eval
-qr/\[error\] .*? bad usage: headers already sent/
+--- grep_error_log eval: qr/\[error\] .*?$/
+--- grep_error_log_out eval
+qr/\[wasm\] bad host usage: headers already sent/
 --- no_error_log
 [emerg]

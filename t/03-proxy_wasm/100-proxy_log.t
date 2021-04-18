@@ -13,8 +13,8 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm - proxy_log() logs all levels
---- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
 --- config
     location /t {
         proxy_wasm hostcalls;
@@ -39,8 +39,8 @@ stub1
 
 
 === TEST 2: proxy_wasm - proxy_log() x on_phases
---- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
 --- config
     location /t/A {
         proxy_wasm hostcalls on_phase=http_request_headers;
@@ -53,7 +53,7 @@ stub1
     }
 
     location /t {
-        proxy_wasm hostcalls on_phase=done;
+        proxy_wasm hostcalls on_phase=log;
         echo_location /t/A;
         echo_location /t/B;
         echo C;
@@ -72,7 +72,7 @@ C
     qr/\[error\] .*? \[wasm\] proxy_log error/,
     qr/\[wasm\] \[tests\] #\d+ entering "HttpResponseHeaders"/,
     qr/\[error\] .*? \[wasm\] proxy_log error/,
-    qr/\[wasm\] \[tests\] #\d+ entering "Done"/,
+    qr/\[wasm\] \[tests\] #\d+ entering "Log"/,
     qr/\[error\] .*? \[wasm\] proxy_log error/,
 ]
 --- no_error_log

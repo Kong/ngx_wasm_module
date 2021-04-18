@@ -6,17 +6,15 @@
 #include <ngx_wavm_host.h>
 
 
-#define NGX_WAVM_OK                  NGX_OK
-#define NGX_WAVM_ERROR               NGX_ERROR
-#define NGX_WAVM_AGAIN               NGX_AGAIN
-#define NGX_WAVM_BUSY                NGX_BUSY
-#define NGX_WAVM_SENT_LAST           NGX_DONE
-#define NGX_WAVM_BAD_CTX             NGX_DECLINED
-#define NGX_WAVM_BAD_USAGE           NGX_ABORT
+#define NGX_WAVM_OK                    0
+#define NGX_WAVM_ERROR               -10
+#define NGX_WAVM_BAD_ARG             -11
+#define NGX_WAVM_BAD_USAGE           -12
+#define NGX_WAVM_NYI                 -13
 
-#define ngx_wavm_state(m, s)         (m->state & s)
+#define ngx_wavm_state(m, s)         (m->state & (s))
 
-#define ngx_wavm_err_init(err)       ngx_memzero(err, sizeof(ngx_wavm_err_t))
+#define ngx_wavm_err_init(err)       ngx_memzero((err), sizeof(ngx_wavm_err_t))
 
 
 typedef enum {
