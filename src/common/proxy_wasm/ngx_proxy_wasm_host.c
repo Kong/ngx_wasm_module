@@ -10,7 +10,7 @@
 
 
 #define ngx_proxy_wasm_get_pwm(instance)                                     \
-    ((ngx_proxy_wasm_t *)                                             \
+    ((ngx_proxy_wasm_t *)                                                    \
      ((u_char *) (instance)->ctx - offsetof(ngx_proxy_wasm_t, wvctx)))
 
 
@@ -283,6 +283,7 @@ ngx_proxy_wasm_hfuncs_send_http_response(ngx_wavm_instance_t *instance,
     ngx_array_t              *headers = NULL;
     ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
     ngx_http_request_t       *r = rctx->r;
+    ngx_proxy_wasm_t         *pwm;
 
     status = args[0].of.i32;
     reason = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
@@ -310,7 +311,7 @@ ngx_proxy_wasm_hfuncs_send_http_response(ngx_wavm_instance_t *instance,
     switch (rc) {
 
     case NGX_OK:
-        return ngx_proxy_wasm_result_ok(rets);
+        break;
 
     case NGX_ERROR:
         return ngx_proxy_wasm_result_err(rets);
@@ -318,18 +319,24 @@ ngx_proxy_wasm_hfuncs_send_http_response(ngx_wavm_instance_t *instance,
     case NGX_DECLINED:
         return ngx_proxy_wasm_result_badarg(rets);
 
+    case NGX_BUSY:
+        pwm = ngx_proxy_wasm_get_pwm(instance);
+        return ngx_proxy_wasm_result_trap(pwm,
+                                          "local response already stashed",
+                                          rets);
+
     case NGX_ABORT:
-        return NGX_WAVM_BAD_USAGE;
+        pwm = ngx_proxy_wasm_get_pwm(instance);
+        return ngx_proxy_wasm_result_trap(pwm, "response already sent", rets);
 
     default:
-        break;
+        /* unreachable */
+        ngx_wasm_assert(0);
+        return NGX_WAVM_NYI;
 
     }
 
-    /* unreachable */
-
-    ngx_wasm_assert(0);
-    return NGX_WAVM_BUSY;
+    return ngx_proxy_wasm_result_ok(rets);
 }
 
 
@@ -373,7 +380,7 @@ ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
     ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
                        "NYI: proxy_wasm hfunc");
 
-    return NGX_WAVM_BUSY; /* NYI */
+    return NGX_WAVM_NYI;
 }
 
 

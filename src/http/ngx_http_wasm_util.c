@@ -608,15 +608,20 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     ngx_int_t status, u_char *reason, size_t reason_len, ngx_array_t *headers,
     u_char *body, size_t body_len)
 {
+    size_t               len;
     u_char              *p = NULL;
     ngx_buf_t           *b = NULL;
     ngx_chain_t         *cl = NULL;
     ngx_http_request_t  *r = rctx->r;
 
-    if (rctx->local_resp) {
-        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                           "local response already stashed");
+    if (r->header_sent || rctx->entered_content) {
+        /* response already sent, content produced */
         return NGX_ABORT;
+    }
+
+    if (rctx->local_resp) {
+        /* local response already stashed */
+        return NGX_BUSY;
     }
 
     /* status */
@@ -649,17 +654,24 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     /* body */
 
     if (body_len) {
-        b = ngx_create_temp_buf(r->pool, body_len + sizeof(LF));
+        len = body_len + sizeof(LF);
+
+        b = ngx_create_temp_buf(r->pool, len);
         if (b == NULL) {
             goto fail;
         }
 
-        b->sync = 1;
         b->last = ngx_copy(b->last, body, body_len);
-        //*b->last++ = LF;
+        *b->last++ = LF;
 
-        b->last_buf = 1;
         b->last_in_chain = 1;
+
+        if (r == r->main) {
+            b->last_buf = 1;
+
+        } else {
+            b->sync = 1;
+        }
 
         cl = ngx_alloc_chain_link(r->connection->pool);
         if (cl == NULL) {
@@ -670,7 +682,7 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
         cl->next = NULL;
 
         rctx->local_resp_body = cl;
-        rctx->local_resp_body_len = body_len;
+        rctx->local_resp_body_len = len;
     }
 
     rctx->local_resp = 1;
@@ -693,12 +705,12 @@ ngx_http_wasm_flush_local_response(ngx_http_request_t *r,
     ngx_int_t                 rc;
     ngx_table_elt_t          *elt;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "wasm flushing local_response: %d", rctx->local_resp);
-
-    if (!rctx->local_resp) {
+    if (!rctx->local_resp || rctx->entered_content || r->header_sent) {
         return NGX_DECLINED;
     }
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "wasm flushing local_response");
 
     rc = ngx_http_discard_request_body(r);
     if (rc != NGX_OK) {

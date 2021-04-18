@@ -36,6 +36,8 @@ typedef struct {
     unsigned                         local_resp:1;
     unsigned                         sent_last:1;
     unsigned                         finalized:1;
+
+    unsigned                         entered_content:1;
 } ngx_http_wasm_req_ctx_t;
 
 

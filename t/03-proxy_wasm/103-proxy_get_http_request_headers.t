@@ -26,7 +26,8 @@ Hello: world
 --- response_body eval
 qq{Host: localhost\r
 Connection: close\r
-Hello: world}
+Hello: world
+}
 --- no_error_log
 [error]
 [crit]
@@ -51,7 +52,7 @@ CORE::join "\n", map { "Header$_: value-$_" } 1..20
 --- response_body eval
 qq{Host: localhost\r
 Connection: close\r
-}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..20)
+}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..20) . "\n"
 --- no_error_log
 [warn]
 [error]
@@ -76,7 +77,7 @@ CORE::join "\n", map { "Header$_: value-$_" } 1..105
 --- response_body eval
 qq{Host: localhost\r
 Connection: close\r
-}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..98)
+}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..98) . "\n"
 --- error_log eval
 [
     qr/\[warn\] .*? truncated request headers map to 100 elements/,
@@ -104,9 +105,9 @@ CORE::join "\n", map { "Header$_: value-$_" } 1..105
 --- response_body eval
 [qq{Host: localhost\r
 Connection: keep-alive\r
-}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..98),
+}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..98) . "\n",
 qq{Host: localhost\r
 Connection: close\r
-}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..98)]
+}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..98) . "\n"]
 --- no_error_log
 [error]

@@ -27,8 +27,8 @@ __DATA__
 Hello: world
 --- response_body eval
 [
-    "Hello: world",
-    "hello: world"
+    "Hello: world\n",
+    "hello: world\n"
 ]
 --- no_error_log
 [error]
@@ -44,7 +44,7 @@ Hello: world
     }
 --- request
 GET /t/echo/header/Some-Header
---- response_body chomp
+--- response_body
 Some-Header:
 --- no_error_log
 [warn]
@@ -69,8 +69,8 @@ Some-Header:
 ]
 --- response_body eval
 [
-    ":method: GET",
-    ":method: POST"
+    ":method: GET\n",
+    ":method: POST\n"
 ]
 --- no_error_log
 [error]
@@ -86,7 +86,7 @@ Some-Header:
     }
 --- request
 GET /t/echo/header/:path
---- response_body chomp
+--- response_body
 :path: /t/echo/header/:path
 --- no_error_log
 [warn]
@@ -106,7 +106,7 @@ GET /t/echo/header/:path
     }
 --- request
 GET //t/echo//header/:path
---- response_body chomp
+--- response_body
 :path: /t/echo/header/:path
 --- no_error_log
 [warn]
@@ -133,7 +133,7 @@ request's path (/t)
     }
 --- request
 GET /t
---- response_body chomp
+--- response_body
 :path: /t/echo/header/:path
 --- no_error_log
 [warn]

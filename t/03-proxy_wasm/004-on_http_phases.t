@@ -55,7 +55,7 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/
 
 
 
-=== TEST 3: proxy_wasm - on_done
+=== TEST 3: proxy_wasm - on_log
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -66,7 +66,7 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_done/
+qr/\[info\] .*? \[wasm\] #\d+ on_log/
 --- no_error_log
 [error]
 [emerg]
@@ -92,7 +92,7 @@ qr/404 Not Found/
     qr/\[error\] .*? open\(\) \".*?\" failed/,
     qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/,
     qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_done/
+    qr/\[info\] .*? \[wasm\] #\d+ on_log/
 ]
 --- no_error_log
 [crit]
@@ -113,7 +113,7 @@ should produce a response in and of itself, proxy_wasm wraps around
 [
     qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/,
     qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_done/
+    qr/\[info\] .*? \[wasm\] #\d+ on_log/
 ]
 --- no_error_log
 [error]
@@ -192,7 +192,7 @@ qq{
 [
     qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/,
     qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_done/
+    qr/\[info\] .*? \[wasm\] #\d+ on_log/
 ]
 --- no_error_log
 [error]
@@ -222,7 +222,7 @@ should not execute a log phase
     qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
 ]
 --- no_error_log
-on_done
+on_log
 [error]
 [crit]
 

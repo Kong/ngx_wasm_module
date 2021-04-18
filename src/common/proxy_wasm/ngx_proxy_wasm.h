@@ -2,6 +2,7 @@
 #define _NGX_PROXY_WASM_H_INCLUDED_
 
 
+#include <ngx_event.h>
 #include <ngx_wavm.h>
 
 
@@ -126,6 +127,7 @@ typedef ngx_uint_t (*ngx_proxy_wasm_ecode_pt)(ngx_proxy_wasm_t *pwm, ngx_uint_t 
 
 struct ngx_proxy_wasm_s {
 
+    ngx_event_t                        yield_ev;
     ngx_str_t                          config;
     ngx_proxy_wasm_resume_pt           resume_;
     ngx_proxy_wasm_ctxid_pt            ctxid_;
@@ -263,6 +265,14 @@ ngx_proxy_wasm_result_err(wasm_val_t rets[])
 }
 
 static ngx_inline ngx_int_t
+ngx_proxy_wasm_result_trap(ngx_proxy_wasm_t *pwm, char *trapmsg,
+    wasm_val_t rets[])
+{
+    ngx_wavm_instance_trap_printf(pwm->instance, trapmsg);
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+static ngx_inline ngx_int_t
 ngx_proxy_wasm_result_invalid_mem(wasm_val_t rets[])
 {
     rets[0] = (wasm_val_t)
@@ -283,6 +293,7 @@ ngx_proxy_wasm_result_notfound(wasm_val_t rets[])
     rets[0] = (wasm_val_t) WASM_I32_VAL(NGX_PROXY_WASM_RESULT_NOT_FOUND);
     return NGX_WAVM_OK;
 }
+
 
 extern ngx_wavm_host_def_t  ngx_proxy_wasm_host;
 

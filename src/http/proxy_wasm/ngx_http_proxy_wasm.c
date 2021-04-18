@@ -9,31 +9,43 @@
 static ngx_http_request_t *ngx_http_proxy_wasm_request(ngx_proxy_wasm_t *pwm);
 static ngx_int_t ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_t *pwm);
 static ngx_int_t ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_t *pwm);
+//static void ngx_proxy_wasm_on_log_handler(ngx_event_t *ev);
 
 
-static ngx_http_request_t *
-ngx_http_proxy_wasm_request(ngx_proxy_wasm_t *pwm)
+static ngx_inline ngx_http_wasm_req_ctx_t *
+ngx_http_proxy_wasm_rctx(ngx_proxy_wasm_t *pwm)
 {
     ngx_wavm_ctx_t           *wvctx;
     ngx_http_wasm_req_ctx_t  *rctx;
-    ngx_http_request_t       *r;
 
     wvctx = pwm->instance->ctx;
 
     ngx_wasm_assert(wvctx == &pwm->wvctx);
 
     rctx = (ngx_http_wasm_req_ctx_t *) wvctx->data;
-    r = rctx->r;
 
-    return r;
+    ngx_wasm_assert(wvctx->log == rctx->r->connection->log);
+
+    return rctx;
+}
+
+
+static ngx_inline ngx_http_request_t *
+ngx_http_proxy_wasm_request(ngx_proxy_wasm_t *pwm)
+{
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    rctx = ngx_http_proxy_wasm_rctx(pwm);
+
+    return rctx->r;
 }
 
 
 ngx_uint_t
 ngx_http_proxy_wasm_ctxid(ngx_proxy_wasm_t *pwm)
 {
-    ngx_http_request_t       *r;
     ngx_uint_t                ctxid;
+    ngx_http_request_t       *r;
 
     r = ngx_http_proxy_wasm_request(pwm);
     ctxid = r->connection->number;
@@ -59,12 +71,10 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
     ngx_wavm_ctx_t *wvctx)
 {
     ngx_int_t                 rc;
-#if (NGX_DEBUG)
-    ngx_http_request_t       *r;
+#if 0
+    ngx_http_wasm_req_ctx_t  *rctx;
 
-    r = ngx_http_proxy_wasm_request(pwm);
-
-    ngx_wasm_assert(wvctx->log == r->connection->log);
+    rctx = ngx_http_proxy_wasm_rctx(pwm);
 #endif
 
     if (pwm->trap) {
@@ -90,10 +100,19 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
         break;
 
     case NGX_HTTP_LOG_PHASE:
+#if 0
+        pwm->yield_ev.data = rctx;
+        pwm->yield_ev.log = rctx->r->connection->log;
+        pwm->yield_ev.handler = ngx_proxy_wasm_on_log_handler;
+
+        ngx_post_event(&pwm->yield_ev, &ngx_posted_events);
+        rc = NGX_OK;
+#else
         rc = ngx_proxy_wasm_on_log(pwm);
         if (rc != NGX_OK) {
-            rc = NGX_ERROR;
+           rc = NGX_ERROR;
         }
+#endif
 
         break;
 
@@ -210,3 +229,19 @@ ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_t *pwm)
 
     return NGX_OK;
 }
+
+
+#if 0
+static void
+ngx_proxy_wasm_on_log_handler(ngx_event_t *ev)
+{
+    ngx_proxy_wasm_t         *pwm = ev->data;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    rctx = ngx_http_proxy_wasm_rctx(pwm);
+
+    ngx_wavm_ctx_update(&pwm->wvctx, ev->log, rctx);
+
+    (void) ngx_proxy_wasm_on_log(pwm);
+}
+#endif

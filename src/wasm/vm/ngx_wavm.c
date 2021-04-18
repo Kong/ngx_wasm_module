@@ -1348,7 +1348,14 @@ ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wavm_err_t *e,
     if (e && e->trap) {
         wasm_trap_message(e->trap, &trapmsg);
 
-        p = ngx_slprintf(p, last, "%*s", trapmsg.size, trapmsg.data);
+        p = ngx_slprintf(p, last, "%*s",
+                         trapmsg.size
+#ifdef NGX_WASM_HAVE_WASMER
+                         /* wasmer 1.0.2 seems to allocate
+                          * an extra byte in wasm_name_new */
+                         - 1
+#endif
+                         , trapmsg.data);
 
         wasm_byte_vec_delete(&trapmsg);
         wasm_trap_delete(e->trap);

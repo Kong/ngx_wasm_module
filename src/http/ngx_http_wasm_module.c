@@ -569,12 +569,15 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm flush_local_response rc: %d", rc);
 
+    rctx->entered_content = 1;
+
     switch (rc) {
 
     case NGX_OK:
         /* flushed response */
         rc = ngx_http_wasm_check_finalize(r, rctx, rc);
         ngx_wasm_assert(rc == NGX_DONE);
+
         if (r != r->main) {
             /* subrequests */
             rc = NGX_OK;
@@ -584,6 +587,9 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     case NGX_DECLINED:
         if (rctx->r_content_handler) {
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                           "wasm running orig \"content\" handler");
+
             rc = rctx->r_content_handler(r);
         }
 

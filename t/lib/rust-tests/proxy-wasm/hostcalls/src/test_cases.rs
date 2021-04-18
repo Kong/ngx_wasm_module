@@ -26,11 +26,18 @@ pub(crate) fn test_send_headers(ctx: &mut TestHttpHostcalls) {
 }
 
 pub(crate) fn test_send_body(ctx: &mut TestHttpHostcalls) {
+    //let path = ctx.get_http_request_header(":path").unwrap();
     ctx.send_http_response(
         200,
-        vec![("Content-Length", "0")],
+        vec![("Content-Length", "0")], // must be overriden to body.len() by host
         Some("Hello world".as_bytes()),
+        //Some(format!("Hello world ({})", path).as_bytes()),
     )
+}
+
+pub(crate) fn test_send_twice(ctx: &mut TestHttpHostcalls) {
+    ctx.send_http_response(200, vec![], Some("Send once".as_bytes()));
+    ctx.send_http_response(201, vec![], Some("Send twice".as_bytes()))
 }
 
 pub(crate) fn test_set_special_headers(ctx: &mut TestHttpHostcalls) {
