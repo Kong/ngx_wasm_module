@@ -9,71 +9,71 @@
 
 ngx_int_t
 ngx_http_wasm_hfuncs_resp_get_status(ngx_wavm_instance_t *instance,
-   wasm_val_t args[], wasm_val_t rets[])
+    wasm_val_t args[], wasm_val_t rets[])
 {
-   ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
-   ngx_http_request_t       *r = rctx->r;
-   uint32_t                  status;
+    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
+    ngx_http_request_t       *r = rctx->r;
+    uint32_t                  status;
 
-   if (r->connection->fd == (ngx_socket_t) -1) {
-       return NGX_WAVM_BAD_CTX;
-   }
+    if (r->connection->fd == (ngx_socket_t) -1) {
+        return NGX_WAVM_BAD_CTX;
+    }
 
-   if (r->err_status) {
-       status = r->err_status;
+    if (r->err_status) {
+        status = r->err_status;
 
-   } else if (r->headers_out.status) {
-       status = r->headers_out.status;
+    } else if (r->headers_out.status) {
+        status = r->headers_out.status;
 
-   } else if (r->http_version == NGX_HTTP_VERSION_9) {
-       status = 9;
+    } else if (r->http_version == NGX_HTTP_VERSION_9) {
+        status = 9;
 
-   } else {
-       status = 0;
-   }
+    } else {
+        status = 0;
+    }
 
-   rets[0].kind = WASM_I32;
-   rets[0].of.i32 = status;
+    rets[0].kind = WASM_I32;
+    rets[0].of.i32 = status;
 
-   return NGX_WAVM_OK;
+    return NGX_WAVM_OK;
 }
 
 
 ngx_int_t
 ngx_http_wasm_hfuncs_resp_set_status(ngx_wavm_instance_t *instance,
-   wasm_val_t args[], wasm_val_t rets[])
+    wasm_val_t args[], wasm_val_t rets[])
 {
-   ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
-   ngx_http_request_t       *r = rctx->r;
-   uint32_t                  status;
+    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
+    ngx_http_request_t       *r = rctx->r;
+    uint32_t                  status;
 
-   if (r->connection->fd == (ngx_socket_t) -1) {
-       return NGX_WAVM_BAD_CTX;
-   }
+    if (r->connection->fd == (ngx_socket_t) -1) {
+        return NGX_WAVM_BAD_CTX;
+    }
 
-   if (r->header_sent) {
-       ngx_wavm_instance_trap_printf(instance, "headers already sent");
-       return NGX_WAVM_BAD_USAGE;
-   }
+    if (r->header_sent) {
+        ngx_wavm_instance_trap_printf(instance, "headers already sent");
+        return NGX_WAVM_BAD_USAGE;
+    }
 
-   status = args[0].of.i32;
+    status = args[0].of.i32;
 
-   ngx_log_debug1(NGX_LOG_DEBUG_WASM, instance->log, 0,
-                  "wasm set resp status to %d", status);
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, instance->log, 0,
+                   "wasm set resp status to %d", status);
 
-   r->headers_out.status = status;
+    r->headers_out.status = status;
 
-   if (r->err_status) {
-       r->err_status = 0;
-   }
+    if (r->err_status) {
+        r->err_status = 0;
+    }
 
-   return NGX_WAVM_OK;
+    return NGX_WAVM_OK;
 }
 
 
 ngx_int_t
 ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
-   wasm_val_t args[], wasm_val_t rets[])
+    wasm_val_t args[], wasm_val_t rets[])
 {
     size_t                    len;
     u_char                   *body;
@@ -132,20 +132,20 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
 
 static ngx_wavm_host_func_def_t  ngx_http_wasm_hfuncs[] = {
 
-   { ngx_string("ngx_http_resp_get_status"),
-     &ngx_http_wasm_hfuncs_resp_get_status,
-     NULL,
-     ngx_wavm_arity_i32 },
+    { ngx_string("ngx_http_resp_get_status"),
+      &ngx_http_wasm_hfuncs_resp_get_status,
+      NULL,
+      ngx_wavm_arity_i32 },
 
-   { ngx_string("ngx_http_resp_set_status"),
-     &ngx_http_wasm_hfuncs_resp_set_status,
-     ngx_wavm_arity_i32,
-     NULL },
+    { ngx_string("ngx_http_resp_set_status"),
+      &ngx_http_wasm_hfuncs_resp_set_status,
+      ngx_wavm_arity_i32,
+      NULL },
 
-   { ngx_string("ngx_http_resp_say"),
-     &ngx_http_wasm_hfuncs_resp_say,
-     ngx_wavm_arity_i32x2,
-     NULL },
+    { ngx_string("ngx_http_resp_say"),
+      &ngx_http_wasm_hfuncs_resp_say,
+      ngx_wavm_arity_i32x2,
+      NULL },
 
    ngx_wavm_hfunc_null
 };

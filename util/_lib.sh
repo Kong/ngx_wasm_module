@@ -151,7 +151,7 @@ download() {
         return
     fi
 
-    curl --fail -L $url -o $output || (rm -f $output; fatal "failed to download $url")
+    curl --fail -L $url >$output || (rm -f $output; fatal "failed to download $url")
 }
 
 apply_patch() {
