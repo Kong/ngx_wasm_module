@@ -17,6 +17,12 @@ pub(crate) fn test_log_current_time(ctx: &mut TestHttpHostcalls) {
     info!("now: {}", now)
 }
 
+pub(crate) fn test_log_request_headers(ctx: &mut TestHttpHostcalls) {
+    for (name, value) in ctx.get_http_request_headers() {
+        info!("{}: {}", name, value)
+    }
+}
+
 pub(crate) fn test_send_status(ctx: &mut TestHttpHostcalls, status: u32) {
     ctx.send_http_response(status, vec![], None)
 }

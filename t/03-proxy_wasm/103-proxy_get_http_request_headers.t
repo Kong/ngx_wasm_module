@@ -111,3 +111,63 @@ Connection: close\r
 }.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..98) . "\n"]
 --- no_error_log
 [error]
+
+
+
+=== TEST 5: proxy_wasm - get_http_request_headers() x on_phases (1/2)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t/A {
+        proxy_wasm hostcalls on_phase=http_request_headers;
+        echo A;
+    }
+
+    location /t/B {
+        proxy_wasm hostcalls on_phase=http_response_headers;
+        echo B;
+    }
+
+    location /t {
+        echo_location /t/A;
+        echo_location /t/B;
+    }
+--- request
+GET /t
+--- more_headers
+PWM-Test-Case: /t/log/request_headers
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[wasm\] \[tests\] #\d+ entering "HttpRequestHeaders"/,
+    qr/\[info\] .*? \[wasm\] Host: localhost/,
+    qr/\[wasm\] \[tests\] #\d+ entering "HttpResponseHeaders"/,
+    qr/\[info\] .*? \[wasm\] Host: localhost/,
+]
+--- no_error_log
+[error]
+
+
+
+=== TEST 6: proxy_wasm - get_http_request_headers() x on_phases (2/2)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls on_phase=log;
+        echo ok;
+    }
+--- request
+GET /t
+--- more_headers
+PWM-Test-Case: /t/log/request_headers
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[wasm\] \[tests\] #\d+ entering "Log"/,
+    qr/\[info\] .*? \[wasm\] Host: localhost/,
+]
+--- no_error_log
+[error]
+[crit]
+[emerg]
