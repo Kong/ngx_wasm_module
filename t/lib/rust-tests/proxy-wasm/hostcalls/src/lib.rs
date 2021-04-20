@@ -128,6 +128,7 @@ impl TestHttpHostcalls {
             Method::GET => match test_case.as_str() {
                 "/t/log/levels" => test_log_levels(self),
                 "/t/log/request_headers" => test_log_request_headers(self),
+                "/t/log/request_path" => test_log_request_path(self),
                 "/t/log/current_time" => test_log_current_time(self),
                 "/t/send_local_response/status/204" => test_send_status(self, 204),
                 "/t/send_local_response/status/300" => test_send_status(self, 300),

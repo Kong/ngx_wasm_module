@@ -134,11 +134,11 @@ should produce a response in and of itself, proxy_wasm wraps around
 ok
 --- error_log eval
 --- no_error_log
-[warn]
 [error]
 [crit]
 [emerg]
 [alert]
+[stderr]
 
 
 
@@ -156,11 +156,11 @@ below it, it should wrap around echo
 ok
 --- error_log eval
 --- no_error_log
-[warn]
 [error]
 [crit]
 [emerg]
 [alert]
+[stderr]
 
 
 
