@@ -602,6 +602,7 @@ ngx_http_wasm_discard_local_response(ngx_http_wasm_req_ctx_t *rctx)
     }
 }
 
+
 ngx_int_t
 ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     ngx_int_t status, u_char *reason, size_t reason_len, ngx_array_t *headers,

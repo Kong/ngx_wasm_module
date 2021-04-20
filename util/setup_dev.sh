@@ -52,6 +52,10 @@ pushd $DIR_BIN
     notice "downloading the reindex script..."
     download reindex https://raw.githubusercontent.com/openresty/openresty-devel-utils/master/reindex
     chmod +x reindex
+
+    notice "downloading the style script..."
+    download style https://raw.githubusercontent.com/openresty/openresty-devel-utils/master/ngx-style.pl
+    chmod +x style
 popd
 
 if [[ -d "$DIR_ECHO" ]]; then

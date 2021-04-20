@@ -55,16 +55,21 @@ ngx_int_t ngx_http_wasm_set_resp_content_length(ngx_http_request_t *r,
 uintptr_t ngx_http_wasm_escape(u_char *dst, u_char *src, size_t size,
     ngx_http_wasm_escape_kind kind);
 ngx_int_t ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in);
+
+
 static ngx_inline ngx_uint_t
 ngx_http_wasm_req_headers_count(ngx_http_request_t *r)
 {
     return ngx_wasm_list_nelts(&r->headers_in.headers);
 }
+
+
 static ngx_inline ngx_uint_t
 ngx_http_wasm_resp_headers_count(ngx_http_request_t *r)
 {
     return ngx_wasm_list_nelts(&r->headers_out.headers);
 }
+
 
 extern ngx_wavm_host_def_t  ngx_http_wasm_host_interface;
 

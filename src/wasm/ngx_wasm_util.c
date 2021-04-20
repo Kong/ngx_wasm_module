@@ -98,6 +98,8 @@ close:
 
     return rc;
 }
+
+
 void
 ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, ...)
