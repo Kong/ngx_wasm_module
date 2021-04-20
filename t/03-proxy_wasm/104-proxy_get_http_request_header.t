@@ -142,3 +142,41 @@ GET /t
 [emerg]
 [alert]
 [stderr]
+
+
+
+=== TEST 7: proxy_wasm - get_http_request_headers() x on_phases
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t/A {
+        proxy_wasm hostcalls on_phase=http_request_headers;
+        echo A;
+    }
+
+    location /t/B {
+        proxy_wasm hostcalls on_phase=http_response_headers;
+        echo B;
+    }
+
+    location /t {
+        echo_location /t/A;
+        echo_location /t/B;
+        proxy_wasm hostcalls on_phase=log;
+    }
+--- request
+GET /t
+--- more_headers
+PWM-Test-Case: /t/log/request_path
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[wasm\] \[tests\] #\d+ entering "HttpRequestHeaders"/,
+    qr/\[info\] .*? \[wasm\] path: \/t\/A/,
+    qr/\[wasm\] \[tests\] #\d+ entering "HttpResponseHeaders"/,
+    qr/\[info\] .*? \[wasm\] path: \/t\/B/,
+    qr/\[wasm\] \[tests\] #\d+ entering "Log"/,
+    qr/\[info\] .*? \[wasm\] path: \/t /,
+]
+--- no_error_log
+[error]

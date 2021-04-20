@@ -23,6 +23,13 @@ pub(crate) fn test_log_request_headers(ctx: &mut TestHttpHostcalls) {
     }
 }
 
+pub(crate) fn test_log_request_path(ctx: &mut TestHttpHostcalls) {
+    let path = ctx
+        .get_http_request_header(":path")
+        .expect("failed to retrieve request path");
+    info!("path: {}", path);
+}
+
 pub(crate) fn test_send_status(ctx: &mut TestHttpHostcalls, status: u32) {
     ctx.send_http_response(status, vec![], None)
 }
