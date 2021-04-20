@@ -365,7 +365,7 @@ ngx_proxy_wasm_alloc(ngx_proxy_wasm_t *pwm, size_t size)
 
 unsigned
 ngx_proxy_wasm_marshal(ngx_proxy_wasm_t *pwm, ngx_list_t *list,
-    ngx_wavm_ptr_t *out, size_t *len, u_char *truncated)
+    ngx_wavm_ptr_t *out, size_t *len, ngx_uint_t *truncated)
 {
     ngx_wavm_ptr_t   p;
     size_t           le;
@@ -381,9 +381,9 @@ ngx_proxy_wasm_marshal(ngx_proxy_wasm_t *pwm, ngx_list_t *list,
     }
 
     ngx_proxy_wasm_pairs_marshal(list,
-        ngx_wavm_memory_lift(pwm->instance->memory, p),
-        pwm->max_pairs,
-        truncated);
+                    ngx_wavm_memory_lift(pwm->instance->memory, p),
+                    pwm->max_pairs,
+                    truncated);
 
     *out = p;
     *len = le;

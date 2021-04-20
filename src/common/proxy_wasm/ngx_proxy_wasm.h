@@ -230,7 +230,7 @@ void ngx_proxy_wasm_destroy(ngx_proxy_wasm_t *pwmodule);
 /* ngx_proxy_wasm_t utils */
 ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_t *pwm, size_t size);
 unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_t *pwm, ngx_list_t *list,
-    ngx_wavm_ptr_t *out, size_t *len, u_char *truncated);
+    ngx_wavm_ptr_t *out, size_t *len, ngx_uint_t *truncated);
 
 /* phases */
 ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
@@ -240,7 +240,8 @@ ngx_int_t ngx_proxy_wasm_on_log(ngx_proxy_wasm_t *pwm);
 /* utils */
 ngx_uint_t ngx_proxy_wasm_pairs_count(ngx_list_t *list);
 size_t ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_uint_t max);
-void ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf, ngx_uint_t max, u_char *truncated);
+void ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf, ngx_uint_t max,
+    ngx_uint_t *truncated);
 ngx_array_t *ngx_proxy_wasm_pairs_unmarshal(ngx_pool_t *pool, u_char *buf,
     size_t len);
 ngx_str_t *ngx_proxy_wasm_get_map_value(ngx_list_t *map, u_char *key,

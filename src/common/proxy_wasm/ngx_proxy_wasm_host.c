@@ -158,7 +158,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_pairs(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_t           *pwm;
     ngx_proxy_wasm_map_type_t   map_type;
     ngx_list_t                 *list;
-    u_char                      truncated = 0;
+    ngx_uint_t                  truncated = 0;
 
     pwm = ngx_proxy_wasm_get_pwm(instance);
 
@@ -177,10 +177,9 @@ ngx_proxy_wasm_hfuncs_get_header_map_pairs(ngx_wavm_instance_t *instance,
 
     if (truncated) {
         ngx_proxy_wasm_log_error(NGX_LOG_WARN, pwm->log, 0,
-                                 "truncated request headers map to %d elements",
-                                 NGX_HTTP_WASM_MAX_REQ_HEADERS);
+                                 "marshalled map truncated to %ui elements",
+                                 truncated);
     }
-
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -270,7 +269,7 @@ found:
 
 
 static ngx_int_t
-ngx_proxy_wasm_hfuncs_send_http_response(ngx_wavm_instance_t *instance,
+ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
     int32_t                   status, reason_len, body_len, headers_len
@@ -431,12 +430,12 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
    /* http */
 
    { ngx_string("proxy_send_http_response"),
-     &ngx_proxy_wasm_hfuncs_send_http_response,
+     &ngx_proxy_wasm_hfuncs_send_local_response,
      ngx_wavm_arity_i32x8,
      ngx_wavm_arity_i32 },
    /* 0.1.0 - 0.2.1 */
    { ngx_string("proxy_send_local_response"),
-     &ngx_proxy_wasm_hfuncs_send_http_response,
+     &ngx_proxy_wasm_hfuncs_send_local_response,
      ngx_wavm_arity_i32x8,
      ngx_wavm_arity_i32 },
 

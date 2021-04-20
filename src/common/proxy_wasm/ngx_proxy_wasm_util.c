@@ -100,7 +100,8 @@ ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_uint_t max)
 
 
 void
-ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf, ngx_uint_t max, u_char *truncated)
+ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf, ngx_uint_t max,
+    ngx_uint_t *truncated)
 {
     size_t            i, n;
     uint32_t          count;
@@ -116,7 +117,7 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf, ngx_uint_t max, u_ch
         count = max;
 
         if (truncated) {
-            *truncated = 1;
+            *truncated = count;
         }
     }
 

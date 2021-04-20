@@ -666,8 +666,8 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
            (int) importname->size, importname->data,
            i + 1, module->imports.size);
 
-       ngx_wasm_assert(wasm_externtype_kind(wasm_importtype_type(importtype))
-                       == WASM_EXTERN_FUNC);
+        ngx_wasm_assert(wasm_externtype_kind(wasm_importtype_type(importtype))
+                        == WASM_EXTERN_FUNC);
 #endif
 
         s.len = importname->size;
@@ -1153,7 +1153,7 @@ ngx_wavm_val_vec_set(wasm_val_vec_t *out, const wasm_valtype_vec_t *valtypes,
 
         default:
             ngx_wasm_log_error(NGX_LOG_WASM_NYI, ngx_cycle->log, 0,
-                               "NYI - variadic arg of valkind \"%u\"",
+                               "NYI - variadic arg of valkind \"%ui\"",
                                valkind);
 
         }

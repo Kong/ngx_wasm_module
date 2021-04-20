@@ -80,7 +80,7 @@ Connection: close\r
 }.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..98) . "\n"
 --- error_log eval
 [
-    qr/\[warn\] .*? truncated request headers map to 100 elements/,
+    qr/\[warn\] .*? marshalled map truncated to 100 elements/,
     qr/\[info\] .*? number of request headers: 107/
 ]
 --- no_error_log
