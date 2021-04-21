@@ -174,6 +174,7 @@ ngx_wavm_memory_lift(wasm_memory_t *mem, ngx_wavm_ptr_t p)
     return ((u_char *) wasm_memory_data(mem) + p);
 }
 
+
 static ngx_inline unsigned
 ngx_wavm_memory_memcpy(wasm_memory_t *mem, ngx_wavm_ptr_t p, u_char *buf,
     size_t len)

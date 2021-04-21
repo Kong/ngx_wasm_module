@@ -221,7 +221,7 @@ qr/\[emerg\] .*? \[wasm\] incompatible ABI version/
         return 200;
     }
 --- error_log eval
-qr/\[emerg\] .*? "proxy_wasm" directive is duplicate/
+qr/\[emerg\] .*? "proxy_wasm" directive is duplicate in/
 --- no_error_log
 [warn]
 [error]

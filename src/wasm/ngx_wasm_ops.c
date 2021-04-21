@@ -3,7 +3,6 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_http_wasm.h>
 #include <ngx_wasm_ops.h>
 
 
@@ -73,16 +72,17 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
         for (j = 0; j < pipeline->ops->nelts; j++) {
             op = ((ngx_wasm_op_t **) pipeline->ops->elts)[j];
 
+            op->lmodule = ngx_wavm_module_link(op->module, op->host);
+            if (op->lmodule == NULL) {
+                return;
+            }
+
             switch (op->code) {
 
             case NGX_WASM_OP_CALL:
-                op->lmodule = ngx_wavm_module_link(op->module, op->host);
-                if (op->lmodule == NULL) {
-                    return;
-                }
-
+                op->handler = &ngx_wasm_op_call_handler;
                 op->conf.call.funcref = ngx_wavm_module_func_lookup(op->module,
-                                            &op->conf.call.func_name);
+                                                                    &op->conf.call.func_name);
                 if (op->conf.call.funcref == NULL) {
                     ngx_wasm_log_error(NGX_LOG_EMERG, engine->pool->log, 0,
                                        "no \"%V\" function in \"%V\" module",
@@ -93,23 +93,9 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
                 break;
 
             case NGX_WASM_OP_PROXY_WASM:
-                if (op->conf.proxy_wasm.pwmodule->lmodule) {
-                    break;
-                }
-
-                op->lmodule = ngx_wavm_module_link(op->module, op->host);
-                if (op->lmodule == NULL) {
-                    return;
-                }
-
+                op->handler = &ngx_wasm_op_proxy_wasm_handler;
                 op->conf.proxy_wasm.pwmodule->lmodule = op->lmodule;
-
-                if (ngx_proxy_wasm_init(op->conf.proxy_wasm.pwmodule)
-                    != NGX_OK)
-                {
-                    return;
-                }
-
+                (void) ngx_proxy_wasm_init(op->conf.proxy_wasm.pwmodule);
                 break;
 
             default:
@@ -160,26 +146,16 @@ ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine)
 }
 
 
-static ngx_int_t
-ngx_wasm_op_add_helper(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
-    ngx_wasm_op_t *op, ngx_str_t *arg_name)
+ngx_int_t
+ngx_wasm_ops_add(ngx_wasm_ops_engine_t *ops_engine, ngx_wasm_op_t *op)
 {
     ngx_wasm_phase_t          *phase = ops_engine->subsystem->phases;
     ngx_wasm_ops_pipeline_t   *pipeline;
     ngx_wasm_op_t            **opp;
 
-    if (arg_name->len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid module name \"%V\"", arg_name);
-        return NGX_ERROR;
-    }
-
-    op->module = ngx_wavm_module_lookup(ops_engine->vm, arg_name);
-    if (op->module == NULL) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "no \"%V\" module defined", arg_name);
-        return NGX_ERROR;
-    }
+    ngx_wasm_assert(op->on_phases);
+    ngx_wasm_assert(op->module);
+    ngx_wasm_assert(op->host);
 
     for (/* void */; phase->name.len; phase++) {
 
@@ -213,129 +189,6 @@ ngx_wasm_op_add_helper(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
     }
 
     return NGX_OK;
-}
-
-
-ngx_wasm_op_t *
-ngx_wasm_conf_add_op_call(ngx_conf_t *cf, ngx_wasm_ops_engine_t *ops_engine,
-    ngx_wavm_host_def_t *host, ngx_str_t *value)
-{
-    ngx_wasm_op_t     *op;
-    ngx_wasm_phase_t  *phase = ops_engine->subsystem->phases;
-    ngx_str_t         *phase_name, *arg_name, *func_name;
-
-    phase_name = &value[1];
-    arg_name = &value[2];
-    func_name = &value[3];
-
-    if (phase_name->len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid phase \"%V\"",
-                           phase_name);
-        return NULL;
-    }
-
-    if (func_name->len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid function name \"%V\"",
-                           func_name);
-        return NULL;
-    }
-
-    for (/* void */; phase->name.len; phase++) {
-        if (ngx_strncmp(phase_name->data, phase->name.data, phase->name.len)
-            == 0)
-        {
-            break;
-        }
-    }
-
-    if (phase->name.len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown phase \"%V\"",
-                           phase_name);
-        return NULL;
-    }
-
-    if (phase->on == 0) {
-        ngx_conf_log_error(NGX_LOG_WASM_NYI, cf, 0, "unsupported phase \"%V\"",
-                           phase_name);
-        return NULL;
-    }
-
-    op = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_op_t));
-    if (op == NULL) {
-        return NULL;
-    }
-
-    op->code = NGX_WASM_OP_CALL;
-    op->handler = ngx_wasm_op_call_handler;
-    op->on_phases = phase->on;
-    op->host = host;
-
-    op->conf.call.func_name = *func_name;
-
-    if (ngx_wasm_op_add_helper(cf, ops_engine, op, arg_name) != NGX_OK) {
-        return NULL;
-    }
-
-    return op;
-}
-
-
-ngx_wasm_op_t *
-ngx_wasm_conf_add_op_proxy_wasm(ngx_conf_t *cf,
-    ngx_wasm_ops_engine_t *ops_engine, ngx_uint_t nvalues, ngx_str_t *value,
-    ngx_proxy_wasm_t *pwmodule)
-{
-    u_char         *p;
-    ngx_wasm_op_t  *op = NULL;
-    ngx_str_t      *arg_name, *arg_config = NULL, *mod_config;
-
-    arg_name = &value[1];
-
-    if (nvalues > 2) {
-        arg_config = &value[2];
-    }
-
-    op = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_op_t));
-    if (op == NULL) {
-        return NULL;
-    }
-
-    op->code = NGX_WASM_OP_PROXY_WASM;
-    op->handler = ngx_wasm_op_proxy_wasm_handler;
-    op->host = &ngx_proxy_wasm_host;
-    op->on_phases = (1 << NGX_HTTP_REWRITE_PHASE)
-                    | (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE)
-                    | (1 << NGX_HTTP_LOG_PHASE);
-
-    if (ngx_wasm_op_add_helper(cf, ops_engine, op, arg_name) != NGX_OK) {
-        goto error;
-    }
-
-    op->conf.proxy_wasm.pwmodule = pwmodule;
-    op->conf.proxy_wasm.pwmodule->module = op->module;
-
-    if (arg_config) {
-        mod_config = &op->conf.proxy_wasm.pwmodule->config;
-
-        mod_config->len = arg_config->len;
-        mod_config->data = ngx_pnalloc(pwmodule->pool, mod_config->len + 1);
-        if (mod_config->data == NULL) {
-            goto error;
-        }
-
-        p = ngx_copy(mod_config->data, arg_config->data, mod_config->len);
-        *p = '\0';
-    }
-
-    return op;
-
-error:
-
-    if (op) {
-        ngx_pfree(cf->pool, op);
-    }
-
-    return NULL;
 }
 
 
