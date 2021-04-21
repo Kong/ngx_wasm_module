@@ -20,6 +20,11 @@ find_runtime() {
         ngx_feature_libs="$3"
     fi
 
+    if [ -z "$ngx_feature_libs" -a -n "$NGX_WASM_RUNTIME" ]; then
+        ngx_feature="$ngx_feature, -l$NGX_WASM_RUNTIME"
+        ngx_feature_libs="-l$NGX_WASM_RUNTIME"
+    fi
+
     ngx_feature_run=no
     ngx_feature_test=
 
