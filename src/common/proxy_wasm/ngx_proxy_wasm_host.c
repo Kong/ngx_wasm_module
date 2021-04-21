@@ -352,20 +352,21 @@ ngx_proxy_wasm_hfuncs_get_configuration(ngx_wavm_instance_t *instance,
     rbuf = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
     rlen = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
 
-    if (pwm->config.len) {
-        p = ngx_proxy_wasm_alloc(pwm, pwm->config.len);
+    if (pwm->filter_config.len) {
+        p = ngx_proxy_wasm_alloc(pwm, pwm->filter_config.len);
         if (p == 0) {
             return ngx_proxy_wasm_result_err(rets);
         }
 
         if (!ngx_wavm_memory_memcpy(instance->memory, p,
-                                    pwm->config.data, pwm->config.len))
+                                    pwm->filter_config.data,
+                                    pwm->filter_config.len))
         {
             return ngx_proxy_wasm_result_invalid_mem(rets);
         }
 
         *rbuf = p;
-        *rlen = pwm->config.len;
+        *rlen = pwm->filter_config.len;
     }
 
     return ngx_proxy_wasm_result_ok(rets);

@@ -299,7 +299,8 @@ ngx_proxy_wasm_init(ngx_proxy_wasm_t *pwm)
 
     rc = ngx_wavm_instance_call_funcref(pwm->instance,
                                         pwm->proxy_on_plugin_start, &rets,
-                                        pwm->rctxid, pwm->config.len);
+                                        pwm->rctxid,
+                                        pwm->filter_config.len);
     if (rc != NGX_OK || !rets->data[0].of.i32) {
         goto error;
     }
@@ -320,12 +321,6 @@ error:
 void
 ngx_proxy_wasm_destroy(ngx_proxy_wasm_t *pwm)
 {
-    if (pwm->config.len) {
-        ngx_pfree(pwm->pool, pwm->config.data);
-        pwm->config.data = NULL;
-        pwm->config.len = 0;
-    }
-
     ngx_wavm_ctx_destroy(&pwm->wvctx);
 }
 
