@@ -217,7 +217,6 @@ ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_wasm_loc_conf_t  *loc = conf;
     ngx_wasm_op_t             *op;
-    ngx_conf_post_t           *post;
 
     if (loc->ops_engine == NULL) {
         return NGX_WASM_CONF_ERR_NO_WASM;
@@ -230,11 +229,6 @@ ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    if (cmd->post) {
-        post = cmd->post;
-        return post->post_handler(cf, post, op);
-    }
-
     return NGX_CONF_OK;
 }
 
@@ -245,7 +239,6 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 {
     ngx_http_wasm_loc_conf_t  *loc = conf;
     ngx_wasm_op_t             *op;
-    ngx_conf_post_t           *post;
 
     if (loc->ops_engine == NULL) {
         return NGX_WASM_CONF_ERR_NO_WASM;
@@ -272,11 +265,6 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
                                          cf->args->elts, loc->pwmodule);
     if (op == NULL) {
         return NGX_CONF_ERROR;
-    }
-
-    if (cmd->post) {
-        post = cmd->post;
-        return post->post_handler(cf, post, op);
     }
 
     return NGX_CONF_OK;
