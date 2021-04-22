@@ -62,7 +62,7 @@ case $NGX_WASM_RUNTIME in
         exit 1
 esac
 
-find_runtime "$NGX_WASM_RUNTIME_INC" "$NGX_WASM_RUNTIME_LIB" "$NGX_WASM_RUNTIME_LD_OPT"
+find_runtime "$NGX_WASM_RUNTIME_INC"  "$NGX_WASM_RUNTIME_LIB" "$NGX_WASM_RUNTIME_LD_OPT"
 find_runtime "/usr/local/opt/include" "/usr/local/opt/lib"
 find_runtime "/usr/local/include"     "/usr/local/lib"
 
@@ -86,18 +86,23 @@ ngx_module_incs="$ngx_feature_path \
                  $ngx_addon_dir/src/wasm \
                  $ngx_addon_dir/src/wasm/wrt \
                  $ngx_addon_dir/src/wasm/vm \
-                 $ngx_addon_dir/src/common"
+                 $ngx_addon_dir/src/common \
+                 $ngx_addon_dir/src/common/proxy_wasm"
 ngx_module_libs="$ngx_feature_libs"
 ngx_module_deps="$ngx_addon_dir/src/wasm/wrt/ngx_wrt.h \
                  $ngx_addon_dir/src/wasm/ngx_wasm.h \
                  $ngx_addon_dir/src/wasm/vm/ngx_wavm.h \
                  $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.h \
-                 $ngx_addon_dir/src/wasm/ngx_wasm_ops.h"
+                 $ngx_addon_dir/src/wasm/ngx_wasm_ops.h \
+                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.h"
 ngx_module_srcs="$ngx_addon_dir/src/wasm/ngx_wasm.c \
                  $ngx_addon_dir/src/wasm/ngx_wasm_ops.c \
                  $ngx_addon_dir/src/wasm/ngx_wasm_util.c \
                  $ngx_addon_dir/src/wasm/vm/ngx_wavm.c \
                  $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.c \
+                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.c \
+                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_host.c \
+                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_util.c \
                  $ngx_wasm_runtime_srcs"
 ngx_module_link=ADDON
 
@@ -118,27 +123,26 @@ ngx_module_link=ADDON
 
 ###############################################################################
 
-ngx_module_type=HTTP
-ngx_module_name=ngx_http_wasm_module
-ngx_module_incs="$ngx_addon_dir/src/http \
-                 $ngx_addon_dir/src/http/proxy_wasm \
-                 $ngx_addon_dir/src/common/proxy_wasm"
-ngx_module_libs=
-ngx_module_deps="$ngx_addon_dir/src/http/ngx_http_wasm.h \
-                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.h \
-                 $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.h"
-ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_module.c \
-                 $ngx_addon_dir/src/http/ngx_http_wasm_host.c \
-                 $ngx_addon_dir/src/http/ngx_http_wasm_util.c \
-                 $ngx_addon_dir/src/http/ngx_http_wasm_escape.c \
-                 $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.c \
-                 $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm_host.c \
-                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.c \
-                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_host.c \
-                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_util.c"
-ngx_module_link=ADDON
+if [ $HTTP = YES ]; then
+    have=NGX_WASM_HTTP . auto/define
 
-. auto/module
+    ngx_module_type=HTTP
+    ngx_module_name=ngx_http_wasm_module
+    ngx_module_incs="$ngx_addon_dir/src/http \
+                     $ngx_addon_dir/src/http/proxy_wasm"
+    ngx_module_libs=
+    ngx_module_deps="$ngx_addon_dir/src/http/ngx_http_wasm.h \
+                     $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.h"
+    ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_module.c \
+                     $ngx_addon_dir/src/http/ngx_http_wasm_host.c \
+                     $ngx_addon_dir/src/http/ngx_http_wasm_util.c \
+                     $ngx_addon_dir/src/http/ngx_http_wasm_escape.c \
+                     $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.c \
+                     $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm_host.c"
+    ngx_module_link=ADDON
+
+    . auto/module
+fi
 
 ###############################################################################
 

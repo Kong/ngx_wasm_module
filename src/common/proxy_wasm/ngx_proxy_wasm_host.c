@@ -3,7 +3,9 @@
 #endif
 #include "ddebug.h"
 
+#ifdef NGX_WASM_HTTP
 #include <ngx_http_wasm.h>
+#endif
 #include <ngx_proxy_wasm.h>
 #include <ngx_event.h>
 #include <ngx_wavm.h>
@@ -18,13 +20,17 @@ static ngx_list_t *
 ngx_proxy_wasm_get_map(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_map_type_t map_type)
 {
+#ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
     ngx_http_request_t       *r = rctx->r;
+#endif
 
     switch (map_type) {
 
+#ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
         return &r->headers_in.headers;
+#endif
 
     default:
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
@@ -198,8 +204,10 @@ ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
     ngx_list_t                 *list;
     ngx_str_t                  *value;
     ngx_proxy_wasm_t           *pwm;
+#ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
     ngx_http_request_t         *r = rctx->r;
+#endif
 
     pwm = ngx_proxy_wasm_get_pwm(instance);
 
@@ -211,6 +219,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
 
     dd("key: %.*s", (int) key_len, (u_char *) key);
 
+#ifdef NGX_WASM_HTTP
     switch (key_len) {
 
     case 5:
@@ -233,6 +242,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
         break;
 
     }
+#endif
 
     list = ngx_proxy_wasm_get_map(instance, map_type);
     if (list == NULL) {
@@ -249,6 +259,8 @@ ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
 
         return ngx_proxy_wasm_result_notfound(rets);
     }
+
+    goto found;
 
 found:
 
@@ -268,6 +280,7 @@ found:
 }
 
 
+#ifdef NGX_WASM_HTTP
 static ngx_int_t
 ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
@@ -337,6 +350,7 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
 
     return ngx_proxy_wasm_result_ok(rets);
 }
+#endif
 
 
 static ngx_int_t
@@ -430,6 +444,8 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
 
    /* http */
 
+#ifdef NGX_WASM_HTTP
+
    { ngx_string("proxy_send_http_response"),
      &ngx_proxy_wasm_hfuncs_send_local_response,
      ngx_wavm_arity_i32x8,
@@ -489,6 +505,8 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
      &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
+
+#endif
 
    /* buffers */
 
