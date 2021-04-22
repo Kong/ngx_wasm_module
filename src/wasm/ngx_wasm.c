@@ -58,7 +58,7 @@ ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_wasm_module_t    *m;
 
     if (*(void **) conf) {
-        return "is duplicate";
+        return NGX_WASM_CONF_ERR_DUPLICATE;
     }
 
     ngx_wasm_max_module = ngx_count_modules(cf->cycle, NGX_WASM_MODULE);
