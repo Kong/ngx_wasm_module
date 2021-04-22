@@ -32,7 +32,7 @@ compile ngx_wasm_module or to produce Wasm bytecode, having Rust installed on
 the system will quickly become necessary for development:
 
 - [rustup.rs](https://rustup.rs/) is the easiest way to install Rust.
-- wasm target for Rust: `rustup target add wasm32-unknown-unknown`.
+    - Then add the wasm target to your toolchain: `rustup target add wasm32-unknown-unknown`.
 - WebAssembly runtime (see [Installation Requirements](README.md#requirements)).
 
 [Back to TOC](#table-of-contents)
