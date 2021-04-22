@@ -15,7 +15,7 @@ build_nginx() {
     local ngx_src=$1
     local ngx_ver=$2
     local build_name=(dev)
-    local build_with_debug=""
+    local build_opts=()
 
     NGX_BUILD_DIR_SRCROOT="${NGX_BUILD_DIR_SRCROOT:-$DIR_SRCROOT}"
     NGX_BUILD_DIR_BUILDROOT="${NGX_BUILD_DIR_BUILDROOT:-$DIR_BUILDROOT}"
@@ -58,7 +58,7 @@ build_nginx() {
 
     if [[ "$NGX_BUILD_DEBUG" == 1 ]]; then
         build_name+=" debug"
-        build_with_debug="--with-debug"
+        build_opts+="--with-debug "
     fi
 
     if [[ -n "$NGX_WASM_RUNTIME" ]]; then
@@ -96,6 +96,13 @@ build_nginx() {
         fi
     fi
 
+    # ngx_echo_module, ngx_headers_more_module do not support --without-http
+
+    if ! [[ "$NGX_BUILD_CONFIGURE" =~ "--without-http" ]]; then
+        build_opts+="--add-dynamic-module=$DIR_NGX_ECHO_MODULE "
+        build_opts+="--add-dynamic-module=$DIR_NGX_HEADERS_MORE_MODULE "
+    fi
+
     # Build
 
     pushd $NGX_BUILD_DIR_SRCROOT
@@ -118,13 +125,10 @@ build_nginx() {
                 "--builddir=$NGX_BUILD_DIR_BUILDROOT" \
                 "--prefix=$NGX_BUILD_DIR_PREFIX" \
                 "--add-module=$NGX_WASM_DIR" \
-                "--add-dynamic-module=$DIR_NGX_ECHO_MODULE" \
-                "--add-dynamic-module=$DIR_NGX_HEADERS_MORE_MODULE" \
                 "--with-cc-opt='$NGX_BUILD_CC_OPT'" \
                 "--with-ld-opt='$NGX_BUILD_LD_OPT'" \
-                "$build_with_debug" \
+                "${build_opts[@]}" \
                 "$NGX_BUILD_CONFIGURE" \
-
 
             echo $hash > "$NGX_BUILD_DIR_SRCROOT/.hash"
         fi

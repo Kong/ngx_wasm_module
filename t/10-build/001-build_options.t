@@ -63,3 +63,15 @@ ngx_wasm_module [dev debug wasmtime]
 built by
 --- grep_cmd
 libwasmtime
+
+
+
+=== TEST 6: build without http
+--- build: NGX_BUILD_CONFIGURE='--without-http' make
+--- grep_nginxV
+--without-http
+--- run_cmd eval: qq{readelf -s $::buildroot/nginx}
+--- no_grep_cmd
+ngx_http_wasm
+--- grep_cmd
+ngx_wavm
