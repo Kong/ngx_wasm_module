@@ -341,7 +341,7 @@ ngx_proxy_wasm_alloc(ngx_proxy_wasm_t *pwm, size_t size)
    rc = ngx_wavm_instance_call_funcref(instance, pwm->proxy_on_memory_allocate,
                                        &rets, size);
    if (rc != NGX_OK) {
-       ngx_wasm_log_error(NGX_LOG_EMERG, instance->log, 0,
+       ngx_wasm_log_error(NGX_LOG_CRIT, instance->log, 0,
                           "proxy_wasm_alloc(%uz) failed", size);
        return 0;
    }
@@ -401,7 +401,7 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
                    &pwm->module->name, &phase->name);
 
     if (pwm->ecode) {
-        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, wvctx->log, pwm->ecode,
+        ngx_proxy_wasm_log_error(NGX_LOG_CRIT, wvctx->log, pwm->ecode,
                                  "proxy_wasm failed to resume execution "
                                  "in \"%V\" phase", &phase->name);
 

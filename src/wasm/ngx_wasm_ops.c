@@ -204,7 +204,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
 
     phase = ngx_wasm_ops_engine_phase_lookup(ops_engine, phaseidx);
     if (phase == NULL) {
-        ngx_wasm_log_error(NGX_LOG_WARN, ctx->log, 0,
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, ctx->log, 0,
                            "ops resume: no phase for index '%ui'",
                            phase);
         goto rc;

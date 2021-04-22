@@ -322,7 +322,7 @@ ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
 
 nomem:
 
-    ngx_wasm_log_error(NGX_LOG_EMERG, pwm->instance->log, 0,
+    ngx_wasm_log_error(NGX_LOG_CRIT, pwm->instance->log, 0,
                        "tick_handler: no memory");
 }
 
