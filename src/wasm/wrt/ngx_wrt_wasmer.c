@@ -139,7 +139,7 @@ ngx_wasmer_last_err(ngx_wrt_res_t **res)
     }
 #if (NGX_DEBUG)
     else {
-        ngx_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0,
+        ngx_log_error(NGX_LOG_ERROR, ngx_cycle->log, 0,
                       "no wasmer error to retrieve");
     }
 #endif
@@ -148,7 +148,7 @@ ngx_wasmer_last_err(ngx_wrt_res_t **res)
 
 error:
 
-    ngx_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0, NULL,
+    ngx_log_error(NGX_LOG_CRIT, ngx_cycle->log, 0, NULL,
                   "failed to retrieve last wasmer error: %s", err);
 
     if (werr) {

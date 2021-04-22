@@ -85,12 +85,12 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_log eval
 [
     qr/\[alert\] .*? \[wasm\] unknown ABI version/,
-    qr/\[emerg\] .*? \[wasm\] unknown ABI version: proxy_wasm failed to resume/
+    qr/\[crit\] .*? \[wasm\] unknown ABI version: proxy_wasm failed to resume/
 ]
 --- no_error_log
 [warn]
 [error]
-[crit]
+[emerg]
 
 
 
@@ -113,12 +113,14 @@ qr/\[emerg\] .*? invalid module name ""/
 )
 --- error_code: 500
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing malloc/
+[
+    qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing malloc/,
+    qr/\[crit\] .*? \[wasm\] incompatible sdk interface: proxy_wasm failed to resume execution in/
+]
 --- no_error_log
 [warn]
 [error]
 [alert]
-[crit]
 
 
 
@@ -142,12 +144,14 @@ qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing malloc/
 )
 --- error_code: 500
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing context init/
+[
+    qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing context init/,
+    qr/\[crit\] .*? \[wasm\] incompatible sdk interface: proxy_wasm failed to resume execution in/
+]
 --- no_error_log
 [warn]
 [error]
 [alert]
-[crit]
 
 
 
@@ -172,12 +176,12 @@ qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing context init/
 --- error_log eval
 [
     qr/\[alert\] .*? \[wasm\] unknown ABI version/,
-    qr/\[emerg\] .*? \[wasm\] unknown ABI version: proxy_wasm failed to resume/
+    qr/\[crit\] .*? \[wasm\] unknown ABI version: proxy_wasm failed to resume/
 ]
 --- no_error_log
 [warn]
 [error]
-[crit]
+[emerg]
 
 
 
@@ -200,12 +204,14 @@ qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing context init/
 )
 --- error_code: 500
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] incompatible ABI version/
+[
+    qr/\[emerg\] .*? \[wasm\] incompatible ABI version$/,
+    qr/\[crit\] .*? \[wasm\] incompatible ABI version: proxy_wasm failed to resume execution in/
+]
 --- no_error_log
 [warn]
 [error]
 [alert]
-[crit]
 
 
 
