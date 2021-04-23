@@ -81,7 +81,7 @@ Connection: close\r
 --- error_log eval
 [
     qr/\[warn\] .*? marshalled map truncated to 100 elements/,
-    qr/\[info\] .*? number of request headers: 107/
+    qr/\[info\] .*? on_request_headers, 107 headers/
 ]
 --- no_error_log
 [error]

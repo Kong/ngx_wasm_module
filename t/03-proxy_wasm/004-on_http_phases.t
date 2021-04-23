@@ -218,17 +218,19 @@ should not execute a log phase
 --- response_body
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers .*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers .*? subrequest: "\/subrequest"/,
 ]
---- no_error_log
-on_log
-[error]
-[crit]
+--- no_error_log eval
+[
+    qr/on_log .*? subrequest: "\/subrequest"/,
+    qr/\[error\]/,
+    qr/\[crit\]/
+]
 
 
 
-=== TEST 10: proxy_wasm - same module, multiple locations
+=== TEST 10: proxy_wasm - same module in multiple location{} blocks
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -252,10 +254,184 @@ A
 B
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers .*? subrequest: "\/subrequest\/a"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers .*? subrequest: "\/subrequest\/a"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers .*? subrequest: "\/subrequest\/b"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers .*? subrequest: "\/subrequest\/b"/,
 ]
 --- no_error_log
 [error]
+
+
+
+=== TEST 11: proxy_wasm - chained filters in same location{} block
+should run each filter after the other within each phase
+--- skip_no_debug: 7
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        proxy_wasm on_phases;
+        proxy_wasm on_phases;
+        return 200;
+    }
+--- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log_out eval
+qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
+\[wasm\] #\d+ on_request_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_log .*?
+\[wasm\] #\d+ on_log .*?
+/
+--- error_log eval
+[
+    qr/\[debug\] .*? wasm ops resuming \"header_filter\" phase \(idx: \d+, nops: \d+, force_ops: 1\)/,
+    qr/\[debug\] .*? wasm ops resuming \"log\" phase \(idx: \d+, nops: \d+, force_ops: 1\)/
+]
+--- no_error_log
+[error]
+[crit]
+[emerg]
+
+
+
+=== TEST 12: proxy_wasm - chained filters in server{} block
+should run each filter after the other within each phase
+--- wasm_modules: on_phases
+--- config
+    proxy_wasm on_phases;
+    proxy_wasm on_phases;
+
+    location /t {
+        return 200;
+    }
+--- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log_out eval
+qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
+\[wasm\] #\d+ on_request_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_log .*?
+\[wasm\] #\d+ on_log .*?
+/
+--- no_error_log
+[error]
+[crit]
+[emerg]
+[alert]
+[stderr]
+
+
+
+=== TEST 13: proxy_wasm - chained filters in http{} block
+should run each filter after the other within each phase
+--- wasm_modules: on_phases
+--- http_config
+    proxy_wasm on_phases;
+    proxy_wasm on_phases;
+--- config
+    location /t {
+        return 200;
+    }
+--- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log_out eval
+qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
+\[wasm\] #\d+ on_request_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_log .*?
+\[wasm\] #\d+ on_log .*?
+/
+--- no_error_log
+[error]
+[crit]
+[emerg]
+[alert]
+[stderr]
+
+
+
+=== TEST 14: proxy_wasm - mixed filters in server{} and http{} blocks
+should not chain; instead, server{} overrides http{}
+--- wasm_modules: on_phases
+--- http_config
+    proxy_wasm on_phases 'log_msg=http';
+--- config
+    proxy_wasm on_phases 'log_msg=server';
+
+    location /t {
+        return 200;
+    }
+--- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log_out eval
+qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_log .*?
+/
+--- error_log eval
+qr/log_msg: server .*? request: "GET \/t\s+/
+--- no_error_log eval
+[
+    qr/log_msg: http .*? request: "GET \/t\s+/,
+    qr/\[error\]/,
+    qr/\[crit\]/,
+    qr/\[emerg\]/
+]
+
+
+
+=== TEST 15: proxy_wasm - mixed filters in server{} and location{} blocks
+should not chain; instead, location{} overrides server{}
+--- wasm_modules: on_phases
+--- config
+    proxy_wasm on_phases 'log_msg=server';
+
+    location /t {
+        proxy_wasm on_phases 'log_msg=location';
+        return 200;
+    }
+--- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log_out eval
+qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_log .*?
+/
+--- error_log eval
+qr/log_msg: location .*? request: "GET \/t\s+/
+--- no_error_log eval
+[
+    qr/log_msg: server .*? request: "GET \/t\s+/,
+    qr/\[error\]/,
+    qr/\[crit\]/,
+    qr/\[emerg\]/
+]
+
+
+
+=== TEST 16: proxy_wasm - mixed filters in http{}, server{}, and location{} blocks
+should not chain; instead, location{} overrides server{}, server{} overrides http{}
+--- wasm_modules: on_phases
+--- http_config
+    proxy_wasm on_phases 'log_msg=http';
+--- config
+    proxy_wasm on_phases 'log_msg=server';
+
+    location /t {
+        proxy_wasm on_phases 'log_msg=location';
+        return 200;
+    }
+--- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log_out eval
+qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_log .*?
+/
+--- error_log eval
+qr/log_msg: location .*? request: "GET \/t\s+/
+--- no_error_log eval
+[
+    qr/log_msg: server .*? request: "GET \/t\s+/,
+    qr/log_msg: http .*? request: "GET \/t\s+/,
+    qr/\[error\]/,
+    qr/\[crit\]/
+]

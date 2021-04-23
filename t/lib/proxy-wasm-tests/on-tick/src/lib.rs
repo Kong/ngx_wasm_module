@@ -28,7 +28,7 @@ impl RootContext for OnTick {
     }
 
     fn on_tick(&mut self) {
-        info!("Ticking");
+        info!("ticking");
     }
 }
 

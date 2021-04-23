@@ -103,7 +103,9 @@ add_block_preprocessor(sub {
     # --- skip_valgrind: 3
 
     if (defined $block->skip_valgrind
-        && !defined $block->skip_eval
+        && $ENV{TEST_NGINX_USE_VALGRIND}
+        && $ENV{CI}
+        && $nginxV =~ m{\[.*?wasmtime.*?\]}s
         && $block->skip_valgrind =~ m/\s*(\d+)/)
     {
         $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND}', $1);

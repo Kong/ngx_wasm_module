@@ -150,13 +150,19 @@ impl TestHttpHostcalls {
 impl Context for TestHttpHostcalls {}
 impl HttpContext for TestHttpHostcalls {
     fn on_http_request_headers(&mut self, nheaders: usize) -> Action {
-        info!("number of request headers: {}", nheaders);
+        info!(
+            "#{} on_request_headers, {} headers",
+            self.context_id, nheaders
+        );
         self.exec_tests(TestPhase::HttpRequestHeaders);
         Action::Continue
     }
 
     fn on_http_response_headers(&mut self, nheaders: usize) -> Action {
-        info!("number of response headers: {}", nheaders);
+        info!(
+            "#{} on_response_headers, {} headers",
+            self.context_id, nheaders
+        );
         self.exec_tests(TestPhase::HttpResponseHeaders);
         Action::Continue
     }
