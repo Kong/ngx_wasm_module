@@ -621,10 +621,6 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
         lmodule = ngx_queue_data(q, ngx_wavm_linked_module_t, q);
 
         if (lmodule->host_def == host) {
-            ngx_log_debug5(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                           "wasm \"%V\" module already linked to \"%V\" host "
-                           "interface (vm: %p, module: %p, host: %p)",
-                           &module->name, &host->name, vm, module, host);
             return lmodule;
         }
     }
@@ -826,6 +822,10 @@ ngx_wavm_ctx_init(ngx_wavm_t *vm, ngx_wavm_ctx_t *ctx)
 {
     ngx_wasm_assert(ctx->pool);
     ngx_wasm_assert(ctx->log);
+
+    if (ctx->instances && ctx->store) {
+        return NGX_OK;
+    }
 
     ctx->vm = vm;
     ctx->store = wasm_store_new(vm->engine);

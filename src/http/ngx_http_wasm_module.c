@@ -8,9 +8,9 @@
 
 
 static void *ngx_http_wasm_create_main_conf(ngx_conf_t *cf);
-static char *ngx_http_wasm_init_main_conf(ngx_conf_t *cf, void *conf);
 static void *ngx_http_wasm_create_loc_conf(ngx_conf_t *cf);
-char *ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
+static char *ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent,
+    void *child);
 static ngx_int_t ngx_http_wasm_postconfig(ngx_conf_t *cf);
 static ngx_int_t ngx_http_wasm_init(ngx_cycle_t *cycle);
 static ngx_int_t ngx_http_wasm_init_process(ngx_cycle_t *cycle);
@@ -97,7 +97,7 @@ static ngx_http_module_t  ngx_http_wasm_module_ctx = {
     NULL,                                /* preconfiguration */
     ngx_http_wasm_postconfig,            /* postconfiguration */
     ngx_http_wasm_create_main_conf,      /* create main configuration */
-    ngx_http_wasm_init_main_conf,        /* init main configuration */
+    NULL,                                /* init main configuration */
     NULL,                                /* create server configuration */
     NULL,                                /* merge server configuration */
     ngx_http_wasm_create_loc_conf,       /* create location configuration */
@@ -157,18 +157,9 @@ ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    return mcf;
-}
-
-
-static char *
-ngx_http_wasm_init_main_conf(ngx_conf_t *cf, void *conf)
-{
-    ngx_http_wasm_main_conf_t  *mcf = conf;
-
     ngx_queue_init(&mcf->ops_engines);
 
-    return NGX_CONF_OK;
+    return mcf;
 }
 
 
@@ -187,7 +178,7 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
         loc->ops_engine = ngx_wasm_ops_engine_new(cf->pool, loc->vm,
                                                   &ngx_http_wasm_subsystem);
         if (loc->ops_engine == NULL) {
-            return NGX_CONF_ERROR;
+            return NULL;
         }
     }
 
@@ -195,18 +186,18 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
 }
 
 
-char *
+static char *
 ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
     size_t                      i;
+    ngx_http_wasm_main_conf_t  *mcf;
     ngx_http_wasm_loc_conf_t   *prev = parent;
     ngx_http_wasm_loc_conf_t   *conf = child;
-    ngx_http_wasm_main_conf_t  *mcf;
 
     if (conf->ops_engine) {
         mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
 
-        ngx_queue_insert_tail(&mcf->ops_engines, &conf->q);
+        ngx_queue_insert_tail(&mcf->ops_engines, &conf->ops_engine->q);
 
         for (i = 0; i < conf->ops_engine->subsystem->nphases; i++) {
             if (conf->ops_engine->pipelines[i] == NULL) {
@@ -257,8 +248,8 @@ static ngx_int_t
 ngx_http_wasm_init_process(ngx_cycle_t *cycle)
 {
     ngx_queue_t                *q;
+    ngx_wasm_ops_engine_t      *ops_engine;
     ngx_http_wasm_main_conf_t  *mcf;
-    ngx_http_wasm_loc_conf_t   *loc;
 
     mcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_wasm_module);
 
@@ -266,9 +257,9 @@ ngx_http_wasm_init_process(ngx_cycle_t *cycle)
          q != ngx_queue_sentinel(&mcf->ops_engines);
          q = ngx_queue_next(q))
     {
-        loc = ngx_queue_data(q, ngx_http_wasm_loc_conf_t, q);
+        ops_engine = ngx_queue_data(q, ngx_wasm_ops_engine_t, q);
 
-        ngx_wasm_ops_engine_init(loc->ops_engine);
+        ngx_wasm_ops_engine_init(ops_engine);
     }
 
     return NGX_OK;
@@ -279,8 +270,8 @@ static void
 ngx_http_wasm_exit_process(ngx_cycle_t *cycle)
 {
     ngx_queue_t                *q;
+    ngx_wasm_ops_engine_t      *ops_engine;
     ngx_http_wasm_main_conf_t  *mcf;
-    ngx_http_wasm_loc_conf_t   *loc;
 
     mcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_wasm_module);
 
@@ -288,9 +279,9 @@ ngx_http_wasm_exit_process(ngx_cycle_t *cycle)
          q != ngx_queue_sentinel(&mcf->ops_engines);
          q = ngx_queue_next(q))
     {
-        loc = ngx_queue_data(q, ngx_http_wasm_loc_conf_t, q);
+        ops_engine = ngx_queue_data(q, ngx_wasm_ops_engine_t, q);
 
-        ngx_wasm_ops_engine_destroy(loc->ops_engine);
+        ngx_wasm_ops_engine_destroy(ops_engine);
     }
 }
 
@@ -404,7 +395,7 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
         return rc;
     }
 
-    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_REWRITE_PHASE);
+    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_REWRITE_PHASE, 0);
 
     if (rctx->sent_last) {
         rc = NGX_OK;
@@ -433,7 +424,7 @@ ngx_http_wasm_preaccess_handler(ngx_http_request_t *r)
         return rc;
     }
 
-    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_PREACCESS_PHASE);
+    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_PREACCESS_PHASE, 0);
 
     return ngx_http_wasm_check_finalize(r, rctx, rc);
 }
@@ -450,7 +441,7 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
         return rc;
     }
 
-    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_ACCESS_PHASE);
+    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_ACCESS_PHASE, 0);
 
     return ngx_http_wasm_check_finalize(r, rctx, rc);
 }
@@ -468,7 +459,7 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
         return rc;
     }
 
-    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE);
+    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE, 0);
     rc = ngx_http_wasm_check_finalize(r, rctx, rc);
     if (rc == NGX_HTTP_INTERNAL_SERVER_ERROR || rc == NGX_DONE) {
         return rc;
@@ -539,7 +530,8 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 
     ngx_wasm_assert(rc == NGX_OK);
 
-    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_HEADER_FILTER_PHASE);
+    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_HEADER_FILTER_PHASE,
+                             NGX_WASM_OPS_RUN_ALL);
     if (rc == NGX_OK) {
         rc = ngx_http_wasm_check_finalize(r, rctx, rc);
         if (rc == NGX_DONE) {
@@ -564,7 +556,8 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
         return rc;
     }
 
-    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_LOG_PHASE);
+    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_LOG_PHASE,
+                             NGX_WASM_OPS_RUN_ALL);
     if (rc != NGX_OK) {
         return rc;
     }

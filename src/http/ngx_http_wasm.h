@@ -21,31 +21,30 @@ typedef enum {
 
 
 typedef struct {
-    ngx_http_request_t              *r;
-    ngx_wasm_op_ctx_t                opctx;
+    ngx_http_request_t                *r;
+    ngx_wasm_op_ctx_t                  opctx;
+    void                              *data;
 
     /* control flow */
 
-    ngx_http_handler_pt              r_content_handler;
+    ngx_http_handler_pt                r_content_handler;
 
-    ngx_int_t                        local_resp_status;
-    ngx_str_t                        local_resp_reason;
-    ngx_array_t                     *local_resp_headers;
-    ngx_chain_t                     *local_resp_body;
-    size_t                           local_resp_body_len;
-    unsigned                         local_resp:1;
-    unsigned                         sent_last:1;
-    unsigned                         finalized:1;
+    ngx_int_t                          local_resp_status;
+    ngx_str_t                          local_resp_reason;
+    ngx_array_t                       *local_resp_headers;
+    ngx_chain_t                       *local_resp_body;
+    size_t                             local_resp_body_len;
+    unsigned                           local_resp:1;
+    unsigned                           sent_last:1;
+    unsigned                           finalized:1;
 
-    unsigned                         entered_content:1;
+    unsigned                           entered_content:1;
 } ngx_http_wasm_req_ctx_t;
 
 
 typedef struct {
     ngx_wavm_t                        *vm;
     ngx_wasm_ops_engine_t             *ops_engine;
-    ngx_proxy_wasm_t                  *pwmodule;
-    ngx_queue_t                        q;
 } ngx_http_wasm_loc_conf_t;
 
 

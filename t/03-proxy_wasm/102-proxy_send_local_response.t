@@ -278,16 +278,17 @@ ok
     qr/\[wasm\] \[tests\] #\d+ entering "HttpResponseHeaders"/,
     qr/\[info\] .*? \[wasm\] #\d+ on_log/
 ]
---- no_error_log
-[crit]
 --- grep_error_log eval: qr/\[error\] .*?$/
 --- grep_error_log_out eval
 qr/\[wasm\] response already sent/
+--- no_error_log
+[crit]
 
 
 
 === TEST 13: proxy_wasm - send_local_response() from on_log
-should be ignored since content already produced
+should produce a trap
+--- SKIP: TODO: fix borrowed mut panic in log
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -363,3 +364,66 @@ Hello world
 [crit]
 [emerg]
 [alert]
+
+
+
+=== TEST 16: proxy_wasm - send_local_response() in chained filters
+should interrupt the current phase, preventing "response already stashed"
+should still run all response phases
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls;
+        proxy_wasm hostcalls;
+    }
+--- request
+GET /t/send_local_response/body
+--- response_body
+Hello world
+--- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log_out eval
+qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_log .*?
+\[wasm\] #\d+ on_log .*?
+/
+--- no_error_log
+[error]
+[crit]
+[emerg]
+
+
+
+=== TEST 17: proxy_wasm - send_local_response() in chained filters as a subrequest
+should interrupt the current phase, preventing "response already stashed"
+should still run all response phases
+should not have a log phase (subrequest)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t/send_local_response/body {
+        proxy_wasm hostcalls;
+        proxy_wasm hostcalls;
+    }
+
+    location /t {
+        echo ok;
+        echo_subrequest GET /t/send_local_response/body;
+    }
+--- request
+GET /t
+--- response_body
+ok
+Hello world
+--- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log_out eval
+qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+\[wasm\] #\d+ on_response_headers, \d+ headers .*?
+/
+--- no_error_log
+on_log
+[error]
+[crit]

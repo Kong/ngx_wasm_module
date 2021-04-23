@@ -182,6 +182,8 @@ ngx_http_wasm_flush_local_response(ngx_http_request_t *r,
         }
     }
 
+    rctx->local_resp = 0;
+
     rc = ngx_http_wasm_send_chain_link(r, rctx->local_resp_body);
 
     rctx->sent_last = 1;

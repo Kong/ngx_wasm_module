@@ -23,6 +23,11 @@ struct ngx_wasm_op_ctx_s {
 
 
 typedef enum {
+    NGX_WASM_OPS_RUN_ALL = 1,
+} ngx_wasm_ops_resume_mode_e;
+
+
+typedef enum {
     NGX_WASM_OP_CALL = 1,
     NGX_WASM_OP_PROXY_WASM
 } ngx_wasm_op_code_t;
@@ -57,10 +62,13 @@ struct ngx_wasm_op_s {
 typedef struct {
     ngx_wasm_phase_t                        *phase;
     ngx_array_t                             *ops;
+    ngx_uint_t                               nproxy_wasm;
+    unsigned                                 init:1;
 } ngx_wasm_ops_pipeline_t;
 
 
 struct ngx_wasm_ops_engine_s {
+    ngx_queue_t                              q;           /* main_conf_t->ops_engines */
     ngx_pool_t                              *pool;
     ngx_wavm_t                              *vm;
     ngx_wasm_subsystem_t                    *subsystem;
@@ -75,7 +83,8 @@ void ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine);
 ngx_int_t ngx_wasm_ops_add(ngx_wasm_ops_engine_t *ops_engine,
     ngx_wasm_op_t *op);
 
-ngx_int_t ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx);
+ngx_int_t ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
+    ngx_uint_t modes);
 
 
 #endif /* _NGX_WASM_OPS_H_INCLUDED_ */

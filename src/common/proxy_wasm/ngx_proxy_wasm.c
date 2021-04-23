@@ -64,11 +64,16 @@ ngx_proxy_wasm_init(ngx_proxy_wasm_t *pwm)
     wasm_val_vec_t       *rets;
 
     ngx_wasm_assert(pwm->module);
-
-    pwm->ecode = 0;
-    pwm->tick_period = 0;
+    ngx_wasm_assert(pwm->max_filters);
 
     vm = pwm->module->vm;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, pwm->log, 0,
+                   "initializing proxy_wasm filter (pwm: %p)", pwm);
+
+    pwm->filter_idx = *pwm->max_filters;
+    pwm->ecode = 0;
+    pwm->tick_period = 0;
 
     /* linked module check */
 
@@ -310,7 +315,7 @@ ngx_proxy_wasm_init(ngx_proxy_wasm_t *pwm)
 error:
 
     ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, 0,
-                             "failed initializing proxy_wasm module");
+                             "failed initializing proxy_wasm filter");
 
     ngx_wavm_ctx_destroy(&pwm->wvctx);
 
@@ -410,6 +415,10 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
 
     ngx_wavm_ctx_update(&pwm->wvctx, wvctx->log, wvctx->data);
 
+    if (pwm->create_context_(pwm) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
     rc = pwm->resume_(pwm, phase, wvctx);
 
     ngx_log_debug3(NGX_LOG_DEBUG_WASM, wvctx->log, 0,
@@ -438,12 +447,7 @@ ngx_proxy_wasm_on_log(ngx_proxy_wasm_t *pwm)
         }
     }
 
-    if (ngx_wavm_instance_call_funcref(pwm->instance,
-                                       pwm->proxy_on_context_finalize,
-                                       NULL, ctxid) != NGX_OK)
-    {
-        return NGX_ERROR;
-    }
+    pwm->destroy_context_(pwm);
 
     return NGX_OK;
 }

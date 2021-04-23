@@ -215,11 +215,12 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 
-=== TEST 9: proxy_wasm directive - duplicated
---- main_config
-    wasm {
-        module on_tick $TEST_NGINX_CRATES_DIR/on_tick.wasm;
-    }
+=== TEST 9: proxy_wasm directive - duplicate entries in location{} block
+should be accepted
+should create two instances of the same module
+--- skip_no_debug: 6
+--- skip_valgrind: 6
+--- wasm_modules: on_tick
 --- config
     location /t {
         proxy_wasm on_tick;
@@ -227,10 +228,11 @@ qr/\[emerg\] .*? invalid module name ""/
         return 200;
     }
 --- error_log eval
-qr/\[emerg\] .*? "proxy_wasm" directive is duplicate in/
+[
+    qr/\[debug\] .*? wasm creating instance of \"on_tick\" module in \".*?\" vm/,
+    qr/\[debug\] .*? wasm creating instance of \"on_tick\" module in \".*?\" vm/,
+    qr/\[debug\] .*? initializing proxy_wasm filter/,
+    qr/\[debug\] .*? initializing proxy_wasm filter/,
+]
 --- no_error_log
-[warn]
 [error]
-[alert]
-[crit]
---- must_die

@@ -15,7 +15,7 @@ ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_wasm_loc_conf_t  *loc = conf;
     ngx_wasm_phase_t          *phase = ngx_http_wasm_subsystem.phases;
 
-    if (loc->ops_engine == NULL) {
+    if (loc->vm == NULL) {
         return NGX_WASM_CONF_ERR_NO_WASM;
     }
 
@@ -103,12 +103,8 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     ngx_proxy_wasm_t          *pwm;
     ngx_http_wasm_loc_conf_t  *loc = conf;
 
-    if (loc->ops_engine == NULL) {
+    if (loc->vm == NULL) {
         return NGX_WASM_CONF_ERR_NO_WASM;
-    }
-
-    if (loc->pwmodule) {
-        return NGX_WASM_CONF_ERR_DUPLICATE;
     }
 
     /* args */
@@ -153,6 +149,8 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     pwm->resume_ = ngx_http_proxy_wasm_resume;
     pwm->ctxid_ = ngx_http_proxy_wasm_ctxid;
     pwm->ecode_ = ngx_http_proxy_wasm_ecode;
+    pwm->create_context_ = ngx_http_proxy_wasm_create_context;
+    pwm->destroy_context_ = ngx_http_proxy_wasm_destroy_context;
     pwm->max_pairs = NGX_HTTP_WASM_MAX_REQ_HEADERS;
 
     pwm->module = ngx_wavm_module_lookup(loc->ops_engine->vm, module_name);
@@ -181,9 +179,6 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     }
 
     op->conf.proxy_wasm.pwmodule = pwm;
-    op->conf.proxy_wasm.pwmodule->lmodule = op->lmodule;
-
-    loc->pwmodule = pwm;
 
     return NGX_CONF_OK;
 }
