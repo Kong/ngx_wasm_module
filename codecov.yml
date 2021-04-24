@@ -1,3 +1,4 @@
+# https://docs.codecov.io/docs/codecovyml-reference
 coverage:
   precision: 4
   round: down
@@ -13,7 +14,7 @@ parsers:
 
 comment:
   branches:
-    - master
+    - main
     - *
   layout: "reach, diff, flags, files"
   behavior: default
