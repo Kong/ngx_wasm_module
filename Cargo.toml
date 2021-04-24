@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "lib/ngx-rust",
+    "t/lib/ngx-rust-tests",
+    "t/lib/proxy-wasm-tests/on-tick",
+    "t/lib/proxy-wasm-tests/on-phases",
+    "t/lib/proxy-wasm-tests/hostcalls",
+]

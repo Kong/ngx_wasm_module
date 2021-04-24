@@ -48,7 +48,8 @@ impl RootContext for TestRoot {
                 .config
                 .get("on_phase")
                 .map_or(TestPhase::HttpRequestHeaders, |s| {
-                    s.parse().expect(format!("unknown phase: {:?}", s).as_str())
+                    s.parse()
+                        .unwrap_or_else(|_| panic!("unknown phase: {:?}", s))
                 }),
         }))
     }

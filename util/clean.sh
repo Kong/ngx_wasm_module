@@ -24,8 +24,7 @@ fi
 
 if [[ "$1" == "--all" ]]; then
     rm -rf $DIR_WORK $DIR_PREFIX t/servroot*
-    cargo clean --manifest-path=$RUST_TESTS_MANIFEST_PATH
-    cargo clean --manifest-path=lib/ngx-rust/Cargo.toml
+    cargo clean
 fi
 
 # vim: ft=sh st=4 sts=4 sw=4:
