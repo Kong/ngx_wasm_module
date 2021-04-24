@@ -168,6 +168,7 @@ jobs:
       - run: make setup
       - run: make lint
       - uses: actions-rs/clippy-check@v1
+        if: ${{ !env.ACT }}
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features
