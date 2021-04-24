@@ -1,8 +1,7 @@
 work/
 buildroot/
+target/
 t/servroot*
-t/lib/rust-tests/target/
-lib/ngx-rust/target/
 *.data*
 *.perf*
 *.svg
