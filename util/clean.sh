@@ -23,7 +23,7 @@ if [[ -d "$DIR_SRCROOT" ]]; then
 fi
 
 if [[ "$1" == "--all" ]]; then
-    rm -rf $DIR_WORK $DIR_PREFIX
+    rm -rf $DIR_WORK $DIR_PREFIX t/servroot*
     cargo clean --manifest-path=$RUST_TESTS_MANIFEST_PATH
     cargo clean --manifest-path=lib/ngx-rust/Cargo.toml
 fi
