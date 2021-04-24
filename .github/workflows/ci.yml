@@ -154,6 +154,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+            components: clippy
       - uses: actions/cache@v2
         if: ${{ !env.ACT }}
         id: cache
@@ -164,6 +167,10 @@ jobs:
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - run: make setup
       - run: make lint
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
       - run: |
           if [[ $(make reindex 2>&1 | tee reindex.out | grep -c done) -gt 0 ]]; then
             cat reindex.out >&2
