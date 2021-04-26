@@ -289,6 +289,10 @@ ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
 
     ngx_free(ev);
 
+    if (ngx_exiting) {
+        return;
+    }
+
     if (pwm->proxy_on_timer_ready) {
         ngx_wavm_ctx_update(pwm->instance->ctx, NULL, NULL);
 
