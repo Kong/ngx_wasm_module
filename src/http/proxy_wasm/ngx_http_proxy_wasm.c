@@ -104,6 +104,23 @@ ngx_http_proxy_wasm_create_context(ngx_proxy_wasm_t *pwm)
 }
 
 
+#if 0
+ngx_http_proxy_wasm_rctx_t *
+ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_t *pwm)
+{
+    ngx_http_wasm_req_ctx_t     *rctx = ngx_http_proxy_wasm_rctx(pwm);
+    ngx_http_proxy_wasm_rctx_t  *prctx;
+
+    prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
+    if (prctx == NULL) {
+        return NULL;
+    }
+
+    return &prctx[pwm->filter_idx];
+}
+#endif
+
+
 void
 ngx_http_proxy_wasm_destroy_context(ngx_proxy_wasm_t *pwm)
 {

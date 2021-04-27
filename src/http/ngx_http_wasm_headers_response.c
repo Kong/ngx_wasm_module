@@ -244,11 +244,7 @@ ngx_http_set_header_helper(ngx_http_request_t *r, ngx_http_wasm_header_val_t *hv
 
 new_header:
 
-    /* XXX we still need to create header slot even if the value
-     * is empty because some builtin headers like Last-Modified
-     * relies on this to get cleared */
-
-    dd("adding '%.*s' header line",
+    dd("adding '%.*s' response header line",
        (int) hv->key.len, hv->key.data);
 
     h = ngx_list_push(&r->headers_out.headers);

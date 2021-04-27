@@ -280,6 +280,34 @@ ngx_proxy_wasm_get_map_value(ngx_list_t *map, u_char *key, size_t key_len)
 }
 
 
+ngx_int_t
+ngx_proxy_wasm_add_map_value(ngx_pool_t *pool, ngx_list_t *map, u_char *key,
+    size_t key_len, u_char *value, size_t val_len)
+{
+    ngx_table_elt_t  *h;
+
+    h = ngx_list_push(map);
+    if (h == NULL) {
+        return NGX_ERROR;
+    }
+
+    h->hash = val_len ? ngx_hash_key(key, key_len) : 0;
+    h->key.len = key_len;
+    h->key.data = key;
+    h->value.len = val_len;
+    h->value.data = value;
+
+    h->lowcase_key = ngx_pnalloc(pool, h->key.len);
+    if (h->lowcase_key == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_strlow(h->lowcase_key, h->key.data, h->key.len);
+
+    return NGX_OK;
+}
+
+
 void
 ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
 {

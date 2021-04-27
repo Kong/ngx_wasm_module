@@ -31,6 +31,8 @@ typedef struct {
 } ngx_http_wasm_header_t;
 
 
+ngx_int_t ngx_http_wasm_set_req_header(ngx_http_request_t *r, ngx_str_t key,
+    ngx_str_t value, unsigned override);
 ngx_int_t ngx_http_wasm_set_resp_header(ngx_http_request_t *r, ngx_str_t key,
     ngx_str_t value, unsigned override);
 ngx_int_t ngx_http_wasm_set_resp_content_length(ngx_http_request_t *r,

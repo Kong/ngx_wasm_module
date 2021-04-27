@@ -156,42 +156,6 @@ ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
 
 
 static ngx_int_t
-ngx_proxy_wasm_hfuncs_get_header_map_pairs(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    size_t                     *rlen;
-    ngx_wavm_ptr_t             *rbuf;
-    ngx_proxy_wasm_t           *pwm;
-    ngx_proxy_wasm_map_type_t   map_type;
-    ngx_list_t                 *list;
-    ngx_uint_t                  truncated = 0;
-
-    pwm = ngx_proxy_wasm_get_pwm(instance);
-
-    map_type = args[0].of.i32;
-    rbuf = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
-    rlen = ngx_wavm_memory_lift(instance->memory, args[2].of.i32);
-
-    list = ngx_proxy_wasm_get_map(instance, map_type);
-    if (list == NULL) {
-        return ngx_proxy_wasm_result_badarg(rets);
-    }
-
-    if (!ngx_proxy_wasm_marshal(pwm, list, rbuf, rlen, &truncated)) {
-        return ngx_proxy_wasm_result_invalid_mem(rets);
-    }
-
-    if (truncated) {
-        ngx_proxy_wasm_log_error(NGX_LOG_WARN, pwm->log, 0,
-                                 "marshalled map truncated to %ui elements",
-                                 truncated);
-    }
-
-    return ngx_proxy_wasm_result_ok(rets);
-}
-
-
-static ngx_int_t
 ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -275,6 +239,73 @@ found:
 
     *rbuf = p;
     *rlen = value->len;
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_get_header_map_pairs(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    size_t                     *rlen;
+    ngx_wavm_ptr_t             *rbuf;
+    ngx_proxy_wasm_t           *pwm;
+    ngx_proxy_wasm_map_type_t   map_type;
+    ngx_list_t                 *list;
+    ngx_uint_t                  truncated = 0;
+
+    pwm = ngx_proxy_wasm_get_pwm(instance);
+
+    map_type = args[0].of.i32;
+    rbuf = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
+    rlen = ngx_wavm_memory_lift(instance->memory, args[2].of.i32);
+
+    list = ngx_proxy_wasm_get_map(instance, map_type);
+    if (list == NULL) {
+        return ngx_proxy_wasm_result_badarg(rets);
+    }
+
+    if (!ngx_proxy_wasm_marshal(pwm, list, rbuf, rlen, &truncated)) {
+        return ngx_proxy_wasm_result_invalid_mem(rets);
+    }
+
+    if (truncated) {
+        ngx_proxy_wasm_log_error(NGX_LOG_WARN, pwm->log, 0,
+                                 "marshalled map truncated to %ui elements",
+                                 truncated);
+    }
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    size_t                      klen, vlen;
+    ngx_list_t                 *list;
+    ngx_wavm_ptr_t             *key, *value;
+    ngx_proxy_wasm_map_type_t   map_type;
+
+    map_type = args[0].of.i32;
+    key = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
+    klen = args[2].of.i32;
+    value = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
+    vlen = args[4].of.i32;
+
+    list = ngx_proxy_wasm_get_map(instance, map_type);
+    if (list == NULL) {
+        return ngx_proxy_wasm_result_badarg(rets);
+    }
+
+    dd("adding key: %.*s, value: %.*s to map type '%d'",
+       (int) klen, (u_char *) key, (int) vlen, (u_char *) value, map_type);
+
+    ngx_proxy_wasm_add_map_value(instance->ctx->pool, list,
+                                 (u_char *) key, klen,
+                                 (u_char *) value, vlen);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -552,7 +583,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
      ngx_wavm_arity_i32 },
    /* 0.1.0 - 0.2.1 */
    { ngx_string("proxy_add_header_map_value"),
-     &ngx_proxy_wasm_hfuncs_nop,
+     &ngx_proxy_wasm_hfuncs_add_header_map_value,
      ngx_wavm_arity_i32x5,
      ngx_wavm_arity_i32 },
    { ngx_string("proxy_replace_header_map_value"),
