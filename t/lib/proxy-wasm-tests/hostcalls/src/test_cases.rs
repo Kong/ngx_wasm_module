@@ -91,3 +91,7 @@ pub(crate) fn test_set_headers_escaping(ctx: &mut TestHttpHostcalls) {
         None,
     )
 }
+
+pub(crate) fn test_add_http_request_header(ctx: &mut TestHttpHostcalls) {
+    ctx.add_http_request_header("Test-Case", "from-add-request-header");
+}

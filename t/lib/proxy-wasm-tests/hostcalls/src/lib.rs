@@ -44,6 +44,7 @@ impl RootContext for TestRoot {
     fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
         Some(Box::new(TestHttpHostcalls {
             context_id,
+            test_case: self.config.get("test_case").map(|s| s.clone()),
             on_phase: self
                 .config
                 .get("on_phase")
@@ -58,6 +59,7 @@ impl RootContext for TestRoot {
 struct TestHttpHostcalls {
     context_id: u32,
     on_phase: TestPhase,
+    test_case: Option<String>,
 }
 
 impl TestHttpHostcalls {
@@ -86,8 +88,15 @@ impl TestHttpHostcalls {
         let test_case;
         {
             let path = self.get_http_request_header(":path").unwrap();
+            let config_override = self.test_case.clone();
             let header_override = self.get_http_request_header("pwm-test-case");
-            if let Some(h) = header_override {
+            if let Some(c) = config_override {
+                test_case = c;
+                debug!(
+                    "#{}, overriding test case from filter config: \"{}\"",
+                    self.context_id, test_case
+                );
+            } else if let Some(h) = header_override {
                 // Subrequests currently retrieve their own location path (r->uri)
                 // with :path, which means on_phases test cases would see the test
                 // case's name as "/t/on_request_headers" instead of "/t/log/levels"
@@ -139,6 +148,7 @@ impl TestHttpHostcalls {
                 "/t/send_local_response/twice" => test_send_twice(self),
                 "/t/send_local_response/set_special_headers" => test_set_special_headers(self),
                 "/t/send_local_response/set_headers_escaping" => test_set_headers_escaping(self),
+                "/t/add_http_request_header/sanity" => test_add_http_request_header(self),
                 "/t/echo/headers" => echo_headers(self),
                 _ => self.send_not_found(),
             },
