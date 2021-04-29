@@ -24,8 +24,8 @@ GET /t/echo/headers
 --- more_headers
 Hello: world
 --- response_body eval
-qq{Host: localhost\r
-Connection: close\r
+qq{Host: localhost
+Connection: close
 Hello: world
 }
 --- no_error_log
@@ -50,9 +50,9 @@ GET /t/echo/headers
 --- more_headers eval
 CORE::join "\n", map { "Header$_: value-$_" } 1..20
 --- response_body eval
-qq{Host: localhost\r
-Connection: close\r
-}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..20) . "\n"
+qq{Host: localhost
+Connection: close
+}.(CORE::join "\n", map { "Header$_: value-$_" } 1..20) . "\n"
 --- no_error_log
 [warn]
 [error]
@@ -75,9 +75,9 @@ GET /t/echo/headers
 --- more_headers eval
 CORE::join "\n", map { "Header$_: value-$_" } 1..105
 --- response_body eval
-qq{Host: localhost\r
-Connection: close\r
-}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..98) . "\n"
+qq{Host: localhost
+Connection: close
+}.(CORE::join "\n", map { "Header$_: value-$_" } 1..98) . "\n"
 --- error_log eval
 [
     qr/\[warn\] .*? marshalled map truncated to 100 elements/,
@@ -103,12 +103,12 @@ should produce a response with headers
 --- more_headers eval
 CORE::join "\n", map { "Header$_: value-$_" } 1..105
 --- response_body eval
-[qq{Host: localhost\r
-Connection: keep-alive\r
-}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..98) . "\n",
-qq{Host: localhost\r
-Connection: close\r
-}.(CORE::join "\r\n", map { "Header$_: value-$_" } 1..98) . "\n"]
+[qq{Host: localhost
+Connection: keep-alive
+}.(CORE::join "\n", map { "Header$_: value-$_" } 1..98) . "\n",
+qq{Host: localhost
+Connection: close
+}.(CORE::join "\n", map { "Header$_: value-$_" } 1..98) . "\n"]
 --- no_error_log
 [error]
 

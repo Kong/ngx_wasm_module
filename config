@@ -138,6 +138,8 @@ if [ $HTTP = YES ]; then
     ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_module.c \
                      $ngx_addon_dir/src/http/ngx_http_wasm_directives.c \
                      $ngx_addon_dir/src/http/ngx_http_wasm_local_response.c \
+                     $ngx_addon_dir/src/http/ngx_http_wasm_headers.c \
+                     $ngx_addon_dir/src/http/ngx_http_wasm_headers_request.c \
                      $ngx_addon_dir/src/http/ngx_http_wasm_headers_response.c \
                      $ngx_addon_dir/src/http/ngx_http_wasm_host.c \
                      $ngx_addon_dir/src/http/ngx_http_wasm_util.c \
