@@ -231,7 +231,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, ctx->log, 0,
                    "wasm ops resuming \"%V\" phase (idx: %ui, "
-                   "nops: %ui, force_ops: %ui)",
+                   "nops: %ui, force_ops: %d)",
                    &phase->name, phaseidx, pipeline ? pipeline->ops->nelts : 0,
                    force_ops);
 
