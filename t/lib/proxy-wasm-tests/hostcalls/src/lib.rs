@@ -44,7 +44,7 @@ impl RootContext for TestRoot {
     fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
         Some(Box::new(TestHttpHostcalls {
             context_id,
-            test_case: self.config.get("test_case").map(|s| s.clone()),
+            test_case: self.config.get("test_case").cloned(),
             on_phase: self
                 .config
                 .get("on_phase")
@@ -93,7 +93,7 @@ impl TestHttpHostcalls {
             if let Some(c) = config_override {
                 test_case = c;
                 debug!(
-                    "#{}, overriding test case from filter config: \"{}\"",
+                    "#{} overriding test case from filter config: \"{}\"",
                     self.context_id, test_case
                 );
             } else if let Some(h) = header_override {
@@ -148,7 +148,7 @@ impl TestHttpHostcalls {
                 "/t/send_local_response/twice" => test_send_twice(self),
                 "/t/send_local_response/set_special_headers" => test_set_special_headers(self),
                 "/t/send_local_response/set_headers_escaping" => test_set_headers_escaping(self),
-                "/t/add_http_request_header/sanity" => test_add_http_request_header(self),
+                "/t/add_http_request_header" => test_add_http_request_header(self),
                 "/t/echo/headers" => echo_headers(self),
                 _ => self.send_not_found(),
             },

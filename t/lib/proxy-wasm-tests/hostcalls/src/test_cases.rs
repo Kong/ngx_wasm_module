@@ -93,5 +93,9 @@ pub(crate) fn test_set_headers_escaping(ctx: &mut TestHttpHostcalls) {
 }
 
 pub(crate) fn test_add_http_request_header(ctx: &mut TestHttpHostcalls) {
-    ctx.add_http_request_header("Test-Case", "from-add-request-header");
+    let add = ctx.get_http_request_header("pwm-add-req-header");
+    if let Some(header) = add {
+        let (name, value) = header.split_once('=').unwrap();
+        ctx.add_http_request_header(name, value);
+    }
 }

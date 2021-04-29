@@ -5,9 +5,16 @@ pub(crate) fn echo_headers(ctx: &mut TestHttpHostcalls) {
     let headers = ctx
         .get_http_request_headers()
         .iter()
+        .filter_map(|(name, value)| {
+            // Do not include pwm-* test headers
+            if name.to_lowercase().starts_with("pwm-") {
+                return None;
+            }
+            Some((name, value))
+        })
         .map(|(name, value)| format!("{}: {}", name, value))
         .collect::<Vec<String>>()
-        .join("\r\n");
+        .join("\n");
 
     ctx.send_plain_response(StatusCode::OK, Some(headers));
 }

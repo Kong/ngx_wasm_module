@@ -253,8 +253,10 @@ ngx_array_t *ngx_proxy_wasm_pairs_unmarshal(ngx_pool_t *pool, u_char *buf,
     size_t len);
 ngx_str_t *ngx_proxy_wasm_get_map_value(ngx_list_t *map, u_char *key,
     size_t key_len);
+#if 0
 ngx_int_t ngx_proxy_wasm_add_map_value(ngx_pool_t *pool, ngx_list_t *map,
     u_char *key, size_t key_len, u_char *value, size_t val_len);
+#endif
 void ngx_proxy_wasm_tick_handler(ngx_event_t *ev);
 void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
     ngx_proxy_wasm_err_t err, const char *fmt, ...);

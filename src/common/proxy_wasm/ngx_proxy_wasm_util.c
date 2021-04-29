@@ -280,6 +280,7 @@ ngx_proxy_wasm_get_map_value(ngx_list_t *map, u_char *key, size_t key_len)
 }
 
 
+#if 0
 ngx_int_t
 ngx_proxy_wasm_add_map_value(ngx_pool_t *pool, ngx_list_t *map, u_char *key,
     size_t key_len, u_char *value, size_t val_len)
@@ -291,11 +292,22 @@ ngx_proxy_wasm_add_map_value(ngx_pool_t *pool, ngx_list_t *map, u_char *key,
         return NGX_ERROR;
     }
 
-    h->hash = val_len ? ngx_hash_key(key, key_len) : 0;
+    h->hash = ngx_hash_key(key, key_len);
     h->key.len = key_len;
-    h->key.data = key;
+    h->key.data = ngx_pnalloc(pool, h->key.len);
+    if (h->key.data == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_memcpy(h->key.data, key, key_len);
+
     h->value.len = val_len;
-    h->value.data = value;
+    h->value.data = ngx_pnalloc(pool, h->value.len);
+    if (h->value.data == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_memcpy(h->value.data, value, val_len);
 
     h->lowcase_key = ngx_pnalloc(pool, h->key.len);
     if (h->lowcase_key == NULL) {
@@ -306,6 +318,7 @@ ngx_proxy_wasm_add_map_value(ngx_pool_t *pool, ngx_list_t *map, u_char *key,
 
     return NGX_OK;
 }
+#endif
 
 
 void
