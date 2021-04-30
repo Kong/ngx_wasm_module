@@ -23,10 +23,27 @@ pub(crate) fn test_log_request_headers(ctx: &mut TestHttpHostcalls) {
     }
 }
 
+pub(crate) fn test_log_response_header(ctx: &mut TestHttpHostcalls) {
+    let header = ctx.get_http_request_header("pwm-log-resp-header");
+    if let Some(header_name) = header {
+        let value = ctx.get_http_response_header(header_name.as_str());
+        if value.is_some() {
+            info!("resp header \"{}: {}\"", header_name, value.unwrap());
+        }
+    }
+}
+
+pub(crate) fn test_log_response_headers(ctx: &mut TestHttpHostcalls) {
+    for (name, value) in ctx.get_http_response_headers() {
+        info!("resp {}: {}", name, value)
+    }
+}
+
 pub(crate) fn test_log_request_path(ctx: &mut TestHttpHostcalls) {
     let path = ctx
         .get_http_request_header(":path")
         .expect("failed to retrieve request path");
+
     info!("path: {}", path);
 }
 
@@ -97,5 +114,13 @@ pub(crate) fn test_add_http_request_header(ctx: &mut TestHttpHostcalls) {
     if let Some(header) = add {
         let (name, value) = header.split_once('=').unwrap();
         ctx.add_http_request_header(name, value);
+    }
+}
+
+pub(crate) fn test_add_http_response_header(ctx: &mut TestHttpHostcalls) {
+    let add = ctx.get_http_request_header("pwm-add-resp-header");
+    if let Some(header) = add {
+        let (name, value) = header.split_once('=').unwrap();
+        ctx.add_http_response_header(name, value);
     }
 }

@@ -854,7 +854,9 @@ ngx_wavm_ctx_update(ngx_wavm_ctx_t *ctx, ngx_log_t *log, void *data)
 
     for (i = 0; i < ctx->vm->lmodules_max; i++) {
         instance = ctx->instances[i];
-        instance->log_ctx.orig_log = log;
+        if (instance) {
+            instance->log_ctx.orig_log = log;
+        }
     }
 }
 

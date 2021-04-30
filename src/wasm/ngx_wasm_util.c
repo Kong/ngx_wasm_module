@@ -115,6 +115,84 @@ ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 }
 
 
+ngx_str_t *
+ngx_wasm_get_list_elem(ngx_list_t *map, u_char *key, size_t key_len)
+{
+    size_t            i;
+    ngx_table_elt_t  *elt;
+    ngx_list_part_t  *part;
+
+    part = &map->part;
+    elt = part->elts;
+
+    for (i = 0; /* void */; i++) {
+
+        if (i >= part->nelts) {
+            if (part->next == NULL) {
+                break;
+            }
+
+            part = part->next;
+            elt = part->elts;
+            i = 0;
+        }
+
+#if 0
+        dd("key: %.*s, value: %.*s",
+           (int) elt[i].key.len, elt[i].key.data,
+           (int) elt[i].value.len, elt[i].value.data);
+#endif
+
+        if (key_len == elt[i].key.len
+            && ngx_strncasecmp(elt[i].key.data, key, key_len) == 0)
+        {
+            return &elt[i].value;
+        }
+    }
+
+    return NULL;
+}
+
+
+ngx_int_t
+ngx_wasm_add_list_elem(ngx_pool_t *pool, ngx_list_t *map, u_char *key,
+    size_t key_len, u_char *value, size_t val_len)
+{
+    ngx_table_elt_t  *h;
+
+    h = ngx_list_push(map);
+    if (h == NULL) {
+        return NGX_ERROR;
+    }
+
+    h->hash = ngx_hash_key(key, key_len);
+    h->key.len = key_len;
+    h->key.data = ngx_pnalloc(pool, h->key.len);
+    if (h->key.data == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_memcpy(h->key.data, key, key_len);
+
+    h->value.len = val_len;
+    h->value.data = ngx_pnalloc(pool, h->value.len);
+    if (h->value.data == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_memcpy(h->value.data, value, val_len);
+
+    h->lowcase_key = ngx_pnalloc(pool, h->key.len);
+    if (h->lowcase_key == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_strlow(h->lowcase_key, h->key.data, h->key.len);
+
+    return NGX_OK;
+}
+
+
 #if 0
 ngx_connection_t *
 ngx_wasm_connection_create(ngx_pool_t *pool)

@@ -12,7 +12,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: get_http_request_headers() gets request headers
+=== TEST 1: proxy_wasm - get_http_request_headers() gets request headers
 should produce a response with headers
 --- wasm_modules: hostcalls
 --- config
@@ -36,7 +36,7 @@ Hello: world
 
 
 
-=== TEST 2: get_http_request_headers() many headers
+=== TEST 2: proxy_wasm - get_http_request_headers() many headers
 should produce a response with 20+ headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -61,7 +61,7 @@ Connection: close
 
 
 
-=== TEST 3: get_http_request_headers() too many headers
+=== TEST 3: proxy_wasm - get_http_request_headers() too many headers
 should produce a response but truncate number of headers if > 100
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -89,7 +89,7 @@ Connection: close
 
 
 
-=== TEST 4: get_http_request_headers() pipelined requests with large headers
+=== TEST 4: proxy_wasm - get_http_request_headers() pipelined requests with large headers
 should produce a response with headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls

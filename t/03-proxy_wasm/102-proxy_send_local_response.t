@@ -28,9 +28,9 @@ GET /t/send_local_response/status/204
 --- response_body
 --- raw_response_headers_like eval
 "HTTP\/1\.1 204 No Content\r
-Server: nginx\/.*?\r
-Date: .*?\r
-Connection: close"
+Connection: close\r
+Server: nginx.*?\r
+Date: .*? GMT\r"
 --- no_error_log
 [warn]
 [error]
@@ -84,7 +84,7 @@ qr/500 Internal Server Error/
 
 
 
-=== TEST 4: proxy_wasm - send_local_response() set headers
+=== TEST 4: proxy_wasm - send_local_response() set headers, no body
 should inject headers a produced response, not from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -97,11 +97,11 @@ should inject headers a produced response, not from echo
 GET /t/send_local_response/headers
 --- response_headers
 Powered-By: proxy-wasm
+Content-Type:
+Content-Length:
 --- response_body
 --- no_error_log
 [error]
-[crit]
-[emerg]
 
 
 
@@ -126,9 +126,10 @@ Hello world
 
 
 
-=== TEST 6: proxy_wasm - send_local_response() set content-length header when body
+=== TEST 6: proxy_wasm - send_local_response() set content-length/type headers with body
 should produce a response body, not from echo
 should set the content-length header appropriately
+should set the content-type header appropriately
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -140,13 +141,13 @@ should set the content-length header appropriately
 GET /t/send_local_response/body
 --- response_headers
 Content-Length: 12
+Content-Type: text/plain
 --- response_body
 Hello world
 --- error_log eval
 qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 --- no_error_log
 [error]
-[crit]
 
 
 
@@ -201,7 +202,7 @@ E-Tag: 377060cd8c284d8af7ad3082f20958d2
 --- request
 GET /t/send_local_response/set_special_headers
 --- response_headers
-Content-Length: 0
+Content-Length:
 Content-Encoding: gzip
 Content-Type: text/plain; charset=UTF-8
 Cache-Control: no-cache
@@ -244,6 +245,8 @@ should invoke on_log
 GET /t
 --- more_headers
 PWM-Test-Case: /t/send_local_response/body
+--- response_headers
+Content-Type: text/plain
 --- response_body
 Hello world
 --- error_log eval
@@ -252,8 +255,7 @@ Hello world
     qr/\[info\] .*? \[wasm\] #\d+ on_log/
 ]
 --- no_error_log
-[crit]
-[emerg]
+[error]
 
 
 

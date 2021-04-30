@@ -75,7 +75,7 @@ ngx_int_t
 ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t                    len;
+    size_t                    body_len, content_len;
     u_char                   *body;
     ngx_int_t                 rc;
     ngx_buf_t                *b;
@@ -84,20 +84,36 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
     ngx_http_request_t       *r = rctx->r;
 
     body = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
-    len = args[1].of.i32;
+    body_len = args[1].of.i32;
 
-    if (r->connection->fd == NGX_WASM_BAD_FD
-        || rctx->finalized)
-    {
+    if (r->connection->fd == NGX_WASM_BAD_FD) {
         return NGX_WAVM_BAD_USAGE;
     }
 
-    b = ngx_create_temp_buf(r->pool, len + sizeof(LF));
+    if (r->header_sent) {
+        ngx_wavm_instance_trap_printf(instance, "response already sent");
+        return NGX_WAVM_BAD_USAGE;
+    }
+
+    content_len = body_len + sizeof(LF);
+
+    if (body_len) {
+        rc = ngx_http_wasm_set_resp_content_type(r);
+        if (rc != NGX_OK) {
+            return NGX_WAVM_ERROR;
+        }
+    }
+
+    if (ngx_http_wasm_set_resp_content_length(r, content_len) != NGX_OK) {
+        return NGX_WAVM_ERROR;
+    }
+
+    b = ngx_create_temp_buf(r->pool, content_len);
     if (b == NULL) {
         return NGX_WAVM_ERROR;
     }
 
-    b->last = ngx_copy(b->last, body, len);
+    b->last = ngx_copy(b->last, body, body_len);
     *b->last++ = LF;
 
     b->last_buf = 1;

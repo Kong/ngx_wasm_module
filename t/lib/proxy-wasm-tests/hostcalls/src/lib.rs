@@ -138,6 +138,8 @@ impl TestHttpHostcalls {
             Method::GET => match test_case.as_str() {
                 "/t/log/levels" => test_log_levels(self),
                 "/t/log/request_headers" => test_log_request_headers(self),
+                "/t/log/response_header" => test_log_response_header(self),
+                "/t/log/response_headers" => test_log_response_headers(self),
                 "/t/log/request_path" => test_log_request_path(self),
                 "/t/log/current_time" => test_log_current_time(self),
                 "/t/send_local_response/status/204" => test_send_status(self, 204),
@@ -149,6 +151,7 @@ impl TestHttpHostcalls {
                 "/t/send_local_response/set_special_headers" => test_set_special_headers(self),
                 "/t/send_local_response/set_headers_escaping" => test_set_headers_escaping(self),
                 "/t/add_http_request_header" => test_add_http_request_header(self),
+                "/t/add_http_response_header" => test_add_http_response_header(self),
                 "/t/echo/headers" => echo_headers(self),
                 _ => self.send_not_found(),
             },

@@ -31,9 +31,10 @@ find_runtime() {
     . auto/feature
 }
 
-NGX_WASM_RUNTIME="${NGX_WASM_RUNTIME:-wasmtime}"
-
+ngx_addon_name=ngx_wasm_module
 ngx_found=no
+
+NGX_WASM_RUNTIME="${NGX_WASM_RUNTIME:-wasmtime}"
 
 case $NGX_WASM_RUNTIME in
     wasmtime)
@@ -124,17 +125,17 @@ ngx_module_link=ADDON
 ###############################################################################
 
 if [ $HTTP = YES ]; then
-    have=NGX_WASM_HTTP . auto/define
+    NGX_HTTP_WASM_DEPS="$ngx_addon_dir/src/http/ngx_http_wasm.h \
+                        $ngx_addon_dir/src/http/ngx_http_wasm_util.h \
+                        $ngx_addon_dir/src/http/ngx_http_wasm_headers.h \
+                        $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.h"
 
     ngx_module_type=HTTP
     ngx_module_name=ngx_http_wasm_module
     ngx_module_incs="$ngx_addon_dir/src/http \
                      $ngx_addon_dir/src/http/proxy_wasm"
     ngx_module_libs=
-    ngx_module_deps="$ngx_addon_dir/src/http/ngx_http_wasm.h \
-                     $ngx_addon_dir/src/http/ngx_http_wasm_util.h \
-                     $ngx_addon_dir/src/http/ngx_http_wasm_headers.h \
-                     $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.h"
+    ngx_module_deps=$NGX_HTTP_WASM_DEPS
     ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_module.c \
                      $ngx_addon_dir/src/http/ngx_http_wasm_directives.c \
                      $ngx_addon_dir/src/http/ngx_http_wasm_local_response.c \
@@ -148,6 +149,33 @@ if [ $HTTP = YES ]; then
     ngx_module_link=ADDON
 
     . auto/module
+
+    ngx_module_type=HTTP_FILTER
+    ngx_module_name=ngx_http_wasm_filter_module
+    ngx_module_incs="$ngx_addon_dir/src/http \
+                     $ngx_addon_dir/src/http/proxy_wasm"
+    ngx_module_libs=
+    ngx_module_deps=$NGX_HTTP_WASM_DEPS
+    ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_filter_module.c"
+    ngx_module_link=ADDON
+
+    . auto/module
+
+    IFS=' '
+    WASM_HTTP_FILTER_MODULES=""
+    for n in $HTTP_FILTER_MODULES; do
+        if [ $n = $ngx_module_name ]; then
+            true
+        elif [ $n = ngx_http_header_filter_module ]; then
+            WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $n"
+            WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $ngx_module_name"
+        else
+            WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $n"
+        fi
+    done
+    HTTP_FILTER_MODULES=$WASM_HTTP_FILTER_MODULES
+
+    have=NGX_WASM_HTTP . auto/define
 fi
 
 ###############################################################################

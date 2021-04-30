@@ -4,7 +4,6 @@
 #include "ddebug.h"
 
 #include <ngx_http_wasm.h>
-#include <ngx_http_proxy_wasm.h>
 
 
 static void *ngx_http_wasm_create_main_conf(ngx_conf_t *cf);
@@ -12,7 +11,6 @@ static void *ngx_http_wasm_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent,
     void *child);
 static ngx_int_t ngx_http_wasm_postconfig(ngx_conf_t *cf);
-static ngx_int_t ngx_http_wasm_init(ngx_cycle_t *cycle);
 static ngx_int_t ngx_http_wasm_init_process(ngx_cycle_t *cycle);
 static void ngx_http_wasm_exit_process(ngx_cycle_t *cycle);
 static ngx_int_t ngx_http_wasm_rewrite_handler(ngx_http_request_t *r);
@@ -21,7 +19,6 @@ static ngx_int_t ngx_http_wasm_preaccess_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_access_handler(ngx_http_request_t *r);
 #endif
 static ngx_int_t ngx_http_wasm_content_handler(ngx_http_request_t *r);
-static ngx_int_t ngx_http_wasm_header_filter_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_log_handler(ngx_http_request_t *r);
 
 
@@ -111,7 +108,7 @@ ngx_module_t  ngx_http_wasm_module = {
     ngx_http_wasm_module_cmds,           /* module directives */
     NGX_HTTP_MODULE,                     /* module type */
     NULL,                                /* init master */
-    ngx_http_wasm_init,                  /* init module */
+    NULL,                                /* init module */
     ngx_http_wasm_init_process,          /* init process */
     NULL,                                /* init thread */
     NULL,                                /* exit thread */
@@ -139,9 +136,6 @@ static ngx_http_handler_pt  phase_handlers[NGX_HTTP_LOG_PHASE + 1] = {
     ngx_http_wasm_content_handler,       /* content */
     ngx_http_wasm_log_handler            /* log */
 };
-
-
-static ngx_http_output_header_filter_pt  ngx_http_next_header_filter;
 
 
 /* configuration & init */
@@ -235,16 +229,6 @@ ngx_http_wasm_postconfig(ngx_conf_t *cf)
 
 
 static ngx_int_t
-ngx_http_wasm_init(ngx_cycle_t *cycle)
-{
-    ngx_http_next_header_filter = ngx_http_top_header_filter;
-    ngx_http_top_header_filter = ngx_http_wasm_header_filter_handler;
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
 ngx_http_wasm_init_process(ngx_cycle_t *cycle)
 {
     ngx_queue_t                *q;
@@ -298,7 +282,7 @@ ngx_http_wasm_cleanup(void *data)
 }
 
 
-static ngx_int_t
+ngx_int_t
 ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 {
     ngx_http_wasm_loc_conf_t  *loc;
@@ -358,7 +342,7 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 }
 
 
-static ngx_int_t
+ngx_int_t
 ngx_http_wasm_check_finalize(ngx_http_request_t *r,
     ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
 {
@@ -367,6 +351,10 @@ ngx_http_wasm_check_finalize(ngx_http_request_t *r,
     }
 
     if (rctx->sent_last) {
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm rctx->sent_last: %d, rc %d to done (%d)",
+                       rctx->sent_last, rc, NGX_DONE);
+
         rc = NGX_DONE;
 
         if (!rctx->finalized) {
@@ -374,10 +362,6 @@ ngx_http_wasm_check_finalize(ngx_http_request_t *r,
             r->main->count++;
             ngx_http_finalize_request(r, rc);
         }
-
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm rctx->sent_last: %d, rc: %d",
-                       rctx->sent_last, rc);
     }
 
     return rc;
@@ -462,6 +446,8 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE, 0);
     rc = ngx_http_wasm_check_finalize(r, rctx, rc);
     if (rc == NGX_HTTP_INTERNAL_SERVER_ERROR || rc == NGX_DONE) {
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm \"content\" phase rc: %d (content produced)", rc);
         return rc;
     }
 
@@ -469,10 +455,10 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     rc = ngx_http_wasm_flush_local_response(r, rctx);
 
+    rctx->local_resp_over = 1; /* too late for local resp from now on */
+
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm flush_local_response rc: %d", rc);
-
-    rctx->entered_content = 1;
 
     switch (rc) {
 
@@ -511,37 +497,6 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
                    "wasm \"content\" phase rc: %d", rc);
 
     return rc;
-}
-
-
-static ngx_int_t
-ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
-{
-    ngx_int_t                  rc;
-    ngx_http_wasm_req_ctx_t   *rctx;
-
-    rc = ngx_http_wasm_rctx(r, &rctx);
-    if (rc == NGX_ERROR) {
-        return NGX_ERROR;
-
-    } else if (rc == NGX_DECLINED) {
-        goto next_filter;
-    }
-
-    ngx_wasm_assert(rc == NGX_OK);
-
-    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_HEADER_FILTER_PHASE,
-                             NGX_WASM_OPS_RUN_ALL);
-    if (rc == NGX_OK) {
-        rc = ngx_http_wasm_check_finalize(r, rctx, rc);
-        if (rc == NGX_DONE) {
-            return NGX_DONE;
-        }
-    }
-
-next_filter:
-
-    return ngx_http_next_header_filter(r);
 }
 
 

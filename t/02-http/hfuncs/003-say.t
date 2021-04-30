@@ -47,12 +47,35 @@ hello say
 
 
 
-=== TEST 3: say: 'log' phase
---- SKIP
+=== TEST 3: say: produce response in 'header_filter' phase
+--- load_nginx_modules: ngx_http_echo_module ngx_http_headers_more_filter_module
 --- config
     location /t {
-        wasm_call log ngx_rust_tests say_hello;
+        # force the Content-Length header value since say
+        # will set it only once otherwise
+        more_set_headers 'Content-Length: 20';
+        wasm_call content ngx_rust_tests say_hello;
+        wasm_call header_filter ngx_rust_tests say_hello;
     }
 --- response_body
+hello say
+hello say
 --- no_error_log
 [error]
+
+
+
+=== TEST 4: say: 'log' phase
+should produce a trap
+TODO: test backtrace
+--- config
+    location /t {
+        return 200;
+        wasm_call log ngx_rust_tests say_hello;
+    }
+--- ignore_response_body
+--- grep_error_log eval: qr/\[error\] .*?$/
+--- grep_error_log_out eval
+qr/\[wasm\] bad host usage: response already sent/
+--- no_error_log
+[crit]

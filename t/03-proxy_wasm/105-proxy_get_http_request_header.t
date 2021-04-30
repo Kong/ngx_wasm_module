@@ -36,7 +36,7 @@ Hello: world
 
 
 
-=== TEST 2: proxy_wasm - get_http_request_header() retrieves a missing header
+=== TEST 2: proxy_wasm - get_http_request_header() retrieves missing header
 --- wasm_modules: hostcalls
 --- config
     location /t {

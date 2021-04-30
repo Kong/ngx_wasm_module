@@ -211,7 +211,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
 
     }
 
-    if (rctx->local_resp) {
+    if (rctx->local_resp_stashed) {
         rc = NGX_DONE;
     }
 
