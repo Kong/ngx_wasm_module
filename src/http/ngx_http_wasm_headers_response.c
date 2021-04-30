@@ -116,7 +116,48 @@ static ngx_http_wasm_header_t  ngx_http_wasm_headers[] = {
 size_t
 ngx_http_wasm_resp_headers_count(ngx_http_request_t *r)
 {
-    return ngx_wasm_list_nelts(&r->headers_out.headers);
+    ngx_uint_t  count = 1; /* Connection */
+
+    /* add default headers injected by ngx_http_header_filter */
+
+    if (r->headers_out.server == NULL) {
+        count++;
+    }
+
+    if (r->headers_out.date == NULL) {
+        count++;
+    }
+
+    if (r->headers_out.content_type.len) {
+        count++;
+    }
+
+    if (r->headers_out.content_length == NULL) {
+        count++;
+
+    } else if (r->headers_out.content_length_n == -1
+               || r->expect_trailers)
+    {
+        /* Transfer-Encoding, injected by ngx_http_chunked_header_filter */
+        count++;
+    }
+
+    if (r->headers_out.last_modified) {
+        count++;
+    }
+
+    /* TODO: Location */
+
+#if (NGX_HTTP_GZIP)
+    if (r->gzip_vary) {
+        /* Vary */
+        count++;
+    }
+#endif
+
+    count += ngx_wasm_list_nelts(&r->headers_out.headers);
+
+    return count;
 }
 
 
