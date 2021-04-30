@@ -126,7 +126,7 @@ Hello world
 
 
 
-=== TEST 6: proxy_wasm - send_local_response() set content-length when body
+=== TEST 6: proxy_wasm - send_local_response() set content-length header when body
 should produce a response body, not from echo
 should set the content-length header appropriately
 --- load_nginx_modules: ngx_http_echo_module
@@ -142,10 +142,11 @@ GET /t/send_local_response/body
 Content-Length: 12
 --- response_body
 Hello world
+--- error_log eval
+qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
-[emerg]
 
 
 

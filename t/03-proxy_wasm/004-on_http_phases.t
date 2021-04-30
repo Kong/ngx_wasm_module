@@ -14,7 +14,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - on_request_headers
+=== TEST 1: proxy_wasm - on_request_headers logs number of request headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -34,8 +34,7 @@ qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/
 
 
 
-=== TEST 2: proxy_wasm - on_response_headers
-should log 0 response headers (TODO: include default headers)
+=== TEST 2: proxy_wasm - on_response_headers logs number of response headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -43,15 +42,15 @@ should log 0 response headers (TODO: include default headers)
         proxy_wasm on_phases;
         echo ok;
     }
---- response_body
-ok
+--- ignore_response_body
+--- response_headers_like
+Server: \S+
+Date: [\S\s]+
+Content-Type: \S+
+Transfer-Encoding: chunked
+Connection: close
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/
---- no_error_log
-[error]
-[emerg]
-[alert]
-[crit]
+qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 
 
 
@@ -90,8 +89,8 @@ qr/404 Not Found/
 --- error_log eval
 [
     qr/\[error\] .*? open\(\) \".*?\" failed/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers/,
     qr/\[info\] .*? \[wasm\] #\d+ on_log/
 ]
 --- no_error_log
@@ -111,8 +110,8 @@ should produce a response in and of itself, proxy_wasm wraps around
 --- response_body
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers/,
     qr/\[info\] .*? \[wasm\] #\d+ on_log/
 ]
 --- no_error_log
@@ -190,8 +189,8 @@ qq{
 --- response_body
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers/,
     qr/\[info\] .*? \[wasm\] #\d+ on_log/
 ]
 --- no_error_log
@@ -218,8 +217,8 @@ should not execute a log phase
 --- response_body
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers .*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers .*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers .*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers .*? subrequest: "\/subrequest"/,
 ]
 --- no_error_log eval
 [
@@ -254,10 +253,10 @@ A
 B
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers .*? subrequest: "\/subrequest\/a"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers .*? subrequest: "\/subrequest\/a"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 2 headers .*? subrequest: "\/subrequest\/b"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 0 headers .*? subrequest: "\/subrequest\/b"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers .*? subrequest: "\/subrequest\/a"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers .*? subrequest: "\/subrequest\/a"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers .*? subrequest: "\/subrequest\/b"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers .*? subrequest: "\/subrequest\/b"/,
 ]
 --- no_error_log
 [error]
