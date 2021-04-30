@@ -62,7 +62,24 @@ Hello: world
 
 
 
-=== TEST 3: proxy_wasm - add_http_request_header() does not add a new empty value
+=== TEST 3: proxy_wasm - add_http_request_header() adds multiple times the same name/value
+should add multiple instances of the header
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test_case=/t/add_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/add_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+    }
+--- more_headers
+pwm-add-req-header: Hello=world
+--- response_body_like
+Hello: world
+Hello: world
+
+
+
+=== TEST 4: proxy_wasm - add_http_request_header() does not add a new empty value
 should not add a header with no value
 --- wasm_modules: hostcalls
 --- config
@@ -78,7 +95,7 @@ Connection: close
 
 
 
-=== TEST 4: proxy_wasm - add_http_request_header() does not clear an existing header
+=== TEST 5: proxy_wasm - add_http_request_header() does not clear an existing header
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -91,23 +108,6 @@ pwm-add-req-header: Hello=
 --- response_body
 Host: localhost
 Connection: close
-Hello: world
-
-
-
-=== TEST 5: proxy_wasm - add_http_request_header() adds multiple times the same name/value
-should add multiple instances of the header
---- wasm_modules: hostcalls
---- config
-    location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_http_request_header';
-        proxy_wasm hostcalls 'test_case=/t/add_http_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
-    }
---- more_headers
-pwm-add-req-header: Hello=world
---- response_body_like
-Hello: world
 Hello: world
 
 
@@ -287,7 +287,7 @@ stub
 
 
 
-=== TEST 14: proxy_wasm - add_http_request_header() adds User-Agent header
+=== TEST 14: proxy_wasm - add_http_request_header() clears existing User-Agent header
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -303,7 +303,24 @@ Connection: close
 
 
 
-=== TEST 15: proxy_wasm - add_http_request_header() clears existing User-Agent header
+=== TEST 15: proxy_wasm - add_http_request_header() updates existing User-Agent header
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test_case=/t/add_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+    }
+--- more_headers
+User-Agent: Mozilla/5.0
+pwm-add-req-header: User-Agent=Mozilla/4.0
+--- response_body
+Host: localhost
+Connection: close
+User-Agent: Mozilla/4.0
+
+
+
+=== TEST 16: proxy_wasm - add_http_request_header() adds User-Agent header
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -319,7 +336,7 @@ User-Agent: Mozilla/5.0
 
 
 
-=== TEST 16: proxy_wasm - add_http_request_header() updates a builtin header (If-Modified-Since)
+=== TEST 17: proxy_wasm - add_http_request_header() updates a builtin header (If-Modified-Since)
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -336,7 +353,7 @@ If-Modified-Since: Wed, 21 Oct 2015 07:28:00 GMT
 
 
 
-=== TEST 17: proxy_wasm - add_http_request_header() adds a builtin multi header (X-Forwarded-For)
+=== TEST 18: proxy_wasm - add_http_request_header() adds a builtin multi header (X-Forwarded-For)
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -352,7 +369,7 @@ X-Forwarded-For: 10.0.0.2
 
 
 
-=== TEST 18: proxy_wasm - add_http_request_header() adds an already existing builtin multi header (X-Forwarded-For)
+=== TEST 19: proxy_wasm - add_http_request_header() adds an already existing builtin multi header (X-Forwarded-For)
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -370,7 +387,7 @@ X-Forwarded-For: 10.0.0.2
 
 
 
-=== TEST 19: proxy_wasm - add_http_request_header() updates existing User-Agent
+=== TEST 20: proxy_wasm - add_http_request_header() updates existing User-Agent
 should update previously parsed builtin header
 should set r->headers_in.msie6 = 1 (coverage only)
 --- wasm_modules: hostcalls
@@ -389,7 +406,7 @@ User-Agent: MSIE 4.0
 
 
 
-=== TEST 20: proxy_wasm - add_http_request_header() updates existing User-Agent (MSIE)
+=== TEST 21: proxy_wasm - add_http_request_header() updates existing User-Agent (MSIE)
 should update previously parsed builtin header
 should set r->headers_in.msie6 = 1 (coverage only)
 --- wasm_modules: hostcalls
@@ -408,7 +425,7 @@ User-Agent: MSIE 6.0
 
 
 
-=== TEST 21: proxy_wasm - add_http_request_header() updates existing User-Agent (Opera)
+=== TEST 22: proxy_wasm - add_http_request_header() updates existing User-Agent (Opera)
 should update previously parsed builtin header
 should set r->headers_in.opera = 1 (coverage only)
 --- wasm_modules: hostcalls
@@ -427,7 +444,7 @@ User-Agent: Opera
 
 
 
-=== TEST 22: proxy_wasm - add_http_request_header() updates existing User-Agent (Gecko)
+=== TEST 23: proxy_wasm - add_http_request_header() updates existing User-Agent (Gecko)
 should update previously parsed builtin header
 should set r->headers_in.gecko = 1 (coverage only)
 --- wasm_modules: hostcalls
@@ -446,7 +463,7 @@ User-Agent: Gecko
 
 
 
-=== TEST 23: proxy_wasm - add_http_request_header() updates existing User-Agent (Chrome)
+=== TEST 24: proxy_wasm - add_http_request_header() updates existing User-Agent (Chrome)
 should update previously parsed builtin header
 should set r->headers_in.chrome = 1 (coverage only)
 --- wasm_modules: hostcalls
@@ -465,7 +482,7 @@ User-Agent: Chrome/
 
 
 
-=== TEST 24: proxy_wasm - add_http_request_header() updates existing User-Agent (Safari)
+=== TEST 25: proxy_wasm - add_http_request_header() updates existing User-Agent (Safari)
 should update previously parsed builtin header
 should set r->headers_in.safari = 1 (coverage only)
 --- wasm_modules: hostcalls
@@ -484,7 +501,7 @@ User-Agent: Safari/Mac OS X
 
 
 
-=== TEST 25: proxy_wasm - add_http_request_header() updates existing User-Agent (Konqueror)
+=== TEST 26: proxy_wasm - add_http_request_header() updates existing User-Agent (Konqueror)
 should update previously parsed builtin header
 should set r->headers_in.konqueror = 1 (coverage only)
 --- wasm_modules: hostcalls
@@ -503,7 +520,7 @@ User-Agent: Konqueror
 
 
 
-=== TEST 26: proxy_wasm - add_http_request_header() x on_phases
+=== TEST 27: proxy_wasm - add_http_request_header() x on_phases
 --- wasm_modules: hostcalls
 --- config
     location /t {

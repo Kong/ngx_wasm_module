@@ -30,6 +30,9 @@ ngx_proxy_wasm_get_map(ngx_wavm_instance_t *instance,
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
         return &r->headers_in.headers;
+
+    case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
+        return &r->headers_out.headers;
 #endif
 
     default:
@@ -211,7 +214,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_badarg(rets);
     }
 
-    value = ngx_proxy_wasm_get_map_value(list, (u_char *) key, key_len);
+    value = ngx_wasm_get_list_elem(list, (u_char *) key, key_len);
     if (value == NULL) {
         if (pwm->abi_version == NGX_PROXY_WASM_0_1_0) {
             rbuf = NULL;
@@ -306,7 +309,7 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_badarg(rets);
     }
 
-    dd("adding  '%.*s: %.*s' to map type '%d'",
+    dd("adding '%.*s: %.*s' to map type '%d'",
        (int) klen, (u_char *) key, (int) vlen, (u_char *) value, map_type);
 
     skey.len = klen;
@@ -327,20 +330,23 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
     p = ngx_cpymem(svalue.data, value, svalue.len);
     *p = '\0';
 
-    //ngx_proxy_wasm_add_map_value(instance->ctx->pool, list,
-    //                             (u_char *) key, klen,
-    //                             (u_char *) value, vlen);
-
     switch (map_type) {
 
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
-        ngx_http_wasm_set_req_header(r, skey, svalue, 0);
+        ngx_http_wasm_set_req_header(r, skey, svalue,
+                                     NGX_HTTP_WASM_HEADERS_APPEND);
+        break;
+
+    case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
+        ngx_http_wasm_set_resp_header(r, skey, svalue,
+                                      NGX_HTTP_WASM_HEADERS_APPEND);
         break;
 #endif
 
     default:
         ngx_wasm_assert(0);
+        return ngx_proxy_wasm_result_err(rets);
 
     }
 
