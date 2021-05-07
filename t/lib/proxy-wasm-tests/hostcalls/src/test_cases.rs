@@ -109,6 +109,10 @@ pub(crate) fn test_set_headers_escaping(ctx: &mut TestHttpHostcalls) {
     )
 }
 
+pub(crate) fn test_set_http_request_headers(ctx: &mut TestHttpHostcalls) {
+    ctx.set_http_request_headers(vec![("Hello", "world")]);
+}
+
 pub(crate) fn test_add_http_request_header(ctx: &mut TestHttpHostcalls) {
     let add = ctx.get_http_request_header("pwm-add-req-header");
     if let Some(header) = add {

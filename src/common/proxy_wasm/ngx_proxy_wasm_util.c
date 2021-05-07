@@ -76,8 +76,8 @@ size_t
 ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_uint_t max)
 {
     size_t            i, n, size;
-    ngx_table_elt_t  *elt;
     ngx_list_part_t  *part;
+    ngx_table_elt_t  *elt;
 
     part = &list->part;
     elt = part->elts;
