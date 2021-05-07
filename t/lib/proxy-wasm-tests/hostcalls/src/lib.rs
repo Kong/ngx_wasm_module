@@ -150,6 +150,7 @@ impl TestHttpHostcalls {
                 "/t/send_local_response/twice" => test_send_twice(self),
                 "/t/send_local_response/set_special_headers" => test_set_special_headers(self),
                 "/t/send_local_response/set_headers_escaping" => test_set_headers_escaping(self),
+                "/t/set_http_request_headers" => test_set_http_request_headers(self),
                 "/t/add_http_request_header" => test_add_http_request_header(self),
                 "/t/add_http_response_header" => test_add_http_response_header(self),
                 "/t/echo/headers" => echo_headers(self),

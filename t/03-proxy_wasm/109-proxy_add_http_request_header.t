@@ -265,6 +265,7 @@ Connection: close
 
 === TEST 13: proxy_wasm - add_http_request_header() catches invalid Content-Length header
 should produce an error
+TODO: wasmer fix "unreachable" panic
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -273,14 +274,17 @@ should produce an error
     }
 --- more_headers
 pwm-add-req-header: Content-Length=FF
---- response_body
-Host: localhost
-Connection: close
---- error_log eval
-qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: "FF"/
+--- error_code: 500
+--- response_body eval
+qr/500 Internal Server Error/
+--- grep_error_log eval: qr/\[(error|crit)\].*?(?=(\s+<|,))/
+--- grep_error_log_out eval
+qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: "FF"
+\[crit\] .*? \[wasm\] panicked at 'unexpected status: \d+'.*?
+(\[error\] .*? \[wasm\] unreachable)?/
 --- no_error_log
 stub
-[crit]
+stub
 [emerg]
 [alert]
 [stderr]
