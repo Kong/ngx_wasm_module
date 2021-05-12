@@ -36,8 +36,8 @@ GET /t/log/response_headers
 pwm-add-resp-header: Hello=world
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ on_response_headers, 4 headers/,
     qr/\[wasm\] #\d+ on_response_headers, 5 headers/,
+    qr/\[wasm\] #\d+ on_response_headers, 6 headers/,
     qr/\[wasm\] resp Server: nginx.*?/,
     qr/\[wasm\] resp Hello: world/
 ]
@@ -66,8 +66,8 @@ pwm-add-resp-header: Hello=there
 Hello: here, there
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ on_response_headers, 5 headers/,
     qr/\[wasm\] #\d+ on_response_headers, 6 headers/,
+    qr/\[wasm\] #\d+ on_response_headers, 7 headers/,
     qr/\[wasm\] resp Hello: here/,
     qr/\[wasm\] resp Hello: there/,
 ]
@@ -94,9 +94,9 @@ pwm-add-resp-header: Hello=world
 Hello: world, world
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ on_response_headers, 4 headers/,
     qr/\[wasm\] #\d+ on_response_headers, 5 headers/,
     qr/\[wasm\] #\d+ on_response_headers, 6 headers/,
+    qr/\[wasm\] #\d+ on_response_headers, 7 headers/,
     qr/\[wasm\] resp Hello: world/,
     qr/\[wasm\] resp Hello: world/,
 ]
@@ -121,8 +121,8 @@ pwm-add-resp-header: Hello=
 Hello:
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ on_response_headers, 4 headers/,
-    qr/\[wasm\] #\d+ on_response_headers, 4 headers/,
+    qr/\[wasm\] #\d+ on_response_headers, 5 headers/,
+    qr/\[wasm\] #\d+ on_response_headers, 5 headers/,
 ]
 --- no_error_log eval
 [
@@ -154,6 +154,8 @@ Content-Length:
 --- grep_error_log_out eval
 qr/\[wasm\] .*? entering "HttpResponseHeaders"
 \[wasm\] .*? entering "Log"
+\[wasm\] resp Content-Type: text\/plain
+\[wasm\] resp Connection: close
 \[wasm\] resp Server: nginx.*?
 \[wasm\] resp Date: .*? GMT/
 
@@ -179,6 +181,8 @@ Content-Length: 0
 --- grep_error_log_out eval
 qr/\[wasm\] .*? entering "HttpResponseHeaders"
 \[wasm\] .*? entering "Log"
+\[wasm\] resp Content-Type: text\/plain
+\[wasm\] resp Connection: close
 \[wasm\] resp Content-Length: 0
 \[wasm\] resp Server: nginx.*?
 \[wasm\] resp Date: .*? GMT/
@@ -205,9 +209,11 @@ Content-Length: 3
 --- grep_error_log_out eval
 qr/\[wasm\] .*? entering "HttpResponseHeaders"
 \[wasm\] .*? entering "Log"
+\[wasm\] resp Content-Type: text\/plain
+\[wasm\] resp Transfer-Encoding: chunked
+\[wasm\] resp Connection: close
 \[wasm\] resp Server: nginx.*?
 \[wasm\] resp Date: .*? GMT
-\[wasm\] resp Content-Type: text\/plain
 \[wasm\] resp Content-Length: 3/
 
 
@@ -233,6 +239,8 @@ Content-Length: 3
 --- grep_error_log_out eval
 qr/\[wasm\] .*? entering "HttpResponseHeaders"
 \[wasm\] .*? entering "Log"
+\[wasm\] resp Content-Type: text\/plain
+\[wasm\] resp Connection: close
 \[wasm\] resp Content-Length: 3
 \[wasm\] resp Server: nginx.*?
 \[wasm\] resp Date: .*? GMT/
@@ -255,10 +263,12 @@ pwm-add-resp-header: Content-Length=FF
 --- response_headers
 Content-Length: 0
 --- error_log eval
-qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length response header: "FF"/
+[
+    qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length response header: "FF"/,
+    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
+]
 --- no_error_log
 stub
-[crit]
 [emerg]
 [alert]
 [stderr]
@@ -284,9 +294,11 @@ Cache-Control: no-cache
 --- grep_error_log_out eval
 qr/\[wasm\] .*? entering "HttpResponseHeaders"
 \[wasm\] .*? entering "Log"
+\[wasm\] resp Content-Type: text\/plain
+\[wasm\] resp Content-Length: 0
+\[wasm\] resp Connection: close
 \[wasm\] resp Server: nginx.*?
 \[wasm\] resp Date: .*? GMT
-\[wasm\] resp Content-Type: text\/plain
 \[wasm\] resp Cache-Control: no-cache/
 
 
@@ -312,10 +324,13 @@ Cache-Control: no-store, no-cache
 --- grep_error_log_out eval
 qr/\[wasm\] .*? entering "HttpResponseHeaders"
 \[wasm\] .*? entering "Log"
+\[wasm\] resp Content-Type: text\/plain
+\[wasm\] resp Content-Length: 0
+\[wasm\] resp Connection: close
 \[wasm\] resp Cache-Control: no-store
 \[wasm\] resp Server: nginx.*?
 \[wasm\] resp Date: .*? GMT
-\[wasm\] resp Content-Type: text\/plain/
+\[wasm\] resp Cache-Control: no-cache/
 
 
 
@@ -340,7 +355,9 @@ Cache-Control: no-store
 --- grep_error_log_out eval
 qr/\[wasm\] .*? entering "HttpResponseHeaders"
 \[wasm\] .*? entering "Log"
+\[wasm\] resp Content-Type: text\/plain
+\[wasm\] resp Content-Length: 0
+\[wasm\] resp Connection: close
 \[wasm\] resp Cache-Control: no-store
 \[wasm\] resp Server: nginx.*?
-\[wasm\] resp Date: .*? GMT
-\[wasm\] resp Content-Type: text\/plain/
+\[wasm\] resp Date: .*? GMT/

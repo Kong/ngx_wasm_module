@@ -12,35 +12,6 @@ static ngx_int_t ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_t *pwm);
 //static void ngx_proxy_wasm_on_log_handler(ngx_event_t *ev);
 
 
-static ngx_inline ngx_http_wasm_req_ctx_t *
-ngx_http_proxy_wasm_rctx(ngx_proxy_wasm_t *pwm)
-{
-    ngx_wavm_ctx_t           *wvctx;
-    ngx_http_wasm_req_ctx_t  *rctx;
-
-    wvctx = pwm->instance->ctx;
-
-    ngx_wasm_assert(wvctx == &pwm->wvctx);
-
-    rctx = (ngx_http_wasm_req_ctx_t *) wvctx->data;
-
-    ngx_wasm_assert(wvctx->log == rctx->r->connection->log);
-
-    return rctx;
-}
-
-
-static ngx_inline ngx_http_request_t *
-ngx_http_proxy_wasm_request(ngx_proxy_wasm_t *pwm)
-{
-    ngx_http_wasm_req_ctx_t  *rctx;
-
-    rctx = ngx_http_proxy_wasm_rctx(pwm);
-
-    return rctx->r;
-}
-
-
 ngx_uint_t
 ngx_http_proxy_wasm_ctxid(ngx_proxy_wasm_t *pwm)
 {
@@ -102,23 +73,6 @@ ngx_http_proxy_wasm_create_context(ngx_proxy_wasm_t *pwm)
 
     return NGX_OK;
 }
-
-
-#if 0
-ngx_http_proxy_wasm_rctx_t *
-ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_t *pwm)
-{
-    ngx_http_wasm_req_ctx_t     *rctx = ngx_http_proxy_wasm_rctx(pwm);
-    ngx_http_proxy_wasm_rctx_t  *prctx;
-
-    prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
-    if (prctx == NULL) {
-        return NULL;
-    }
-
-    return &prctx[pwm->filter_idx];
-}
-#endif
 
 
 void
@@ -276,12 +230,13 @@ ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_t *pwm)
 {
     ngx_int_t                 rc;
     ngx_uint_t                ctxid, nheaders;
-    ngx_http_request_t       *r;
+    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_rctx(pwm);
+    ngx_http_request_t       *r = rctx->r;
     wasm_val_vec_t           *rets;
 
-    r = ngx_http_proxy_wasm_request(pwm);
     ctxid = ngx_http_proxy_wasm_ctxid(pwm);
     nheaders = ngx_http_wasm_resp_headers_count(r);
+    nheaders += ngx_http_wasm_count_shim_headers(rctx);
 
     if (pwm->abi_version == NGX_PROXY_WASM_0_1_0) {
         /* 0.1.0 */

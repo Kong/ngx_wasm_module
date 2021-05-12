@@ -15,8 +15,8 @@ ngx_http_wasm_discard_local_response(ngx_http_wasm_req_ctx_t *rctx)
 
     rctx->local_resp_stashed = 0;
     rctx->local_resp_status = 0;
-    rctx->local_resp_body_len = 0;
     rctx->local_resp_reason.len = 0;
+    rctx->local_resp_body_len = -1;
 
     if (rctx->local_resp_reason.data) {
         ngx_pfree(r->pool, rctx->local_resp_reason.data);
@@ -175,13 +175,14 @@ ngx_http_wasm_flush_local_response(ngx_http_request_t *r,
     }
 
     if (rctx->local_resp_body_len) {
-        if (ngx_http_wasm_set_resp_content_type(r) != NGX_OK) {
+        if (ngx_http_set_content_type(r) != NGX_OK) {
             return NGX_ERROR;
         }
     }
 
-    if (ngx_http_wasm_set_resp_content_length(r, rctx->local_resp_body_len)
-        != NGX_OK)
+    if (rctx->local_resp_body_len >= 0
+        && ngx_http_wasm_set_resp_content_length(r, rctx->local_resp_body_len)
+           != NGX_OK)
     {
         return NGX_ERROR;
     }

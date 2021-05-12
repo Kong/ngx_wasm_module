@@ -22,9 +22,8 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm - get_http_response_headers() x on_phases
-should produce no results in: on_request_headers
-should produce results in: on_response_headers, on_log
-should only include default produced headers
+should always include as many headers as it knows will be in the
+response
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -49,14 +48,18 @@ PWM-Test-Case: /t/log/response_headers
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
 qr/\[wasm\] .*? entering "HttpRequestHeaders"
+\[wasm\] resp Connection: close
 \[wasm\] .*? entering "HttpResponseHeaders"
-\[wasm\] resp Server: nginx.*?
-\[wasm\] resp Date: .*? GMT
 \[wasm\] resp Content-Type: text\/plain
-\[wasm\] .*? entering "Log"
+\[wasm\] resp Connection: close
 \[wasm\] resp Server: nginx.*?
 \[wasm\] resp Date: .*? GMT
-\[wasm\] resp Content-Type: text\/plain/
+\[wasm\] .*? entering "Log"
+\[wasm\] resp Content-Type: text\/plain
+\[wasm\] resp Transfer-Encoding: chunked
+\[wasm\] resp Connection: close
+\[wasm\] resp Server: nginx.*?
+\[wasm\] resp Date: .*? GMT/
 
 
 

@@ -68,22 +68,24 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
 ngx_int_t
 ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx)
 {
+#if 0
     size_t                     len;
     u_char                    *p;
+    static ngx_str_t           content_type = ngx_string("Content-Type");
+    ngx_str_t                  ct_val;
+#endif
     ngx_int_t                  rc;
-    ngx_str_t                  server_val, date_val, ct_val, last_mod_val;
-    static ngx_str_t           server = ngx_string("Server"),
-                               date = ngx_string("Date"),
-                               content_type = ngx_string("Content-Type"),
-                               last_modified = ngx_string("Last-Modified");
-    static u_char              ngx_http_server_string[] = "nginx",
-                               ngx_http_server_full_string[] = NGINX_VER,
-                               ngx_http_server_build_string[] = NGINX_VER_BUILD;
+    static ngx_str_t           date = ngx_string("Date");
+    ngx_str_t                  date_val;
+    static ngx_str_t           last_modified = ngx_string("Last-Modified");
+    ngx_str_t                  last_mod_val;
+    static ngx_str_t           server = ngx_string("Server");
+    ngx_str_t                 *server_val = NULL;
+    static ngx_str_t           server_full = ngx_string(NGINX_VER);
+    static ngx_str_t           server_build = ngx_string(NGINX_VER_BUILD);
+    static ngx_str_t           server_default = ngx_string("nginx");
+    ngx_http_request_t        *r = rctx->r;
     ngx_http_core_loc_conf_t  *clcf;
-    ngx_http_request_t        *r;
-
-    r = rctx->r;
-    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm producing default response headers");
@@ -91,30 +93,25 @@ ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx)
     if (r->headers_out.server == NULL) {
         /* Server */
 
+        clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
         if (clcf->server_tokens == NGX_HTTP_SERVER_TOKENS_ON) {
-            p = ngx_http_server_full_string;
-            len = sizeof(ngx_http_server_full_string) - 1;
+            server_val = &server_full;
 
         } else if (clcf->server_tokens == NGX_HTTP_SERVER_TOKENS_BUILD) {
-            p = ngx_http_server_build_string;
-            len = sizeof(ngx_http_server_build_string) - 1;
+            server_val = &server_build;
 
         } else {
-            p = ngx_http_server_string;
-            len = sizeof(ngx_http_server_string) - 1;
+            server_val = &server_default;
         }
 
-        server_val.len = len;
-        server_val.data = ngx_pnalloc(r->pool, server_val.len);
-        if (server_val.data == NULL) {
-            return NGX_ERROR;
-        }
-
-        ngx_memcpy(server_val.data, p, server_val.len);
-
-        rc = ngx_http_wasm_set_resp_header(r, server, server_val, 0);
-        if (rc != NGX_OK) {
-            return NGX_ERROR;
+        if (server_val) {
+            if (ngx_http_wasm_set_resp_header(r, server, *server_val,
+                                              NGX_HTTP_WASM_HEADERS_SET)
+                != NGX_OK)
+            {
+                return NGX_ERROR;
+            }
         }
     }
 
@@ -130,7 +127,10 @@ ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx)
         }
     }
 
-    if (r->headers_out.content_type_len) {
+#if 0
+    if (!r->headers_out.content_type.len
+        && r->headers_out.content_type_len)
+    {
         /* Content-Type */
 
         len = 0;
@@ -172,15 +172,15 @@ ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx)
         r->headers_out.content_type.len = 0;
         r->headers_out.content_type_len = 0; /* re-entrency */
     }
+#endif
 
     if (r->headers_out.content_length == NULL
-        && (rctx->local_resp_body_len || r->headers_out.content_length_n))
+        && r->headers_out.content_length_n >= 0)
     {
         /* Content-Length */
 
-        rc = ngx_http_wasm_set_resp_content_length(r, rctx->local_resp_body_len
-                                            ? (off_t) rctx->local_resp_body_len
-                                            : r->headers_out.content_length_n);
+        rc = ngx_http_wasm_set_resp_content_length(r,
+                  r->headers_out.content_length_n);
         if (rc != NGX_OK) {
             return NGX_ERROR;
         }
@@ -209,17 +209,6 @@ ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx)
     }
 
     /* TODO: Location */
-
-    /*
-     * Note: no way to prevent these from being injected
-     * by ngx_http_header_filter:
-     *
-     *  - Connection
-     *  - Transfer-Encoding
-     *  - Vary
-     */
-
-    rctx->produced_default_headers = 1;
 
     return NGX_OK;
 }

@@ -76,7 +76,7 @@ pub(crate) fn test_set_special_headers(ctx: &mut TestHttpHostcalls) {
         vec![
             ("Server", "proxy-wasm"),
             ("Date", "Wed, 22 Oct 2020 07:28:00 GMT"),
-            ("Content-Length", "0"),
+            ("Content-Length", "3"), // No effect (overriden)
             ("Content-Encoding", "gzip"),
             ("Location", "/index.html"),
             ("Refresh", "5; url=http://www.w3.org/index.html"),
@@ -110,7 +110,26 @@ pub(crate) fn test_set_headers_escaping(ctx: &mut TestHttpHostcalls) {
 }
 
 pub(crate) fn test_set_http_request_headers(ctx: &mut TestHttpHostcalls) {
-    ctx.set_http_request_headers(vec![("Hello", "world")]);
+    ctx.set_http_request_headers(vec![("Hello", "world"), ("Welcome", "wasm")]);
+}
+
+pub(crate) fn test_set_http_request_headers_special(ctx: &mut TestHttpHostcalls) {
+    ctx.set_http_request_headers(vec![
+        ("Host", "somehost"),
+        ("Connection", "closed"),
+        ("User-Agent", "Gecko"),
+    ]);
+}
+
+pub(crate) fn test_set_http_response_headers(ctx: &mut TestHttpHostcalls) {
+    ctx.set_http_response_headers(vec![("Hello", "world"), ("Welcome", "wasm")]);
+}
+
+pub(crate) fn test_set_http_response_headers_special(ctx: &mut TestHttpHostcalls) {
+    ctx.set_http_response_headers(vec![
+        ("Server", "proxy-wasm"),
+        ("Content-Type", "text/none"),
+    ]);
 }
 
 pub(crate) fn test_add_http_request_header(ctx: &mut TestHttpHostcalls) {

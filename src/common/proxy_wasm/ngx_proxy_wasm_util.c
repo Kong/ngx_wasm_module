@@ -73,7 +73,7 @@ ngx_proxy_wasm_pairs_count(ngx_list_t *list)
 
 
 size_t
-ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_uint_t max)
+ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_array_t *shims, ngx_uint_t max)
 {
     size_t            i, n, size;
     ngx_list_part_t  *part;
@@ -117,23 +117,44 @@ ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_uint_t max)
         }
     }
 
+    if (shims) {
+        elt = shims->elts;
+
+        for (i = 0; i < shims->nelts; i++, n++) {
+            size += NGX_PROXY_WASM_PTR_SIZE * 2;
+            size += elt[i].key.len + 1;
+            size += elt[i].value.len + 1;
+
+#if 0
+            dd("shim key: %.*s, shim value: %.*s, size: %lu",
+               (int) elt[i].key.len, elt[i].key.data,
+               (int) elt[i].value.len, elt[i].value.data, size);
+#endif
+
+            if (max && n >= max) {
+                break;
+            }
+        }
+    }
+
     return size;
 }
 
 
 void
-ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf, ngx_uint_t max,
-    ngx_uint_t *truncated)
+ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *shims, u_char *buf,
+    ngx_uint_t max, ngx_uint_t *truncated)
 {
-    size_t            i, n;
+    size_t            i, n = 0;
     uint32_t          count;
     ngx_table_elt_t  *elt;
     ngx_list_part_t  *part;
 
-    part = &list->part;
-    elt = part->elts;
-
     count = ngx_proxy_wasm_pairs_count(list);
+
+    if (shims) {
+        count += shims->nelts;
+    }
 
     if (max && count > max) {
         count = max;
@@ -146,7 +167,21 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf, ngx_uint_t max,
     *((uint32_t *) buf) = count;
     buf += NGX_PROXY_WASM_PTR_SIZE;
 
-    for (i = 0, n = 0; /* void */; i++) {
+    if (shims) {
+        elt = shims->elts;
+
+        for (i = 0; i < shims->nelts && n < count; i++, n++) {
+            *((uint32_t *) buf) = elt[i].key.len;
+            buf += NGX_PROXY_WASM_PTR_SIZE;
+            *((uint32_t *) buf) = elt[i].value.len;
+            buf += NGX_PROXY_WASM_PTR_SIZE;
+        }
+    }
+
+    part = &list->part;
+    elt = part->elts;
+
+    for (i = 0; n < count; i++) {
 
         if (i >= part->nelts) {
             if (part->next == NULL) {
@@ -168,16 +203,27 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf, ngx_uint_t max,
         buf += NGX_PROXY_WASM_PTR_SIZE;
 
         n++;
+    }
 
-        if (max && n >= max) {
-            break;
+    ngx_wasm_assert(n == count);
+
+    n = 0;
+
+    if (shims) {
+        elt = shims->elts;
+
+        for (i = 0; i < shims->nelts && n < count; i++, n++) {
+            buf = ngx_cpymem(buf, elt[i].key.data, elt[i].key.len);
+            *buf++ = '\0';
+            buf = ngx_cpymem(buf, elt[i].value.data, elt[i].value.len);
+            *buf++ = '\0';
         }
     }
 
     part = &list->part;
     elt = part->elts;
 
-    for (i = 0, n = 0; /* void */; i++) {
+    for (i = 0; n < count; i++) {
 
         if (i >= part->nelts) {
             if (part->next == NULL) {
@@ -198,18 +244,10 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, u_char *buf, ngx_uint_t max,
         buf = ngx_cpymem(buf, elt[i].value.data, elt[i].value.len);
         *buf++ = '\0';
 
-#if 0
-        dd("key: %.*s, value: %.*s",
-           (int) elt[i].key.len, elt[i].key.data,
-           (int) elt[i].value.len, elt[i].value.data);
-#endif
-
         n++;
-
-        if (max && n >= max) {
-            break;
-        }
     }
+
+    ngx_wasm_assert(n == count);
 }
 
 
