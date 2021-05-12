@@ -16,8 +16,8 @@ typedef enum {
 
 typedef enum {
     NGX_HTTP_WASM_HEADERS_SET,
-    NGX_HTTP_WASM_HEADERS_REPLACE_IF_SET,
     NGX_HTTP_WASM_HEADERS_APPEND,
+    NGX_HTTP_WASM_HEADERS_REPLACE_IF_SET,
 } ngx_http_wasm_headers_set_mode_e;
 
 
@@ -52,7 +52,6 @@ ngx_int_t ngx_http_wasm_set_resp_header(ngx_http_request_t *r, ngx_str_t key,
     ngx_str_t value, ngx_uint_t mode);
 ngx_int_t ngx_http_wasm_set_resp_content_length(ngx_http_request_t *r,
     off_t cl);
-ngx_int_t ngx_http_wasm_set_resp_content_type(ngx_http_request_t *r);
 
 /* handlers */
 ngx_int_t ngx_http_wasm_set_header(ngx_http_request_t *r,

@@ -42,7 +42,6 @@ Content-Type: text\/plain
 qr/wasm setting response header: "Content-Length: 10"
 wasm setting response header: "Server: nginx\/\d+\.\d+\.\d+"
 wasm setting response header: "Date: .*? GMT"
-wasm setting response header: "Content-Type: text\/plain"
 /
 --- no_error_log
 [error]
@@ -78,6 +77,7 @@ hello say
 
 
 === TEST 4: produce 'Content-Type' response header with charset suffix
+--- SKIP: outdated, ct retrieval now implemented as a shim header
 --- wasm_modules: ngx_rust_tests
 --- config
     error_log logs/error.log debug_core;

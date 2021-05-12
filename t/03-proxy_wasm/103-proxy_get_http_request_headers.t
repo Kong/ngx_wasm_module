@@ -23,11 +23,10 @@ should produce a response with headers
 GET /t/echo/headers
 --- more_headers
 Hello: world
---- response_body eval
-qq{Host: localhost
+--- response_body
+Host: localhost
 Connection: close
 Hello: world
-}
 --- no_error_log
 [error]
 [crit]

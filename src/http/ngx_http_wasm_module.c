@@ -303,6 +303,7 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         }
 
         rctx->r = r;
+        rctx->req_keepalive = r->keepalive;
 
         opctx = &rctx->opctx;
 

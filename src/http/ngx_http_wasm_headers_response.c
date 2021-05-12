@@ -80,38 +80,21 @@ static ngx_http_wasm_header_t  ngx_http_wasm_special_resp_headers[] = {
 
     { ngx_string("Cache-Control"),
                  offsetof(ngx_http_headers_out_t, cache_control),
-                 //ngx_http_wasm_set_builtin_multi_header_handler },
                  ngx_http_wasm_set_builtin_multi_header_handler },
 
     { ngx_string("Link"),
                  offsetof(ngx_http_headers_out_t, link),
-                 //ngx_http_wasm_set_builtin_multi_header_handler },
                  ngx_http_wasm_set_builtin_multi_header_handler },
 
     { ngx_null_string, 0, ngx_http_wasm_set_header_handler }
+
 };
 
 
 size_t
 ngx_http_wasm_resp_headers_count(ngx_http_request_t *r)
 {
-    ngx_uint_t  count = 1; /* Connection */
-
-    if (r->chunked) {
-        /* Transfer-Encoding */
-        count++;
-    }
-
-#if (NGX_HTTP_GZIP)
-    if (r->gzip_vary) {
-        /* Vary */
-        count++;
-    }
-#endif
-
-    count += ngx_wasm_list_nelts(&r->headers_out.headers);
-
-    return count;
+    return ngx_wasm_list_nelts(&r->headers_out.headers);
 }
 
 
@@ -135,14 +118,9 @@ ngx_http_wasm_set_resp_content_length(ngx_http_request_t *r, off_t cl)
     dd("wasm set response header: '%.*s: %f'",
        (int) key.len, key.data, (double) cl);
 
-    if (r->headers_out.content_length_n
+    if (r->headers_out.content_length_n >= 0
         && r->headers_out.content_length_n == cl)
     {
-        return NGX_OK;
-    }
-
-    if (cl == 0) {
-        ngx_http_clear_content_length(r);
         return NGX_OK;
     }
 
@@ -154,32 +132,8 @@ ngx_http_wasm_set_resp_content_length(ngx_http_request_t *r, off_t cl)
     value.data = p;
     value.len = ngx_sprintf(p, "%O", cl) - p;
 
-    return ngx_http_wasm_set_resp_header(r, key, value, 0);
-}
-
-
-ngx_int_t
-ngx_http_wasm_set_resp_content_type(ngx_http_request_t *r)
-{
-    ngx_http_wasm_req_ctx_t   *rctx;
-
-    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    /* does not technically set the header, but prevents
-     * r->headers_out.content_type.len from being updated
-     * after ngx_http_wasm_produce_resp_headers */
-
-    if (rctx->produced_default_headers) {
-        return NGX_OK;
-    }
-
-    if (ngx_http_set_content_type(r) != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    return NGX_OK;
+    return ngx_http_wasm_set_resp_header(r, key, value,
+                                         NGX_HTTP_WASM_HEADERS_SET);
 }
 
 
@@ -230,8 +184,6 @@ ngx_http_set_content_length_header_handler(ngx_http_request_t *r,
 {
     off_t   len;
 
-    dd("wasm set Content-Length: '%.*s'", (int) value->len, value->data);
-
     if (value->len == 0) {
         ngx_http_clear_content_length(r);
         return NGX_OK;
@@ -271,10 +223,10 @@ ngx_http_set_content_type_header_handler(ngx_http_request_t *r,
     r->headers_out.content_type_hash = hv->hash;
     r->headers_out.content_type_lowcase = NULL;
 
-    hv->mode = NGX_HTTP_WASM_HEADERS_REPLACE_IF_SET;
-    value->len = 0;
+    /* Not injected into r->headers_out.headers, injected as shim header
+     * if requested */
 
-    return ngx_http_wasm_set_header_helper(hv, value, NULL);
+    return NGX_OK;
 }
 
 

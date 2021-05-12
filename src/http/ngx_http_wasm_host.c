@@ -98,7 +98,7 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
     content_len = body_len + sizeof(LF);
 
     if (body_len) {
-        rc = ngx_http_wasm_set_resp_content_type(r);
+        rc = ngx_http_set_content_type(r);
         if (rc != NGX_OK) {
             return NGX_WAVM_ERROR;
         }
