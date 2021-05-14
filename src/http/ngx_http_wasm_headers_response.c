@@ -342,15 +342,22 @@ create:
 static ngx_int_t
 ngx_http_wasm_set_connection_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
-    ngx_str_t           *value = hv->value;
-    ngx_http_request_t  *r = hv->r;
+    ngx_str_t                *value = hv->value;
+    ngx_http_request_t       *r = hv->r;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
+        return NGX_ERROR;
+    }
 
     if (ngx_strcasestrn(value->data, "keep-alive", value->len - 1)) {
         r->keepalive = 1;
+        rctx->req_keepalive = 1;
         return NGX_OK;
 
     } else if (ngx_strcasestrn(value->data, "close", value->len - 1)) {
         r->keepalive = 0;
+        rctx->req_keepalive = 0;
         return NGX_OK;
 
     } else if (ngx_strcasestrn(value->data, "upgrade", value->len - 1)) {

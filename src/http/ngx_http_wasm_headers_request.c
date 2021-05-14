@@ -183,11 +183,12 @@ ngx_http_wasm_set_host_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 static ngx_int_t
 ngx_http_wasm_set_connection_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
-    size_t               i;
-    ngx_table_elt_t     *h;
-    ngx_list_part_t     *part;
-    ngx_http_request_t  *r;
-    ngx_str_t           *key, *value;
+    size_t                    i;
+    ngx_table_elt_t          *h;
+    ngx_list_part_t          *part;
+    ngx_str_t                *key, *value;
+    ngx_http_request_t       *r;
+    ngx_http_wasm_req_ctx_t  *rctx;
 
     if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
         return NGX_ERROR;
@@ -200,14 +201,20 @@ ngx_http_wasm_set_connection_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
     r->headers_in.connection_type = 0;
 
     if (value->len) {
+        if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
+            return NGX_ERROR;
+        }
+
         if (ngx_strcasestrn(value->data, "close", 5 - 1)) {
             r->headers_in.connection_type = NGX_HTTP_CONNECTION_CLOSE;
             r->headers_in.keep_alive_n = -1;
             r->keepalive = 0;
+            rctx->req_keepalive = 0;
 
         } else if (ngx_strcasestrn(value->data, "keep-alive", 10 - 1)) {
             r->headers_in.connection_type = NGX_HTTP_CONNECTION_KEEP_ALIVE;
             r->keepalive = 1;
+            rctx->req_keepalive = 1;
         }
     }
 

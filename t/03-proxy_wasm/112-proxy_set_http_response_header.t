@@ -150,6 +150,7 @@ qr/\[wasm\] #\d+ on_response_headers, 6 headers
         return 200;
     }
 --- more_headers
+Connection: keep-alive
 pwm-set-resp-header: Connection=close
 --- response_headers
 Connection: close
