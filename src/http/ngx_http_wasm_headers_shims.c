@@ -188,7 +188,7 @@ ngx_http_wasm_shim_connection(ngx_http_wasm_req_ctx_t *rctx)
     if (r->headers_out.status == NGX_HTTP_SWITCHING_PROTOCOLS) {
         return &val_upgrade;
 
-    } else if (rctx->req_keepalive) {
+    } else if (rctx->req_keepalive || r->keepalive) {
         return &val_keepalive;
 
     } else {

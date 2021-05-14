@@ -79,7 +79,7 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
     u_char                   *body;
     ngx_int_t                 rc;
     ngx_buf_t                *b;
-    ngx_chain_t              *cl;
+    ngx_chain_t              *cl = NULL;
     ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
     ngx_http_request_t       *r = rctx->r;
 
@@ -95,37 +95,39 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
         return NGX_WAVM_BAD_USAGE;
     }
 
-    content_len = body_len + sizeof(LF);
+    content_len = body_len;
 
     if (body_len) {
+        content_len += sizeof(LF);
+
         rc = ngx_http_set_content_type(r);
         if (rc != NGX_OK) {
             return NGX_WAVM_ERROR;
         }
+
+        b = ngx_create_temp_buf(r->pool, content_len);
+        if (b == NULL) {
+            return NGX_WAVM_ERROR;
+        }
+
+        b->last = ngx_copy(b->last, body, body_len);
+        *b->last++ = LF;
+
+        b->last_buf = 1;
+        b->last_in_chain = 1;
+
+        cl = ngx_alloc_chain_link(r->connection->pool);
+        if (cl == NULL) {
+            return NGX_WAVM_ERROR;
+        }
+
+        cl->buf = b;
+        cl->next = NULL;
     }
 
     if (ngx_http_wasm_set_resp_content_length(r, content_len) != NGX_OK) {
         return NGX_WAVM_ERROR;
     }
-
-    b = ngx_create_temp_buf(r->pool, content_len);
-    if (b == NULL) {
-        return NGX_WAVM_ERROR;
-    }
-
-    b->last = ngx_copy(b->last, body, body_len);
-    *b->last++ = LF;
-
-    b->last_buf = 1;
-    b->last_in_chain = 1;
-
-    cl = ngx_alloc_chain_link(r->connection->pool);
-    if (cl == NULL) {
-        return NGX_WAVM_ERROR;
-    }
-
-    cl->buf = b;
-    cl->next = NULL;
 
     rc = ngx_http_wasm_send_chain_link(r, cl);
     if (rc == NGX_ERROR) {

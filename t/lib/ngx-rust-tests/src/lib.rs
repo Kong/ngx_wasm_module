@@ -1,9 +1,7 @@
 use ngx::*;
 
 #[no_mangle]
-pub fn nop() {
-
-}
+pub fn nop() {}
 
 #[no_mangle]
 pub fn log_notice_hello() {
@@ -18,6 +16,11 @@ pub fn log_resp_status() {
 #[no_mangle]
 pub fn say_hello() {
     ngx_resp_say("hello say".into());
+}
+
+#[no_mangle]
+pub fn say_nothing() {
+    ngx_resp_say(String::new());
 }
 
 #[no_mangle]

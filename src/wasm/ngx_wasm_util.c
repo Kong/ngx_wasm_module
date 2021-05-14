@@ -10,15 +10,21 @@
 ngx_uint_t
 ngx_wasm_list_nelts(ngx_list_t *list)
 {
-    ngx_uint_t        c;
+    ngx_uint_t        i, c = 0;
     ngx_list_part_t  *part;
+    ngx_table_elt_t  *h;
 
     part = &list->part;
-    c = part->nelts;
 
-    while (part->next != NULL) {
+    while (part) {
+        h = part->elts;
+
+        for (i = 0; i < part->nelts; i++) {
+            if (h[i].hash)
+                c++;
+        }
+
         part = part->next;
-        c += part->nelts;
     }
 
     return c;
@@ -154,6 +160,7 @@ ngx_wasm_get_list_elem(ngx_list_t *map, u_char *key, size_t key_len)
 }
 
 
+#if 0
 ngx_int_t
 ngx_wasm_add_list_elem(ngx_pool_t *pool, ngx_list_t *map, u_char *key,
     size_t key_len, u_char *value, size_t val_len)
@@ -191,6 +198,7 @@ ngx_wasm_add_list_elem(ngx_pool_t *pool, ngx_list_t *map, u_char *key,
 
     return NGX_OK;
 }
+#endif
 
 
 #if 0

@@ -72,7 +72,6 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
     }
 
     rctx->header_filter = 1;
-    rctx->reset_resp_shims = 1;
 
     rc = ngx_http_wasm_produce_resp_headers(rctx);
     if (rc != NGX_OK) {

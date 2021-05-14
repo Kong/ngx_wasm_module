@@ -17,10 +17,8 @@ should produce a response with headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
---- request
-GET /t/echo/headers
 --- more_headers
 Hello: world
 --- response_body
@@ -41,11 +39,9 @@ should produce a response with 20+ headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test_case=/t/echo/headers';
         echo fail;
     }
---- request
-GET /t/echo/headers
 --- more_headers eval
 CORE::join "\n", map { "Header$_: value-$_" } 1..20
 --- response_body eval
@@ -66,11 +62,9 @@ should produce a response but truncate number of headers if > 100
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test_case=/t/echo/headers';
         echo fail;
     }
---- request
-GET /t/echo/headers
 --- more_headers eval
 CORE::join "\n", map { "Header$_: value-$_" } 1..105
 --- response_body eval

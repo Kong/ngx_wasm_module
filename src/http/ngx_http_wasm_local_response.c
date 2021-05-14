@@ -166,7 +166,7 @@ ngx_http_wasm_flush_local_response(ngx_http_request_t *r,
         for (i = 0; i < rctx->local_resp_headers->nelts; i++) {
             elt = &((ngx_table_elt_t *) rctx->local_resp_headers->elts)[i];
 
-            rc = ngx_http_wasm_set_resp_header(r, elt->key, elt->value,
+            rc = ngx_http_wasm_set_resp_header(r, &elt->key, &elt->value,
                                                NGX_HTTP_WASM_HEADERS_SET);
             if (rc != NGX_OK) {
                 return NGX_ERROR;

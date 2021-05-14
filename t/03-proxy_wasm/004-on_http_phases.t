@@ -50,7 +50,7 @@ HTTP\/1\.1 .*?\r
 Content-Type: text\/plain\r
 Transfer-Encoding: chunked\r
 Connection: close\r
-Server: \S+\r
+Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
 qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
@@ -75,7 +75,7 @@ HTTP\/1\.1 .*?\r
 Content-Type: text\/plain\r
 Content-Length: 0\r
 Connection: close\r
-Server: \S+\r
+Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
 qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
