@@ -155,9 +155,8 @@ impl TestHttpHostcalls {
                     test_set_http_request_headers_special(self)
                 }
                 "/t/set_http_response_headers" => test_set_http_response_headers(self),
-                "/t/set_http_response_headers/special" => {
-                    test_set_http_response_headers_special(self)
-                }
+                "/t/set_http_request_header" => test_set_http_request_header(self),
+                "/t/set_http_response_header" => test_set_http_response_header(self),
                 "/t/add_http_request_header" => test_add_http_request_header(self),
                 "/t/add_http_response_header" => test_add_http_response_header(self),
                 "/t/echo/headers" => echo_headers(self),

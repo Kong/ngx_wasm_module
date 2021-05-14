@@ -6,21 +6,19 @@
 #include <ngx_http_wasm.h>
 
 
-static ngx_int_t ngx_http_wasm_set_host_header_handler(ngx_http_request_t *r,
-    ngx_http_wasm_header_val_t *hv, ngx_str_t *value);
+static ngx_int_t ngx_http_wasm_set_host_header_handler(
+    ngx_http_wasm_header_set_ctx_t *hv);
 static ngx_int_t ngx_http_wasm_set_connection_header_handler(
-    ngx_http_request_t *r, ngx_http_wasm_header_val_t *hv, ngx_str_t *value);
-static ngx_int_t ngx_http_wasm_set_ua_header_handler(ngx_http_request_t *r,
-    ngx_http_wasm_header_val_t *hv, ngx_str_t *value);
-static ngx_int_t ngx_http_wasm_set_cl_header_handler(ngx_http_request_t *r,
-    ngx_http_wasm_header_val_t *hv, ngx_str_t *value);
-static ngx_int_t ngx_http_clear_builtin_header(ngx_http_request_t *r,
-    ngx_http_wasm_header_val_t *hv, ngx_str_t *value);
+    ngx_http_wasm_header_set_ctx_t *hv);
+static ngx_int_t ngx_http_wasm_set_ua_header_handler(
+    ngx_http_wasm_header_set_ctx_t *hv);
+static ngx_int_t ngx_http_wasm_set_cl_header_handler(
+    ngx_http_wasm_header_set_ctx_t *hv);
 static ngx_int_t ngx_http_wasm_set_builtin_multi_header_handler(
-    ngx_http_request_t *r, ngx_http_wasm_header_val_t *hv, ngx_str_t *value);
+    ngx_http_wasm_header_set_ctx_t *hv);
 
 
-static ngx_http_wasm_header_t  ngx_http_wasm_special_req_headers[] = {
+static ngx_http_wasm_header_handler_t  ngx_http_wasm_req_headers_handlers[] = {
 
     { ngx_string("Host"),
                  offsetof(ngx_http_headers_in_t, host),
@@ -147,11 +145,19 @@ ngx_http_wasm_req_headers_count(ngx_http_request_t *r)
 
 
 ngx_int_t
-ngx_http_wasm_set_req_header(ngx_http_request_t *r, ngx_str_t key,
-    ngx_str_t value, ngx_uint_t mode)
+ngx_http_wasm_clear_req_headers(ngx_http_request_t *r)
+{
+    return ngx_http_wasm_clear_headers_helper(r, NGX_HTTP_WASM_HEADERS_REQUEST,
+               ngx_http_wasm_req_headers_handlers);
+}
+
+
+ngx_int_t
+ngx_http_wasm_set_req_header(ngx_http_request_t *r, ngx_str_t *key,
+    ngx_str_t *value, ngx_uint_t mode)
 {
     return ngx_http_wasm_set_header(r, NGX_HTTP_WASM_HEADERS_REQUEST,
-                                    ngx_http_wasm_special_req_headers,
+                                    ngx_http_wasm_req_headers_handlers,
                                     key, value, mode);
 }
 
@@ -160,22 +166,36 @@ ngx_http_wasm_set_req_header(ngx_http_request_t *r, ngx_str_t key,
 
 
 static ngx_int_t
-ngx_http_wasm_set_host_header_handler(ngx_http_request_t *r,
-    ngx_http_wasm_header_val_t *hv, ngx_str_t *value)
+ngx_http_wasm_set_host_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
-    r->headers_in.server = *value;
+    ngx_http_request_t  *r = hv->r;
 
-    return ngx_http_wasm_set_builtin_header_handler(r, hv, value);
+    if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    r->headers_in.server = *hv->value;
+
+    return NGX_OK;
 }
 
 
 static ngx_int_t
-ngx_http_wasm_set_connection_header_handler(ngx_http_request_t *r,
-    ngx_http_wasm_header_val_t *hv, ngx_str_t *value)
+ngx_http_wasm_set_connection_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
-    size_t            i;
-    ngx_table_elt_t  *h;
-    ngx_list_part_t  *part;
+    size_t               i;
+    ngx_table_elt_t     *h;
+    ngx_list_part_t     *part;
+    ngx_http_request_t  *r;
+    ngx_str_t           *key, *value;
+
+    if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    r = hv->r;
+    key = hv->key;
+    value = hv->value;
 
     r->headers_in.connection_type = 0;
 
@@ -183,6 +203,7 @@ ngx_http_wasm_set_connection_header_handler(ngx_http_request_t *r,
         if (ngx_strcasestrn(value->data, "close", 5 - 1)) {
             r->headers_in.connection_type = NGX_HTTP_CONNECTION_CLOSE;
             r->headers_in.keep_alive_n = -1;
+            r->keepalive = 0;
 
         } else if (ngx_strcasestrn(value->data, "keep-alive", 10 - 1)) {
             r->headers_in.connection_type = NGX_HTTP_CONNECTION_KEEP_ALIVE;
@@ -214,9 +235,8 @@ ngx_http_wasm_set_connection_header_handler(ngx_http_request_t *r,
             }
 
             if (h[i].hash != 0
-                && h[i].key.len == hv->key.len
-                && ngx_strncasecmp(hv->key.data, h[i].key.data, h[i].key.len)
-                                   == 0)
+                && h[i].key.len == hv->handler->name.len
+                && ngx_strncasecmp(key->data, h[i].key.data, h[i].key.len) == 0)
             {
                 r->headers_in.connection = &h[i];
                 break;
@@ -224,15 +244,23 @@ ngx_http_wasm_set_connection_header_handler(ngx_http_request_t *r,
         }
     }
 
-    return ngx_http_wasm_set_builtin_header_handler(r, hv, value);
+    return NGX_OK;
 }
 
 
 static ngx_int_t
-ngx_http_wasm_set_ua_header_handler(ngx_http_request_t *r,
-    ngx_http_wasm_header_val_t *hv, ngx_str_t *value)
+ngx_http_wasm_set_ua_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
-    u_char  *user_agent, *msie;
+    u_char              *user_agent, *msie;
+    ngx_str_t           *value;
+    ngx_http_request_t  *r;
+
+    if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    r = hv->r;
+    value = hv->value;
 
     /* clear */
 
@@ -244,29 +272,34 @@ ngx_http_wasm_set_ua_header_handler(ngx_http_request_t *r,
     r->headers_in.safari = 0;
     r->headers_in.konqueror = 0;
 
-    if (!value->len) {
-        return ngx_http_wasm_set_builtin_header_handler(r, hv, value);
-    }
-
-    /* set */
-
     user_agent = value->data;
+
+    if (user_agent == NULL) {
+        /* cleared */
+        ngx_wasm_assert(hv->mode == NGX_HTTP_WASM_HEADERS_REMOVE);
+        return NGX_OK;
+    }
 
     msie = ngx_strstrn(user_agent, "MSIE ", 5 - 1);
     if (msie && msie + 7 < user_agent + value->len) {
         r->headers_in.msie = 1;
 
         if (msie[6] == '.') {
+
             switch (msie[5]) {
+
             case '4':
             case '5':
                 r->headers_in.msie6 = 1;
                 break;
+
             case '6':
                 if (ngx_strstrn(msie + 8, "SV1", 3 - 1) == NULL) {
                     r->headers_in.msie6 = 1;
                 }
+
                 break;
+
             }
         }
     }
@@ -294,50 +327,66 @@ ngx_http_wasm_set_ua_header_handler(ngx_http_request_t *r,
         }
     }
 
-    return ngx_http_wasm_set_builtin_header_handler(r, hv, value);
+    return NGX_OK;
 }
 
 
 static ngx_int_t
-ngx_http_wasm_set_cl_header_handler(ngx_http_request_t *r,
-    ngx_http_wasm_header_val_t *hv, ngx_str_t *value)
+ngx_http_wasm_set_cl_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
-    off_t   len;
+    off_t                len;
+    ngx_str_t           *value = hv->value;
+    ngx_http_request_t  *r = hv->r;
 
-    if (!value->len) {
-        /* clear */
-        r->headers_in.content_length_n = -1;
-        return ngx_http_clear_builtin_header(r, hv, value);
+    if (value->len) {
+        len = ngx_atoof(value->data, value->len);
+        if (len == NGX_ERROR) {
+            goto error;
+
+        }
+
+    } else {
+        if (hv->mode == NGX_HTTP_WASM_HEADERS_APPEND) {
+            goto error;
+        }
+
+        ngx_wasm_assert(hv->mode == NGX_HTTP_WASM_HEADERS_REMOVE);
+
+        len = -1;
     }
 
-    len = ngx_atoof(value->data, value->len);
-    if (len == NGX_ERROR) {
-        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                           "attempt to set invalid Content-Length "
-                           "request header: \"%V\"", value);
+    if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    /* set */
-
     r->headers_in.content_length_n = len;
 
-    return ngx_http_wasm_set_builtin_header_handler(r, hv, value);
+    return NGX_OK;
+
+error:
+
+    r->headers_in.content_length_n = -1;
+
+    ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                       "attempt to set invalid Content-Length "
+                       "request header: \"%V\"", value);
+
+    return NGX_ERROR;
 }
 
 
 static ngx_int_t
-ngx_http_wasm_set_builtin_multi_header_handler(ngx_http_request_t *r,
-    ngx_http_wasm_header_val_t *hv, ngx_str_t *value)
+ngx_http_wasm_set_builtin_multi_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
-    ngx_array_t       *headers;
-    ngx_table_elt_t   *h, **ph;
+    ngx_array_t         *headers;
+    ngx_table_elt_t     *h, **ph;
+    ngx_http_request_t  *r = hv->r;
 
-    headers = (ngx_array_t *) ((char *) &r->headers_in + hv->offset);
+    headers = (ngx_array_t *) ((char *) &r->headers_in + hv->handler->offset);
 
     if (headers->nelts
         && (hv->mode == NGX_HTTP_WASM_HEADERS_SET
-            || hv->mode == NGX_HTTP_WASM_HEADERS_REPLACE_IF_SET))
+            || hv->mode == NGX_HTTP_WASM_HEADERS_REMOVE))
     {
         /* clear */
 
@@ -360,12 +409,8 @@ ngx_http_wasm_set_builtin_multi_header_handler(ngx_http_request_t *r,
         }
     }
 
-    if (ngx_http_wasm_set_header_helper(hv, value, &h) != NGX_OK) {
+    if (ngx_http_wasm_set_header_helper(hv, &h) != NGX_OK) {
         return NGX_ERROR;
-    }
-
-    if (!value->len) {
-        return NGX_OK;
     }
 
     /* set */
@@ -378,14 +423,4 @@ ngx_http_wasm_set_builtin_multi_header_handler(ngx_http_request_t *r,
     *ph = h;
 
     return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_clear_builtin_header(ngx_http_request_t *r,
-    ngx_http_wasm_header_val_t *hv, ngx_str_t *value)
-{
-    value->len = 0;
-
-    return ngx_http_wasm_set_builtin_header_handler(r, hv, value);
 }

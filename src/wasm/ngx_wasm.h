@@ -67,9 +67,9 @@ ngx_uint_t ngx_wasm_list_nelts(ngx_list_t *list);
 ngx_int_t ngx_wasm_bytes_from_path(wasm_byte_vec_t *out, u_char *path,
     ngx_log_t *log);
 ngx_str_t *ngx_wasm_get_list_elem(ngx_list_t *map, u_char *key, size_t key_len);
+#if 0
 ngx_int_t ngx_wasm_add_list_elem(ngx_pool_t *pool, ngx_list_t *map,
     u_char *key, size_t key_len, u_char *value, size_t val_len);
-#if 0
 ngx_connection_t *ngx_wasm_connection_create(ngx_pool_t *pool);
 void ngx_wasm_connection_destroy(ngx_connection_t *c);
 #endif

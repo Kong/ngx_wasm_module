@@ -97,7 +97,7 @@ qr/500 Internal Server Error/
 HTTP\/1\.1 .*?\r
 Connection: close\r
 Content-Length: 0\r
-Server: \S+\r
+Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
 qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 4 headers/
@@ -122,7 +122,7 @@ HTTP\/.*? \d+ .*?
 Connection: close\r
 Powered-By: proxy-wasm\r
 Content-Length: 0\r
-Server: .*?\r
+Server: [\S\s]+\r
 Date: .*? GMT\r
 --- response_body
 --- grep_error_log eval: qr/\[wasm\] .*?#\d+ on_.*?(?=\s+<)/
@@ -148,7 +148,7 @@ HTTP\/1\.1 .*?\r
 Connection: close\r
 Powered-By: proxy-wasm\r
 Content-Length: 0\r
-Server: \S+\r
+Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
 qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
@@ -191,7 +191,7 @@ HTTP\/1\.1 .*?\r
 Content-Type: text\/plain\r
 Connection: close\r
 Content-Length: 12\r
-Server: \S+\r
+Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
 qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/

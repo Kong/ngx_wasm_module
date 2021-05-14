@@ -118,18 +118,49 @@ pub(crate) fn test_set_http_request_headers_special(ctx: &mut TestHttpHostcalls)
         ("Host", "somehost"),
         ("Connection", "closed"),
         ("User-Agent", "Gecko"),
+        ("Content-Type", "text/none"),
+        ("X-Forwarded-For", "128.168.0.1"),
     ]);
 }
 
 pub(crate) fn test_set_http_response_headers(ctx: &mut TestHttpHostcalls) {
-    ctx.set_http_response_headers(vec![("Hello", "world"), ("Welcome", "wasm")]);
+    let set = ctx.get_http_request_header("pwm-set-resp-headers");
+    if let Some(headers_str) = set {
+        let headers = headers_str
+            .split_whitespace()
+            .filter_map(|s| s.split_once('='))
+            .collect();
+
+        ctx.set_http_response_headers(headers);
+    } else {
+        ctx.set_http_response_headers(vec![("Hello", "world"), ("Welcome", "wasm")]);
+    }
 }
 
-pub(crate) fn test_set_http_response_headers_special(ctx: &mut TestHttpHostcalls) {
-    ctx.set_http_response_headers(vec![
-        ("Server", "proxy-wasm"),
-        ("Content-Type", "text/none"),
-    ]);
+pub(crate) fn test_set_http_request_header(ctx: &mut TestHttpHostcalls) {
+    let set = ctx.get_http_request_header("pwm-set-req-header");
+    if let Some(header) = set {
+        let (name, value) = header.split_once('=').unwrap();
+
+        if value.is_empty() {
+            ctx.set_http_request_header(name, None);
+        } else {
+            ctx.set_http_request_header(name, Some(value));
+        }
+    }
+}
+
+pub(crate) fn test_set_http_response_header(ctx: &mut TestHttpHostcalls) {
+    let set = ctx.get_http_request_header("pwm-set-resp-header");
+    if let Some(header) = set {
+        let (name, value) = header.split_once('=').unwrap();
+
+        if value.is_empty() {
+            ctx.set_http_response_header(name, None);
+        } else {
+            ctx.set_http_response_header(name, Some(value));
+        }
+    }
 }
 
 pub(crate) fn test_add_http_request_header(ctx: &mut TestHttpHostcalls) {

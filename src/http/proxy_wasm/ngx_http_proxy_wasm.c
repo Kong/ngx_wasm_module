@@ -234,6 +234,8 @@ ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_t *pwm)
     ngx_http_request_t       *r = rctx->r;
     wasm_val_vec_t           *rets;
 
+    rctx->reset_resp_shims = 1;
+
     ctxid = ngx_http_proxy_wasm_ctxid(pwm);
     nheaders = ngx_http_wasm_resp_headers_count(r);
     nheaders += ngx_http_wasm_count_shim_headers(rctx);
