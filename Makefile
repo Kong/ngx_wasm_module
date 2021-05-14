@@ -43,7 +43,7 @@ test-build:
 lint:
 	@util/style.sh src/**/*.{h,c}
 	@!(grep -REIn -- '#define\s+DDEBUG\s+1' src && echo "DDEBUG detected in sources") >&2
-	@!(grep -REIn -- '---\s+ONLY' t && echo "--- ONLY block detected") >&2
+	@!(grep -REIn -- '---\s+ONLY' t/**/*.t && echo "--- ONLY block detected") >&2
 
 .PHONY: reindex
 reindex:
