@@ -16,7 +16,7 @@ jobs:
   tests:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       NGX_BUILD_GCOV: 1
       NGX_BUILD_FORCE: 1
