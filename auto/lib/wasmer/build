@@ -1,0 +1,3 @@
+make build-capi
+
+# vim:ft=sh ts=4 sts=4 sw=4:

@@ -4,7 +4,7 @@ use strict;
 use lib '.';
 use t::TestBuild;
 
-skip_on_dyn_runtime();
+skip_on_static_runtime();
 
 our $buildroot = $t::TestBuild::buildroot;
 
@@ -14,12 +14,10 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: build with static runtime
+=== TEST 1: build with dynamic runtime
 --- build: make
---- run_cmd eval: qq{ldd $::buildroot/nginx}
---- no_grep_cmd eval
-[
-    qr/libwasmtime/,
-    qr/libwasmer/,
-    qr/libwasm/,
-]
+--- grep_nginxV
+ngx_wasm_module [dev debug wasmtime]
+built by
+--- grep_libs
+libwasmtime

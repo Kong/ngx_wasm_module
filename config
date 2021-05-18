@@ -37,6 +37,13 @@ ngx_found=no
 NGX_WASM_RUNTIME="${NGX_WASM_RUNTIME:-wasmtime}"
 NGX_WASM_RUNTIME_PATH="${NGX_WASM_RUNTIME_PATH:-NONE}"
 
+if [ "$ngx_module_link" = DYNAMIC -a $NGX_WASM_RUNTIME_PATH = NONE ]; then
+    echo "$0: error: dynamic $ngx_addon_name build, NGX_WASM_RUNTIME_PATH is required. "
+    echo "Dynamic build must statically link to the \"$NGX_WASM_RUNTIME\" runtime."
+    echo
+    exit 1
+fi
+
 case $NGX_WASM_RUNTIME in
     wasmtime)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_wasmtime.c"
@@ -49,7 +56,7 @@ case $NGX_WASM_RUNTIME in
             # static
             NGX_WASM_RUNTIME_INC="$NGX_WASM_RUNTIME_PATH/crates/c-api/include"
             NGX_WASM_RUNTIME_INC="$NGX_WASM_RUNTIME_INC $NGX_WASM_RUNTIME_PATH/crates/c-api/wasm-c-api/include"
-            NGX_WASM_RUNTIME_LD_OPT="$NGX_WASM_RUNTIME_PATH/target/release/libwasmtime.a"
+            NGX_WASM_RUNTIME_LD_OPT="$NGX_WASM_RUNTIME_PATH/target/release/libwasmtime.a -lm"
         fi
         ;;
     WAVM)
@@ -67,7 +74,7 @@ case $NGX_WASM_RUNTIME in
         if [ $NGX_WASM_RUNTIME_PATH != NONE ]; then
             # static
             NGX_WASM_RUNTIME_INC="$NGX_WASM_RUNTIME_PATH/lib/c-api/"
-            NGX_WASM_RUNTIME_LD_OPT="$NGX_WASM_RUNTIME_PATH/target/release/libwasmer_c_api.a"
+            NGX_WASM_RUNTIME_LD_OPT="$NGX_WASM_RUNTIME_PATH/target/release/libwasmer_c_api.a -lm"
         fi
         ;;
     *)
@@ -79,14 +86,13 @@ esac
 
 if [ $NGX_WASM_RUNTIME_PATH != NONE ]; then
     echo "$0: $ngx_addon_name now building \"$NGX_WASM_RUNTIME\" runtime for static linking..."
-    pushd $NGX_WASM_RUNTIME_PATH
-        . $ngx_addon_dir/auto/lib/$NGX_WASM_RUNTIME/build
-    popd
+    (cd $NGX_WASM_RUNTIME_PATH;
+     . $ngx_addon_dir/auto/lib/$NGX_WASM_RUNTIME/build)
 fi
 
 find_runtime "$NGX_WASM_RUNTIME_INC"  "$NGX_WASM_RUNTIME_LIB" "$NGX_WASM_RUNTIME_LD_OPT"
 
-if [ $NGX_WASM_RUNTIME_PATH != NONE ]; then
+if [ $NGX_WASM_RUNTIME_PATH = NONE ]; then
     find_runtime "/usr/local/opt/include" "/usr/local/opt/lib"
     find_runtime "/usr/local/include"     "/usr/local/lib"
 fi
@@ -94,121 +100,180 @@ fi
 if [ $ngx_found = no ]; then
     echo "$0: error: $ngx_addon_name could not find the \"$NGX_WASM_RUNTIME\" library."
     echo "You can:"
-    echo "  - set the \$NGX_WASM_RUNTIME_PATH variable (static)."
-    echo "  - set the \$NGX_WASM_RUNTIME_INC and \$NGX_WASM_RUNTIME_LIB environment variables (dynamic)."
+    echo "  - set the NGX_WASM_RUNTIME_PATH environment variable (static linking)."
+    echo "  - set the NGX_WASM_RUNTIME_INC and NGX_WASM_RUNTIME_LIB environment variables (dynamic linking)."
     echo
     exit 1
 fi
 
 if [ $NGX_WASM_RUNTIME_PATH != NONE ]; then
-    CORE_INCS="$CORE_INCS $NGX_WASM_RUNTIME_INC"
-    CORE_LIBS="$CORE_LIBS $NGX_WASM_RUNTIME_LD_OPT -lm"
+    CORE_INCS="$CORE_INCS $ngx_feature_path"
+    CORE_LIBS="$CORE_LIBS $ngx_feature_libs"
 fi
 
 have=NGX_WASM_RUNTIME value="\"$NGX_WASM_RUNTIME\"" . auto/define
 
 ###############################################################################
 
-ngx_module_type=CORE
-ngx_module_name=ngx_wasm_module
-ngx_module_incs="$ngx_feature_path \
-                 $ngx_addon_dir/src/wasm \
-                 $ngx_addon_dir/src/wasm/wrt \
-                 $ngx_addon_dir/src/wasm/vm \
-                 $ngx_addon_dir/src/common \
-                 $ngx_addon_dir/src/common/proxy_wasm"
-ngx_module_libs="$ngx_feature_libs"
-ngx_module_deps="$ngx_addon_dir/src/wasm/wrt/ngx_wrt.h \
-                 $ngx_addon_dir/src/wasm/ngx_wasm.h \
-                 $ngx_addon_dir/src/wasm/vm/ngx_wavm.h \
-                 $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.h \
-                 $ngx_addon_dir/src/wasm/ngx_wasm_ops.h \
-                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.h"
-ngx_module_srcs="$ngx_addon_dir/src/wasm/ngx_wasm.c \
-                 $ngx_addon_dir/src/wasm/ngx_wasm_ops.c \
-                 $ngx_addon_dir/src/wasm/ngx_wasm_util.c \
-                 $ngx_addon_dir/src/wasm/vm/ngx_wavm.c \
-                 $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.c \
-                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.c \
-                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_host.c \
-                 $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_util.c \
-                 $ngx_wasm_runtime_srcs"
-ngx_module_link=ADDON
+NGX_WASM_INCS="\
+    $ngx_feature_path \
+    $ngx_addon_dir/src/wasm \
+    $ngx_addon_dir/src/wasm/wrt \
+    $ngx_addon_dir/src/wasm/vm \
+    $ngx_addon_dir/src/common \
+    $ngx_addon_dir/src/common/proxy_wasm"
 
-. auto/module
+NGX_WASM_DEPS="\
+    $ngx_addon_dir/src/wasm/wrt/ngx_wrt.h \
+    $ngx_addon_dir/src/wasm/ngx_wasm.h \
+    $ngx_addon_dir/src/wasm/vm/ngx_wavm.h \
+    $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.h \
+    $ngx_addon_dir/src/wasm/ngx_wasm_ops.h \
+    $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.h"
+
+NGX_WASM_SRCS="\
+    $ngx_addon_dir/src/wasm/ngx_wasm.c \
+    $ngx_addon_dir/src/wasm/ngx_wasm_ops.c \
+    $ngx_addon_dir/src/wasm/ngx_wasm_util.c \
+    $ngx_addon_dir/src/wasm/vm/ngx_wavm.c \
+    $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.c \
+    $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.c \
+    $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_host.c \
+    $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_util.c \
+    $ngx_wasm_runtime_srcs"
+
+NGX_WASM_CORE_SRCS="\
+    $ngx_addon_dir/src/wasm/ngx_wasm_core_module.c \
+    $ngx_addon_dir/src/wasm/ngx_wasm_core_host.c"
+
+NGX_HTTP_WASM_INCS="\
+    $ngx_addon_dir/src/http \
+    $ngx_addon_dir/src/http/proxy_wasm"
+
+NGX_HTTP_WASM_DEPS="\
+    $ngx_addon_dir/src/http/ngx_http_wasm.h \
+    $ngx_addon_dir/src/http/ngx_http_wasm_util.h \
+    $ngx_addon_dir/src/http/ngx_http_wasm_headers.h \
+    $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.h"
+
+NGX_HTTP_WASM_SRCS="\
+    $ngx_addon_dir/src/http/ngx_http_wasm_module.c \
+    $ngx_addon_dir/src/http/ngx_http_wasm_directives.c \
+    $ngx_addon_dir/src/http/ngx_http_wasm_local_response.c \
+    $ngx_addon_dir/src/http/ngx_http_wasm_headers.c \
+    $ngx_addon_dir/src/http/ngx_http_wasm_headers_request.c \
+    $ngx_addon_dir/src/http/ngx_http_wasm_headers_response.c \
+    $ngx_addon_dir/src/http/ngx_http_wasm_headers_shims.c \
+    $ngx_addon_dir/src/http/ngx_http_wasm_host.c \
+    $ngx_addon_dir/src/http/ngx_http_wasm_util.c \
+    $ngx_addon_dir/src/http/ngx_http_wasm_escape.c \
+    $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.c"
+
+NGX_HTTP_WASM_FILTER_SRCS="$ngx_addon_dir/src/http/ngx_http_wasm_filter_module.c"
 
 ###############################################################################
 
-ngx_module_type=WASM
-ngx_module_name=ngx_wasm_core_module
-ngx_module_incs=
-ngx_module_libs=
-ngx_module_deps=
-ngx_module_srcs="$ngx_addon_dir/src/wasm/ngx_wasm_core_module.c \
-                 $ngx_addon_dir/src/wasm/ngx_wasm_core_host.c"
-ngx_module_link=ADDON
+if [ "$ngx_module_link" = DYNAMIC ]; then
+    ngx_module_order="$ngx_addon_name \
+                      ngx_wasm_core_module"
 
-. auto/module
+    ngx_module_type=CORE
+    ngx_module_name=$ngx_addon_name
+    ngx_module_incs="$NGX_WASM_INCS"
+    ngx_module_deps="$NGX_WASM_DEPS"
+    ngx_module_srcs="$NGX_WASM_SRCS \
+                     $NGX_WASM_CORE_SRCS"
+    ngx_module_libs=$ngx_feature_libs
+
+else
+    # addon
+    ngx_module_type=CORE
+    ngx_module_name=$ngx_addon_name
+    ngx_module_incs="$NGX_WASM_INCS"
+    ngx_module_deps="$NGX_WASM_DEPS"
+    ngx_module_srcs="$NGX_WASM_SRCS"
+    ngx_module_libs=$ngx_feature_libs
+
+    . auto/module
+
+    ngx_module_type=WASM
+    ngx_module_name=ngx_wasm_core_module
+    ngx_module_incs="$NGX_WASM_INCS"
+    ngx_module_deps="$NGX_WASM_DEPS"
+    ngx_module_srcs="$NGX_WASM_CORE_SRCS"
+    ngx_module_libs=
+
+    . auto/module
+fi
 
 ###############################################################################
 
 if [ $HTTP = YES ]; then
-    NGX_HTTP_WASM_DEPS="$ngx_addon_dir/src/http/ngx_http_wasm.h \
-                        $ngx_addon_dir/src/http/ngx_http_wasm_util.h \
-                        $ngx_addon_dir/src/http/ngx_http_wasm_headers.h"
+    if [ "$ngx_module_link" = DYNAMIC ]; then
+        ngx_module_order="$ngx_module_order \
+                          ngx_http_wasm_module \
+                          ngx_http_wasm_filter_module"
 
-    ngx_module_type=HTTP
-    ngx_module_name=ngx_http_wasm_module
-    ngx_module_incs="$ngx_addon_dir/src/http \
-                     $ngx_addon_dir/src/http/proxy_wasm"
-    ngx_module_libs=
-    ngx_module_deps="$NGX_HTTP_WASM_DEPS \
-                     $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.h"
-    ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_module.c \
-                     $ngx_addon_dir/src/http/ngx_http_wasm_directives.c \
-                     $ngx_addon_dir/src/http/ngx_http_wasm_local_response.c \
-                     $ngx_addon_dir/src/http/ngx_http_wasm_headers.c \
-                     $ngx_addon_dir/src/http/ngx_http_wasm_headers_request.c \
-                     $ngx_addon_dir/src/http/ngx_http_wasm_headers_response.c \
-                     $ngx_addon_dir/src/http/ngx_http_wasm_headers_shims.c \
-                     $ngx_addon_dir/src/http/ngx_http_wasm_host.c \
-                     $ngx_addon_dir/src/http/ngx_http_wasm_util.c \
-                     $ngx_addon_dir/src/http/ngx_http_wasm_escape.c \
-                     $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.c"
-    ngx_module_link=ADDON
+        ngx_module_incs="$ngx_module_incs \
+                         $NGX_HTTP_WASM_INCS"
+        ngx_module_deps="$ngx_module_deps \
+                         $NGX_HTTP_WASM_DEPS"
+        ngx_module_srcs="$ngx_module_srcs \
+                         $NGX_HTTP_WASM_SRCS \
+                         $NGX_HTTP_WASM_FILTER_SRCS"
 
-    . auto/module
+    else
+        # addon
+        ngx_module_type=HTTP
+        ngx_module_name=ngx_http_wasm_module
+        ngx_module_incs="$NGX_HTTP_WASM_INCS"
+        ngx_module_deps="$NGX_HTTP_WASM_DEPS"
+        ngx_module_srcs="$NGX_HTTP_WASM_SRCS"
+        ngx_module_libs=
 
-    ngx_module_type=HTTP_FILTER
-    ngx_module_name=ngx_http_wasm_filter_module
-    ngx_module_incs="$ngx_addon_dir/src/http"
-    ngx_module_libs=
-    ngx_module_deps=$NGX_HTTP_WASM_DEPS
-    ngx_module_srcs="$ngx_addon_dir/src/http/ngx_http_wasm_filter_module.c"
-    ngx_module_link=ADDON
+        . auto/module
 
-    . auto/module
+        ngx_module_type=HTTP_FILTER
+        ngx_module_name=ngx_http_wasm_filter_module
+        ngx_module_incs="$NGX_HTTP_WASM_INCS"
+        ngx_module_deps="$NGX_HTTP_WASM_DEPS"
+        ngx_module_srcs="$NGX_HTTP_WASM_SRCS \
+                         $NGX_HTTP_WASM_FILTER_SRCS"
+        ngx_module_libs=
 
-    # move the filter before ngx_http_header_filter_module
-    IFS=' '
-    WASM_HTTP_FILTER_MODULES=""
-    for n in $HTTP_FILTER_MODULES; do
-        if [ $n = ngx_http_header_filter_module ]; then
-            WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $n"
-            WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $ngx_module_name"
-        elif [ $n != $ngx_module_name ]; then
-            WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $n"
-        fi
-    done
-    HTTP_FILTER_MODULES=$WASM_HTTP_FILTER_MODULES
+        . auto/module
+
+        # move the filter before ngx_http_header_filter_module
+        IFS=' '
+        WASM_HTTP_FILTER_MODULES=""
+        for n in $HTTP_FILTER_MODULES; do
+            if [ $n = ngx_http_header_filter_module ]; then
+                WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $n"
+                WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $ngx_module_name"
+            elif [ $n != $ngx_module_name ]; then
+                WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $n"
+            fi
+        done
+        HTTP_FILTER_MODULES=$WASM_HTTP_FILTER_MODULES
+    fi
 
     have=NGX_WASM_HTTP . auto/define
 fi
 
 ###############################################################################
 
-# bypass auto/make which does not recognize $WASM_INCS and $WASM_MODULES
-CORE_INCS="$CORE_INCS $WASM_INCS"
-CORE_MODULES="$CORE_MODULES $WASM_MODULES"
+if [ "$ngx_module_link" = DYNAMIC ]; then
+    # ngx_wasm_module.so (dynamic module)
+    . auto/module
+
+    # add other modules into this bundled one
+    ngx_wasm_module_MODULES=$ngx_module_order
+
+else
+    # addon (static)
+    # bypass auto/make which does not recognize $WASM_ variables
+    CORE_INCS="$CORE_INCS $WASM_INCS"
+    CORE_MODULES="$CORE_MODULES $WASM_MODULES"
+fi
 
 # vim:ft=sh ts=4 sts=4 sw=4:

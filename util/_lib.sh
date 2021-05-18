@@ -64,11 +64,25 @@ build_nginx() {
         build_name+=" $NGX_WASM_RUNTIME"
     fi
 
+    if [[ "$NGX_BUILD_DYNAMIC_MODULE" == 1 ]]; then
+        build_name+=" dyn"
+        build_opts+="--add-dynamic-module=$NGX_WASM_DIR "
+    else
+        build_opts+="--add-module=$NGX_WASM_DIR "
+    fi
+
     local name="${build_name[@]}"
 
     # Build options hash to determine rebuild
 
-    local hash=$(echo "$CC.$ngx_ver.$ngx_src.$name.$NGX_BUILD_CC_OPT.$NGX_BUILD_LD_OPT.$NGX_BUILD_CONFIGURE" | shasum | awk '{ print $1 }')
+    local hash=$(echo "ngx=$ngx_ver.$ngx_src.\
+                       build_name=$name.\
+                       cc=$CC.\
+                       conf_opt=$NGX_BUILD_CONFIGURE.\
+                       cc_opt=$NGX_BUILD_CC_OPT.\
+                       ld_opt=$NGX_BUILD_LD_OPT.\
+                       dynamic=$NGX_BUILD_DYNAMIC_MODULE.\
+                       runtime_path=$NGX_WASM_RUNTIME_PATH" | shasum | awk '{ print $1 }')
 
     if [[ ! -d "$NGX_BUILD_DIR_SRCROOT" \
           || ! -f "$NGX_BUILD_DIR_SRCROOT/.hash" \
@@ -123,7 +137,6 @@ build_nginx() {
                 "--build='ngx_wasm_module [$name]'" \
                 "--builddir=$NGX_BUILD_DIR_BUILDROOT" \
                 "--prefix=$NGX_BUILD_DIR_PREFIX" \
-                "--add-module=$NGX_WASM_DIR" \
                 "--with-cc-opt='$NGX_BUILD_CC_OPT'" \
                 "--with-ld-opt='$NGX_BUILD_LD_OPT'" \
                 "${build_opts[@]}" \
