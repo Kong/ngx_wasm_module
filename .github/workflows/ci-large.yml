@@ -39,7 +39,7 @@ jobs:
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
-      - name: "Set up cache - ngx_wasm work/ dir"
+      - name: "Set up cache - ngx_wasm_module work/ dir"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
         id: cache

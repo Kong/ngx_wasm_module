@@ -4,6 +4,8 @@ use strict;
 use lib '.';
 use t::TestBuild;
 
+dynamic_only();
+
 our $buildroot = $t::TestBuild::buildroot;
 
 plan tests => 4 * blocks();
@@ -12,7 +14,18 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: build (default)
+=== TEST 1: build with dynamic runtime
+--- build: make
+--- run_cmd eval: qq{ldd $::buildroot/nginx}
+--- grep_nginxV
+ngx_wasm_module [dev debug wasmtime]
+built by
+--- grep_cmd
+libwasmtime
+
+
+
+=== TEST 2: build default options
 --- build: make
 --- grep_nginxV
 ngx_wasm_module [dev debug
@@ -21,7 +34,7 @@ ngx_wasm_module [dev debug
 
 
 
-=== TEST 2: build without debug
+=== TEST 3: build without debug
 --- build: make NGX_BUILD_DEBUG=0
 --- grep_nginxV
 ngx_wasm_module [dev
@@ -31,7 +44,7 @@ ngx_wasm_module [dev
 
 
 
-=== TEST 3: build optimized, without debug
+=== TEST 4: build optimized, without debug
 --- build: make NGX_BUILD_CC_OPT=-O2 NGX_BUILD_DEBUG=0
 --- grep_nginxV
 -O2
@@ -43,7 +56,7 @@ ngx_wasm_module [dev
 
 
 
-=== TEST 4: build with minimal libraries
+=== TEST 5: build with minimal libraries
 --- build: NGX_BUILD_CONFIGURE='--without-pcre --without-http_rewrite_module --without-http_gzip_module --without-http_auth_basic_module' make
 --- run_cmd eval: qq{ldd $::buildroot/nginx}
 --- no_grep_cmd eval
@@ -52,17 +65,6 @@ ngx_wasm_module [dev
     qr/libcrypt/,
     qr/libpcre/
 ]
-
-
-
-=== TEST 5: build with wasmtime
---- build: NGX_WASM_RUNTIME=wasmtime make
---- run_cmd eval: qq{ldd $::buildroot/nginx}
---- grep_nginxV
-ngx_wasm_module [dev debug wasmtime]
-built by
---- grep_cmd
-libwasmtime
 
 
 

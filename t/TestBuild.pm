@@ -8,12 +8,14 @@ use File::Path qw( make_path );
 use Test::Base -Base;
 use Test::LongString;
 
-$ENV{NGX_BUILD_DIR_BUILDROOT} = tempdir(CLEANUP => 1);
-$ENV{NGX_BUILD_DIR_SRCROOT} = tempdir(CLEANUP => 1);
+$ENV{NGX_BUILD_DIR_BUILDROOT} ||= tempdir(CLEANUP => 1);
+$ENV{NGX_BUILD_DIR_SRCROOT} ||= tempdir(CLEANUP => 1);
 
 our $buildroot = $ENV{NGX_BUILD_DIR_BUILDROOT};
 
 our @EXPORT = qw(
+    dynamic_only
+    static_only
     run_tests
     $buildroot
 );
@@ -58,6 +60,18 @@ sub exp_to_patterns ($) {
     }
 
     return @$exp;
+}
+
+sub static_only () {
+    if (!$ENV{NGX_WASM_RUNTIME_PATH}) {
+        plan skip_all => 'no "$NGX_WASM_RUNTIME_PATH" defined, skipping static tests';
+    }
+}
+
+sub dynamic_only () {
+    if ($ENV{NGX_WASM_RUNTIME_PATH}) {
+        $ENV{NGX_WASM_RUNTIME_PATH} = undef;
+    }
 }
 
 sub run_test ($) {
