@@ -230,13 +230,21 @@ jobs:
       matrix:
         #os: [ubuntu-latest, macos-latest]
         os: [ubuntu-latest]
-        #cc: [gcc-8, gcc-9, clang]
-        cc: [gcc-8]
+        cc: [clang]
         ngx: [1.19.10]
+        runtime_link: [dynamic, static]
         wasmtime: [0.25.0]
-        runtime: [wasmtime]
     steps:
       - uses: actions/checkout@v2
+      - name: "Set up cache - rustup toolchain"
+        uses: actions/cache@v2
+        if: ${{ !env.ACT }}
+        with:
+          path: |
+            ~/.rustup/settings.toml
+            ~/.rustup/toolchains/*
+            ~/.rustup/update-hashes/*
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
       - name: "Set up cache - ngx_wasm_module work/ dir"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
@@ -246,46 +254,26 @@ jobs:
             work
             !work/scans
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+      - name: Set up rust
+        uses: actions-rs/toolchain@v1
+        with:
+          default: true
+          profile: minimal
+          target: wasm32-unknown-unknown
       - name: Set up wasmtime
+        if: ${{ matrix.runtime_link == 'dynamic' }}
         uses: ./.github/actions/wasmtime
         with:
           version: ${{ matrix.wasmtime }}
+      - name: Checkout wasmtime
+        if: ${{ matrix.runtime_link == 'static' }}
+        uses: actions/checkout@v2
+        with:
+          repository: bytecodealliance/wasmtime
+          submodules: true
+          path: wasmtime
+          ref: v${{ matrix.wasmtime }}
+      - if: ${{ matrix.runtime_link == 'static' }}
+        run: echo "NGX_WASM_RUNTIME_PATH=$GITHUB_WORKSPACE/wasmtime" >> $GITHUB_ENV
       - run: make setup
       - run: make test-build
-        env:
-          NGX_WASM_RUNTIME: ${{ matrix.runtime }}
-          NGX_WASM_RUNTIME_PATH:
-
-  build-static:
-    name: 'Tests - build (static)'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    strategy:
-      max-parallel: 2
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        #cc: [gcc-8, gcc-9, clang]
-        cc: [gcc-8, clang]
-        ngx: [1.19.10]
-        wasmtime: [0.26.0]
-        runtime: [wasmtime]
-    steps:
-      - uses: actions/checkout@v2
-      - name: "Set up cache - ngx_wasm_module work/ dir"
-        uses: actions/cache@v2
-        if: ${{ !env.ACT }}
-        id: cache
-        with:
-          path: |
-            work
-            !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
-      - name: Set up wasmtime
-        uses: ./.github/actions/wasmtime
-        with:
-          version: ${{ matrix.wasmtime }}
-      - run: make setup
-      - run: make test-build
-        env:
-          NGX_WASM_RUNTIME: ${{ matrix.runtime }}

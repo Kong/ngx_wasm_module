@@ -18,12 +18,14 @@ set +e
 
 if [[ -d "$DIR_SRCROOT" ]]; then
     pushd $DIR_SRCROOT
-        make clean
+        if [[ -f Makefile ]]; then
+            make clean
+        fi
     popd
 fi
 
 if [[ "$1" == "--all" ]]; then
-    rm -rf $DIR_WORK $DIR_PREFIX t/servroot*
+    rm -rf $DIR_WORK $DIR_PREFIX $DIR_DIST_OUT t/servroot*
     cargo clean
 fi
 

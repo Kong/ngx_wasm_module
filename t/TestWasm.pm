@@ -6,7 +6,7 @@ use Cwd qw(cwd);
 
 our $pwd = cwd();
 our $crates = "work/lib/wasm";
-our $buildroot = "../../work/buildroot";
+our $buildroot = "$pwd/work/buildroot";
 our $nginxbin = $ENV{TEST_NGINX_BINARY} || 'nginx';
 our $nginxV = eval { `$nginxbin -V 2>&1` };
 our @nginx_modules;
@@ -59,36 +59,46 @@ add_block_preprocessor(sub {
         $block->set_value("request", "GET /t");
     }
 
-    # --- wasm_modules: on_phases
-
-    if (!defined $block->main_config) {
-        my @dyn_modules;
-        my $wasm_modules = $block->wasm_modules;
-        if (defined $wasm_modules) {
-            @dyn_modules = split /\s+/, $wasm_modules;
-        }
-
-        if (@dyn_modules) {
-            my @modules = map { "module $_ $crates/$_.wasm;" } @dyn_modules;
-            $block->set_value("main_config",
-                              "wasm {\n" .
-                              (join "\n", @modules) . "\n" .
-                              "}\n");
-        }
-    }
-
     # --- load_nginx_modules: ngx_http_echo_module
 
+    my @arr;
     my @dyn_modules = @nginx_modules;
     my $load_nginx_modules = $block->load_nginx_modules;
     if (defined $load_nginx_modules) {
         @dyn_modules = split /\s+/, $load_nginx_modules;
     }
 
+    # ngx_wasm_module.so injection
+
+    if ($ENV{NGX_BUILD_DYNAMIC_MODULE} == 1
+        && -e "$buildroot/ngx_wasm_module.so")
+    {
+        push @dyn_modules, "ngx_wasm_module";
+    }
+
     if (@dyn_modules) {
-        my @modules = map { "load_module $buildroot/$_.so;" } @dyn_modules;
+        @arr = map { "load_module $buildroot/$_.so;" } @dyn_modules;
+        my $main_config = $block->main_config || '';
         $block->set_value("main_config",
-                          (join "\n", @modules) . "\n\n" . $block->main_config);
+                          (join "\n", @arr)
+                          . "\n\n"
+                          . $main_config);
+    }
+
+    # --- wasm_modules: on_phases
+
+    my $wasm_modules = $block->wasm_modules;
+    if (defined $wasm_modules) {
+        @arr = split /\s+/, $wasm_modules;
+        if (@arr) {
+            @arr = map { "module $_ $crates/$_.wasm;" } @arr;
+            my $main_config = $block->main_config || '';
+            $block->set_value("main_config",
+                              $main_config .
+                              "wasm {\n" .
+                              "    " . (join "\n", @arr) . "\n" .
+                              "}\n");
+        }
     }
 
     # --- skip_no_debug: 3

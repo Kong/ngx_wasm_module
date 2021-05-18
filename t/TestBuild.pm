@@ -14,8 +14,8 @@ $ENV{NGX_BUILD_DIR_SRCROOT} ||= tempdir(CLEANUP => 1);
 our $buildroot = $ENV{NGX_BUILD_DIR_BUILDROOT};
 
 our @EXPORT = qw(
-    dynamic_only
-    static_only
+    skip_on_static_runtime
+    skip_on_dyn_runtime
     run_tests
     $buildroot
 );
@@ -25,6 +25,37 @@ my $cwd = cwd;
 
 sub bail_out (@) {
     Test::More::BAIL_OUT(@_);
+}
+
+sub skip_on_dyn_runtime () {
+    if (!$ENV{NGX_WASM_RUNTIME_PATH}) {
+        plan skip_all => 'no runtime path provided (dynamic linking), skipping tests';
+    }
+}
+
+sub skip_on_static_runtime () {
+    if ($ENV{NGX_WASM_RUNTIME_PATH}) {
+        plan skip_all => 'runtime path provided (static linking), skipping tests';
+    }
+}
+
+sub get_libs () {
+    my ($out, $err);
+
+    if (-e "$buildroot/nginx") {
+        if ($^O eq 'darwin') {
+            run ["otool", "-L", "$buildroot/nginx"], \undef, \$out, \$err;
+
+        } else {
+            run ["ldd", "$buildroot/nginx"], \undef, \$out, \$err;
+        }
+
+        if (defined $err && $err ne '') {
+            warn "failed to read libs\n$err";
+        }
+    }
+
+    return $out;
 }
 
 sub trim ($) {
@@ -62,80 +93,21 @@ sub exp_to_patterns ($) {
     return @$exp;
 }
 
-sub static_only () {
-    if (!$ENV{NGX_WASM_RUNTIME_PATH}) {
-        plan skip_all => 'no "$NGX_WASM_RUNTIME_PATH" defined, skipping static tests';
-    }
-}
-
-sub dynamic_only () {
-    if ($ENV{NGX_WASM_RUNTIME_PATH}) {
-        $ENV{NGX_WASM_RUNTIME_PATH} = undef;
-    }
-}
-
-sub run_test ($) {
+sub grep_something ($$$) {
     my $block = shift;
+    my ($grep_name, $out) = @_;
     my $name = $block->name;
-    my $exp_rc = $block->exit_code // 0;
-    my $exp_grep_nginxV = $block->grep_nginxV;
-    my $exp_no_grep_nginxV = $block->no_grep_nginxV;
-    my $cmd = trim($block->run_cmd);
-    my $exp_no_grep_cmd = $block->no_grep_cmd;
-    my $exp_grep_cmd = $block->grep_cmd;
-    my $exp_build = trim($block->build) or
-                        bail_out "$name - No '--- build' specified";
+    my $ex = $block->{$grep_name}->[0];
+    return if !defined $ex;
+    my @patterns = exp_to_patterns $ex;
 
-    my ($in, $out, $err, $rc);
-    run ["sh", "-c", $exp_build], \$in, \$out, \$err;
-    $rc = $?;
-
-    # --- exit_code: 0
-
-    is $exp_rc, $rc >> 8, "$name - exit code ok";
-
-    if (defined $err && $err ne '') {
-        warn "$name - stderr:\n$err";
-    }
-
-    run ["$ENV{NGX_BUILD_DIR_BUILDROOT}/nginx", "-V"], \$in, \$out, \$err;
-
-    my $nginxV = $err;
-
-    # --- grep_nginxV
-
-    if (defined $exp_grep_nginxV) {
-        my @grep_nginxV = exp_to_patterns $exp_grep_nginxV;
-
-        for my $pat (@grep_nginxV) {
-            next if !defined $pat;
-
-            my $p = fmt_str($pat);
-            my $v = fmt_str($nginxV);
-
-            SKIP: {
-                skip "$name - grep_nginxV - test skipped", 1 if $dry_run;
-
-                if ((ref $pat && $nginxV =~ /$pat/) || $nginxV =~ /\Q$pat\E/) {
-                    pass("$name - pattern \"$p\" matches 'nginx -V'");
-
-                } else {
-                    fail("$name - pattern \"$p\" should match 'nginx -V' but does not match \"$v\"");
-                }
-            }
-        }
-    }
-
-    # --- no_grep_nginxV
-
-    if (defined $exp_no_grep_nginxV) {
+    if ($grep_name =~ /^no_grep/) {
         my %found;
-        my @no_grep_nginxV = exp_to_patterns $exp_no_grep_nginxV;
 
-        for my $pat (@no_grep_nginxV) {
+        for my $pat (@patterns) {
             next if !defined $pat;
 
-            if ((ref $pat && $nginxV =~ /$pat/) || $nginxV =~ /\Q$pat\E/) {
+            if ((ref $pat && $out =~ /$pat/) || $out =~ /\Q$pat\E/) {
                 if ($found{$pat}) {
                     my $tb = Test::More->builder;
                     $tb->no_ending(1);
@@ -145,101 +117,113 @@ sub run_test ($) {
                 }
 
                 my $p = fmt_str($pat);
-                my $v = fmt_str($nginxV);
+                my $v = fmt_str($out);
 
                 SKIP: {
-                    skip "$name - no_grep_nginxV - test skipped", 1 if $dry_run;
-                    fail("$name - pattern \"$p\" should not match 'nginx -V' but matches \"$v\"");
+                    skip "$name - $grep_name - test skipped", 1 if $dry_run;
+                    fail("$name - $grep_name pattern \"$p\" should not match output \"$v\"");
                 }
             }
         }
 
-        for my $pat (@no_grep_nginxV) {
+        for my $pat (@patterns) {
+            next if !defined $pat;
             next if $found{$pat};
+
+            my $p = fmt_str($pat);
+            my $v = fmt_str($out);
+
+            SKIP: {
+                skip "$name - $grep_name - test skipped", 1 if $dry_run;
+                pass("$name - $grep_name pattern \"$p\" does not match output \"$v\"");
+            }
+        }
+
+    } else {
+        for my $pat (@patterns) {
             next if !defined $pat;
 
             my $p = fmt_str($pat);
+            my $v = fmt_str($out);
 
             SKIP: {
-                skip "$name - no_grep_nginxV - test skipped", 1 if $dry_run;
-                pass("$name - pattern \"$p\" does not match 'nginx -V'");
+                skip "$name - $grep_name - test skipped", 1 if $dry_run;
+
+                if ((ref $pat && $out =~ /$pat/) || $out =~ /\Q$pat\E/) {
+                    pass("$name - $grep_name pattern \"$p\" matches output");
+
+                } else {
+                    fail("$name - $grep_name pattern \"$p\" should match output but does not match \"$v\"");
+                }
             }
+        }
+    }
+}
+
+sub run_test ($) {
+    my $block = shift;
+    my $name = $block->name;
+    my $exp_rc = $block->exit_code // 0;
+    my $cmd = trim($block->run_cmd);
+    my $exp_build = trim($block->build) or
+                        bail_out "$name - No '--- build' specified";
+
+    run ["make", "-C", $cwd, "clean"];
+
+    my ($out, $err, $rc);
+    run ["sh", "-c", $exp_build], \undef, \$out, \$err;
+    $rc = $? >> 8;
+
+    # --- exit_code: 0
+
+    is $rc, $exp_rc, "$name - exit code matches";
+
+    if ($rc != 0 && defined $err && $err ne '') {
+        warn "$name - stderr:\n$out\n$err" unless defined $block->expect_stderr;
+    }
+
+    # --- grep_build
+
+    if (defined $out) {
+        grep_something($block, "grep_build", $out);
+
+        # --- grep_nginxV
+
+        my $nginxV;
+
+        if (-e "$buildroot/nginx") {
+            run ["$buildroot/nginx", "-V"], \undef, \$out, \$err;
+            $nginxV = $err;
+        }
+
+        if (defined $nginxV) {
+            grep_something($block, "grep_nginxV", $nginxV);
+            grep_something($block, "no_grep_nginxV", $nginxV);
         }
     }
 
     # --- cmd
 
     if (defined $cmd) {
-        run ["sh", "-c", $cmd], \$in, \$out, \$err or die "$cmd: $? (".trim($err).")";
+        run ["sh", "-c", $cmd], \undef, \$out, \$err
+            or die "$cmd: $? (".trim($err).")";
 
         # --- grep_cmd
 
-        if (defined $exp_grep_cmd) {
-            my @grep_cmd = exp_to_patterns $exp_grep_cmd;
-
-            for my $pat (@grep_cmd) {
-                next if !defined $pat;
-
-                my $p = fmt_str($pat);
-                my $c = fmt_str($cmd);
-                my $v = fmt_str($out);
-
-                SKIP: {
-                    skip "$name - grep_cmd - test skipped", 1 if $dry_run;
-
-                    if ((ref $pat && $out =~ /$pat/) || $out =~ /\Q$pat\E/) {
-                        pass("$name - pattern \"$p\" matches \"$c\" output");
-
-                    } else {
-                        fail("$name - pattern \"$p\" should match output of \"$c\" but does not match \"$v\"");
-                    }
-                }
-            }
+        if (defined $out) {
+            grep_something($block, "grep_cmd", $out);
+            grep_something($block, "no_grep_cmd", $out);
         }
+    }
 
-        # --- no_grep_cmd
+    # --- grep_libs
 
-        if (defined $exp_no_grep_cmd) {
-            my %found;
-            my @no_grep_cmd = exp_to_patterns $exp_no_grep_cmd;
+    if (defined $block->grep_libs || defined $block->no_grep_libs) {
+        my $out = get_libs();
 
-            for my $pat (@no_grep_cmd) {
-                next if !defined $pat;
-
-                if ((ref $pat && $out =~ /$pat/) || $out =~ /\Q$pat\E/) {
-                    if ($found{$pat}) {
-                        my $tb = Test::More->builder;
-                        $tb->no_ending(1);
-
-                    } else {
-                        $found{$pat} = 1;
-                    }
-
-                    my $p = fmt_str($pat);
-                    my $c = fmt_str($cmd);
-                    my $v = fmt_str($out);
-
-                    SKIP: {
-                        skip "$name - no_grep_cmd - test skipped", 1 if $dry_run;
-                        fail("$name - pattern \"$p\" should not match output of \"$c\" but matches \"$v\"");
-                    }
-                }
-            }
-
-            for my $pat (@no_grep_cmd) {
-                next if $found{$pat};
-                next if !defined $pat;
-
-                my $p = fmt_str($pat);
-                my $c = fmt_str($cmd);
-
-                SKIP: {
-                    skip "$name - no_grep_cmd - test skipped", 1 if $dry_run;
-                    pass("$name - pattern \"$p\" does not match output of \"$c\"");
-                }
-            }
-
-
+        if (defined $out) {
+            grep_something($block, "grep_libs", $out);
+            grep_something($block, "no_grep_libs", $out);
         }
     }
 

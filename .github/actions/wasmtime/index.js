@@ -52,11 +52,9 @@ async function main() {
         dir = await tc.cacheDir(path.join(DIR_WORK, dir), CACHE_KEY, version)
     }
 
-    core.exportVariable("NGX_WASM_RUNTIME_DIR", dir)
     core.exportVariable("NGX_WASM_RUNTIME_INC", path.join(dir, "include"))
     core.exportVariable("NGX_WASM_RUNTIME_LIB", path.join(dir, "lib"))
 
-    core.info(`NGX_WASM_RUNTIME_PATH = ${dir}`)
     core.info(`NGX_WASM_RUNTIME_INC = ${process.env.NGX_WASM_RUNTIME_INC}`)
     core.info(`NGX_WASM_RUNTIME_LIB = ${process.env.NGX_WASM_RUNTIME_LIB}`)
 }

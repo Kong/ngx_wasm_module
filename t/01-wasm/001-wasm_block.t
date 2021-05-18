@@ -57,7 +57,7 @@ unknown directive "unknown"
 
 
 
-=== TEST 5: wasm{} - unknown directive
+=== TEST 5: wasm{} - invalid content
 --- main_config
     wasm {
         {
