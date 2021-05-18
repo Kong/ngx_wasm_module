@@ -23,7 +23,7 @@ jobs:
         cc: [clang]
         #ngx: [1.18.0, 1.19.1]
         ngx: [1.19.10]
-        wasmtime: [0.26.0]
+        wasmtime: [0.25.0]
         #hup: [1, 0]
         hup: [0]
         #debug: [1, 0]
