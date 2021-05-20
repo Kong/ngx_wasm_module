@@ -1,0 +1,30 @@
+name: Nightly release
+
+on:
+  schedule:
+    - cron: '30 23 * * *' # 11:30pm UTC
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  release-nightly:
+    name: "Nightly release"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Build release artifacts"
+        run: |
+          ./util/release.sh nightly-$(date -u +"%Y%m%d")
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "nightly"
+          prerelease: true
+          title: "Nightly"
+          files: |
+            dist/*.tar.gz

@@ -1,4 +1,5 @@
 work/
+dist/
 buildroot/
 target/
 t/servroot*
