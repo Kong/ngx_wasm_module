@@ -82,8 +82,7 @@ build_nginx() {
                        conf_opt=$NGX_BUILD_CONFIGURE.\
                        cc_opt=$NGX_BUILD_CC_OPT.\
                        ld_opt=$NGX_BUILD_LD_OPT.\
-                       dynamic=$NGX_BUILD_DYNAMIC_MODULE.\
-                       runtime_path=$NGX_WASM_RUNTIME_PATH" | shasum | awk '{ print $1 }')
+                       dynamic=$NGX_BUILD_DYNAMIC_MODULE" | shasum | awk '{ print $1 }')
 
     if [[ ! -d "$NGX_BUILD_DIR_SRCROOT" \
           || ! -f "$NGX_BUILD_DIR_SRCROOT/.hash" \
@@ -202,6 +201,38 @@ get_no_pool_nginx() {
     else
         notice "cloning the no-pool-nginx repository..."
         git clone https://github.com/openresty/no-pool-nginx.git $DIR_NOPOOL
+    fi
+}
+
+download_wasmtime() {
+    local wasmtime_ver=$1
+
+    arch=$(uname -m)
+
+    download wasmtime-$wasmtime_ver.tar.xz \
+        "https://github.com/bytecodealliance/wasmtime/releases/download/v${wasmtime_ver}/wasmtime-v${wasmtime_ver}-${arch}-linux-c-api.tar.xz"
+
+    if [ ! -d "wasmtime-$wasmtime_ver" ]; then
+        tar -xf wasmtime-$wasmtime_ver.tar.xz
+    fi
+}
+
+download_wasmer() {
+    local wasmer_ver=$1
+
+    kernel=$(uname -s | tr '[:upper:]' '[:lower:]')
+    arch=$(uname -m)
+    case $arch in
+        x86_64) arch="amd64" ;;
+        *)      arch=$arch
+    esac
+
+    download wasmer-$WASMER_VER.tar.gz \
+        "https://github.com/wasmerio/wasmer/releases/download/$WASMER_VER/wasmer-$kernel-$arch.tar.gz"
+
+    if [ ! -d "wasmer-$WASMER_VER" ]; then
+        mkdir -p wasmer-${wasmer_ver}
+        tar --directory=wasmer-${wasmer_ver} -xf wasmer-$WASMER_VER.tar.gz
     fi
 }
 

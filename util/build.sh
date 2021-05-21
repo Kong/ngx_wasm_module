@@ -68,7 +68,7 @@ else
     download $DIR_DOWNLOAD/nginx-$NGX_VER.tar.gz \
              "https://nginx.org/download/nginx-$NGX_VER.tar.gz"
 
-    if [[ ! -d "$DIR_DOWNLOAD/nginx-$NGINX_VER" ]]; then
+    if [[ ! -d "$DIR_DOWNLOAD/nginx-$NGX_VER" ]]; then
         tar -xf $DIR_DOWNLOAD/nginx-$NGX_VER.tar.gz -C $DIR_DOWNLOAD
     fi
 

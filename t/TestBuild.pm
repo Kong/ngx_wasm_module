@@ -10,12 +10,12 @@ use Test::LongString;
 
 $ENV{NGX_BUILD_DIR_BUILDROOT} ||= tempdir(CLEANUP => 1);
 $ENV{NGX_BUILD_DIR_SRCROOT} ||= tempdir(CLEANUP => 1);
+$ENV{NGX_WASM_RUNTIME_DIR} ||= '';
+$ENV{NGX_WASM_RUNTIME} ||= '';
 
 our $buildroot = $ENV{NGX_BUILD_DIR_BUILDROOT};
 
 our @EXPORT = qw(
-    skip_on_static_runtime
-    skip_on_dyn_runtime
     run_tests
     $buildroot
 );
@@ -25,18 +25,6 @@ my $cwd = cwd;
 
 sub bail_out (@) {
     Test::More::BAIL_OUT(@_);
-}
-
-sub skip_on_dyn_runtime () {
-    if (!$ENV{NGX_WASM_RUNTIME_PATH}) {
-        plan skip_all => 'no runtime path provided (dynamic linking), skipping tests';
-    }
-}
-
-sub skip_on_static_runtime () {
-    if ($ENV{NGX_WASM_RUNTIME_PATH}) {
-        plan skip_all => 'runtime path provided (static linking), skipping tests';
-    }
 }
 
 sub get_libs () {
@@ -164,14 +152,33 @@ sub run_test ($) {
     my $block = shift;
     my $name = $block->name;
     my $exp_rc = $block->exit_code // 0;
-    my $cmd = trim($block->run_cmd);
-    my $exp_build = trim($block->build) or
-                        bail_out "$name - No '--- build' specified";
+    my $skip_eval = $block->skip_eval;
 
-    run ["make", "-C", $cwd, "clean"];
+    if (defined $skip_eval
+        && $skip_eval =~ m{^ \s* (\d+) \s* : \s* (.*)}xs)
+    {
+        my $ntests = $1;
+        my $should_skip = eval $2;
+        if ($@) {
+            bail_out("$name - skip_eval: failed to eval \"$2\": $@");
+        }
+
+        if ($should_skip) {
+            SKIP: {
+                skip "$name - skip_eval: test skipped", $ntests;
+            }
+
+            return;
+        }
+    }
+
+    my $cmd = trim($block->run_cmd);
+    my $build = trim($block->build) or
+                     bail_out "$name - No '--- build' specified";
 
     my ($out, $err, $rc);
-    run ["sh", "-c", $exp_build], \undef, \$out, \$err;
+    run ["rm", "-rf", $buildroot];
+    run ["sh", "-c", $build], \undef, \$out, \$err;
     $rc = $? >> 8;
 
     # --- exit_code: 0

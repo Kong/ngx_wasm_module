@@ -16,11 +16,9 @@ source $NGX_WASM_DIR/util/_lib.sh
 ###############################################################################
 set +e
 
-if [[ -d "$DIR_SRCROOT" ]]; then
+if [[ -f "$DIR_SRCROOT/Makefile" ]]; then
     pushd $DIR_SRCROOT
-        if [[ -f Makefile ]]; then
-            make clean
-        fi
+        make clean
     popd
 fi
 
