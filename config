@@ -35,14 +35,6 @@ ngx_addon_name=ngx_wasm_module
 ngx_found=no
 
 NGX_WASM_RUNTIME="${NGX_WASM_RUNTIME:-wasmtime}"
-NGX_WASM_RUNTIME_PATH="${NGX_WASM_RUNTIME_PATH:-NONE}"
-
-if [ "$ngx_module_link" = DYNAMIC -a $NGX_WASM_RUNTIME_PATH = NONE ]; then
-    echo "$0: error: dynamic $ngx_addon_name build, NGX_WASM_RUNTIME_PATH is required. "
-    echo "Dynamic build must statically link to the \"$NGX_WASM_RUNTIME\" runtime."
-    echo
-    exit 1
-fi
 
 case $NGX_WASM_RUNTIME in
     wasmtime)
@@ -51,13 +43,6 @@ case $NGX_WASM_RUNTIME in
         ngx_feature_name="NGX_WASM_HAVE_WASMTIME"
         ngx_feature_incs="#include <wasm.h>
                           #include <wasmtime.h>"
-
-        if [ $NGX_WASM_RUNTIME_PATH != NONE ]; then
-            # static
-            NGX_WASM_RUNTIME_INC="$NGX_WASM_RUNTIME_PATH/crates/c-api/include"
-            NGX_WASM_RUNTIME_INC="$NGX_WASM_RUNTIME_INC $NGX_WASM_RUNTIME_PATH/crates/c-api/wasm-c-api/include"
-            NGX_WASM_RUNTIME_LD_OPT="$NGX_WASM_RUNTIME_PATH/target/release/libwasmtime.a -lm"
-        fi
         ;;
     WAVM)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_wavm.c"
@@ -70,12 +55,6 @@ case $NGX_WASM_RUNTIME in
 
         ngx_feature_name="NGX_WASM_HAVE_WASMER"
         ngx_feature_incs="#include <wasmer_wasm.h>"
-
-        if [ $NGX_WASM_RUNTIME_PATH != NONE ]; then
-            # static
-            NGX_WASM_RUNTIME_INC="$NGX_WASM_RUNTIME_PATH/lib/c-api/"
-            NGX_WASM_RUNTIME_LD_OPT="$NGX_WASM_RUNTIME_PATH/target/release/libwasmer_c_api.a -lm"
-        fi
         ;;
     *)
         echo "$0: error: $ngx_addon_name does not support the \"$NGX_WASM_RUNTIME\" runtime."
@@ -84,31 +63,15 @@ case $NGX_WASM_RUNTIME in
         exit 1
 esac
 
-if [ $NGX_WASM_RUNTIME_PATH != NONE ]; then
-    echo "$0: $ngx_addon_name now building \"$NGX_WASM_RUNTIME\" runtime for static linking..."
-    (cd $NGX_WASM_RUNTIME_PATH;
-     . $ngx_addon_dir/auto/lib/$NGX_WASM_RUNTIME/build)
-fi
-
 find_runtime "$NGX_WASM_RUNTIME_INC"  "$NGX_WASM_RUNTIME_LIB" "$NGX_WASM_RUNTIME_LD_OPT"
-
-if [ $NGX_WASM_RUNTIME_PATH = NONE ]; then
-    find_runtime "/usr/local/opt/include" "/usr/local/opt/lib"
-    find_runtime "/usr/local/include"     "/usr/local/lib"
-fi
+find_runtime "/usr/local/opt/include" "/usr/local/opt/lib"
+find_runtime "/usr/local/include"     "/usr/local/lib"
 
 if [ $ngx_found = no ]; then
     echo "$0: error: $ngx_addon_name could not find the \"$NGX_WASM_RUNTIME\" library."
-    echo "You can:"
-    echo "  - set the NGX_WASM_RUNTIME_PATH environment variable (static linking)."
-    echo "  - set the NGX_WASM_RUNTIME_INC and NGX_WASM_RUNTIME_LIB environment variables (dynamic linking)."
+    echo "You can set the NGX_WASM_RUNTIME_INC, NGX_WASM_RUNTIME_LIB, and NGX_WASM_RUNTIME_LD_OPT environment variables."
     echo
     exit 1
-fi
-
-if [ $NGX_WASM_RUNTIME_PATH != NONE ]; then
-    CORE_INCS="$CORE_INCS $ngx_feature_path"
-    CORE_LIBS="$CORE_LIBS $ngx_feature_libs"
 fi
 
 have=NGX_WASM_RUNTIME value="\"$NGX_WASM_RUNTIME\"" . auto/define
@@ -169,7 +132,8 @@ NGX_HTTP_WASM_SRCS="\
     $ngx_addon_dir/src/http/ngx_http_wasm_escape.c \
     $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.c"
 
-NGX_HTTP_WASM_FILTER_SRCS="$ngx_addon_dir/src/http/ngx_http_wasm_filter_module.c"
+NGX_HTTP_WASM_FILTER_SRCS="\
+    $ngx_addon_dir/src/http/ngx_http_wasm_filter_module.c"
 
 ###############################################################################
 

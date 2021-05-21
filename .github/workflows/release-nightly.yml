@@ -14,12 +14,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        #os: [ubuntu-latest, macos-latest]
         os: [ubuntu-latest]
+        wasmtime: [0.25.0]
     steps:
       - uses: actions/checkout@v2
       - name: "Build release artifacts"
         run: |
-          ./util/release.sh nightly-$(date -u +"%Y%m%d")
+          ./util/release.sh nightly-$(date -u +"%Y%m%d") --static --ngx ${{ matrix.ngx} --wasmtime ${{ matrix.wasmtime }}
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
