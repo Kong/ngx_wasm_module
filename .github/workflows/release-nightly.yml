@@ -1,5 +1,4 @@
-name: Nightly release
-
+name: "Nightly release"
 on:
   schedule:
     - cron: '30 23 * * *' # 11:30pm UTC
@@ -9,19 +8,37 @@ defaults:
     shell: bash
 
 jobs:
-  release-nightly:
-    name: "Nightly release"
+  build-release:
+    name: "Build release artifacts"
     runs-on: ${{ matrix.os }}
+    env:
+      CC: clang
+      NGX: 1.19.10
+      WASMTIME: 0.25.0
+      WASMER: 1.0.2
     strategy:
       matrix:
-        #os: [ubuntu-latest, macos-latest]
-        os: [ubuntu-latest]
-        wasmtime: [0.25.0]
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
       - name: "Build release artifacts"
         run: |
-          ./util/release.sh nightly-$(date -u +"%Y%m%d") --static --ngx ${{ matrix.ngx} --wasmtime ${{ matrix.wasmtime }}
+          ./util/release.sh nightly-$(date -u +"%Y%m%d") --static --ngx ${{ env.NGX }} --wasmtime ${{ env.WASMTIME }} --wasmer ${{ env.WASMER }}
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-artifacts
+          path: dist
+
+  upload-release:
+    name: "Upload release artifacts"
+    needs: build-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retrieve sibling release artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: release-artifacts
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
@@ -29,4 +46,4 @@ jobs:
           prerelease: true
           title: "Nightly"
           files: |
-            dist/*.tar.gz
+            *.tar.gz

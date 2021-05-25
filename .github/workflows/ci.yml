@@ -245,7 +245,7 @@ jobs:
             !work/scans
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up wasmtime
-        if: ${{ env.runtime == 'wasmtime' }}
+        if: ${{ matrix.runtime == 'wasmtime' }}
         uses: ./.github/actions/wasmtime
         with:
           version: ${{ matrix.wasmtime }}
