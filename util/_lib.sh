@@ -208,12 +208,18 @@ download_wasmtime() {
     local wasmtime_ver=$1
 
     arch=$(uname -m)
+    case $OSTYPE in
+        linux*)  os="linux" ;;
+        darwin*) os="macos" ;;
+        *)       os=$OSTYPE
+    esac
 
     download wasmtime-$wasmtime_ver.tar.xz \
-        "https://github.com/bytecodealliance/wasmtime/releases/download/v${wasmtime_ver}/wasmtime-v${wasmtime_ver}-${arch}-linux-c-api.tar.xz"
+        "https://github.com/bytecodealliance/wasmtime/releases/download/v$wasmtime_ver/wasmtime-v$wasmtime_ver-$arch-$os-c-api.tar.xz"
 
     if [ ! -d "wasmtime-$wasmtime_ver" ]; then
         tar -xf wasmtime-$wasmtime_ver.tar.xz
+        mv wasmtime-v$wasmtime_ver-$arch-$os-c-api wasmtime-$wasmtime_ver
     fi
 }
 
@@ -232,7 +238,7 @@ download_wasmer() {
 
     if [ ! -d "wasmer-$WASMER_VER" ]; then
         mkdir -p wasmer-${wasmer_ver}
-        tar --directory=wasmer-${wasmer_ver} -xf wasmer-$WASMER_VER.tar.gz
+        tar --directory=wasmer-$wasmer_ver -xf wasmer-$WASMER_VER.tar.gz
     fi
 }
 
