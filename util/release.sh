@@ -138,15 +138,24 @@ build_static_binary() {
     cd nginx-$NGX_VER
 
     ./configure \
-        --build="wasmx $name (vm: $NGX_WASM_RUNTIME, nginx: $NGX_VER)" \
+        --build="wasmx $name [vm: $NGX_WASM_RUNTIME, nginx: $NGX_VER]" \
         --builddir=$DIR_BUILD \
         --with-cc-opt='-g -O3' \
         --with-ld-opt='-lm -ldl -lpthread' \
+        --prefix='.' \
+        --conf-path='nginx.conf' \
+        --pid-path='nginx.pid' \
+        --error-log-path='error.log' \
+        --http-log-path='access.log' \
+        --http-client-body-temp-path='client_body_temp' \
         --add-module="$DIR_DIST_WORK/$DIST_SRC" \
         --with-openssl="$DIR_DIST_WORK/openssl-$OPENSSL_VER" \
         --with-zlib="$DIR_DIST_WORK/zlib-$ZLIB_VER" \
         --with-pcre="$DIR_DIST_WORK/pcre-$PCRE_VER" \
-        --with-pcre-jit
+        --with-pcre-jit \
+        --without-http_scgi_module \
+        --without-http_uwsgi_module \
+        --without-http_fastcgi_module
 
     make -j${n_jobs}
 
