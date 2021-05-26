@@ -17,9 +17,9 @@ __DATA__
 --- run_cmd eval: qq{find $::buildroot -name 'ngx_wasm_module.*' | xargs -I{} nm -g {}}
 --- grep_cmd eval
 [
-    qr/T ngx_wavm/,
-    qr/T ngx_http_wasm/,
-    qr/U wasm_instance_new/,
+    qr/T _?ngx_wavm/,
+    qr/T _?ngx_http_wasm/,
+    qr/U _?wasm_instance_new/,
 ]
 
 
@@ -30,7 +30,7 @@ __DATA__
 --- run_cmd eval: qq{find $::buildroot -name 'ngx_wasm_module.*' | xargs -I{} nm -g {}}
 --- grep_cmd eval
 [
-    qr/T ngx_wavm/,
-    qr/T ngx_http_wasm/,
-    qr/T wasm_instance_new/,
+    qr/T _?ngx_wavm/,
+    qr/T _?ngx_http_wasm/,
+    qr/T _?wasm_instance_new/,
 ]
