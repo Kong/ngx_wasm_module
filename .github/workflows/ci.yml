@@ -25,7 +25,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
-        ngx: [1.19.10]
+        ngx: [1.21.0]
         wasmtime: [0.27.0]
         hup: [1, 0]
         debug: [1, 0]
@@ -93,7 +93,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
-        ngx: [1.19.10]
+        ngx: [1.21.0]
         wasmtime: [0.27.0]
         hup: [1, 0]
         #debug: [1, 0]
@@ -188,7 +188,7 @@ jobs:
       fail-fast: false
       matrix:
         cc: [clang-9]
-        ngx: [1.19.10]
+        ngx: [1.21.0]
         wasmtime: [0.27.0]
     steps:
       - run: |
@@ -229,7 +229,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [clang]
-        ngx: [1.19.10]
+        ngx: [1.21.0]
         wasmtime: [0.27.0]
         runtime: [wasmtime]
     steps:
