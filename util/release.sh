@@ -70,6 +70,7 @@ mkdir -p $DIST_SRC
 cp -R \
     $NGX_WASM_DIR/config \
     $NGX_WASM_DIR/src \
+    $NGX_WASM_DIR/misc/INSTALL \
     $DIST_SRC
 
 tar czf $DIST_SRC.tar.gz $DIST_SRC
@@ -137,11 +138,13 @@ build_static_binary() {
 
     cd nginx-$NGX_VER
 
+    export NGX_WASM_RUNTIME=$runtime
+
     ./configure \
         --build="wasmx $name [vm: $NGX_WASM_RUNTIME, nginx: $NGX_VER]" \
         --builddir=$DIR_BUILD \
-        --with-cc-opt='-g -O3' \
-        --with-ld-opt='-lm -ldl -lpthread' \
+        --with-cc-opt="-g -O3 $CC_FLAGS" \
+        --with-ld-opt="-lm -ldl -lpthread $LD_FLAGS" \
         --prefix='.' \
         --conf-path='nginx.conf' \
         --pid-path='nginx.pid' \
@@ -178,9 +181,8 @@ if [ -n "$RELEASE_STATIC" ]; then
     if [ -n "$WASMTIME_VER" ]; then
         download_wasmtime $WASMTIME_VER
 
-        export NGX_WASM_RUNTIME=wasmtime
-        export NGX_WASM_RUNTIME_INC="$(pwd)/wasmtime-$WASMTIME_VER/include"
-        export NGX_WASM_RUNTIME_LD_OPT="$(pwd)/wasmtime-$WASMTIME_VER/lib/libwasmtime.a -lm"
+        CC_FLAGS="-I$(pwd)/wasmtime-$WASMTIME_VER/include"
+        LD_FLAGS="$(pwd)/wasmtime-$WASMTIME_VER/lib/libwasmtime.a"
 
         build_static_binary wasmtime $WASMTIME_VER
     fi
@@ -188,9 +190,8 @@ if [ -n "$RELEASE_STATIC" ]; then
     if [ -n "$WASMER_VER" ]; then
         download_wasmer $WASMER_VER
 
-        export NGX_WASM_RUNTIME=wasmer
-        export NGX_WASM_RUNTIME_INC="$(pwd)/wasmer-$WASMER_VER/include"
-        export NGX_WASM_RUNTIME_LD_OPT="$(pwd)/wasmer-$WASMER_VER/lib/libwasmer.a -lm"
+        CC_FLAGS="-I$(pwd)/wasmer-$WASMER_VER/include"
+        LD_FLAGS="$(pwd)/wasmer-$WASMER_VER/lib/libwasmer.a"
 
         build_static_binary wasmer $WASMER_VER
     fi

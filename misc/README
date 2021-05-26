@@ -1,0 +1,17 @@
+The nginx executable is a pre-compiled Nginx binary which includes
+ngx_wasm_module as an addon.
+
+Verify the binary:
+
+    $ ./nginx -V
+
+Start nginx with:
+
+    $ ./nginx
+
+This will start nginx using the current directory as a prefix (i.e. working
+directory). See nginx.conf for configuration.
+
+Stop nginx with:
+
+    $ ./nginx -s stop
