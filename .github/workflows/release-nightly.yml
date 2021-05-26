@@ -1,7 +1,7 @@
 name: "Nightly release"
 on:
   schedule:
-    - cron: '30 19 * * *' # 11:30pm UTC
+    - cron: '0 6 * * *' # 6am UTC, 11pm UTC-7
 
 defaults:
   run:
