@@ -14,7 +14,7 @@ jobs:
     env:
       CC: clang
       NGX: 1.19.10
-      WASMTIME: 0.25.0
+      WASMTIME: 0.27.0
       WASMER: 1.0.2
     strategy:
       matrix:
