@@ -66,3 +66,36 @@ jobs:
       - run: make test
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+
+  build:
+    name: 'Tests - build (large)'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        cc: [clang]
+        ngx: [1.19.10]
+        wasmtime: [0.25.0]
+        runtime: [wasmtime]
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Set up cache - ngx_wasm_module work/ dir"
+        uses: actions/cache@v2
+        if: ${{ !env.ACT }}
+        id: cache
+        with:
+          path: |
+            work
+            !work/scans
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+      - name: Set up wasmtime
+        if: ${{ matrix.runtime == 'wasmtime' }}
+        uses: ./.github/actions/wasmtime
+        with:
+          version: ${{ matrix.wasmtime }}
+      - run: make setup
+      - run: make test-build
+        env:
+          NGX_WASM_RUNTIME: ${{ matrix.runtime }}
