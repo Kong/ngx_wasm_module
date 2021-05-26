@@ -16,10 +16,8 @@ filters identical to those running on
 
 - [Synopsys](#synopsys)
 - [Example](#example)
-- [Requirements](#requirements)
-    - [WebAssembly runtime](#webassembly-runtime)
-    - [Nginx](#nginx)
-- [Installation](#installation)
+- [Download](#download)
+- [Install](#install)
 - [What is WasmX?](#what-is-wasmx)
 - [Resources](#resources)
     - [Documentation](#documentation)
@@ -72,86 +70,29 @@ compatible with the Envoy runtime.
 
 [Back to TOC](#table-of-contents)
 
-## Requirements
+## Download
 
-### WebAssembly runtime
+Currently, a release is produced from the `main` branch everyday at 23:30 UTC,
+referred to as a "nightly" release; see the [Nightly release
+tag](https://github.com/Kong/ngx_wasm_module/releases/tag/nightly) to download
+the release assets.
 
-Several runtimes are supported, and at least one of them must be installed:
+Every release contains the following assets:
 
-- [Wasmtime](https://docs.wasmtime.dev/c-api/) (see "Installing the C API").
-- [Wasmer](https://github.com/wasmerio/wasmer) (see [Building from
-  source](https://docs.wasmer.io/ecosystem/wasmer/building-from-source), "Wasmer
-  C API").
-
-These runtimes' shared libraries should reside somewhere your linker can find
-them. By default, ngx_wasm_module will also look for these libraries in
-`/usr/local/opt/lib` and `/usr/local/lib`, so it is also acceptable to place
-them there:
-
-```
-/usr/local/opt/lib
-├── libwasmer.so
-└── libwasmtime.so
-```
-
-Likewise, headers can be placed in `/usr/local/opt/include` or
-`/usr/local/include`:
-
-```
-/usr/local/opt/include
-├── wasm.h
-├── wasmer.h
-├── wasmer_wasm.h
-├── wasmtime.h
-```
-
-> Should the headers or libraries be located anywhere else that is not
-  recognized by the compiler or linker, then the `$NGX_WASM_RUNTIME_INC` and
-  `$NGX_WASM_RUNTIME_LIB` environment variables can be specified to respectively
-  customize their paths.
-
-[Back to TOC](#table-of-contents)
-
-### Nginx
-
-Ensure that you have all the necessary dependencies to build Nginx on your
-system. See [DEVELOPER.md](#developer.md) for a list of platform-specific
-dependencies.
+- `ngx_wasm_module-$release.tar.gz`: the module's source code, which can be
+  built alongside Nginx at compilation time.
+- `wasmx-$release-$runtime-$arch-$os.tar.gz`: a pre-compiled binary of Nginx
+  built with ngx_wasm_module for the specified runtime/architecture/OS.
 
 [Back to TOC](#table-of-contents)
 
 ## Installation
 
-To compile this module alongside Nginx, first obtain a copy of the desired
-Nginx version:
+Download a `wasmx-*.tar.gz` pre-built release and invoke the `nginx` binary
+appropriately.
 
-```
-$ curl -LO https://nginx.org/download/nginx-1.19.9.tar.gz
-$ tar -xf nginx-*
-$ cd nginx-1.19.9
-```
-
-When configuring Nginx, add this module with:
-
-```
-$ ./configure --add-module=/path/to/ngx_wasm_module
-```
-
-And build/install Nginx with:
-
-```
-$ make -j4 && make install
-```
-
-Verify that the produced binary has been compiled with ngx_wasm_module:
-
-```
-$ nginx -V # should contain '--add-module=.../ngx_wasm_module'
-```
-
-> Make sure that the `nginx` binary in your `$PATH` is the one that you just
-  installed, or else specify the intended binary appropriately to the shell
-  (e.g.  `$ /path/to/nginx ...`).
+Or, see [INSTALL.md](INSTALL.md) for ways to compile this module alongside
+Nginx from source.
 
 [Back to TOC](#table-of-contents)
 

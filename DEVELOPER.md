@@ -11,9 +11,9 @@ environments yet and may still need refinements; reports are very much welcome.
 ## Table of Contents
 
 - [Requirements](#requirements)
-    - [WebAssembly runtime](#webassembly-runtime)
     - [Nginx](#nginx)
-- [Setup the environment](#setup-the-environment)
+    - [WebAssembly runtime](#webassembly-runtime)
+- [Setup the build environment](#setup-the-build-environment)
 - [Build from source](#build-from-source)
     - [Build options](#build-options)
 - [Workflow](#workflow)
@@ -32,8 +32,7 @@ compile ngx_wasm_module or to produce Wasm bytecode, having Rust installed on
 the system will quickly become necessary for development:
 
 - [rustup.rs](https://rustup.rs/) is the easiest way to install Rust.
-    - Then add the wasm target to your toolchain: `rustup target add wasm32-unknown-unknown`.
-- WebAssembly runtime (see [Installation Requirements](README.md#requirements)).
+    - Then add the Wasm target to your toolchain: `rustup target add wasm32-unknown-unknown`.
 
 [Back to TOC](#table-of-contents)
 
@@ -72,7 +71,18 @@ $ brew install pcre zlib-devel libgd perl curl
 
 [Back to TOC](#table-of-contents)
 
-## Setup the environment
+### WebAssembly runtime
+
+Several runtimes are supported, and at least one of them must be specified:
+
+- [Wasmtime](https://docs.wasmtime.dev/c-api/) (see
+  [Releases](https://github.com/bytecodealliance/wasmtime/releases), download
+  and extract the `*-c-api.tar.xz` asset matching your OS and architecture).
+- [Wasmer](https://github.com/wasmerio/wasmer) (see [Releases](https://github.com/wasmerio/wasmer/releases), download and extract the asset matching your architecture).
+
+[Back to TOC](#table-of-contents)
+
+## Setup the build environment
 
 Setup a `work/` directory which will bundle all of the extra building and
 testing dependencies:
@@ -92,27 +102,53 @@ $ make cleanup
 
 ## Build from source
 
-If you have installed Wasmtime, build ngx_wasm_module with:
+The build process will try to find a Wasm runtime in the following locations
+(in order):
+
+1. Specified by `$NGX_WASM_RUNTIME_*` environment variables.
+2. `/usr/local/opt/include` and `/usr/local/opt/lib`.
+3. `/usr/local/include` and `/usr/local/lib`.
+
+You may thus export the following environment variables:
+
+```
+$ export NGX_WASM_RUNTIME={wasmtime,wasmer} # defaults to wasmtime if unspecified
+$ export NGX_WASM_RUNTIME_INC=/path/to/runtime/include
+$ export NGX_WASM_RUNTIME_LIB=/path/to/runtime/lib
+```
+
+You may also copy all headers and libraries any of the supported default search
+paths, for example:
+
+```
+/usr/local/opt/include
+├── wasm.h
+├── wasmer.h
+├── wasmer_wasm.h
+├── wasmtime.h
+
+/usr/local/opt/lib
+├── libwasmer.so
+└── libwasmtime.so
+```
+
+Build ngx_wasm_module with:
 
 ```
 $ make
 ```
 
-This should download the default Nginx version, compile and link it and produce
+This should download the default Nginx version, compile and link it, and produce
 a static binary at `./work/buildroot/nginx`.
 
-If you want to link ngx_wasm_module to Wasmer instead, use:
+If you want to link ngx_wasm_module to Wasmer instead, you may use:
 
 ```
 $ NGX_WASM_RUNTIME=wasmer make
 ```
 
-You may specify a different path for the WebAssembly runtimes headers and shared
-libraries, like so:
-
-```
-$ NGX_WASM_RUNTIME_INC=/path/to/headers/ NGX_WASM_RUNTIME_LIB=/path/to/libs/ make
-```
+This change will be detected by the build process which will restart, this time
+linking the module to wasmer instead.
 
 [Back to TOC](#table-of-contents)
 

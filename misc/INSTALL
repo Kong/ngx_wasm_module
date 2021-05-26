@@ -1,0 +1,31 @@
+To compile this module alongside Nginx, first obtain a copy of the desired
+Nginx version:
+
+    $ curl -LO https://nginx.org/download/nginx-1.19.9.tar.gz
+    $ tar -xf nginx-*.tar.gz
+    $ cd nginx-*
+
+Ensure one of the supported WebAssembly runtime libraries is available in your
+system (libwasmtime, libwasmer).
+
+When configuring Nginx, add this module and specify the Wasm runtime headers
+and library with:
+
+    $ ./configure --add-module=/path/to/ngx_wasm_module \
+        --with-cc-opt='-O3 -I/path/to/wasmtime/include' \
+        --with-ld-opt='-L/path/to/wasmtime/lib -lwasmtime'
+
+    Note: when linking against libwasmer, set the 'NGX_WASM_RUNTIME=wasmer'
+    environment variable.
+
+Build/install Nginx with:
+
+    $ make -j4 && make install
+
+Finally, verify that the produced binary has been compiled with ngx_wasm_module:
+
+    $ nginx -V # output should contain '--add-module=/path/to/ngx_wasm_module'
+
+    Note: make sure that the 'nginx' binary in your '$PATH' is the one that you just
+    installed, or else specify the intended binary appropriately to the shell (e.g.
+    '$ /path/to/nginx ...').

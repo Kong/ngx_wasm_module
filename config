@@ -63,6 +63,7 @@ case $NGX_WASM_RUNTIME in
         exit 1
 esac
 
+find_runtime "$NGX_CC_OPT"            ""                      "$NGX_LD_OPT"
 find_runtime "$NGX_WASM_RUNTIME_INC"  "$NGX_WASM_RUNTIME_LIB" "$NGX_WASM_RUNTIME_LD_OPT"
 find_runtime "/usr/local/opt/include" "/usr/local/opt/lib"
 find_runtime "/usr/local/include"     "/usr/local/lib"
