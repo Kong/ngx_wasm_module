@@ -8,14 +8,14 @@ SDK abstractions for the purpose of extending and/or introspecting the Nginx web
 server/proxy runtime.
 
 Currently, the module aims at supporting the
-[proxy-wasm](https://github.com/proxy-wasm/spec) host SDK and support Wasm
+[proxy-wasm](https://github.com/proxy-wasm/spec) host SDK and supports Wasm
 filters identical to those running on
 [Envoy today](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter.html).
 
 ## Table of Contents
 
 - [Synopsys](#synopsys)
-- [Example](#example)
+- [Examples](#examples)
 - [Download](#download)
 - [Install](#install)
 - [What is WasmX?](#what-is-wasmx)
@@ -61,12 +61,25 @@ http {
 
 [Back to TOC](#table-of-contents)
 
-## Example
+## Examples
 
 The
-[proxy-wasm-filter-echo](https://github.com/wasmx-proxy/proxy-wasm-filter-echo/)
-project showcases the available host capabilities of ngx_wasm_module and is
-compatible with the Envoy runtime.
+[proxy-wasm-rust-filter-echo](https://github.com/wasmx-proxy/proxy-wasm-rust-filter-echo/)
+project showcases the currently available host capabilities of ngx_wasm_module
+and is naturally compatible with the Envoy runtime.
+
+More examples are available for each proxy-wasm SDK:
+
+- [Rust
+  examples](https://github.com/proxy-wasm/proxy-wasm-rust-sdk/tree/master/examples)
+- [Go
+  examples](https://github.com/tetratelabs/proxy-wasm-go-sdk/tree/main/examples)
+- [C++
+  examples](https://github.com/proxy-wasm/proxy-wasm-cpp-sdk/tree/master/example)
+
+Last but not least, the [WebAssembly
+Hub](https://www.webassemblyhub.io/repositories/) contains many other proxy-wasm
+filters, some of which may not yet be compatible with ngx_wasm_module.
 
 [Back to TOC](#table-of-contents)
 
@@ -105,8 +118,8 @@ the contribution learning curve, etc...
 
 While WasmX offers obvious benefits to Kong Inc. today (i.e. embedding
 WebAssembly filters inside of Kong Gateway), it could become its own proxy
-runtime if it proves itself valuable alongside Envoy, that is: unique in its own
-proposition value, in terms of performance & footprint compromises.
+runtime should it proves itself valuable alongside Envoy, that is: unique in its
+own proposition value in terms of performance & footprint compromises.
 
 [Back to TOC](#table-of-contents)
 
