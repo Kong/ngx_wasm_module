@@ -209,6 +209,7 @@ if [ $HTTP = YES ]; then
         . auto/module
 
         # move the filter before ngx_http_header_filter_module
+        OLDIFS=$IFS
         IFS=' '
         WASM_HTTP_FILTER_MODULES=""
         for n in $HTTP_FILTER_MODULES; do
@@ -220,6 +221,7 @@ if [ $HTTP = YES ]; then
             fi
         done
         HTTP_FILTER_MODULES=$WASM_HTTP_FILTER_MODULES
+        IFS=$OLDIFS
     fi
 
     have=NGX_WASM_HTTP . auto/define
@@ -235,9 +237,8 @@ if [ "$ngx_module_link" = DYNAMIC ]; then
     ngx_wasm_module_MODULES=$ngx_module_order
 
 else
-    # addon (static)
+    # addon
     # bypass auto/make which does not recognize $WASM_ variables
-    CORE_INCS="$CORE_INCS $WASM_INCS"
     CORE_MODULES="$CORE_MODULES $WASM_MODULES"
 fi
 
