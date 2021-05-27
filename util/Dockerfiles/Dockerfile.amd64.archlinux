@@ -1,0 +1,6 @@
+FROM amd64/archlinux:latest
+
+RUN pacman -Sy --noconfirm \
+    gcc \
+    clang \
+    make
