@@ -169,6 +169,7 @@ download() {
         return
     fi
 
+    echo "curl --fail -L $url >$output || (rm -f $output; fatal \"failed to download $url\")"
     curl --fail -L $url >$output || (rm -f $output; fatal "failed to download $url")
 }
 
@@ -206,8 +207,7 @@ get_no_pool_nginx() {
 
 download_wasmtime() {
     local wasmtime_ver=$1
-
-    arch=$(uname -m)
+    local arch=$(uname -m)
     case $OSTYPE in
         linux*)  os="linux" ;;
         darwin*) os="macos" ;;
@@ -225,13 +225,9 @@ download_wasmtime() {
 
 download_wasmer() {
     local wasmer_ver=$1
+    local arch=$2
 
     kernel=$(uname -s | tr '[:upper:]' '[:lower:]')
-    arch=$(uname -m)
-    case $arch in
-        x86_64) arch="amd64" ;;
-        *)      arch=$arch
-    esac
 
     download wasmer-$WASMER_VER.tar.gz \
         "https://github.com/wasmerio/wasmer/releases/download/$WASMER_VER/wasmer-$kernel-$arch.tar.gz"
