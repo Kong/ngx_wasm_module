@@ -144,10 +144,11 @@ build_static_binary() {
         --build="wasmx $name [vm: $NGX_WASM_RUNTIME, nginx: $NGX_VER]" \
         --builddir=$DIR_BUILD \
         --with-cc-opt="-g -O3 $CC_FLAGS" \
-        --with-ld-opt="-lm -ldl -lpthread $LD_FLAGS" \
+        --with-ld-opt="-lm $LD_FLAGS" \
         --prefix='.' \
         --conf-path='nginx.conf' \
         --pid-path='nginx.pid' \
+        --sbin-path='nginx' \
         --error-log-path='error.log' \
         --http-log-path='access.log' \
         --http-client-body-temp-path='client_body_temp' \
@@ -156,6 +157,27 @@ build_static_binary() {
         --with-zlib="$DIR_DIST_WORK/zlib-$ZLIB_VER" \
         --with-pcre="$DIR_DIST_WORK/pcre-$PCRE_VER" \
         --with-pcre-jit \
+        --with-stream \
+        --with-stream_ssl_module \
+        --with-stream_ssl_preread_module \
+        --with-http_ssl_module \
+        --with-http_v2_module \
+        --with-http_stub_status_module \
+        --with-http_gzip_static_module \
+        --with-http_gunzip_module \
+        --with-http_realip_module \
+        --with-http_addition_module \
+        --with-http_secure_link_module \
+        --with-http_auth_request_module \
+        --with-http_random_index_module \
+        --with-http_sub_module \
+        --with-http_dav_module \
+        --with-http_flv_module \
+        --with-http_mp4_module \
+        --with-threads \
+        --without-mail_pop3_module \
+        --without-mail_imap_module \
+        --without-mail_smtp_module \
         --without-http_scgi_module \
         --without-http_uwsgi_module \
         --without-http_fastcgi_module
