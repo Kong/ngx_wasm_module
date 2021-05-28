@@ -66,7 +66,7 @@ fi
 DIR_BUILD_DOCKERFILES=$NGX_WASM_DIR/util/Dockerfiles
 DIR_DIST_WORK=$DIR_WORK/ngx_wasm_module_dist
 DIR_BUILD=$DIR_DIST_WORK/build
-DIST_SRC=ngx_wasm_module-$name
+DIST_SRC="ngx_wasm_module-$name"
 
 mkdir -p $DIR_DIST_WORK $DIR_DIST_OUT
 cd $DIR_DIST_WORK
@@ -77,6 +77,7 @@ release_source() {
     notice "Creating source archive..."
     cd $DIR_DIST_WORK
 
+    echo "DIST_SRC: $DIST_SRC"
     if [ -d $DIST_SRC ]; then
         rm -rf $DIST_SRC
     fi
@@ -101,6 +102,7 @@ build_static_binary() {
     local runtime_ver=$3
     local distro
 
+    echo "DIST_SRC: $DIST_SRC"
     if [ ! -d $DIST_SRC ]; then
         fatal "missing source release at $(pwd)/$DIST_SRC to build binary, run with --src"
     fi
@@ -109,16 +111,22 @@ build_static_binary() {
         . /etc/os-release
         distro=$ID
 
-        if [ -n $VERSION_ID ]; then
-            distro=$distro$VERSION_ID
-        fi
-
     elif type lsb_release >/dev/null 2>&1; then
         distro=$(lsb_release -si)
 
     else
         distro=$OSTYPE
     fi
+
+    case $distro in
+        darwin) distro='macos';;
+        arch)   distro='archlinux';;
+        ubuntu)
+            if [ -n $VERSION_ID ]; then
+                distro=$distro$VERSION_ID
+            fi
+            ;;
+    esac
 
     local dist_bin_name=wasmx-$name-$runtime-$arch-$distro
 
@@ -210,16 +218,14 @@ build_static_binary() {
         --without-mail_smtp_module \
         --without-http_scgi_module \
         --without-http_uwsgi_module \
-        --without-http_fastcgi_module
+        --without-http_fastcgi_module \
+        $CONFIGURE_OPTS || (echo "failed configure"; cat $DIR_BUILD/build-$dist_bin_name/config.log; exit 1)
 
-    make -j${n_jobs}
+    make -j${n_jobs} || (echo "failed make"; ls; cat $DIR_BUILD/build-$dist_bin_name/autoconf.err; exit 1)
 
-    #if nm -g "$DIR_BUILD/nginx" | grep -qv "T wasm_instance_new"; then
-    #    fatal "$NGX_WASM_RUNTIME lib incorrectly linked"
-    #fi
 
     cd $DIR_DIST_WORK
-    cp $DIR_BUILD/nginx \
+    cp $DIR_BUILD/build-$dist_bin_name/nginx \
        $NGX_WASM_DIR/misc/nginx.conf \
        $NGX_WASM_DIR/misc/README \
         $dist_bin_name
@@ -232,8 +238,9 @@ build_static_binary() {
 release_bin() {
     local arch=$(uname -m)
     case $arch in
-        x86_64) arch="amd64";;
-        *)      arch=$arch
+        x86_64)  arch='amd64';;
+        aarch64) arch='arm64';;
+        *)       arch=$arch
     esac
 
     if [ -n "$WASMTIME_VER" ]; then
@@ -262,9 +269,11 @@ release_all_bin_docker() {
 
     for path in $DIR_BUILD_DOCKERFILES/Dockerfile.*; do
         local dockerfile=$(basename $path)
-        local imgname=wasmx-build-${dockerfile#"Dockerfile."}
+        local imgname=${dockerfile#"Dockerfile."}
+        local imgtag=wasmx-build-$imgname
 
-        docker build -t $imgname -f $path $DIR_BUILD_DOCKERFILES
+        if [ $imgname = "amd64.alpinelinux" ]; then
+        docker build -t $imgtag -f $path $DIR_BUILD_DOCKERFILES
         docker run \
             --rm -it \
             --entrypoint /bin/sh \
@@ -273,8 +282,10 @@ release_all_bin_docker() {
             -e NGX_VER=$NGX_VER \
             -e WASMTIME_VER=$WASMTIME_VER \
             -e WASMER_VER=$WASMER_VER \
-            $imgname \
-            -c "./ngx_wasm_module/util/release.sh --bin $name"
+            -e RELEASE_NAME=$name \
+            $imgtag \
+            -c "./ngx_wasm_module/util/release.sh --bin"
+        fi
     done
 }
 

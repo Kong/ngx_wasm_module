@@ -1,4 +1,4 @@
-name: "Release"
+name: Release
 on:
   schedule:
     - cron: '0 6 * * *' # 6am UTC, 11pm UTC-7
@@ -19,50 +19,55 @@ defaults:
 
 jobs:
   build-images:
-    name: "Build Docker images for binaries"
+    name: Build Docker binary build images
     runs-on: ubuntu-latest
+    outputs:
+      release_name: ${{ steps.assign-name.outputs.release_name }}
     steps:
       - uses: actions/checkout@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.TOKEN_GITHUB }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: "Ubuntu 18.04 image"
         uses: docker/build-push-action@v2
         with:
           file: ./util/Dockerfiles/Dockerfile.amd64.ubuntu-18.04
-          tags: wasmx-build-ubuntu:18.04
+          tags: ghcr.io/kong/wasmx-build-ubuntu:18.04
           push: true
-      - name: "Archlinux image"
+      - name: Archlinux image
         uses: docker/build-push-action@v2
         with:
-          file: ./util/Dockerfiles/Dockerfile.amd64.arch
-          tags: wasmx-build-arch:latest
+          file: ./util/Dockerfiles/Dockerfile.amd64.archlinux
+          tags: ghcr.io/kong/wasmx-build-arch:latest
           push: true
-      - if: ${{ !github.event.inputs.release_name }}
-        run: echo "RELEASE_NAME=nightly-$(date -u +\"%Y%m%d\")" >> $GITHUB_ENV
-      - if: ${{ github.event.inputs.release_name }}
-        run: echo "RELEASE_NAME=${{ github.event.inputs.release_name }}" >> $GITHUB_ENV
-      - name: "Build source release artifact"
-        run: ./util/release.sh --src
+      - id: assign-name
+        run: |
+          if [ "${{ github.event_type }}" = schedule ]; then
+            echo "::set-output name=release_name::nightly-$(date -u +\"%Y%m%d\")"
+          else
+            echo "::set-output name=release_name::${{ github.event.inputs.release_name }}"
+          fi
 
   build-ubuntu-bionic:
     name: "Build Ubuntu 18.04 binary"
     needs: build-images
     runs-on: ubuntu-latest
     container:
-      image: ${{ secrets.DOCKERHUB_USERNAME }}/wasmx-build-ubuntu:18.04
+      image: ghcr.io/kong/wasmx-build-ubuntu:18.04
       credentials:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.TOKEN_GITHUB }}
     steps:
+      - uses: actions/checkout@v2
       - name: Build binary
-        run: ./util/release.sh --bin
+        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --src --bin
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -70,17 +75,18 @@ jobs:
           path: dist
 
   build-arch:
-    name: Build Archlinux binary
+    name: Build ArchLinux binary
     needs: build-images
     runs-on: ubuntu-latest
     container:
-      image: ${{ secrets.DOCKERHUB_USERNAME }}/wasmx-build-ubuntu:18.04
+      image: ghcr.io/kong/wasmx-build-arch:latest
       credentials:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.TOKEN_GITHUB }}
     steps:
+      - uses: actions/checkout@v2
       - name: Build binary
-        run: ./util/release.sh --bin
+        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --src --bin
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -92,8 +98,9 @@ jobs:
     needs: build-images
     runs-on: [macos-latest]
     steps:
+      - uses: actions/checkout@v2
       - name: Build binary
-        run: ./util/release.sh --bin
+        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --src --bin
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -102,18 +109,18 @@ jobs:
 
   upload-artifacts:
     name: Upload release artifacts
-    needs: [build-ubuntu-bionic, build-arch, build-macos]
+    needs: [build-images, build-ubuntu-bionic, build-arch, build-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Retrieve sibling release artifacts
         uses: actions/download-artifact@v2
         with:
           name: release-artifacts
-      - uses: "marvinpinto/action-automatic-releases@latest"
+      - uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          automatic_release_tag: release-${{ env.RELEASE_NAME }}
+          automatic_release_tag: release-${{ needs.build-images.outputs.release_name }}
           prerelease: true
-          title: ${{ env.RELEASE_NAME }}
+          title: ${{ needs.build-images.outputs.release_name }}
           files: |
             *.tar.gz
