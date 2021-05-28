@@ -85,7 +85,7 @@ filters, some of which may not yet be compatible with ngx_wasm_module.
 
 ## Download
 
-Currently, a release is produced from the `main` branch everyday at 23:30 UTC,
+Currently, a release is produced from the `main` branch everyday at 6am UTC,
 referred to as a "nightly" release; see the [Nightly release
 tag](https://github.com/Kong/ngx_wasm_module/releases/tag/nightly) to download
 the release assets.
@@ -99,13 +99,14 @@ Every release contains the following assets:
 
 [Back to TOC](#table-of-contents)
 
-## Installation
+## Install
 
-Download a `wasmx-*.tar.gz` pre-built release and invoke the `nginx` binary
+- Download a `wasmx-*.tar.gz` pre-built release and invoke the `nginx` binary
 appropriately.
 
-Or, see [INSTALL.md](INSTALL.md) for ways to compile this module alongside
-Nginx from source.
+- Or, download the release sources `ngx_wasm_module-*.tar.gz` and see
+[INSTALL.md](INSTALL.md) for ways to compile this module alongside Nginx from
+source.
 
 [Back to TOC](#table-of-contents)
 
