@@ -50,7 +50,10 @@ todo:
 
 .PHONY: act
 act:
-	@docker build -t ubuntu-wasmx-dev ./util/ubuntu-wasmx-dev
+	@docker build \
+		-t wasmx-build-ubuntu \
+		-f ./util/Dockerfiles/Dockerfile.amd64.ubuntu-20.04 \
+		./util/Dockerfiles
 	@act
 
 .PHONY: clean

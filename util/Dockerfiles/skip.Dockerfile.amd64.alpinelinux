@@ -1,0 +1,19 @@
+FROM amd64/alpine:latest
+
+RUN apk update && apk upgrade && apk add --no-cache \
+    ca-certificates \
+    linux-headers \
+    build-base \
+    coreutils \
+    perl-dev \
+    libc-dev \
+    libgcc \
+    alpine-sdk \
+    clang \
+    make \
+    bash \
+    curl \
+    tar
+
+# force CC to clang
+ENV CC=clang

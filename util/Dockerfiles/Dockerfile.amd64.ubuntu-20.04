@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM amd64/ubuntu:20.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
@@ -6,14 +6,16 @@ RUN apt-get update && \
         ca-certificates \
         build-essential \
         clang \
-        clang-tools \
-        gcc-9 \
-        gcc-8 \
+        gcc \
+        curl
+
+# Note: this image is also used for local CI runs
+RUN apt-get install -y --no-install-recommends \
         libpcre3-dev \
-        libgd-dev \
+        zlib1g-dev \
+        clang-tools \
         valgrind \
-        gcovr \
         nodejs \
+        gcovr \
         sudo \
-        curl \
         git

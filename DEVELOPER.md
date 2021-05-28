@@ -44,11 +44,8 @@ the system; here are the packages for various platforms:
 On Ubuntu:
 
 ```
-$ apt-get install build-essential libpcre3-dev zlib1g-dev libgd-dev perl curl
+$ apt-get install build-essential libpcre3-dev zlib1g-dev perl curl
 ```
-
-> See [ubuntu-wasmx-dev/Dockerfile](util/ubuntu-wasmx-dev/Dockerfile) for a
-  complete list of Ubuntu development & CI dependencies.
 
 On Fedora/RedHat (not tested):
 
@@ -66,8 +63,11 @@ On macOS (not tested):
 
 ```
 $ xcode-select --install
-$ brew install pcre zlib-devel libgd perl curl
+$ brew install pcre zlib-devel perl curl
 ```
+
+> See [Dockerfiles](util/Dockerfiles) for a complete list of development & CI
+> dependencies of maintained distributions.
 
 [Back to TOC](#table-of-contents)
 

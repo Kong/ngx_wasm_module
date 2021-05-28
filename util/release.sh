@@ -77,7 +77,6 @@ release_source() {
     notice "Creating source archive..."
     cd $DIR_DIST_WORK
 
-    echo "DIST_SRC: $DIST_SRC"
     if [ -d $DIST_SRC ]; then
         rm -rf $DIST_SRC
     fi
@@ -102,7 +101,6 @@ build_static_binary() {
     local runtime_ver=$3
     local distro
 
-    echo "DIST_SRC: $DIST_SRC"
     if [ ! -d $DIST_SRC ]; then
         fatal "missing source release at $(pwd)/$DIST_SRC to build binary, run with --src"
     fi
@@ -119,9 +117,9 @@ build_static_binary() {
     fi
 
     case $distro in
-        darwin) distro='macos';;
+        darwin*) distro='macos';;
         arch)   distro='archlinux';;
-        ubuntu)
+        ubuntu|centos)
             if [ -n $VERSION_ID ]; then
                 distro=$distro$VERSION_ID
             fi
@@ -179,9 +177,9 @@ build_static_binary() {
     export NGX_WASM_RUNTIME=$runtime
 
     ./configure \
-        --build="wasmx $name [vm: $NGX_WASM_RUNTIME, nginx: $NGX_VER]" \
+        --build="wasmx $name [vm: $NGX_WASM_RUNTIME]" \
         --builddir="$DIR_BUILD/build-$dist_bin_name" \
-        --with-cc-opt="-g -O3 $CC_FLAGS" \
+        --with-cc-opt="-Wno-error -g -O3 $CC_FLAGS" \
         --with-ld-opt="-lm $LD_FLAGS" \
         --prefix='.' \
         --conf-path='nginx.conf' \
@@ -218,11 +216,9 @@ build_static_binary() {
         --without-mail_smtp_module \
         --without-http_scgi_module \
         --without-http_uwsgi_module \
-        --without-http_fastcgi_module \
-        $CONFIGURE_OPTS || (echo "failed configure"; cat $DIR_BUILD/build-$dist_bin_name/config.log; exit 1)
+        --without-http_fastcgi_module
 
-    make -j${n_jobs} || (echo "failed make"; ls; cat $DIR_BUILD/build-$dist_bin_name/autoconf.err; exit 1)
-
+    make -j${n_jobs}
 
     cd $DIR_DIST_WORK
     cp $DIR_BUILD/build-$dist_bin_name/nginx \
@@ -272,8 +268,10 @@ release_all_bin_docker() {
         local imgname=${dockerfile#"Dockerfile."}
         local imgtag=wasmx-build-$imgname
 
-        if [ $imgname = "amd64.alpinelinux" ]; then
-        docker build -t $imgtag -f $path $DIR_BUILD_DOCKERFILES
+        docker build \
+            -t $imgtag \
+            -f $path $DIR_BUILD_DOCKERFILES
+
         docker run \
             --rm -it \
             --entrypoint /bin/sh \
@@ -285,7 +283,6 @@ release_all_bin_docker() {
             -e RELEASE_NAME=$name \
             $imgtag \
             -c "./ngx_wasm_module/util/release.sh --bin"
-        fi
     done
 }
 

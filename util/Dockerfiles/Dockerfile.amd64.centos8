@@ -1,0 +1,7 @@
+FROM amd64/centos:8
+
+RUN yum update -y && yum install -y \
+    gcc \
+    clang \
+    perl \
+    make
