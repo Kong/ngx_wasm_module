@@ -61,7 +61,7 @@ jobs:
           push: true
       - id: assign-name
         run: |
-          if [ "${{ github.event_type }}" = schedule ]; then
+          if [ "${{ github.event_name }}" = schedule ]; then
             echo "::set-output name=release_name::nightly-$(date -u +\"%Y%m%d\")"
           else
             echo "::set-output name=release_name::${{ github.event.inputs.release_name }}"
