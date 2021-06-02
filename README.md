@@ -119,7 +119,7 @@ the contribution learning curve, etc...
 
 While WasmX offers obvious benefits to Kong Inc. today (i.e. embedding
 WebAssembly filters inside of Kong Gateway), it could become its own proxy
-runtime should it proves itself valuable alongside Envoy, that is: unique in its
+runtime should it prove itself valuable alongside Envoy, that is: unique in its
 own proposition value in terms of performance & footprint compromises.
 
 [Back to TOC](#table-of-contents)
