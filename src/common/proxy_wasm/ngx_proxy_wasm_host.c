@@ -178,6 +178,54 @@ ngx_proxy_wasm_map_set_value_helper(ngx_wavm_instance_t *instance,
 /* hfuncs */
 
 
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    uint32_t     log_level, msg_size;
+    u_char      *msg_data;
+    ngx_uint_t   level;
+
+    log_level = args[0].of.i32;
+    msg_data = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
+    msg_size = args[2].of.i32;
+
+    switch (log_level) {
+
+    case NGX_PROXY_WASM_LOG_TRACE:
+    case NGX_PROXY_WASM_LOG_DEBUG:
+        level = NGX_LOG_DEBUG;
+        break;
+
+    case NGX_PROXY_WASM_LOG_INFO:
+        level = NGX_LOG_INFO;
+        break;
+
+    case NGX_PROXY_WASM_LOG_WARNING:
+        level = NGX_LOG_WARN;
+        break;
+
+    case NGX_PROXY_WASM_LOG_ERROR:
+        level = NGX_LOG_ERR;
+        break;
+
+    case NGX_PROXY_WASM_LOG_CRITICAL:
+        level = NGX_LOG_CRIT;
+        break;
+
+    default:
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
+                           "NYI: unknown log level \"%d\"", log_level);
+
+        return ngx_proxy_wasm_result_badarg(rets);
+
+    }
+
+    ngx_wasm_log_error(level, instance->log, 0, "%*s",
+                       msg_size, msg_data);
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
 
 
 static ngx_int_t
@@ -511,56 +559,6 @@ ngx_proxy_wasm_hfuncs_get_current_time(ngx_wavm_instance_t *instance,
     tp = ngx_timeofday();
 
     *rtime = (tp->sec * 1000 + tp->msec) * 1e6;
-
-    return ngx_proxy_wasm_result_ok(rets);
-}
-
-
-static ngx_int_t
-ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    uint32_t     log_level, msg_size;
-    u_char      *msg_data;
-    ngx_uint_t   level;
-
-    log_level = args[0].of.i32;
-    msg_data = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
-    msg_size = args[2].of.i32;
-
-    switch (log_level) {
-
-    case NGX_PROXY_WASM_LOG_TRACE:
-    case NGX_PROXY_WASM_LOG_DEBUG:
-        level = NGX_LOG_DEBUG;
-        break;
-
-    case NGX_PROXY_WASM_LOG_INFO:
-        level = NGX_LOG_INFO;
-        break;
-
-    case NGX_PROXY_WASM_LOG_WARNING:
-        level = NGX_LOG_WARN;
-        break;
-
-    case NGX_PROXY_WASM_LOG_ERROR:
-        level = NGX_LOG_ERR;
-        break;
-
-    case NGX_PROXY_WASM_LOG_CRITICAL:
-        level = NGX_LOG_CRIT;
-        break;
-
-    default:
-        ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
-                           "NYI: unknown log level \"%d\"", log_level);
-
-        return ngx_proxy_wasm_result_badarg(rets);
-
-    }
-
-    ngx_wasm_log_error(level, instance->log, 0, "%*s",
-                       msg_size, msg_data);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
