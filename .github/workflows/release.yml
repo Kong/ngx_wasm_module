@@ -169,7 +169,7 @@ jobs:
         with:
           name: release-artifacts
       - uses: marvinpinto/action-automatic-releases@latest
-        if: ${{ github.event_name == schedule }}
+        if: ${{ github.event_name == 'schedule' }}
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: nightly
@@ -178,7 +178,7 @@ jobs:
           files: |
             *.tar.gz
       - uses: marvinpinto/action-automatic-releases@latest
-        if: ${{ github.event_name != schedule }}
+        if: ${{ github.event_name != 'schedule' }}
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: release-${{ needs.build-images.outputs.release_name }}
