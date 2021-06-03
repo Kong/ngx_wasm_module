@@ -70,7 +70,8 @@ add_block_preprocessor(sub {
 
     # ngx_wasm_module.so injection
 
-    if ($ENV{NGX_BUILD_DYNAMIC_MODULE} == 1
+    if (defined $ENV{NGX_BUILD_DYNAMIC_MODULE}
+        && $ENV{NGX_BUILD_DYNAMIC_MODULE} == 1
         && -e "$buildroot/ngx_wasm_module.so")
     {
         push @dyn_modules, "ngx_wasm_module";

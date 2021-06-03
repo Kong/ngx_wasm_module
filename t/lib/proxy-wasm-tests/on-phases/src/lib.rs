@@ -81,6 +81,11 @@ impl HttpContext for HttpHeaders {
         Action::Continue
     }
 
+    fn on_http_request_body(&mut self, len: usize, _: bool) -> Action {
+        info!("#{} on_request_body, {} bytes", self.context_id, len);
+        Action::Continue
+    }
+
     fn on_http_response_headers(&mut self, nheaders: usize) -> Action {
         info!(
             "#{} on_response_headers, {} headers",

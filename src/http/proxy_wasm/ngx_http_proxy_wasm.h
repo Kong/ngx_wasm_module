@@ -7,6 +7,7 @@
 
 
 typedef struct {
+    ngx_proxy_wasm_t           *pwm;
     unsigned                    context_created:1;
 } ngx_http_proxy_wasm_rctx_t;
 
