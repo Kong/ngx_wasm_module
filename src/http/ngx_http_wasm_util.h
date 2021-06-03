@@ -18,6 +18,8 @@ uintptr_t ngx_http_wasm_escape(u_char *dst, u_char *src, size_t size,
     ngx_http_wasm_escape_kind kind);
 ngx_str_t *ngx_http_copy_escaped(ngx_str_t *dst, ngx_pool_t *pool,
     ngx_http_wasm_escape_kind kind);
+ngx_int_t ngx_http_wasm_read_client_request_body(ngx_http_request_t *r,
+    ngx_http_client_body_handler_pt post_handler);
 ngx_int_t ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in);
 
 

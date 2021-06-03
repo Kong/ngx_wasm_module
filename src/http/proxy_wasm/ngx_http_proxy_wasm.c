@@ -8,6 +8,7 @@
 
 static ngx_http_request_t *ngx_http_proxy_wasm_request(ngx_proxy_wasm_t *pwm);
 static ngx_int_t ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_t *pwm);
+static void ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r);
 static ngx_int_t ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_t *pwm);
 //static void ngx_proxy_wasm_on_log_handler(ngx_event_t *ev);
 
@@ -51,6 +52,9 @@ ngx_http_proxy_wasm_create_context(ngx_proxy_wasm_t *pwm)
         if (prctx == NULL) {
             return NGX_ERROR;
         }
+
+        /* allows retrieving pwm from rctx */
+        prctx->pwm = pwm;
 
         rctx->data = prctx;
     }
@@ -129,6 +133,13 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
 
     case NGX_HTTP_REWRITE_PHASE:
         rc = ngx_http_proxy_wasm_on_request_headers(pwm);
+        if (rc != NGX_OK) {
+            break;
+        }
+
+        rc = ngx_http_wasm_read_client_request_body(rctx->r,
+                           ngx_http_proxy_wasm_on_request_body);
+
         if (rc == NGX_OK) {
             rc = NGX_DECLINED;
         }
@@ -172,6 +183,12 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
     if (rc == NGX_ERROR) {
         pwm->trap = 1;
     }
+
+    ngx_wasm_assert(rc == NGX_OK
+                    || rc == NGX_DONE
+                    || rc == NGX_ERROR
+                    || rc == NGX_DECLINED
+                    || rc >= NGX_HTTP_SPECIAL_RESPONSE);
 
     return rc;
 }
@@ -222,6 +239,62 @@ ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_t *pwm)
     }
 
     return NGX_OK;
+}
+
+
+static void
+ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
+{
+    size_t                       len;
+    ngx_int_t                    rc;
+    ngx_uint_t                   ctxid;
+    ngx_chain_t                 *cl;
+    ngx_http_wasm_req_ctx_t     *rctx;
+    ngx_http_proxy_wasm_rctx_t  *prctx;
+    ngx_proxy_wasm_t            *pwm;
+    wasm_val_vec_t              *rets;
+
+    if (r->request_body == NULL
+        || r->request_body->bufs == NULL) {
+        /* no body */
+        return;
+    }
+
+    if (r->request_body->temp_file) {
+        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                           "request body was buffered to a temporary file");
+        return;
+    }
+
+    rc = ngx_http_wasm_rctx(r, &rctx);
+    if (rc != NGX_OK) {
+        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                           "failed to retrieve request context "
+                           "after reading client body");
+        return;
+    }
+
+    cl = r->request_body->bufs;
+
+    ngx_wasm_assert(cl->next == NULL);
+
+    len = cl->buf->last - cl->buf->pos;
+
+    if (len) {
+        prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
+        pwm = prctx->pwm;
+        ctxid = ngx_http_proxy_wasm_ctxid(pwm);
+
+        rc = ngx_wavm_instance_call_funcref(pwm->instance,
+                                            pwm->proxy_on_http_request_body,
+                                            &rets, ctxid, len, 0); // TODO: end_of_stream
+        if (rc != NGX_OK) {
+            ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                               "error in proxy_on_http_request_body");
+        }
+
+        /* TODO: next action */
+    }
 }
 
 

@@ -34,6 +34,28 @@ ngx_http_copy_escaped(ngx_str_t *dst, ngx_pool_t *pool,
 
 
 ngx_int_t
+ngx_http_wasm_read_client_request_body(ngx_http_request_t *r,
+    ngx_http_client_body_handler_pt post_handler)
+{
+    ngx_int_t   rc;
+
+    r->request_body_in_single_buf = 1;
+
+    rc = ngx_http_read_client_request_body(r, post_handler);
+
+    ngx_wasm_assert(rc != NGX_AGAIN);
+
+    if (rc < NGX_HTTP_SPECIAL_RESPONSE
+        && rc != NGX_ERROR)
+    {
+        r->main->count--;
+    }
+
+    return rc;
+}
+
+
+ngx_int_t
 ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
 {
     ngx_int_t   rc;
