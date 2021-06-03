@@ -2,7 +2,7 @@ name: Release
 
 on:
   schedule:
-    - cron: '0 6 * * *' # 6am UTC, 11pm UTC-7
+    - cron: '10 18 * * *' # 6am UTC, 11pm UTC-7
   workflow_dispatch:
     inputs:
       release_name:
