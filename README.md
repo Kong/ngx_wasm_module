@@ -16,12 +16,10 @@ filters identical to those running on
 
 - [Synopsys](#synopsys)
 - [Examples](#examples)
-- [Download](#download)
 - [Install](#install)
+- [Documentation](#documentation)
 - [What is WasmX?](#what-is-wasmx)
-- [Resources](#resources)
-    - [Documentation](#documentation)
-    - [Roadmap](#roadmap)
+- [Roadmap](#roadmap)
 - [Getting involved](#getting-involved)
 - [License](#license)
 
@@ -45,15 +43,15 @@ http {
         listen 9000;
 
         location / {
-            # execute a proxy-wasm filter when proxying this request/response
+            # execute a proxy-wasm filter when proxying
             #           [module]
             proxy_wasm  my_filter;
 
-            # execute some extra webassembly during the access phase
-            #         [phase] [module]  [function]
-            wasm_call access  my_module check_something;
+            # execute more webassembly during the access phase
+            #           [phase] [module]  [function]
+            wasm_call   access  my_module check_something;
 
-            proxy_pass  ...;
+            proxy_pass ...;
         }
     }
 }
@@ -65,17 +63,24 @@ http {
 
 The
 [proxy-wasm-rust-filter-echo](https://github.com/wasmx-proxy/proxy-wasm-rust-filter-echo/)
-project showcases the currently available host capabilities of ngx_wasm_module
-and is naturally compatible with the Envoy runtime.
+project showcases the currently available proxy-wasm SDK capabilities of
+ngx_wasm_module and is naturally compatible with the Envoy runtime.
 
 More examples are available for each proxy-wasm SDK:
 
-- [Rust
-  examples](https://github.com/proxy-wasm/proxy-wasm-rust-sdk/tree/master/examples)
-- [Go
-  examples](https://github.com/tetratelabs/proxy-wasm-go-sdk/tree/main/examples)
+- [AssemblyScript
+  examples](https://github.com/solo-io/proxy-runtime/tree/master/examples)
 - [C++
   examples](https://github.com/proxy-wasm/proxy-wasm-cpp-sdk/tree/master/example)
+- [Go (TinyGo)
+  examples](https://github.com/tetratelabs/proxy-wasm-go-sdk/tree/main/examples)
+- [Rust
+  examples](https://github.com/proxy-wasm/proxy-wasm-rust-sdk/tree/master/examples)
+- [Zig
+  examples](https://github.com/mathetake/proxy-wasm-zig-sdk/tree/main/example)
+
+Note that all of the above examples may not yet be compatible with
+ngx_wasm_module.
 
 Last but not least, the [WebAssembly
 Hub](https://www.webassemblyhub.io/repositories/) contains many other proxy-wasm
@@ -83,30 +88,43 @@ filters, some of which may not yet be compatible with ngx_wasm_module.
 
 [Back to TOC](#table-of-contents)
 
-## Download
+## Install
 
-Currently, a release is produced from the `main` branch everyday at 6am UTC,
-referred to as a "nightly" release; see the [Nightly release
+A release is produced from the `main` branch everyday at 6am UTC, referred to as
+a "nightly" release; see the [Nightly release
 tag](https://github.com/Kong/ngx_wasm_module/releases/tag/nightly) to download
-the release assets.
+the latest nightly release assets.
 
-Every release contains the following assets:
+Every release produces the following artifacts, for different installation
+methods and usage purposes:
 
-- `ngx_wasm_module-$release.tar.gz`: the module's source code, which can be
-  built alongside Nginx at compilation time.
+- `ngx_wasm_module-$release.tar.gz`: a tarball of the ngx_wasm_module release.
+  To be built alongside Nginx at compilation time with `--add-module=` or
+  `--add-dynamic-module=`. See [INSTALL.md](INSTALL.md) for instructions and
+  examples on how to do so.
 - `wasmx-$release-$runtime-$arch-$os.tar.gz`: a pre-compiled binary of Nginx
-  built with ngx_wasm_module for the specified runtime/architecture/OS.
+  built with ngx_wasm_module (i.e. "WasmX") for the specified
+  runtime/architecture/OS. Invoke the self-contained `nginx` binary
+  appropriately.
 
 [Back to TOC](#table-of-contents)
 
-## Install
+## Documentation
 
-- Download a `wasmx-*.tar.gz` pre-built release and invoke the `nginx` binary
-appropriately.
+### proxy-wasm SDK
 
-- Or, download the release sources `ngx_wasm_module-*.tar.gz` and see
-[INSTALL.md](INSTALL.md) for ways to compile this module alongside Nginx from
-source.
+See
+[proxy-wasm/spec/abi-versions/vNEXT](https://github.com/proxy-wasm/spec/tree/master/abi-versions/vNEXT)
+for a _mostly_ up-to-date list of functions and their effects.
+
+Also consult the source of the language of your choice in the [proxy-wasm SDKs
+list](https://github.com/proxy-wasm/spec#sdks) as this ABI specification is
+still evolving and unstable.
+
+### Wasm runtimes
+
+- Wasm C API: https://github.com/WebAssembly/wasm-c-api
+- Wasmtime C API: https://docs.wasmtime.dev/c-api/
 
 [Back to TOC](#table-of-contents)
 
@@ -124,15 +142,7 @@ own proposition value in terms of performance & footprint compromises.
 
 [Back to TOC](#table-of-contents)
 
-## Resources
-
-### Documentation
-
-[Pending]
-
-[Back to TOC](#table-of-contents)
-
-### Roadmap
+## Roadmap
 
 This project's roadmap is documented via [GitHub
 projects](https://github.com/Kong/ngx_wasm_module/projects).
