@@ -171,6 +171,7 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     op->code = NGX_WASM_OP_PROXY_WASM;
     op->host = &ngx_proxy_wasm_host;
     op->on_phases = (1 << NGX_HTTP_REWRITE_PHASE)
+                    | (1 << NGX_HTTP_CONTENT_PHASE)
                     | (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE)
                     | (1 << NGX_HTTP_LOG_PHASE);
 

@@ -50,7 +50,7 @@ Hello world
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 11 bytes/
+qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 11 bytes, end_of_stream: true/
 --- no_error_log
 [error]
 [crit]
@@ -75,7 +75,7 @@ Larger than a buffer
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 20 bytes/
+qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 20 bytes, end_of_stream: true/
 --- no_error_log
 [error]
 [crit]
@@ -102,7 +102,7 @@ ok
 --- error_log eval
 [
     qr/\[notice\] .*? a client request body is buffered to a temporary file/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 20 bytes/
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 20 bytes, end_of_stream: true/
 ]
 --- no_error_log
 [error]
@@ -344,7 +344,7 @@ should not execute a log phase
     location /subrequest {
         internal;
         proxy_wasm on_phases;
-        return 201;
+        echo ok;
     }
 
     location /t {
@@ -355,10 +355,11 @@ POST /t
 Hello from main request body
 --- error_code: 200
 --- response_body
+ok
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers .*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 28 bytes .*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 28 bytes, .*? subrequest: "\/subrequest"/,
     qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers .*? subrequest: "\/subrequest"/,
 ]
 --- no_error_log eval
@@ -370,13 +371,13 @@ Hello from main request body
 
 
 === TEST 15: proxy_wasm - as a subrequest with a body
---- wasm_modules: on_phases
 --- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
 --- config
     location /subrequest {
         internal;
         proxy_wasm on_phases;
-        return 201;
+        echo ok;
     }
 
     location /t {
@@ -384,10 +385,11 @@ Hello from main request body
     }
 --- error_code: 200
 --- response_body
+ok
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers .*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 21 bytes .*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 21 bytes, .*? subrequest: "\/subrequest"/,
     qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers .*? subrequest: "\/subrequest"/,
 ]
 --- no_error_log eval

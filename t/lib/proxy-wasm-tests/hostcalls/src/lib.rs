@@ -12,6 +12,7 @@ use std::collections::HashMap;
 #[enumeration(rename_all = "snake_case")]
 enum TestPhase {
     HttpRequestHeaders,
+    HttpRequestBody,
     HttpResponseHeaders,
     Log,
 }
@@ -52,6 +53,7 @@ impl RootContext for TestRoot {
                     s.parse()
                         .unwrap_or_else(|_| panic!("unknown phase: {:?}", s))
                 }),
+            client_body_size: None,
         }))
     }
 }
@@ -60,6 +62,7 @@ struct TestHttpHostcalls {
     context_id: u32,
     on_phase: TestPhase,
     test_case: Option<String>,
+    client_body_size: Option<usize>,
 }
 
 impl TestHttpHostcalls {
@@ -138,9 +141,10 @@ impl TestHttpHostcalls {
             Method::GET => match test_case.as_str() {
                 "/t/log/levels" => test_log_levels(self),
                 "/t/log/request_headers" => test_log_request_headers(self),
+                "/t/log/request_path" => test_log_request_path(self),
+                "/t/log/request_body" => test_log_request_body(self),
                 "/t/log/response_header" => test_log_response_header(self),
                 "/t/log/response_headers" => test_log_response_headers(self),
-                "/t/log/request_path" => test_log_request_path(self),
                 "/t/log/current_time" => test_log_current_time(self),
                 "/t/send_local_response/status/204" => test_send_status(self, 204),
                 "/t/send_local_response/status/300" => test_send_status(self, 300),
@@ -162,6 +166,11 @@ impl TestHttpHostcalls {
                 "/t/echo/headers" => echo_headers(self),
                 _ => self.send_not_found(),
             },
+            Method::POST => match test_case.as_str() {
+                "/t/log/request_body" => test_log_request_body(self),
+                "/t/echo/body" => echo_body(self, self.client_body_size),
+                _ => self.send_not_found(),
+            },
             _ => self.send_plain_response(StatusCode::METHOD_NOT_ALLOWED, None),
         }
     }
@@ -175,6 +184,16 @@ impl HttpContext for TestHttpHostcalls {
             self.context_id, nheaders
         );
         self.exec_tests(TestPhase::HttpRequestHeaders);
+        Action::Continue
+    }
+
+    fn on_http_request_body(&mut self, size: usize, end_of_stream: bool) -> Action {
+        self.client_body_size = Some(size);
+        info!(
+            "#{} on_request_body, {} bytes, end_of_stream: {}",
+            self.context_id, size, end_of_stream
+        );
+        self.exec_tests(TestPhase::HttpRequestBody);
         Action::Continue
     }
 
