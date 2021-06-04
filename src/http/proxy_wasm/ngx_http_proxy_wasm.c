@@ -245,10 +245,11 @@ ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_t *pwm)
 static void
 ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
 {
-    size_t                       len;
+    size_t                       len = 0;
     ngx_int_t                    rc;
     ngx_uint_t                   ctxid;
     ngx_chain_t                 *cl;
+    ngx_file_t                   file;
     ngx_http_wasm_req_ctx_t     *rctx;
     ngx_http_proxy_wasm_rctx_t  *prctx;
     ngx_proxy_wasm_t            *pwm;
@@ -260,12 +261,6 @@ ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
         return;
     }
 
-    if (r->request_body->temp_file) {
-        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                           "request body was buffered to a temporary file");
-        return;
-    }
-
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc != NGX_OK) {
         ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
@@ -274,11 +269,37 @@ ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
         return;
     }
 
-    cl = r->request_body->bufs;
+    if (r->request_body->temp_file) {
+        file = r->request_body->temp_file->file;
 
-    ngx_wasm_assert(cl->next == NULL);
+        if (file.fd != NGX_INVALID_FILE
+            && ngx_fd_info(file.fd, &file.info) == NGX_FILE_ERROR)
+        {
+            ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno,
+                          ngx_fd_info_n " \"%V\" failed", file.name);
 
-    len = cl->buf->last - cl->buf->pos;
+            if (ngx_close_file(file.fd) == NGX_FILE_ERROR) {
+                ngx_log_error(NGX_LOG_ALERT, r->connection->log, ngx_errno,
+                              ngx_close_file_n " \"%V\" failed", file.name);
+            }
+
+            file.fd = NGX_INVALID_FILE;
+            return;
+        }
+
+        len = ngx_file_size(&file.info);
+
+    } else {
+        cl = r->request_body->bufs;
+
+        /* single buffer */
+        ngx_wasm_assert(cl->next == NULL);
+
+        len = cl->buf->last - cl->buf->pos;
+    }
+
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
+                   "proxy wasm client request body size: %d bytes", len);
 
     if (len) {
         prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
