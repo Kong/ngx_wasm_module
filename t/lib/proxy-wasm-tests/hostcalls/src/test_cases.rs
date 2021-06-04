@@ -23,6 +23,16 @@ pub(crate) fn test_log_request_headers(ctx: &mut TestHttpHostcalls) {
     }
 }
 
+pub(crate) fn test_log_request_body(ctx: &mut TestHttpHostcalls) {
+    let body = ctx.get_http_request_body(0, 30);
+    if let Some(bytes) = body {
+        match String::from_utf8(bytes) {
+            Ok(s) => info!("request body: {}", s),
+            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+        }
+    }
+}
+
 pub(crate) fn test_log_response_header(ctx: &mut TestHttpHostcalls) {
     let header = ctx.get_http_request_header("pwm-log-resp-header");
     if let Some(header_name) = header {
