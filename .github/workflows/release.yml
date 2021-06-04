@@ -14,6 +14,7 @@ env:
   NGX_VER: 1.21.0
   WASMTIME_VER: 0.27.0
   WASMER_VER: 1.0.2
+  RETENTION_DAYS: 2
 
 defaults:
   run:
@@ -87,6 +88,7 @@ jobs:
         with:
           name: release-artifacts
           path: dist
+          retention-days: ${{ env.RETENTION_DAYS }}
 
   build-ubuntu-focal:
     name: "Build Ubuntu 20.04 (focal) binary"
@@ -106,6 +108,7 @@ jobs:
         with:
           name: release-artifacts
           path: dist
+          retention-days: ${{ env.RETENTION_DAYS }}
 
   build-centos8:
     name: "Build Centos 8 binary"
@@ -125,6 +128,7 @@ jobs:
         with:
           name: release-artifacts
           path: dist
+          retention-days: ${{ env.RETENTION_DAYS }}
 
   build-arch:
     name: Build ArchLinux binary
@@ -144,6 +148,7 @@ jobs:
         with:
           name: release-artifacts
           path: dist
+          retention-days: ${{ env.RETENTION_DAYS }}
 
   build-macos:
     name: Build macOS binary
@@ -158,6 +163,7 @@ jobs:
         with:
           name: release-artifacts
           path: dist
+          retention-days: ${{ env.RETENTION_DAYS }}
 
   upload-artifacts:
     name: Upload release artifacts
