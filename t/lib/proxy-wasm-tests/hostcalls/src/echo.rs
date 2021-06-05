@@ -31,7 +31,7 @@ pub(crate) fn echo_header(ctx: &mut TestHttpHostcalls, name: &str) {
 }
 
 pub(crate) fn echo_body(ctx: &mut TestHttpHostcalls, max_size: Option<usize>) {
-    if let None = max_size {
+    if max_size.is_none() {
         ctx.send_plain_response(
             StatusCode::INTERNAL_SERVER_ERROR,
             Some("request body not yet buffered".to_string()),

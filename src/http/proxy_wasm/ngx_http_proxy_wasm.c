@@ -308,7 +308,6 @@ ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
         (void) ngx_wavm_instance_call_funcref(pwm->instance,
                                               pwm->proxy_on_http_request_body,
                                               &rets, ctxid, len, 1);
-
         /* TODO: next action */
     }
 }

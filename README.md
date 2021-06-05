@@ -51,7 +51,7 @@ http {
             #           [phase] [module]  [function]
             wasm_call   access  my_module check_something;
 
-            proxy_pass ...;
+            proxy_pass  ...;
         }
     }
 }
