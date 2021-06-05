@@ -207,21 +207,6 @@ if [ $HTTP = YES ]; then
         ngx_module_libs=
 
         . auto/module
-
-        # move the filter before ngx_http_header_filter_module
-        OLDIFS=$IFS
-        IFS=' '
-        WASM_HTTP_FILTER_MODULES=""
-        for n in $HTTP_FILTER_MODULES; do
-            if [ $n = ngx_http_header_filter_module ]; then
-                WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $n"
-                WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $ngx_module_name"
-            elif [ $n != $ngx_module_name ]; then
-                WASM_HTTP_FILTER_MODULES="$WASM_HTTP_FILTER_MODULES $n"
-            fi
-        done
-        HTTP_FILTER_MODULES=$WASM_HTTP_FILTER_MODULES
-        IFS=$OLDIFS
     fi
 
     have=NGX_WASM_HTTP . auto/define

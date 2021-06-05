@@ -384,6 +384,7 @@ Transfer-Encoding: chunked
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
 qr/\[wasm\] .*? entering "HttpRequestHeaders"
+\[wasm\] resp header "Transfer-Encoding: chunked"
 \[wasm\] .*? entering "HttpResponseHeaders"
 \[wasm\] resp header "Transfer-Encoding: chunked"
 \[wasm\] .*? entering "Log"
@@ -413,6 +414,7 @@ Transfer-Encoding:
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
 qr/\[wasm\] .*? entering "HttpRequestHeaders"
+\[wasm\] resp header "Transfer-Encoding: chunked"
 \[wasm\] .*? entering "HttpResponseHeaders"
 \[wasm\] .*? entering "Log"/
 --- no_error_log

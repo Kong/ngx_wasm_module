@@ -236,7 +236,10 @@ ngx_http_wasm_shim_transfer_encoding(ngx_http_wasm_req_ctx_t *rctx)
     ngx_http_request_t  *r = rctx->r;
     static ngx_str_t     chunked = ngx_string("chunked");
 
-    if (r->chunked) {
+    if (r->chunked
+        || (r->headers_out.content_length == NULL
+            && r->headers_out.content_length_n < 0))
+    {
         return &chunked;
     }
 

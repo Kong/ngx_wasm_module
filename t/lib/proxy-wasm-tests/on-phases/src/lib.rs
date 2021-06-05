@@ -97,6 +97,14 @@ impl HttpContext for HttpHeaders {
         Action::Continue
     }
 
+    fn on_http_response_body(&mut self, len: usize, end_of_stream: bool) -> Action {
+        info!(
+            "#{} on_response_body, {} bytes, end_of_stream: {}",
+            self.context_id, len, end_of_stream
+        );
+        Action::Continue
+    }
+
     fn on_log(&mut self) {
         info!("#{} on_log", self.context_id);
 
