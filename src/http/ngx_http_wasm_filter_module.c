@@ -8,6 +8,7 @@
 
 static ngx_int_t ngx_http_wasm_filter_init(ngx_conf_t *cf);
 static ngx_int_t ngx_http_wasm_header_filter_handler(ngx_http_request_t *r);
+static ngx_int_t ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in);
 
 
 static ngx_http_module_t  ngx_http_wasm_module_ctx = {
@@ -39,6 +40,7 @@ ngx_module_t  ngx_http_wasm_filter_module = {
 
 
 static ngx_http_output_header_filter_pt  ngx_http_next_header_filter;
+static ngx_http_output_body_filter_pt  ngx_http_next_body_filter;
 
 
 static ngx_int_t
@@ -46,6 +48,9 @@ ngx_http_wasm_filter_init(ngx_conf_t *cf)
 {
     ngx_http_next_header_filter = ngx_http_top_header_filter;
     ngx_http_top_header_filter = ngx_http_wasm_header_filter_handler;
+
+    ngx_http_next_body_filter = ngx_http_top_body_filter;
+    ngx_http_top_body_filter = ngx_http_wasm_body_filter_handler;
 
     return NGX_OK;
 }
@@ -90,4 +95,35 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 next_filter:
 
     return ngx_http_next_header_filter(r);
+}
+
+
+static ngx_int_t
+ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
+{
+    ngx_int_t                 rc;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    rc = ngx_http_wasm_rctx(r, &rctx);
+    if (rc == NGX_ERROR) {
+        return NGX_ERROR;
+
+    } else if (rc == NGX_DECLINED) {
+        goto next_filter;
+    }
+
+    ngx_wasm_assert(rc == NGX_OK);
+
+    if (in == NULL) {
+        goto next_filter;
+    }
+
+    rctx->resp_body_out = in;
+
+    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_BODY_FILTER_PHASE,
+                             NGX_WASM_OPS_RUN_ALL);
+
+next_filter:
+
+    return ngx_http_next_body_filter(r, in);
 }

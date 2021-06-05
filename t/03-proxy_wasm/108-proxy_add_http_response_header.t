@@ -149,6 +149,8 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 
 
 === TEST 6: proxy_wasm - add_http_response_header() adds a new Content-Length header
+5 headers before add: TE, no CL
+5 headers after add: CL replaced TE
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -164,7 +166,7 @@ Content-Length: 3
 --- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Content-Length).*?(?=\s<)/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] #\d+ on_response_headers, 6 headers
+\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] resp Content-Length: 3
 \z/
 --- no_error_log
@@ -189,7 +191,7 @@ Content-Length: 0
 --- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Content-Length).*?(?=\s+<)/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] #\d+ on_response_headers, 6 headers
+\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] resp Content-Length: 0
 \z/
 --- no_error_log

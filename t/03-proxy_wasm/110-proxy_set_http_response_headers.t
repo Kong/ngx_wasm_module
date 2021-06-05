@@ -26,13 +26,15 @@ __DATA__
     }
 --- raw_response_headers_like
 HTTP\/.*? \d+ .*?
+Transfer-Encoding: chunked\r
 Connection: close\r
 Hello: world\r
 Welcome: wasm\r
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_resp|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
 qr/\[wasm\] .*? on_response_headers, 5 headers
-\[wasm\] .*? on_response_headers, 3 headers
+\[wasm\] .*? on_response_headers, 4 headers
+\[wasm\] resp Transfer-Encoding: chunked
 \[wasm\] resp Connection: close
 \[wasm\] resp Hello: world
 \[wasm\] resp Welcome: wasm/
@@ -57,13 +59,15 @@ pwm-set-resp-headers: Content-Type=text/none Server=proxy-wasm
 --- raw_response_headers_like
 HTTP\/.*? \d+ .*?
 Content-Type: text\/none\r
+Transfer-Encoding: chunked\r
 Connection: close\r
 Server: proxy-wasm\r
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_resp|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
 qr/\[wasm\] .*? on_response_headers, 4 headers
-\[wasm\] .*? on_response_headers, 3 headers
+\[wasm\] .*? on_response_headers, 4 headers
 \[wasm\] resp Content-Type: text\/none
+\[wasm\] resp Transfer-Encoding: chunked
 \[wasm\] resp Connection: close
 \[wasm\] resp Server: proxy-wasm/
 --- no_error_log

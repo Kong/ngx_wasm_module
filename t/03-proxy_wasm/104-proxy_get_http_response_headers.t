@@ -48,9 +48,11 @@ PWM-Test-Case: /t/log/response_headers
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
 qr/\[wasm\] .*? entering "HttpRequestHeaders"
+\[wasm\] resp Transfer-Encoding: chunked
 \[wasm\] resp Connection: close
 \[wasm\] .*? entering "HttpResponseHeaders"
 \[wasm\] resp Content-Type: text\/plain
+\[wasm\] resp Transfer-Encoding: chunked
 \[wasm\] resp Connection: close
 \[wasm\] resp Server: nginx.*?
 \[wasm\] resp Date: .*? GMT

@@ -11,6 +11,7 @@
 #define NGX_HTTP_WASM_MAX_REQ_HEADERS      100
 
 #define NGX_HTTP_WASM_HEADER_FILTER_PHASE  (NGX_HTTP_LOG_PHASE + 1)
+#define NGX_HTTP_WASM_BODY_FILTER_PHASE    (NGX_HTTP_LOG_PHASE + 2)
 
 
 typedef struct {
@@ -23,6 +24,7 @@ typedef struct {
     ngx_http_handler_pt                r_content_handler;
     ngx_array_t                        resp_shim_headers;
     unsigned                           reset_resp_shims;
+    ngx_chain_t                       *resp_body_out;
 
     /* local resp */
 
