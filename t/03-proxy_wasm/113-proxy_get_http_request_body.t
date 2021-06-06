@@ -155,6 +155,7 @@ Hello from main request body
 POST /main
 Hello from main request body
 --- response_body
+Hello from main request body
 --- no_error_log
 [error]
 [crit]

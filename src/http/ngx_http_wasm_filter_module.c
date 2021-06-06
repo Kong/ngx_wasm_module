@@ -113,15 +113,16 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     ngx_wasm_assert(rc == NGX_OK);
+    ngx_wasm_assert(in);
 
-    if (in == NULL) {
-        goto next_filter;
-    }
+    //if (in == NULL) {
+    //    goto next_filter;
+    //}
 
     rctx->resp_body_out = in;
 
-    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_BODY_FILTER_PHASE,
-                             NGX_WASM_OPS_RUN_ALL);
+    (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_BODY_FILTER_PHASE,
+                               NGX_WASM_OPS_RUN_ALL);
 
 next_filter:
 

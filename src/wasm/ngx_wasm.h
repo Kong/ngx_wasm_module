@@ -63,6 +63,7 @@ typedef struct {
 
 ngx_wavm_t *ngx_wasm_main_vm(ngx_cycle_t *cycle);
 
+size_t ngx_wasm_chain_len(ngx_chain_t *in);
 ngx_uint_t ngx_wasm_list_nelts(ngx_list_t *list);
 ngx_int_t ngx_wasm_bytes_from_path(wasm_byte_vec_t *out, u_char *path,
     ngx_log_t *log);
