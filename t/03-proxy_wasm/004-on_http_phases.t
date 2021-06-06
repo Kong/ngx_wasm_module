@@ -163,7 +163,6 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 
 
 === TEST 7: proxy_wasm - on_response_body gets number of bytes in chunk (no body)
---- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
     location /t {
@@ -181,7 +180,25 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream: true/
 
 
 
-=== TEST 8: proxy_wasm - on_response_body gets number of bytes in chunk (with echo body)
+=== TEST 8: proxy_wasm - on_response_body gets number of bytes in chunk (204)
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        proxy_wasm on_phases;
+        return 204;
+    }
+--- error_code: 204
+--- response_body
+--- no_error_log
+on_response_body
+[error]
+[crit]
+[emerg]
+[alert]
+
+
+
+=== TEST 9: proxy_wasm - on_response_body gets number of bytes in chunk (with echo body)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -203,7 +220,7 @@ hello world
 
 
 
-=== TEST 9: proxy_wasm - on_response_body gets number of bytes in chunk (with proxy_pass body)
+=== TEST 10: proxy_wasm - on_response_body gets number of bytes in chunk (with proxy_pass body)
 --- wasm_modules: on_phases
 --- http_config eval
 qq{
@@ -238,7 +255,7 @@ Hello
 
 
 
-=== TEST 10: proxy_wasm - on_log
+=== TEST 11: proxy_wasm - on_log
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -258,7 +275,7 @@ qr/\[info\] .*? \[wasm\] #\d+ on_log/
 
 
 
-=== TEST 11: proxy_wasm - missing default content handler
+=== TEST 12: proxy_wasm - missing default content handler
 should cause HTTP 404 from static module (default content handler)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -282,7 +299,7 @@ qr/404 Not Found/
 
 
 
-=== TEST 12: proxy_wasm - with 'return' (rewrite)
+=== TEST 13: proxy_wasm - with 'return' (rewrite)
 should produce a response in and of itself, proxy_wasm wraps around
 --- wasm_modules: on_phases
 --- config
@@ -304,7 +321,7 @@ should produce a response in and of itself, proxy_wasm wraps around
 
 
 
-=== TEST 13: proxy_wasm - before content producer 'echo'
+=== TEST 14: proxy_wasm - before content producer 'echo'
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -325,7 +342,7 @@ ok
 
 
 
-=== TEST 14: proxy_wasm - after content producer 'echo'
+=== TEST 15: proxy_wasm - after content producer 'echo'
 should produce a response from echo, even if proxy_wasm was added
 below it, it should wrap around echo
 --- load_nginx_modules: ngx_http_echo_module
@@ -347,7 +364,7 @@ ok
 
 
 
-=== TEST 15: proxy_wasm - before content producer 'proxy_pass'
+=== TEST 16: proxy_wasm - before content producer 'proxy_pass'
 should produce a response from proxy_pass, proxy_wasm wraps around
 --- wasm_modules: on_phases
 --- http_config eval
@@ -383,7 +400,7 @@ qq{
 
 
 
-=== TEST 16: proxy_wasm - as a subrequest
+=== TEST 17: proxy_wasm - as a subrequest
 should not execute a log phase
 --- wasm_modules: on_phases
 --- load_nginx_modules: ngx_http_echo_module
@@ -413,7 +430,7 @@ should not execute a log phase
 
 
 
-=== TEST 17: proxy_wasm - as a subrequest with a main request body
+=== TEST 18: proxy_wasm - as a subrequest with a main request body
 --- wasm_modules: on_phases
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -446,7 +463,7 @@ ok
 
 
 
-=== TEST 18: proxy_wasm - as a subrequest with a body
+=== TEST 19: proxy_wasm - as a subrequest with a body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -476,7 +493,7 @@ ok
 
 
 
-=== TEST 19: proxy_wasm - same module in multiple location{} blocks
+=== TEST 20: proxy_wasm - same module in multiple location{} blocks
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -510,7 +527,7 @@ B
 
 
 
-=== TEST 20: proxy_wasm - chained filters in same location{} block
+=== TEST 21: proxy_wasm - chained filters in same location{} block
 should run each filter after the other within each phase
 --- skip_no_debug: 7
 --- wasm_modules: on_phases
@@ -543,7 +560,7 @@ qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
 
 
 
-=== TEST 21: proxy_wasm - chained filters in server{} block
+=== TEST 22: proxy_wasm - chained filters in server{} block
 should run each filter after the other within each phase
 --- wasm_modules: on_phases
 --- config
@@ -571,7 +588,7 @@ qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
 
 
 
-=== TEST 22: proxy_wasm - chained filters in http{} block
+=== TEST 23: proxy_wasm - chained filters in http{} block
 should run each filter after the other within each phase
 --- wasm_modules: on_phases
 --- http_config
@@ -599,7 +616,7 @@ qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
 
 
 
-=== TEST 23: proxy_wasm - mixed filters in server{} and http{} blocks
+=== TEST 24: proxy_wasm - mixed filters in server{} and http{} blocks
 should not chain; instead, server{} overrides http{}
 --- wasm_modules: on_phases
 --- http_config
@@ -628,7 +645,7 @@ qr/log_msg: server .*? request: "GET \/t\s+/
 
 
 
-=== TEST 24: proxy_wasm - mixed filters in server{} and location{} blocks
+=== TEST 25: proxy_wasm - mixed filters in server{} and location{} blocks
 should not chain; instead, location{} overrides server{}
 --- wasm_modules: on_phases
 --- config
@@ -657,7 +674,7 @@ qr/log_msg: location .*? request: "GET \/t\s+/
 
 
 
-=== TEST 25: proxy_wasm - mixed filters in http{}, server{}, and location{} blocks
+=== TEST 26: proxy_wasm - mixed filters in http{}, server{}, and location{} blocks
 should not chain; instead, location{} overrides server{}, server{} overrides http{}
 --- wasm_modules: on_phases
 --- http_config

@@ -129,6 +129,7 @@ Date: .*? GMT\r
 --- grep_error_log_out eval
 qr/\[wasm\] .*? on_request_headers, 2 headers
 \[wasm\] .*? on_response_headers, 5 headers
+\[wasm\] .*? on_response_body, 0 bytes, end_of_stream true
 \[wasm\] .*? on_log/
 --- no_error_log
 [error]
@@ -234,6 +235,7 @@ Link: <\/feed>; rel="alternate"\r
 --- grep_error_log_out eval
 qr/\[wasm\] .*? on_request_headers, 2 headers
 \[wasm\] .*? on_response_headers, 16 headers
+\[wasm\] .*? on_response_body, 0 bytes, end_of_stream true
 \[wasm\] .*? on_log/
 --- no_error_log
 [error]
@@ -415,13 +417,15 @@ should still run all response phases
 GET /t/send_local_response/body
 --- response_body
 Hello world
---- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_log .*?
-\[wasm\] #\d+ on_log .*?
+qr/\[wasm\] #\d+ on_request_headers, \d+ headers
+\[wasm\] #\d+ on_response_headers, \d+ headers
+\[wasm\] #\d+ on_response_headers, \d+ headers
+\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream true
+\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream true
+\[wasm\] #\d+ on_log
+\[wasm\] #\d+ on_log
 /
 --- no_error_log
 [error]

@@ -14,6 +14,7 @@ enum TestPhase {
     HttpRequestHeaders,
     HttpRequestBody,
     HttpResponseHeaders,
+    HttpResponseBody,
     Log,
 }
 
@@ -53,7 +54,8 @@ impl RootContext for TestRoot {
                     s.parse()
                         .unwrap_or_else(|_| panic!("unknown phase: {:?}", s))
                 }),
-            client_body_size: None,
+            request_body_size: None,
+            response_body_size: None,
         }))
     }
 }
@@ -62,7 +64,8 @@ struct TestHttpHostcalls {
     context_id: u32,
     on_phase: TestPhase,
     test_case: Option<String>,
-    client_body_size: Option<usize>,
+    request_body_size: Option<usize>,
+    response_body_size: Option<usize>,
 }
 
 impl TestHttpHostcalls {
@@ -74,7 +77,7 @@ impl TestHttpHostcalls {
         }
     }
 
-    fn send_not_found(&mut self) {
+    fn _send_not_found(&mut self) {
         self.send_plain_response(StatusCode::NOT_FOUND, None)
     }
 
@@ -118,7 +121,7 @@ impl TestHttpHostcalls {
             }
         }
 
-        let method: Method = self
+        let _method: Method = self
             .get_http_request_header(":method")
             .unwrap()
             .parse()
@@ -137,41 +140,47 @@ impl TestHttpHostcalls {
             return;
         }
 
-        match method {
-            Method::GET => match test_case.as_str() {
-                "/t/log/levels" => test_log_levels(self),
-                "/t/log/request_headers" => test_log_request_headers(self),
-                "/t/log/request_path" => test_log_request_path(self),
-                "/t/log/request_body" => test_log_request_body(self),
-                "/t/log/response_header" => test_log_response_header(self),
-                "/t/log/response_headers" => test_log_response_headers(self),
-                "/t/log/current_time" => test_log_current_time(self),
-                "/t/send_local_response/status/204" => test_send_status(self, 204),
-                "/t/send_local_response/status/300" => test_send_status(self, 300),
-                "/t/send_local_response/status/1000" => test_send_status(self, 1000),
-                "/t/send_local_response/headers" => test_send_headers(self),
-                "/t/send_local_response/body" => test_send_body(self),
-                "/t/send_local_response/twice" => test_send_twice(self),
-                "/t/send_local_response/set_special_headers" => test_set_special_headers(self),
-                "/t/send_local_response/set_headers_escaping" => test_set_headers_escaping(self),
-                "/t/set_http_request_headers" => test_set_http_request_headers(self),
-                "/t/set_http_request_headers/special" => {
-                    test_set_http_request_headers_special(self)
-                }
-                "/t/set_http_response_headers" => test_set_http_response_headers(self),
-                "/t/set_http_request_header" => test_set_http_request_header(self),
-                "/t/set_http_response_header" => test_set_http_response_header(self),
-                "/t/add_http_request_header" => test_add_http_request_header(self),
-                "/t/add_http_response_header" => test_add_http_response_header(self),
-                "/t/echo/headers" => echo_headers(self),
-                _ => self.send_not_found(),
-            },
-            Method::POST => match test_case.as_str() {
-                "/t/log/request_body" => test_log_request_body(self),
-                "/t/echo/body" => echo_body(self, self.client_body_size),
-                _ => self.send_not_found(),
-            },
-            _ => self.send_plain_response(StatusCode::METHOD_NOT_ALLOWED, None),
+        match test_case.as_str() {
+            /* log */
+            "/t/log/request_body" => test_log_request_body(self),
+            "/t/log/levels" => test_log_levels(self),
+            "/t/log/request_headers" => test_log_request_headers(self),
+            "/t/log/request_path" => test_log_request_path(self),
+            "/t/log/response_header" => test_log_response_header(self),
+            "/t/log/response_headers" => test_log_response_headers(self),
+            "/t/log/response_body" => {
+                test_log_response_body(self, self.response_body_size.unwrap_or(30))
+            }
+            "/t/log/current_time" => test_log_current_time(self),
+
+            /* send_local_response */
+            "/t/send_local_response/status/204" => test_send_status(self, 204),
+            "/t/send_local_response/status/300" => test_send_status(self, 300),
+            "/t/send_local_response/status/1000" => test_send_status(self, 1000),
+            "/t/send_local_response/headers" => test_send_headers(self),
+            "/t/send_local_response/body" => test_send_body(self),
+            "/t/send_local_response/twice" => test_send_twice(self),
+            "/t/send_local_response/set_special_headers" => test_set_special_headers(self),
+            "/t/send_local_response/set_headers_escaping" => test_set_headers_escaping(self),
+            /* set/add request/response headers */
+            "/t/set_http_request_headers" => test_set_http_request_headers(self),
+            "/t/set_http_request_headers/special" => test_set_http_request_headers_special(self),
+            "/t/set_http_response_headers" => test_set_http_response_headers(self),
+            "/t/set_http_request_header" => test_set_http_request_header(self),
+            "/t/set_http_response_header" => test_set_http_response_header(self),
+            "/t/add_http_request_header" => test_add_http_request_header(self),
+            "/t/add_http_response_header" => test_add_http_response_header(self),
+
+            /* echo request */
+            "/t/echo/headers" => echo_headers(self),
+            "/t/echo/body" => echo_body(self, self.request_body_size),
+
+            /* errors */
+            "/t/error/get_response_body" => {
+                let _body = self.get_http_response_body(usize::MAX, usize::MAX);
+            }
+
+            _ => (),
         }
     }
 }
@@ -188,7 +197,7 @@ impl HttpContext for TestHttpHostcalls {
     }
 
     fn on_http_request_body(&mut self, size: usize, end_of_stream: bool) -> Action {
-        self.client_body_size = Some(size);
+        self.request_body_size = Some(size);
         info!(
             "#{} on_request_body, {} bytes, end_of_stream: {}",
             self.context_id, size, end_of_stream
@@ -203,6 +212,15 @@ impl HttpContext for TestHttpHostcalls {
             self.context_id, nheaders
         );
         self.exec_tests(TestPhase::HttpResponseHeaders);
+        Action::Continue
+    }
+
+    fn on_http_response_body(&mut self, len: usize, end_of_stream: bool) -> Action {
+        info!(
+            "#{} on_response_body, {} bytes, end_of_stream {}",
+            self.context_id, len, end_of_stream
+        );
+        self.exec_tests(TestPhase::HttpResponseBody);
         Action::Continue
     }
 

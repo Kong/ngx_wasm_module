@@ -375,7 +375,6 @@ ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_t *pwm)
     unsigned                  eof = 0;
     ngx_int_t                 rc;
     ngx_chain_t              *cl, *in;
-    ngx_buf_t                *buf;
     ngx_uint_t                ctxid = ngx_http_proxy_wasm_ctxid(pwm);
     ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_rctx(pwm);
     wasm_val_vec_t           *rets;
@@ -389,21 +388,7 @@ ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_t *pwm)
         }
     }
 
-    if (in->next == NULL) {
-        /* single buffer */
-        buf = in->buf;
-        chunk_len = buf->last - buf->pos;
-
-    } else {
-        for (cl = in; cl; cl = cl->next) {
-            buf = cl->buf;
-            chunk_len += buf->last - buf->pos;
-
-            if (buf->last_buf || buf->last_in_chain) {
-                break;
-            }
-        }
-    }
+    chunk_len = ngx_wasm_chain_len(in);
 
     rc = ngx_wavm_instance_call_funcref(pwm->instance,
                                         pwm->proxy_on_http_response_body,

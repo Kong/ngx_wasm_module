@@ -56,7 +56,7 @@ ngx_proxy_wasm_get_map_special_key(ngx_wavm_instance_t *instance, u_char *key,
 }
 
 
-static ngx_buf_t *
+static ngx_chain_t *
 ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_buffer_type_t buf_type, unsigned *none)
 {
@@ -93,7 +93,17 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
         /* single buffer */
         ngx_wasm_assert(cl->next == NULL);
 
-        return cl->buf;
+        return cl;
+
+    case NGX_PROXY_WASM_BUFFER_HTTP_RESPONSE_BODY:
+        cl = rctx->resp_body_out;
+        if (cl == NULL) {
+            /* no body */
+            *none = 1;
+            return NULL;
+        }
+
+        return cl;
 #endif
 
     default:
@@ -282,8 +292,9 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
     off_t                          start;
-    size_t                        *rlen, size, len;
+    size_t                        *rlen, max_size, len, chunk_len;
     unsigned                       none = 0;
+    ngx_chain_t                   *cl;
     ngx_buf_t                     *buf;
     ngx_wavm_ptr_t                *rbuf, p;
     ngx_proxy_wasm_buffer_type_t   buf_type;
@@ -291,12 +302,17 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
 
     buf_type = args[0].of.i32;
     start = args[1].of.i32;
-    size = args[2].of.i32;
+    max_size = args[2].of.i32;
     rbuf = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
     rlen = ngx_wavm_memory_lift(instance->memory, args[4].of.i32);
 
-    buf = ngx_proxy_wasm_get_buffer_helper(instance, buf_type, &none);
-    if (buf == NULL) {
+    if (start > (off_t) (start + max_size)) {
+        /* overflow */
+        return ngx_proxy_wasm_result_badarg(rets);
+    }
+
+    cl = ngx_proxy_wasm_get_buffer_helper(instance, buf_type, &none);
+    if (cl == NULL) {
         if (none) {
             /* no body or buffered to file */
             return ngx_proxy_wasm_result_notfound(rets);
@@ -305,30 +321,57 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_badarg(rets);
     }
 
-    len = buf->last - buf->pos;
-
-    ngx_wasm_assert(len);
-
-    if (start > (off_t) (start + size)) {
-        /* overflow */
-        return ngx_proxy_wasm_result_badarg(rets);
+    len = ngx_wasm_chain_len(cl);
+    if (!len) {
+        /* eof */
+        return ngx_proxy_wasm_result_notfound(rets);
     }
 
-    if (start + size > len) {
-        size = len - start;
-    }
+    len = ngx_min(len, max_size);
 
-    p = ngx_proxy_wasm_alloc(pwm, size);
+    p = ngx_proxy_wasm_alloc(pwm, len);
     if (p == 0) {
         return ngx_proxy_wasm_result_err(rets);
     }
 
-    if (!ngx_wavm_memory_memcpy(instance->memory, p, buf->pos, size)) {
-        return ngx_proxy_wasm_result_invalid_mem(rets);
-    }
-
     *rbuf = p;
     *rlen = len;
+
+    if (cl->next == NULL) {
+        /* single buffer */
+        buf = cl->buf;
+
+        if (!ngx_wavm_memory_memcpy(instance->memory, p, buf->pos, len)) {
+            return ngx_proxy_wasm_result_invalid_mem(rets);
+        }
+
+    } else {
+        len = 0;
+
+        for (/* void */; cl; cl = cl->next) {
+            buf = cl->buf;
+            chunk_len = buf->last - buf->pos;
+            len += chunk_len;
+
+            if (len > max_size) {
+                chunk_len -= len - max_size;
+                len = 0; /* break after copy */
+            }
+
+            p = ngx_wavm_memory_cpymem(instance->memory, p, buf->pos,
+                                       chunk_len);
+            if (p == 0) {
+                return ngx_proxy_wasm_result_invalid_mem(rets);
+            }
+
+            if (buf->last_buf
+                || buf->last_in_chain
+                || !len)
+            {
+                break;
+            }
+        }
+    }
 
     return ngx_proxy_wasm_result_ok(rets);
 }

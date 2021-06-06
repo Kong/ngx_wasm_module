@@ -186,7 +186,24 @@ ngx_wavm_memory_memcpy(wasm_memory_t *mem, ngx_wavm_ptr_t p, u_char *buf,
     }
 
     ngx_memcpy(ngx_wavm_memory_lift(mem, p), buf, len);
+
     return 1;
+}
+
+
+static ngx_inline ngx_wavm_ptr_t
+ngx_wavm_memory_cpymem(wasm_memory_t *mem, ngx_wavm_ptr_t p, u_char *buf,
+    size_t len)
+{
+    ngx_wasm_assert(mem);
+
+    if (p + len > wasm_memory_data_size(mem)) {
+        return 0;
+    }
+
+    ngx_memcpy(ngx_wavm_memory_lift(mem, p), buf, len);
+
+    return p + len;
 }
 
 
