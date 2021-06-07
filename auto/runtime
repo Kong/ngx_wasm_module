@@ -1,0 +1,34 @@
+if [ $ngx_found = yes ]; then
+    return
+fi
+
+ngx_feature="$ngx_wasm_runtime_name library"
+ngx_feature_path=
+ngx_feature_libs=
+
+if [ -n "$ngx_wasm_runtime_inc" ]; then
+    ngx_feature="$ngx_feature, -I $ngx_wasm_runtime_inc"
+    ngx_feature_path="$ngx_wasm_runtime_inc"
+fi
+
+if [ -n "$ngx_wasm_runtime_lib" ]; then
+    ngx_feature="$ngx_feature, -L $ngx_wasm_runtime_lib -l$ngx_wasm_runtime_name"
+    ngx_feature_libs="-L $ngx_wasm_runtime_lib -l$ngx_wasm_runtime_name"
+fi
+
+if [ -n "$ngx_wasm_runtime_opt" ]; then
+    ngx_feature="$ngx_feature ($ngx_wasm_runtime_opt)"
+    ngx_feature_libs="$ngx_wasm_runtime_opt"
+fi
+
+if [ -z "$ngx_feature_libs" -a -n "$ngx_wasm_runtime_name" ]; then
+    ngx_feature="$ngx_feature, -l$ngx_wasm_runtime_name"
+    ngx_feature_libs="-l$ngx_wasm_runtime_name"
+fi
+
+ngx_feature_run=no
+ngx_feature_test=
+
+. auto/feature
+
+# vim:ft=sh ts=4 sts=4 sw=4:

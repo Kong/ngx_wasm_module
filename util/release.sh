@@ -84,6 +84,7 @@ release_source() {
     mkdir -p $DIST_SRC
     cp -R \
         $NGX_WASM_DIR/config \
+        $NGX_WASM_DIR/auto \
         $NGX_WASM_DIR/src \
         $NGX_WASM_DIR/misc/INSTALL \
         $DIST_SRC
