@@ -1,10 +1,10 @@
-name: 'Wasmtime'
-description: 'Install libwasmtime'
+name: Wasmtime
+description: Install libwasmtime
 inputs:
   version:
-    description: 'Wasmtime version to install'
+    description: Wasmtime version to install
     required: true
 runs:
-  using: 'node12'
+  using: node12
   main: 'index.js'
 

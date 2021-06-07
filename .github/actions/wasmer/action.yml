@@ -1,0 +1,10 @@
+name: Wasmer
+description: Install libwasmer
+inputs:
+  version:
+    description: Wasmer version to install
+    required: true
+runs:
+  using: node12
+  main: 'index.js'
+

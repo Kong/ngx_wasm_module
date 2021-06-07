@@ -28,8 +28,10 @@ jobs:
         cc: [gcc-8]
         ngx: [1.21.0]
         wasmtime: [0.27.0]
+        wasmer: [1.0.2]
         hup: [1, 0]
         debug: [1, 0]
+        runtime: [wasmtime, wasmer]
     steps:
       - run: sudo apt-get update && sudo apt-get install -y gcc-8
       - uses: actions/checkout@v2
@@ -62,12 +64,17 @@ jobs:
         uses: ./.github/actions/wasmtime
         with:
           version: ${{ matrix.wasmtime }}
+      - name: Set up wasmer
+        uses: ./.github/actions/wasmer
+        with:
+          version: ${{ matrix.wasmer }}
       - run: make setup
       - run: make
         env:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
           NGX_BUILD_DEBUG: ${{ matrix.debug }}
+          NGX_WASM_RUNTIME: ${{ matrix.runtime }}
       - run: make test
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
