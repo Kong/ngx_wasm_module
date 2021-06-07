@@ -1,42 +1,9 @@
-find_runtime() {
-    if [ $ngx_found = yes ]; then
-        return
-    fi
-
-    ngx_feature="$NGX_WASM_RUNTIME library"
-    ngx_feature_path=
-    ngx_feature_libs=
-
-    if [ -n "$1" ]; then
-        ngx_feature="$ngx_feature, -I $1"
-        ngx_feature_path="$1"
-    fi
-    if [ -n "$2" ]; then
-        ngx_feature="$ngx_feature, -L $2 -l$NGX_WASM_RUNTIME"
-        ngx_feature_libs="-L $2 -l$NGX_WASM_RUNTIME"
-    fi
-    if [ -n "$3" ]; then
-        ngx_feature="$ngx_feature ($3)"
-        ngx_feature_libs="$3"
-    fi
-
-    if [ -z "$ngx_feature_libs" -a -n "$NGX_WASM_RUNTIME" ]; then
-        ngx_feature="$ngx_feature, -l$NGX_WASM_RUNTIME"
-        ngx_feature_libs="-l$NGX_WASM_RUNTIME"
-    fi
-
-    ngx_feature_run=no
-    ngx_feature_test=
-
-    . auto/feature
-}
-
 ngx_addon_name=ngx_wasm_module
 ngx_found=no
 
-NGX_WASM_RUNTIME="${NGX_WASM_RUNTIME:-wasmtime}"
+ngx_wasm_runtime_name=${NGX_WASM_RUNTIME:-wasmtime}
 
-case $NGX_WASM_RUNTIME in
+case $ngx_wasm_runtime_name in
     wasmtime)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_wasmtime.c"
 
@@ -57,25 +24,44 @@ case $NGX_WASM_RUNTIME in
         ngx_feature_incs="#include <wasmer_wasm.h>"
         ;;
     *)
-        echo "$0: error: $ngx_addon_name does not support the \"$NGX_WASM_RUNTIME\" runtime."
+        echo "$0: error: $ngx_addon_name does not support the \"$ngx_wasm_runtime_name\" runtime."
         echo "Supported runtimes: wasmtime, wasmer, WAVM."
         echo
         exit 1
 esac
 
-find_runtime "$NGX_CC_OPT"            ""                      "$NGX_LD_OPT"
-find_runtime "$NGX_WASM_RUNTIME_INC"  "$NGX_WASM_RUNTIME_LIB" "$NGX_WASM_RUNTIME_LD_OPT"
-find_runtime "/usr/local/opt/include" "/usr/local/opt/lib"
-find_runtime "/usr/local/include"     "/usr/local/lib"
+ngx_wasm_runtime_inc=$NGX_CC_OPT
+ngx_wasm_runtime_lib=
+ngx_wasm_runtime_opt=$NGX_LD_OPT
+
+. $ngx_addon_dir/auto/runtime
+
+ngx_wasm_runtime_inc=$NGX_WASM_RUNTIME_INC
+ngx_wasm_runtime_lib=$NGX_WASM_RUNTIME_LIB
+ngx_wasm_runtime_opt=$NGX_WASM_RUNTIME_LD_OPT
+
+. $ngx_addon_dir/auto/runtime
+
+ngx_wasm_runtime_inc="/usr/local/opt/include"
+ngx_wasm_runtime_lib="/usr/local/opt/lib"
+ngx_wasm_runtime_opt=
+
+. $ngx_addon_dir/auto/runtime
+
+ngx_wasm_runtime_inc="/usr/local/include"
+ngx_wasm_runtime_lib="/usr/local/lib"
+ngx_wasm_runtime_opt=
+
+. $ngx_addon_dir/auto/runtime
 
 if [ $ngx_found = no ]; then
-    echo "$0: error: $ngx_addon_name could not find the \"$NGX_WASM_RUNTIME\" library."
+    echo "$0: error: $ngx_addon_name could not find the \"$ngx_wasm_runtime_name\" library."
     echo "You can set the NGX_WASM_RUNTIME_INC, NGX_WASM_RUNTIME_LIB, and NGX_WASM_RUNTIME_LD_OPT environment variables."
     echo
     exit 1
 fi
 
-have=NGX_WASM_RUNTIME value="\"$NGX_WASM_RUNTIME\"" . auto/define
+have=NGX_WASM_RUNTIME value="\"$ngx_wasm_runtime_name\"" . auto/define
 
 ###############################################################################
 
