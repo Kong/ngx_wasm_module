@@ -188,8 +188,7 @@ if [ $HTTP = YES ]; then
         ngx_module_name=ngx_http_wasm_filter_module
         ngx_module_incs="$NGX_HTTP_WASM_INCS"
         ngx_module_deps="$NGX_HTTP_WASM_DEPS"
-        ngx_module_srcs="$NGX_HTTP_WASM_SRCS \
-                         $NGX_HTTP_WASM_FILTER_SRCS"
+        ngx_module_srcs="$NGX_HTTP_WASM_FILTER_SRCS"
         ngx_module_libs=
 
         . auto/module
