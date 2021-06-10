@@ -46,7 +46,7 @@ impl RootContext for TestRoot {
     fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
         Some(Box::new(TestHttpHostcalls {
             context_id,
-            test_case: self.config.get("test_case").cloned(),
+            config: self.config.clone(),
             on_phase: self
                 .config
                 .get("on_phase")
@@ -63,7 +63,7 @@ impl RootContext for TestRoot {
 struct TestHttpHostcalls {
     context_id: u32,
     on_phase: TestPhase,
-    test_case: Option<String>,
+    config: HashMap<String, String>,
     request_body_size: Option<usize>,
     response_body_size: Option<usize>,
 }
@@ -94,15 +94,14 @@ impl TestHttpHostcalls {
         let test_case;
         {
             let path = self.get_http_request_header(":path").unwrap();
-            let config_override = self.test_case.clone();
-            let header_override = self.get_http_request_header("pwm-test-case");
-            if let Some(c) = config_override {
-                test_case = c;
+
+            if let Some(c) = self.config.get("test_case") {
+                test_case = c.to_string();
                 debug!(
                     "#{} overriding test case from filter config: \"{}\"",
                     self.context_id, test_case
                 );
-            } else if let Some(h) = header_override {
+            } else if let Some(h) = self.get_http_request_header("pwm-test-case") {
                 // Subrequests currently retrieve their own location path (r->uri)
                 // with :path, which means on_phases test cases would see the test
                 // case's name as "/t/on_request_headers" instead of "/t/log/levels"
@@ -162,6 +161,7 @@ impl TestHttpHostcalls {
             "/t/send_local_response/twice" => test_send_twice(self),
             "/t/send_local_response/set_special_headers" => test_set_special_headers(self),
             "/t/send_local_response/set_headers_escaping" => test_set_headers_escaping(self),
+
             /* set/add request/response headers */
             "/t/set_http_request_headers" => test_set_http_request_headers(self),
             "/t/set_http_request_headers/special" => test_set_http_request_headers_special(self),
@@ -170,6 +170,9 @@ impl TestHttpHostcalls {
             "/t/set_http_response_header" => test_set_http_response_header(self),
             "/t/add_http_request_header" => test_add_http_request_header(self),
             "/t/add_http_response_header" => test_add_http_response_header(self),
+
+            /* set/add request/response body */
+            "/t/set_http_request_body" => test_set_http_request_body(self),
 
             /* echo request */
             "/t/echo/headers" => echo_headers(self),

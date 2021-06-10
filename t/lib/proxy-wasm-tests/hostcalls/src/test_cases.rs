@@ -202,3 +202,24 @@ pub(crate) fn test_add_http_response_header(ctx: &mut TestHttpHostcalls) {
         ctx.add_http_response_header(name, value);
     }
 }
+
+pub(crate) fn test_set_http_request_body(ctx: &mut TestHttpHostcalls) {
+    let body;
+    if let Some(value) = ctx.config.get("value") {
+        body = value.to_string();
+    } else {
+        body = "Hello world".into();
+    }
+
+    let offset = ctx
+        .config
+        .get("offset")
+        .map_or(0, |v| v.parse::<usize>().unwrap());
+
+    let len = ctx
+        .config
+        .get("max")
+        .map_or(body.len(), |v| v.parse::<usize>().unwrap());
+
+    ctx.set_http_request_body(offset, len, body.as_bytes());
+}

@@ -31,20 +31,10 @@ pub(crate) fn echo_header(ctx: &mut TestHttpHostcalls, name: &str) {
 }
 
 pub(crate) fn echo_body(ctx: &mut TestHttpHostcalls, max_size: Option<usize>) {
-    if max_size.is_none() {
-        ctx.send_plain_response(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Some("request body not yet buffered".to_string()),
-        );
-        return;
-    }
+    let max = max_size.unwrap_or(usize::MAX);
+    let body = ctx
+        .get_http_request_body(0, max)
+        .and_then(|bytes| Some(String::from_utf8(bytes).expect("Invalid UTF-8 sequence")));
 
-    let request_body = ctx.get_http_request_body(0, max_size.unwrap());
-    match request_body {
-        Some(bytes) => match String::from_utf8(bytes) {
-            Ok(s) => ctx.send_plain_response(StatusCode::OK, Some(s)),
-            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-        },
-        None => ctx.send_plain_response(StatusCode::OK, None),
-    }
+    ctx.send_plain_response(StatusCode::OK, body)
 }
