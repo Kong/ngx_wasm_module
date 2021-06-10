@@ -11,22 +11,15 @@ size_t
 ngx_wasm_chain_len(ngx_chain_t *in)
 {
     size_t        len = 0;
-    ngx_chain_t  *cl;
     ngx_buf_t    *buf;
+    ngx_chain_t  *cl;
 
-    if (in->next == NULL) {
-        /* single buffer */
-        buf = in->buf;
-        len = buf->last - buf->pos;
+    for (cl = in; cl; cl = cl->next) {
+        buf = cl->buf;
+        len += buf->last - buf->pos;
 
-    } else {
-        for (cl = in; cl; cl = cl->next) {
-            buf = cl->buf;
-            len += buf->last - buf->pos;
-
-            if (buf->last_buf || buf->last_in_chain) {
-                break;
-            }
+        if (buf->last_buf || buf->last_in_chain) {
+            break;
         }
     }
 

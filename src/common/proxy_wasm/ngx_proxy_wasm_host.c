@@ -88,12 +88,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
             return NULL;
         }
 
-        cl = r->request_body->bufs;
-
-        /* single buffer */
-        ngx_wasm_assert(cl->next == NULL);
-
-        return cl;
+        return r->request_body->bufs;
 
     case NGX_PROXY_WASM_BUFFER_HTTP_RESPONSE_BODY:
         cl = rctx->resp_body_out;
@@ -291,8 +286,7 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    off_t                          start;
-    size_t                        *rlen, max_size, len, chunk_len;
+    size_t                        *rlen, offset, max_len, len, chunk_len;
     unsigned                       none = 0;
     ngx_chain_t                   *cl;
     ngx_buf_t                     *buf;
@@ -301,12 +295,12 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_t              *pwm = ngx_proxy_wasm_get_pwm(instance);
 
     buf_type = args[0].of.i32;
-    start = args[1].of.i32;
-    max_size = args[2].of.i32;
+    offset = args[1].of.i32;
+    max_len = args[2].of.i32;
     rbuf = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
     rlen = ngx_wavm_memory_lift(instance->memory, args[4].of.i32);
 
-    if (start > (off_t) (start + max_size)) {
+    if (offset > offset + max_len) {
         /* overflow */
         return ngx_proxy_wasm_result_badarg(rets);
     }
@@ -322,12 +316,12 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     }
 
     len = ngx_wasm_chain_len(cl);
+    len = ngx_min(len, max_len);
+
     if (!len) {
         /* eof */
         return ngx_proxy_wasm_result_notfound(rets);
     }
-
-    len = ngx_min(len, max_size);
 
     p = ngx_proxy_wasm_alloc(pwm, len);
     if (p == 0) {
@@ -353,24 +347,71 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
             chunk_len = buf->last - buf->pos;
             len += chunk_len;
 
-            if (len > max_size) {
-                chunk_len -= len - max_size;
+            if (len > max_len) {
+                chunk_len -= len - max_len;
                 len = 0; /* break after copy */
             }
 
-            p = ngx_wavm_memory_cpymem(instance->memory, p, buf->pos,
-                                       chunk_len);
-            if (p == 0) {
-                return ngx_proxy_wasm_result_invalid_mem(rets);
+            if (chunk_len) {
+                p = ngx_wavm_memory_cpymem(instance->memory, p, buf->pos,
+                                           chunk_len);
+                if (p == 0) {
+                    return ngx_proxy_wasm_result_invalid_mem(rets);
+                }
             }
 
-            if (buf->last_buf
-                || buf->last_in_chain
-                || !len)
-            {
+            if (buf->last_buf || buf->last_in_chain) {
                 break;
             }
         }
+    }
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    size_t                         offset, max, buf_len;
+    ngx_int_t                      rc = NGX_ERROR;
+    ngx_str_t                      s;
+    ngx_wavm_ptr_t                *buf_data;
+    ngx_proxy_wasm_buffer_type_t   buf_type;
+    ngx_http_wasm_req_ctx_t       *rctx = instance->ctx->data;
+    ngx_http_request_t            *r = rctx->r;
+
+    buf_type = args[0].of.i32;
+    offset = args[1].of.i32;
+    max = args[2].of.i32;
+    buf_data = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
+    buf_len = args[4].of.i32;
+
+    s.len = buf_len;
+    s.data = (u_char *) buf_data;
+
+    switch (buf_type) {
+
+#ifdef NGX_WASM_HTTP
+    case NGX_PROXY_WASM_BUFFER_HTTP_REQUEST_BODY:
+        rc = ngx_http_wasm_set_req_body(r, &s, offset, max);
+        break;
+
+    case NGX_PROXY_WASM_BUFFER_HTTP_RESPONSE_BODY:
+        rc = ngx_http_wasm_set_resp_body(r, &s);
+        break;
+#endif
+
+    default:
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
+                           "NYI - set_buffer: %d", buf_type);
+        break;
+
+    }
+
+    if (rc != NGX_OK) {
+        return ngx_proxy_wasm_result_err(rets);
     }
 
     return ngx_proxy_wasm_result_ok(rets);
@@ -953,12 +994,12 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_set_buffer"),
-     &ngx_proxy_wasm_hfuncs_nop,
+     &ngx_proxy_wasm_hfuncs_set_buffer,
      ngx_wavm_arity_i32x5,
      ngx_wavm_arity_i32 },
    /* 0.1.0 - 0.2.1 */
    { ngx_string("proxy_set_buffer_bytes"),
-     &ngx_proxy_wasm_hfuncs_nop,
+     &ngx_proxy_wasm_hfuncs_set_buffer,
      ngx_wavm_arity_i32x5,
      ngx_wavm_arity_i32 },
 

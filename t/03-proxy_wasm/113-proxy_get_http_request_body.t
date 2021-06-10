@@ -42,9 +42,7 @@ Hello world
 --- request
 POST /t/echo/body
 Hello world
---- error_code: 500
 --- response_body
-request body not yet buffered
 --- no_error_log
 [error]
 [crit]

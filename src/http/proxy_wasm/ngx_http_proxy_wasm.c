@@ -250,7 +250,6 @@ ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
     size_t                       len = 0;
     ngx_int_t                    rc;
     ngx_uint_t                   ctxid;
-    ngx_chain_t                 *cl;
     ngx_file_t                   file;
     ngx_http_wasm_req_ctx_t     *rctx;
     ngx_http_proxy_wasm_rctx_t  *prctx;
@@ -293,12 +292,7 @@ ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
         len = ngx_file_size(&file.info);
 
     } else {
-        cl = r->request_body->bufs;
-
-        /* single buffer */
-        ngx_wasm_assert(cl->next == NULL);
-
-        len = cl->buf->last - cl->buf->pos;
+        len = ngx_wasm_chain_len(r->request_body->bufs);
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
