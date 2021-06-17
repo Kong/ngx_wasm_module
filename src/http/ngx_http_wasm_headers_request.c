@@ -168,10 +168,12 @@ ngx_http_wasm_set_req_header(ngx_http_request_t *r, ngx_str_t *key,
 static ngx_int_t
 ngx_http_wasm_set_host_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
+    ngx_int_t            rc;
     ngx_http_request_t  *r = hv->r;
 
-    if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_http_wasm_set_builtin_header_handler(hv);
+    if (rc != NGX_OK) {
+        return rc;
     }
 
     r->headers_in.server = *hv->value;
@@ -187,11 +189,13 @@ ngx_http_wasm_set_connection_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
     ngx_table_elt_t          *h;
     ngx_list_part_t          *part;
     ngx_str_t                *key, *value;
+    ngx_int_t                 rc;
     ngx_http_request_t       *r;
     ngx_http_wasm_req_ctx_t  *rctx;
 
-    if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_http_wasm_set_builtin_header_handler(hv);
+    if (rc != NGX_OK) {
+        return rc;
     }
 
     r = hv->r;
@@ -260,10 +264,12 @@ ngx_http_wasm_set_ua_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
     u_char              *user_agent, *msie;
     ngx_str_t           *value;
+    ngx_int_t            rc;
     ngx_http_request_t  *r;
 
-    if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_http_wasm_set_builtin_header_handler(hv);
+    if (rc != NGX_OK) {
+        return rc;
     }
 
     r = hv->r;
@@ -342,18 +348,21 @@ static ngx_int_t
 ngx_http_wasm_set_cl_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
     off_t                len;
+    ngx_int_t            rc = NGX_ERROR;
     ngx_str_t           *value = hv->value;
     ngx_http_request_t  *r = hv->r;
 
     if (value->len) {
         len = ngx_atoof(value->data, value->len);
         if (len == NGX_ERROR) {
+            rc = NGX_DECLINED;
             goto error;
 
         }
 
     } else {
         if (hv->mode == NGX_HTTP_WASM_HEADERS_APPEND) {
+            rc = NGX_DECLINED;
             goto error;
         }
 
@@ -362,8 +371,9 @@ ngx_http_wasm_set_cl_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
         len = -1;
     }
 
-    if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_http_wasm_set_builtin_header_handler(hv);
+    if (rc != NGX_OK) {
+        goto error;
     }
 
     r->headers_in.content_length_n = len;
@@ -374,11 +384,13 @@ error:
 
     r->headers_in.content_length_n = -1;
 
-    ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                       "attempt to set invalid Content-Length "
-                       "request header: \"%V\"", value);
+    if (rc == NGX_DECLINED) {
+        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                           "attempt to set invalid Content-Length "
+                           "request header: \"%V\"", value);
+    }
 
-    return NGX_ERROR;
+    return rc;
 }
 
 

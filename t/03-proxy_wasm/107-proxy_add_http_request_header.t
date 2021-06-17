@@ -137,15 +137,12 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
     }
 --- more_headers
 pwm-add-req-header: Host=invalid
---- error_code: 500
---- response_body eval
-qr/500 Internal Server Error/
+--- response_body_like
+Host: localhost
 --- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] cannot add new "Host" builtin request header/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-]
+qr/\[error\] .*? \[wasm\] cannot add new "Host" builtin request header/
 --- no_error_log
+[crit]
 [emerg]
 [alert]
 
@@ -221,15 +218,12 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 --- more_headers
 Content-Length: 0
 pwm-add-req-header: Content-Length=0
---- error_code: 500
---- response_body eval
-qr/500 Internal Server Error/
+--- response_body_like
+Content-Length: 0
 --- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] cannot add new "Content-Length" builtin request header/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-]
+qr/\[error\] .*? \[wasm\] cannot add new "Content-Length" builtin request header/
 --- no_error_log
+[crit]
 [emerg]
 [alert]
 
@@ -244,15 +238,12 @@ qr/500 Internal Server Error/
     }
 --- more_headers
 pwm-add-req-header: Content-Length=
---- error_code: 500
---- response_body eval
-qr/500 Internal Server Error/
+--- response_body_unlike
+Content-Length
 --- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: ""/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-]
+qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: ""/
 --- no_error_log
+[crit]
 [emerg]
 [alert]
 
@@ -267,15 +258,12 @@ qr/500 Internal Server Error/
     }
 --- more_headers
 pwm-add-req-header: Content-Length=FF
---- error_code: 500
---- response_body eval
-qr/500 Internal Server Error/
+--- response_body_unlike
+Content-Length
 --- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: "FF"/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-]
+qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: "FF"/
 --- no_error_log
+[crit]
 [emerg]
 [alert]
 
@@ -311,15 +299,12 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 --- more_headers
 User-Agent: Mozilla/4.0
 pwm-add-req-header: User-Agent=Mozilla/5.0
---- error_code: 500
---- response_body eval
-qr/500 Internal Server Error/
+--- response_body_like
+User-Agent: Mozilla\/4\.0
 --- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] cannot add new "User-Agent" builtin request header/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-]
+qr/\[error\] .*? \[wasm\] cannot add new "User-Agent" builtin request header/
 --- no_error_log
+[crit]
 [emerg]
 [alert]
 
@@ -375,15 +360,12 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 --- more_headers
 If-Modified-Since: Mon, 8 Sep 2015 07:28:00 GMT
 pwm-add-req-header: If-Modified-Since=Wed, 21 Oct 2015 07:28:00 GMT
---- error_code: 500
---- response_body eval
-qr/500 Internal Server Error/
+--- response_body_like
+If-Modified-Since: Mon, 8 Sep 2015 07:28:00 GMT
 --- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] cannot add new "If-Modified-Since" builtin request header/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-]
+qr/\[error\] .*? \[wasm\] cannot add new "If-Modified-Since" builtin request header/
 --- no_error_log
+[crit]
 [emerg]
 [alert]
 
@@ -616,9 +598,9 @@ Hello: world
 Hello: world
 --- error_log eval
 [
-    qr/\[wasm\] \[tests\] #\d+ entering "HttpRequestHeaders"/,
-    qr/\[wasm\] \[tests\] #\d+ entering "HttpResponseHeaders"/,
-    qr/\[wasm\] \[tests\] #\d+ entering "Log"/,
+    qr/\[wasm\] #\d+ entering "HttpRequestHeaders"/,
+    qr/\[wasm\] #\d+ entering "HttpResponseHeaders"/,
+    qr/\[wasm\] #\d+ entering "Log"/,
 ]
 --- no_error_log
 [error]

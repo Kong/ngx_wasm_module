@@ -114,8 +114,8 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing malloc/,
-    qr/\[crit\] .*? \[wasm\] incompatible sdk interface: proxy_wasm failed to resume execution in/
+    qr/\[emerg\] .*? \[wasm\] incompatible SDK interface: missing malloc/,
+    qr/\[crit\] .*? \[wasm\] incompatible SDK interface: proxy_wasm failed to resume execution in/
 ]
 --- no_error_log
 [warn]
@@ -145,8 +145,8 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] incompatible sdk interface: missing context init/,
-    qr/\[crit\] .*? \[wasm\] incompatible sdk interface: proxy_wasm failed to resume execution in/
+    qr/\[emerg\] .*? \[wasm\] incompatible SDK interface: missing context init/,
+    qr/\[crit\] .*? \[wasm\] incompatible SDK interface: proxy_wasm failed to resume execution in/
 ]
 --- no_error_log
 [warn]

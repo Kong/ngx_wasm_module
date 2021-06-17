@@ -66,7 +66,7 @@ Remove me
 Content-Length: 0
 --- response_body
 --- error_log
-on_response_body, 0 bytes
+on_response_body, 0 bytes, end_of_stream true
 --- no_error_log
 [error]
 
@@ -195,3 +195,50 @@ HelloWorld
 [error]
 [crit]
 [emerg]
+
+
+
+=== TEST 7: proxy_wasm - set_http_request_body() x on_phases
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /request_headers {
+        proxy_wasm hostcalls 'on_phase=http_request_headers \
+                              test_case=/t/set_http_request_body \
+                              value=from_request_headers';
+        echo $request_body;
+    }
+
+    location /request_body {
+        proxy_wasm hostcalls 'on_phase=http_request_body \
+                              test_case=/t/set_http_request_body \
+                              value=from_request_body';
+        echo $request_body;
+    }
+
+    location /response_headers {
+        proxy_wasm hostcalls 'on_phase=http_response_headers \
+                              test_case=/t/set_http_request_body';
+        echo $request_body;
+    }
+
+    location /t {
+        echo_subrequest POST /request_headers  -b 'orig';
+        echo_subrequest POST /request_body     -b 'orig';
+        echo_subrequest POST /response_headers -b 'orig';
+
+        proxy_wasm hostcalls 'on_phase=log test_case=/t/set_http_request_body';
+        proxy_wasm hostcalls 'on_phase=log test_case=/t/log/request_body';
+    }
+--- response_body eval
+qr/from_request_headers
+from_request_body
+[\s\S]+500 Internal Server Error/
+--- grep_error_log eval: qr/((\[(error|crit)\] .*)|\[wasm\] .*? request body: .*)/
+--- grep_error_log_out eval
+qr/\[error\] \S+ \[wasm\] cannot set request body
+\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "body_filter" phase, .*
+\[error\] \S+ \[wasm\] cannot set request body/
+--- no_error_log
+[emerg]
+[alert]

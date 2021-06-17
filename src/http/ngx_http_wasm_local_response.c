@@ -45,7 +45,7 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     ngx_chain_t         *cl = NULL;
     ngx_http_request_t  *r = rctx->r;
 
-    if (r->header_sent || rctx->local_resp_over) {
+    if (rctx->resp_content_chosen) {
         /* response already sent, content produced */
         return NGX_ABORT;
     }
@@ -95,16 +95,15 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
         b->last = ngx_copy(b->last, body, body_len);
         *b->last++ = LF;
 
-        b->last_in_chain = 1;
-
         if (r == r->main) {
             b->last_buf = 1;
 
         } else {
+            b->last_in_chain = 1;
             b->sync = 1;
         }
 
-        cl = ngx_alloc_chain_link(r->connection->pool);
+        cl = ngx_alloc_chain_link(r->pool);
         if (cl == NULL) {
             goto fail;
         }
@@ -129,15 +128,15 @@ fail:
 
 
 ngx_int_t
-ngx_http_wasm_flush_local_response(ngx_http_request_t *r,
-    ngx_http_wasm_req_ctx_t *rctx)
+ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx)
 {
-    size_t                    i;
-    ngx_int_t                 rc;
-    ngx_table_elt_t          *elt;
+    size_t               i;
+    ngx_int_t            rc;
+    ngx_table_elt_t     *elt;
+    ngx_http_request_t  *r = rctx->r;
 
     if (!rctx->local_resp_stashed
-        || rctx->local_resp_over        /* flush already invoked */
+        || rctx->resp_content_chosen
         || r->header_sent)
     {
         return NGX_DECLINED;
@@ -174,10 +173,11 @@ ngx_http_wasm_flush_local_response(ngx_http_request_t *r,
         }
     }
 
-    if (rctx->local_resp_body_len) {
-        if (ngx_http_set_content_type(r) != NGX_OK) {
-            return NGX_ERROR;
-        }
+    if (rctx->local_resp_body_len
+        && ngx_http_set_content_type(r)
+           != NGX_OK)
+    {
+        return NGX_ERROR;
     }
 
     if (rctx->local_resp_body_len >= 0
@@ -187,11 +187,9 @@ ngx_http_wasm_flush_local_response(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    rctx->local_resp_stashed = 0;
-
     rc = ngx_http_wasm_send_chain_link(r, rctx->local_resp_body);
 
-    rctx->sent_last = 1;
+    rctx->local_resp_stashed = 0;
 
     return rc;
 }

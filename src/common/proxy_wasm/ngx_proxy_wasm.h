@@ -15,7 +15,8 @@ typedef enum {
     NGX_PROXY_WASM_ERR_BAD_ABI = 2,
     NGX_PROXY_WASM_ERR_BAD_HOST_INTERFACE = 3,
     NGX_PROXY_WASM_ERR_BAD_MODULE_INTERFACE = 4,
-    NGX_PROXY_WASM_ERR_UNKNOWN = 5
+    NGX_PROXY_WASM_ERR_UNKNOWN = 5,
+    NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED = 6,
 } ngx_proxy_wasm_err_t;
 
 
@@ -223,10 +224,6 @@ struct ngx_proxy_wasm_s {
     /* custom extensions */
 
     ngx_wavm_funcref_t                *proxy_on_custom_callback;
-
-    /* control flow: flags */
-
-    unsigned                           trap:1;
 };
 
 

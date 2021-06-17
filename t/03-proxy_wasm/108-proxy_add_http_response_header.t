@@ -201,6 +201,7 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 
 
 === TEST 8: proxy_wasm - add_http_response_header() cannot add Content-Length header if exists
+should log an error but not produce a trap
 --- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: hostcalls
 --- config
@@ -214,39 +215,35 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 pwm-add-resp-header: Content-Length=3
 --- response_body
 --- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] cannot add new "Content-Length" builtin response header/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-]
+qr/\[error\] .*? \[wasm\] cannot add new "Content-Length" builtin response header/
 --- no_error_log
+[crit]
 [emerg]
 
 
 
 === TEST 9: proxy_wasm - add_http_response_header() cannot add empty Content-Length
+should log an error but not produce a trap
 --- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
         proxy_wasm hostcalls 'on_phase=http_response_headers test_case=/t/add_http_response_header';
-        proxy_wasm hostcalls 'on_phase=log test_case=/t/log/response_headers';
         return 200;
     }
 --- more_headers
 pwm-add-resp-header: Content-Length=
 --- response_body
 --- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length response header: ""/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-]
+qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length response header: ""/
 --- no_error_log
+[crit]
 [emerg]
 
 
 
 === TEST 10: proxy_wasm - add_http_response_header() cannot add invalid Content-Length header
-should produce an error
+should log an error but not produce a trap
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -261,11 +258,9 @@ pwm-add-resp-header: Content-Length=FF
 --- response_headers
 Content-Length: 0
 --- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length response header: "FF"/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-]
+qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length response header: "FF"/
 --- no_error_log
+[crit]
 [emerg]
 
 

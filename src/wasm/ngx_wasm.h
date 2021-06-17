@@ -63,7 +63,11 @@ typedef struct {
 
 ngx_wavm_t *ngx_wasm_main_vm(ngx_cycle_t *cycle);
 
-size_t ngx_wasm_chain_len(ngx_chain_t *in);
+size_t ngx_wasm_chain_len(ngx_chain_t *in, unsigned *eof);
+ngx_uint_t ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
+    unsigned *flush);
+void ngx_wasm_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free,
+    ngx_chain_t **busy, ngx_chain_t **out, ngx_buf_tag_t tag);
 ngx_uint_t ngx_wasm_list_nelts(ngx_list_t *list);
 ngx_int_t ngx_wasm_bytes_from_path(wasm_byte_vec_t *out, u_char *path,
     ngx_log_t *log);
@@ -73,7 +77,30 @@ ngx_int_t ngx_wasm_add_list_elem(ngx_pool_t *pool, ngx_list_t *map,
     u_char *key, size_t key_len, u_char *value, size_t val_len);
 ngx_connection_t *ngx_wasm_connection_create(ngx_pool_t *pool);
 void ngx_wasm_connection_destroy(ngx_connection_t *c);
+
+
+static ngx_inline void
+ngx_wasm_chain_log(ngx_log_t *log, ngx_chain_t *in)
+{
+    size_t        len;
+    ngx_uint_t    n = 0;
+    ngx_chain_t  *cl;
+    ngx_buf_t    *buf;
+
+    ngx_log_debug0(NGX_LOG_DEBUG_WASM, log, 0, "--- CHAIN ---");
+
+    for (cl = in; cl; cl = cl->next) {
+        n++;
+        buf = cl->buf;
+        len = buf->last - buf->pos;
+
+        ngx_log_debug8(NGX_LOG_DEBUG_WASM, log, 0,
+                       "CHAIN %d: \"%*s\" (len: %d, last_buf: %d, last_in_chain: %d, flush: %d, buf: %p)",
+                       n, len, buf->pos, len, buf->last_buf, buf->last_in_chain, buf->flush, buf);
+    }
+}
 #endif
+
 void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, ...);
 

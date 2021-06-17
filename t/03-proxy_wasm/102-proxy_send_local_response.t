@@ -6,6 +6,8 @@ use t::TestWasm;
 
 skip_valgrind();
 
+no_long_string();
+
 plan tests => repeat_each() * (blocks() * 6);
 
 run_tests();
@@ -19,11 +21,9 @@ should not contain any extra header
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test_case=/t/send_local_response/status/204';
         echo fail;
     }
---- request
-GET /t/send_local_response/status/204
 --- error_code: 204
 --- response_body
 --- raw_response_headers_like eval
@@ -78,10 +78,10 @@ qr/500 Internal Server Error/
 [
     qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
     qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?unreachable/,
+    qr/\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "header_filter"/,
 ]
 --- no_error_log
 [alert]
-[emerg]
 
 
 
@@ -284,7 +284,7 @@ Content-Type: text/plain
 Hello world
 --- error_log eval
 [
-    qr/\[wasm\] \[tests\] #\d+ entering "HttpRequestHeaders"/,
+    qr/\[wasm\] #\d+ entering "HttpRequestHeaders"/,
     qr/\[info\] .*? \[wasm\] #\d+ on_log/
 ]
 --- no_error_log
@@ -311,7 +311,7 @@ PWM-Test-Case: /t/send_local_response/body
 ok
 --- error_log eval
 [
-    qr/\[wasm\] \[tests\] #\d+ entering "HttpResponseHeaders"/,
+    qr/\[wasm\] #\d+ entering "HttpResponseHeaders"/,
     qr/\[info\] .*? \[wasm\] #\d+ on_log/
 ]
 --- grep_error_log eval: qr/\[error\] .*?$/
@@ -340,7 +340,7 @@ PWM-Test-Case: /t/send_local_response/body
 ok
 --- error_log eval
 [
-    qr/\[wasm\] \[tests\] #\d+ entering "Log"/,
+    qr/\[wasm\] #\d+ entering "Log"/,
     qr/\[info\] .*? \[wasm\] #\d+ on_log/
 ]
 --- grep_error_log eval: qr/\[error\] .*?$/

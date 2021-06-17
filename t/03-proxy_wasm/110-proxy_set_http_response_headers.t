@@ -77,20 +77,20 @@ qr/\[wasm\] .*? on_response_headers, 4 headers
 
 
 === TEST 3: proxy_wasm - set_http_response_headers() cannot set invalid Connection header
+should log an error but not produce a trap
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
     location /t {
         wasm_call content ngx_rust_tests say_nothing;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers test_case=/t/set_http_response_headers';
+        proxy_wasm hostcalls 'on_phase=http_response_headers \
+                              test_case=/t/set_http_response_headers';
     }
 --- more_headers
 pwm-set-resp-headers: Connection=closed
+--- response_body
 --- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] attempt to set invalid Connection response header: "closed"/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-]
+qr/\[error\] .*? \[wasm\] attempt to set invalid Connection response header: "closed"/
 --- no_error_log
+[crit]
 [emerg]
-[alert]

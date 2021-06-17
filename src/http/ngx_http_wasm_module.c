@@ -348,22 +348,23 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 
 
 ngx_int_t
-ngx_http_wasm_check_finalize(ngx_http_request_t *r,
-    ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
+ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
 {
+    ngx_http_request_t  *r = rctx->r;
+
     if (rc == NGX_ERROR) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    if (rctx->sent_last) {
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm rctx->sent_last: %d, rc %d to done (%d)",
-                       rctx->sent_last, rc, NGX_DONE);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "wasm finalizing? (rc: %d, rctx->resp_sent_last: %d)",
+                   rc, rctx->resp_sent_last);
 
+    if (rctx->resp_sent_last) {
         rc = NGX_DONE;
 
-        if (!rctx->finalized) {
-            rctx->finalized = 1;
+        if (!rctx->resp_finalized) {
+            rctx->resp_finalized = 1;
             r->main->count++;
             ngx_http_finalize_request(r, rc);
         }
@@ -386,7 +387,7 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_REWRITE_PHASE, 0);
 
-    if (rctx->sent_last) {
+    if (rctx->resp_sent_last) {
         rc = NGX_OK;
 
     } else if (rc == NGX_ERROR) {
@@ -415,7 +416,7 @@ ngx_http_wasm_preaccess_handler(ngx_http_request_t *r)
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_PREACCESS_PHASE, 0);
 
-    return ngx_http_wasm_check_finalize(r, rctx, rc);
+    return ngx_http_wasm_check_finalize(rctx, rc);
 }
 
 
@@ -432,7 +433,7 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_ACCESS_PHASE, 0);
 
-    return ngx_http_wasm_check_finalize(r, rctx, rc);
+    return ngx_http_wasm_check_finalize(rctx, rc);
 }
 #endif
 
@@ -449,7 +450,7 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE, 0);
-    rc = ngx_http_wasm_check_finalize(r, rctx, rc);
+    rc = ngx_http_wasm_check_finalize(rctx, rc);
     if (rc == NGX_HTTP_INTERNAL_SERVER_ERROR || rc == NGX_DONE) {
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "wasm \"content\" phase rc: %d (content produced)", rc);
@@ -458,9 +459,7 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     ngx_wasm_assert(rc == NGX_OK || rc == NGX_DECLINED);
 
-    rc = ngx_http_wasm_flush_local_response(r, rctx);
-
-    rctx->local_resp_over = 1; /* too late for local resp from now on */
+    rc = ngx_http_wasm_flush_local_response(rctx);
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm flush_local_response rc: %d", rc);
@@ -469,7 +468,7 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     case NGX_OK:
         /* flushed response */
-        rc = ngx_http_wasm_check_finalize(r, rctx, rc);
+        rc = ngx_http_wasm_check_finalize(rctx, rc);
         ngx_wasm_assert(rc == NGX_DONE);
 
         if (r != r->main) {
@@ -483,6 +482,8 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
         if (rctx->r_content_handler) {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                            "wasm running orig \"content\" handler");
+
+            rctx->resp_content_chosen = 1;
 
             rc = rctx->r_content_handler(r);
         }
@@ -515,6 +516,9 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
     if (rc != NGX_OK) {
         return rc;
     }
+
+    /* in case response was not produced by us */
+    rctx->resp_sent_last = 1;
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_LOG_PHASE,
                              NGX_WASM_OPS_RUN_ALL);

@@ -153,11 +153,13 @@ ngx_http_wasm_clear_resp_headers(ngx_http_request_t *r)
 static ngx_int_t
 ngx_http_set_location_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
+    ngx_int_t            rc;
     ngx_table_elt_t     *h;
     ngx_http_request_t  *r;
 
-    if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_http_wasm_set_builtin_header_handler(hv);
+    if (rc != NGX_OK) {
+        return rc;
     }
 
     r = hv->r;
@@ -176,16 +178,18 @@ ngx_http_set_location_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 static ngx_int_t
 ngx_http_set_last_modified_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
-    ngx_http_request_t  *r = hv->r;
+    ngx_int_t            rc;
     ngx_str_t           *value;
+    ngx_http_request_t  *r = hv->r;
 
     if (hv->mode == NGX_HTTP_WASM_HEADERS_REMOVE) {
         ngx_http_clear_last_modified(r);
         return NGX_OK;
     }
 
-    if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_http_wasm_set_builtin_header_handler(hv);
+    if (rc != NGX_OK) {
+        return rc;
     }
 
     r = hv->r;
@@ -201,8 +205,9 @@ static ngx_int_t
 ngx_http_set_content_length_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
     off_t                len;
-    ngx_http_request_t  *r = hv->r;
+    ngx_int_t            rc;
     ngx_str_t           *value;
+    ngx_http_request_t  *r = hv->r;
 
     if (hv->mode == NGX_HTTP_WASM_HEADERS_REMOVE) {
         ngx_http_clear_content_length(r);
@@ -217,11 +222,12 @@ ngx_http_set_content_length_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
         ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
                            "attempt to set invalid Content-Length "
                            "response header: \"%V\"", value);
-        return NGX_ERROR;
+        return NGX_DECLINED;
     }
 
-    if (ngx_http_wasm_set_builtin_header_handler(hv) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_http_wasm_set_builtin_header_handler(hv);
+    if (rc != NGX_OK) {
+        return rc;
     }
 
     r->headers_out.content_length_n = len;
@@ -374,5 +380,5 @@ ngx_http_wasm_set_connection_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
                        "attempt to set invalid Connection "
                        "response header: \"%V\"", value);
 
-    return NGX_ERROR;
+    return NGX_DECLINED;
 }
