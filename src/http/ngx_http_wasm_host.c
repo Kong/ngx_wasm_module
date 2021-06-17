@@ -90,7 +90,7 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
         return NGX_WAVM_BAD_USAGE;
     }
 
-    if (r->header_sent) {
+    if (rctx->resp_sent_last) {
         ngx_wavm_instance_trap_printf(instance, "response already sent");
         return NGX_WAVM_BAD_USAGE;
     }
@@ -137,10 +137,6 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
         /* TODO: NYI - NGX_WAVM_AGAIN */
         return NGX_WAVM_NYI;
     }
-
-    ngx_wasm_assert(rc == NGX_DONE || rc == NGX_OK);
-
-    rctx->sent_last = 1;
 
     return NGX_WAVM_OK;
 }

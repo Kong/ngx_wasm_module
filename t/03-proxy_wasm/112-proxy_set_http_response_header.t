@@ -230,18 +230,17 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 --- more_headers
 Connection: close
 pwm-set-resp-header: Connection=unknown
+--- response_body
 --- response_headers
 Connection: close
 --- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] attempt to set invalid Connection response header: "unknown"/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-]
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Connection).*?(?=\s<)/
+qr/\[error\] .*? \[wasm\] attempt to set invalid Connection response header: "unknown"/
+--- grep_error_log eval: qr/\[wasm\] #\d+ (on_response_[a-z]+).*?(?=\s<)/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] resp Connection: close
+\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
+\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
 \z/
 
 

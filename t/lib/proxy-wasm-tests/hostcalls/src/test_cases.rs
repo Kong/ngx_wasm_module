@@ -223,3 +223,28 @@ pub(crate) fn test_set_http_request_body(ctx: &mut TestHttpHostcalls) {
 
     ctx.set_http_request_body(offset, len, body.as_bytes());
 }
+
+pub(crate) fn test_set_http_response_body(ctx: &mut TestHttpHostcalls) {
+    let mut body;
+    if let Some(value) = ctx.config.get("value") {
+        body = value.to_string();
+    } else {
+        body = "Hello world".into();
+    }
+
+    if !body.is_empty() {
+        body.push('\n');
+    }
+
+    let offset = ctx
+        .config
+        .get("offset")
+        .map_or(0, |v| v.parse::<usize>().unwrap());
+
+    let len = ctx
+        .config
+        .get("max")
+        .map_or(body.len(), |v| v.parse::<usize>().unwrap());
+
+    ctx.set_http_response_body(offset, len, body.as_bytes());
+}

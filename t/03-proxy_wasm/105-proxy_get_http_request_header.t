@@ -171,11 +171,11 @@ PWM-Test-Case: /t/log/request_path
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[wasm\] \[tests\] #\d+ entering "HttpRequestHeaders"/,
+    qr/\[wasm\] #\d+ entering "HttpRequestHeaders"/,
     qr/\[info\] .*? \[wasm\] path: \/t\/A/,
-    qr/\[wasm\] \[tests\] #\d+ entering "HttpResponseHeaders"/,
+    qr/\[wasm\] #\d+ entering "HttpResponseHeaders"/,
     qr/\[info\] .*? \[wasm\] path: \/t\/B/,
-    qr/\[wasm\] \[tests\] #\d+ entering "Log"/,
+    qr/\[wasm\] #\d+ entering "Log"/,
     qr/\[info\] .*? \[wasm\] path: \/t /,
 ]
 --- no_error_log

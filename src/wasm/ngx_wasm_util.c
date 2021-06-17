@@ -8,7 +8,7 @@
 
 
 size_t
-ngx_wasm_chain_len(ngx_chain_t *in)
+ngx_wasm_chain_len(ngx_chain_t *in, unsigned *eof)
 {
     size_t        len = 0;
     ngx_buf_t    *buf;
@@ -16,14 +16,120 @@ ngx_wasm_chain_len(ngx_chain_t *in)
 
     for (cl = in; cl; cl = cl->next) {
         buf = cl->buf;
-        len += buf->last - buf->pos;
+        len += ngx_buf_size(buf);
 
         if (buf->last_buf || buf->last_in_chain) {
+            if (eof) {
+                *eof = 1;
+            }
+
             break;
         }
     }
 
     return len;
+}
+
+
+ngx_uint_t
+ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
+    unsigned *flush)
+{
+    size_t        pos = 0, len, n;
+    ngx_uint_t    fill = 0;
+    ngx_buf_t    *buf;
+    ngx_chain_t  *cl;
+
+    for (cl = in; cl; cl = cl->next) {
+        buf = cl->buf;
+        len = buf->last - buf->pos;
+
+        if (eof && (buf->last_buf || buf->last_in_chain)) {
+            *eof = 1;
+        }
+
+        if (flush && buf->flush) {
+            *flush = 1;
+        }
+
+        if (offset && pos + len > offset) {
+            /* reaching start offset */
+            n = len - ((pos + len) - offset);  /* bytes left until offset */
+            pos += n;
+            buf->last = buf->pos + n;  /* partially consume buffer */
+
+            ngx_wasm_assert(pos == offset);
+
+        } else if (pos == offset) {
+            /* past start offset, consume buffer */
+            buf->pos = buf->last;
+
+        } else {
+            /* prior start offset, preserve buffer */
+            pos += len;
+        }
+
+        buf->last_buf = 0;
+        buf->last_in_chain = 0;
+    }
+
+    if (pos < offset) {
+        fill = offset - pos;
+        pos += fill;
+    }
+
+    ngx_wasm_assert(pos == offset);
+
+    return fill;
+}
+
+
+void
+ngx_wasm_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free,
+    ngx_chain_t **busy, ngx_chain_t **out, ngx_buf_tag_t tag)
+{
+    ngx_chain_t  *ch, *cl = NULL;
+
+    while (*busy) {
+        ch = *busy;
+
+        if (ngx_buf_size(ch->buf) != 0) {
+            cl = ch;
+            *busy = ch->next;
+            continue;
+        }
+
+        if (ch->buf->tag != tag) {
+            if (cl) {
+                ngx_wasm_assert(cl->next);
+                cl->next = ch->next;
+            }
+
+            *busy = ch->next;
+            ngx_free_chain(p, ch);
+            ch = NULL;
+            continue;
+        }
+
+        ch->buf->pos = ch->buf->start;
+        ch->buf->last = ch->buf->start;
+
+        cl = ch;
+        *busy = ch->next;
+        ch->next = *free;
+        *free = ch;
+    }
+
+    *busy = cl;
+
+    if (out && *out) {
+        if (*busy == NULL) {
+            *busy = *out;
+
+        } else {
+            (*busy)->next = *out;
+        }
+    }
 }
 
 

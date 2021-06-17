@@ -126,10 +126,6 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
 
     rctx = ngx_http_proxy_wasm_rctx(pwm);
 
-    if (pwm->trap) {
-        return NGX_DECLINED;
-    }
-
     switch (phase->index) {
 
     case NGX_HTTP_REWRITE_PHASE:
@@ -147,10 +143,6 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
 
     case NGX_HTTP_WASM_HEADER_FILTER_PHASE:
         rc = ngx_http_proxy_wasm_on_response_headers(pwm);
-        if (rc != NGX_OK) {
-            rc = NGX_DECLINED;
-        }
-
         break;
 
     case NGX_HTTP_WASM_BODY_FILTER_PHASE:
@@ -179,12 +171,11 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
 
     }
 
-    if (rctx->local_resp_stashed) {
-        rc = NGX_DONE;
-    }
-
     if (rc == NGX_ERROR) {
-        pwm->trap = 1;
+        pwm->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
+
+    } else if (!rctx->resp_content_chosen && rctx->local_resp_stashed) {
+        rc = NGX_DONE;
     }
 
     ngx_wasm_assert(rc == NGX_OK
@@ -292,7 +283,7 @@ ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
         len = ngx_file_size(&file.info);
 
     } else {
-        len = ngx_wasm_chain_len(r->request_body->bufs);
+        len = ngx_wasm_chain_len(r->request_body->bufs, NULL);
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
@@ -365,28 +356,17 @@ ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_t *pwm)
 static ngx_int_t
 ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_t *pwm)
 {
-    size_t                    chunk_len = 0;
-    unsigned                  eof = 0;
-    ngx_int_t                 rc;
-    ngx_chain_t              *cl, *in;
+    ngx_int_t                 rc = NGX_OK;
     ngx_uint_t                ctxid = ngx_http_proxy_wasm_ctxid(pwm);
     ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_rctx(pwm);
     wasm_val_vec_t           *rets;
 
-    in = rctx->resp_body_out;
-
-    for (cl = in; cl; cl = cl->next) {
-        if (cl->buf->last_buf || cl->buf->last_in_chain) {
-            eof = 1;
-            break;
-        }
+    if (rctx->resp_chunk_len || rctx->resp_chunk_eof) {
+        rc = ngx_wavm_instance_call_funcref(pwm->instance,
+                                            pwm->proxy_on_http_response_body,
+                                            &rets, ctxid, rctx->resp_chunk_len,
+                                            rctx->resp_chunk_eof);
     }
-
-    chunk_len = ngx_wasm_chain_len(in);
-
-    rc = ngx_wavm_instance_call_funcref(pwm->instance,
-                                        pwm->proxy_on_http_response_body,
-                                        &rets, ctxid, chunk_len, eof);
 
     /* TODO: next action */
 

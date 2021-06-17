@@ -248,21 +248,23 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
 
         rc = op->handler(ctx, phase, op);
 
+        dd("rc: %ld", rc);
+
         if (rc == NGX_ERROR || rc > NGX_OK) {
             /* NGX_ERROR, NGX_HTTP_* */
             break;
-        }
-
-        if (rc == NGX_DONE) {
-            /* NGX_DONE: break, skip to next nginx phase with NGX_DECLINED */
-            rc = NGX_DECLINED;
-            goto rc;
         }
 
         if (force_ops) {
             /* force_ops: run all ops even if rc == NGX_OK */
             rc = NGX_OK;
             continue;
+        }
+
+        if (rc == NGX_DONE) {
+            /* NGX_DONE: break, skip to next nginx phase with NGX_DECLINED */
+            rc = NGX_DECLINED;
+            goto rc;
         }
 
         if (rc == NGX_OK) {

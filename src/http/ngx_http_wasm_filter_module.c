@@ -60,7 +60,7 @@ static ngx_int_t
 ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 {
     ngx_int_t                  rc;
-    ngx_http_wasm_req_ctx_t   *rctx;
+    ngx_http_wasm_req_ctx_t   *rctx = NULL;
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc == NGX_ERROR) {
@@ -72,11 +72,12 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 
     ngx_wasm_assert(rc == NGX_OK);
 
-    if (rctx->header_filter) {
+    if (rctx->resp_headers_filter) {
         goto next_filter;
     }
 
-    rctx->header_filter = 1;
+    rctx->resp_headers_filter = 1;
+    rctx->resp_content_chosen = 1;  /* if not already set */
 
     rc = ngx_http_wasm_produce_resp_headers(rctx);
     if (rc != NGX_OK) {
@@ -85,16 +86,35 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_HEADER_FILTER_PHASE,
                              NGX_WASM_OPS_RUN_ALL);
-    if (rc == NGX_OK) {
-        rc = ngx_http_wasm_check_finalize(r, rctx, rc);
+    if (rc == NGX_ERROR) {
+        rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
+        goto done;
+
+    } else if (rc == NGX_OK) {
+        rc = ngx_http_wasm_check_finalize(rctx, rc);
         if (rc == NGX_DONE) {
-            return NGX_DONE;
+            goto done;
         }
     }
 
 next_filter:
 
-    return ngx_http_next_header_filter(r);
+    rc = ngx_http_next_header_filter(r);
+
+    if (rc != NGX_ERROR) {
+        ngx_wasm_assert(r->header_sent);
+
+        if (rctx) {
+            rctx->resp_headers_sent = 1;
+        }
+    }
+
+done:
+
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
+                   "wasm \"header_filter\" phase rc: %d", rc);
+
+    return rc;
 }
 
 
@@ -104,27 +124,37 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_int_t                 rc;
     ngx_http_wasm_req_ctx_t  *rctx;
 
+    dd("enter");
+
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc == NGX_ERROR) {
         return NGX_ERROR;
 
-    } else if (rc == NGX_DECLINED) {
+    } else if (rc == NGX_DECLINED ) {
         goto next_filter;
     }
 
     ngx_wasm_assert(rc == NGX_OK);
-    ngx_wasm_assert(in);
 
-    if (in == NULL) {
-       goto next_filter;
-    }
+    rctx->resp_chunk = in;
+    rctx->resp_chunk_len = ngx_wasm_chain_len(in, &rctx->resp_chunk_eof);
 
-    rctx->resp_body_out = in;
-
-    (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_BODY_FILTER_PHASE,
+    (void) ngx_wasm_ops_resume(&rctx->opctx,
+                               NGX_HTTP_WASM_BODY_FILTER_PHASE,
                                NGX_WASM_OPS_RUN_ALL);
 
+    if (rctx->resp_chunk == NULL) {
+        /* chunk discarded */
+        dd("chunk discarded");
+        return NGX_OK;
+    }
+
+    in = rctx->resp_chunk;
+    rctx->resp_chunk = NULL;
+
 next_filter:
+
+    dd("next filter");
 
     return ngx_http_next_body_filter(r, in);
 }

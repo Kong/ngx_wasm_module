@@ -91,7 +91,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
         return r->request_body->bufs;
 
     case NGX_PROXY_WASM_BUFFER_HTTP_RESPONSE_BODY:
-        cl = rctx->resp_body_out;
+        cl = rctx->resp_chunk;
         if (cl == NULL) {
             /* no body */
             *none = 1;
@@ -180,10 +180,20 @@ ngx_proxy_wasm_map_set_helper(ngx_wavm_instance_t *instance,
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
         rc = ngx_http_wasm_set_req_header(r, key, value, mode);
+        if (rc == NGX_DECLINED) {
+            /* bad header value, error logged */
+            rc = NGX_OK;
+        }
+
         break;
 
     case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
         rc = ngx_http_wasm_set_resp_header(r, key, value, mode);
+        if (rc == NGX_DECLINED) {
+            /* bad header value, error logged */
+            rc = NGX_OK;
+        }
+
         break;
 #endif
 
@@ -315,7 +325,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_badarg(rets);
     }
 
-    len = ngx_wasm_chain_len(cl);
+    len = ngx_wasm_chain_len(cl, NULL);
     len = ngx_min(len, max_len);
 
     if (!len) {
@@ -374,17 +384,20 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t                         offset, max, buf_len;
+    size_t                         buf_len;
     ngx_int_t                      rc = NGX_ERROR;
     ngx_str_t                      s;
     ngx_wavm_ptr_t                *buf_data;
     ngx_proxy_wasm_buffer_type_t   buf_type;
+#ifdef NGX_WASM_HTTP
+    size_t                         offset, max;
     ngx_http_wasm_req_ctx_t       *rctx = instance->ctx->data;
-    ngx_http_request_t            *r = rctx->r;
 
-    buf_type = args[0].of.i32;
     offset = args[1].of.i32;
     max = args[2].of.i32;
+#endif
+
+    buf_type = args[0].of.i32;
     buf_data = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
     buf_len = args[4].of.i32;
 
@@ -395,17 +408,27 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_BUFFER_HTTP_REQUEST_BODY:
-        rc = ngx_http_wasm_set_req_body(r, &s, offset, max);
+        rc = ngx_http_wasm_set_req_body(rctx, &s, offset, max);
+        if (rc == NGX_DECLINED) {
+            ngx_wavm_instance_trap_printf(instance, "cannot set request body");
+        }
+
         break;
 
     case NGX_PROXY_WASM_BUFFER_HTTP_RESPONSE_BODY:
-        rc = ngx_http_wasm_set_resp_body(r, &s);
+        rc = ngx_http_wasm_set_resp_body(rctx, &s, offset, max);
+        if (rc == NGX_DECLINED) {
+            ngx_wavm_instance_trap_printf(instance, "cannot set response body");
+        }
+
         break;
 #endif
 
     default:
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
-                           "NYI - set_buffer: %d", buf_type);
+                           "NYI - set_buffer bad type "
+                           "(buf_type: %d, len: %d)",
+                           buf_type, s.len);
         break;
 
     }

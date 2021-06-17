@@ -318,7 +318,7 @@ ngx_http_wasm_set_builtin_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
         ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
                            "cannot add new \"%V\" builtin %s header",
                            key, ngx_http_wasm_htype_name(hv->htype));
-        return NGX_ERROR;
+        return NGX_DECLINED;
     }
 
     ngx_wasm_assert(hv->mode == NGX_HTTP_WASM_HEADERS_SET);

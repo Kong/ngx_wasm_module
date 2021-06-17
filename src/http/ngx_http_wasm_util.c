@@ -6,6 +6,9 @@
 #include <ngx_http_wasm_util.h>
 
 
+static const ngx_buf_tag_t   buf_tag = &ngx_http_wasm_module;
+
+
 ngx_str_t *
 ngx_http_copy_escaped(ngx_str_t *dst, ngx_pool_t *pool,
     ngx_http_wasm_escape_kind kind)
@@ -58,32 +61,58 @@ ngx_http_wasm_read_client_request_body(ngx_http_request_t *r,
 ngx_int_t
 ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
 {
-    ngx_int_t   rc;
+    ngx_int_t                 rc;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
+        return NGX_ERROR;
+    }
 
     if (!r->headers_out.status) {
         r->headers_out.status = NGX_HTTP_OK;
     }
 
-    rc = ngx_http_send_header(r);
+    rctx->resp_content_chosen = 1;
 
-    if (rc == NGX_ERROR || rc > NGX_OK || r->header_only) {
-        /* NGX_ERROR, NGX_HTTP_* */
-        return rc;
+    rc = ngx_http_send_header(r);
+    if (rc == NGX_ERROR) {
+        goto done;
     }
 
-    /* NGX_OK, NGX_AGAIN */
+    if (rc > NGX_OK || r->header_only) {
+        goto sent_last;
+    }
+
+    ngx_wasm_assert(r->header_sent);
+    ngx_wasm_assert(rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_DONE);
 
     if (in == NULL) {
         rc = ngx_http_send_special(r, NGX_HTTP_LAST);
-        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-            /* >= 300 */
-            return rc;
+        if (rc == NGX_ERROR) {
+            goto done;
+
+        } else if (rc < NGX_HTTP_SPECIAL_RESPONSE) {
+            /* special response >= 300 */
+            rc = NGX_OK;
         }
 
-        return NGX_OK;
+        goto sent_last;
     }
 
-    return ngx_http_output_filter(r, in);
+    rc = ngx_http_output_filter(r, in);
+    if (rc == NGX_ERROR) {
+        goto done;
+    }
+
+    ngx_wasm_assert(rc == NGX_OK || rc == NGX_DONE);
+
+sent_last:
+
+    rctx->resp_sent_last = 1;
+
+done:
+
+    return rc;
 }
 
 
@@ -172,62 +201,28 @@ ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx)
 
 
 ngx_int_t
-ngx_http_wasm_set_req_body(ngx_http_request_t *r, ngx_str_t *body,
+ngx_http_wasm_set_req_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
     size_t at, size_t max)
 {
-    size_t                    pos = 0, len, n;
     ngx_uint_t                fill = 0;
     ngx_buf_t                *buf;
-    ngx_chain_t              *cl, *ll, *nl;
+    ngx_chain_t              *nl;
+    ngx_http_request_t       *r;
     ngx_http_request_body_t  *rb;
-    ngx_http_wasm_req_ctx_t  *rctx;
 
-    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
-        return NGX_ERROR;
+    r = rctx->r;
+
+    if (r->header_sent || rctx->resp_content_chosen) {
+        return NGX_DECLINED;
     }
-
-    body->len = ngx_min(body->len, max);
 
     rb = r->request_body;
 
-    if (rb && rb->bufs) {
-
-        for (cl = rb->bufs; cl; cl = cl->next) {
-            buf = cl->buf;
-            len = buf->last - buf->pos;
-
-            if (at && pos + len > at) {
-                /* reaching start offset */
-                n = len - ((pos + len) - at);  /* bytes left until at */
-                pos += n;
-                buf->last = buf->pos + n;  /* partially consume buffer */
-
-                ngx_wasm_assert(pos == at);
-
-            } else if (pos == at) {
-                /* past start offset, consume buffer */
-                buf->pos = buf->last;
-
-                ngx_wasm_assert(rb->buf);
-
-            } else {
-                /* prior start offset, preserve buffer */
-                pos += len;
-            }
-
-            buf->last_buf = 0;
-            buf->last_in_chain = 0;
-
-            ll = cl;
-        }
+    if (rb) {
+        fill = ngx_wasm_chain_clear(rb->bufs, at, NULL, NULL);
     }
 
-    if (pos < at) {
-        fill = at - pos;
-        pos += fill;
-    }
-
-    ngx_wasm_assert(pos == at);
+    body->len = ngx_min(body->len, max);
 
     if (!body->len) {
         goto done;
@@ -270,13 +265,6 @@ ngx_http_wasm_set_req_body(ngx_http_request_t *r, ngx_str_t *body,
     nl->buf = buf;
     nl->next = NULL;
 
-    if (rb->bufs == NULL) {
-        rb->bufs = nl;
-
-    } else {
-        ll->next = nl;
-    }
-
     /* set */
 
     if (fill) {
@@ -287,6 +275,9 @@ ngx_http_wasm_set_req_body(ngx_http_request_t *r, ngx_str_t *body,
     buf->last = ngx_cpymem(buf->last, body->data, body->len);
     buf->last_buf = 1;
 
+    ngx_wasm_chain_update_chains(r->pool, &rctx->free, &rb->bufs,
+                                 &nl, buf_tag);
+
 done:
 
     r->headers_in.content_length_n = body->len;
@@ -296,66 +287,79 @@ done:
 
 
 ngx_int_t
-ngx_http_wasm_set_resp_body(ngx_http_request_t *r, ngx_str_t *body)
+ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
+    size_t at, size_t max)
 {
-    ngx_int_t                    rc;
-    ngx_buf_t                   *buf;
-    ngx_chain_t                 *in, *cl, *out = NULL;
-    ngx_http_wasm_req_ctx_t     *rctx;
-    static const ngx_buf_tag_t   buf_tag = &ngx_http_wasm_module;
-
-    rc = ngx_http_wasm_rctx(r, &rctx);
-    if (rc != NGX_OK) {
-        return NGX_ERROR;
-    }
+    unsigned                     eof = 0, flush = 0;
+    ngx_uint_t                   fill;
+    ngx_buf_t                   *buf = NULL;
+    ngx_chain_t                 *in, *nl;
+    ngx_http_request_t          *r;
 
     r = rctx->r;
-    in = rctx->resp_body_out;
+    in = rctx->resp_chunk;
+    if (in == NULL) {
+        return NGX_DECLINED;
+    }
 
-    if (in != NULL) {
-        /* clear buffers */
+    if (r->header_sent && !r->chunked) {
+        ngx_wasm_log_error(NGX_LOG_WARN, r->connection->log, 0,
+                           "overriding response body chunk while "
+                           "Content-Length header already sent");
+    }
 
-        for (cl = in; cl; cl = cl->next) {
-            buf = cl->buf;
+    fill = ngx_wasm_chain_clear(in, at, &eof, &flush);
 
-            /* consume buffer */
-            buf->pos = buf->last;
+    body->len = ngx_min(body->len, max);
+
+    if (body->len) {
+        /* append new buffer */
+        nl = ngx_chain_get_free_buf(r->pool, &rctx->free);
+        if (nl == NULL) {
+            return NGX_ERROR;
         }
-    }
 
-    if (!body->len) {
-        goto done;
-    }
+        nl->buf = ngx_create_temp_buf(r->pool, body->len + fill);
+        if (nl->buf == NULL) {
+            return NGX_ERROR;
+        }
 
-    /* set */
+        /* set */
 
-    out = ngx_chain_get_free_buf(r->pool, &rctx->free);
-    if (out == NULL) {
-        return NGX_ERROR;
-    }
+        buf = nl->buf;
 
-    out->buf = ngx_create_temp_buf(r->pool, body->len);
-    if (out->buf == NULL) {
-        return NGX_ERROR;
-    }
+        if (fill) {
+            ngx_memset(buf->last, ' ', fill);
+            buf->last += fill;
+        }
 
-    buf = out->buf;
-    buf->tag = buf_tag;
-    buf->memory = 1;
-    buf->last = ngx_copy(buf->pos, body->data, body->len);
+        buf->memory = 1;
+        buf->tag = buf_tag;
+        buf->last = ngx_cpymem(buf->last, body->data, body->len);
 
-    if (r == r->main) {
-        buf->last_buf = 1;
+        if (flush) {
+            buf->flush = 1;
+        }
+
+        if (eof) {
+            if (r == r->main) {
+                buf->last_buf = 1;
+
+            } else {
+                buf->last_in_chain = 1;
+            }
+        }
+
+        ngx_wasm_chain_update_chains(r->pool, &rctx->free, &rctx->resp_chunk,
+                                     &nl, buf_tag);
 
     } else {
-        buf->last_in_chain = 1;
+        /* discard chunk */
+        rctx->resp_chunk = NULL;
     }
 
-    rctx->resp_body_out = out;
-
-done:
-
-    ngx_chain_update_chains(r->pool, &rctx->free, &rctx->busy, &out, buf_tag);
+    rctx->resp_chunk_len = ngx_wasm_chain_len(rctx->resp_chunk,
+                                              &rctx->resp_chunk_eof);
 
     return NGX_OK;
 }

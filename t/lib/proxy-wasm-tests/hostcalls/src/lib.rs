@@ -86,10 +86,7 @@ impl TestHttpHostcalls {
             return;
         }
 
-        info!(
-            "[tests] #{} entering \"{:?}\"",
-            self.context_id, self.on_phase
-        );
+        info!("#{} entering \"{:?}\"", self.context_id, self.on_phase);
 
         let test_case;
         {
@@ -173,6 +170,7 @@ impl TestHttpHostcalls {
 
             /* set/add request/response body */
             "/t/set_http_request_body" => test_set_http_request_body(self),
+            "/t/set_http_response_body" => test_set_http_response_body(self),
 
             /* echo request */
             "/t/echo/headers" => echo_headers(self),
@@ -223,7 +221,9 @@ impl HttpContext for TestHttpHostcalls {
             "#{} on_response_body, {} bytes, end_of_stream {}",
             self.context_id, len, end_of_stream
         );
-        self.exec_tests(TestPhase::HttpResponseBody);
+        if !end_of_stream || len > 0 {
+            self.exec_tests(TestPhase::HttpResponseBody);
+        }
         Action::Continue
     }
 

@@ -132,9 +132,9 @@ PWM-Test-Case: /t/log/request_headers
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[wasm\] \[tests\] #\d+ entering "HttpRequestHeaders"/,
+    qr/\[wasm\] #\d+ entering "HttpRequestHeaders"/,
     qr/\[info\] .*? \[wasm\] Host: localhost/,
-    qr/\[wasm\] \[tests\] #\d+ entering "HttpResponseHeaders"/,
+    qr/\[wasm\] #\d+ entering "HttpResponseHeaders"/,
     qr/\[info\] .*? \[wasm\] Host: localhost/,
 ]
 --- no_error_log
@@ -157,7 +157,7 @@ PWM-Test-Case: /t/log/request_headers
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[wasm\] \[tests\] #\d+ entering "Log"/,
+    qr/\[wasm\] #\d+ entering "Log"/,
     qr/\[info\] .*? \[wasm\] Host: localhost/,
 ]
 --- no_error_log

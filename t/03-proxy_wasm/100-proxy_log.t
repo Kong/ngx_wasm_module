@@ -68,11 +68,11 @@ B
 C
 --- error_log eval
 [
-    qr/\[wasm\] \[tests\] #\d+ entering "HttpRequestHeaders"/,
+    qr/\[wasm\] #\d+ entering "HttpRequestHeaders"/,
     qr/\[error\] .*? \[wasm\] proxy_log error/,
-    qr/\[wasm\] \[tests\] #\d+ entering "HttpResponseHeaders"/,
+    qr/\[wasm\] #\d+ entering "HttpResponseHeaders"/,
     qr/\[error\] .*? \[wasm\] proxy_log error/,
-    qr/\[wasm\] \[tests\] #\d+ entering "Log"/,
+    qr/\[wasm\] #\d+ entering "Log"/,
     qr/\[error\] .*? \[wasm\] proxy_log error/,
 ]
 --- no_error_log
