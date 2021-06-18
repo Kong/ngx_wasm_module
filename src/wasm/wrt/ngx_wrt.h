@@ -12,7 +12,7 @@
 
 typedef struct wasmtime_error_t  ngx_wrt_res_t;
 #elif NGX_WASM_HAVE_WASMER
-#include <wasmer_wasm.h>
+#include <wasmer.h>
 
 
 typedef ngx_str_t  ngx_wrt_res_t;
