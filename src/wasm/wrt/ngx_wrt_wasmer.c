@@ -6,14 +6,28 @@
 #include <ngx_wrt.h>
 
 
-void ngx_wasmer_last_err(ngx_wrt_res_t **res);
+static void ngx_wasmer_last_err(ngx_wrt_res_t **res);
 
 
 void
 ngx_wrt_config_init(wasm_config_t *config)
 {
     //wasm_config_set_compiler(config, LLVM);
-    //wasm_config_set_engine(config, NATIVE);
+    //wasm_config_set_engine(config, UNIVERSAL);
+}
+
+
+ngx_int_t
+ngx_wrt_engine_new(wasm_config_t *config, wasm_engine_t **out,
+    ngx_wavm_err_t *err)
+{
+    *out = wasm_engine_new_with_config(config);
+    if (*out == NULL) {
+        ngx_wasmer_last_err(&err->res);
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
 }
 
 
@@ -108,7 +122,7 @@ ngx_wrt_error_log_handler(ngx_wrt_res_t *res, u_char *buf, size_t len)
 }
 
 
-void
+static void
 ngx_wasmer_last_err(ngx_wrt_res_t **res)
 {
     ngx_str_t   *werr = NULL;

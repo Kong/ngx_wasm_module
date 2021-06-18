@@ -18,6 +18,19 @@ ngx_wrt_config_init(wasm_config_t *config)
 
 
 ngx_int_t
+ngx_wrt_engine_new(wasm_config_t *config, wasm_engine_t **out,
+    ngx_wavm_err_t *err)
+{
+    *out = wasm_engine_new_with_config(config);
+    if (*out == NULL) {
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
+
+ngx_int_t
 ngx_wrt_wat2wasm(wasm_byte_vec_t *wat, wasm_byte_vec_t *wasm,
     ngx_wavm_err_t *err)
 {

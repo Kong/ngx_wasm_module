@@ -6,7 +6,7 @@
 #include <ngx_wavm.h>
 
 
-static ngx_int_t ngx_wavm_engine_init(ngx_wavm_t *vm);
+static ngx_int_t ngx_wavm_engine_init(ngx_wavm_t *vm, ngx_wavm_err_t *e);
 static void ngx_wavm_engine_destroy(ngx_wavm_t *vm);
 static void ngx_wavm_module_free(ngx_wavm_module_t *module);
 static ngx_int_t ngx_wavm_module_load_bytes(ngx_wavm_module_t *module);
@@ -84,7 +84,7 @@ error:
 
 
 static ngx_int_t
-ngx_wavm_engine_init(ngx_wavm_t *vm)
+ngx_wavm_engine_init(ngx_wavm_t *vm, ngx_wavm_err_t *e)
 {
     wasm_config_t  *config;
 
@@ -97,9 +97,7 @@ ngx_wavm_engine_init(ngx_wavm_t *vm)
 
     ngx_wrt_config_init(config);
 
-    vm->engine = wasm_engine_new_with_config(config);
-    if (vm->engine == NULL) {
-        wasm_config_delete(config);
+    if (ngx_wrt_engine_new(config, &vm->engine, e) != NGX_OK) {
         goto error;
     }
 
@@ -140,11 +138,14 @@ ngx_wavm_init(ngx_wavm_t *vm)
     ngx_str_node_t     *sn;
     ngx_rbtree_node_t  *root, *sentinel, *node;
     ngx_wavm_module_t  *module;
+    ngx_wavm_err_t      e;
+
+    ngx_wavm_err_init(&e);
 
     ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL,
                        "initializing \"%V\" wasm VM", vm->name);
 
-    if (ngx_wavm_engine_init(vm) != NGX_OK) {
+    if (ngx_wavm_engine_init(vm, &e) != NGX_OK) {
         goto error;
     }
 
@@ -178,8 +179,8 @@ empty:
 
 error:
 
-    ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL,
-                       "failed initializing wasm VM");
+    ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, &e,
+                       "failed initializing wasm VM: ");
 
 done:
 
@@ -195,10 +196,13 @@ ngx_wavm_load(ngx_wavm_t *vm)
     ngx_str_node_t     *sn;
     ngx_rbtree_node_t  *root, *sentinel, *node;
     ngx_wavm_module_t  *module;
+    ngx_wavm_err_t      e;
 
-    if (ngx_wavm_engine_init(vm) != NGX_OK) {
-        ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, NULL,
-                           "failed initializing engine");
+    ngx_wavm_err_init(&e);
+
+    if (ngx_wavm_engine_init(vm, &e) != NGX_OK) {
+        ngx_wavm_log_error(NGX_LOG_EMERG, vm->log, &e,
+                           "failed initializing engine: ");
         return NGX_ERROR;
     }
 
