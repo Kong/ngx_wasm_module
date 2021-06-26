@@ -317,7 +317,7 @@ error:
     ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, 0,
                              "failed initializing proxy_wasm filter");
 
-    ngx_wavm_ctx_destroy(&pwm->wvctx);
+    pwm->ecode = NGX_PROXY_WASM_ERR_VM_FAILED;
 
     return NGX_ERROR;
 }
