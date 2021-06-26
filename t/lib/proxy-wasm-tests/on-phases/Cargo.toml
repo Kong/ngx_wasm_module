@@ -10,3 +10,4 @@ crate-type = ["cdylib"]
 [dependencies]
 proxy-wasm = "0.1"
 log = "0.4"
+enum-utils = "0.1.2"

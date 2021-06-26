@@ -4,19 +4,29 @@ use proxy_wasm::types::*;
 use std::collections::HashMap;
 use std::time::Duration;
 
+#[derive(Debug, PartialEq, enum_utils::FromStr)]
+#[enumeration(rename_all = "snake_case")]
+enum Phase {
+    RequestHeaders,
+    RequestBody,
+    RequestTrailers,
+    ResponseHeaders,
+    ResponseBody,
+    ResponseTrailers,
+    Log,
+}
+
 const ROOT_ID: u32 = 0;
 
 struct HttpHeadersRoot {
-    config: Option<HashMap<String, String>>,
-    tick_period: u64,
-    log_msg: String,
+    config: HashMap<String, String>,
 }
 
 impl Context for HttpHeadersRoot {}
 impl RootContext for HttpHeadersRoot {
     fn on_vm_start(&mut self, config_size: usize) -> bool {
         info!("#{} on_vm_start, config_size: {}", ROOT_ID, config_size);
-        true // TODO: catch/test
+        true
     }
 
     fn on_configure(&mut self, config_size: usize) -> bool {
@@ -24,34 +34,24 @@ impl RootContext for HttpHeadersRoot {
 
         if let Some(config_bytes) = self.get_configuration() {
             let config_str = String::from_utf8(config_bytes).unwrap();
-            self.config = Some(
-                config_str
-                    .split_whitespace()
-                    .filter_map(|s| s.split_once('='))
-                    .map(|(k, v)| (k.to_string(), v.to_string()))
-                    .collect(),
-            );
+            self.config = config_str
+                .split_whitespace()
+                .filter_map(|s| s.split_once('='))
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect();
 
-            info!("#{} config: {:?}", ROOT_ID, self.config.as_ref().unwrap());
-
-            if let Some(period) = self.config.as_ref().unwrap().get("tick_period") {
-                self.tick_period = period.parse().unwrap();
-                self.set_tick_period(Duration::from_millis(self.tick_period));
+            if let Some(period) = self.config.get("tick_period") {
+                self.set_tick_period(Duration::from_millis(
+                    period.parse().expect("bad tick_period or pause_delay"),
+                ));
             }
-
-            self.log_msg = self
-                .config
-                .as_ref()
-                .unwrap()
-                .get("log_msg")
-                .map_or(String::new(), |s| s.to_string());
         }
 
-        true // TODO: catch/test
+        true
     }
 
     fn on_tick(&mut self) {
-        info!("on_tick {}", self.tick_period);
+        info!("on_tick {}", self.config.get("tick_period").unwrap());
     }
 
     fn get_type(&self) -> Option<ContextType> {
@@ -59,26 +59,50 @@ impl RootContext for HttpHeadersRoot {
     }
 
     fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
-        Some(Box::new(HttpHeaders {
+        Some(Box::new(OnPhases {
             context_id,
-            log_msg: self.log_msg.clone(),
+            config: self.config.clone(),
+            pause_on: self
+                .config
+                .get("pause_on")
+                .map(|s| s.parse().expect("bad pause_on")),
         }))
     }
 }
 
-struct HttpHeaders {
+struct OnPhases {
+    // config
     context_id: u32,
-    log_msg: String,
+    config: HashMap<String, String>,
+    pause_on: Option<Phase>,
 }
 
-impl Context for HttpHeaders {}
-impl HttpContext for HttpHeaders {
+impl OnPhases {
+    fn next_action(&mut self, phase: Phase) -> Action {
+        if let Some(pause_on) = &self.pause_on {
+            if pause_on == &phase {
+                info!(
+                    "#{} pausing after \"{:?}\" phase",
+                    self.context_id, pause_on
+                );
+
+                return Action::Pause;
+            }
+        }
+
+        Action::Continue
+    }
+}
+
+impl Context for OnPhases {}
+impl HttpContext for OnPhases {
     fn on_http_request_headers(&mut self, nheaders: usize) -> Action {
         info!(
             "#{} on_request_headers, {} headers",
             self.context_id, nheaders
         );
-        Action::Continue
+
+        self.next_action(Phase::RequestHeaders)
     }
 
     fn on_http_request_body(&mut self, len: usize, end_of_stream: bool) -> Action {
@@ -86,7 +110,8 @@ impl HttpContext for HttpHeaders {
             "#{} on_request_body, {} bytes, end_of_stream: {}",
             self.context_id, len, end_of_stream
         );
-        Action::Continue
+
+        self.next_action(Phase::RequestBody)
     }
 
     fn on_http_response_headers(&mut self, nheaders: usize) -> Action {
@@ -94,7 +119,8 @@ impl HttpContext for HttpHeaders {
             "#{} on_response_headers, {} headers",
             self.context_id, nheaders
         );
-        Action::Continue
+
+        self.next_action(Phase::ResponseHeaders)
     }
 
     fn on_http_response_body(&mut self, len: usize, end_of_stream: bool) -> Action {
@@ -102,14 +128,20 @@ impl HttpContext for HttpHeaders {
             "#{} on_response_body, {} bytes, end_of_stream: {}",
             self.context_id, len, end_of_stream
         );
-        Action::Continue
+
+        self.next_action(Phase::ResponseBody)
     }
 
     fn on_log(&mut self) {
         info!("#{} on_log", self.context_id);
 
-        if !self.log_msg.is_empty() {
-            info!("#{} log_msg: {}", self.context_id, self.log_msg);
+        let log_msg = self
+            .config
+            .get("log_msg")
+            .map_or(String::new(), |s| s.to_string());
+
+        if !log_msg.is_empty() {
+            info!("#{} log_msg: {}", self.context_id, log_msg);
         }
     }
 }
@@ -119,9 +151,7 @@ pub fn _start() {
     proxy_wasm::set_log_level(LogLevel::Info);
     proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
         Box::new(HttpHeadersRoot {
-            config: None,
-            tick_period: 0,
-            log_msg: String::new(),
+            config: HashMap::new(),
         })
     });
 }
