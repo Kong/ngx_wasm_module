@@ -132,7 +132,6 @@ typedef void (*ngx_proxy_wasm_destroy_context_pt)(ngx_proxy_wasm_t *pwm);
 
 struct ngx_proxy_wasm_s {
     ngx_wavm_ctx_t                     wvctx;
-    ngx_event_t                        yield_ev;
     ngx_str_t                          filter_config;
     ngx_proxy_wasm_resume_pt           resume_;
     ngx_proxy_wasm_ctxid_pt            ctxid_;
@@ -153,6 +152,7 @@ struct ngx_proxy_wasm_s {
 
     /* control flow */
 
+    ngx_proxy_wasm_action_t            next_action;
     ngx_uint_t                         ecode;
     ngx_uint_t                         rctxid;
     ngx_uint_t                         tick_period;

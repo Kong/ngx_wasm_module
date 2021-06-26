@@ -451,7 +451,10 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE, 0);
     rc = ngx_http_wasm_check_finalize(rctx, rc);
-    if (rc == NGX_HTTP_INTERNAL_SERVER_ERROR || rc == NGX_DONE) {
+    if (rc == NGX_HTTP_INTERNAL_SERVER_ERROR
+        || rc == NGX_DONE
+        || rc == NGX_AGAIN)
+    {
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "wasm \"content\" phase rc: %d (content produced)", rc);
         return rc;

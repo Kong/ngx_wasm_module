@@ -267,13 +267,11 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
             goto rc;
         }
 
-        if (rc == NGX_OK) {
+        if (rc == NGX_OK || rc == NGX_AGAIN) {
             /* NGX_OK: done with ops in this phase */
+            /* NGX_AGAIN: ... */
             goto rc;
         }
-
-        /* NGX_AGAIN: NYI */
-        ngx_wasm_assert(rc != NGX_AGAIN);
 
         /* NGX_DECLINED: next op */
         ngx_wasm_assert(rc == NGX_DECLINED);
