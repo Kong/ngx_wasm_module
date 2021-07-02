@@ -1,0 +1,13 @@
+name: 'Wasm runtime'
+description: 'Install a Wasm runtime C API'
+inputs:
+  runtime:
+    description: 'Wasm runtime (wasmtimer, wasmer)'
+    default: 'wasmtime'
+    required: false
+  version:
+    description: 'Wasm runtime version'
+    required: true
+runs:
+  using: 'node12'
+  main: 'index.js'
