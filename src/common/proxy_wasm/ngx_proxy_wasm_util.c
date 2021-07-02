@@ -17,7 +17,6 @@ static ngx_str_t  ngx_proxy_wasm_errlist[] = {
     ngx_string("incompatible ABI version"),
     ngx_string("incompatible host interface"),
     ngx_string("incompatible SDK interface"),
-    ngx_string("vm failure"),
     ngx_string("instance trapped"),
     ngx_string("unknown error")
 };

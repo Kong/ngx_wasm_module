@@ -236,13 +236,10 @@ ngx_wavm_destroy_instances(ngx_wavm_t *vm)
     ngx_wavm_instance_t  *instance;
 
     while (!ngx_queue_empty(&vm->instances)) {
-       q = ngx_queue_head(&vm->instances);
-       instance = ngx_queue_data(q, ngx_wavm_instance_t, q);
+        q = ngx_queue_head(&vm->instances);
+        instance = ngx_queue_data(q, ngx_wavm_instance_t, q);
 
-       /* for ngx_wavm_ctx_destroy */
-       instance->ctx->instances = NULL;
-
-       ngx_wavm_instance_destroy(instance);
+        ngx_wavm_instance_destroy(instance);
     }
 }
 
@@ -656,7 +653,6 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
             continue;
         }
 
-#if (NGX_DEBUG)
         dd("wasm loading \"%.*s\" module import \"env.%.*s\" (%lu/%lu)",
            (int) module->name.len, module->name.data,
            (int) importname->size, importname->data,
@@ -664,7 +660,6 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
 
         ngx_wasm_assert(wasm_externtype_kind(wasm_importtype_type(importtype))
                         == WASM_EXTERN_FUNC);
-#endif
 
         s.len = importname->size;
         s.data = (u_char *) importname->data;
@@ -759,11 +754,11 @@ ngx_wavm_module_free(ngx_wavm_module_t *module)
     }
 
     while (!ngx_queue_empty(&module->lmodules)) {
-       q = ngx_queue_head(&module->lmodules);
-       lmodule = ngx_queue_data(q, ngx_wavm_linked_module_t, q);
-       ngx_queue_remove(&lmodule->q);
+        q = ngx_queue_head(&module->lmodules);
+        lmodule = ngx_queue_data(q, ngx_wavm_linked_module_t, q);
+        ngx_queue_remove(&lmodule->q);
 
-       ngx_wavm_linked_module_free(lmodule);
+        ngx_wavm_linked_module_free(lmodule);
     }
 
     if (module->name.data) {
@@ -823,20 +818,14 @@ ngx_wavm_ctx_init(ngx_wavm_t *vm, ngx_wavm_ctx_t *ctx)
     ngx_wasm_assert(ctx->pool);
     ngx_wasm_assert(ctx->log);
 
-    if (ctx->instances && ctx->store) {
-        return NGX_OK;
-    }
-
-    ctx->vm = vm;
-    ctx->store = wasm_store_new(vm->engine);
     if (ctx->store == NULL) {
-        return NGX_ERROR;
-    }
+        ctx->vm = vm;
+        ctx->store = wasm_store_new(vm->engine);
+        if (ctx->store == NULL) {
+            return NGX_ERROR;
+        }
 
-    ctx->instances = ngx_pcalloc(ctx->pool, vm->lmodules_max *
-                                            sizeof(ngx_wavm_instance_t *));
-    if (ctx->instances == NULL) {
-        return NGX_ERROR;
+        ngx_queue_init(&ctx->instances);
     }
 
     return NGX_OK;
@@ -846,17 +835,19 @@ ngx_wavm_ctx_init(ngx_wavm_t *vm, ngx_wavm_ctx_t *ctx)
 void
 ngx_wavm_ctx_update(ngx_wavm_ctx_t *ctx, ngx_log_t *log, void *data)
 {
-    size_t                i;
+    ngx_queue_t          *q;
     ngx_wavm_instance_t  *instance;
 
     ctx->log = log;
     ctx->data = data;
 
-    for (i = 0; i < ctx->vm->lmodules_max; i++) {
-        instance = ctx->instances[i];
-        if (instance) {
-            instance->log_ctx.orig_log = log;
-        }
+    for (q = ngx_queue_head(&ctx->instances);
+         q != ngx_queue_sentinel(&ctx->instances);
+         q = ngx_queue_next(q))
+    {
+        instance = ngx_queue_data(q, ngx_wavm_instance_t, ctx_q);
+
+        instance->log_ctx.orig_log = log;
     }
 }
 
@@ -864,23 +855,18 @@ ngx_wavm_ctx_update(ngx_wavm_ctx_t *ctx, ngx_log_t *log, void *data)
 void
 ngx_wavm_ctx_destroy(ngx_wavm_ctx_t *ctx)
 {
-    size_t                i;
+    ngx_queue_t          *q;
     ngx_wavm_instance_t  *instance;
 
-    if (ctx->instances) {
-        for (i = 0; i < ctx->vm->lmodules_max; i++) {
-            instance = ctx->instances[i];
+    if (ctx->store) {
 
-            if (instance) {
-                ngx_wavm_instance_destroy(instance);
-            }
+        while (!ngx_queue_empty(&ctx->instances)) {
+            q = ngx_queue_head(&ctx->instances);
+            instance = ngx_queue_data(q, ngx_wavm_instance_t, ctx_q);
+
+            ngx_wavm_instance_destroy(instance);
         }
 
-        ngx_pfree(ctx->pool, ctx->instances);
-        ctx->instances = NULL;
-    }
-
-    if (ctx->store) {
         wasm_store_delete(ctx->store);
         ctx->store = NULL;
     }
@@ -892,9 +878,10 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
 {
     size_t                     i;
     const char                *err = NGX_WAVM_NOMEM_CHAR;
+    ngx_queue_t               *q;
     ngx_wavm_t                *vm;
     ngx_wavm_module_t         *module;
-    ngx_wavm_instance_t       *instance;
+    ngx_wavm_instance_t       *instance = NULL;
     ngx_wavm_hfunc_tctx_t     *tctx;
     ngx_wavm_hfunc_t          *hfunc;
     ngx_wavm_func_t           *func;
@@ -909,15 +896,23 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
     module = lmodule->module;
     vm = module->vm;
 
-    instance = ctx->instances[lmodule->idx];
-    if (instance) {
-        ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
-                       "wasm reusing instance of \"%V\" module "
-                       "in \"%V\" vm (ctx: %p)",
-                       &module->name, vm->name, ctx);
+    for (q = ngx_queue_head(&ctx->instances);
+         q != ngx_queue_sentinel(&ctx->instances);
+         q = ngx_queue_next(q))
+    {
+        instance = ngx_queue_data(q, ngx_wavm_instance_t, ctx_q);
 
-        return instance;
+        if (instance->lmodule->idx == lmodule->idx) {
+            ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
+                           "wasm reusing instance of \"%V\" module "
+                           "in \"%V\" vm (ctx: %p)",
+                           &module->name, vm->name, ctx);
+
+            return instance;
+        }
     }
+
+    instance = NULL;
 
     ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
                    "wasm creating instance of \"%V\" module in \"%V\" vm "
@@ -1070,8 +1065,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
         }
     }
 
-    ctx->instances[lmodule->idx] = instance;
-
+    ngx_queue_insert_tail(&ctx->instances, &instance->ctx_q);
     ngx_queue_insert_tail(&vm->instances, &instance->q);
 
     return instance;
@@ -1317,7 +1311,7 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
     }
 
     if (instance->tctxs) {
-       ngx_pfree(instance->pool, instance->tctxs);
+        ngx_pfree(instance->pool, instance->tctxs);
     }
 
     if (instance->log) {
@@ -1325,6 +1319,7 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
     }
 
     ngx_queue_remove(&instance->q);
+    ngx_queue_remove(&instance->ctx_q);
 
     ngx_pfree(instance->pool, instance);
 }
