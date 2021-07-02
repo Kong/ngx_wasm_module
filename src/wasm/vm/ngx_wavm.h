@@ -62,6 +62,7 @@ struct ngx_wavm_instance_s {
     ngx_wavm_ctx_t                    *ctx;
     ngx_wavm_linked_module_t          *lmodule;
     ngx_queue_t                        q;          /* vm->instances */
+    ngx_queue_t                        ctx_q;      /* ctx->instances */
 
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
@@ -85,7 +86,7 @@ struct ngx_wavm_ctx_s {
 
     ngx_wavm_t                        *vm;
     wasm_store_t                      *store;
-    ngx_wavm_instance_t              **instances;
+    ngx_queue_t                        instances;
 };
 
 

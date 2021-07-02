@@ -40,6 +40,8 @@ impl RootContext for HttpHeadersRoot {
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect();
 
+            info!("#{} config: {:?}", ROOT_ID, self.config);
+
             if let Some(period) = self.config.get("tick_period") {
                 self.set_tick_period(Duration::from_millis(
                     period.parse().expect("bad tick_period or pause_delay"),
