@@ -234,11 +234,11 @@ HelloWorld
 qr/from_request_headers
 from_request_body
 [\s\S]+500 Internal Server Error/
---- grep_error_log eval: qr/((\[(error|crit)\] .*)|\[wasm\] .*? request body: .*)/
+--- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
-qr/\[error\] \S+ \[wasm\] cannot set request body
-\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "body_filter" phase, .*
-\[error\] \S+ \[wasm\] cannot set request body/
+qr/\[error\] .*? \[wasm\] cannot set request body.*?
+\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "body_filter" phase
+\[error\] .*? \[wasm\] cannot set request body/
 --- no_error_log
 [emerg]
 [alert]
