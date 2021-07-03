@@ -20,15 +20,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        #cc: [gcc-8, gcc-9, clang]
         cc: [clang]
-        #ngx: [1.18.0, 1.19.1]
         ngx: [1.21.0]
-        wasmtime: [0.25.0]
-        #hup: [1, 0]
-        hup: [0]
-        #debug: [1, 0]
-        debug: [1]
+        runtime: [wasmtime, wasmer]
+        wasmtime: [0.27.0]
+        wasmer: [2.0.0]
+        hup: [1, 0]
+        debug: [1, 0]
     steps:
       - uses: actions/checkout@v2
       - name: "Set up cache - rustup toolchain"
@@ -48,16 +46,17 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           target: wasm32-unknown-unknown
-      - name: Set up wasmtime
-        uses: ./.github/actions/wasmtime
+      - name: Set up Wasm runtime
+        uses: ./.github/actions/wasm-runtime
         with:
-          version: ${{ matrix.wasmtime }}
+          runtime: ${{ matrix.runtime }}
+          version: ${{ matrix[matrix.runtime] }}
       - run: make setup
       - run: make
         env:
@@ -78,8 +77,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         cc: [clang]
         ngx: [1.21.0]
+        runtime: [wasmtime, wasmer]
         wasmtime: [0.27.0]
-        runtime: [wasmtime]
+        wasmer: [2.0.0]
     steps:
       - uses: actions/checkout@v2
       - name: "Set up cache - ngx_wasm_module work/ dir"
@@ -90,12 +90,12 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh}') }}-${{ hashFiles('rust-toolchain') }}
-      - name: Set up wasmtime
-        if: ${{ matrix.runtime == 'wasmtime' }}
-        uses: ./.github/actions/wasmtime
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
+      - name: Set up Wasm runtime
+        uses: ./.github/actions/wasm-runtime
         with:
-          version: ${{ matrix.wasmtime }}
+          runtime: ${{ matrix.runtime }}
+          version: ${{ matrix[matrix.runtime] }}
       - run: make setup
       - run: make test-build
         env:
