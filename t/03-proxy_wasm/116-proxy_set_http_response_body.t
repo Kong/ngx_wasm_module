@@ -317,13 +317,13 @@ Transfer-Encoding: chunked
 Content-Length:
 --- response_body eval
 qr/500 Internal Server Error/
---- grep_error_log eval: qr/((\[(error|crit)\] .*)|\[wasm\] .*? response body chunk: .*?(?=\s+<))/
+--- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
-qr/\[error\] \S+ \[wasm\] cannot set response body
-\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "header_filter" phase, .*
-\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "body_filter" phase, .*
-\[error\] \S+ \[wasm\] cannot set response body
-\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "body_filter" phase, .*
+qr/\[error\] \S+ \[wasm\] cannot set response body.*?
+\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "header_filter" phase
+\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "body_filter" phase
+\[error\] \S+ \[wasm\] cannot set response body.*?
+\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "body_filter" phase
 \[error\] \S+ \[wasm\] cannot set response body/
 --- no_error_log
 [emerg]
