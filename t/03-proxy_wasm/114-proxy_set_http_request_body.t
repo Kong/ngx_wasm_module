@@ -28,7 +28,7 @@ Hello world
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -48,7 +48,7 @@ Hello world
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -95,7 +95,7 @@ Hello world
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -153,7 +153,7 @@ HelloWorld
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -194,7 +194,7 @@ HelloWorld
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -240,5 +240,5 @@ qr/\[error\] .*? \[wasm\] cannot set request body.*?
 \[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "body_filter" phase
 \[error\] .*? \[wasm\] cannot set request body/
 --- no_error_log
-[emerg]
 [alert]
+[stderr]

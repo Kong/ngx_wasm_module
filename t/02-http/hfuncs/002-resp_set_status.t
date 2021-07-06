@@ -31,7 +31,7 @@ __DATA__
     }
 --- response_body
 --- no_error_log
-[emerg]
+[error]
 
 
 
@@ -45,7 +45,7 @@ __DATA__
 --- response_body
 hello say
 --- no_error_log
-[emerg]
+[error]
 
 
 
@@ -60,4 +60,4 @@ hello say
 --- grep_error_log_out eval
 qr/\[wasm\] bad host usage: headers already sent/
 --- no_error_log
-[emerg]
+[alert]

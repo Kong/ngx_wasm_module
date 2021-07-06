@@ -21,7 +21,7 @@ qq{
 qr/\[info\] .*? \[wasm\] loading "ngx-rust-tests" module <vm: "main", runtime: ".*?">/
 --- no_error_log
 [error]
-[emerg]
+[crit]
 
 
 
@@ -40,7 +40,7 @@ qr/\[info\] .*? \[wasm\] loading "ngx-rust-tests" module <vm: "main", runtime: "
 qr/\[info\] .*? \[wasm\] loading "a" module <vm: "main", runtime: ".*?">/
 --- no_error_log
 [error]
-[emerg]
+[crit]
 
 
 
@@ -58,7 +58,7 @@ qr/\[info\] .*? \[wasm\] loading "a" module <vm: "main", runtime: ".*?">/
 [qr/\[debug\] .*? wasm loading "a" module bytes from ".*?a\.wat"/,
 qr/\[debug\] .*? wasm loading "b" module bytes from ".*?a\.wat"/]
 --- no_error_log
-[emerg]
+[error]
 
 
 
@@ -210,7 +210,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 qr/\[alert\] .*? \[wasm\] NYI: module import type not supported <vm: "main", runtime: ".*?">/
 --- no_error_log
 [error]
-[emerg]
+[crit]
 
 
 

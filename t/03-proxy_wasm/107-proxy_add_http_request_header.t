@@ -13,7 +13,7 @@ add_block_preprocessor(sub {
 
     if (!defined $block->no_error_log) {
         $block->set_value("no_error_log",
-                          "[error]\n[crit]\n[emerg]");
+                          "[error]\n[crit]\n[alert]");
     }
 });
 
@@ -143,8 +143,8 @@ Host: localhost
 qr/\[error\] .*? \[wasm\] cannot add new "Host" builtin request header/
 --- no_error_log
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -224,8 +224,8 @@ Content-Length: 0
 qr/\[error\] .*? \[wasm\] cannot add new "Content-Length" builtin request header/
 --- no_error_log
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -244,8 +244,8 @@ Content-Length
 qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: ""/
 --- no_error_log
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -264,8 +264,8 @@ Content-Length
 qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: "FF"/
 --- no_error_log
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -305,8 +305,8 @@ User-Agent: Mozilla\/4\.0
 qr/\[error\] .*? \[wasm\] cannot add new "User-Agent" builtin request header/
 --- no_error_log
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -366,8 +366,8 @@ If-Modified-Since: Mon, 8 Sep 2015 07:28:00 GMT
 qr/\[error\] .*? \[wasm\] cannot add new "If-Modified-Since" builtin request header/
 --- no_error_log
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 

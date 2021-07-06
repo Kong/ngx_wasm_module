@@ -17,7 +17,7 @@ __DATA__
 initializing "main" wasm VM
 --- no_error_log
 [error]
-[emerg]
+[crit]
 
 
 
@@ -26,7 +26,7 @@ initializing "main" wasm VM
 --- no_error_log
 wasm VM
 [error]
-[emerg]
+[crit]
 
 
 

@@ -35,7 +35,7 @@ __DATA__
 ]
 --- no_error_log
 [error]
-[emerg]
+[crit]
 [alert]
 
 
@@ -86,10 +86,10 @@ __DATA__
 ok
 --- no_error_log
 on_tick 50000
-[warn]
 [error]
 [crit]
-[emerg]
+[alert]
+[stderr]
 
 
 

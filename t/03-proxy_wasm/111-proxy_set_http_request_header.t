@@ -76,7 +76,7 @@ Connection: close
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -96,7 +96,7 @@ Connection: close
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 

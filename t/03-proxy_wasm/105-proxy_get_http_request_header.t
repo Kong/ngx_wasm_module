@@ -47,12 +47,12 @@ GET /t/echo/header/Some-Header
 --- response_body
 Some-Header:
 --- no_error_log
-[warn]
 [error]
 [crit]
-[emerg]
 [alert]
 [stderr]
+stub
+stub
 
 
 
@@ -74,7 +74,7 @@ Some-Header:
 ]
 --- no_error_log
 [error]
-[alert]
+[crit]
 
 
 
@@ -89,12 +89,12 @@ GET /t/echo/header/:path
 --- response_body
 :path: /t/echo/header/:path
 --- no_error_log
-[warn]
 [error]
-[emerg]
-[alert]
 [crit]
+[alert]
 [stderr]
+stub
+stub
 
 
 
@@ -109,12 +109,12 @@ GET //t/echo//header/:path
 --- response_body
 :path: /t/echo/header/:path
 --- no_error_log
-[warn]
 [error]
 [crit]
-[emerg]
 [alert]
 [stderr]
+stub
+stub
 
 
 
@@ -136,12 +136,12 @@ GET /t
 --- response_body
 :path: /t/echo/header/:path
 --- no_error_log
-[warn]
 [error]
 [crit]
-[emerg]
 [alert]
 [stderr]
+stub
+stub
 
 
 

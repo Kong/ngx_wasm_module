@@ -29,7 +29,7 @@ Hello: world
 [error]
 [crit]
 [alert]
-[emerg]
+[stderr]
 
 
 
@@ -49,10 +49,10 @@ qq{Host: localhost
 Connection: close
 }.(CORE::join "\n", map { "Header$_: value-$_" } 1..20) . "\n"
 --- no_error_log
-[warn]
 [error]
-[emerg]
 [crit]
+[alert]
+[stderr]
 
 
 
@@ -78,7 +78,7 @@ Connection: close
 ]
 --- no_error_log
 [error]
-[emerg]
+[alert]
 
 
 
@@ -163,4 +163,4 @@ PWM-Test-Case: /t/log/request_headers
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]

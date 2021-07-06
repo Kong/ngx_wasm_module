@@ -53,10 +53,10 @@ GET /t/send_local_response/status/300
 --- error_code: 300
 --- response_body
 --- no_error_log
-[warn]
 [error]
 [crit]
-[emerg]
+[alert]
+stub
 
 
 
@@ -104,7 +104,7 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 4 headers/
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -175,8 +175,8 @@ Hello world
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
+stub
 
 
 
@@ -199,7 +199,7 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -240,7 +240,7 @@ qr/\[wasm\] .*? on_request_headers, 2 headers
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -372,8 +372,8 @@ ok
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
+stub
 
 
 
@@ -398,8 +398,8 @@ Hello world
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
+stub
 
 
 
@@ -430,7 +430,7 @@ qr/\[wasm\] #\d+ on_request_headers, \d+ headers
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 

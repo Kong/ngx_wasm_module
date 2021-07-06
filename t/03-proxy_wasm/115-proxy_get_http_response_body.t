@@ -119,8 +119,8 @@ qr/\[wasm\] #\d+ on_response_body, 21 bytes, end_of_stream false
 \[wasm\] response body chunk: "aaaaaaaaaa"
 \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
 --- no_error_log
+[crit]
 [alert]
-[emerg]
 
 
 

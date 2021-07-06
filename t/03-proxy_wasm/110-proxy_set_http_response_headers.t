@@ -93,4 +93,4 @@ pwm-set-resp-headers: Connection=closed
 qr/\[error\] .*? \[wasm\] attempt to set invalid Connection response header: "closed"/
 --- no_error_log
 [crit]
-[emerg]
+[alert]
