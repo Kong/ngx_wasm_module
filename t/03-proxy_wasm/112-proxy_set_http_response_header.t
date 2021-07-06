@@ -194,7 +194,6 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 
 === TEST 8: proxy_wasm - set_http_response_header() sets Connection header (keep-alive)
 --- abort
---- timeout: 3s
 --- wasm_modules: hostcalls
 --- config
     location /t {

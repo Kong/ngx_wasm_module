@@ -87,11 +87,12 @@ jobs:
   valgrind:
     name: 'Tests - unit (valgrind)'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 60
     env:
       NGX_BUILD_FORCE: 1
       NGX_BUILD_NOPOOL: 1
       TEST_NGINX_USE_VALGRIND: 1
+      TEST_NGINX_RANDOMIZE: 0
     strategy:
       fail-fast: false
       matrix:
@@ -101,7 +102,7 @@ jobs:
         runtime: [wasmtime, wasmer]
         wasmtime: [0.27.0]
         wasmer: [2.0.0]
-        hup: [1, 0]
+        hup: [0]
         debug: [1]
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind gcc-8

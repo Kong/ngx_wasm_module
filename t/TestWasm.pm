@@ -27,11 +27,11 @@ $ENV{TEST_NGINX_HTML_DIR} = html_dir();
 $ENV{TEST_NGINX_UNIX_SOCKET} = html_dir() . "/nginx.sock";
 
 sub skip_valgrind {
-    if ($ENV{TEST_NGINX_USE_VALGRIND} && $ENV{CI}
-        && $nginxV =~ m{\[.*?wasmtime.*?\]}s)
-    {
-        plan skip_all => 'wasmtime too slow with Valgrind';
-    }
+    #if ($ENV{TEST_NGINX_USE_VALGRIND} && $ENV{CI}
+    #    && $nginxV =~ m{\[.*?(wasmtime|wasmer).*?\]}s)
+    #{
+    #    plan skip_all => 'wasm runtimes too slow with Valgrind';
+    #}
 }
 
 sub skip_no_debug {
@@ -116,7 +116,7 @@ add_block_preprocessor(sub {
     if (defined $block->skip_valgrind
         && $ENV{TEST_NGINX_USE_VALGRIND}
         && $ENV{CI}
-        && $nginxV =~ m{\[.*?wasmtime.*?\]}s
+        && $nginxV =~ m{\[.*?(wasmtime|wasmer).*?\]}s
         && $block->skip_valgrind =~ m/\s*(\d+)/)
     {
         $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND}', $1);

@@ -269,7 +269,6 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
 
 === TEST 10: proxy_wasm - get_http_response_header() get Connection header (keep-alive)
 --- abort
---- timeout: 3s
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -332,7 +331,6 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
 
 === TEST 12: proxy_wasm - get_http_response_header() get Keep-Alive header
 --- abort
---- timeout: 3s
 --- wasm_modules: hostcalls
 --- config
     location /t {

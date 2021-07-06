@@ -33,14 +33,14 @@ injected (too late) by ngx_http_header_filter
     }
 --- response_headers_like
 Content-Length: 10
-Server: nginx\/\d+\.\d+\.\d+
+Server: nginx\/\d+\.\d+\.\d+.*
 Date: .*? GMT
 Content-Type: text\/plain
 --- ignore_response_body
 --- grep_error_log eval: qr/wasm setting response header: .*?$/
 --- grep_error_log_out eval
 qr/wasm setting response header: "Content-Length: 10"
-wasm setting response header: "Server: nginx\/\d+\.\d+\.\d+"
+wasm setting response header: "Server: nginx\/\d+\.\d+\.\d+.*"
 wasm setting response header: "Date: .*? GMT"
 /
 --- no_error_log
@@ -70,7 +70,7 @@ hello say
         wasm_call content ngx_rust_tests say_hello;
     }
 --- response_headers_like
-Server: nginx\/\d+\.\d+\.\d+ \(ngx_wasm_module \[.*?\]\)
+Server: nginx\/\d+\.\d+\.\d+(\s\(no pool\))? \(ngx_wasm_module \[.*?\]\)
 --- response_body
 hello say
 
