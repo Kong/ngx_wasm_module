@@ -3,17 +3,14 @@
 
 
 #include <ngx_core.h>
-
+#include <wasm.h>
 
 #if NGX_WASM_HAVE_WASMTIME
-#include <wasm.h>
 #include <wasmtime.h>
-
 
 typedef struct wasmtime_error_t  ngx_wrt_res_t;
 #elif NGX_WASM_HAVE_WASMER
 #include <wasmer.h>
-
 
 typedef ngx_str_t  ngx_wrt_res_t;
 #endif /* NGX_WASM_HAVE_* */
