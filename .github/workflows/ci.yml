@@ -85,14 +85,13 @@ jobs:
           fail_ci_if_error: true
 
   valgrind:
-    name: 'Tests - unit (valgrind)'
+    name: 'Tests - valgrind'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 20
     env:
       NGX_BUILD_FORCE: 1
       NGX_BUILD_NOPOOL: 1
       TEST_NGINX_USE_VALGRIND: 1
-      TEST_NGINX_RANDOMIZE: 0
     strategy:
       fail-fast: false
       matrix:
