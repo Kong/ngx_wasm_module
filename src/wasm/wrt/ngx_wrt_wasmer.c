@@ -12,7 +12,7 @@ static void ngx_wasmer_last_err(ngx_wrt_res_t **res);
 void
 ngx_wrt_config_init(wasm_config_t *config)
 {
-    //wasm_config_set_compiler(config, LLVM);
+    wasm_config_set_compiler(config, SINGLEPASS);
     //wasm_config_set_engine(config, UNIVERSAL);
 }
 
