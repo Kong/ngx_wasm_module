@@ -52,7 +52,7 @@ export TEST_NGINX_SERVROOT=${TEST_NGINX_SERVROOT:=$DIR_PREFIX}
 export TEST_NGINX_BINARY=${TEST_NGINX_BINARY:=$DIR_BUILDROOT/nginx}
 export TEST_NGINX_SLEEP=${TEST_NGINX_SLEEP:=0.2}
 export TEST_NGINX_PORT=${TEST_NGINX_PORT:=1984}
-export TEST_NGINX_TIMEOUT=${TEST_NGINX_TIMEOUT:=10}
+export TEST_NGINX_TIMEOUT=${TEST_NGINX_TIMEOUT:=6}
 export TEST_NGINX_RESOLVER=${TEST_NGINX_RESOLVER:=8.8.4.4}
 export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/asan.suppress"
 #export TEST_NGINX_NO_SHUFFLE=1
@@ -92,12 +92,13 @@ cargo build \
     -Z unstable-options
 
 if [[ ! -z "$TEST_NGINX_USE_VALGRIND" ]]; then
-    export TEST_NGINX_SLEEP=0.5
-    export TEST_NGINX_TIMEOUT=20
+    export TEST_NGINX_SLEEP=3
+    export TEST_NGINX_TIMEOUT=30
     echo "TEST_NGINX_USE_VALGRIND=$TEST_NGINX_USE_VALGRIND"
     echo "TEST_NGINX_SLEEP=$TEST_NGINX_SLEEP"
     echo "TEST_NGINX_TIMEOUT=$TEST_NGINX_TIMEOUT"
     valgrind --version
+    echo
 fi
 
 if [[ ! -z "$TEST_NGINX_USE_HUP" ]]; then
@@ -105,10 +106,11 @@ if [[ ! -z "$TEST_NGINX_USE_HUP" ]]; then
 fi
 
 if [[ ! -z "$TEST_NGINX_RANDOMIZE" ]]; then
-    echo "TEST_NGINX_RANDOMIZE=$TEST_NGINX_RANDOMIZE"
     prove_opts="-j$(n_jobs)"
+    echo "TEST_NGINX_RANDOMIZE=$TEST_NGINX_RANDOMIZE ($prove_opts)"
 fi
 
+echo
 echo $TEST_NGINX_BINARY
 echo
 eval "$TEST_NGINX_BINARY -V"

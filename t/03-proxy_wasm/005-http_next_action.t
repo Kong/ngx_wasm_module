@@ -24,8 +24,6 @@ should delay pause until access phase (NGX_AGAIN)
         # does not work with return which runs in rewrite
         #return 200;
     }
---- wait: 1
---- timeout: 200ms
 --- abort
 --- error_code:
 --- response_body
@@ -49,8 +47,6 @@ should pause on content phase (NGX_AGAIN)
 --- request
 POST /t
 Hello world
---- wait: 1
---- timeout: 200ms
 --- abort
 --- error_code:
 --- response_body

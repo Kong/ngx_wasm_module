@@ -159,7 +159,6 @@ qr/\[wasm\] #\d+ on_request_headers, 23 headers
 
 === TEST 7: proxy_wasm - set_http_request_header() sets Connection header (keep-alive)
 --- abort
---- timeout: 3s
 --- wasm_modules: hostcalls
 --- config
     location /t {
