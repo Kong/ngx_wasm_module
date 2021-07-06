@@ -101,192 +101,112 @@
     fun:main
 }
 {
-   <wasmtime: wasmtime_module_new false positive in Valgrind 3.13 (gone in 3.16.0)>
-   Memcheck:Cond
+   <wasmtime 0.27.0: wasmtime_config_strategy_set>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
    ...
-   fun:wasmtime_module_new
-   fun:ngx_wrt_module_new
-   fun:ngx_wavm_module_load
-   fun:ngx_wavm_load
-   ...
+   fun:wasmtime_config_strategy_set
+   fun:ngx_wrt_config_init
 }
 {
-   <wasmtime: wasmtime_module_validate false positive in Valgrind 3.13 (gone in 3.16.0)>
+   <wasmtime 0.27.0: wasmtime_module_validate uninitialized value>
    Memcheck:Cond
-   ...
+   fun:_ZN10wasmparser9validator9Validator3end17h6955d00fdb22111cE
+   fun:_ZN10wasmparser9validator9Validator7payload17h272b73afe66f18cfE
+   fun:_ZN10wasmparser9validator9Validator12validate_all17hce53f4753f0b7720E
+   fun:_ZN8wasmtime6module6Module8validate17h090d81b3c54bbd5cE
    fun:wasmtime_module_validate
    fun:ngx_wrt_module_validate
    fun:ngx_wavm_module_load_bytes
-   fun:ngx_wavm_init
-   ...
 }
 {
-   <wasmer 1.0.2: vectors with ownership, instance funcs>
+   <wasmtime 0.27.0: wasmtime_module_new uninitialized value>
+   Memcheck:Cond
+   fun:_ZN10wasmparser9validator9Validator3end17h6955d00fdb22111cE
+   fun:_ZN14cranelift_wasm17module_translator16translate_module17h242415a154be529fE
+   fun:_ZN16wasmtime_environ14module_environ17ModuleEnvironment9translate17h8d96f18b8bfda7afE
+   fun:_ZN12wasmtime_jit11instantiate20CompilationArtifacts5build17h068e11aee069f43aE
+   fun:_ZN4core3ops8function6FnOnce9call_once17h5133cd7b1f742504E
+   fun:_ZN14wasmtime_cache16ModuleCacheEntry8get_data17h706b9ea26ec0aadcE
+   fun:_ZN8wasmtime6module6Module11from_binary17ha858ba0c9026d47bE
+   fun:wasmtime_module_new
+   fun:ngx_wrt_module_new
+   fun:ngx_wavm_module_load
+}
+{
+   <wasmer 2.0.0: wasm_module_validate uninitialized value>
+   Memcheck:Cond
+   fun:_ZN10wasmparser9validator9Validator3end17hdbe24a0b33be62d9E
+   fun:_ZN10wasmparser9validator9Validator7payload17h45978f283176c1b5E
+   fun:_ZN10wasmparser9validator9Validator12validate_all17h70b546727241e566E
+   fun:_ZN15wasmer_compiler8compiler8Compiler15validate_module17h246aa6b8df67f941E
+   fun:_ZN98_$LT$wasmer_engine_universal..engine..UniversalEngine$u20$as$u20$wasmer_engine..engine..Engine$GT$8validate17hffcd23acc7e90a97E
+   fun:_ZN6wasmer6module6Module8validate17h97f3f42d2b26b388E
+   fun:wasm_module_validate
+}
+{
+   <wasmer 2.0.0: vectors with ownership? functype>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
-   fun:wasm_extern_as_func
-   fun:ngx_wavm_instance_create
    ...
-}
-{
-   <wasmer 1.0.2: vectors with ownership, instance envs>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   fun:wasm_func_new_with_env
-   fun:ngx_wavm_instance_create
-   ...
-}
-{
-   <wasmer 1.0.2: vectors with ownership, >
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h5750df829ca5703dE
-   fun:_ZN12wasmer_c_api10wasm_c_api5types8function16WasmFunctionType3new17h79e1bc0252b6d468E
-   fun:_ZN12wasmer_c_api10wasm_c_api5types7extern_17wasm_externtype_t3new17heff901d71bc1bc04E
    fun:wasm_functype_new
-   fun:ngx_wavm_host_hfunc_create
-   fun:ngx_wavm_module_link
-   ...
 }
 {
-   <wasmer 1.0.2: vectors with ownership, module imports 1/2>
+   <wasmer 2.0.0: vectors with ownership? module imports 1>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
-   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h5750df829ca5703dE
-   fun:_ZN12wasmer_c_api10wasm_c_api5types8function16WasmFunctionType3new17h79e1bc0252b6d468E
-   fun:_ZN138_$LT$wasmer_c_api..wasm_c_api..types..extern_..wasm_externtype_t$u20$as$u20$core..convert..From$LT$wasmer_types..types..ExternType$GT$$GT$4from17hc5e1479a964d2f1dE
-   fun:_ZN142_$LT$wasmer_c_api..wasm_c_api..types..extern_..wasm_externtype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ExternType$GT$$GT$4from17h5db484fd573a79a3E
-   fun:_ZN141_$LT$wasmer_c_api..wasm_c_api..types..import..wasm_importtype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ImportType$GT$$GT$4from17h5c11f4f825fbc78bE
-   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h7c0a37edf6698157E
+   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h154269fb10e643e2E
+   fun:_ZN12wasmer_c_api10wasm_c_api5types8function16WasmFunctionType3new17hec44a425efd98aeeE
+   fun:_ZN138_$LT$wasmer_c_api..wasm_c_api..types..extern_..wasm_externtype_t$u20$as$u20$core..convert..From$LT$wasmer_types..types..ExternType$GT$$GT$4from17h331c69924d9c4c4aE
+   fun:_ZN142_$LT$wasmer_c_api..wasm_c_api..types..extern_..wasm_externtype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ExternType$GT$$GT$4from17h2959810bd9a1b1daE
+   fun:_ZN141_$LT$wasmer_c_api..wasm_c_api..types..import..wasm_importtype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ImportType$GT$$GT$4from17hfafe20a44b47bfd4E
+   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h0af122303448b514E
    fun:wasm_module_imports
-   ...
 }
 {
-   <wasmer 1.0.2: vectors with ownership, module imports 2/2>
+   <wasmer 2.0.0: vectors with ownership? module imports 2>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
-   fun:_ZN141_$LT$wasmer_c_api..wasm_c_api..types..import..wasm_importtype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ImportType$GT$$GT$4from17h5c11f4f825fbc78bE
-   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h7c0a37edf6698157E
+   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h0a4e053b7d1f2fc8E
+   fun:_ZN12wasmer_c_api10wasm_c_api5types8function16WasmFunctionType3new17hbedb716e5b5e187eE
+   fun:_ZN138_$LT$wasmer_c_api..wasm_c_api..types..extern_..wasm_externtype_t$u20$as$u20$core..convert..From$LT$wasmer_types..types..ExternType$GT$$GT$4from17hdd88ab716fc48720E
+   fun:_ZN142_$LT$wasmer_c_api..wasm_c_api..types..extern_..wasm_externtype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ExternType$GT$$GT$4from17hd9906d66a5d4d654E
+   fun:_ZN141_$LT$wasmer_c_api..wasm_c_api..types..import..wasm_importtype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ImportType$GT$$GT$4from17hdacc86d699937df6E
+   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h8706c3afd4a731edE
    fun:wasm_module_imports
-   ...
 }
 {
-   <wasmer 1.0.2: vectors with ownership, module exports 1/2>
+   <wasmer 2.0.0: vectors with ownership? module exports>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
-   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h5750df829ca5703dE
-   fun:_ZN12wasmer_c_api10wasm_c_api5types8function16WasmFunctionType3new17h79e1bc0252b6d468E
-   fun:_ZN138_$LT$wasmer_c_api..wasm_c_api..types..extern_..wasm_externtype_t$u20$as$u20$core..convert..From$LT$wasmer_types..types..ExternType$GT$$GT$4from17hc5e1479a964d2f1dE
-   fun:_ZN142_$LT$wasmer_c_api..wasm_c_api..types..extern_..wasm_externtype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ExternType$GT$$GT$4from17h5db484fd573a79a3E
-   fun:_ZN141_$LT$wasmer_c_api..wasm_c_api..types..export..wasm_exporttype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ExportType$GT$$GT$4from17h236d6ec56984742bE
-   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h0e78703e18998f63E
-   ...
-}
-{
-   <wasmer 1.0.2: vectors with ownership, module exports 2/2>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   fun:_ZN141_$LT$wasmer_c_api..wasm_c_api..types..export..wasm_exporttype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ExportType$GT$$GT$4from17h236d6ec56984742bE
-   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h0e78703e18998f63E
+   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h0a4e053b7d1f2fc8E
+   fun:_ZN12wasmer_c_api10wasm_c_api5types8function16WasmFunctionType3new17hbedb716e5b5e187eE
+   fun:_ZN138_$LT$wasmer_c_api..wasm_c_api..types..extern_..wasm_externtype_t$u20$as$u20$core..convert..From$LT$wasmer_types..types..ExternType$GT$$GT$4from17hdd88ab716fc48720E
+   fun:_ZN142_$LT$wasmer_c_api..wasm_c_api..types..extern_..wasm_externtype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ExternType$GT$$GT$4from17hd9906d66a5d4d654E
+   fun:_ZN141_$LT$wasmer_c_api..wasm_c_api..types..export..wasm_exporttype_t$u20$as$u20$core..convert..From$LT$$RF$wasmer_types..types..ExportType$GT$$GT$4from17h5f86d28ae87b5879E
+   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h2aa8cf86aa30562fE
    fun:wasm_module_exports
-   ...
 }
 {
-   <wasmer 1.0.2: ... 1/2>
+   <wasmer 2.0.0: ...>
    Memcheck:Leak
    match-leak-kinds: definite
-   fun:malloc
    ...
-   fun:_ZN135_$LT$wasmer_vm..vmcontext..VMDynamicFunctionContext$LT$T$GT$$u20$as$u20$wasmer..externals..function..VMDynamicFunctionCall$LT$T$GT$$GT$12func_wrapper17hef383e73564b6d8bE.llvm.1230403430383385847
-   ...
-   fun:RegisterSetjmp
-   ...
-   fun:wasm_func_call
-   fun:ngx_wrt_func_call
-   fun:ngx_wavm_func_call
-   ...
+   fun:_ZN12wasmer_c_api10wasm_c_api9externals8function22wasm_func_new_with_env28_$u7b$$u7b$closure$u7d$$u7d$17h1415df8c8c571251E
+   fun:_ZN101_$LT$std..panic..AssertUnwindSafe$LT$F$GT$$u20$as$u20$core..ops..function..FnOnce$LT$$LP$$RP$$GT$$GT$9call_once17h222729228f495ab7E
+   fun:_ZN135_$LT$wasmer_vm..vmcontext..VMDynamicFunctionContext$LT$T$GT$$u20$as$u20$wasmer..externals..function..VMDynamicFunctionCall$LT$T$GT$$GT$12func_wrapper17hc8516d585fd40a28E
 }
 {
-   <wasmer 1.0.2: ... 2/2>
+   <wasmer 2.0.0: ...>
    Memcheck:Leak
    match-leak-kinds: definite
-   fun:realloc
    ...
-   fun:_ZN135_$LT$wasmer_vm..vmcontext..VMDynamicFunctionContext$LT$T$GT$$u20$as$u20$wasmer..externals..function..VMDynamicFunctionCall$LT$T$GT$$GT$12func_wrapper17hef383e73564b6d8bE.llvm.1230403430383385847
-   ...
-   fun:RegisterSetjmp
-   ...
-   fun:wasm_func_call
-   fun:ngx_wrt_func_call
-   fun:ngx_wavm_func_call
-   ...
-}
-{
-   <wasmer 1.0.2: wasm_instance_new 1/4>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   fun:_ZN13wasmer_engine8tunables8Tunables13create_tables17ha5e7563bb365644fE
-   fun:_ZN13wasmer_engine8artifact8Artifact11instantiate17h363136c5126093ffE
-   fun:_ZN6wasmer6module6Module11instantiate17h47071a99dba52461E
-   fun:_ZN6wasmer8instance8Instance3new17h857eba1234ba725bE
-   fun:wasm_instance_new
-   ...
-}
-{
-   <wasmer 1.0.2: wasm_instance_new 2/4>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   fun:_ZN84_$LT$wasmer..tunables..BaseTunables$u20$as$u20$wasmer_engine..tunables..Tunables$GT$15create_vm_table17he2b7d0253d463835E
-   fun:_ZN13wasmer_engine8tunables8Tunables13create_tables17ha5e7563bb365644fE
-   fun:_ZN13wasmer_engine8artifact8Artifact11instantiate17h363136c5126093ffE
-   fun:_ZN6wasmer6module6Module11instantiate17h47071a99dba52461E
-   fun:_ZN6wasmer8instance8Instance3new17h857eba1234ba725bE
-   fun:wasm_instance_new
-   ...
-}
-{
-   <wasmer 1.0.2: wasm_instance_new 3/4>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   fun:_ZN13wasmer_engine8tunables8Tunables15create_memories17h8cf1c607dc9ddfd6E
-   fun:_ZN13wasmer_engine8artifact8Artifact11instantiate17h363136c5126093ffE
-   fun:_ZN6wasmer6module6Module11instantiate17h47071a99dba52461E
-   fun:_ZN6wasmer8instance8Instance3new17h857eba1234ba725bE
-   fun:wasm_instance_new
-   ...
-}
-{
-   <wasmer 1.0.2: wasm_instance_new 4/4>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   fun:_ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$11allocate_in17hc63f00d4a413fcb6E
-   fun:_ZN9wasmer_vm5table11LinearTable9new_inner17h3be122051315434eE
-   fun:_ZN9wasmer_vm5table11LinearTable15from_definition17he1e78899d8eb398fE
-   fun:_ZN84_$LT$wasmer..tunables..BaseTunables$u20$as$u20$wasmer_engine..tunables..Tunables$GT$15create_vm_table17he2b7d0253d463835E
-   fun:_ZN13wasmer_engine8tunables8Tunables13create_tables17ha5e7563bb365644fE
-   fun:_ZN13wasmer_engine8artifact8Artifact11instantiate17h363136c5126093ffE
-   fun:_ZN6wasmer6module6Module11instantiate17h47071a99dba52461E
-   fun:_ZN6wasmer8instance8Instance3new17h857eba1234ba725bE
-   fun:wasm_instance_new
-   ...
-}
-{
-   <wasmer 1.0.2: leak of wasm_extern_as_memory tied to wasm_instance_t>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   fun:wasm_extern_as_memory
-   fun:ngx_wavm_instance_create
-   ...
+   fun:_ZN12wasmer_c_api10wasm_c_api9externals8function22wasm_func_new_with_env28_$u7b$$u7b$closure$u7d$$u7d$17h500109d2acf40e46E
+   fun:_ZN101_$LT$std..panic..AssertUnwindSafe$LT$F$GT$$u20$as$u20$core..ops..function..FnOnce$LT$$LP$$RP$$GT$$GT$9call_once17h1ca6046700be41abE
+   fun:_ZN135_$LT$wasmer_vm..vmcontext..VMDynamicFunctionContext$LT$T$GT$$u20$as$u20$wasmer..externals..function..VMDynamicFunctionCall$LT$T$GT$$GT$12func_wrapper17h11f8519b1665a5c1E
 }
