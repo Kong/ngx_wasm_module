@@ -33,7 +33,7 @@ Welcome: wasm
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -60,7 +60,7 @@ X-Forwarded-For: 128.168.0.1
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -80,4 +80,4 @@ Welcome: wasm
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]

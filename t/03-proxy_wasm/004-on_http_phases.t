@@ -30,9 +30,9 @@ ok
 qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 --- no_error_log
 [error]
-[emerg]
-[alert]
 [crit]
+[alert]
+[stderr]
 
 
 
@@ -54,8 +54,8 @@ qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 11 bytes, end_of_stream: true/
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -79,8 +79,8 @@ qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 20 bytes, end_of_stream: true/
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -107,7 +107,7 @@ ok
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -132,8 +132,8 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -157,8 +157,8 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -175,8 +175,8 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream: true/
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -193,8 +193,8 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream: true/
 on_response_body
 [error]
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -216,7 +216,7 @@ hello world
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -251,7 +251,7 @@ Hello
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -270,8 +270,8 @@ qr/\[info\] .*? \[wasm\] #\d+ on_log/
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
+[stderr]
 
 
 
@@ -336,9 +336,9 @@ ok
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
 [stderr]
+stub
 
 
 
@@ -358,9 +358,9 @@ ok
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
 [stderr]
+stub
 
 
 
@@ -556,7 +556,7 @@ qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
 --- no_error_log
 [error]
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -582,9 +582,9 @@ qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
 [stderr]
+stub
 
 
 
@@ -610,9 +610,9 @@ qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
 --- no_error_log
 [error]
 [crit]
-[emerg]
 [alert]
 [stderr]
+stub
 
 
 
@@ -640,7 +640,7 @@ qr/log_msg: server .*? request: "GET \/t\s+/
     qr/log_msg: http .*? request: "GET \/t\s+/,
     qr/\[error\]/,
     qr/\[crit\]/,
-    qr/\[emerg\]/
+    qr/\[alert\]/
 ]
 
 
@@ -669,7 +669,7 @@ qr/log_msg: location .*? request: "GET \/t\s+/
     qr/log_msg: server .*? request: "GET \/t\s+/,
     qr/\[error\]/,
     qr/\[crit\]/,
-    qr/\[emerg\]/
+    qr/\[alert\]/
 ]
 
 

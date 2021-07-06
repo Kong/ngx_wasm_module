@@ -13,7 +13,7 @@ add_block_preprocessor(sub {
 
     if (!defined $block->no_error_log) {
         $block->set_value("no_error_log",
-                          "[error]\n[crit]\n[emerg]");
+                          "[error]\n[crit]\n[alert]");
     }
 });
 
@@ -218,7 +218,7 @@ pwm-add-resp-header: Content-Length=3
 qr/\[error\] .*? \[wasm\] cannot add new "Content-Length" builtin response header/
 --- no_error_log
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -238,7 +238,7 @@ pwm-add-resp-header: Content-Length=
 qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length response header: ""/
 --- no_error_log
 [crit]
-[emerg]
+[alert]
 
 
 
@@ -261,7 +261,7 @@ Content-Length: 0
 qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length response header: "FF"/
 --- no_error_log
 [crit]
-[emerg]
+[alert]
 
 
 

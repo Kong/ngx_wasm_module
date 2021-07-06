@@ -8,7 +8,7 @@ skip_valgrind();
 
 #repeat_each(2);
 
-plan tests => repeat_each() * (blocks() * 7);
+plan tests => repeat_each() * (blocks() * 5);
 
 run_tests();
 
@@ -27,8 +27,6 @@ qr/\[info\] .*? \[wasm\] #0 on_vm_start, config_size: 0/
 --- no_error_log
 [error]
 [crit]
-[emerg]
-[alert]
 
 
 
@@ -45,8 +43,6 @@ qr/\[info\] .*? \[wasm\] #0 on_configure, config_size: 0/
 --- no_error_log
 [error]
 [crit]
-[emerg]
-[alert]
 
 
 
@@ -65,5 +61,3 @@ qr/\[info\] .*? \[wasm\] #0 on_configure, config_size: 0/
 ]
 --- no_error_log
 [error]
-[crit]
-[emerg]

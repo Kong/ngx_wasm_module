@@ -326,5 +326,5 @@ qr/\[error\] \S+ \[wasm\] cannot set response body.*?
 \[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "body_filter" phase
 \[error\] \S+ \[wasm\] cannot set response body/
 --- no_error_log
-[emerg]
 [alert]
+[stderr]

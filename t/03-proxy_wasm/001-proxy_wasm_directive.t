@@ -90,7 +90,7 @@ qr/\[emerg\] .*? invalid module name ""/
 --- no_error_log
 [warn]
 [error]
-[emerg]
+[stderr]
 
 
 
@@ -181,7 +181,7 @@ qr/\[emerg\] .*? invalid module name ""/
 --- no_error_log
 [warn]
 [error]
-[emerg]
+[stderr]
 
 
 

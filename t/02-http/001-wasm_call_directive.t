@@ -220,8 +220,8 @@ qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "a" module/
 --- error_log eval
 qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?integer divide by zero/
 --- no_error_log
-[emerg]
 [crit]
+[alert]
 
 
 
@@ -246,7 +246,7 @@ qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?integer divide by zero/
 wasm ops calling "a.nop" in "rewrite" phase
 --- no_error_log
 [error]
-[emerg]
+[crit]
 
 
 
@@ -271,7 +271,7 @@ wasm ops calling "a.nop" in "rewrite" phase
 --- error_log
 wasm ops calling "a.nop" in "content" phase
 --- no_error_log
-[emerg]
+[error]
 
 
 
@@ -296,7 +296,7 @@ wasm ops calling "a.nop" in "content" phase
 wasm ops calling "a.nop" in "log" phase
 --- no_error_log
 [error]
-[emerg]
+[crit]
 
 
 
