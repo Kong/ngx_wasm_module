@@ -8,6 +8,9 @@ defaults:
   run:
     shell: bash
 
+env:
+  TEST_NGINX_RANDOMIZE: 1
+
 jobs:
   tests:
     name: 'Tests - unit (large)'
@@ -16,7 +19,6 @@ jobs:
     env:
       NGX_BUILD_FORCE: 1
     strategy:
-      max-parallel: 2
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -66,6 +68,78 @@ jobs:
       - run: make test
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+
+  valgrind:
+    name: 'Tests - valgrind (large)'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    env:
+      NGX_BUILD_FORCE: 1
+      NGX_BUILD_NOPOOL: 1
+      TEST_NGINX_USE_VALGRIND: 1
+      TEST_NGINX_VALGRIND_ALL: 1
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        cc: [gcc-8]
+        ngx: [1.21.0]
+        runtime: [wasmtime, wasmer]
+        wasmtime: [0.27.0]
+        wasmer: [2.0.0]
+        hup: [0, 1]
+        debug: [1]
+    steps:
+      - run: sudo apt-get update && sudo apt-get install -y valgrind gcc-8
+      - uses: actions/checkout@v2
+      - name: "Set up cache - rustup toolchain"
+        uses: actions/cache@v2
+        if: ${{ !env.ACT }}
+        with:
+          path: |
+            ~/.rustup/settings.toml
+            ~/.rustup/toolchains/*
+            ~/.rustup/update-hashes/*
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+      - name: "Set up cache - ngx_wasm work/ dir"
+        uses: actions/cache@v2
+        if: ${{ !env.ACT }}
+        id: cache
+        with:
+          path: |
+            work
+            !work/scans
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
+      - name: Set up rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          target: wasm32-unknown-unknown
+      - name: Set up Wasm runtime
+        uses: ./.github/actions/wasm-runtime
+        with:
+          runtime: ${{ matrix.runtime }}
+          version: ${{ matrix[matrix.runtime] }}
+      - run: make setup
+      - run: make
+        env:
+          CC: ${{ matrix.cc }}
+          NGX: ${{ matrix.ngx }}
+          NGX_BUILD_DEBUG: ${{ matrix.debug }}
+      - run: make test 2>&1 | tee valgrind.out
+        env:
+          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+      - run: |
+          awk -f ./util/parse-valgrind.awk valgrind.out > valgrind.log
+          if [[ -s valgrind.log ]]; then
+            cat valgrind.log >&2
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: gh-failures-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: valgrind.out
 
   build:
     name: 'Tests - build (large)'

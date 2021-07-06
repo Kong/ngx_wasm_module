@@ -115,11 +115,10 @@ add_block_preprocessor(sub {
 
     if (defined $block->skip_valgrind
         && $ENV{TEST_NGINX_USE_VALGRIND}
-        && $ENV{CI}
-        && $nginxV =~ m{\[.*?(wasmtime|wasmer).*?\]}s
+        && !defined $ENV{TEST_NGINX_VALGRIND_ALL}
         && $block->skip_valgrind =~ m/\s*(\d+)/)
     {
-        $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND}', $1);
+        $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND} && !defined $ENV{TEST_NGINX_VALGRIND_ALL}', $1);
     }
 });
 
