@@ -34,7 +34,7 @@ ngx_int_t
 ngx_wrt_wat2wasm(wasm_byte_vec_t *wat, wasm_byte_vec_t *wasm,
     ngx_wavm_err_t *err)
 {
-    err->res = wasmtime_wat2wasm(wat, wasm);
+    err->res = wasmtime_wat2wasm(wat->data, wat->size, wasm);
 
     return err->res == NULL ? NGX_OK : NGX_ERROR;
 }
@@ -44,19 +44,24 @@ ngx_int_t
 ngx_wrt_module_validate(wasm_store_t *s, wasm_byte_vec_t *bytes,
     ngx_wavm_err_t *err)
 {
-    err->res = wasmtime_module_validate(s, bytes);
+    if (!wasm_module_validate(s, bytes)) {
+        return NGX_ERROR;
+    }
 
-    return err->res == NULL ? NGX_OK : NGX_ERROR;
+    return NGX_OK;
 }
 
 
 ngx_int_t
-ngx_wrt_module_new(wasm_engine_t *e, wasm_byte_vec_t *bytes,
+ngx_wrt_module_new(wasm_store_t *s, wasm_byte_vec_t *bytes,
     wasm_module_t **out, ngx_wavm_err_t *err)
 {
-    err->res = wasmtime_module_new(e, bytes, out);
+    *out = wasm_module_new(s, bytes);
+    if (*out == NULL) {
+        return NGX_ERROR;
+    }
 
-    return err->res == NULL ? NGX_OK : NGX_ERROR;
+    return NGX_OK;
 }
 
 
