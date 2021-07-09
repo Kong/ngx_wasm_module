@@ -9,11 +9,45 @@
 static void ngx_wasmer_last_err(ngx_wrt_res_t **res);
 
 
-void
-ngx_wrt_config_init(wasm_config_t *config)
+wasm_config_t *
+ngx_wrt_config_create()
 {
-    wasm_config_set_compiler(config, SINGLEPASS);
+    wasm_config_t  *wasm_config = wasm_config_new();
+
+    //wasm_config_set_compiler(wasm_config, SINGLEPASS);
     //wasm_config_set_engine(config, UNIVERSAL);
+
+    return wasm_config;
+}
+
+
+ngx_int_t
+ngx_wrt_config_init(ngx_log_t *log, wasm_config_t *wasm_config,
+    ngx_wavm_conf_t *vm_config)
+{
+    if (vm_config->compiler.len) {
+        if (ngx_strncmp(vm_config->compiler.data, "cranelift", 9) == 0) {
+            wasm_config_set_compiler(wasm_config, CRANELIFT);
+
+        } else if (ngx_strncmp(vm_config->compiler.data, "singlepass", 10) == 0) {
+            wasm_config_set_compiler(wasm_config, SINGLEPASS);
+
+        } else if (ngx_strncmp(vm_config->compiler.data, "llvm", 4) == 0) {
+            wasm_config_set_compiler(wasm_config, LLVM);
+
+        } else {
+            ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
+                               "invalid compiler \"%V\"",
+                               &vm_config->compiler);
+            return NGX_ERROR;
+        }
+
+        ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
+                           "using wasmer with compiler: \"%V\"",
+                           &vm_config->compiler);
+    }
+
+    return NGX_OK;
 }
 
 

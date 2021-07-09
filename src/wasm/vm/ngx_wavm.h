@@ -120,6 +120,7 @@ struct ngx_wavm_module_s {
 
 struct ngx_wavm_s {
     const ngx_str_t                   *name;
+    ngx_wavm_conf_t                   *config;
     ngx_uint_t                         state;
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
@@ -135,7 +136,7 @@ struct ngx_wavm_s {
 
 
 ngx_wavm_t *ngx_wavm_create(ngx_cycle_t *cycle, const ngx_str_t *name,
-    ngx_wavm_host_def_t *core_host);
+    ngx_wavm_conf_t *vm_conf, ngx_wavm_host_def_t *core_host);
 ngx_int_t ngx_wavm_init(ngx_wavm_t *vm);
 ngx_int_t ngx_wavm_load(ngx_wavm_t *vm);
 void ngx_wavm_destroy(ngx_wavm_t *vm);
