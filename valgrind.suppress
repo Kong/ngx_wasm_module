@@ -101,7 +101,7 @@
     fun:main
 }
 {
-   <wasmtime 0.27.0: wasmtime_config_strategy_set>
+   <wasmtime 0.28.0: wasmtime_config_strategy_set>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
@@ -110,29 +110,9 @@
    fun:ngx_wrt_config_init
 }
 {
-   <wasmtime 0.27.0: wasmtime_module_validate uninitialized value>
+   <wasmtime 0.28.0: ...>
    Memcheck:Cond
-   fun:_ZN10wasmparser9validator9Validator3end17h6955d00fdb22111cE
-   fun:_ZN10wasmparser9validator9Validator7payload17h272b73afe66f18cfE
-   fun:_ZN10wasmparser9validator9Validator12validate_all17hce53f4753f0b7720E
-   fun:_ZN8wasmtime6module6Module8validate17h090d81b3c54bbd5cE
-   fun:wasmtime_module_validate
-   fun:ngx_wrt_module_validate
-   fun:ngx_wavm_module_load_bytes
-}
-{
-   <wasmtime 0.27.0: wasmtime_module_new uninitialized value>
-   Memcheck:Cond
-   fun:_ZN10wasmparser9validator9Validator3end17h6955d00fdb22111cE
-   fun:_ZN14cranelift_wasm17module_translator16translate_module17h242415a154be529fE
-   fun:_ZN16wasmtime_environ14module_environ17ModuleEnvironment9translate17h8d96f18b8bfda7afE
-   fun:_ZN12wasmtime_jit11instantiate20CompilationArtifacts5build17h068e11aee069f43aE
-   fun:_ZN4core3ops8function6FnOnce9call_once17h5133cd7b1f742504E
-   fun:_ZN14wasmtime_cache16ModuleCacheEntry8get_data17h706b9ea26ec0aadcE
-   fun:_ZN8wasmtime6module6Module11from_binary17ha858ba0c9026d47bE
-   fun:wasmtime_module_new
-   fun:ngx_wrt_module_new
-   fun:ngx_wavm_module_load
+   fun:_ZN10wasmparser9validator9Validator3end17h9547d0fbe2e6e321E
 }
 {
    <wasmer 2.0.0: wasm_module_validate uninitialized value>
