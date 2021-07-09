@@ -419,6 +419,11 @@ ngx_wavm_module_load_bytes(ngx_wavm_module_t *module)
         module->bytes.data = file_bytes.data;
     }
 
+    if (!module->bytes.size) {
+        err = "Unexpected EOF";
+        goto error;
+    }
+
     rc = ngx_wrt_module_validate(vm->store, &module->bytes, &e);
     if (rc != NGX_OK) {
         err = NGX_WAVM_EMPTY_CHAR;
@@ -476,13 +481,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
 
     ngx_wavm_err_init(&e);
 
-    if (ngx_wrt_module_new(
-#if (NGX_WASM_HAVE_WASMTIME)
-            vm->engine,
-#else
-            vm->store,
-#endif
-            &module->bytes, &module->module, &e)
+    if (ngx_wrt_module_new(vm->store, &module->bytes, &module->module, &e)
         != NGX_OK)
     {
         err = NGX_WAVM_EMPTY_CHAR;
