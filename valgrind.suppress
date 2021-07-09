@@ -118,12 +118,6 @@
    <wasmer 2.0.0: wasm_module_validate uninitialized value>
    Memcheck:Cond
    fun:_ZN10wasmparser9validator9Validator3end17hdbe24a0b33be62d9E
-   fun:_ZN10wasmparser9validator9Validator7payload17h45978f283176c1b5E
-   fun:_ZN10wasmparser9validator9Validator12validate_all17h70b546727241e566E
-   fun:_ZN15wasmer_compiler8compiler8Compiler15validate_module17h246aa6b8df67f941E
-   fun:_ZN98_$LT$wasmer_engine_universal..engine..UniversalEngine$u20$as$u20$wasmer_engine..engine..Engine$GT$8validate17hffcd23acc7e90a97E
-   fun:_ZN6wasmer6module6Module8validate17h97f3f42d2b26b388E
-   fun:wasm_module_validate
 }
 {
    <wasmer 2.0.0: vectors with ownership? functype>
