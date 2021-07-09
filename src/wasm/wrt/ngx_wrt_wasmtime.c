@@ -6,14 +6,47 @@
 #include <ngx_wrt.h>
 
 
-void
-ngx_wrt_config_init(wasm_config_t *config)
+wasm_config_t *
+ngx_wrt_config_create()
 {
+    wasm_config_t  *wasm_config = wasm_config_new();
+
+    wasmtime_config_debug_info_set(wasm_config, false);
     //wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_NONE);
-    wasmtime_config_debug_info_set(config, false);
-    wasmtime_config_strategy_set(config, WASMTIME_STRATEGY_LIGHTBEAM);
     //wasmtime_config_profiler_set(config, WASMTIME_PROFILING_STRATEGY_NONE);
     //wasmtime_config_max_instances_set(config, 10000);
+
+    return wasm_config;
+}
+
+
+ngx_int_t
+ngx_wrt_config_init(ngx_log_t *log, wasm_config_t *wasm_config,
+    ngx_wavm_conf_t *vm_config)
+{
+    if (vm_config->compiler.len) {
+        if (ngx_strncmp(vm_config->compiler.data, "auto", 4) == 0) {
+            wasmtime_config_strategy_set(wasm_config, WASMTIME_STRATEGY_AUTO);
+
+        } else if (ngx_strncmp(vm_config->compiler.data, "lightbeam", 9) == 0) {
+            wasmtime_config_strategy_set(wasm_config, WASMTIME_STRATEGY_LIGHTBEAM);
+
+        } else if (ngx_strncmp(vm_config->compiler.data, "cranelift", 9) == 0) {
+            wasmtime_config_strategy_set(wasm_config, WASMTIME_STRATEGY_CRANELIFT);
+
+        } else {
+            ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
+                               "invalid compiler \"%V\"",
+                               &vm_config->compiler);
+            return NGX_ERROR;
+        }
+
+        ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
+                           "using wasmtime with compiler: \"%V\"",
+                           &vm_config->compiler);
+    }
+
+    return NGX_OK;
 }
 
 

@@ -20,10 +20,19 @@ extern ngx_wavm_host_def_t  ngx_wasm_core_interface;
 
 typedef struct {
     ngx_wavm_t                        *vm;
+    ngx_wavm_conf_t                    vm_conf;
 } ngx_wasm_core_conf_t;
 
 
 static ngx_command_t  ngx_wasm_core_commands[] = {
+
+    { ngx_string("compiler"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      0,
+      offsetof(ngx_wasm_core_conf_t, vm_conf)
+      + offsetof(ngx_wavm_conf_t, compiler),
+      NULL },
 
     { ngx_string("module"),
       NGX_WASM_CONF|NGX_CONF_TAKE2,
@@ -75,12 +84,13 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
     ngx_wasm_core_conf_t  *wcf;
     ngx_pool_cleanup_t    *cln;
 
-    wcf = ngx_palloc(cycle->pool, sizeof(ngx_wasm_core_conf_t));
+    wcf = ngx_pcalloc(cycle->pool, sizeof(ngx_wasm_core_conf_t));
     if (wcf == NULL) {
         return NULL;
     }
 
-    wcf->vm = ngx_wavm_create(cycle, &vm_name, &ngx_wasm_core_interface);
+    wcf->vm = ngx_wavm_create(cycle, &vm_name, &wcf->vm_conf,
+                              &ngx_wasm_core_interface);
     if (wcf->vm == NULL) {
         return NULL;
     }
