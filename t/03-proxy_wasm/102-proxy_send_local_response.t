@@ -100,7 +100,7 @@ Content-Length: 0\r
 Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_response_headers, 4 headers/
 --- no_error_log
 [error]
 [crit]
@@ -125,12 +125,12 @@ Content-Length: 0\r
 Server: [\S\s]+\r
 Date: .*? GMT\r
 --- response_body
---- grep_error_log eval: qr/\[wasm\] .*?#\d+ on_.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? on_request_headers, 2 headers
-\[wasm\] .*? on_response_headers, 5 headers
-\[wasm\] .*? on_response_body, 0 bytes, end_of_stream true
-\[wasm\] .*? on_log/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_response_headers, 5 headers
+\[debug\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
+\[debug\] .*? \[wasm\] #\d+ on_log/
 --- no_error_log
 [error]
 [crit]
@@ -152,7 +152,7 @@ Content-Length: 0\r
 Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
@@ -195,7 +195,7 @@ Content-Length: 12\r
 Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
@@ -231,12 +231,12 @@ E-Tag: 377060cd8c284d8af7ad3082f20958d2\r
 Cache-Control: no-cache\r
 Link: <\/feed>; rel="alternate"\r
 --- ignore_response_body
---- grep_error_log eval: qr/\[wasm\] .*?#\d+ on_.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? on_request_headers, 2 headers
-\[wasm\] .*? on_response_headers, 16 headers
-\[wasm\] .*? on_response_body, 0 bytes, end_of_stream true
-\[wasm\] .*? on_log/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_response_headers, 16 headers
+\[debug\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
+\[debug\] .*? \[wasm\] #\d+ on_log/
 --- no_error_log
 [error]
 [crit]
@@ -285,7 +285,7 @@ Hello world
 --- error_log eval
 [
     qr/\[wasm\] #\d+ entering "HttpRequestHeaders"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_log/
+    qr/\[debug\] .*? \[wasm\] #\d+ on_log/
 ]
 --- no_error_log
 [error]
@@ -410,16 +410,15 @@ should still run all response phases
 GET /t/send_local_response/body
 --- response_body
 Hello world
---- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] .*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, \d+ headers
-\[wasm\] #\d+ on_response_headers, \d+ headers
-\[wasm\] #\d+ on_response_headers, \d+ headers
-\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream true
-\[wasm\] #\d+ on_log
-\[wasm\] #\d+ on_log
-/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers
+\[debug\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers
+\[debug\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers
+\[debug\] .*? \[wasm\] #\d+ on_response_body, \d+ bytes, end_of_stream true
+\[debug\] .*? \[wasm\] #\d+ on_response_body, \d+ bytes, end_of_stream true
+\[debug\] .*? \[wasm\] #\d+ on_log
+\[debug\] .*? \[wasm\] #\d+ on_log/
 --- no_error_log
 [error]
 [crit]
@@ -448,12 +447,13 @@ GET /t
 --- response_body
 ok
 Hello world
---- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] .*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers
+\[debug\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers
+\[debug\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers
+\[debug\] .*? \[wasm\] #\d+ on_response_body, \d+ bytes, end_of_stream true
+\[debug\] .*? \[wasm\] #\d+ on_response_body, \d+ bytes, end_of_stream true/
 --- no_error_log
 on_log
 [error]

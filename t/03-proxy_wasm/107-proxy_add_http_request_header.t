@@ -35,10 +35,10 @@ pwm-add-req-header: Hello=world
 Host: localhost
 Connection: close
 Hello: world
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -55,10 +55,10 @@ pwm-add-req-header: Hello=
 Host: localhost
 Connection: close
 Hello:\s
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -77,10 +77,10 @@ Host: localhost
 Connection: close
 Hello: world
 Hello: world
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 4 headers
-\[wasm\] #\d+ on_request_headers, 5 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 5 headers/
 
 
 
@@ -99,10 +99,10 @@ Host: localhost
 Connection: close
 Hello: world
 Hello:\s
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_(request|response)_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 4 headers
-\[wasm\] #\d+ on_request_headers, 5 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 5 headers/
 
 
 
@@ -121,10 +121,10 @@ Host: localhost
 Connection: close
 Hello: world
 Hello: world
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -161,10 +161,10 @@ pwm-add-req-header: Connection=closed
 Host: localhost
 Connection: close
 Connection: closed
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -181,10 +181,10 @@ pwm-add-req-header: Connection=
 Host: localhost
 Connection: close
 Connection:\s
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -201,10 +201,10 @@ pwm-add-req-header: Content-Length=0
 Host: localhost
 Connection: close
 Content-Length: 0
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -282,10 +282,10 @@ pwm-add-req-header: User-Agent=Mozilla/5.0
 Host: localhost
 Connection: close
 User-Agent: Mozilla/5.0
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -323,10 +323,10 @@ pwm-add-req-header: User-Agent=
 Host: localhost
 Connection: close
 User-Agent:\s
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -343,10 +343,10 @@ pwm-add-req-header: If-Modified-Since=Wed, 21 Oct 2015 07:28:00 GMT
 Host: localhost
 Connection: close
 If-Modified-Since: Wed, 21 Oct 2015 07:28:00 GMT
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_(request|response)_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -384,10 +384,10 @@ pwm-add-req-header: If-Modified-Since=
 Host: localhost
 Connection: close
 If-Modified-Since:\s
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -404,10 +404,10 @@ pwm-add-req-header: X-Forwarded-For=10.0.0.2
 Host: localhost
 Connection: close
 X-Forwarded-For: 10.0.0.2
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_(request|response)_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -426,10 +426,10 @@ Host: localhost
 Connection: close
 X-Forwarded-For: 10.0.0.1
 X-Forwarded-For: 10.0.0.2
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 4 headers
-\[wasm\] #\d+ on_request_headers, 5 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 5 headers/
 
 
 
@@ -447,10 +447,10 @@ pwm-add-req-header: User-Agent=MSIE 4.0
 Host: localhost
 Connection: close
 User-Agent: MSIE 4.0
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_(request|response)_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -468,10 +468,10 @@ pwm-add-req-header: User-Agent=MSIE 6.0
 Host: localhost
 Connection: close
 User-Agent: MSIE 6.0
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -489,10 +489,10 @@ pwm-add-req-header: User-Agent=Opera
 Host: localhost
 Connection: close
 User-Agent: Opera
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_(request|response)_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -510,10 +510,10 @@ pwm-add-req-header: User-Agent=Gecko/
 Host: localhost
 Connection: close
 User-Agent: Gecko/
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_(request|response)_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -531,10 +531,10 @@ pwm-add-req-header: User-Agent=Chrome/
 Host: localhost
 Connection: close
 User-Agent: Chrome/
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -552,10 +552,10 @@ pwm-add-req-header: User-Agent=Safari/Mac OS X
 Host: localhost
 Connection: close
 User-Agent: Safari/Mac OS X
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_(request|response)_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 

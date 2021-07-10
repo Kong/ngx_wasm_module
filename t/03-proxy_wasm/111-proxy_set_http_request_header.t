@@ -25,7 +25,7 @@ pwm-set-req-header: Hello=wasm
 Host: localhost
 Connection: close
 Hello: wasm
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_request_headers, 3 headers
 \[wasm\] #\d+ on_request_headers, 4 headers/
@@ -48,7 +48,7 @@ pwm-set-req-header: hello=wasm
 Host: localhost
 Connection: close
 hello: wasm
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_request_headers, 3 headers
 \[wasm\] #\d+ on_request_headers, 4 headers/
@@ -116,7 +116,7 @@ pwm-set-req-header: Hello=wasm
 Host: localhost
 Connection: close
 Hello: wasm
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_request_headers, 4 headers
 \[wasm\] #\d+ on_request_headers, 4 headers
@@ -145,7 +145,7 @@ qr/\[wasm\] #\d+ on_request_headers, 4 headers
 Connection: close
 Hello: world
 Welcome: wasm
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_request_headers, 23 headers
 \[wasm\] #\d+ on_request_headers, 3 headers
@@ -172,7 +172,7 @@ pwm-set-req-header: Connection=keep-alive
 --- response_body
 Host: localhost
 Connection: keep-alive
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_request_headers, 3 headers
 \[wasm\] #\d+ on_request_headers, 3 headers
@@ -196,7 +196,7 @@ pwm-set-req-header: Connection=closed
 --- response_body
 Host: localhost
 Connection: closed
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_request_headers, 3 headers
 \[wasm\] #\d+ on_request_headers, 3 headers
@@ -222,7 +222,7 @@ pwm-set-req-header: Content-Length=0
 Host: localhost
 Connection: close
 Content-Length: 0
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_request_headers, 4 headers
 \[wasm\] #\d+ on_request_headers, 4 headers
@@ -247,7 +247,7 @@ pwm-set-req-header: Content-Length=
 --- response_body
 Host: localhost
 Connection: close
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*?(?=\s+<)/
+--- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_request_headers, 4 headers
 \[wasm\] #\d+ on_request_headers, 3 headers

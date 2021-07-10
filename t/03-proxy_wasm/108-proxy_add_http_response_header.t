@@ -32,11 +32,11 @@ should add a response header visible in the second filter
     }
 --- more_headers
 pwm-add-resp-header: Hello=world
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp Hello: world
+\[wasm\] resp Hello: world .*?
 \z/
 
 
@@ -53,11 +53,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 pwm-add-resp-header: Hello=
 --- response_headers
 Hello:
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp Hello:\s
+\[wasm\] resp Hello:\s .*?
 \z/
 --- no_error_log
 [error]
@@ -80,12 +80,12 @@ pwm-add-resp-header: Hello=there
 --- response_headers
 Hello: here, there
 --- ignore_response_body
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 7 headers
-\[wasm\] resp Hello: here
-\[wasm\] resp Hello: there
+\[wasm\] resp Hello: here .*?
+\[wasm\] resp Hello: there .*?
 \z/
 --- no_error_log
 [error]
@@ -108,12 +108,12 @@ pwm-add-resp-header: Hello=
 --- response_headers_like
 Hello: here,\s
 --- ignore_response_body
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 7 headers
-\[wasm\] resp Hello: here
-\[wasm\] resp Hello:\s
+\[wasm\] resp Hello: here .*?
+\[wasm\] resp Hello:\s .*?
 \z/
 --- no_error_log
 [error]
@@ -134,13 +134,13 @@ qr/\[wasm\] #\d+ on_response_headers, 6 headers
 pwm-add-resp-header: Hello=world
 --- response_headers
 Hello: world, world
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 7 headers
-\[wasm\] resp Hello: world
-\[wasm\] resp Hello: world
+\[wasm\] resp Hello: world .*?
+\[wasm\] resp Hello: world .*?
 \z/
 --- no_error_log
 [error]
@@ -163,11 +163,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 pwm-add-resp-header: Content-Length=3
 --- response_headers
 Content-Length: 3
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Content-Length).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Content-Length).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] resp Content-Length: 3
+\[wasm\] resp Content-Length: 3 .*?
 \z/
 --- no_error_log
 [error]
@@ -188,11 +188,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 pwm-add-resp-header: Content-Length=0
 --- response_headers
 Content-Length: 0
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Content-Length).*?(?=\s+<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Content-Length).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] resp Content-Length: 0
+\[wasm\] resp Content-Length: 0 .*?
 \z/
 --- no_error_log
 [error]
@@ -278,11 +278,11 @@ pwm-add-resp-header: Cache-Control=no-cache
 --- response_headers
 Cache-Control: no-cache
 --- response_body
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Cache-Control).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Cache-Control).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp Cache-Control: no-cache
+\[wasm\] resp Cache-Control: no-cache .*?
 \z/
 --- no_error_log
 [error]
@@ -306,12 +306,12 @@ pwm-add-resp-header: Cache-Control=no-cache
 --- response_headers
 Cache-Control: no-store, no-cache
 --- response_body
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Cache-Control).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Cache-Control).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 7 headers
-\[wasm\] resp Cache-Control: no-store
-\[wasm\] resp Cache-Control: no-cache
+\[wasm\] resp Cache-Control: no-store .*?
+\[wasm\] resp Cache-Control: no-cache .*?
 \z/
 --- no_error_log
 [error]
@@ -333,12 +333,12 @@ pwm-add-resp-header: Cache-Control=
 --- response_headers_like
 Cache-Control: no-store,\s
 --- response_body
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Cache-Control).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Cache-Control).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 7 headers
-\[wasm\] resp Cache-Control: no-store
-\[wasm\] resp Cache-Control:\s
+\[wasm\] resp Cache-Control: no-store .*?
+\[wasm\] resp Cache-Control:\s .*?
 \z/
 --- no_error_log
 [error]
@@ -362,12 +362,12 @@ pwm-add-resp-header: Cache-Control=no-cache
 --- response_headers
 Cache-Control: no-cache
 --- response_body
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Cache-Control).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Cache-Control).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp Cache-Control: no-cache
+\[wasm\] resp Cache-Control: no-cache .*?
 \z/
 --- no_error_log
 [error]

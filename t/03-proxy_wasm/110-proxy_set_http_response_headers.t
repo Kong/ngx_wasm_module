@@ -21,8 +21,10 @@ __DATA__
 
         more_set_headers 'Server: more_headers';
         more_set_headers 'Hello: here';
-        proxy_wasm hostcalls 'on_phase=http_response_headers test_case=/t/set_http_response_headers';
-        proxy_wasm hostcalls 'on_phase=http_response_headers test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on_phase=http_response_headers \
+                              test_case=/t/set_http_response_headers';
+        proxy_wasm hostcalls 'on_phase=http_response_headers \
+                              test_case=/t/log/response_headers';
     }
 --- raw_response_headers_like
 HTTP\/.*? \d+ .*?
@@ -30,14 +32,17 @@ Transfer-Encoding: chunked\r
 Connection: close\r
 Hello: world\r
 Welcome: wasm\r
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_resp|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(\[info\] .*? \[wasm\] .*?(?=\s+<)|\[debug\] .*?on_response_headers.*)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? on_response_headers, 5 headers
-\[wasm\] .*? on_response_headers, 4 headers
-\[wasm\] resp Transfer-Encoding: chunked
-\[wasm\] resp Connection: close
-\[wasm\] resp Hello: world
-\[wasm\] resp Welcome: wasm/
+qr/.*?
+\[debug\] .*? \[wasm\] .*? on_response_headers, 5 headers
+\[info\] .*? \[wasm\] .*? entering "HttpResponseHeaders"
+\[debug\] .*? \[wasm\] .*? on_response_headers, 4 headers
+\[info\] .*? \[wasm\] .*? entering "HttpResponseHeaders"
+\[info\] .*? \[wasm\] resp Transfer-Encoding: chunked
+\[info\] .*? \[wasm\] resp Connection: close
+\[info\] .*? \[wasm\] resp Hello: world
+\[info\] .*? \[wasm\] resp Welcome: wasm/
 --- no_error_log
 [error]
 [crit]
@@ -62,14 +67,17 @@ Content-Type: text\/none\r
 Transfer-Encoding: chunked\r
 Connection: close\r
 Server: proxy-wasm\r
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_resp|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(\[info\] .*? \[wasm\] .*?(?=\s+<)|\[debug\] .*?on_response_headers.*)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? on_response_headers, 4 headers
-\[wasm\] .*? on_response_headers, 4 headers
-\[wasm\] resp Content-Type: text\/none
-\[wasm\] resp Transfer-Encoding: chunked
-\[wasm\] resp Connection: close
-\[wasm\] resp Server: proxy-wasm/
+qr/.*?
+\[debug\] .*? \[wasm\] .*? on_response_headers, 4 headers
+\[info\] .*? \[wasm\] .*? entering "HttpResponseHeaders"
+\[debug\] .*? \[wasm\] .*? on_response_headers, 4 headers
+\[info\] .*? \[wasm\] .*? entering "HttpResponseHeaders"
+\[info\] .*? \[wasm\] resp Content-Type: text\/none
+\[info\] .*? \[wasm\] resp Transfer-Encoding: chunked
+\[info\] .*? \[wasm\] resp Connection: close
+\[info\] .*? \[wasm\] resp Server: proxy-wasm/
 --- no_error_log
 [error]
 [crit]

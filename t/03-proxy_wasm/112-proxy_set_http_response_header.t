@@ -24,11 +24,11 @@ __DATA__
 pwm-set-resp-header: Hello=world
 --- response_headers
 Hello: world
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp Hello: world
+\[wasm\] resp Hello: world .*?
 \z/
 --- no_error_log
 [error]
@@ -48,11 +48,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 pwm-set-resp-header: hello=world
 --- response_headers
 Hello: world
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp [Hh]ello).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp [Hh]ello).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp hello: world
+\[wasm\] resp hello: world .*?
 \z/
 --- no_error_log
 [error]
@@ -74,7 +74,7 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 pwm-set-resp-header: Hello=
 --- response_headers_like
 Hello:
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp [Hh]ello).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp [Hh]ello).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 5 headers
@@ -100,12 +100,12 @@ qr/\[wasm\] #\d+ on_response_headers, 6 headers
 pwm-set-resp-header: Hello=wasm
 --- response_headers
 Hello: wasm
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp Hello: wasm
+\[wasm\] resp Hello: wasm .*?
 \z/
 --- no_error_log
 [error]
@@ -128,12 +128,12 @@ qr/\[wasm\] #\d+ on_response_headers, 6 headers
 pwm-set-resp-header: hello=wasm
 --- response_headers
 hello: wasm
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp [Hh]ello).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp [Hh]ello).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp hello: wasm
+\[wasm\] resp hello: wasm .*?
 \z/
 --- no_error_log
 [error]
@@ -154,11 +154,11 @@ Connection: keep-alive
 pwm-set-resp-header: Connection=close
 --- response_headers
 Connection: close
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Connection).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Connection).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] resp Connection: close
+\[wasm\] resp Connection: close .*?
 \z/
 --- no_error_log
 [error]
@@ -181,11 +181,11 @@ pwm-set-resp-header: Connection=upgrade
 Connection: upgrade
 --- error_log eval
 qr/\[wasm\] setting "Connection: upgrade" response header, switching status code: 101/
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Connection).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Connection).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] resp Connection: upgrade
+\[wasm\] resp Connection: upgrade .*?
 \z/
 --- no_error_log
 [error]
@@ -206,11 +206,11 @@ Connection: close
 pwm-set-resp-header: Connection=keep-alive
 --- response_headers
 Connection: keep-alive
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Connection).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Connection).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] resp Connection: keep-alive
+\[wasm\] resp Connection: keep-alive .*?
 \z/
 --- no_error_log
 [error]
@@ -234,7 +234,7 @@ pwm-set-resp-header: Connection=unknown
 Connection: close
 --- error_log eval
 qr/\[error\] .*? \[wasm\] attempt to set invalid Connection response header: "unknown"/
---- grep_error_log eval: qr/\[wasm\] #\d+ (on_response_[a-z]+).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\] #\d+ (on_response_[a-z]+).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 5 headers
@@ -258,7 +258,7 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 pwm-set-resp-header: Last-Modified=
 --- response_headers
 Last-Modified:
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Last-Modified).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Last-Modified).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 5 headers
@@ -285,12 +285,12 @@ pwm-set-resp-header: Cache-Control=no-cache
 --- response_headers
 Cache-Control: no-cache
 --- response_body
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Cache-Control).*?(?=\s<)/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Cache-Control).*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_response_headers, 6 headers
 \[wasm\] #\d+ on_response_headers, 5 headers
 \[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp Cache-Control: no-cache
+\[wasm\] resp Cache-Control: no-cache .*?
 \z/
 --- no_error_log
 [error]
