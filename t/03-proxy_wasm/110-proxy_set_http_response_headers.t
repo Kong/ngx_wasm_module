@@ -56,11 +56,12 @@ qr/.*?
     location /t {
         wasm_call content ngx_rust_tests say_nothing;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers test_case=/t/set_http_response_headers';
-        proxy_wasm hostcalls 'on_phase=http_response_headers test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on_phase=http_response_headers \
+                              test_case=/t/set_http_response_headers \
+                              value=Content-Type:text/none+Server:proxy-wasm';
+        proxy_wasm hostcalls 'on_phase=http_response_headers \
+                              test_case=/t/log/response_headers';
     }
---- more_headers
-pwm-set-resp-headers: Content-Type=text/none Server=proxy-wasm
 --- raw_response_headers_like
 HTTP\/.*? \d+ .*?
 Content-Type: text\/none\r
@@ -92,13 +93,50 @@ should log an error but not produce a trap
         wasm_call content ngx_rust_tests say_nothing;
 
         proxy_wasm hostcalls 'on_phase=http_response_headers \
-                              test_case=/t/set_http_response_headers';
+                              test_case=/t/set_http_response_headers \
+                              value=Connection:closed';
     }
---- more_headers
-pwm-set-resp-headers: Connection=closed
 --- response_body
 --- error_log eval
 qr/\[error\] .*? \[wasm\] attempt to set invalid Connection response header: "closed"/
 --- no_error_log
 [crit]
 [alert]
+
+
+
+=== TEST 4: proxy_wasm - set_http_response_headers() x on_phases
+should log an error (but no trap) when headers are sent
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on_phase=http_request_headers \
+                              test_case=/t/set_http_response_headers \
+                              value=From:request_headers';
+
+        proxy_wasm hostcalls 'on_phase=http_response_headers \
+                              test_case=/t/set_http_response_headers \
+                              value=From:response_headers';
+
+        proxy_wasm hostcalls 'on_phase=http_response_body \
+                              test_case=/t/set_http_response_headers \
+                              value=From:response_body';
+
+        proxy_wasm hostcalls 'on_phase=log \
+                              test_case=/t/set_http_response_headers \
+                              value=From:log';
+        return 200;
+    }
+--- response_headers
+From: response_headers
+--- ignore_response_body
+--- grep_error_log eval: qr/\[(error|info)\] .*? \[wasm\] .*/
+--- grep_error_log_out eval
+qr/.*?
+\[info\] .*? \[wasm\] #\d+ entering "HttpRequestHeaders" .*?
+\[info\] .*? \[wasm\] #\d+ entering "HttpResponseHeaders" .*?
+\[info\] .*? \[wasm\] #\d+ entering "Log" .*?
+\[error\] .*? \[wasm\] cannot set response headers: headers already sent/
+--- no_error_log
+[warn]
+[crit]

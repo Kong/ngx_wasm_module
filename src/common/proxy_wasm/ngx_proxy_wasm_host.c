@@ -590,9 +590,7 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
-        if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
-            && rctx->resp_content_chosen)
-        {
+        if (rctx->resp_content_chosen) {
             ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                                "cannot set request headers: response produced");
 
@@ -605,6 +603,14 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
         break;
 
     case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
+        if (rctx->r->header_sent) {
+            ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
+                               "cannot set response headers: "
+                               "headers already sent");
+
+            return ngx_proxy_wasm_result_ok(rets);
+        }
+
         rc = ngx_http_wasm_clear_resp_headers(
                  ngx_http_proxy_wasm_request(
                      ngx_proxy_wasm_get_pwm(instance)));
@@ -662,6 +668,15 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
                            "cannot add request header: response produced");
 
         return ngx_proxy_wasm_result_ok(rets);
+
+    } else if (map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS
+               && rctx->r->header_sent)
+    {
+        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
+                           "cannot add response header: "
+                           "headers already sent");
+
+        return ngx_proxy_wasm_result_ok(rets);
     }
 #endif
 
@@ -704,6 +719,15 @@ ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
     {
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                            "cannot set request header: response produced");
+
+        return ngx_proxy_wasm_result_ok(rets);
+
+    } else if (map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS
+               && rctx->r->header_sent)
+    {
+        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
+                           "cannot set response header: "
+                           "headers already sent");
 
         return ngx_proxy_wasm_result_ok(rets);
     }
