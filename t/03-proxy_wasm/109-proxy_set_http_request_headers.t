@@ -81,3 +81,38 @@ Welcome: wasm
 [error]
 [crit]
 [alert]
+
+
+
+=== TEST 4: proxy_wasm - set_http_request_headers() x on_phases
+should log an error (but no trap) when response is produced
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on_phase=http_request_headers \
+                              test_case=/t/set_http_request_headers';
+        proxy_wasm hostcalls 'on_phase=http_request_headers \
+                              test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'on_phase=http_response_headers \
+                              test_case=/t/set_http_request_headers';
+        proxy_wasm hostcalls 'on_phase=log \
+                              test_case=/t/set_http_request_headers';
+    }
+--- more_headers eval
+CORE::join "\n", map { "Header$_: value-$_" } 1..20
+--- response_body
+Connection: close
+Hello: world
+Welcome: wasm
+--- grep_error_log eval: qr/\[(info|error|crit)\] .*?(?=(\s+<|,|\n))/
+--- grep_error_log_out eval
+qr/.*?
+\[info\] .*? \[wasm\] #\d+ entering "HttpRequestHeaders"
+\[info\] .*? \[wasm\] #\d+ entering "HttpRequestHeaders"
+\[info\] .*? \[wasm\] #\d+ entering "HttpResponseHeaders"
+\[error\] .*? \[wasm\] cannot set request headers: response produced
+\[info\] .*? \[wasm\] #\d+ entering "Log"
+\[error\] .*? \[wasm\] cannot set request headers: response produced/
+--- no_error_log
+[warn]
+[crit]

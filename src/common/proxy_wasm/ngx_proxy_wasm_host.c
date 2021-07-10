@@ -572,6 +572,9 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_map_type_t   map_type;
     ngx_array_t                *headers;
     ngx_table_elt_t            *elt;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
+#endif
 
     map_type = args[0].of.i32;
     map_data = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
@@ -587,6 +590,15 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
+        if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
+            && rctx->resp_content_chosen)
+        {
+            ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
+                               "cannot set request headers: response produced");
+
+            return ngx_proxy_wasm_result_ok(rets);
+        }
+
         rc = ngx_http_wasm_clear_req_headers(
                  ngx_http_proxy_wasm_request(
                      ngx_proxy_wasm_get_pwm(instance)));
@@ -632,12 +644,26 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
     size_t                      klen, vlen;
     ngx_wavm_ptr_t             *key, *value;
     ngx_proxy_wasm_map_type_t   map_type;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
+#endif
 
     map_type = args[0].of.i32;
     key = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
     klen = args[2].of.i32;
     value = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
     vlen = args[4].of.i32;
+
+#ifdef NGX_WASM_HTTP
+    if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
+        && rctx->resp_content_chosen)
+    {
+        ngx_wasm_log_error(NGX_LOG_ERR, instance->log, 0,
+                           "cannot add request header: response produced");
+
+        return ngx_proxy_wasm_result_ok(rets);
+    }
+#endif
 
     dd("adding '%.*s: %.*s' to map of type '%d'",
        (int) klen, (u_char *) key, (int) vlen, (u_char *) value, map_type);
@@ -662,12 +688,26 @@ ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
     size_t                      klen, vlen;
     ngx_wavm_ptr_t             *key, *value;
     ngx_proxy_wasm_map_type_t   map_type;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
+#endif
 
     map_type = args[0].of.i32;
     key = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
     klen = args[2].of.i32;
     value = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
     vlen = args[4].of.i32;
+
+#ifdef NGX_WASM_HTTP
+    if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
+        && rctx->resp_content_chosen)
+    {
+        ngx_wasm_log_error(NGX_LOG_ERR, instance->log, 0,
+                           "cannot set request header: response produced");
+
+        return ngx_proxy_wasm_result_ok(rets);
+    }
+#endif
 
     dd("setting '%.*s: %.*s' into map of type '%d'",
        (int) klen, (u_char *) key, (int) vlen, (u_char *) value, map_type);
