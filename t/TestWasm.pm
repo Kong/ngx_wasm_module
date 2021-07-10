@@ -86,6 +86,19 @@ add_block_preprocessor(sub {
                           . $main_config);
     }
 
+    # compiler override
+
+    my $compiler;
+
+    if (defined $ENV{TEST_NGINX_USE_VALGRIND}) {
+        if ($nginxV =~ m/wasmtime/) {
+            $compiler = "lightbeam";
+
+        } elsif ($nginxV =~ m/wasmer/) {
+            $compiler = "singlepass";
+        }
+    }
+
     # --- wasm_modules: on_phases
 
     my $wasm_modules = $block->wasm_modules;
@@ -94,11 +107,17 @@ add_block_preprocessor(sub {
         if (@arr) {
             @arr = map { "module $_ $crates/$_.wasm;" } @arr;
             my $main_config = $block->main_config || '';
-            $block->set_value("main_config",
-                              $main_config .
-                              "wasm {\n" .
-                              "    " . (join "\n", @arr) . "\n" .
-                              "}\n");
+            my $wasm_config = "wasm {\n" .
+                              "    " . (join "\n", @arr) . "\n";
+
+            if (defined $compiler) {
+                $wasm_config = $wasm_config .
+                               "    compiler " . $compiler . ";\n";
+            }
+
+            $wasm_config = $wasm_config . "}\n";
+
+            $block->set_value("main_config", $main_config . $wasm_config);
         }
     }
 

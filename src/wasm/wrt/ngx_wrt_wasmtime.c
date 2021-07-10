@@ -12,6 +12,7 @@ ngx_wrt_config_create()
     wasm_config_t  *wasm_config = wasm_config_new();
 
     wasmtime_config_debug_info_set(wasm_config, false);
+    //wasmtime_config_strategy_set(wasm_config, WASMTIME_STRATEGY_LIGHTBEAM);
     //wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_NONE);
     //wasmtime_config_profiler_set(config, WASMTIME_PROFILING_STRATEGY_NONE);
     //wasmtime_config_max_instances_set(config, 10000);
