@@ -79,7 +79,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
         }
 
         if (r->request_body->temp_file) {
-            ngx_wasm_log_error(NGX_LOG_ERR, instance->log, 0,
+            ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                               "cannot read request body buffered "
                               "to file at \"%V\"",
                               &r->request_body->temp_file->file.name);
@@ -102,7 +102,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
 #endif
 
     default:
-        ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
+        ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
                            "NYI - get_buffer: %d", buf_type);
         return NULL;
 
@@ -132,7 +132,7 @@ ngx_proxy_wasm_get_map_helper(ngx_wavm_instance_t *instance,
 #endif
 
     default:
-        ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
+        ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
                            "NYI - get_map: %d", map_type);
         return NULL;
 
@@ -278,7 +278,7 @@ ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
         break;
 
     default:
-        ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
+        ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
                            "NYI: unknown log level \"%d\"", log_level);
 
         return ngx_proxy_wasm_result_badarg(rets);
@@ -425,7 +425,7 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 #endif
 
     default:
-        ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
+        ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
                            "NYI - set_buffer bad type "
                            "(buf_type: %d, len: %d)",
                            buf_type, s.len);
@@ -658,7 +658,7 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
     if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
         && rctx->resp_content_chosen)
     {
-        ngx_wasm_log_error(NGX_LOG_ERR, instance->log, 0,
+        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                            "cannot add request header: response produced");
 
         return ngx_proxy_wasm_result_ok(rets);
@@ -702,7 +702,7 @@ ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
     if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
         && rctx->resp_content_chosen)
     {
-        ngx_wasm_log_error(NGX_LOG_ERR, instance->log, 0,
+        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                            "cannot set request header: response produced");
 
         return ngx_proxy_wasm_result_ok(rets);
@@ -927,7 +927,7 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
+    ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
                        "NYI: proxy_wasm hfunc");
 
     return NGX_WAVM_NYI;
