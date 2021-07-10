@@ -294,60 +294,53 @@ Hello world
 
 === TEST 12: proxy_wasm - send_local_response() from on_http_response_headers (with content)
 should produce a trap
-should invoke on_log
---- SKIP: TODO: fix borrowed mut panic in log
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
         echo ok;
-        proxy_wasm hostcalls on_phase=http_response_headers;
+        proxy_wasm hostcalls 'on_phase=http_response_headers \
+                              test_case=/t/send_local_response/body';
     }
 --- request
 GET /t
---- more_headers
-PWM-Test-Case: /t/send_local_response/body
---- response_body
-ok
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
 --- error_log eval
-[
-    qr/\[wasm\] #\d+ entering "HttpResponseHeaders"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_log/
-]
---- grep_error_log eval: qr/\[error\] .*?$/
+qr/\[wasm\] #\d+ entering "HttpResponseHeaders"/
+--- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
-qr/\[wasm\] response already sent/
+qr/\[error\] .*? \[wasm\] response already sent.*?
+\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "body_filter" phase
+\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "log" phase/
 --- no_error_log
-[crit]
+[alert]
+stub
 
 
 
 === TEST 13: proxy_wasm - send_local_response() from on_log
-should produce a trap
---- SKIP: TODO: fix borrowed mut panic in log
+should produce a trap in log phase
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
         echo ok;
-        proxy_wasm hostcalls on_phase=log;
+        proxy_wasm hostcalls 'on_phase=log \
+                              test_case=/t/send_local_response/body';
     }
 --- request
 GET /t
---- more_headers
-PWM-Test-Case: /t/send_local_response/body
 --- response_body
 ok
 --- error_log eval
-[
-    qr/\[wasm\] #\d+ entering "Log"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_log/
-]
---- grep_error_log eval: qr/\[error\] .*?$/
+qr/\[wasm\] #\d+ entering "Log"/
+--- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
-qr/\[wasm\] response already sent/
+qr/\[error\] .*? \[wasm\] response already sent/
 --- no_error_log
 [crit]
+[alert]
 
 
 
