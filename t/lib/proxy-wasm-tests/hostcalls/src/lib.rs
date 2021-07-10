@@ -94,10 +94,11 @@ impl TestHttpHostcalls {
 
             if let Some(c) = self.config.get("test_case") {
                 test_case = c.to_string();
-                debug!(
-                    "#{} overriding test case from filter config: \"{}\"",
-                    self.context_id, test_case
-                );
+                //trace!(
+                //    "#{} overriding test case from filter config: \"{}\"",
+                //    self.context_id,
+                //    test_case
+                //);
             } else if let Some(h) = self.get_http_request_header("pwm-test-case") {
                 // Subrequests currently retrieve their own location path (r->uri)
                 // with :path, which means on_phases test cases would see the test
@@ -108,10 +109,11 @@ impl TestHttpHostcalls {
                 // or in other words, a request header which will be here considered
                 // the request's URL determining the test case.
                 test_case = h;
-                debug!(
-                    "#{} overriding test case from Pwm-Test-Case header: \"{}\"",
-                    self.context_id, test_case
-                );
+                //trace!(
+                //    "#{} overriding test case from Pwm-Test-Case header: \"{}\"",
+                //    self.context_id,
+                //    test_case
+                //);
             } else {
                 test_case = path;
             }
@@ -189,7 +191,7 @@ impl TestHttpHostcalls {
 impl Context for TestHttpHostcalls {}
 impl HttpContext for TestHttpHostcalls {
     fn on_http_request_headers(&mut self, nheaders: usize) -> Action {
-        info!(
+        debug!(
             "#{} on_request_headers, {} headers",
             self.context_id, nheaders
         );
@@ -199,7 +201,7 @@ impl HttpContext for TestHttpHostcalls {
 
     fn on_http_request_body(&mut self, size: usize, end_of_stream: bool) -> Action {
         self.request_body_size = Some(size);
-        info!(
+        debug!(
             "#{} on_request_body, {} bytes, end_of_stream: {}",
             self.context_id, size, end_of_stream
         );
@@ -208,7 +210,7 @@ impl HttpContext for TestHttpHostcalls {
     }
 
     fn on_http_response_headers(&mut self, nheaders: usize) -> Action {
-        info!(
+        debug!(
             "#{} on_response_headers, {} headers",
             self.context_id, nheaders
         );
@@ -217,7 +219,7 @@ impl HttpContext for TestHttpHostcalls {
     }
 
     fn on_http_response_body(&mut self, len: usize, end_of_stream: bool) -> Action {
-        info!(
+        debug!(
             "#{} on_response_body, {} bytes, end_of_stream {}",
             self.context_id, len, end_of_stream
         );
@@ -228,7 +230,7 @@ impl HttpContext for TestHttpHostcalls {
     }
 
     fn on_log(&mut self) {
-        info!("#{} on_log", self.context_id);
+        debug!("#{} on_log", self.context_id);
         self.exec_tests(TestPhase::Log);
     }
 }

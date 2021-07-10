@@ -150,7 +150,7 @@ impl HttpContext for OnPhases {
 
 #[no_mangle]
 pub fn _start() {
-    proxy_wasm::set_log_level(LogLevel::Info);
+    proxy_wasm::set_log_level(LogLevel::Debug);
     proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
         Box::new(HttpHeadersRoot {
             config: HashMap::new(),
