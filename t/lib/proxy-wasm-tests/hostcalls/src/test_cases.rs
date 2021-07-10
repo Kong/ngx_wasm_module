@@ -147,20 +147,6 @@ pub(crate) fn test_set_http_request_headers_special(ctx: &mut TestHttpHostcalls)
     ]);
 }
 
-pub(crate) fn test_set_http_response_headers(ctx: &mut TestHttpHostcalls) {
-    let set = ctx.get_http_request_header("pwm-set-resp-headers");
-    if let Some(headers_str) = set {
-        let headers = headers_str
-            .split_whitespace()
-            .filter_map(|s| s.split_once('='))
-            .collect();
-
-        ctx.set_http_response_headers(headers);
-    } else {
-        ctx.set_http_response_headers(vec![("Hello", "world"), ("Welcome", "wasm")]);
-    }
-}
-
 pub(crate) fn test_set_http_request_header(ctx: &mut TestHttpHostcalls) {
     let set = ctx.get_http_request_header("pwm-set-req-header");
     if let Some(header) = set {
@@ -174,19 +160,6 @@ pub(crate) fn test_set_http_request_header(ctx: &mut TestHttpHostcalls) {
     }
 }
 
-pub(crate) fn test_set_http_response_header(ctx: &mut TestHttpHostcalls) {
-    let set = ctx.get_http_request_header("pwm-set-resp-header");
-    if let Some(header) = set {
-        let (name, value) = header.split_once('=').unwrap();
-
-        if value.is_empty() {
-            ctx.set_http_response_header(name, None);
-        } else {
-            ctx.set_http_response_header(name, Some(value));
-        }
-    }
-}
-
 pub(crate) fn test_add_http_request_header(ctx: &mut TestHttpHostcalls) {
     let add = ctx.get_http_request_header("pwm-add-req-header");
     if let Some(header) = add {
@@ -196,10 +169,33 @@ pub(crate) fn test_add_http_request_header(ctx: &mut TestHttpHostcalls) {
 }
 
 pub(crate) fn test_add_http_response_header(ctx: &mut TestHttpHostcalls) {
-    let add = ctx.get_http_request_header("pwm-add-resp-header");
-    if let Some(header) = add {
-        let (name, value) = header.split_once('=').unwrap();
+    if let Some(header) = ctx.config.get("value") {
+        let (name, value) = header.split_once(':').unwrap();
         ctx.add_http_response_header(name, value);
+    }
+}
+
+pub(crate) fn test_set_http_response_header(ctx: &mut TestHttpHostcalls) {
+    if let Some(header) = ctx.config.get("value") {
+        let (name, value) = header.split_once(':').unwrap();
+        if value.is_empty() {
+            ctx.set_http_response_header(name, None);
+        } else {
+            ctx.set_http_response_header(name, Some(value));
+        }
+    }
+}
+
+pub(crate) fn test_set_http_response_headers(ctx: &mut TestHttpHostcalls) {
+    if let Some(headers_str) = ctx.config.get("value") {
+        let headers = headers_str
+            .split('+')
+            .filter_map(|s| s.split_once(':'))
+            .collect();
+
+        ctx.set_http_response_headers(headers);
+    } else {
+        ctx.set_http_response_headers(vec![("Hello", "world"), ("Welcome", "wasm")]);
     }
 }
 

@@ -64,7 +64,9 @@ should produce a result in: on_request_headers, on_response_header, on_log
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers test_case=/t/add_http_response_header';
+        proxy_wasm hostcalls 'on_phase=http_request_headers \
+                              test_case=/t/add_http_response_header \
+                              value=Hello:there';
         proxy_wasm hostcalls  on_phase=http_request_headers;
         proxy_wasm hostcalls  on_phase=http_response_headers;
         echo ok;
@@ -73,7 +75,6 @@ should produce a result in: on_request_headers, on_response_header, on_log
 --- request
 GET /t/log/response_header
 --- more_headers
-pwm-add-resp-header: Hello=there
 pwm-log-resp-header: hello
 --- response_headers
 Hello: there
