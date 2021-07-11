@@ -147,9 +147,8 @@ pub(crate) fn test_set_http_request_headers_special(ctx: &mut TestHttpHostcalls)
 }
 
 pub(crate) fn test_set_http_request_header(ctx: &mut TestHttpHostcalls) {
-    let set = ctx.get_http_request_header("pwm-set-req-header");
-    if let Some(header) = set {
-        let (name, value) = header.split_once('=').unwrap();
+    if let Some(header) = ctx.config.get("value") {
+        let (name, value) = header.split_once(':').unwrap();
 
         if value.is_empty() {
             ctx.set_http_request_header(name, None);

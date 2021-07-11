@@ -16,19 +16,18 @@ __DATA__
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Hello:wasm';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
---- more_headers
-pwm-set-req-header: Hello=wasm
 --- response_body
 Host: localhost
 Connection: close
 Hello: wasm
 --- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[wasm\] #\d+ on_request_headers, 2 headers
+\[wasm\] #\d+ on_request_headers, 3 headers/
 --- no_error_log
 [error]
 [crit]
@@ -39,19 +38,18 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=hello:wasm';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
---- more_headers
-pwm-set-req-header: hello=wasm
 --- response_body
 Host: localhost
 Connection: close
 hello: wasm
 --- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[wasm\] #\d+ on_request_headers, 2 headers
+\[wasm\] #\d+ on_request_headers, 3 headers/
 --- no_error_log
 [error]
 [crit]
@@ -62,12 +60,12 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Header20:updated';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
 --- more_headers eval
 (CORE::join "\n", map { "Header$_: value-$_" } 1..20)
-. "\npwm-set-req-header: Header20=updated"
 --- response_body eval
 qq{Host: localhost
 Connection: close
@@ -84,12 +82,12 @@ Connection: close
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Wasm:';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
 --- more_headers
 Wasm: incoming
-pwm-set-req-header: Wasm=
 --- response_body
 Host: localhost
 Connection: close
@@ -104,24 +102,26 @@ Connection: close
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Hello:wasm';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Hello:wasm';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Hello:wasm';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
 --- more_headers
 Hello: invalid
-pwm-set-req-header: Hello=wasm
 --- response_body
 Host: localhost
 Connection: close
 Hello: wasm
 --- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 4 headers
-\[wasm\] #\d+ on_request_headers, 4 headers
-\[wasm\] #\d+ on_request_headers, 4 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[wasm\] #\d+ on_request_headers, 3 headers
+\[wasm\] #\d+ on_request_headers, 3 headers
+\[wasm\] #\d+ on_request_headers, 3 headers
+\[wasm\] #\d+ on_request_headers, 3 headers/
 --- no_error_log
 [error]
 [crit]
@@ -132,25 +132,26 @@ qr/\[wasm\] #\d+ on_request_headers, 4 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_headers';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Connection:close';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Connection:close';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Connection:close';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
 --- more_headers eval
 (CORE::join "\n", map { "Header$_: value-$_" } 1..20)
 . "\nConnection: keep-alive\n"
-. "\npwm-set-req-header: Connection=close\n"
---- response_body
-Connection: close
-Hello: world
-Welcome: wasm
+--- response_body eval
+qq{Host: localhost
+}.(CORE::join "\n", map { "Header$_: value-$_" } 1..20)
+. "\nConnection: close\n"
 --- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 23 headers
-\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 3 headers/
+qr/\[wasm\] #\d+ on_request_headers, 22 headers
+\[wasm\] #\d+ on_request_headers, 22 headers
+\[wasm\] #\d+ on_request_headers, 22 headers/
 --- no_error_log
 [error]
 [crit]
@@ -162,21 +163,22 @@ qr/\[wasm\] #\d+ on_request_headers, 23 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Connection:keep-alive';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Connection:keep-alive';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
 --- more_headers
 Connection: close
-pwm-set-req-header: Connection=keep-alive
 --- response_body
 Host: localhost
 Connection: keep-alive
 --- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 3 headers/
+qr/\[wasm\] #\d+ on_request_headers, 2 headers
+\[wasm\] #\d+ on_request_headers, 2 headers
+\[wasm\] #\d+ on_request_headers, 2 headers/
 --- no_error_log
 [error]
 [crit]
@@ -187,15 +189,42 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Connection:closed';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Connection:closed';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
---- more_headers
-pwm-set-req-header: Connection=closed
 --- response_body
 Host: localhost
 Connection: closed
+--- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
+--- grep_error_log_out eval
+qr/\[wasm\] #\d+ on_request_headers, 2 headers
+\[wasm\] #\d+ on_request_headers, 2 headers
+\[wasm\] #\d+ on_request_headers, 2 headers/
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 9: proxy_wasm - set_http_request_header() sets Content-Length header
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Content-Length:0';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Content-Length:0';
+        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+    }
+--- more_headers
+Content-Length: 10
+--- response_body
+Host: localhost
+Connection: close
+Content-Length: 0
 --- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
 qr/\[wasm\] #\d+ on_request_headers, 3 headers
@@ -207,51 +236,26 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 9: proxy_wasm - set_http_request_header() sets Content-Length header
---- wasm_modules: hostcalls
---- config
-    location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
-    }
---- more_headers
-Content-Length: 10
-pwm-set-req-header: Content-Length=0
---- response_body
-Host: localhost
-Connection: close
-Content-Length: 0
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
---- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 4 headers
-\[wasm\] #\d+ on_request_headers, 4 headers
-\[wasm\] #\d+ on_request_headers, 4 headers/
---- no_error_log
-[error]
-[crit]
-
-
-
 === TEST 10: proxy_wasm - set_http_request_header() removes Content-Length header when no value
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Content-Length:';
+        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+                              value=Content-Length:';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
 --- more_headers
 Content-Length: 10
-pwm-set-req-header: Content-Length=
 --- response_body
 Host: localhost
 Connection: close
 --- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 4 headers
-\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 3 headers/
+qr/\[wasm\] #\d+ on_request_headers, 3 headers
+\[wasm\] #\d+ on_request_headers, 2 headers
+\[wasm\] #\d+ on_request_headers, 2 headers/
 --- no_error_log
 [error]
 [crit]
@@ -264,19 +268,21 @@ should log an error (but no trap) when response is produced
 --- config
     location /t {
         proxy_wasm hostcalls 'on_phase=http_request_headers \
-                              test_case=/t/set_http_request_header';
+                              test_case=/t/set_http_request_header \
+                              value=From:request_headers';
         proxy_wasm hostcalls 'on_phase=http_request_headers \
                               test_case=/t/echo/headers';
         proxy_wasm hostcalls 'on_phase=http_response_headers \
-                              test_case=/t/set_http_request_header';
+                              test_case=/t/set_http_request_header \
+                              value=From:response_headers';
         proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/set_http_request_header';
+                              test_case=/t/set_http_request_header \
+                              value=From:log';
     }
 --- more_headers
-Hello: world
-pwm-set-req-header: Hello=world
+From: client
 --- response_body_like
-Hello: world
+From: request_headers
 --- grep_error_log eval: qr/\[(info|error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
 qr/.*?
