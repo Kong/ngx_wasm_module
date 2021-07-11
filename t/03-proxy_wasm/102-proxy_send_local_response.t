@@ -256,14 +256,14 @@ Escape-Equal%3D: value
 
 
 
-=== TEST 11: proxy_wasm - send_local_response() from on_http_request_headers
+=== TEST 11: proxy_wasm - send_local_response() from on_request_headers
 should produce a response
 should invoke on_log
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/send_local_response/body';
         echo fail;
     }
@@ -273,7 +273,7 @@ Content-Type: text/plain
 Hello world
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ entering "HttpRequestHeaders"/,
+    qr/\[wasm\] #\d+ entering "RequestHeaders"/,
     qr/\[debug\] .*? \[wasm\] #\d+ on_log/
 ]
 --- no_error_log
@@ -288,13 +288,13 @@ should produce a trap
 --- config
     location /t {
         echo ok;
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/send_local_response/body';
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[wasm\] #\d+ entering "HttpResponseHeaders"/
+qr/\[wasm\] #\d+ entering "ResponseHeaders"/
 --- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
 qr/\[error\] .*? \[wasm\] response already sent.*?

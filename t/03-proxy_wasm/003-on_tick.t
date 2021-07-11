@@ -58,8 +58,8 @@ __DATA__
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] ticking \<.*?\>$/,
-    qr/\[info\] .*? \[wasm\] from http_request_headers \<.*?\>, client: .*?, server: .*?, request:/,
-    qr/\[info\] .*? \[wasm\] from http_request_headers \<.*?\>, client: .*?, server: .*?, request:/,
+    qr/\[info\] .*? \[wasm\] from request_headers \<.*?\>, client: .*?, server: .*?, request:/,
+    qr/\[info\] .*? \[wasm\] from request_headers \<.*?\>, client: .*?, server: .*?, request:/,
     qr/\[info\] .*? \[wasm\] ticking \<.*?\>$/,
 ]
 --- no_error_log

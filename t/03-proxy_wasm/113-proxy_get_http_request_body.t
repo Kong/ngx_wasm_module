@@ -17,7 +17,7 @@ __DATA__
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_body';
+        proxy_wasm hostcalls 'on_phase=request_body';
         echo fail;
     }
 --- request
@@ -36,7 +36,7 @@ Hello world
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers';
+        proxy_wasm hostcalls 'on_phase=request_headers';
         echo fail;
     }
 --- request
@@ -56,7 +56,7 @@ Hello world
     client_body_in_file_only on;
 
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_body';
+        proxy_wasm hostcalls 'on_phase=request_body';
         echo fail;
     }
 --- request
@@ -95,7 +95,7 @@ qr/\[info\] .*? \[wasm\] request body:/
 --- config
     location /t {
         internal;
-        proxy_wasm hostcalls 'on_phase=http_request_body';
+        proxy_wasm hostcalls 'on_phase=request_body';
         echo fail;
     }
 
@@ -118,7 +118,7 @@ Hello from subrequest
 --- config
     location /t {
         internal;
-        proxy_wasm hostcalls 'on_phase=http_request_body';
+        proxy_wasm hostcalls 'on_phase=request_body';
         echo fail;
     }
 
@@ -142,7 +142,7 @@ Hello from main request body
 --- config
     location /t {
         internal;
-        proxy_wasm hostcalls 'on_phase=http_request_body';
+        proxy_wasm hostcalls 'on_phase=request_body';
         echo fail;
     }
 

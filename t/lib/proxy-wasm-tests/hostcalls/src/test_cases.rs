@@ -132,11 +132,11 @@ pub(crate) fn test_set_headers_escaping(ctx: &mut TestHttpHostcalls) {
     )
 }
 
-pub(crate) fn test_set_http_request_headers(ctx: &mut TestHttpHostcalls) {
+pub(crate) fn test_set_request_headers(ctx: &mut TestHttpHostcalls) {
     ctx.set_http_request_headers(vec![("Hello", "world"), ("Welcome", "wasm")]);
 }
 
-pub(crate) fn test_set_http_request_headers_special(ctx: &mut TestHttpHostcalls) {
+pub(crate) fn test_set_request_headers_special(ctx: &mut TestHttpHostcalls) {
     ctx.set_http_request_headers(vec![
         ("Host", "somehost"),
         ("Connection", "closed"),
