@@ -17,7 +17,7 @@ __DATA__
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_response_body';
+        proxy_wasm hostcalls 'on_phase=response_body';
         echo 'Hello world';
     }
 --- request
@@ -27,7 +27,7 @@ Hello world
 --- grep_error_log eval: qr/\[(debug|info)\] .*? \[wasm\] .*?response(_|\s)body.*/
 --- grep_error_log_out eval
 qr/\[debug\] .*? \[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
-\[info\] .*? \[wasm\] #\d+ entering "HttpResponseBody" .*?
+\[info\] .*? \[wasm\] #\d+ entering "ResponseBody" .*?
 \[info\] .*? \[wasm\] response body chunk: "Hello world\\n" .*?
 \[debug\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
 --- no_error_log
@@ -41,7 +41,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_response_body';
+        proxy_wasm hostcalls 'on_phase=response_body';
         echo 'Hello';
         echo 'world';
     }
@@ -67,7 +67,7 @@ qr/\[wasm\] #\d+ on_response_body, 6 bytes, end_of_stream false
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/log/response_body on_phase=http_response_body';
+        proxy_wasm hostcalls 'test_case=/t/log/response_body on_phase=response_body';
         return 200;
     }
 --- response_body
@@ -85,7 +85,7 @@ qr/\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/log/response_body on_phase=http_request_body';
+        proxy_wasm hostcalls 'test_case=/t/log/response_body on_phase=request_body';
         echo 'Hello world';
     }
 --- response_body
@@ -107,7 +107,7 @@ qr/\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
     output_buffers 1 2;
 
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/log/response_body on_phase=http_response_body';
+        proxy_wasm hostcalls 'test_case=/t/log/response_body on_phase=response_body';
         echo 'aaaaaaaaaaaaaaaaaaaa';
     }
 --- more_headers
@@ -130,7 +130,7 @@ qr/\[wasm\] #\d+ on_response_body, 21 bytes, end_of_stream false
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/error/get_response_body on_phase=http_response_body';
+        proxy_wasm hostcalls 'test_case=/t/error/get_response_body on_phase=response_body';
         echo 'Hello world';
     }
 --- response_body

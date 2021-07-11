@@ -12,11 +12,11 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - set_http_request_headers() sets request headers
+=== TEST 1: proxy_wasm - set_request_headers() sets request headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_headers';
+        proxy_wasm hostcalls 'test_case=/t/set_request_headers';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
 --- more_headers
@@ -37,11 +37,11 @@ Welcome: wasm
 
 
 
-=== TEST 2: proxy_wasm - set_http_request_headers() sets special request headers
+=== TEST 2: proxy_wasm - set_request_headers() sets special request headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_headers/special';
+        proxy_wasm hostcalls 'test_case=/t/set_request_headers/special';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
 --- more_headers
@@ -64,11 +64,11 @@ X-Forwarded-For: 128.168.0.1
 
 
 
-=== TEST 3: proxy_wasm - set_http_request_headers() sets headers when many headers exist
+=== TEST 3: proxy_wasm - set_request_headers() sets headers when many headers exist
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_headers';
+        proxy_wasm hostcalls 'test_case=/t/set_request_headers';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
 --- more_headers eval
@@ -84,19 +84,19 @@ Welcome: wasm
 
 
 
-=== TEST 4: proxy_wasm - set_http_request_headers() x on_phases
+=== TEST 4: proxy_wasm - set_request_headers() x on_phases
 should log an error (but no trap) when response is produced
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
-                              test_case=/t/set_http_request_headers';
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
+                              test_case=/t/set_request_headers';
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/echo/headers';
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
-                              test_case=/t/set_http_request_headers';
+        proxy_wasm hostcalls 'on_phase=response_headers \
+                              test_case=/t/set_request_headers';
         proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/set_http_request_headers';
+                              test_case=/t/set_request_headers';
     }
 --- more_headers eval
 CORE::join "\n", map { "Header$_: value-$_" } 1..20
@@ -107,9 +107,9 @@ Welcome: wasm
 --- grep_error_log eval: qr/\[(info|error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
 qr/.*?
-\[info\] .*? \[wasm\] #\d+ entering "HttpRequestHeaders"
-\[info\] .*? \[wasm\] #\d+ entering "HttpRequestHeaders"
-\[info\] .*? \[wasm\] #\d+ entering "HttpResponseHeaders"
+\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders"
+\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders"
+\[info\] .*? \[wasm\] #\d+ entering "ResponseHeaders"
 \[error\] .*? \[wasm\] cannot set request headers: response produced
 \[info\] .*? \[wasm\] #\d+ entering "Log"
 \[error\] .*? \[wasm\] cannot set request headers: response produced/

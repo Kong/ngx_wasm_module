@@ -60,17 +60,17 @@ should produce a result in: on_request_headers, on_response_header, on_log
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/add_http_response_header \
                               value=Hello:there';
 
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=hello';
 
         echo ok;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=hello';
 
@@ -84,9 +84,9 @@ Hello: there
 ok
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
 \[wasm\] resp header "hello: there"
-\[wasm\] .*? entering "HttpResponseHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] resp header "hello: there"
 \[wasm\] .*? entering "Log"
 \[wasm\] resp header "hello: there"/
@@ -100,13 +100,13 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=Server';
 
         echo ok;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=Server';
 
@@ -120,8 +120,8 @@ Server: nginx.*?
 ok
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
-\[wasm\] .*? entering "HttpResponseHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] resp header "Server: nginx.*?"
 \[wasm\] .*? entering "Log"
 \[wasm\] resp header "Server: nginx.*?"/
@@ -135,13 +135,13 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=Date';
 
         echo ok;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=Date';
 
@@ -155,8 +155,8 @@ Date: .*? GMT
 ok
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
-\[wasm\] .*? entering "HttpResponseHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] resp header "Date: .*? GMT"
 \[wasm\] .*? entering "Log"
 \[wasm\] resp header "Date: .*? GMT"/
@@ -171,11 +171,11 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
     location /t {
         empty_gif;
 
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=Last-Modified';
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=Last-Modified';
 
@@ -188,8 +188,8 @@ Last-Modified: .*? GMT
 --- ignore_response_body
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
-\[wasm\] .*? entering "HttpResponseHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] resp header "Last-Modified: .*? GMT"
 \[wasm\] .*? entering "Log"
 \[wasm\] resp header "Last-Modified: .*? GMT"/
@@ -203,14 +203,14 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=Content-Type';
 
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/send_local_response/body';
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=Content-Type';
 
@@ -224,8 +224,8 @@ Content-Type: text/plain
 Hello world
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
-\[wasm\] .*? entering "HttpResponseHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] resp header "Content-Type: text\/plain"
 \[wasm\] .*? entering "Log"
 \[wasm\] resp header "Content-Type: text\/plain"/
@@ -238,14 +238,14 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=Content-Type';
 
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/send_local_response/status/204';
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=Content-Type';
 
@@ -259,8 +259,8 @@ Content-Type:
 --- response_body
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
-\[wasm\] .*? entering "HttpResponseHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] .*? entering "Log"/
 --- no_error_log
 [error]
@@ -271,13 +271,13 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=connection';
 
         return 200;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=connection';
 
@@ -290,9 +290,9 @@ Connection: close
 --- response_body
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
 \[wasm\] resp header "connection: close"
-\[wasm\] .*? entering "HttpResponseHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] resp header "connection: close"
 \[wasm\] .*? entering "Log"
 \[wasm\] resp header "connection: close"/
@@ -306,13 +306,13 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=connection';
 
         return 200;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=connection';
 
@@ -327,9 +327,9 @@ Connection: keep-alive
 --- response_body
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
 \[wasm\] resp header "connection: keep-alive"
-\[wasm\] .*? entering "HttpResponseHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] resp header "connection: keep-alive"
 \[wasm\] .*? entering "Log"
 \[wasm\] resp header "connection: keep-alive"/
@@ -342,13 +342,13 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=connection';
 
         return 101;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=connection';
 
@@ -362,9 +362,9 @@ Connection: upgrade
 --- ignore_response_body
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
 \[wasm\] resp header "connection: close"
-\[wasm\] .*? entering "HttpResponseHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] resp header "connection: upgrade"
 \[wasm\] .*? entering "Log"
 \[wasm\] resp header "connection: upgrade"/
@@ -381,13 +381,13 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
     location /t {
         keepalive_timeout 1s 1m;
 
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=Keep-Alive';
 
         return 200;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=Keep-Alive';
 
@@ -402,9 +402,9 @@ Keep-Alive: timeout=60
 --- ignore_response_body
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
 \[wasm\] resp header "Keep-Alive: timeout=60"
-\[wasm\] .*? entering "HttpResponseHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] resp header "Keep-Alive: timeout=60"
 \[wasm\] .*? entering "Log"
 \[wasm\] resp header "Keep-Alive: timeout=60"/
@@ -419,13 +419,13 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=Transfer-Encoding';
 
         echo ok;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=Transfer-Encoding';
 
@@ -438,9 +438,9 @@ Transfer-Encoding: chunked
 --- ignore_response_body
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
 \[wasm\] resp header "Transfer-Encoding: chunked"
-\[wasm\] .*? entering "HttpResponseHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] resp header "Transfer-Encoding: chunked"
 \[wasm\] .*? entering "Log"
 \[wasm\] resp header "Transfer-Encoding: chunked"/
@@ -454,13 +454,13 @@ qr/\[wasm\] .*? entering "HttpRequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_header \
                               name=Transfer-Encoding';
 
         return 200;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_header \
                               name=Transfer-Encoding';
 
@@ -473,9 +473,9 @@ Transfer-Encoding:
 --- ignore_response_body
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
 \[wasm\] resp header "Transfer-Encoding: chunked"
-\[wasm\] .*? entering "HttpResponseHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] .*? entering "Log"/
 --- no_error_log
 [error]

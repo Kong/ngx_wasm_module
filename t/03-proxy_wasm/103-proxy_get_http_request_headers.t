@@ -12,7 +12,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - get_http_request_headers() gets request headers
+=== TEST 1: proxy_wasm - get_request_headers() gets request headers
 should produce a response with headers
 --- wasm_modules: hostcalls
 --- config
@@ -33,7 +33,7 @@ Hello: world
 
 
 
-=== TEST 2: proxy_wasm - get_http_request_headers() many headers
+=== TEST 2: proxy_wasm - get_request_headers() many headers
 should produce a response with 20+ headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -56,7 +56,7 @@ Connection: close
 
 
 
-=== TEST 3: proxy_wasm - get_http_request_headers() too many headers
+=== TEST 3: proxy_wasm - get_request_headers() too many headers
 should produce a response but truncate number of headers if > 100
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -82,7 +82,7 @@ Connection: close
 
 
 
-=== TEST 4: proxy_wasm - get_http_request_headers() pipelined requests with large headers
+=== TEST 4: proxy_wasm - get_request_headers() pipelined requests with large headers
 should produce a response with headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -107,18 +107,18 @@ Connection: close
 
 
 
-=== TEST 5: proxy_wasm - get_http_request_headers() x on_phases (1/2)
+=== TEST 5: proxy_wasm - get_request_headers() x on_phases (1/2)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t/A {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/request_headers';
         echo A;
     }
 
     location /t/B {
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/request_headers';
         echo B;
     }
@@ -130,9 +130,9 @@ Connection: close
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ entering "HttpRequestHeaders"/,
+    qr/\[wasm\] #\d+ entering "RequestHeaders"/,
     qr/\[info\] .*? \[wasm\] Host: localhost/,
-    qr/\[wasm\] #\d+ entering "HttpResponseHeaders"/,
+    qr/\[wasm\] #\d+ entering "ResponseHeaders"/,
     qr/\[info\] .*? \[wasm\] Host: localhost/,
 ]
 --- no_error_log
@@ -140,7 +140,7 @@ Connection: close
 
 
 
-=== TEST 6: proxy_wasm - get_http_request_headers() x on_phases (2/2)
+=== TEST 6: proxy_wasm - get_request_headers() x on_phases (2/2)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

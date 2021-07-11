@@ -28,13 +28,13 @@ response
 --- wasm_modules: hostcalls
 --- config
     location /t/A {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/response_headers';
         echo A;
     }
 
     location /t/B {
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_headers';
         echo B;
     }
@@ -48,10 +48,10 @@ response
 --- ignore_response_body
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "HttpRequestHeaders"
+qr/\[wasm\] .*? entering "RequestHeaders"
 \[wasm\] resp Transfer-Encoding: chunked
 \[wasm\] resp Connection: close
-\[wasm\] .*? entering "HttpResponseHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
 \[wasm\] resp Content-Type: text\/plain
 \[wasm\] resp Transfer-Encoding: chunked
 \[wasm\] resp Connection: close

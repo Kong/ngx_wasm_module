@@ -12,11 +12,11 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - set_http_request_header() sets a new non-builtin header
+=== TEST 1: proxy_wasm - set_request_header() sets a new non-builtin header
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Hello:wasm';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
@@ -34,11 +34,11 @@ qr/\[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 2: proxy_wasm - set_http_request_header() sets a new non-builtin header (case-sensitive)
+=== TEST 2: proxy_wasm - set_request_header() sets a new non-builtin header (case-sensitive)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=hello:wasm';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
@@ -56,11 +56,11 @@ qr/\[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 3: proxy_wasm - set_http_request_header() sets a non-builtin headers when many headers exist
+=== TEST 3: proxy_wasm - set_request_header() sets a non-builtin headers when many headers exist
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Header20:updated';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
@@ -78,11 +78,11 @@ Connection: close
 
 
 
-=== TEST 4: proxy_wasm - set_http_request_header() removes an existing non-builtin header when no value
+=== TEST 4: proxy_wasm - set_request_header() removes an existing non-builtin header when no value
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Wasm:';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
@@ -98,15 +98,15 @@ Connection: close
 
 
 
-=== TEST 5: proxy_wasm - set_http_request_header() sets the same non-builtin header multiple times
+=== TEST 5: proxy_wasm - set_request_header() sets the same non-builtin header multiple times
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Hello:wasm';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Hello:wasm';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Hello:wasm';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
@@ -128,15 +128,15 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 6: proxy_wasm - set_http_request_header() sets Connection header (close) when many headers exist
+=== TEST 6: proxy_wasm - set_request_header() sets Connection header (close) when many headers exist
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Connection:close';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Connection:close';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Connection:close';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
@@ -158,14 +158,14 @@ qr/\[wasm\] #\d+ on_request_headers, 22 headers
 
 
 
-=== TEST 7: proxy_wasm - set_http_request_header() sets Connection header (keep-alive)
+=== TEST 7: proxy_wasm - set_request_header() sets Connection header (keep-alive)
 --- abort
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Connection:keep-alive';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Connection:keep-alive';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
@@ -185,13 +185,13 @@ qr/\[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 8: proxy_wasm - set_http_request_header() sets Connection header (closed)
+=== TEST 8: proxy_wasm - set_request_header() sets Connection header (closed)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Connection:closed';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Connection:closed';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
@@ -209,13 +209,13 @@ qr/\[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 9: proxy_wasm - set_http_request_header() sets Content-Length header
+=== TEST 9: proxy_wasm - set_request_header() sets Content-Length header
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Content-Length:0';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Content-Length:0';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
@@ -236,13 +236,13 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 10: proxy_wasm - set_http_request_header() removes Content-Length header when no value
+=== TEST 10: proxy_wasm - set_request_header() removes Content-Length header when no value
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Content-Length:';
-        proxy_wasm hostcalls 'test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'test_case=/t/set_request_header \
                               value=Content-Length:';
         proxy_wasm hostcalls 'test_case=/t/echo/headers';
     }
@@ -262,21 +262,21 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 11: proxy_wasm - set_http_request_header() x on_phases
+=== TEST 11: proxy_wasm - set_request_header() x on_phases
 should log an error (but no trap) when response is produced
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
-                              test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'on_phase=request_headers \
+                              test_case=/t/set_request_header \
                               value=From:request_headers';
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/echo/headers';
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
-                              test_case=/t/set_http_request_header \
+        proxy_wasm hostcalls 'on_phase=response_headers \
+                              test_case=/t/set_request_header \
                               value=From:response_headers';
         proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/set_http_request_header \
+                              test_case=/t/set_request_header \
                               value=From:log';
     }
 --- more_headers
@@ -286,9 +286,9 @@ From: request_headers
 --- grep_error_log eval: qr/\[(info|error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
 qr/.*?
-\[info\] .*? \[wasm\] #\d+ entering "HttpRequestHeaders"
-\[info\] .*? \[wasm\] #\d+ entering "HttpRequestHeaders"
-\[info\] .*? \[wasm\] #\d+ entering "HttpResponseHeaders"
+\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders"
+\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders"
+\[info\] .*? \[wasm\] #\d+ entering "ResponseHeaders"
 \[error\] .*? \[wasm\] cannot set request header: response produced
 \[info\] .*? \[wasm\] #\d+ entering "Log"
 \[error\] .*? \[wasm\] cannot set request header: response produced/

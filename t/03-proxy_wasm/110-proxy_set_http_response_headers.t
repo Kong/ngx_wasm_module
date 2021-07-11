@@ -21,9 +21,9 @@ __DATA__
 
         more_set_headers 'Server: more_headers';
         more_set_headers 'Hello: here';
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/set_http_response_headers';
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_headers';
     }
 --- raw_response_headers_like
@@ -36,9 +36,9 @@ Welcome: wasm\r
 --- grep_error_log_out eval
 qr/.*?
 \[debug\] .*? \[wasm\] .*? on_response_headers, 5 headers
-\[info\] .*? \[wasm\] .*? entering "HttpResponseHeaders"
+\[info\] .*? \[wasm\] .*? entering "ResponseHeaders"
 \[debug\] .*? \[wasm\] .*? on_response_headers, 4 headers
-\[info\] .*? \[wasm\] .*? entering "HttpResponseHeaders"
+\[info\] .*? \[wasm\] .*? entering "ResponseHeaders"
 \[info\] .*? \[wasm\] resp Transfer-Encoding: chunked
 \[info\] .*? \[wasm\] resp Connection: close
 \[info\] .*? \[wasm\] resp Hello: world
@@ -56,10 +56,10 @@ qr/.*?
     location /t {
         wasm_call content ngx_rust_tests say_nothing;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/set_http_response_headers \
                               value=Content-Type:text/none+Server:proxy-wasm';
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/response_headers';
     }
 --- raw_response_headers_like
@@ -72,9 +72,9 @@ Server: proxy-wasm\r
 --- grep_error_log_out eval
 qr/.*?
 \[debug\] .*? \[wasm\] .*? on_response_headers, 4 headers
-\[info\] .*? \[wasm\] .*? entering "HttpResponseHeaders"
+\[info\] .*? \[wasm\] .*? entering "ResponseHeaders"
 \[debug\] .*? \[wasm\] .*? on_response_headers, 4 headers
-\[info\] .*? \[wasm\] .*? entering "HttpResponseHeaders"
+\[info\] .*? \[wasm\] .*? entering "ResponseHeaders"
 \[info\] .*? \[wasm\] resp Content-Type: text\/none
 \[info\] .*? \[wasm\] resp Transfer-Encoding: chunked
 \[info\] .*? \[wasm\] resp Connection: close
@@ -92,7 +92,7 @@ should log an error but not produce a trap
     location /t {
         wasm_call content ngx_rust_tests say_nothing;
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/set_http_response_headers \
                               value=Connection:closed';
     }
@@ -110,15 +110,15 @@ should log an error (but no trap) when headers are sent
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/set_http_response_headers \
                               value=From:request_headers';
 
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/set_http_response_headers \
                               value=From:response_headers';
 
-        proxy_wasm hostcalls 'on_phase=http_response_body \
+        proxy_wasm hostcalls 'on_phase=response_body \
                               test_case=/t/set_http_response_headers \
                               value=From:response_body';
 
@@ -133,8 +133,8 @@ From: response_headers
 --- grep_error_log eval: qr/\[(error|info)\] .*? \[wasm\] .*/
 --- grep_error_log_out eval
 qr/.*?
-\[info\] .*? \[wasm\] #\d+ entering "HttpRequestHeaders" .*?
-\[info\] .*? \[wasm\] #\d+ entering "HttpResponseHeaders" .*?
+\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders" .*?
+\[info\] .*? \[wasm\] #\d+ entering "ResponseHeaders" .*?
 \[info\] .*? \[wasm\] #\d+ entering "Log" .*?
 \[error\] .*? \[wasm\] cannot set response headers: headers already sent/
 --- no_error_log

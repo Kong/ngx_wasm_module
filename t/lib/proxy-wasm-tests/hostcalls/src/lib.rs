@@ -11,10 +11,10 @@ use std::collections::HashMap;
 #[derive(Debug, PartialEq, enum_utils::FromStr)]
 #[enumeration(rename_all = "snake_case")]
 enum TestPhase {
-    HttpRequestHeaders,
-    HttpRequestBody,
-    HttpResponseHeaders,
-    HttpResponseBody,
+    RequestHeaders,
+    RequestBody,
+    ResponseHeaders,
+    ResponseBody,
     Log,
 }
 
@@ -50,7 +50,7 @@ impl RootContext for TestRoot {
             on_phase: self
                 .config
                 .get("on_phase")
-                .map_or(TestPhase::HttpRequestHeaders, |s| {
+                .map_or(TestPhase::RequestHeaders, |s| {
                     s.parse()
                         .unwrap_or_else(|_| panic!("unknown phase: {:?}", s))
                 }),
@@ -126,16 +126,16 @@ impl TestHttpHostcalls {
             "/t/send_local_response/set_headers_escaping" => test_set_headers_escaping(self),
 
             /* set/add request/response headers */
-            "/t/set_http_request_headers" => test_set_http_request_headers(self),
-            "/t/set_http_request_headers/special" => test_set_http_request_headers_special(self),
+            "/t/set_request_headers" => test_set_request_headers(self),
+            "/t/set_request_headers/special" => test_set_request_headers_special(self),
             "/t/set_http_response_headers" => test_set_http_response_headers(self),
-            "/t/set_http_request_header" => test_set_http_request_header(self),
+            "/t/set_request_header" => test_set_http_request_header(self),
             "/t/set_http_response_header" => test_set_http_response_header(self),
-            "/t/add_http_request_header" => test_add_http_request_header(self),
+            "/t/add_request_header" => test_add_http_request_header(self),
             "/t/add_http_response_header" => test_add_http_response_header(self),
 
             /* set/add request/response body */
-            "/t/set_http_request_body" => test_set_http_request_body(self),
+            "/t/set_request_body" => test_set_http_request_body(self),
             "/t/set_http_response_body" => test_set_http_response_body(self),
 
             /* echo request */
@@ -159,7 +159,7 @@ impl HttpContext for TestHttpHostcalls {
             "#{} on_request_headers, {} headers",
             self.context_id, nheaders
         );
-        self.exec_tests(TestPhase::HttpRequestHeaders);
+        self.exec_tests(TestPhase::RequestHeaders);
         Action::Continue
     }
 
@@ -169,7 +169,7 @@ impl HttpContext for TestHttpHostcalls {
             "#{} on_request_body, {} bytes, end_of_stream: {}",
             self.context_id, size, end_of_stream
         );
-        self.exec_tests(TestPhase::HttpRequestBody);
+        self.exec_tests(TestPhase::RequestBody);
         Action::Continue
     }
 
@@ -178,7 +178,7 @@ impl HttpContext for TestHttpHostcalls {
             "#{} on_response_headers, {} headers",
             self.context_id, nheaders
         );
-        self.exec_tests(TestPhase::HttpResponseHeaders);
+        self.exec_tests(TestPhase::ResponseHeaders);
         Action::Continue
     }
 
@@ -188,7 +188,7 @@ impl HttpContext for TestHttpHostcalls {
             self.context_id, len, end_of_stream
         );
         if !end_of_stream || len > 0 {
-            self.exec_tests(TestPhase::HttpResponseBody);
+            self.exec_tests(TestPhase::ResponseBody);
         }
         Action::Continue
     }

@@ -143,18 +143,18 @@ stub
 
 
 
-=== TEST 7: proxy_wasm - get_http_request_headers() x on_phases
+=== TEST 7: proxy_wasm - get_request_headers() x on_phases
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t/A {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/request_path';
         echo A;
     }
 
     location /t/B {
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/request_path';
         echo B;
     }
@@ -168,9 +168,9 @@ stub
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ entering "HttpRequestHeaders"/,
+    qr/\[wasm\] #\d+ entering "RequestHeaders"/,
     qr/\[info\] .*? \[wasm\] path: \/t\/A/,
-    qr/\[wasm\] #\d+ entering "HttpResponseHeaders"/,
+    qr/\[wasm\] #\d+ entering "ResponseHeaders"/,
     qr/\[info\] .*? \[wasm\] path: \/t\/B/,
     qr/\[wasm\] #\d+ entering "Log"/,
     qr/\[info\] .*? \[wasm\] path: \/t /,

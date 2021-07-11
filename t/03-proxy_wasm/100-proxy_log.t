@@ -41,13 +41,13 @@ stub1
 --- wasm_modules: hostcalls
 --- config
     location /t/A {
-        proxy_wasm hostcalls 'on_phase=http_request_headers \
+        proxy_wasm hostcalls 'on_phase=request_headers \
                               test_case=/t/log/levels';
         echo A;
     }
 
     location /t/B {
-        proxy_wasm hostcalls 'on_phase=http_response_headers \
+        proxy_wasm hostcalls 'on_phase=response_headers \
                               test_case=/t/log/levels';
         echo B;
     }
@@ -67,9 +67,9 @@ B
 C
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ entering "HttpRequestHeaders"/,
+    qr/\[wasm\] #\d+ entering "RequestHeaders"/,
     qr/\[error\] .*? \[wasm\] proxy_log error/,
-    qr/\[wasm\] #\d+ entering "HttpResponseHeaders"/,
+    qr/\[wasm\] #\d+ entering "ResponseHeaders"/,
     qr/\[error\] .*? \[wasm\] proxy_log error/,
     qr/\[wasm\] #\d+ entering "Log"/,
     qr/\[error\] .*? \[wasm\] proxy_log error/,
