@@ -45,11 +45,9 @@ should produce response with valid code
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test_case=/t/send_local_response/status/300';
         echo fail;
     }
---- request
-GET /t/send_local_response/status/300
 --- error_code: 300
 --- response_body
 --- no_error_log
@@ -66,11 +64,9 @@ should produce error page content from a panic, not from echo
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test_case=/t/send_local_response/status/1000';
         echo fail;
     }
---- request
-GET /t/send_local_response/status/1000
 --- error_code: 500
 --- response_body eval
 qr/500 Internal Server Error/
@@ -165,11 +161,9 @@ should produce a response body, not from echo
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test_case=/t/send_local_response/body';
         echo fail;
     }
---- request
-GET /t/send_local_response/body
 --- response_body
 Hello world
 --- no_error_log
@@ -249,11 +243,9 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test_case=/t/send_local_response/set_headers_escaping';
         echo fail;
     }
---- request
-GET /t/send_local_response/set_headers_escaping
 --- response_headers
 Escape-Colon%3A: value
 Escape-Parenthesis%28%29: value
@@ -271,13 +263,10 @@ should invoke on_log
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls on_phase=http_request_headers;
+        proxy_wasm hostcalls 'on_phase=http_request_headers \
+                              test_case=/t/send_local_response/body';
         echo fail;
     }
---- request
-GET /t
---- more_headers
-PWM-Test-Case: /t/send_local_response/body
 --- response_headers
 Content-Type: text/plain
 --- response_body
@@ -302,8 +291,6 @@ should produce a trap
         proxy_wasm hostcalls 'on_phase=http_response_headers \
                               test_case=/t/send_local_response/body';
     }
---- request
-GET /t
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
@@ -329,8 +316,6 @@ should produce a trap in log phase
         proxy_wasm hostcalls 'on_phase=log \
                               test_case=/t/send_local_response/body';
     }
---- request
-GET /t
 --- response_body
 ok
 --- error_log eval
@@ -357,8 +342,6 @@ should produce content from the subrequest, then from echo
         echo_subrequest GET /t/send_local_response/body;
         echo ok;
     }
---- request
-GET /t
 --- response_body
 Hello world
 ok
@@ -403,11 +386,9 @@ should still run all response phases
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls;
-        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test_case=/t/send_local_response/body';
+        proxy_wasm hostcalls 'test_case=/t/send_local_response/body';
     }
---- request
-GET /t/send_local_response/body
 --- response_body
 Hello world
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] .*/
@@ -442,8 +423,6 @@ should not have a log phase (subrequest)
         echo ok;
         echo_subrequest GET /t/send_local_response/body;
     }
---- request
-GET /t
 --- response_body
 ok
 Hello world

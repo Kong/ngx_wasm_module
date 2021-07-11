@@ -131,8 +131,6 @@ request's path (/t)
     location /t {
         echo_subrequest GET /t/echo/header/:path;
     }
---- request
-GET /t
 --- response_body
 :path: /t/echo/header/:path
 --- no_error_log
@@ -150,24 +148,23 @@ stub
 --- wasm_modules: hostcalls
 --- config
     location /t/A {
-        proxy_wasm hostcalls on_phase=http_request_headers;
+        proxy_wasm hostcalls 'on_phase=http_request_headers \
+                              test_case=/t/log/request_path';
         echo A;
     }
 
     location /t/B {
-        proxy_wasm hostcalls on_phase=http_response_headers;
+        proxy_wasm hostcalls 'on_phase=http_response_headers \
+                              test_case=/t/log/request_path';
         echo B;
     }
 
     location /t {
         echo_location /t/A;
         echo_location /t/B;
-        proxy_wasm hostcalls on_phase=log;
+        proxy_wasm hostcalls 'on_phase=log \
+                              test_case=/t/log/request_path';
     }
---- request
-GET /t
---- more_headers
-PWM-Test-Case: /t/log/request_path
 --- ignore_response_body
 --- error_log eval
 [

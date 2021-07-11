@@ -99,21 +99,6 @@ impl TestHttpHostcalls {
                 //    self.context_id,
                 //    test_case
                 //);
-            } else if let Some(h) = self.get_http_request_header("pwm-test-case") {
-                // Subrequests currently retrieve their own location path (r->uri)
-                // with :path, which means on_phases test cases would see the test
-                // case's name as "/t/on_request_headers" instead of "/t/log/levels"
-                // if we were to rely entirely on it.
-                // This "override header" allows specifying a string which will be
-                // the one evaluated against test cases below (e.g. "/t/log/levels"),
-                // or in other words, a request header which will be here considered
-                // the request's URL determining the test case.
-                test_case = h;
-                //trace!(
-                //    "#{} overriding test case from Pwm-Test-Case header: \"{}\"",
-                //    self.context_id,
-                //    test_case
-                //);
             } else {
                 test_case = path;
             }

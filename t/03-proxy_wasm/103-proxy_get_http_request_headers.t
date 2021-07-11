@@ -88,11 +88,11 @@ should produce a response with headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test_case=/t/echo/headers';
         echo fail;
     }
 --- pipelined_requests eval
-["GET /t/echo/headers", "GET /t/echo/headers"]
+["GET /t", "GET /t"]
 --- more_headers eval
 CORE::join "\n", map { "Header$_: value-$_" } 1..105
 --- response_body eval
@@ -112,12 +112,14 @@ Connection: close
 --- wasm_modules: hostcalls
 --- config
     location /t/A {
-        proxy_wasm hostcalls on_phase=http_request_headers;
+        proxy_wasm hostcalls 'on_phase=http_request_headers \
+                              test_case=/t/log/request_headers';
         echo A;
     }
 
     location /t/B {
-        proxy_wasm hostcalls on_phase=http_response_headers;
+        proxy_wasm hostcalls 'on_phase=http_response_headers \
+                              test_case=/t/log/request_headers';
         echo B;
     }
 
@@ -125,10 +127,6 @@ Connection: close
         echo_location /t/A;
         echo_location /t/B;
     }
---- request
-GET /t
---- more_headers
-PWM-Test-Case: /t/log/request_headers
 --- ignore_response_body
 --- error_log eval
 [
@@ -147,13 +145,10 @@ PWM-Test-Case: /t/log/request_headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls on_phase=log;
+        proxy_wasm hostcalls 'on_phase=log \
+                              test_case=/t/log/request_headers';
         echo ok;
     }
---- request
-GET /t
---- more_headers
-PWM-Test-Case: /t/log/request_headers
 --- ignore_response_body
 --- error_log eval
 [

@@ -18,11 +18,9 @@ should produce a log with the current time (ms as ~ns)
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test_case=/t/log/current_time';
         echo ok;
     }
---- request
-GET /t/log/current_time
 --- response_body
 ok
 --- error_log eval
