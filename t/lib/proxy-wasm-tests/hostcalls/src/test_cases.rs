@@ -48,8 +48,7 @@ pub(crate) fn test_log_response_body(ctx: &mut TestHttpHostcalls, mut max_size: 
 }
 
 pub(crate) fn test_log_response_header(ctx: &mut TestHttpHostcalls) {
-    let header = ctx.get_http_request_header("pwm-log-resp-header");
-    if let Some(header_name) = header {
+    if let Some(header_name) = ctx.config.get("name") {
         let value = ctx.get_http_response_header(header_name.as_str());
         if value.is_some() {
             info!("resp header \"{}: {}\"", header_name, value.unwrap());
