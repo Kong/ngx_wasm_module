@@ -2,7 +2,7 @@ mod echo;
 mod test_cases;
 
 use crate::{echo::*, test_cases::*};
-use http::{Method, StatusCode};
+use http::StatusCode;
 use log::*;
 use proxy_wasm::traits::*;
 use proxy_wasm::types::*;
@@ -88,31 +88,10 @@ impl TestHttpHostcalls {
 
         info!("#{} entering \"{:?}\"", self.context_id, self.on_phase);
 
-        let test_case;
-        {
-            let path = self.get_http_request_header(":path").unwrap();
-
-            if let Some(c) = self.config.get("test_case") {
-                test_case = c.to_string();
-                //trace!(
-                //    "#{} overriding test case from filter config: \"{}\"",
-                //    self.context_id,
-                //    test_case
-                //);
-            } else {
-                test_case = path;
-            }
-        }
-
-        let _method: Method = self
-            .get_http_request_header(":method")
-            .unwrap()
-            .parse()
-            .unwrap();
-
-        if test_case.starts_with("/t/echo/header/") {
-            // /t/echo/header/{header_name: String}
-            let header_name = test_case
+        let path = self.get_http_request_header(":path").unwrap();
+        if path.starts_with("/t/echo/header/") {
+            /* /t/echo/header/{header_name: String} */
+            let header_name = path
                 .split('/')
                 .collect::<Vec<&str>>()
                 .split_off(4)
@@ -123,7 +102,7 @@ impl TestHttpHostcalls {
             return;
         }
 
-        match test_case.as_str() {
+        match self.config.get("test_case").unwrap_or(&path).as_str() {
             /* log */
             "/t/log/request_body" => test_log_request_body(self),
             "/t/log/levels" => test_log_levels(self),
