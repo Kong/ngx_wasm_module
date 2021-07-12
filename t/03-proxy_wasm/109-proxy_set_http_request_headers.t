@@ -16,8 +16,8 @@ __DATA__
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_headers';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/set_request_headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Goodbye: this header
@@ -41,8 +41,8 @@ Welcome: wasm
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_headers/special';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/set_request_headers/special';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Goodbye: this header
@@ -68,8 +68,8 @@ X-Forwarded-For: 128.168.0.1
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_headers';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/set_request_headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers eval
 CORE::join "\n", map { "Header$_: value-$_" } 1..20
@@ -89,14 +89,14 @@ should log an error (but no trap) when response is produced
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/set_request_headers';
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/echo/headers';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/set_request_headers';
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/set_request_headers';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/set_request_headers';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/echo/headers';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/set_request_headers';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/set_request_headers';
     }
 --- more_headers eval
 CORE::join "\n", map { "Header$_: value-$_" } 1..20

@@ -17,7 +17,7 @@ __DATA__
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_body';
+        proxy_wasm hostcalls 'on=request_body';
         echo fail;
     }
 --- request
@@ -36,7 +36,7 @@ Hello world
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers';
+        proxy_wasm hostcalls 'on=request_headers';
         echo fail;
     }
 --- request
@@ -56,7 +56,7 @@ Hello world
     client_body_in_file_only on;
 
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_body';
+        proxy_wasm hostcalls 'on=request_body';
         echo fail;
     }
 --- request
@@ -75,7 +75,7 @@ qr/\[error\] .*? \[wasm\] cannot read request body buffered to file at "\/.*?\/\
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=log';
+        proxy_wasm hostcalls 'on=log';
         return 200;
     }
 --- pipelined_requests eval
@@ -95,7 +95,7 @@ qr/\[info\] .*? \[wasm\] request body:/
 --- config
     location /t {
         internal;
-        proxy_wasm hostcalls 'on_phase=request_body';
+        proxy_wasm hostcalls 'on=request_body';
         echo fail;
     }
 
@@ -118,7 +118,7 @@ Hello from subrequest
 --- config
     location /t {
         internal;
-        proxy_wasm hostcalls 'on_phase=request_body';
+        proxy_wasm hostcalls 'on=request_body';
         echo fail;
     }
 
@@ -142,7 +142,7 @@ Hello from main request body
 --- config
     location /t {
         internal;
-        proxy_wasm hostcalls 'on_phase=request_body';
+        proxy_wasm hostcalls 'on=request_body';
         echo fail;
     }
 
@@ -165,7 +165,7 @@ Hello from main request body
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=log';
+        proxy_wasm hostcalls 'on=log';
         echo ok;
     }
 --- request

@@ -17,7 +17,7 @@ should produce a response with headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Hello: world
@@ -39,7 +39,7 @@ should produce a response with 20+ headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
         echo fail;
     }
 --- more_headers eval
@@ -62,7 +62,7 @@ should produce a response but truncate number of headers if > 100
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
         echo fail;
     }
 --- more_headers eval
@@ -88,7 +88,7 @@ should produce a response with headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
         echo fail;
     }
 --- pipelined_requests eval
@@ -112,14 +112,14 @@ Connection: close
 --- wasm_modules: hostcalls
 --- config
     location /t/A {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/request_headers';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/request_headers';
         echo A;
     }
 
     location /t/B {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/request_headers';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/request_headers';
         echo B;
     }
 
@@ -145,8 +145,8 @@ Connection: close
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/request_headers';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/request_headers';
         echo ok;
     }
 --- ignore_response_body

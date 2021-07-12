@@ -148,22 +148,22 @@ stub
 --- wasm_modules: hostcalls
 --- config
     location /t/A {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/request_path';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/request_path';
         echo A;
     }
 
     location /t/B {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/request_path';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/request_path';
         echo B;
     }
 
     location /t {
         echo_location /t/A;
         echo_location /t/B;
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/request_path';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/request_path';
     }
 --- ignore_response_body
 --- error_log eval

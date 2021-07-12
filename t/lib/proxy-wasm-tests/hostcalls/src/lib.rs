@@ -49,7 +49,7 @@ impl RootContext for TestRoot {
             config: self.config.clone(),
             on_phase: self
                 .config
-                .get("on_phase")
+                .get("on")
                 .map_or(TestPhase::RequestHeaders, |s| {
                     s.parse()
                         .unwrap_or_else(|_| panic!("unknown phase: {:?}", s))
@@ -102,7 +102,7 @@ impl TestHttpHostcalls {
             return;
         }
 
-        match self.config.get("test_case").unwrap_or(&path).as_str() {
+        match self.config.get("test").unwrap_or(&path).as_str() {
             /* log */
             "/t/log/request_body" => test_log_request_body(self),
             "/t/log/levels" => test_log_levels(self),

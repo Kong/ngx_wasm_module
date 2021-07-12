@@ -18,7 +18,7 @@ should set body even with GET request
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_body';
+        proxy_wasm hostcalls 'test=/t/set_request_body';
         echo $request_body;
     }
 --- request
@@ -38,8 +38,8 @@ be done on or after http_request_body.
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_body';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 --- request
 GET /t
@@ -56,8 +56,8 @@ Hello world
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_body value=';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 --- request
 POST /t
@@ -79,8 +79,8 @@ should be reflected in subrequest (/t/echo/body) and in main request ($request_b
 --- config
     location /subrequest {
         internal;
-        proxy_wasm hostcalls 'test_case=/t/set_request_body';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
     location /t {
@@ -104,36 +104,36 @@ Hello world
 --- wasm_modules: hostcalls
 --- config
     location /reset {
-        proxy_wasm hostcalls 'test_case=/t/set_request_body value=';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=';
         return 200;
     }
 
     location /a {
-        proxy_wasm hostcalls 'test_case=/t/set_request_body value=HelloWorld';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=HelloWorld';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
     location /b {
-        proxy_wasm hostcalls 'test_case=/t/set_request_body value=Wasm offset=5';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=Wasm offset=5';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
     location /c {
         # offset == 0
-        proxy_wasm hostcalls 'test_case=/t/set_request_body value=Goodbye offset=0';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=Goodbye offset=0';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
     location /d {
         # offset == 0
-        proxy_wasm hostcalls 'test_case=/t/set_request_body value=HelloWorld offset=0';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=HelloWorld offset=0';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
     location /e {
         # offset larger than buffer
-        proxy_wasm hostcalls 'test_case=/t/set_request_body value=LAST offset=10';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=LAST offset=10';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
     location /t {
@@ -162,23 +162,23 @@ HelloWorld
 --- wasm_modules: hostcalls
 --- config
     location /a {
-        proxy_wasm hostcalls 'test_case=/t/set_request_body value=HelloWorld';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=HelloWorld';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
     location /b {
-        proxy_wasm hostcalls 'test_case=/t/set_request_body value=Wasm offset=5 max=3';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=Wasm offset=5 max=3';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
     location /c {
-        proxy_wasm hostcalls 'test_case=/t/set_request_body value=Goodbye offset=0 max=0';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=Goodbye offset=0 max=0';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
     location /d {
-        proxy_wasm hostcalls 'test_case=/t/set_request_body value=HelloWorld offset=0 max=20';
-        proxy_wasm hostcalls 'test_case=/t/echo/body';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=HelloWorld offset=0 max=20';
+        proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
     location /t {
@@ -203,22 +203,22 @@ HelloWorld
 --- wasm_modules: hostcalls
 --- config
     location /request_headers {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/set_request_body \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/set_request_body \
                               value=from_request_headers';
         echo $request_body;
     }
 
     location /request_body {
-        proxy_wasm hostcalls 'on_phase=request_body \
-                              test_case=/t/set_request_body \
+        proxy_wasm hostcalls 'on=request_body \
+                              test=/t/set_request_body \
                               value=from_request_body';
         echo $request_body;
     }
 
     location /response_headers {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/set_request_body';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/set_request_body';
         echo $request_body;
     }
 
@@ -227,8 +227,8 @@ HelloWorld
         echo_subrequest POST /request_body     -b 'orig';
         echo_subrequest POST /response_headers -b 'orig';
 
-        proxy_wasm hostcalls 'on_phase=log test_case=/t/set_request_body';
-        proxy_wasm hostcalls 'on_phase=log test_case=/t/log/request_body';
+        proxy_wasm hostcalls 'on=log test=/t/set_request_body';
+        proxy_wasm hostcalls 'on=log test=/t/log/request_body';
     }
 --- response_body eval
 qr/from_request_headers

@@ -28,22 +28,22 @@ response
 --- wasm_modules: hostcalls
 --- config
     location /t/A {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_headers';
         echo A;
     }
 
     location /t/B {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_headers';
         echo B;
     }
 
     location /t {
         echo_location /t/A;
         echo_location /t/B;
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_headers';
     }
 --- ignore_response_body
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/

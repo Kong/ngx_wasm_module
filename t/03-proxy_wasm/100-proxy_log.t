@@ -17,7 +17,7 @@ __DATA__
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/log/levels';
+        proxy_wasm hostcalls 'test=/t/log/levels';
         echo ok;
     }
 --- response_body
@@ -41,20 +41,20 @@ stub1
 --- wasm_modules: hostcalls
 --- config
     location /t/A {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/levels';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/levels';
         echo A;
     }
 
     location /t/B {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/levels';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/levels';
         echo B;
     }
 
     location /t {
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/levels';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/levels';
         echo_location /t/A;
         echo_location /t/B;
         echo C;
