@@ -55,7 +55,6 @@ impl RootContext for TestRoot {
                         .unwrap_or_else(|_| panic!("unknown phase: {:?}", s))
                 }),
             request_body_size: None,
-            response_body_size: None,
         }))
     }
 }
@@ -65,7 +64,6 @@ struct TestHttpHostcalls {
     on_phase: TestPhase,
     config: HashMap<String, String>,
     request_body_size: Option<usize>,
-    response_body_size: Option<usize>,
 }
 
 impl TestHttpHostcalls {
@@ -110,9 +108,7 @@ impl TestHttpHostcalls {
             "/t/log/request_path" => test_log_request_path(self),
             "/t/log/response_header" => test_log_response_header(self),
             "/t/log/response_headers" => test_log_response_headers(self),
-            "/t/log/response_body" => {
-                test_log_response_body(self, self.response_body_size.unwrap_or(30))
-            }
+            "/t/log/response_body" => test_log_response_body(self),
             "/t/log/current_time" => test_log_current_time(self),
 
             /* send_local_response */

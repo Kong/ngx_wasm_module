@@ -107,11 +107,11 @@ qr/\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
     output_buffers 1 2;
 
     location /t {
-        proxy_wasm hostcalls 'test=/t/log/response_body on=response_body';
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/log/response_body \
+                              max_len=10';
         echo 'aaaaaaaaaaaaaaaaaaaa';
     }
---- more_headers
-pwm-log-resp-body-size: 10
 --- response_body
 aaaaaaaaaaaaaaaaaaaa
 --- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_response_body|(response body chunk)).*/
