@@ -21,7 +21,7 @@ should not contain any extra header
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/status/204';
+        proxy_wasm hostcalls 'test=/t/send_local_response/status/204';
         echo fail;
     }
 --- error_code: 204
@@ -45,7 +45,7 @@ should produce response with valid code
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/status/300';
+        proxy_wasm hostcalls 'test=/t/send_local_response/status/300';
         echo fail;
     }
 --- error_code: 300
@@ -64,7 +64,7 @@ should produce error page content from a panic, not from echo
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/status/1000';
+        proxy_wasm hostcalls 'test=/t/send_local_response/status/1000';
         echo fail;
     }
 --- error_code: 500
@@ -85,7 +85,7 @@ qr/500 Internal Server Error/
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/status/204';
+        proxy_wasm hostcalls 'test=/t/send_local_response/status/204';
     }
 --- error_code: 204
 --- ignore_response_body
@@ -110,7 +110,7 @@ should inject headers a produced response, not from echo
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/headers';
+        proxy_wasm hostcalls 'test=/t/send_local_response/headers';
         echo fail;
     }
 --- raw_response_headers_like
@@ -137,7 +137,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/headers';
+        proxy_wasm hostcalls 'test=/t/send_local_response/headers';
     }
 --- response_body
 --- raw_response_headers_like
@@ -161,7 +161,7 @@ should produce a response body, not from echo
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/body';
+        proxy_wasm hostcalls 'test=/t/send_local_response/body';
         echo fail;
     }
 --- response_body
@@ -178,7 +178,7 @@ stub
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/body';
+        proxy_wasm hostcalls 'test=/t/send_local_response/body';
     }
 --- ignore_response_body
 --- raw_response_headers_like
@@ -202,7 +202,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/set_special_headers';
+        proxy_wasm hostcalls 'test=/t/send_local_response/set_special_headers';
         echo fail;
     }
 --- response_headers
@@ -243,7 +243,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/set_headers_escaping';
+        proxy_wasm hostcalls 'test=/t/send_local_response/set_headers_escaping';
         echo fail;
     }
 --- response_headers
@@ -263,8 +263,8 @@ should invoke on_log
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/send_local_response/body';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/send_local_response/body';
         echo fail;
     }
 --- response_headers
@@ -288,8 +288,8 @@ should produce a trap
 --- config
     location /t {
         echo ok;
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/send_local_response/body';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/send_local_response/body';
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
@@ -313,8 +313,8 @@ should produce a trap in log phase
 --- config
     location /t {
         echo ok;
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/send_local_response/body';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/send_local_response/body';
     }
 --- response_body
 ok
@@ -386,8 +386,8 @@ should still run all response phases
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/body';
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/body';
+        proxy_wasm hostcalls 'test=/t/send_local_response/body';
+        proxy_wasm hostcalls 'test=/t/send_local_response/body';
     }
 --- response_body
 Hello world

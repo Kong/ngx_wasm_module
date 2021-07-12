@@ -18,17 +18,17 @@ cannot update response headers (Content-Length)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/send_local_response/body';
+        proxy_wasm hostcalls 'test=/t/send_local_response/body';
 
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/log/response_body';
 
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/set_http_response_body \
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_http_response_body \
                               value=updated';
 
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/log/response_body';
     }
 --- response_headers
 Content-Length: 12
@@ -57,15 +57,15 @@ should be retrieved by get_http_response_body()
     location /t {
         echo 'Hello';
 
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/log/response_body';
 
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/set_http_response_body \
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_http_response_body \
                               value=updated';
 
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/log/response_body';
     }
 --- response_headers
 Transfer-Encoding: chunked
@@ -95,11 +95,11 @@ qr/\[wasm\] #\d+ on_response_body, 6 bytes, end_of_stream false
     location /t {
         echo fail;
 
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/set_http_response_body value=';
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_http_response_body value=';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_body';
     }
 --- response_headers
 Transfer-Encoding: chunked
@@ -123,18 +123,18 @@ qr/\[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream false
     location /subrequest {
         internal;
         echo fail;
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/set_http_response_body \
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_http_response_body \
                               value=HelloWorld';
 
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/log/response_body';
     }
 
     location /t {
         echo_subrequest GET /subrequest;
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_body';
     }
 --- response_headers
 Transfer-Encoding: chunked
@@ -162,28 +162,28 @@ qr/\[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream false
 --- config
     location /a {
         echo 'hello world';
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/set_http_response_body \
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_http_response_body \
                               value=wasm offset=6';
-        proxy_wasm hostcalls 'on_phase=response_body test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
 
     location /b {
         # offset == 0
         echo 'hello world';
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/set_http_response_body \
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_http_response_body \
                               value=Goodbye offset=0';
-        proxy_wasm hostcalls 'on_phase=response_body test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
 
     location /c {
         # offset larger than buffer
         echo -n 'hello';
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/set_http_response_body \
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_http_response_body \
                               value=LAST offset=10';
-        proxy_wasm hostcalls 'on_phase=response_body test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
 
     location /t {
@@ -230,28 +230,28 @@ qr/\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
 --- config
     location /a {
         echo 'hello world';
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/set_http_response_body \
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_http_response_body \
                               value=wasm offset=6 max=3';
-        proxy_wasm hostcalls 'on_phase=response_body test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
 
     location /b {
         # offset == 0
         echo 'hello world';
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/set_http_response_body \
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_http_response_body \
                               value=Goodbye offset=0 max=0';
-        proxy_wasm hostcalls 'on_phase=response_body test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
 
     location /c {
         # offset larger than buffer
         echo -n 'hello';
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/set_http_response_body \
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_http_response_body \
                               value=LAST offset=0 max=20';
-        proxy_wasm hostcalls 'on_phase=response_body test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
 
     location /t {
@@ -299,25 +299,25 @@ should not be retrievable after on_http_response_body since buffers are consumed
     location /request_headers {
         internal;
         echo;
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/set_http_response_body';
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/set_http_response_body';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_body';
     }
 
     location /response_headers {
         internal;
         echo;
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/set_http_response_body';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_body';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/set_http_response_body';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_body';
     }
 
     location /t {
         echo_subrequest GET /request_headers;
         echo_subrequest GET /response_headers;
-        proxy_wasm hostcalls 'on_phase=log test_case=/t/set_http_response_body';
+        proxy_wasm hostcalls 'on=log test=/t/set_http_response_body';
     }
 --- response_headers
 Transfer-Encoding: chunked

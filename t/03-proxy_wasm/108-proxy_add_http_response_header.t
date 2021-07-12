@@ -26,11 +26,11 @@ should add a response header visible in the second filter
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Hello:world';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_headers';
         return 200;
     }
 --- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*/
@@ -46,11 +46,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header
                               value=Hello:';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_headers';
         return 200;
     }
 --- response_headers
@@ -73,11 +73,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 --- config
     location /t {
         more_set_headers 'Hello: here';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Hello:there';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_headers';
         return 200;
     }
 --- response_headers
@@ -102,11 +102,11 @@ qr/\[wasm\] #\d+ on_response_headers, 6 headers
 --- config
     location /t {
         more_set_headers 'Hello: here';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Hello:';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_headers';
         return 200;
     }
 --- response_headers_like
@@ -129,14 +129,14 @@ qr/\[wasm\] #\d+ on_response_headers, 6 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Hello:world';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Hello:world';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_headers';
         return 200;
     }
 --- response_headers
@@ -162,11 +162,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Content-Length:3';
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_headers';
         echo ok;
     }
 --- response_headers
@@ -188,11 +188,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Content-Length:0';
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_headers';
         echo ok;
     }
 --- response_headers
@@ -216,11 +216,11 @@ should log an error but not produce a trap
 --- config
     location /t {
         more_set_headers 'Content-Length: 0';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Content-Length:3';
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_headers';
         return 200;
     }
 --- response_body
@@ -238,8 +238,8 @@ should log an error but not produce a trap
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Content-Length:';
         return 200;
     }
@@ -259,11 +259,11 @@ should log an error but not produce a trap
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Content-Length:FF';
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_headers';
         return 200;
     }
 --- response_headers
@@ -280,11 +280,11 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length response header:
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Cache-Control:no-cache';
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_headers';
         return 200;
     }
 --- response_headers
@@ -307,11 +307,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 --- config
     location /t {
         more_set_headers 'Cache-Control: no-store';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Cache-Control:no-cache';
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_headers';
         return 200;
     }
 --- response_headers
@@ -335,11 +335,11 @@ qr/\[wasm\] #\d+ on_response_headers, 6 headers
 --- config
     location /t {
         more_set_headers 'Cache-Control: no-store';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Cache-Control:';
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_headers';
         return 200;
     }
 --- response_headers_like
@@ -364,13 +364,13 @@ coverage only
 --- config
     location /t {
         more_set_headers 'Cache-Control: no-store';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/set_http_response_headers';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/set_http_response_headers';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=Cache-Control:no-cache';
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_headers';
         return 200;
     }
 --- response_headers
@@ -393,20 +393,20 @@ should log an error (but no trap) when headers are sent
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/add_http_response_header \
                               value=From:request_headers';
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_http_response_header \
                               value=From:response_headers';
 
-        proxy_wasm hostcalls 'on_phase=response_body \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/add_http_response_header \
                               value=From:response_body';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/add_http_response_header \
                               value=From:log';
         return 200;
     }

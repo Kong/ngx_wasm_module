@@ -16,9 +16,9 @@ __DATA__
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Hello:wasm';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- response_body
 Host: localhost
@@ -38,9 +38,9 @@ qr/\[wasm\] #\d+ on_request_headers, 2 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=hello:wasm';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- response_body
 Host: localhost
@@ -60,9 +60,9 @@ qr/\[wasm\] #\d+ on_request_headers, 2 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Header20:updated';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers eval
 (CORE::join "\n", map { "Header$_: value-$_" } 1..20)
@@ -82,9 +82,9 @@ Connection: close
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Wasm:';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Wasm: incoming
@@ -102,13 +102,13 @@ Connection: close
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Hello:wasm';
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Hello:wasm';
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Hello:wasm';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Hello: invalid
@@ -132,13 +132,13 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Connection:close';
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Connection:close';
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Connection:close';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers eval
 (CORE::join "\n", map { "Header$_: value-$_" } 1..20)
@@ -163,11 +163,11 @@ qr/\[wasm\] #\d+ on_request_headers, 22 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Connection:keep-alive';
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Connection:keep-alive';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Connection: close
@@ -189,11 +189,11 @@ qr/\[wasm\] #\d+ on_request_headers, 2 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Connection:closed';
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Connection:closed';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- response_body
 Host: localhost
@@ -213,11 +213,11 @@ qr/\[wasm\] #\d+ on_request_headers, 2 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Content-Length:0';
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Content-Length:0';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Content-Length: 10
@@ -240,11 +240,11 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Content-Length:';
-        proxy_wasm hostcalls 'test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'test=/t/set_request_header \
                               value=Content-Length:';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Content-Length: 10
@@ -267,16 +267,16 @@ should log an error (but no trap) when response is produced
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/set_request_header \
                               value=From:request_headers';
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/echo/headers';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/echo/headers';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/set_request_header \
                               value=From:response_headers';
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/set_request_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/set_request_header \
                               value=From:log';
     }
 --- more_headers

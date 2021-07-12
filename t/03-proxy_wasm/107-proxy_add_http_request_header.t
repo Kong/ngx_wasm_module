@@ -26,8 +26,8 @@ should add a request header visible in the second filter
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: Hello=world
@@ -46,8 +46,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: Hello=
@@ -66,8 +66,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Hello: world
@@ -88,8 +88,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Hello: world
@@ -110,9 +110,9 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: Hello=world
@@ -132,8 +132,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: Host=invalid
@@ -152,8 +152,8 @@ qr/\[error\] .*? \[wasm\] cannot add new "Host" builtin request header/
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: Connection=closed
@@ -172,8 +172,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: Connection=
@@ -192,8 +192,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: Content-Length=0
@@ -212,8 +212,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Content-Length: 0
@@ -233,8 +233,8 @@ qr/\[error\] .*? \[wasm\] cannot add new "Content-Length" builtin request header
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: Content-Length=
@@ -253,8 +253,8 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: 
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: Content-Length=FF
@@ -273,8 +273,8 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: 
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: User-Agent=Mozilla/5.0
@@ -293,8 +293,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 User-Agent: Mozilla/4.0
@@ -314,8 +314,8 @@ qr/\[error\] .*? \[wasm\] cannot add new "User-Agent" builtin request header/
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: User-Agent=
@@ -334,8 +334,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: If-Modified-Since=Wed, 21 Oct 2015 07:28:00 GMT
@@ -354,8 +354,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 If-Modified-Since: Mon, 8 Sep 2015 07:28:00 GMT
@@ -375,8 +375,8 @@ qr/\[error\] .*? \[wasm\] cannot add new "If-Modified-Since" builtin request hea
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: If-Modified-Since=
@@ -395,8 +395,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: X-Forwarded-For=10.0.0.2
@@ -415,8 +415,8 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 X-Forwarded-For: 10.0.0.1
@@ -438,8 +438,8 @@ should set r->headers_in.msie6 = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: User-Agent=MSIE 4.0
@@ -459,8 +459,8 @@ should set r->headers_in.msie6 = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: User-Agent=MSIE 6.0
@@ -480,8 +480,8 @@ should set r->headers_in.opera = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: User-Agent=Opera
@@ -501,8 +501,8 @@ should set r->headers_in.gecko = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: User-Agent=Gecko/
@@ -522,8 +522,8 @@ should set r->headers_in.chrome = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: User-Agent=Chrome/
@@ -543,8 +543,8 @@ should set r->headers_in.safari = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: User-Agent=Safari/Mac OS X
@@ -564,8 +564,8 @@ should set r->headers_in.konqueror = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'test_case=/t/echo/headers';
+        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 pwm-add-req-header: User-Agent=Konqueror
@@ -585,14 +585,14 @@ should log an error (but no trap) when response is produced
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/echo/headers';
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/add_request_header';
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/add_request_header';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/add_request_header';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/echo/headers';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_request_header';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/add_request_header';
     }
 --- more_headers
 Hello: world

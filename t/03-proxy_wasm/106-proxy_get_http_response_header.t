@@ -19,8 +19,8 @@ __DATA__
 --- config
     location /t {
         more_set_headers "Hello: world";
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=hello';
         return 200;
     }
@@ -38,8 +38,8 @@ qr/\[wasm\] resp header "hello: world"/
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=hello';
         return 200;
     }
@@ -60,22 +60,22 @@ should produce a result in: on_request_headers, on_response_header, on_log
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/add_http_response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/add_http_response_header \
                               value=Hello:there';
 
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=hello';
 
         echo ok;
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=hello';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=hello';
     }
 --- response_headers
@@ -100,18 +100,18 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=Server';
 
         echo ok;
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=Server';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=Server';
     }
 --- response_headers_like
@@ -135,18 +135,18 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=Date';
 
         echo ok;
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=Date';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=Date';
     }
 --- response_headers_like
@@ -171,16 +171,16 @@ qr/\[wasm\] .*? entering "RequestHeaders"
     location /t {
         empty_gif;
 
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=Last-Modified';
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=Last-Modified';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=Last-Modified';
     }
 --- response_headers_like
@@ -203,19 +203,19 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=Content-Type';
 
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/send_local_response/body';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/send_local_response/body';
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=Content-Type';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=Content-Type';
     }
 --- response_headers
@@ -238,19 +238,19 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=Content-Type';
 
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/send_local_response/status/204';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/send_local_response/status/204';
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=Content-Type';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=Content-Type';
     }
 --- error_code: 204
@@ -271,18 +271,18 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=connection';
 
         return 200;
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=connection';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=connection';
     }
 --- response_headers_like
@@ -306,18 +306,18 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=connection';
 
         return 200;
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=connection';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=connection';
     }
 --- more_headers
@@ -342,18 +342,18 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=connection';
 
         return 101;
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=connection';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=connection';
     }
 --- response_headers
@@ -381,18 +381,18 @@ qr/\[wasm\] .*? entering "RequestHeaders"
     location /t {
         keepalive_timeout 1s 1m;
 
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=Keep-Alive';
 
         return 200;
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=Keep-Alive';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=Keep-Alive';
     }
 --- more_headers
@@ -419,18 +419,18 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=Transfer-Encoding';
 
         echo ok;
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=Transfer-Encoding';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=Transfer-Encoding';
     }
 --- response_headers
@@ -454,18 +454,18 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on_phase=request_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
                               name=Transfer-Encoding';
 
         return 200;
 
-        proxy_wasm hostcalls 'on_phase=response_headers \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
                               name=Transfer-Encoding';
 
-        proxy_wasm hostcalls 'on_phase=log \
-                              test_case=/t/log/response_header \
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
                               name=Transfer-Encoding';
     }
 --- response_headers
