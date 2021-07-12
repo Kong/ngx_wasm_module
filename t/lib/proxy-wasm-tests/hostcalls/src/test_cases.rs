@@ -33,13 +33,14 @@ pub(crate) fn test_log_request_body(ctx: &mut TestHttpHostcalls) {
     }
 }
 
-pub(crate) fn test_log_response_body(ctx: &mut TestHttpHostcalls, mut max_size: usize) {
-    let header = ctx.get_http_request_header("pwm-log-resp-body-size");
-    if let Some(size) = header {
-        max_size = size.parse::<usize>().unwrap();
-    }
+pub(crate) fn test_log_response_body(ctx: &mut TestHttpHostcalls) {
+    let max_len = ctx
+        .config
+        .get("max_len")
+        .map(|max| max.parse::<usize>().unwrap())
+        .unwrap_or(usize::MAX);
 
-    if let Some(bytes) = ctx.get_http_response_body(0, max_size) {
+    if let Some(bytes) = ctx.get_http_response_body(0, max_len) {
         match String::from_utf8(bytes) {
             Ok(s) => info!("response body chunk: {:?}", s),
             Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
