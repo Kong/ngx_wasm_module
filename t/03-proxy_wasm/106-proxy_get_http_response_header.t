@@ -61,7 +61,7 @@ should produce a result in: on_request_headers, on_response_header, on_log
 --- config
     location /t {
         proxy_wasm hostcalls 'on=request_headers \
-                              test=/t/add_http_response_header \
+                              test=/t/add_response_header \
                               value=Hello:there';
 
         proxy_wasm hostcalls 'on=request_headers \

@@ -22,7 +22,7 @@ __DATA__
         more_set_headers 'Server: more_headers';
         more_set_headers 'Hello: here';
         proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/set_http_response_headers';
+                              test=/t/set_response_headers';
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/log/response_headers';
     }
@@ -57,7 +57,7 @@ qr/.*?
         wasm_call content ngx_rust_tests say_nothing;
 
         proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/set_http_response_headers \
+                              test=/t/set_response_headers \
                               value=Content-Type:text/none+Server:proxy-wasm';
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/log/response_headers';
@@ -93,7 +93,7 @@ should log an error but not produce a trap
         wasm_call content ngx_rust_tests say_nothing;
 
         proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/set_http_response_headers \
+                              test=/t/set_response_headers \
                               value=Connection:closed';
     }
 --- response_body
@@ -111,19 +111,19 @@ should log an error (but no trap) when headers are sent
 --- config
     location /t {
         proxy_wasm hostcalls 'on=request_headers \
-                              test=/t/set_http_response_headers \
+                              test=/t/set_response_headers \
                               value=From:request_headers';
 
         proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/set_http_response_headers \
+                              test=/t/set_response_headers \
                               value=From:response_headers';
 
         proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_http_response_headers \
+                              test=/t/set_response_headers \
                               value=From:response_body';
 
         proxy_wasm hostcalls 'on=log \
-                              test=/t/set_http_response_headers \
+                              test=/t/set_response_headers \
                               value=From:log';
         return 200;
     }

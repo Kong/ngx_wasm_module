@@ -128,15 +128,15 @@ impl TestHttpHostcalls {
             /* set/add request/response headers */
             "/t/set_request_headers" => test_set_request_headers(self),
             "/t/set_request_headers/special" => test_set_request_headers_special(self),
-            "/t/set_http_response_headers" => test_set_http_response_headers(self),
+            "/t/set_response_headers" => test_set_response_headers(self),
             "/t/set_request_header" => test_set_http_request_header(self),
-            "/t/set_http_response_header" => test_set_http_response_header(self),
+            "/t/set_response_header" => test_set_response_header(self),
             "/t/add_request_header" => test_add_http_request_header(self),
-            "/t/add_http_response_header" => test_add_http_response_header(self),
+            "/t/add_response_header" => test_add_http_response_header(self),
 
             /* set/add request/response body */
             "/t/set_request_body" => test_set_http_request_body(self),
-            "/t/set_http_response_body" => test_set_http_response_body(self),
+            "/t/set_response_body" => test_set_response_body(self),
 
             /* echo request */
             "/t/echo/headers" => echo_headers(self),

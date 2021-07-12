@@ -173,7 +173,7 @@ pub(crate) fn test_add_http_response_header(ctx: &mut TestHttpHostcalls) {
     }
 }
 
-pub(crate) fn test_set_http_response_header(ctx: &mut TestHttpHostcalls) {
+pub(crate) fn test_set_response_header(ctx: &mut TestHttpHostcalls) {
     if let Some(header) = ctx.config.get("value") {
         let (name, value) = header.split_once(':').unwrap();
         if value.is_empty() {
@@ -184,7 +184,7 @@ pub(crate) fn test_set_http_response_header(ctx: &mut TestHttpHostcalls) {
     }
 }
 
-pub(crate) fn test_set_http_response_headers(ctx: &mut TestHttpHostcalls) {
+pub(crate) fn test_set_response_headers(ctx: &mut TestHttpHostcalls) {
     if let Some(headers_str) = ctx.config.get("value") {
         let headers = headers_str
             .split('+')
@@ -218,7 +218,7 @@ pub(crate) fn test_set_http_request_body(ctx: &mut TestHttpHostcalls) {
     ctx.set_http_request_body(offset, len, body.as_bytes());
 }
 
-pub(crate) fn test_set_http_response_body(ctx: &mut TestHttpHostcalls) {
+pub(crate) fn test_set_response_body(ctx: &mut TestHttpHostcalls) {
     let mut body;
     if let Some(value) = ctx.config.get("value") {
         body = value.to_string();

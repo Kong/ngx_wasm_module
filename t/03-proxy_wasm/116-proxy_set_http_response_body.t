@@ -24,7 +24,7 @@ cannot update response headers (Content-Length)
                               test=/t/log/response_body';
 
         proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_http_response_body \
+                              test=/t/set_response_body \
                               value=updated';
 
         proxy_wasm hostcalls 'on=response_body \
@@ -61,7 +61,7 @@ should be retrieved by get_http_response_body()
                               test=/t/log/response_body';
 
         proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_http_response_body \
+                              test=/t/set_response_body \
                               value=updated';
 
         proxy_wasm hostcalls 'on=response_body \
@@ -96,7 +96,7 @@ qr/\[wasm\] #\d+ on_response_body, 6 bytes, end_of_stream false
         echo fail;
 
         proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_http_response_body value=';
+                              test=/t/set_response_body value=';
 
         proxy_wasm hostcalls 'on=log \
                               test=/t/log/response_body';
@@ -124,7 +124,7 @@ qr/\[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream false
         internal;
         echo fail;
         proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_http_response_body \
+                              test=/t/set_response_body \
                               value=HelloWorld';
 
         proxy_wasm hostcalls 'on=response_body \
@@ -163,7 +163,7 @@ qr/\[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream false
     location /a {
         echo 'hello world';
         proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_http_response_body \
+                              test=/t/set_response_body \
                               value=wasm offset=6';
         proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
@@ -172,7 +172,7 @@ qr/\[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream false
         # offset == 0
         echo 'hello world';
         proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_http_response_body \
+                              test=/t/set_response_body \
                               value=Goodbye offset=0';
         proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
@@ -181,7 +181,7 @@ qr/\[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream false
         # offset larger than buffer
         echo -n 'hello';
         proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_http_response_body \
+                              test=/t/set_response_body \
                               value=LAST offset=10';
         proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
@@ -231,7 +231,7 @@ qr/\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
     location /a {
         echo 'hello world';
         proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_http_response_body \
+                              test=/t/set_response_body \
                               value=wasm offset=6 max=3';
         proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
@@ -240,7 +240,7 @@ qr/\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
         # offset == 0
         echo 'hello world';
         proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_http_response_body \
+                              test=/t/set_response_body \
                               value=Goodbye offset=0 max=0';
         proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
@@ -249,7 +249,7 @@ qr/\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
         # offset larger than buffer
         echo -n 'hello';
         proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_http_response_body \
+                              test=/t/set_response_body \
                               value=LAST offset=0 max=20';
         proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
@@ -300,7 +300,7 @@ should not be retrievable after on_http_response_body since buffers are consumed
         internal;
         echo;
         proxy_wasm hostcalls 'on=request_headers \
-                              test=/t/set_http_response_body';
+                              test=/t/set_response_body';
         proxy_wasm hostcalls 'on=request_headers \
                               test=/t/log/response_body';
     }
@@ -309,7 +309,7 @@ should not be retrievable after on_http_response_body since buffers are consumed
         internal;
         echo;
         proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/set_http_response_body';
+                              test=/t/set_response_body';
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/log/response_body';
     }
@@ -317,7 +317,7 @@ should not be retrievable after on_http_response_body since buffers are consumed
     location /t {
         echo_subrequest GET /request_headers;
         echo_subrequest GET /response_headers;
-        proxy_wasm hostcalls 'on=log test=/t/set_http_response_body';
+        proxy_wasm hostcalls 'on=log test=/t/set_response_body';
     }
 --- response_headers
 Transfer-Encoding: chunked
