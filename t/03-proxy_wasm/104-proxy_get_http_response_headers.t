@@ -74,5 +74,26 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 
 === TEST 3: proxy_wasm - get_http_response_headers() too many headers
 should truncate > 100 headers
---- SKIP: TODO
+--- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: hostcalls
+--- config eval
+qq^
+    location /t {
+^.
+        (CORE::join "\n", map { "more_set_headers \"Header$_: value-$_\";" } 1..101).
+qq^
+        return 200;
+
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_headers';
+    }
+^
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[warn\] .*? marshalled map truncated to 100 elements/,
+    qr/\[debug\] .*? on_response_headers, 106 headers/
+]
+--- no_error_log
+[error]
+[alert]
