@@ -26,19 +26,18 @@ should add a request header visible in the second filter
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Hello:world';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: Hello=world
 --- response_body
 Host: localhost
 Connection: close
 Hello: world
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
@@ -46,19 +45,19 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Hello:';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
-pwm-add-req-header: Hello=
 --- response_body_like
 Host: localhost
 Connection: close
 Hello:\s
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
@@ -66,56 +65,12 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Hello:world';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Hello: world
-pwm-add-req-header: Hello=world
---- response_body
-Host: localhost
-Connection: close
-Hello: world
-Hello: world
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
---- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 5 headers/
-
-
-
-=== TEST 4: proxy_wasm - add_request_header() adds an existing non-builtin header with empty value
---- wasm_modules: hostcalls
---- config
-    location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
-        proxy_wasm hostcalls 'test=/t/echo/headers';
-    }
---- more_headers
-Hello: world
-pwm-add-req-header: Hello=
---- response_body_like
-Host: localhost
-Connection: close
-Hello: world
-Hello:\s
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
---- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 5 headers/
-
-
-
-=== TEST 5: proxy_wasm - add_request_header() adds the same non-builtin header/value multiple times
---- wasm_modules: hostcalls
---- config
-    location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
-        proxy_wasm hostcalls 'test=/t/add_request_header';
-        proxy_wasm hostcalls 'test=/t/echo/headers';
-    }
---- more_headers
-pwm-add-req-header: Hello=world
 --- response_body
 Host: localhost
 Connection: close
@@ -128,15 +83,58 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
+=== TEST 4: proxy_wasm - add_request_header() adds an existing non-builtin header with empty value
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Hello:';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
+    }
+--- more_headers
+Hello: world
+--- response_body_like
+Host: localhost
+Connection: close
+Hello: world
+Hello:\s
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log_out eval
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+
+
+
+=== TEST 5: proxy_wasm - add_request_header() adds the same non-builtin header/value multiple times
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Hello:world';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Hello:world';
+        proxy_wasm hostcalls 'test=/t/echo/headers';
+    }
+--- response_body
+Host: localhost
+Connection: close
+Hello: world
+Hello: world
+--- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log_out eval
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+
+
+
 === TEST 6: proxy_wasm - add_request_header() cannot add Host header if exists
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Host:invalid';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: Host=invalid
 --- response_body_like
 Host: localhost
 --- error_log eval
@@ -152,19 +150,20 @@ qr/\[error\] .*? \[wasm\] cannot add new "Host" builtin request header/
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Connection:closed';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
-pwm-add-req-header: Connection=closed
+Connection: keep-alive
 --- response_body
 Host: localhost
-Connection: close
+Connection: keep-alive
 Connection: closed
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
@@ -172,19 +171,18 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Connection:';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: Connection=
 --- response_body_like
 Host: localhost
 Connection: close
 Connection:\s
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
@@ -192,19 +190,18 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Content-Length:0';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: Content-Length=0
 --- response_body
 Host: localhost
 Connection: close
 Content-Length: 0
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
@@ -212,12 +209,12 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Content-Length:0';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 Content-Length: 0
-pwm-add-req-header: Content-Length=0
 --- response_body_like
 Content-Length: 0
 --- error_log eval
@@ -233,11 +230,10 @@ qr/\[error\] .*? \[wasm\] cannot add new "Content-Length" builtin request header
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Content-Length:';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: Content-Length=
 --- response_body_unlike
 Content-Length
 --- error_log eval
@@ -253,11 +249,10 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: 
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=Content-Length:FF';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: Content-Length=FF
 --- response_body_unlike
 Content-Length
 --- error_log eval
@@ -273,19 +268,18 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: 
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=User-Agent:Mozilla/5.0';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: User-Agent=Mozilla/5.0
 --- response_body
 Host: localhost
 Connection: close
 User-Agent: Mozilla/5.0
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
@@ -293,12 +287,12 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=User-Agent:Mozilla/5.0';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 User-Agent: Mozilla/4.0
-pwm-add-req-header: User-Agent=Mozilla/5.0
 --- response_body_like
 User-Agent: Mozilla\/4\.0
 --- error_log eval
@@ -314,19 +308,18 @@ qr/\[error\] .*? \[wasm\] cannot add new "User-Agent" builtin request header/
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=User-Agent:';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: User-Agent=
 --- response_body_like
 Host: localhost
 Connection: close
 User-Agent:\s
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
@@ -375,19 +368,18 @@ qr/\[error\] .*? \[wasm\] cannot add new "If-Modified-Since" builtin request hea
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=If-Modified-Since:';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: If-Modified-Since=
 --- response_body_like
 Host: localhost
 Connection: close
 If-Modified-Since:\s
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
@@ -395,19 +387,18 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=X-Forwarded-For:10.0.0.2';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: X-Forwarded-For=10.0.0.2
 --- response_body
 Host: localhost
 Connection: close
 X-Forwarded-For: 10.0.0.2
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
@@ -415,12 +406,12 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=X-Forwarded-For:10.0.0.2';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
 --- more_headers
 X-Forwarded-For: 10.0.0.1
-pwm-add-req-header: X-Forwarded-For=10.0.0.2
 --- response_body
 Host: localhost
 Connection: close
@@ -428,8 +419,8 @@ X-Forwarded-For: 10.0.0.1
 X-Forwarded-For: 10.0.0.2
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 5 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
 
 
 
@@ -480,19 +471,18 @@ should set r->headers_in.opera = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=User-Agent:Opera';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: User-Agent=Opera
 --- response_body
 Host: localhost
 Connection: close
 User-Agent: Opera
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
@@ -501,19 +491,18 @@ should set r->headers_in.gecko = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=User-Agent:Gecko/';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: User-Agent=Gecko/
 --- response_body
 Host: localhost
 Connection: close
 User-Agent: Gecko/
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
@@ -522,19 +511,18 @@ should set r->headers_in.chrome = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/add_request_header';
+        proxy_wasm hostcalls 'test=/t/add_request_header \
+                              value=User-Agent:Chrome/';
         proxy_wasm hostcalls 'test=/t/echo/headers';
     }
---- more_headers
-pwm-add-req-header: User-Agent=Chrome/
 --- response_body
 Host: localhost
 Connection: close
 User-Agent: Chrome/
 --- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
+\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
 
 
 
