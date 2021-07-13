@@ -12,7 +12,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - set_request_headers() sets request headers
+=== TEST 1: proxy_wasm - set_http_request_headers() sets request headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -37,7 +37,7 @@ Welcome: wasm
 
 
 
-=== TEST 2: proxy_wasm - set_request_headers() sets special request headers
+=== TEST 2: proxy_wasm - set_http_request_headers() sets special request headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -64,7 +64,7 @@ X-Forwarded-For: 128.168.0.1
 
 
 
-=== TEST 3: proxy_wasm - set_request_headers() sets headers when many headers exist
+=== TEST 3: proxy_wasm - set_http_request_headers() sets headers when many headers exist
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -84,7 +84,7 @@ Welcome: wasm
 
 
 
-=== TEST 4: proxy_wasm - set_request_headers() x on_phases
+=== TEST 4: proxy_wasm - set_http_request_headers() x on_phases
 should log an error (but no trap) when response is produced
 --- wasm_modules: hostcalls
 --- config

@@ -21,7 +21,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - add_request_header() adds a new non-builtin header
+=== TEST 1: proxy_wasm - add_http_request_header() adds a new non-builtin header
 should add a request header visible in the second filter
 --- wasm_modules: hostcalls
 --- config
@@ -41,7 +41,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 2: proxy_wasm - add_request_header() adds a new non-builtin header with empty value
+=== TEST 2: proxy_wasm - add_http_request_header() adds a new non-builtin header with empty value
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -61,7 +61,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 3: proxy_wasm - add_request_header() adds an existing non-builtin header
+=== TEST 3: proxy_wasm - add_http_request_header() adds an existing non-builtin header
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -83,7 +83,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 4: proxy_wasm - add_request_header() adds an existing non-builtin header with empty value
+=== TEST 4: proxy_wasm - add_http_request_header() adds an existing non-builtin header with empty value
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -105,7 +105,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 5: proxy_wasm - add_request_header() adds the same non-builtin header/value multiple times
+=== TEST 5: proxy_wasm - add_http_request_header() adds the same non-builtin header/value multiple times
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -127,7 +127,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 6: proxy_wasm - add_request_header() cannot add Host header if exists
+=== TEST 6: proxy_wasm - add_http_request_header() cannot add Host header if exists
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -146,7 +146,7 @@ qr/\[error\] .*? \[wasm\] cannot add new "Host" builtin request header/
 
 
 
-=== TEST 7: proxy_wasm - add_request_header() adds Connection header if exists
+=== TEST 7: proxy_wasm - add_http_request_header() adds Connection header if exists
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -167,7 +167,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 8: proxy_wasm - add_request_header() adds Connection header with empty value
+=== TEST 8: proxy_wasm - add_http_request_header() adds Connection header with empty value
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -186,7 +186,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 9: proxy_wasm - add_request_header() adds a new Content-Length header
+=== TEST 9: proxy_wasm - add_http_request_header() adds a new Content-Length header
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -205,7 +205,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 10: proxy_wasm - add_request_header() cannot add Content-Length if exists
+=== TEST 10: proxy_wasm - add_http_request_header() cannot add Content-Length if exists
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -226,7 +226,7 @@ qr/\[error\] .*? \[wasm\] cannot add new "Content-Length" builtin request header
 
 
 
-=== TEST 11: proxy_wasm - add_request_header() cannot add empty Content-Length
+=== TEST 11: proxy_wasm - add_http_request_header() cannot add empty Content-Length
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -245,7 +245,7 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: 
 
 
 
-=== TEST 12: proxy_wasm - add_request_header() cannot add invalid Content-Length header
+=== TEST 12: proxy_wasm - add_http_request_header() cannot add invalid Content-Length header
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -264,7 +264,7 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: 
 
 
 
-=== TEST 13: proxy_wasm - add_request_header() adds a new User-Agent header
+=== TEST 13: proxy_wasm - add_http_request_header() adds a new User-Agent header
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -283,7 +283,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 14: proxy_wasm - add_request_header() cannot add User-Agent header if exists
+=== TEST 14: proxy_wasm - add_http_request_header() cannot add User-Agent header if exists
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -304,7 +304,7 @@ qr/\[error\] .*? \[wasm\] cannot add new "User-Agent" builtin request header/
 
 
 
-=== TEST 15: proxy_wasm - add_request_header() adds a new User-Agent header with empty value
+=== TEST 15: proxy_wasm - add_http_request_header() adds a new User-Agent header with empty value
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -323,7 +323,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 16: proxy_wasm - add_request_header() adds a new builtin header (If-Modified-Since)
+=== TEST 16: proxy_wasm - add_http_request_header() adds a new builtin header (If-Modified-Since)
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -343,7 +343,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 17: proxy_wasm - add_request_header() cannot add a new builtin header (If-Modified-Since) if exists
+=== TEST 17: proxy_wasm - add_http_request_header() cannot add a new builtin header (If-Modified-Since) if exists
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -364,7 +364,7 @@ qr/\[error\] .*? \[wasm\] cannot add new "If-Modified-Since" builtin request hea
 
 
 
-=== TEST 18: proxy_wasm - add_request_header() adds a new builtin header (If-Modified-Since) with empty value
+=== TEST 18: proxy_wasm - add_http_request_header() adds a new builtin header (If-Modified-Since) with empty value
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -383,7 +383,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 19: proxy_wasm - add_request_header() adds a new builtin multi header (X-Forwarded-For)
+=== TEST 19: proxy_wasm - add_http_request_header() adds a new builtin multi header (X-Forwarded-For)
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -402,7 +402,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 20: proxy_wasm - add_request_header() adds builtin multi header (X-Forwarded-For) if exists
+=== TEST 20: proxy_wasm - add_http_request_header() adds builtin multi header (X-Forwarded-For) if exists
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -424,7 +424,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 21: proxy_wasm - add_request_header() new User-Agent sets flags (MSIE)
+=== TEST 21: proxy_wasm - add_http_request_header() new User-Agent sets flags (MSIE)
 should set r->headers_in.msie6 = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
@@ -445,7 +445,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 22: proxy_wasm - add_request_header() new User-Agent sets flags (MSIE)
+=== TEST 22: proxy_wasm - add_http_request_header() new User-Agent sets flags (MSIE)
 should set r->headers_in.msie6 = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
@@ -466,7 +466,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 23: proxy_wasm - add_request_header() new User-Agent sets flags (Opera)
+=== TEST 23: proxy_wasm - add_http_request_header() new User-Agent sets flags (Opera)
 should set r->headers_in.opera = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
@@ -486,7 +486,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 24: proxy_wasm - add_request_header() new User-Agent sets flags (Gecko)
+=== TEST 24: proxy_wasm - add_http_request_header() new User-Agent sets flags (Gecko)
 should set r->headers_in.gecko = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
@@ -506,7 +506,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 25: proxy_wasm - add_request_header() new User-Agent sets flags (Chrome)
+=== TEST 25: proxy_wasm - add_http_request_header() new User-Agent sets flags (Chrome)
 should set r->headers_in.chrome = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
@@ -526,7 +526,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 26: proxy_wasm - add_request_header() new User-Agent sets flags (Safari)
+=== TEST 26: proxy_wasm - add_http_request_header() new User-Agent sets flags (Safari)
 should set r->headers_in.safari = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
@@ -547,7 +547,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 27: proxy_wasm - add_request_header() updates existing User-Agent (Konqueror)
+=== TEST 27: proxy_wasm - add_http_request_header() updates existing User-Agent (Konqueror)
 should set r->headers_in.konqueror = 1 (coverage only)
 --- wasm_modules: hostcalls
 --- config
@@ -568,7 +568,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 28: proxy_wasm - add_request_header() x on_phases
+=== TEST 28: proxy_wasm - add_http_request_header() x on_phases
 should log an error (but no trap) when response is produced
 --- wasm_modules: hostcalls
 --- config
