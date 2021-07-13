@@ -160,8 +160,10 @@ pub(crate) fn test_set_http_request_header(ctx: &mut TestHttpHostcalls) {
 }
 
 pub(crate) fn test_add_http_request_header(ctx: &mut TestHttpHostcalls) {
-    let add = ctx.get_http_request_header("pwm-add-req-header");
-    if let Some(header) = add {
+    if let Some(config) = ctx.config.get("value") {
+        let (name, value) = config.split_once(':').unwrap();
+        ctx.add_http_request_header(name, value);
+    } else if let Some(header) = ctx.get_http_request_header("pwm-add-req-header") {
         let (name, value) = header.split_once('=').unwrap();
         ctx.add_http_request_header(name, value);
     }
