@@ -143,7 +143,7 @@ stub
 
 
 
-=== TEST 7: proxy_wasm - get_request_headers() x on_phases
+=== TEST 7: proxy_wasm - get_http_request_header() x on_phases
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
