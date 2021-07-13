@@ -3,6 +3,10 @@ coverage:
   precision: 4
   round: down
   range: "75...100"
+  status:
+    patch:
+      default:
+        target: 75%
 
 parsers:
   gcov:
