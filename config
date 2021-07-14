@@ -194,7 +194,7 @@ if [ $HTTP = YES ]; then
         . auto/module
     fi
 
-    have=NGX_WASM_HTTP . auto/define
+    have=NGX_WASM_HTTP value=1 . auto/define
 fi
 
 ###############################################################################
