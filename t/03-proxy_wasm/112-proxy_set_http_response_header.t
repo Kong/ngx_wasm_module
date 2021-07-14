@@ -212,7 +212,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/set_response_header \
                               value=Connection:keep-alive';
+
         proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_headers';
+
+        proxy_wasm hostcalls 'on=log \
                               test=/t/log/response_headers';
         return 200;
     }
@@ -220,12 +224,13 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 Connection: close
 --- response_headers
 Connection: keep-alive
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Connection).*/
+--- grep_error_log eval: qr/\[wasm\].*? ((#\d+ entering)|resp Connection).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] #\d+ on_response_headers, 5 headers
+qr/\[wasm\] #\d+ entering "ResponseHeaders" .*?
+\[wasm\] #\d+ entering "ResponseHeaders" .*?
 \[wasm\] resp Connection: keep-alive .*?
-\z/
+\[wasm\] #\d+ entering "Log" .*?
+\[wasm\] resp Connection: keep-alive .*/
 --- no_error_log
 [error]
 [crit]
