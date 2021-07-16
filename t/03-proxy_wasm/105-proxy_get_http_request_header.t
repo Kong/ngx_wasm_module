@@ -143,7 +143,36 @@ stub
 
 
 
-=== TEST 7: proxy_wasm - get_http_request_header() x on_phases
+=== TEST 7: proxy_wasm - get_http_request_header() retrieves ':authority'
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    server_name localhost;
+
+    location /t/echo/header/ {
+        proxy_wasm hostcalls;
+    }
+
+    location /t {
+        echo_subrequest GET /t/echo/header/:authority;
+
+        # once more for cached value hit coverage
+        echo_subrequest GET /t/echo/header/:authority;
+    }
+--- response_body eval
+qq^:authority: localhost:$ENV{TEST_NGINX_SERVER_PORT}
+:authority: localhost:$ENV{TEST_NGINX_SERVER_PORT}\n^
+--- no_error_log
+[error]
+[crit]
+[alert]
+[stderr]
+stub
+stub
+
+
+
+=== TEST 8: proxy_wasm - get_http_request_header() x on_phases
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
