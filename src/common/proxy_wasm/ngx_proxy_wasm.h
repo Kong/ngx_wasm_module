@@ -8,6 +8,10 @@
 
 #define NGX_PROXY_WASM_ROOT_CTX_ID  0
 
+#define ngx_proxy_wasm_get_pwm(instance)                                     \
+    ((ngx_proxy_wasm_t *)                                                    \
+     ((u_char *) (instance)->ctx - offsetof(ngx_proxy_wasm_t, wvctx)))
+
 
 typedef enum {
     NGX_PROXY_WASM_ERR_NONE = 0,
@@ -233,7 +237,7 @@ void ngx_proxy_wasm_destroy(ngx_proxy_wasm_t *pwmodule);
 /* ngx_proxy_wasm_t utils */
 ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_t *pwm, size_t size);
 unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_t *pwm, ngx_list_t *list,
-    ngx_array_t *shims, ngx_wavm_ptr_t *out, size_t *out_size,
+    ngx_array_t *extras, ngx_wavm_ptr_t *out, size_t *out_size,
     ngx_uint_t *truncated);
 
 /* phases */
@@ -244,9 +248,9 @@ ngx_int_t ngx_proxy_wasm_on_done(ngx_proxy_wasm_t *pwm);
 
 /* utils */
 ngx_uint_t ngx_proxy_wasm_pairs_count(ngx_list_t *list);
-size_t ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_array_t *shims,
+size_t ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_array_t *extras,
     ngx_uint_t max);
-void ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *shims,
+void ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *extras,
     u_char *buf, ngx_uint_t max, ngx_uint_t *truncated);
 ngx_array_t *ngx_proxy_wasm_pairs_unmarshal(ngx_pool_t *pool, u_char *buf,
     size_t len);

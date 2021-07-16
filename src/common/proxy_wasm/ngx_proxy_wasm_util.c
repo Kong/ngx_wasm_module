@@ -74,7 +74,7 @@ ngx_proxy_wasm_pairs_count(ngx_list_t *list)
 
 
 size_t
-ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_array_t *shims, ngx_uint_t max)
+ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_array_t *extras, ngx_uint_t max)
 {
     size_t            i, n, size;
     ngx_list_part_t  *part;
@@ -118,16 +118,16 @@ ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_array_t *shims, ngx_uint_t max)
         }
     }
 
-    if (shims) {
-        elt = shims->elts;
+    if (extras) {
+        elt = extras->elts;
 
-        for (i = 0; i < shims->nelts; i++, n++) {
+        for (i = 0; i < extras->nelts; i++, n++) {
             size += NGX_PROXY_WASM_PTR_SIZE * 2;
             size += elt[i].key.len + 1;
             size += elt[i].value.len + 1;
 
 #if 0
-            dd("shim key: %.*s, shim value: %.*s, size: %lu",
+            dd("extra key: %.*s, extra value: %.*s, size: %lu",
                (int) elt[i].key.len, elt[i].key.data,
                (int) elt[i].value.len, elt[i].value.data, size);
 #endif
@@ -143,7 +143,7 @@ ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_array_t *shims, ngx_uint_t max)
 
 
 void
-ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *shims, u_char *buf,
+ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *extras, u_char *buf,
     ngx_uint_t max, ngx_uint_t *truncated)
 {
     size_t            i, n = 0;
@@ -153,8 +153,8 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *shims, u_char *buf,
 
     count = ngx_proxy_wasm_pairs_count(list);
 
-    if (shims) {
-        count += shims->nelts;
+    if (extras) {
+        count += extras->nelts;
     }
 
     if (max && count > max) {
@@ -168,10 +168,10 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *shims, u_char *buf,
     *((uint32_t *) buf) = count;
     buf += NGX_PROXY_WASM_PTR_SIZE;
 
-    if (shims) {
-        elt = shims->elts;
+    if (extras) {
+        elt = extras->elts;
 
-        for (i = 0; i < shims->nelts && n < count; i++, n++) {
+        for (i = 0; i < extras->nelts && n < count; i++, n++) {
             *((uint32_t *) buf) = elt[i].key.len;
             buf += NGX_PROXY_WASM_PTR_SIZE;
             *((uint32_t *) buf) = elt[i].value.len;
@@ -210,10 +210,10 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *shims, u_char *buf,
 
     n = 0;
 
-    if (shims) {
-        elt = shims->elts;
+    if (extras) {
+        elt = extras->elts;
 
-        for (i = 0; i < shims->nelts && n < count; i++, n++) {
+        for (i = 0; i < extras->nelts && n < count; i++, n++) {
             buf = ngx_cpymem(buf, elt[i].key.data, elt[i].key.len);
             *buf++ = '\0';
             buf = ngx_cpymem(buf, elt[i].value.data, elt[i].value.len);

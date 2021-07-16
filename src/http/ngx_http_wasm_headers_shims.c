@@ -107,6 +107,7 @@ ngx_http_wasm_get_shim_headers(ngx_http_wasm_req_ctx_t *rctx)
             return NULL;
         }
 
+        h->hash = 0;
         h->key = sh->key;
         h->value = *value;
         h->lowcase_key = ngx_pnalloc(r->pool, h->key.len);

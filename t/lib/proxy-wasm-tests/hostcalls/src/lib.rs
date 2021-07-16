@@ -104,6 +104,7 @@ impl TestHttpHostcalls {
             /* log */
             "/t/log/request_body" => test_log_request_body(self),
             "/t/log/levels" => test_log_levels(self),
+            "/t/log/request_header" => test_log_request_header(self),
             "/t/log/request_headers" => test_log_request_headers(self),
             "/t/log/request_path" => test_log_request_path(self),
             "/t/log/response_header" => test_log_response_header(self),
@@ -124,6 +125,7 @@ impl TestHttpHostcalls {
             /* set/add request/response headers */
             "/t/set_request_headers" => test_set_request_headers(self),
             "/t/set_request_headers/special" => test_set_request_headers_special(self),
+            "/t/set_request_headers/invalid" => test_set_request_headers_invalid(self),
             "/t/set_response_headers" => test_set_response_headers(self),
             "/t/set_request_header" => test_set_http_request_header(self),
             "/t/set_response_header" => test_set_response_header(self),
@@ -136,6 +138,7 @@ impl TestHttpHostcalls {
 
             /* echo request */
             "/t/echo/headers" => echo_headers(self),
+            "/t/echo/headers/all" => echo_all_headers(self),
             "/t/echo/body" => echo_body(self, self.request_body_size),
 
             /* errors */

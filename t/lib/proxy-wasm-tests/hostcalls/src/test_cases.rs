@@ -17,6 +17,15 @@ pub(crate) fn test_log_current_time(ctx: &mut TestHttpHostcalls) {
     info!("now: {}", now)
 }
 
+pub(crate) fn test_log_request_header(ctx: &mut TestHttpHostcalls) {
+    if let Some(header_name) = ctx.config.get("name") {
+        let value = ctx.get_http_request_header(header_name.as_str());
+        if value.is_some() {
+            info!("request header \"{}: {}\"", header_name, value.unwrap());
+        }
+    }
+}
+
 pub(crate) fn test_log_request_headers(ctx: &mut TestHttpHostcalls) {
     for (name, value) in ctx.get_http_request_headers() {
         info!("{}: {}", name, value)
@@ -109,7 +118,7 @@ pub(crate) fn test_set_special_headers(ctx: &mut TestHttpHostcalls) {
             ("Accept-Ranges", "bytes"),
             ("WWW-Authenticate", "Basic"),
             ("Expires", "Thu, 01 Dec 1994 16:00:00 GMT"),
-            //("ETag", "737060cd8c284d8af7ad3082f209582d"), // TODO
+            //("ETag", "737060cd8c284d8af7ad3082f209582d"),
             ("E-Tag", "377060cd8c284d8af7ad3082f20958d2"),
             ("Content-Type", "text/plain; charset=UTF-8"),
             ("Cache-Control", "no-cache"),
@@ -139,6 +148,7 @@ pub(crate) fn test_set_request_headers(ctx: &mut TestHttpHostcalls) {
 
 pub(crate) fn test_set_request_headers_special(ctx: &mut TestHttpHostcalls) {
     ctx.set_http_request_headers(vec![
+        (":path", "/updated"),
         ("Host", "somehost"),
         ("Connection", "closed"),
         ("User-Agent", "Gecko"),
@@ -147,10 +157,16 @@ pub(crate) fn test_set_request_headers_special(ctx: &mut TestHttpHostcalls) {
     ]);
 }
 
-pub(crate) fn test_set_http_request_header(ctx: &mut TestHttpHostcalls) {
-    if let Some(header) = ctx.config.get("value") {
-        let (name, value) = header.split_once(':').unwrap();
+pub(crate) fn test_set_request_headers_invalid(ctx: &mut TestHttpHostcalls) {
+    ctx.set_http_request_headers(vec![(":scheme", "https")]);
+}
 
+pub(crate) fn test_set_http_request_header(ctx: &mut TestHttpHostcalls) {
+    if let Some(name) = ctx.config.get("name") {
+        let value = ctx.config.get("value").expect("missing value");
+        ctx.set_http_request_header(name, Some(value));
+    } else if let Some(config) = ctx.config.get("value") {
+        let (name, value) = config.split_once(':').unwrap();
         if value.is_empty() {
             ctx.set_http_request_header(name, None);
         } else {

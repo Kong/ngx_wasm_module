@@ -33,7 +33,31 @@ Hello: world
 
 
 
-=== TEST 2: proxy_wasm - get_http_request_headers() many headers
+=== TEST 2: proxy_wasm - get_http_request_headers() gets special request headers keys
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/echo/headers/all';
+    }
+--- more_headers
+Hello: world
+--- response_body_like
+:path: /t
+:method: GET
+:scheme: http
+:authority: localhost:\d+
+Host: localhost
+Connection: close
+Hello: world
+--- no_error_log
+[error]
+[crit]
+[alert]
+[stderr]
+
+
+
+=== TEST 3: proxy_wasm - get_http_request_headers() many headers
 should produce a response with 20+ headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -56,7 +80,7 @@ Connection: close
 
 
 
-=== TEST 3: proxy_wasm - get_http_request_headers() too many headers
+=== TEST 4: proxy_wasm - get_http_request_headers() too many headers
 should produce a response but truncate number of headers if > 100
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -70,7 +94,7 @@ CORE::join "\n", map { "Header$_: value-$_" } 1..105
 --- response_body eval
 qq{Host: localhost
 Connection: close
-}.(CORE::join "\n", map { "Header$_: value-$_" } 1..98) . "\n"
+}.(CORE::join "\n", map { "Header$_: value-$_" } 1..94) . "\n"
 --- error_log eval
 [
     qr/\[warn\] .*? marshalled map truncated to 100 elements/,
@@ -82,7 +106,7 @@ Connection: close
 
 
 
-=== TEST 4: proxy_wasm - get_http_request_headers() pipelined requests with large headers
+=== TEST 5: proxy_wasm - get_http_request_headers() pipelined requests with large headers
 should produce a response with headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -98,16 +122,16 @@ CORE::join "\n", map { "Header$_: value-$_" } 1..105
 --- response_body eval
 [qq{Host: localhost
 Connection: keep-alive
-}.(CORE::join "\n", map { "Header$_: value-$_" } 1..98) . "\n",
+}.(CORE::join "\n", map { "Header$_: value-$_" } 1..94) . "\n",
 qq{Host: localhost
 Connection: close
-}.(CORE::join "\n", map { "Header$_: value-$_" } 1..98) . "\n"]
+}.(CORE::join "\n", map { "Header$_: value-$_" } 1..94) . "\n"]
 --- no_error_log
 [error]
 
 
 
-=== TEST 5: proxy_wasm - get_http_request_headers() x on_phases (1/2)
+=== TEST 6: proxy_wasm - get_http_request_headers() x on_phases (1/2)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -140,7 +164,7 @@ Connection: close
 
 
 
-=== TEST 6: proxy_wasm - get_http_request_headers() x on_phases (2/2)
+=== TEST 7: proxy_wasm - get_http_request_headers() x on_phases (2/2)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

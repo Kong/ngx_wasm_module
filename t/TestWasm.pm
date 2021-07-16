@@ -24,6 +24,7 @@ our @EXPORT = qw(
 
 $ENV{TEST_NGINX_CRATES_DIR} = $crates;
 $ENV{TEST_NGINX_HTML_DIR} = html_dir();
+$ENV{TEST_NGINX_DATA_DIR} = "$pwd/t/data";
 $ENV{TEST_NGINX_UNIX_SOCKET} = html_dir() . "/nginx.sock";
 
 sub skip_valgrind {

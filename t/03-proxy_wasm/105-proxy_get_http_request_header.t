@@ -156,13 +156,9 @@ stub
 
     location /t {
         echo_subrequest GET /t/echo/header/:authority;
-
-        # once more for cached value hit coverage
-        echo_subrequest GET /t/echo/header/:authority;
     }
---- response_body eval
-qq^:authority: localhost:$ENV{TEST_NGINX_SERVER_PORT}
-:authority: localhost:$ENV{TEST_NGINX_SERVER_PORT}\n^
+--- response_body_like eval
+qq^:authority: localhost:$ENV{TEST_NGINX_SERVER_PORT}^
 --- no_error_log
 [error]
 [crit]
@@ -173,7 +169,7 @@ stub
 
 
 
-=== TEST 8: proxy_wasm - get_http_request_header() retrieves ':scheme'
+=== TEST 8: proxy_wasm - get_http_request_header() retrieves ':scheme' (http)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -185,8 +181,6 @@ stub
 
     location /t {
         echo_subrequest GET /t/echo/header/:scheme;
-
-        # once more for cached value hit coverage
         echo_subrequest GET /t/echo/header/:scheme;
     }
 --- response_body
@@ -202,7 +196,43 @@ stub
 
 
 
-=== TEST 9: proxy_wasm - get_http_request_header() x on_phases
+=== TEST 9: proxy_wasm - get_http_request_header() retrieves ':scheme' (https)
+--- skip_eval: 8: $::nginxV !~ m/built with OpenSSL/
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen               unix:$ENV{TEST_NGINX_UNIX_SOCKET} ssl;
+        ssl_certificate      $ENV{TEST_NGINX_DATA_DIR}/cert.pem;
+        ssl_certificate_key  $ENV{TEST_NGINX_DATA_DIR}/key.pem;
+
+        location /t/echo/header/ {
+            proxy_wasm hostcalls;
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_pass https://test_upstream/t/echo/header/:scheme;
+    }
+--- response_body
+:scheme: https
+--- no_error_log
+[error]
+[crit]
+[alert]
+[stderr]
+stub
+stub
+
+
+
+=== TEST 10: proxy_wasm - get_http_request_header() x on_phases
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
