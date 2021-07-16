@@ -28,9 +28,18 @@ ngx_proxy_wasm_get_map_special_key(ngx_wavm_instance_t *instance, u_char *key,
     size_t key_len)
 {
 #ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
-    ngx_http_request_t         *r = rctx->r;
+    u_char                      *p;
+    ngx_uint_t                   port;
+    ngx_proxy_wasm_t            *pwm;
+    ngx_http_proxy_wasm_rctx_t  *prctx;
+    ngx_http_core_srv_conf_t    *cscf;
+    ngx_http_wasm_req_ctx_t     *rctx = instance->ctx->data;
+    ngx_http_request_t          *r = rctx->r;
 #endif
+
+    /* TODO:
+     * scheme: http
+     */
 
     switch (key_len) {
 
@@ -48,6 +57,50 @@ ngx_proxy_wasm_get_map_special_key(ngx_wavm_instance_t *instance, u_char *key,
         }
 
         break;
+
+    case 10:
+        if (ngx_strncmp(key, ":authority", key_len) == 0) {
+            pwm = ngx_proxy_wasm_get_pwm(instance);
+
+            prctx = ngx_http_proxy_wasm_prctx(pwm);
+            if (prctx->authority) {
+                return prctx->authority;
+            }
+
+            if (ngx_connection_local_sockaddr(r->connection, NULL, 0)
+                != NGX_OK)
+            {
+                return NULL;
+            }
+
+            prctx->authority = ngx_palloc(r->pool, sizeof(ngx_str_t));
+            if (prctx->authority == NULL) {
+                return NULL;
+            }
+
+
+            cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
+
+            prctx->authority->len = cscf->server_name.len
+                                    + sizeof("65535") - 1
+                                    + 1; /* ':' */
+
+            prctx->authority->data = ngx_pnalloc(r->pool,
+                                                 prctx->authority->len);
+            if (prctx->authority->data == NULL) {
+                return NULL;
+            }
+
+            p = ngx_sprintf(prctx->authority->data, "%V", &cscf->server_name);
+
+            port = ngx_inet_get_port(r->connection->local_sockaddr);
+            if (port > 0 && port < 65536) {
+                prctx->authority->len = ngx_sprintf(p, ":%ui", port)
+                                        - prctx->authority->data;
+            }
+
+            return prctx->authority;
+        }
 #endif
 
     }
@@ -119,7 +172,7 @@ ngx_proxy_wasm_map_get_helper(ngx_wavm_instance_t *instance,
     ngx_http_request_t       *r = rctx->r;
 #endif
 
-    /* TODO: add :path, :method... */
+    /* TODO: inject :path, :method... */
 
     switch (map_type) {
 

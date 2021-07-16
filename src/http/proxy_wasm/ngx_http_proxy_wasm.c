@@ -123,11 +123,13 @@ ngx_http_proxy_wasm_destroy_context(ngx_proxy_wasm_t *pwm)
 {
     size_t                       i;
     ngx_uint_t                   ctxid;
+    ngx_http_request_t          *r;
     ngx_http_wasm_req_ctx_t     *rctx;
     ngx_http_proxy_wasm_rctx_t  *prctx;
 
     rctx = ngx_http_proxy_wasm_rctx(pwm);
     ctxid = ngx_http_proxy_wasm_ctxid(pwm);
+    r = rctx->r;
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, pwm->log, 0,
                    "wasm destroying proxy wasm ctxid %l", ctxid);
@@ -148,6 +150,11 @@ ngx_http_proxy_wasm_destroy_context(ngx_proxy_wasm_t *pwm)
         if (prctx[i].context_created) {
             return;
         }
+    }
+
+    if (prctx->authority) {
+        ngx_pfree(r->pool, prctx->authority->data);
+        ngx_pfree(r->pool, prctx->authority);
     }
 
     /* all filters are finished */
