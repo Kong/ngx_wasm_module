@@ -262,7 +262,100 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 
 
 
-=== TEST 11: proxy_wasm - set_http_request_header() x on_phases
+=== TEST 11: proxy_wasm - set_http_request_header() sets ':path'
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '\$request_uri\n';
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=/test';
+        proxy_wasm hostcalls 'test=/t/log/request_path';
+        proxy_pass http://test_upstream$uri;
+    }
+--- response_body
+/test
+--- error_log
+[wasm] path: /test
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 12: proxy_wasm - set_http_request_header() sets ':method'
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '\$request_method\n';
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:method value=POST';
+        proxy_pass http://test_upstream$uri;
+    }
+--- response_body
+POST
+--- no_error_log
+[error]
+[crit]
+[alert]
+
+
+
+=== TEST 13: proxy_wasm - set_http_request_header() cannot ':scheme'
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '\$scheme\n';
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:scheme value=https';
+        proxy_pass http://test_upstream$uri;
+    }
+--- response_body
+http
+--- error_log eval
+qr/\[error\] .*? \[wasm\] cannot set read-only ":scheme" header/
+--- no_error_log
+[crit]
+[alert]
+
+
+
+=== TEST 14: proxy_wasm - set_http_request_header() x on_phases
 should log an error (but no trap) when response is produced
 --- wasm_modules: hostcalls
 --- config
@@ -293,5 +386,5 @@ qr/.*?
 \[info\] .*? \[wasm\] #\d+ entering "Log"
 \[error\] .*? \[wasm\] cannot set request header: response produced/
 --- no_error_log
-[warn]
 [crit]
+[alert]

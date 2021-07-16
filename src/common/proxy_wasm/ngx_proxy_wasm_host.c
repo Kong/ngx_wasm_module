@@ -3,133 +3,13 @@
 #endif
 #include "ddebug.h"
 
+#include <ngx_wavm.h>
+#include <ngx_event.h>
+#include <ngx_proxy_wasm.h>
+#include <ngx_proxy_wasm_maps.h>
 #ifdef NGX_WASM_HTTP
 #include <ngx_http_proxy_wasm.h>
 #endif
-#include <ngx_proxy_wasm.h>
-#include <ngx_event.h>
-#include <ngx_wavm.h>
-
-
-#define ngx_proxy_wasm_get_pwm(instance)                                     \
-    ((ngx_proxy_wasm_t *)                                                    \
-     ((u_char *) (instance)->ctx - offsetof(ngx_proxy_wasm_t, wvctx)))
-
-
-typedef enum {
-    NGX_PROXY_WASM_MAP_SET,
-    NGX_PROXY_WASM_MAP_ADD,
-    NGX_PROXY_WASM_MAP_REMOVE,
-} ngx_proxy_wasm_map_op_e;
-
-
-static ngx_str_t *
-ngx_proxy_wasm_get_map_special_key(ngx_wavm_instance_t *instance, u_char *key,
-    size_t key_len)
-{
-#ifdef NGX_WASM_HTTP
-    u_char                      *p;
-    ngx_str_t                    name;
-    ngx_uint_t                   port, hash;
-    ngx_proxy_wasm_t            *pwm;
-    ngx_http_proxy_wasm_rctx_t  *prctx;
-    ngx_http_core_srv_conf_t    *cscf;
-    ngx_http_variable_value_t   *vv;
-    ngx_http_wasm_req_ctx_t     *rctx = instance->ctx->data;
-    ngx_http_request_t          *r = rctx->r;
-#endif
-
-    switch (key_len) {
-
-#ifdef NGX_WASM_HTTP
-    case 5:
-        if (ngx_strncmp(key, ":path", key_len) == 0) {
-            return &r->uri;
-        }
-
-        break;
-
-    case 7:
-        if (ngx_strncmp(key, ":method", key_len) == 0) {
-            return &r->method_name;
-        }
-
-        if (ngx_strncmp(key, ":scheme", key_len) == 0) {
-            pwm = ngx_proxy_wasm_get_pwm(instance);
-
-            prctx = ngx_http_proxy_wasm_prctx(pwm);
-            if (prctx->scheme.len) {
-                return &prctx->scheme;
-            }
-
-            p = ngx_palloc(r->pool, key_len);
-            if (p == NULL) {
-                return NULL;
-            }
-
-            hash = ngx_hash_strlow(p, (u_char *) "scheme", 6);
-
-            name.data = p;
-            name.len = 6;
-
-            vv = ngx_http_get_variable(r, &name, hash);
-
-            ngx_pfree(r->pool, p);
-
-            if (vv == NULL || vv->not_found) {
-                return NULL;
-            }
-
-            prctx->scheme.data = vv->data;
-            prctx->scheme.len = vv->len;
-
-            return &prctx->scheme;
-        }
-
-        break;
-
-    case 10:
-        if (ngx_strncmp(key, ":authority", key_len) == 0) {
-            pwm = ngx_proxy_wasm_get_pwm(instance);
-
-            prctx = ngx_http_proxy_wasm_prctx(pwm);
-            if (prctx->authority.len) {
-                return &prctx->authority;
-            }
-
-            if (ngx_connection_local_sockaddr(r->connection, NULL, 0)
-                != NGX_OK)
-            {
-                return NULL;
-            }
-
-            cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
-
-            prctx->authority.len = cscf->server_name.len
-                                   + sizeof("65535") - 1
-                                   + 1; /* ':' */
-
-            prctx->authority.data = ngx_pnalloc(r->pool, prctx->authority.len);
-            if (prctx->authority.data == NULL) {
-                return NULL;
-            }
-
-            p = ngx_sprintf(prctx->authority.data, "%V", &cscf->server_name);
-
-            port = ngx_inet_get_port(r->connection->local_sockaddr);
-            if (port > 0 && port < 65536) {
-                prctx->authority.len = ngx_sprintf(p, ":%ui", port)
-                                       - prctx->authority.data;
-            }
-
-            return &prctx->authority;
-        }
-#endif
-
-    }
-
-    return NULL;
-}
 
 
 static ngx_chain_t *
@@ -159,7 +39,6 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
                               "cannot read request body buffered "
                               "to file at \"%V\"",
                               &r->request_body->temp_file->file.name);
-
             *none = 1;
             return NULL;
         }
@@ -183,135 +62,6 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
         return NULL;
 
     }
-}
-
-
-static ngx_list_t *
-ngx_proxy_wasm_map_get_helper(ngx_wavm_instance_t *instance,
-    ngx_proxy_wasm_map_type_t map_type)
-{
-#ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
-    ngx_http_request_t       *r = rctx->r;
-#endif
-
-    /* TODO: inject :path, :method... */
-
-    switch (map_type) {
-
-#ifdef NGX_WASM_HTTP
-    case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
-        return &r->headers_in.headers;
-
-    case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
-        return &r->headers_out.headers;
-#endif
-
-    default:
-        ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
-                           "NYI - get_map: %d", map_type);
-        return NULL;
-
-    }
-}
-
-
-static ngx_int_t
-ngx_proxy_wasm_map_set_helper(ngx_wavm_instance_t *instance,
-    ngx_proxy_wasm_map_type_t map_type, ngx_str_t *key, ngx_str_t *value,
-    ngx_proxy_wasm_map_op_e map_op)
-{
-    ngx_int_t                 rc = NGX_ERROR;
-#ifdef NGX_WASM_HTTP
-    ngx_str_t                *str;
-    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
-    ngx_http_request_t       *r = rctx->r;
-    ngx_uint_t                mode;
-
-    switch (map_op){
-
-    case NGX_PROXY_WASM_MAP_SET:
-        str = ngx_proxy_wasm_get_map_special_key(instance, key->data, key->len);
-        if (str) {
-            /* TODO: set :path, :method... */
-            return NGX_OK;
-        }
-
-        mode = NGX_HTTP_WASM_HEADERS_SET;
-        break;
-
-    case NGX_PROXY_WASM_MAP_ADD:
-        mode = NGX_HTTP_WASM_HEADERS_APPEND;
-        break;
-
-    case NGX_PROXY_WASM_MAP_REMOVE:
-        mode = NGX_HTTP_WASM_HEADERS_REMOVE;
-        break;
-
-    }
-#endif
-
-    switch (map_type) {
-
-#ifdef NGX_WASM_HTTP
-    case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
-        rc = ngx_http_wasm_set_req_header(r, key, value, mode);
-        if (rc == NGX_DECLINED) {
-            /* bad header value, error logged */
-            rc = NGX_OK;
-        }
-
-        break;
-
-    case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
-        rc = ngx_http_wasm_set_resp_header(r, key, value, mode);
-        if (rc == NGX_DECLINED) {
-            /* bad header value, error logged */
-            rc = NGX_OK;
-        }
-
-        break;
-#endif
-
-    default:
-        ngx_wasm_assert(0);
-        break;
-
-    }
-
-    return rc;
-}
-
-
-static ngx_int_t
-ngx_proxy_wasm_map_set_value_helper(ngx_wavm_instance_t *instance,
-    ngx_proxy_wasm_map_type_t map_type, u_char *key, size_t klen,
-    u_char *value, size_t vlen, ngx_proxy_wasm_map_op_e map_op)
-{
-    u_char     *p;
-    ngx_str_t   skey, svalue;
-
-    skey.len = klen;
-    skey.data = ngx_pnalloc(instance->ctx->pool, skey.len + 1);
-    if (skey.data == NULL) {
-        return NGX_ERROR;
-    }
-
-    p = ngx_cpymem(skey.data, key, skey.len);
-    *p = '\0';
-
-    svalue.len = vlen;
-    svalue.data = ngx_pnalloc(instance->ctx->pool, svalue.len + 1);
-    if (svalue.data == NULL) {
-        return NGX_ERROR;
-    }
-
-    p = ngx_cpymem(svalue.data, value, svalue.len);
-    *p = '\0';
-
-    return ngx_proxy_wasm_map_set_helper(instance, map_type,
-                                         &skey, &svalue,
-                                         map_op);
 }
 
 
@@ -522,31 +272,25 @@ ngx_proxy_wasm_hfuncs_get_header_map_pairs(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
     size_t                     *rlen;
+    ngx_uint_t                  truncated = 0;
+    ngx_list_t                 *list;
+    ngx_array_t                 extras;
     ngx_wavm_ptr_t             *rbuf;
     ngx_proxy_wasm_map_type_t   map_type;
     ngx_proxy_wasm_t           *pwm = ngx_proxy_wasm_get_pwm(instance);
-    ngx_list_t                 *list;
-    ngx_uint_t                  truncated = 0;
-    ngx_array_t                *shim_pairs = NULL;
 
     map_type = args[0].of.i32;
     rbuf = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
     rlen = ngx_wavm_memory_lift(instance->memory, args[2].of.i32);
 
-    list = ngx_proxy_wasm_map_get_helper(instance, map_type);
+    ngx_array_init(&extras, instance->ctx->pool, 8, sizeof(ngx_table_elt_t));
+
+    list = ngx_proxy_wasm_maps_get_all(instance, map_type, &extras);
     if (list == NULL) {
         return ngx_proxy_wasm_result_badarg(rets);
     }
 
-#ifdef NGX_WASM_HTTP
-    if (map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS) {
-        /* inject shim response headers (produced by ngx_http_header_filter) */
-        shim_pairs = ngx_http_wasm_get_shim_headers(
-                         ngx_http_proxy_wasm_rctx(pwm));
-    }
-#endif
-
-    if (!ngx_proxy_wasm_marshal(pwm, list, shim_pairs, rbuf, rlen,
+    if (!ngx_proxy_wasm_marshal(pwm, list, &extras, rbuf, rlen,
                                 &truncated))
     {
         return ngx_proxy_wasm_result_invalid_mem(rets);
@@ -566,61 +310,31 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_proxy_wasm_map_type_t   map_type;
-    uint32_t                    key_len;
-    ngx_wavm_ptr_t              p;
-    uintptr_t                  *rbuf;
     size_t                     *rlen;
-    u_char                     *key;
-    ngx_list_t                 *list;
-    ngx_str_t                  *value;
+    uintptr_t                  *rbuf;
+    ngx_str_t                  *value, key;
+    ngx_wavm_ptr_t              p;
     ngx_proxy_wasm_t           *pwm;
+    ngx_proxy_wasm_map_type_t   map_type;
 
     pwm = ngx_proxy_wasm_get_pwm(instance);
 
     map_type = args[0].of.i32;
-    key = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
-    key_len = args[2].of.i32;
+    key.data = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
+    key.len = args[2].of.i32;
     rbuf = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
     rlen = ngx_wavm_memory_lift(instance->memory, args[4].of.i32);
 
-    /* :path, :method... */
-
-    value = ngx_proxy_wasm_get_map_special_key(instance, key, key_len);
+    value = ngx_proxy_wasm_maps_get(instance, map_type, &key);
     if (value == NULL) {
-        /* header lookup */
-
-        list = ngx_proxy_wasm_map_get_helper(instance, map_type);
-        if (list == NULL) {
-            return ngx_proxy_wasm_result_badarg(rets);
+        if (pwm->abi_version == NGX_PROXY_WASM_0_1_0) {
+            rbuf = NULL;
+            *rlen = 0;
+            return ngx_proxy_wasm_result_ok(rets);
         }
 
-        value = ngx_wasm_get_list_elem(list, (u_char *) key, key_len);
-
-#ifdef NGX_WASM_HTTP
-        if (value == NULL
-            && map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS)
-        {
-            /* shim header lookup */
-
-            value = ngx_http_wasm_get_shim_header(ngx_http_proxy_wasm_rctx(pwm),
-                                                  (u_char *) key,
-                                                  key_len);
-        }
-#endif
-
-        if (value == NULL) {
-            if (pwm->abi_version == NGX_PROXY_WASM_0_1_0) {
-                rbuf = NULL;
-                *rlen = 0;
-                return ngx_proxy_wasm_result_ok(rets);
-            }
-
-            return ngx_proxy_wasm_result_notfound(rets);
-        }
+        return ngx_proxy_wasm_result_notfound(rets);
     }
-
-    ngx_wasm_assert(value);
 
     p = ngx_proxy_wasm_alloc(pwm, value->len);
     if (p == 0) {
@@ -642,12 +356,11 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t                      map_size, i;
+    size_t                      map_size;
     ngx_int_t                   rc = NGX_ERROR;
     ngx_wavm_ptr_t             *map_data;
     ngx_proxy_wasm_map_type_t   map_type;
     ngx_array_t                *headers;
-    ngx_table_elt_t            *elt;
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
 #endif
@@ -703,17 +416,16 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_err(rets);
     }
 
-    for (i = 0; i < headers->nelts; i++) {
-        elt = &((ngx_table_elt_t *) headers->elts)[i];
-
-        if (ngx_proxy_wasm_map_set_helper(instance, map_type,
-                                          &elt->key, &elt->value,
-                                          NGX_PROXY_WASM_MAP_SET)
-            != NGX_OK)
-        {
-            return ngx_proxy_wasm_result_err(rets);
-        }
+    rc = ngx_proxy_wasm_maps_set_all(instance, map_type, headers);
+    if (rc == NGX_ERROR) {
+        return ngx_proxy_wasm_result_err(rets);
     }
+
+    /*
+     * NGX_ABORT: read-only
+     */
+
+    ngx_wasm_assert(rc == NGX_OK || rc == NGX_ABORT);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -723,18 +435,18 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t                      klen, vlen;
-    ngx_wavm_ptr_t             *key, *value;
+    ngx_int_t                   rc;
+    ngx_str_t                   key, value;
     ngx_proxy_wasm_map_type_t   map_type;
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
 #endif
 
     map_type = args[0].of.i32;
-    key = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
-    klen = args[2].of.i32;
-    value = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
-    vlen = args[4].of.i32;
+    key.data = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
+    key.len = args[2].of.i32;
+    value.data = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
+    value.len = args[4].of.i32;
 
 #ifdef NGX_WASM_HTTP
     if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
@@ -759,14 +471,13 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
     dd("adding '%.*s: %.*s' to map of type '%d'",
        (int) klen, (u_char *) key, (int) vlen, (u_char *) value, map_type);
 
-    if (ngx_proxy_wasm_map_set_value_helper(instance, map_type,
-                                            (u_char *) key, klen,
-                                            (u_char *) value, vlen,
-                                            NGX_PROXY_WASM_MAP_ADD)
-        != NGX_OK)
-    {
+    rc = ngx_proxy_wasm_maps_set(instance, map_type, &key, &value,
+                                 NGX_PROXY_WASM_MAP_ADD);
+    if (rc == NGX_ERROR) {
         return ngx_proxy_wasm_result_err(rets);
     }
+
+    ngx_wasm_assert(rc == NGX_OK || rc == NGX_ABORT);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -776,18 +487,18 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t                      klen, vlen;
-    ngx_wavm_ptr_t             *key, *value;
+    ngx_int_t                   rc;
+    ngx_str_t                   key, value;
     ngx_proxy_wasm_map_type_t   map_type;
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t    *rctx = instance->ctx->data;
 #endif
 
     map_type = args[0].of.i32;
-    key = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
-    klen = args[2].of.i32;
-    value = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
-    vlen = args[4].of.i32;
+    key.data = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
+    key.len = args[2].of.i32;
+    value.data = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
+    value.len = args[4].of.i32;
 
 #ifdef NGX_WASM_HTTP
     if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
@@ -812,14 +523,13 @@ ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
     dd("setting '%.*s: %.*s' into map of type '%d'",
        (int) klen, (u_char *) key, (int) vlen, (u_char *) value, map_type);
 
-    if (ngx_proxy_wasm_map_set_value_helper(instance, map_type,
-                                            (u_char *) key, klen,
-                                            (u_char *) value, vlen,
-                                            NGX_PROXY_WASM_MAP_SET)
-        != NGX_OK)
-    {
+    rc = ngx_proxy_wasm_maps_set(instance, map_type, &key, &value,
+                                 NGX_PROXY_WASM_MAP_SET);
+    if (rc == NGX_ERROR) {
         return ngx_proxy_wasm_result_err(rets);
     }
+
+    ngx_wasm_assert(rc == NGX_OK || rc == NGX_ABORT);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -830,6 +540,7 @@ ngx_proxy_wasm_hfuncs_remove_header_map_value(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
     size_t                      klen;
+    ngx_int_t                   rc;
     ngx_wavm_ptr_t             *key;
     ngx_proxy_wasm_map_type_t   map_type;
     ngx_str_t                   skey;
@@ -844,13 +555,13 @@ ngx_proxy_wasm_hfuncs_remove_header_map_value(ngx_wavm_instance_t *instance,
     skey.data = (u_char *) key;
     skey.len = klen;
 
-    if (ngx_proxy_wasm_map_set_helper(instance, map_type,
-                                      &skey, NULL,
-                                      NGX_PROXY_WASM_MAP_REMOVE)
-        != NGX_OK)
-    {
+    rc = ngx_proxy_wasm_maps_set(instance, map_type, &skey, NULL,
+                                 NGX_PROXY_WASM_MAP_REMOVE);
+    if (rc == NGX_ERROR) {
         return ngx_proxy_wasm_result_err(rets);
     }
+
+    ngx_wasm_assert(rc == NGX_OK || rc == NGX_ABORT);
 
     return ngx_proxy_wasm_result_ok(rets);
 }

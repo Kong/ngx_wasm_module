@@ -38,11 +38,14 @@ Welcome: wasm
 
 
 === TEST 2: proxy_wasm - set_http_request_headers() sets special request headers
+should set request headers, even if they receive special treatment
+should set special keys headers (e.g. :path)
 --- wasm_modules: hostcalls
 --- config
     location /t {
         proxy_wasm hostcalls 'test=/t/set_request_headers/special';
         proxy_wasm hostcalls 'test=/t/echo/headers';
+        proxy_wasm hostcalls 'on=log test=/t/log/request_header name=:path';
     }
 --- more_headers
 Goodbye: this header
@@ -57,14 +60,31 @@ Connection: closed
 User-Agent: Gecko
 Content-Type: text/none
 X-Forwarded-For: 128.168.0.1
+--- error_log
+request header ":path: /updated"
 --- no_error_log
 [error]
+[crit]
+
+
+
+=== TEST 3: proxy_wasm - set_http_request_headers() cannot set invalid special request headers
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_request_headers/invalid';
+        return 200;
+    }
+--- response_body
+--- error_log eval
+qr/\[error\] .*? \[wasm\] cannot set read-only ":scheme" header/
+--- no_error_log
 [crit]
 [alert]
 
 
 
-=== TEST 3: proxy_wasm - set_http_request_headers() sets headers when many headers exist
+=== TEST 4: proxy_wasm - set_http_request_headers() sets headers when many headers exist
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -84,7 +104,7 @@ Welcome: wasm
 
 
 
-=== TEST 4: proxy_wasm - set_http_request_headers() x on_phases
+=== TEST 5: proxy_wasm - set_http_request_headers() x on_phases
 should log an error (but no trap) when response is produced
 --- wasm_modules: hostcalls
 --- config
