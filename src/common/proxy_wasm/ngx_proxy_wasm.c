@@ -284,27 +284,27 @@ ngx_proxy_wasm_init(ngx_proxy_wasm_t *pwm)
         goto error;
     }
 
-    pwm->rctxid = ngx_crc32_long(pwm->module->name.data, pwm->module->name.len);
+    pwm->ctxid = ngx_crc32_long(pwm->module->name.data, pwm->module->name.len);
 
     /* start plugin */
 
     rc = ngx_wavm_instance_call_funcref(pwm->instance,
                                         pwm->proxy_on_context_create, &rets,
-                                        pwm->rctxid, NGX_PROXY_WASM_ROOT_CTX_ID);
+                                        pwm->ctxid, NGX_PROXY_WASM_ROOT_CTX_ID);
     if (rc != NGX_OK) {
         goto error;
     }
 
     rc = ngx_wavm_instance_call_funcref(pwm->instance,
                                         pwm->proxy_on_vm_start, &rets,
-                                        pwm->rctxid, 0); // TODO: size
+                                        pwm->ctxid, 0); // TODO: size
     if (rc != NGX_OK || !rets->data[0].of.i32) {
         goto error;
     }
 
     rc = ngx_wavm_instance_call_funcref(pwm->instance,
                                         pwm->proxy_on_plugin_start, &rets,
-                                        pwm->rctxid,
+                                        pwm->ctxid,
                                         pwm->filter_config.len);
     if (rc != NGX_OK || !rets->data[0].of.i32) {
         goto error;

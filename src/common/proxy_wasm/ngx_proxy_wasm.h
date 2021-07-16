@@ -154,7 +154,7 @@ struct ngx_proxy_wasm_s {
     /* control flow */
 
     ngx_uint_t                         ecode;
-    ngx_uint_t                         rctxid;
+    ngx_uint_t                         ctxid;
 
     /**
      * SDK

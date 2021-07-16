@@ -111,7 +111,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
 
 
 static ngx_list_t *
-ngx_proxy_wasm_get_map_helper(ngx_wavm_instance_t *instance,
+ngx_proxy_wasm_map_get_helper(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_map_type_t map_type)
 {
 #ifdef NGX_WASM_HTTP

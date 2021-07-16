@@ -48,13 +48,13 @@ ngx_http_proxy_wasm_next_action(ngx_proxy_wasm_t *pwm, ngx_int_t rc,
 ngx_uint_t
 ngx_http_proxy_wasm_ctxid(ngx_proxy_wasm_t *pwm)
 {
-    ngx_uint_t                ctxid;
-    ngx_http_request_t       *r;
+    ngx_uint_t           ctxid;
+    ngx_http_request_t  *r;
 
     r = ngx_http_proxy_wasm_request(pwm);
     ctxid = r->connection->number;
 
-    dd("pwm->rctxid: %ld, ctxid: %ld", pwm->rctxid, ctxid);
+    dd("pwm->ctxid: %ld, ctxid: %ld", pwm->ctxid, ctxid);
 
     return ctxid;
 }
@@ -98,7 +98,7 @@ ngx_http_proxy_wasm_create_context(ngx_proxy_wasm_t *pwm)
 
         if (ngx_wavm_instance_call_funcref(pwm->instance,
                                            pwm->proxy_on_context_create,
-                                           &rets, ctxid, pwm->rctxid)
+                                           &rets, ctxid, pwm->ctxid)
             != NGX_OK)
         {
             return NGX_ERROR;

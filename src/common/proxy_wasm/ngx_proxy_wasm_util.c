@@ -344,7 +344,7 @@ ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
         ngx_wavm_ctx_update(pwm->instance->ctx, NULL, NULL);
 
         wasm_val_vec_new_uninitialized(&args, 1);
-        ngx_wasm_vec_set_i32(&args, 0, pwm->rctxid);
+        ngx_wasm_vec_set_i32(&args, 0, pwm->ctxid);
 
         rc = ngx_wavm_instance_call_funcref_vec(pwm->instance,
                                                 pwm->proxy_on_timer_ready,
