@@ -71,16 +71,18 @@ ngx_int_t
 ngx_http_proxy_wasm_create_context(ngx_proxy_wasm_t *pwm)
 {
     ngx_uint_t                   ctxid;
+    ngx_http_request_t          *r;
     ngx_http_wasm_req_ctx_t     *rctx;
     ngx_http_proxy_wasm_rctx_t  *prctx;
     wasm_val_vec_t              *rets;
 
     rctx = ngx_http_proxy_wasm_rctx(pwm);
     prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
+    r = rctx->r;
 
     if (prctx == NULL) {
-        prctx = ngx_pcalloc(rctx->r->pool, sizeof(ngx_http_proxy_wasm_rctx_t)
-                                           * *pwm->max_filters);
+        prctx = ngx_pcalloc(r->pool, sizeof(ngx_http_proxy_wasm_rctx_t)
+                                     * *pwm->max_filters);
         if (prctx == NULL) {
             return NGX_ERROR;
         }
@@ -95,6 +97,11 @@ ngx_http_proxy_wasm_create_context(ngx_proxy_wasm_t *pwm)
 
     if (!prctx->context_created) {
         ctxid = ngx_http_proxy_wasm_ctxid(pwm);
+
+        ngx_log_debug3(NGX_LOG_DEBUG_WASM, pwm->log, 0,
+                       "proxy_wasm creating context id \"#%d\""
+                       " (rctx: %p, prctx: %p)",
+                       ctxid, rctx, prctx);
 
         if (ngx_wavm_instance_call_funcref(pwm->instance,
                                            pwm->proxy_on_context_create,
