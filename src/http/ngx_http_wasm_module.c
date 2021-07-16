@@ -501,10 +501,6 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
         break;
 
-    case NGX_AGAIN: /* TODO: catch */
-    case NGX_ERROR:
-        break;
-
     default:
         break;
 
