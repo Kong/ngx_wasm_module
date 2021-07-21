@@ -117,6 +117,9 @@ ngx_http_proxy_wasm_destroy_context(ngx_proxy_wasm_t *pwm)
     rctx = ngx_http_proxy_wasm_rctx(pwm);
     ctxid = ngx_http_proxy_wasm_ctxid(pwm);
 
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, pwm->log, 0,
+                   "wasm destroying proxy wasm ctxid %l", ctxid);
+
     (void) ngx_wavm_instance_call_funcref(pwm->instance,
                                           pwm->proxy_on_context_finalize,
                                           NULL, ctxid);
@@ -147,10 +150,12 @@ ngx_int_t
 ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
     ngx_wavm_ctx_t *wvctx)
 {
-    ngx_int_t                 rc = NGX_ERROR;
-    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_int_t                  rc = NGX_ERROR;
+    ngx_http_request_t        *r;
+    ngx_http_wasm_req_ctx_t   *rctx;
 
     rctx = ngx_http_proxy_wasm_rctx(pwm);
+    r = rctx->r;
 
     switch (phase->index) {
 
@@ -187,8 +192,13 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
         break;
 
     case NGX_HTTP_CONTENT_PHASE:
-        rc = ngx_http_wasm_read_client_request_body(rctx->r,
-                           ngx_http_proxy_wasm_on_request_body);
+        rc = ngx_http_wasm_read_client_request_body(r,
+                      ngx_http_proxy_wasm_on_request_body);
+
+        if (r != r->main) {
+            /* subrequest */
+            rc = NGX_OK;
+        }
 
         if (pwm->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
             ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwm->log, 0,
@@ -223,9 +233,13 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
     case NGX_HTTP_LOG_PHASE:
         rc = ngx_proxy_wasm_on_log(pwm);
         if (rc != NGX_OK) {
-           rc = NGX_ERROR;
+            break;
         }
 
+        /* fallthrough */
+
+    case NGX_HTTP_WASM_DONE_PHASE:
+        rc = ngx_proxy_wasm_on_done(pwm);
         break;
 
     default:

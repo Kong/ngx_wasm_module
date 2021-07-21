@@ -175,7 +175,8 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
                     | (1 << NGX_HTTP_CONTENT_PHASE)
                     | (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE)
                     | (1 << NGX_HTTP_WASM_BODY_FILTER_PHASE)
-                    | (1 << NGX_HTTP_LOG_PHASE);
+                    | (1 << NGX_HTTP_LOG_PHASE)
+                    | (1 << NGX_HTTP_WASM_DONE_PHASE);
 
     if (ngx_wasm_ops_add(loc->ops_engine, op) != NGX_OK) {
         return NGX_CONF_ERROR;

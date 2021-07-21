@@ -64,6 +64,10 @@ static ngx_wasm_phase_t  ngx_http_wasm_phases[] = {
       NGX_HTTP_LOG_PHASE,
       (1 << NGX_HTTP_LOG_PHASE) },
 
+    { ngx_string("done"),
+      NGX_HTTP_WASM_DONE_PHASE,
+      (1 << NGX_HTTP_WASM_DONE_PHASE) },
+
     { ngx_null_string, 0, 0 }
 };
 
@@ -441,8 +445,11 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
 static ngx_int_t
 ngx_http_wasm_content_handler(ngx_http_request_t *r)
 {
-    ngx_int_t                 rc;
-    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_int_t                  rc;
+    ngx_http_wasm_req_ctx_t   *rctx;
+    ngx_http_core_loc_conf_t  *clcf;
+
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc != NGX_OK) {
@@ -472,10 +479,11 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
     case NGX_OK:
         /* flushed response */
         rc = ngx_http_wasm_check_finalize(rctx, rc);
+
         ngx_wasm_assert(rc == NGX_DONE);
 
         if (r != r->main) {
-            /* subrequests */
+            /* subrequest */
             rc = NGX_OK;
         }
 
@@ -500,6 +508,14 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
     default:
         break;
 
+    }
+
+    if (r != r->main
+        && !clcf->log_subrequest
+        && rc == NGX_OK)
+    {
+        /* subrequest */
+        (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_DONE_PHASE, 0);
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,

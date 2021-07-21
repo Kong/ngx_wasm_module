@@ -201,9 +201,9 @@ static ngx_str_t *
 ngx_http_wasm_shim_keep_alive(ngx_http_wasm_req_ctx_t *rctx)
 {
     size_t                     len;
+    ngx_str_t                 *val_timeout = NULL;
     ngx_http_request_t        *r = rctx->r;
     ngx_http_core_loc_conf_t  *clcf;
-    ngx_str_t                 *val_timeout = NULL;
 
     if (rctx->req_keepalive) {
         clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
