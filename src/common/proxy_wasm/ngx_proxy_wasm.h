@@ -241,6 +241,7 @@ unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_t *pwm, ngx_list_t *list,
 ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
      ngx_wavm_ctx_t *wvctx);
 ngx_int_t ngx_proxy_wasm_on_log(ngx_proxy_wasm_t *pwm);
+ngx_int_t ngx_proxy_wasm_on_done(ngx_proxy_wasm_t *pwm);
 
 /* utils */
 ngx_uint_t ngx_proxy_wasm_pairs_count(ngx_list_t *list);

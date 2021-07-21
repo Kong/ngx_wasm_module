@@ -468,7 +468,6 @@ ok
 --- wasm_modules: on_phases
 --- config
     location /subrequest {
-        internal;
         proxy_wasm on_phases;
         echo ok;
     }
@@ -493,7 +492,83 @@ ok
 
 
 
-=== TEST 20: proxy_wasm - same module in multiple location{} blocks
+=== TEST 20: proxy_wasm - as a chained subrequest
+should invoke wasm ops "done" phase to destroy proxy-wasm ctxid in "content" phase
+--- skip_no_debug: 7
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- config
+    location /subrequest {
+        internal;
+        proxy_wasm on_phases;
+        echo ok;
+    }
+
+    location /t {
+        echo_subrequest GET '/subrequest';
+        echo_subrequest GET '/subrequest';
+    }
+--- error_code: 200
+--- response_body
+ok
+ok
+--- grep_error_log eval: qr/wasm ops resuming "(log|done)" phase/
+--- grep_error_log_out eval
+qr/wasm ops resuming "done" phase
+wasm ops resuming "done" phase
+wasm ops resuming "log" phase
+\Z/
+--- no_error_log eval
+[
+    qr/on_log .*? subrequest: "\/subrequest"/,
+    qr/\[error\]/,
+    "stub",
+    "stub",
+]
+
+
+
+=== TEST 21: proxy_wasm - as a chained subrequest (logged)
+should not invoke wasm ops "done" phase when subrequests are logged
+--- skip_no_debug: 7
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- config
+    log_subrequest on;
+
+    location /subrequest {
+        proxy_wasm on_phases;
+        echo ok;
+    }
+
+    location /t {
+        echo_subrequest GET '/subrequest';
+        echo_subrequest GET '/subrequest';
+    }
+--- error_code: 200
+--- response_body
+ok
+ok
+--- grep_error_log eval: qr/wasm ops resuming "(log|done)" phase/
+--- grep_error_log_out eval
+qr/wasm ops resuming "log" phase
+wasm ops resuming "log" phase
+wasm ops resuming "log" phase
+\Z/
+--- error_log eval
+[
+    qr/on_log .*? subrequest: "\/subrequest"/,
+    qr/on_log .*? subrequest: "\/subrequest"/,
+]
+--- no_error_log eval
+[
+    qr/\[error\]/,
+    "stub",
+]
+
+
+
+=== TEST 22: proxy_wasm - same module in multiple location{} blocks
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -527,7 +602,7 @@ B
 
 
 
-=== TEST 21: proxy_wasm - chained filters in same location{} block
+=== TEST 23: proxy_wasm - chained filters in same location{} block
 should run each filter after the other within each phase
 --- skip_no_debug: 7
 --- wasm_modules: on_phases
@@ -560,7 +635,7 @@ qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
 
 
 
-=== TEST 22: proxy_wasm - chained filters in server{} block
+=== TEST 24: proxy_wasm - chained filters in server{} block
 should run each filter after the other within each phase
 --- wasm_modules: on_phases
 --- config
@@ -588,7 +663,7 @@ stub
 
 
 
-=== TEST 23: proxy_wasm - chained filters in http{} block
+=== TEST 25: proxy_wasm - chained filters in http{} block
 should run each filter after the other within each phase
 --- wasm_modules: on_phases
 --- http_config
@@ -616,7 +691,7 @@ stub
 
 
 
-=== TEST 24: proxy_wasm - mixed filters in server{} and http{} blocks
+=== TEST 26: proxy_wasm - mixed filters in server{} and http{} blocks
 should not chain; instead, server{} overrides http{}
 --- wasm_modules: on_phases
 --- http_config
@@ -645,7 +720,7 @@ qr/log_msg: server .*? request: "GET \/t\s+/
 
 
 
-=== TEST 25: proxy_wasm - mixed filters in server{} and location{} blocks
+=== TEST 27: proxy_wasm - mixed filters in server{} and location{} blocks
 should not chain; instead, location{} overrides server{}
 --- wasm_modules: on_phases
 --- config
@@ -674,7 +749,7 @@ qr/log_msg: location .*? request: "GET \/t\s+/
 
 
 
-=== TEST 26: proxy_wasm - mixed filters in http{}, server{}, and location{} blocks
+=== TEST 28: proxy_wasm - mixed filters in http{}, server{}, and location{} blocks
 should not chain; instead, location{} overrides server{}, server{} overrides http{}
 --- wasm_modules: on_phases
 --- http_config

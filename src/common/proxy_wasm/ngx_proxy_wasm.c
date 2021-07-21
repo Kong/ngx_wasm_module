@@ -444,6 +444,13 @@ ngx_proxy_wasm_on_log(ngx_proxy_wasm_t *pwm)
         }
     }
 
+    return NGX_OK;
+}
+
+
+ngx_int_t
+ngx_proxy_wasm_on_done(ngx_proxy_wasm_t *pwm)
+{
     pwm->destroy_context_(pwm);
 
     return NGX_OK;
