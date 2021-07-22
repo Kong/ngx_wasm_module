@@ -20,6 +20,9 @@ static ngx_inline ngx_int_t
 ngx_http_proxy_wasm_next_action(ngx_proxy_wasm_t *pwm, ngx_int_t rc,
     ngx_uint_t ret)
 {
+    ngx_http_wasm_req_ctx_t     *rctx;
+    ngx_http_proxy_wasm_rctx_t  *prctx;
+
     if (rc != NGX_OK) {
         return rc;
     }
@@ -27,7 +30,9 @@ ngx_http_proxy_wasm_next_action(ngx_proxy_wasm_t *pwm, ngx_int_t rc,
     switch (ret) {
     case NGX_PROXY_WASM_ACTION_PAUSE:
     case NGX_PROXY_WASM_ACTION_CONTINUE:
-        pwm->next_action = ret;
+        rctx = ngx_http_proxy_wasm_rctx(pwm);
+        prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
+        prctx->next_action = ret;
         break;
 
     default:
@@ -150,11 +155,13 @@ ngx_int_t
 ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
     ngx_wavm_ctx_t *wvctx)
 {
-    ngx_int_t                  rc = NGX_ERROR;
-    ngx_http_request_t        *r;
-    ngx_http_wasm_req_ctx_t   *rctx;
+    ngx_int_t                    rc = NGX_ERROR;
+    ngx_http_request_t          *r;
+    ngx_http_wasm_req_ctx_t     *rctx;
+    ngx_http_proxy_wasm_rctx_t  *prctx;
 
     rctx = ngx_http_proxy_wasm_rctx(pwm);
+    prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
     r = rctx->r;
 
     switch (phase->index) {
@@ -166,11 +173,21 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
             rc = NGX_DECLINED;
         }
 
-        if (pwm->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
-            /* rewrite treats NGX_AGAIN as NGX_OK which would
-             * finalize the connection */
-            ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwm->log, 0,
-                           "proxy_wasm delaying pause until \"access\" phase");
+        if (prctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
+            if (r != r->main) {
+                /* subrequest */
+                ngx_wasm_log_error(NGX_LOG_WASM_NYI, pwm->log, 0,
+                                   "NYI - proxy_wasm cannot pause "
+                                   "after \"rewrite\" phase in subrequests");
+
+                prctx->next_action = NGX_PROXY_WASM_ACTION_CONTINUE;
+
+            } else {
+                /* rewrite treats NGX_AGAIN as NGX_OK which would
+                 * finalize the connection */
+                ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwm->log, 0,
+                               "proxy_wasm delaying pause until \"access\" phase");
+            }
 
             /* next phase */
             rc = NGX_DONE;
@@ -179,7 +196,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
         break;
 
     case NGX_HTTP_ACCESS_PHASE:
-        if (pwm->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
+        if (prctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
             ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwm->log, 0,
                            "proxy_wasm pausing");
             rc = NGX_AGAIN;
@@ -195,37 +212,38 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
         rc = ngx_http_wasm_read_client_request_body(r,
                       ngx_http_proxy_wasm_on_request_body);
 
-        if (r != r->main) {
-            /* subrequest */
-            rc = NGX_OK;
-        }
-
-        if (pwm->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
+        if (prctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
             ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwm->log, 0,
                            "proxy_wasm pausing");
             rc = NGX_AGAIN;
+
+        } else if (r != r->main) {
+            /* subrequest */
+            rc = NGX_OK;
         }
 
         break;
 
     case NGX_HTTP_WASM_HEADER_FILTER_PHASE:
         rc = ngx_http_proxy_wasm_on_response_headers(pwm);
-        if (pwm->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
+        if (prctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
             ngx_wasm_log_error(NGX_LOG_WASM_NYI, pwm->log, 0,
                                "NYI - proxy_wasm cannot pause "
-                               "after \"header_filter\"");
-            pwm->next_action = NGX_PROXY_WASM_ACTION_CONTINUE;
+                               "after \"header_filter\" phase");
+
+            prctx->next_action = NGX_PROXY_WASM_ACTION_CONTINUE;
         }
 
         break;
 
     case NGX_HTTP_WASM_BODY_FILTER_PHASE:
         rc = ngx_http_proxy_wasm_on_response_body(pwm);
-        if (pwm->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
+        if (prctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
             ngx_wasm_log_error(NGX_LOG_WASM_NYI, pwm->log, 0,
                                "NYI - proxy_wasm cannot pause "
-                               "after \"body_filter\"");
-            pwm->next_action = NGX_PROXY_WASM_ACTION_CONTINUE;
+                               "after \"body_filter\" phase");
+
+            prctx->next_action = NGX_PROXY_WASM_ACTION_CONTINUE;
         }
 
         break;
