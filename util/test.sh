@@ -52,14 +52,13 @@ export TEST_NGINX_SERVROOT=${TEST_NGINX_SERVROOT:=$DIR_PREFIX}
 export TEST_NGINX_BINARY=${TEST_NGINX_BINARY:=$DIR_BUILDROOT/nginx}
 export TEST_NGINX_SLEEP=${TEST_NGINX_SLEEP:=0.2}
 export TEST_NGINX_PORT=${TEST_NGINX_PORT:=1984}
-export TEST_NGINX_TIMEOUT=${TEST_NGINX_TIMEOUT:=6}
+export TEST_NGINX_TIMEOUT=${TEST_NGINX_TIMEOUT:=30}
 export TEST_NGINX_RESOLVER=${TEST_NGINX_RESOLVER:=8.8.4.4}
 export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/asan.suppress"
 #export TEST_NGINX_NO_SHUFFLE=1
 #export TEST_NGINX_RANDOMIZE=1
 #export TEST_NGINX_LOAD_MODULES=
 #export TEST_NGINX_MASTER_PROCESS=
-#export TEST_NGINX_EVENT_TYPE=epoll
 #export TEST_NGINX_CHECK_LEAK=1
 #export TEST_NGINX_USE_HUP=1
 #export TEST_NGINX_USE_VALGRIND=1
@@ -91,6 +90,10 @@ cargo build \
     --out-dir $DIR_TESTS_LIB_WASM \
     -Z unstable-options
 
+if [ $(uname -s) = Linux ]; then
+    export TEST_NGINX_EVENT_TYPE=epoll
+fi
+
 if [[ ! -z "$TEST_NGINX_USE_VALGRIND" ]]; then
     export TEST_NGINX_SLEEP=3
     export TEST_NGINX_TIMEOUT=30
@@ -116,16 +119,14 @@ echo
 eval "$TEST_NGINX_BINARY -V"
 echo
 
-set +e
-if [[ $(uname -s) == Darwin ]]; then
+if [ $(uname -s) = Darwin ]; then
     otool -L $TEST_NGINX_BINARY | grep wasm
-else
+
+elif [ ! -x "$(command -v ldd)" ]; then
     ldd $TEST_NGINX_BINARY | grep wasm
 fi
-set -e
 
 echo
-
 exec prove -r $prove_opts $@
 
 # vim: ft=sh st=4 sts=4 sw=4:
