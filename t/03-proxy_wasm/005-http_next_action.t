@@ -58,7 +58,38 @@ pausing after "RequestBody"
 
 
 
-=== TEST 3: proxy_wasm - on_response_headers -> Pause
+=== TEST 3: proxy_wasm - async subrequests
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- config
+    location /pause {
+        internal;
+        proxy_wasm on_phases 'pause_on=request_headers';
+        echo ok;
+    }
+
+    location /nop {
+        internal;
+        proxy_wasm on_phases;
+        echo ok;
+    }
+
+    location /t {
+        echo_subrequest_async GET /pause;
+        echo_subrequest_async GET /nop;
+    }
+--- abort
+--- error_code:
+--- response_body
+--- error_log
+pausing after "RequestHeaders"
+[wasm] NYI - proxy_wasm cannot pause after "rewrite" phase in subrequests
+--- no_error_log
+[error]
+
+
+
+=== TEST 4: proxy_wasm - on_response_headers -> Pause
 NYI
 --- wasm_modules: on_phases
 --- config
@@ -69,13 +100,13 @@ NYI
 --- response_body
 --- error_log
 pausing after "ResponseHeaders"
-[wasm] NYI - proxy_wasm cannot pause after "header_filter"
+[wasm] NYI - proxy_wasm cannot pause after "header_filter" phase
 --- no_error_log
 [error]
 
 
 
-=== TEST 4: proxy_wasm - on_response_body -> Pause
+=== TEST 5: proxy_wasm - on_response_body -> Pause
 NYI
 --- wasm_modules: on_phases
 --- config
@@ -86,6 +117,6 @@ NYI
 --- response_body
 --- error_log
 pausing after "ResponseBody"
-[wasm] NYI - proxy_wasm cannot pause after "body_filter"
+[wasm] NYI - proxy_wasm cannot pause after "body_filter" phase
 --- no_error_log
 [error]

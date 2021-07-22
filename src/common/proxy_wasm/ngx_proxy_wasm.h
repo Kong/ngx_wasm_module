@@ -149,13 +149,12 @@ struct ngx_proxy_wasm_s {
     /* dyn config */
 
     ngx_uint_t                         max_pairs;
+    ngx_uint_t                         tick_period;
 
     /* control flow */
 
-    ngx_proxy_wasm_action_t            next_action;
     ngx_uint_t                         ecode;
     ngx_uint_t                         rctxid;
-    ngx_uint_t                         tick_period;
 
     /**
      * SDK
