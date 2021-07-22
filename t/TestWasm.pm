@@ -86,17 +86,15 @@ add_block_preprocessor(sub {
                           . $main_config);
     }
 
-    # compiler override
+    # compiler override when '--- wasm_modules' block is specified
 
     my $compiler;
 
-    if (defined $ENV{TEST_NGINX_USE_VALGRIND}) {
-        if ($nginxV =~ m/wasmtime/) {
-            $compiler = "lightbeam";
+    if ($nginxV =~ m/wasmtime/) {
+        $compiler = "lightbeam";
 
-        } elsif ($nginxV =~ m/wasmer/) {
-            $compiler = "singlepass";
-        }
+    } elsif ($nginxV =~ m/wasmer/) {
+        $compiler = "singlepass";
     }
 
     # --- wasm_modules: on_phases
