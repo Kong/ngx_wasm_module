@@ -21,7 +21,7 @@ case $ngx_wasm_runtime_name in
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_wasmer.c"
 
         ngx_feature_name="NGX_WASM_HAVE_WASMER"
-        ngx_feature_incs="#include <wasmer_wasm.h>"
+        ngx_feature_incs="#include <wasmer.h>"
         ;;
     *)
         echo "$0: error: $ngx_addon_name does not support the \"$ngx_wasm_runtime_name\" runtime."
