@@ -12,7 +12,8 @@ typedef struct {
 
     /* cache */
 
-    ngx_str_t                  *authority;
+    ngx_str_t                   authority;
+    ngx_str_t                   scheme;
 
     /* flags */
 
