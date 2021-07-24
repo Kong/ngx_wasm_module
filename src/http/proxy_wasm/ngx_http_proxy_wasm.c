@@ -152,9 +152,12 @@ ngx_http_proxy_wasm_destroy_context(ngx_proxy_wasm_t *pwm)
         }
     }
 
-    if (prctx->authority) {
-        ngx_pfree(r->pool, prctx->authority->data);
-        ngx_pfree(r->pool, prctx->authority);
+    if (prctx->authority.data) {
+        ngx_pfree(r->pool, prctx->authority.data);
+    }
+
+    if (prctx->scheme.data) {
+        ngx_pfree(r->pool, prctx->scheme.data);
     }
 
     /* all filters are finished */
