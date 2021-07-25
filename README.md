@@ -124,6 +124,7 @@ still evolving and unstable.
 ### Wasm runtimes
 
 - Wasm C API: https://github.com/WebAssembly/wasm-c-api
+- Wasmer C API: https://docs.rs/wasmer-c-api/
 - Wasmtime C API: https://docs.wasmtime.dev/c-api/
 
 [Back to TOC](#table-of-contents)
