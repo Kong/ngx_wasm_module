@@ -70,15 +70,18 @@ qr/\[info\] .*? \[wasm\] using wasmtime with compiler: "auto"/
 
 === TEST 5: compiler directive - wasmtime 'lightbeam'
 --- skip_eval: 4: $::nginxV !~ m/wasmtime/
+--- must_die
 --- main_config
     wasm {
         compiler lightbeam;
     }
 --- error_log eval
-qr/\[info\] .*? \[wasm\] using wasmtime with compiler: "lightbeam"/
+[
+    qr/\[error\] .*? \[wasm\] failed setting "lightbeam" compiler: lightbeam .*? enabled at compile time/,
+    qr/\[emerg\] .*? \[wasm\] failed initializing wasm VM: invalid configuration/
+]
 --- no_error_log
-[error]
-[emerg]
+using wasmtime with compiler: "lightbeam"
 
 
 
