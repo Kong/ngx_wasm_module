@@ -25,20 +25,36 @@ ngx_int_t
 ngx_wrt_config_init(ngx_log_t *log, wasm_config_t *wasm_config,
     ngx_wavm_conf_t *vm_config)
 {
+    wasm_name_t        msg;
+    wasmtime_error_t  *err = NULL;
+
     if (vm_config->compiler.len) {
         if (ngx_strncmp(vm_config->compiler.data, "auto", 4) == 0) {
-            wasmtime_config_strategy_set(wasm_config, WASMTIME_STRATEGY_AUTO);
+            err = wasmtime_config_strategy_set(wasm_config, WASMTIME_STRATEGY_AUTO);
 
         } else if (ngx_strncmp(vm_config->compiler.data, "lightbeam", 9) == 0) {
-            wasmtime_config_strategy_set(wasm_config, WASMTIME_STRATEGY_LIGHTBEAM);
+            err = wasmtime_config_strategy_set(wasm_config, WASMTIME_STRATEGY_LIGHTBEAM);
 
         } else if (ngx_strncmp(vm_config->compiler.data, "cranelift", 9) == 0) {
-            wasmtime_config_strategy_set(wasm_config, WASMTIME_STRATEGY_CRANELIFT);
+            err = wasmtime_config_strategy_set(wasm_config, WASMTIME_STRATEGY_CRANELIFT);
 
         } else {
             ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
                                "invalid compiler \"%V\"",
                                &vm_config->compiler);
+            return NGX_ERROR;
+        }
+
+        if (err) {
+            wasmtime_error_message(err, &msg);
+
+            ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
+                               "failed setting \"%V\" compiler: %*.s",
+                               &vm_config->compiler, msg.size, msg.data);
+
+            wasmtime_error_delete(err);
+            wasm_name_delete(&msg);
+
             return NGX_ERROR;
         }
 

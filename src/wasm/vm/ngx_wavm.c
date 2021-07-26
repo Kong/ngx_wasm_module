@@ -102,6 +102,7 @@ ngx_wavm_engine_init(ngx_wavm_t *vm)
         && ngx_wrt_config_init(vm->log, config, vm->config) != NGX_OK)
     {
         err = "invalid configuration";
+        wasm_config_delete(config);
         goto error;
     }
 

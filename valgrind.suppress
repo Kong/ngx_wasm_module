@@ -101,15 +101,6 @@
     fun:main
 }
 {
-   <wasmtime 0.28.0: wasmtime_config_strategy_set>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:malloc
-   ...
-   fun:wasmtime_config_strategy_set
-   fun:ngx_wrt_config_init
-}
-{
    <wasmtime 0.28.0: ...>
    Memcheck:Cond
    fun:_ZN10wasmparser9validator9Validator3end17h9547d0fbe2e6e321E
