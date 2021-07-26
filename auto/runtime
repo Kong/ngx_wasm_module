@@ -26,8 +26,10 @@ if [ -z "$ngx_feature_libs" -a -n "$ngx_wasm_runtime_name" ]; then
     ngx_feature_libs="-l$ngx_wasm_runtime_name"
 fi
 
-ngx_feature_run=no
-ngx_feature_test=
+ngx_feature_run=yes
+ngx_feature_test="wasm_engine_t *e = wasm_engine_new();
+                  assert(e);
+                  wasm_engine_delete(e);"
 
 . auto/feature
 
