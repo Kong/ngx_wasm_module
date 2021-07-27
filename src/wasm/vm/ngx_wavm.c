@@ -137,6 +137,10 @@ ngx_wavm_engine_destroy(ngx_wavm_t *vm)
     }
 
     if (vm->engine) {
+        ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
+                       "wasm deleting \"%V\" engine (engine: %p)",
+                       vm->name, vm->engine);
+
         wasm_engine_delete(vm->engine);
         vm->engine = NULL;
     }
