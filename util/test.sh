@@ -54,6 +54,7 @@ export TEST_NGINX_SLEEP=${TEST_NGINX_SLEEP:=0.2}
 export TEST_NGINX_PORT=${TEST_NGINX_PORT:=1984}
 export TEST_NGINX_TIMEOUT=${TEST_NGINX_TIMEOUT:=30}
 export TEST_NGINX_RESOLVER=${TEST_NGINX_RESOLVER:=8.8.4.4}
+export ASAN_OPTIONS=detect_odr_violation=0   # see asan.ignore (clang 13)
 export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/asan.suppress"
 #export TEST_NGINX_NO_SHUFFLE=1
 #export TEST_NGINX_RANDOMIZE=1

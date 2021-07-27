@@ -32,6 +32,7 @@ build_nginx() {
         build_name+=" san:$NGX_BUILD_FSANITIZE"
         NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -Wno-unused-command-line-argument -g -fsanitize=$NGX_BUILD_FSANITIZE -fno-omit-frame-pointer"
         NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fsanitize=$NGX_BUILD_FSANITIZE -ldl -lm -lpthread -lrt"
+        # clang 13: -fsanitize-ignorelist=$NGX_WASM_DIR/asan.ignore
     fi
 
     if [[ -n "$NGX_WASM_RUNTIME_LIB" ]]; then
