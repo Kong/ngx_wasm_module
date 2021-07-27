@@ -90,10 +90,7 @@ add_block_preprocessor(sub {
 
     my $compiler;
 
-    if ($nginxV =~ m/wasmtime/) {
-        $compiler = "lightbeam";
-
-    } elsif ($nginxV =~ m/wasmer/) {
+    if ($nginxV =~ m/wasmer/) {
         $compiler = "singlepass";
     }
 
