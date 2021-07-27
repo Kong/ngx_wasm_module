@@ -1,1 +1,1 @@
-leak:ngx_create_pool
+leak:src/core/nginx.c
