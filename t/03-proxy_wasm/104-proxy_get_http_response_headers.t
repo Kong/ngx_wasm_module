@@ -67,8 +67,42 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 
 
 === TEST 2: proxy_wasm - get_http_response_headers() includes added headers
---- SKIP: TODO
 --- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/add_response_header \
+                              value=Hello:world';
+
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_response_header \
+                              value=Hello:world';
+
+        proxy_wasm hostcalls 'on=response_headers test=/t/log/response_headers';
+        proxy_wasm hostcalls 'on=log test=/t/log/response_headers';
+        return 200;
+    }
+--- ignore_response_body
+--- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log_out eval
+qr/\[wasm\] .*? entering "RequestHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
+\[wasm\] .*? entering "ResponseHeaders"
+\[wasm\] resp Content-Type: text\/plain
+\[wasm\] resp Content-Length: 0
+\[wasm\] resp Connection: close
+\[wasm\] resp Hello: world
+\[wasm\] resp Server: nginx.*?
+\[wasm\] resp Date: .*? GMT
+\[wasm\] resp Hello: world
+\[wasm\] .*? entering "Log"
+\[wasm\] resp Content-Type: text\/plain
+\[wasm\] resp Content-Length: 0
+\[wasm\] resp Connection: close
+\[wasm\] resp Hello: world
+\[wasm\] resp Server: nginx.*?
+\[wasm\] resp Date: .*? GMT
+\[wasm\] resp Hello: world/
 
 
 
