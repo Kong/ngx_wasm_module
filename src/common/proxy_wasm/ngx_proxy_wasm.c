@@ -281,6 +281,7 @@ ngx_proxy_wasm_init(ngx_proxy_wasm_t *pwm)
 
     pwm->instance = ngx_wavm_instance_create(pwm->lmodule, &pwm->wvctx);
     if (pwm->instance == NULL) {
+        pwm->ecode = NGX_PROXY_WASM_ERR_INSTANCE_FAILED;
         goto error;
     }
 
@@ -310,9 +311,15 @@ ngx_proxy_wasm_init(ngx_proxy_wasm_t *pwm)
         goto error;
     }
 
+    pwm->ecode = NGX_PROXY_WASM_ERR_NONE;
+
     return NGX_OK;
 
 error:
+
+    if (!pwm->ecode) {
+        pwm->ecode = NGX_PROXY_WASM_ERR_UNKNOWN;
+    }
 
     ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, 0,
                              "failed initializing proxy_wasm filter");
