@@ -931,7 +931,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
         goto error;
     }
 
-    instance->ctx = ctx;
+    instance->ctx = NULL;
     instance->lmodule = lmodule;
     instance->pool = vm->pool;
     instance->tctxs = NULL;
@@ -1072,6 +1072,8 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *ctx)
             goto error;
         }
     }
+
+    instance->ctx = ctx;
 
     ngx_queue_insert_tail(&ctx->instances, &instance->ctx_q);
     ngx_queue_insert_tail(&vm->instances, &instance->q);
@@ -1326,8 +1328,10 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
         ngx_pfree(instance->pool, instance->log);
     }
 
-    ngx_queue_remove(&instance->q);
-    ngx_queue_remove(&instance->ctx_q);
+    if (instance->ctx) {
+        ngx_queue_remove(&instance->q);
+        ngx_queue_remove(&instance->ctx_q);
+    }
 
     ngx_pfree(instance->pool, instance);
 }
