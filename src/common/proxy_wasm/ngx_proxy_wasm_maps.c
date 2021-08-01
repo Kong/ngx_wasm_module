@@ -485,6 +485,7 @@ ngx_proxy_wasm_maps_get_authority(ngx_wavm_instance_t *instance)
 {
     u_char                      *p;
     ngx_uint_t                   port;
+    ngx_str_t                   *server_name;
     ngx_proxy_wasm_t            *pwm;
     ngx_http_proxy_wasm_rctx_t  *prctx;
     ngx_http_core_srv_conf_t    *cscf;
@@ -505,20 +506,26 @@ ngx_proxy_wasm_maps_get_authority(ngx_wavm_instance_t *instance)
     }
 
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
+    server_name = &cscf->server_name;
+    if (!server_name->len) {
+        server_name = (ngx_str_t *) &ngx_cycle->hostname;
+    }
 
-    prctx->authority.len = cscf->server_name.len
-                           + sizeof("65535") - 1
-                           + 1; /* ':' */
+    prctx->authority.len = server_name->len;
+
+    port = ngx_inet_get_port(r->connection->local_sockaddr);
+    if (port && port < 65536) {
+        prctx->authority.len += 1 + sizeof("65535") - 1; /* ':' */
+    }
 
     prctx->authority.data = ngx_pnalloc(r->pool, prctx->authority.len);
     if (prctx->authority.data == NULL) {
         return NULL;
     }
 
-    p = ngx_sprintf(prctx->authority.data, "%V", &cscf->server_name);
+    p = ngx_sprintf(prctx->authority.data, "%V", server_name);
 
-    port = ngx_inet_get_port(r->connection->local_sockaddr);
-    if (port > 0 && port < 65536) {
+    if (port && port < 65536) {
         prctx->authority.len = ngx_sprintf(p, ":%ui", port)
                                - prctx->authority.data;
     }
