@@ -169,7 +169,40 @@ stub
 
 
 
-=== TEST 8: proxy_wasm - get_http_request_header() retrieves ':scheme' (http)
+=== TEST 8: proxy_wasm - get_http_request_header() retrieves ':authority' without server_name on unix listener
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            proxy_wasm hostcalls;
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_pass http://test_upstream/t/echo/header/:authority;
+    }
+--- response_body_like
+:authority: [\S\s]+
+--- no_error_log
+[error]
+[crit]
+[alert]
+[stderr]
+stub
+stub
+
+
+
+=== TEST 9: proxy_wasm - get_http_request_header() retrieves ':scheme' (http)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -196,7 +229,7 @@ stub
 
 
 
-=== TEST 9: proxy_wasm - get_http_request_header() retrieves ':scheme' (https)
+=== TEST 10: proxy_wasm - get_http_request_header() retrieves ':scheme' (https)
 --- skip_eval: 8: $::nginxV !~ m/built with OpenSSL/
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -232,7 +265,7 @@ stub
 
 
 
-=== TEST 10: proxy_wasm - get_http_request_header() x on_phases
+=== TEST 11: proxy_wasm - get_http_request_header() x on_phases
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
