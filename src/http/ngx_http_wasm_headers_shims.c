@@ -181,10 +181,10 @@ ngx_http_wasm_shim_content_len(ngx_http_wasm_req_ctx_t *rctx)
 static ngx_str_t *
 ngx_http_wasm_shim_connection(ngx_http_wasm_req_ctx_t *rctx)
 {
-    ngx_http_request_t        *r = rctx->r;
-    static ngx_str_t           val_upgrade = ngx_string("upgrade");
-    static ngx_str_t           val_keepalive = ngx_string("keep-alive");
-    static ngx_str_t           val_close = ngx_string("close");
+    ngx_http_request_t  *r = rctx->r;
+    static ngx_str_t     val_upgrade = ngx_string("upgrade");
+    static ngx_str_t     val_keepalive = ngx_string("keep-alive");
+    static ngx_str_t     val_close = ngx_string("close");
 
     if (r->headers_out.status == NGX_HTTP_SWITCHING_PROTOCOLS) {
         return &val_upgrade;
