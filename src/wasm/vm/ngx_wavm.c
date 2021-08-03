@@ -566,6 +566,10 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
 
     module->state |= NGX_WAVM_MODULE_LOADED;
 
+    ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL,
+                       "successfully loaded \"%V\" module",
+                       &module->name);
+
     rc = NGX_OK;
     goto done;
 
