@@ -74,7 +74,7 @@ qr/500 Internal Server Error/
 [
     qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
     qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?unreachable/,
-    qr/\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "header_filter"/,
+    qr/\[crit\] .*? \[wasm\] proxy_wasm could not resume "hostcalls" execution \(instance trapped\)/,
 ]
 --- no_error_log
 [alert]
@@ -298,8 +298,7 @@ qr/\[wasm\] #\d+ entering "ResponseHeaders"/
 --- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
 qr/\[error\] .*? \[wasm\] response already sent.*?
-\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "body_filter" phase
-\[crit\] .*? \[wasm\] instance trapped: proxy_wasm failed to resume execution in "log" phase/
+\[crit\] .*? \[wasm\] proxy_wasm could not resume "hostcalls" execution \(instance trapped\)/
 --- no_error_log
 [alert]
 stub

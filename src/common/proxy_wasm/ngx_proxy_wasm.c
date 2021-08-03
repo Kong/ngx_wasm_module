@@ -265,7 +265,8 @@ ngx_proxy_wasm_init(ngx_proxy_wasm_t *pwm)
     {
         pwm->ecode = NGX_PROXY_WASM_ERR_BAD_MODULE_INTERFACE;
         ngx_proxy_wasm_log_error(NGX_LOG_EMERG, pwm->log, pwm->ecode,
-                                 "missing context init");
+                                 "missing one of: on_context_create, "
+                                 "on_vm_start, on_plugin_start");
         return NGX_ERROR;
     }
 
@@ -412,8 +413,8 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
     if (pwm->ecode) {
         if (!pwm->ecode_logged) {
             ngx_proxy_wasm_log_error(NGX_LOG_CRIT, wvctx->log, pwm->ecode,
-                                     "proxy_wasm could not resume execution "
-                                     "of \"%V\" module", &pwm->module->name);
+                                     "proxy_wasm could not resume "
+                                     "\"%V\" execution", &pwm->module->name);
             pwm->ecode_logged = 1;
         }
 

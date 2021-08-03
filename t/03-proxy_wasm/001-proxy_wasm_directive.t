@@ -114,8 +114,8 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] incompatible SDK interface: missing malloc/,
-    qr/\[crit\] .*? \[wasm\] incompatible SDK interface: proxy_wasm failed to resume execution in/
+    qr/\[emerg\] .*? \[wasm\] missing one of: .*? \(incompatible SDK interface\)/,
+    qr/\[crit\] .*? \[wasm\] proxy_wasm could not resume "a" execution \(incompatible SDK interface\)/
 ]
 --- no_error_log
 [warn]
@@ -125,6 +125,7 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 === TEST 6: proxy_wasm directive - missing malloc, fallback proxy_on_memory_allocate
+--- ONLY
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -145,8 +146,8 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] incompatible SDK interface: missing context init/,
-    qr/\[crit\] .*? \[wasm\] incompatible SDK interface: proxy_wasm failed to resume execution in/
+    qr/\[emerg\] .*? \[wasm\] missing one of: .*? \(incompatible SDK interface\)/,
+    qr/\[crit\] .*? \[wasm\] proxy_wasm could not resume "a" execution \(incompatible SDK interface\)/
 ]
 --- no_error_log
 [warn]
@@ -205,8 +206,8 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] incompatible ABI version$/,
-    qr/\[crit\] .*? \[wasm\] incompatible ABI version: proxy_wasm failed to resume execution in/
+    qr/\[emerg\] .*? \[wasm\] missing one of: .*? \(incompatible SDK interface\)/,
+    qr/\[crit\] .*? \[wasm\] proxy_wasm could not resume "a" execution \(incompatible SDK interface\)/
 ]
 --- no_error_log
 [warn]
