@@ -738,9 +738,6 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
-                       "NYI: proxy_wasm hfunc");
-
     return NGX_WAVM_NYI;
 }
 

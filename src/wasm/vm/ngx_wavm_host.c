@@ -153,7 +153,7 @@ ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
     wasm_val_vec_t* rets)
 {
     size_t                  errlen = 0, len;
-    char                   *err = NULL;
+    const char             *err = NULL;
     u_char                 *p, *buf, trapbuf[NGX_WAVM_HFUNCS_MAX_TRAP_LEN];
     ngx_int_t               rc;
     ngx_wavm_hfunc_tctx_t  *tctx = env;
@@ -198,8 +198,16 @@ ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
         err = "bad host argument";
         break;
 
+    case NGX_WAVM_NYI:
+        err = "host function not yet implemented";
+
+        ngx_wasm_assert(!instance->trapmsg.len);
+
+        ngx_wavm_instance_trap_printf(instance, "%V", &hfunc->def->name);
+        break;
+
     default:
-        err = "NYI - unknown host trampoline rc";
+        err = "invalid host function rc";
         break;
 
     }
@@ -225,8 +233,7 @@ ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
         ngx_wasm_assert( ((size_t) (p - buf)) == len );
 
     } else {
-        wasm_name_new(&trapmsg,
-                      ngx_strlen(err)
+        wasm_name_new(&trapmsg, ngx_strlen(err)
 #ifdef NGX_WASM_HAVE_WASMTIME
                       /* wasm_trap_new requires a null-terminated string */
                       + 1
