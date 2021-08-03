@@ -228,6 +228,10 @@ struct ngx_proxy_wasm_s {
     /* custom extensions */
 
     ngx_wavm_funcref_t                *proxy_on_custom_callback;
+
+    /* flags */
+
+    unsigned                           ecode_logged:1;
 };
 
 
