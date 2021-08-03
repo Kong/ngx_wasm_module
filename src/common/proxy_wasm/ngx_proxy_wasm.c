@@ -410,9 +410,12 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
                    &pwm->module->name, &phase->name);
 
     if (pwm->ecode) {
-        ngx_proxy_wasm_log_error(NGX_LOG_CRIT, wvctx->log, pwm->ecode,
-                                 "proxy_wasm failed to resume execution "
-                                 "in \"%V\" phase", &phase->name);
+        if (!pwm->ecode_logged) {
+            ngx_proxy_wasm_log_error(NGX_LOG_CRIT, wvctx->log, pwm->ecode,
+                                     "proxy_wasm could not resume execution "
+                                     "of \"%V\" module", &pwm->module->name);
+            pwm->ecode_logged = 1;
+        }
 
         return pwm->ecode_(pwm, pwm->ecode);
     }
