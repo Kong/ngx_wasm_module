@@ -9,19 +9,19 @@
 #define NGX_HTTP_PROXY_WASM_EOF  1
 
 
-static ngx_http_request_t *ngx_http_proxy_wasm_request(ngx_proxy_wasm_t *pwm);
-static ngx_int_t ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_t *pwm);
+static ngx_int_t ngx_http_proxy_wasm_on_request_headers(
+    ngx_proxy_wasm_filter_ctx_t *fctx);
 static void ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r);
-static ngx_int_t ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_t *pwm);
-static ngx_int_t ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_t *pwm);
+static ngx_int_t ngx_http_proxy_wasm_on_response_headers(
+    ngx_proxy_wasm_filter_ctx_t *fctx);
+static ngx_int_t ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_filter_ctx_t *fctx);
 
 
 static ngx_inline ngx_int_t
-ngx_http_proxy_wasm_next_action(ngx_proxy_wasm_t *pwm, ngx_int_t rc,
+ngx_http_proxy_wasm_next_action(ngx_proxy_wasm_filter_ctx_t *fctx, ngx_int_t rc,
     ngx_uint_t ret)
 {
-    ngx_http_wasm_req_ctx_t     *rctx;
-    ngx_http_proxy_wasm_rctx_t  *prctx;
+    ngx_proxy_wasm_ctx_t  *prctx = fctx->filter_ctx;
 
     if (rc != NGX_OK) {
         return rc;
@@ -30,13 +30,11 @@ ngx_http_proxy_wasm_next_action(ngx_proxy_wasm_t *pwm, ngx_int_t rc,
     switch (ret) {
     case NGX_PROXY_WASM_ACTION_PAUSE:
     case NGX_PROXY_WASM_ACTION_CONTINUE:
-        rctx = ngx_http_proxy_wasm_rctx(pwm);
-        prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
         prctx->next_action = ret;
         break;
 
     default:
-        ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwm->log, 0,
+        ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, prctx->log, 0,
                                  "NYI - next_action: %l", ret);
         break;
     }
@@ -46,122 +44,81 @@ ngx_http_proxy_wasm_next_action(ngx_proxy_wasm_t *pwm, ngx_int_t rc,
 
 
 ngx_uint_t
-ngx_http_proxy_wasm_ctxid(ngx_proxy_wasm_t *pwm)
+ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_filter_ctx_t *fctx,
+    ngx_wasm_phase_t *phase, ngx_uint_t ecode)
 {
-    ngx_uint_t           ctxid;
-    ngx_http_request_t  *r;
+    if (!fctx->ecode_logged) {
+        ngx_proxy_wasm_log_error(NGX_LOG_CRIT, fctx->log, fctx->ecode,
+                                 "proxy_wasm could not resume "
+                                 "\"%V\" execution",
+                                 &fctx->filter->module->name);
+        fctx->ecode_logged = 1;
+    }
 
-    r = ngx_http_proxy_wasm_request(pwm);
-    ctxid = r->connection->number;
+    if (phase->index == NGX_HTTP_LOG_PHASE) {
+        ngx_proxy_wasm_on_done(fctx);
+    }
 
-    dd("pwm->ctxid: %ld, ctxid: %ld", pwm->ctxid, ctxid);
-
-    return ctxid;
-}
-
-
-ngx_uint_t
-ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_t *pwm, ngx_uint_t ecode)
-{
     return NGX_HTTP_INTERNAL_SERVER_ERROR;
 }
 
 
-ngx_int_t
-ngx_http_proxy_wasm_create_context(ngx_proxy_wasm_t *pwm)
+ngx_proxy_wasm_ctx_t *
+ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_t *pwm, ngx_wavm_ctx_t *wvctx)
 {
-    ngx_uint_t                   ctxid;
-    ngx_http_request_t          *r;
-    ngx_http_wasm_req_ctx_t     *rctx;
-    ngx_http_proxy_wasm_rctx_t  *prctx;
-    wasm_val_vec_t              *rets;
+    ngx_http_request_t       *r;
+    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_proxy_wasm_ctx_t     *prctx;
 
-    rctx = ngx_http_proxy_wasm_rctx(pwm);
-    prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
+    rctx = (ngx_http_wasm_req_ctx_t *) wvctx->data;
+    prctx = (ngx_proxy_wasm_ctx_t *) rctx->data;
     r = rctx->r;
 
     if (prctx == NULL) {
-        prctx = ngx_pcalloc(r->pool, sizeof(ngx_http_proxy_wasm_rctx_t)
-                                     * *pwm->max_filters);
+        prctx = ngx_pcalloc(r->pool, sizeof(ngx_proxy_wasm_ctx_t));
         if (prctx == NULL) {
-            return NGX_ERROR;
+            return NULL;
         }
 
-        /* allows retrieving pwm from rctx */
-        prctx->pwm = pwm;
+        prctx->pool = r->pool;
+        prctx->log = r->connection->log;
+        prctx->ctxid = r->connection->number;
+        prctx->current_filter = 0; // TODO: increment
+        prctx->max_filters = *pwm->max_filters;
+
+        prctx->filters = ngx_pcalloc(r->pool,
+                                     sizeof(ngx_proxy_wasm_filter_ctx_t *)
+                                     * prctx->max_filters);
+        if (prctx->filters == NULL) {
+            return NULL;
+        }
 
         rctx->data = prctx;
+
+        // TODO: remove & use offsetof macro
+        prctx->data = rctx;
     }
 
-    prctx = &prctx[pwm->filter_idx];
+    dd("filter ctxid: %ld, request ctxid: %ld",
+       pwm->ctxid, prctx->ctxid);
 
-    if (!prctx->context_created) {
-        ctxid = ngx_http_proxy_wasm_ctxid(pwm);
-
-        ngx_log_debug3(NGX_LOG_DEBUG_WASM, pwm->log, 0,
-                       "proxy_wasm creating context id \"#%d\""
-                       " (rctx: %p, prctx: %p)",
-                       ctxid, rctx, prctx);
-
-        if (ngx_wavm_instance_call_funcref(pwm->instance,
-                                           pwm->proxy_on_context_create,
-                                           &rets, ctxid, pwm->ctxid)
-            != NGX_OK)
-        {
-            return NGX_ERROR;
-        }
-
-        prctx->context_created = 1;
-    }
-
-    return NGX_OK;
+    return prctx;
 }
 
 
 void
-ngx_http_proxy_wasm_destroy_context(ngx_proxy_wasm_t *pwm)
+ngx_http_proxy_wasm_destroy_context(ngx_proxy_wasm_ctx_t *prctx)
 {
-    size_t                       i;
-    ngx_uint_t                   ctxid;
-    ngx_http_request_t          *r;
-    ngx_http_wasm_req_ctx_t     *rctx;
-    ngx_http_proxy_wasm_rctx_t  *prctx;
-
-    rctx = ngx_http_proxy_wasm_rctx(pwm);
-    ctxid = ngx_http_proxy_wasm_ctxid(pwm);
-    r = rctx->r;
-
-    ngx_log_debug1(NGX_LOG_DEBUG_WASM, pwm->log, 0,
-                   "wasm destroying proxy wasm ctxid %l", ctxid);
-
-    (void) ngx_wavm_instance_call_funcref(pwm->instance,
-                                          pwm->proxy_on_context_finalize,
-                                          NULL, ctxid);
-
-    prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
-    prctx = &prctx[pwm->filter_idx];
-    prctx->context_created = 0;
-
-    /* check if all filters are finished for this request */
-
-    prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
-
-    for (i = 0; i < *pwm->max_filters; i++) {
-        if (prctx[i].context_created) {
-            return;
-        }
-    }
-
     if (prctx->authority.data) {
-        ngx_pfree(r->pool, prctx->authority.data);
+        ngx_pfree(prctx->pool, prctx->authority.data);
     }
 
     if (prctx->scheme.data) {
-        ngx_pfree(r->pool, prctx->scheme.data);
+        ngx_pfree(prctx->pool, prctx->scheme.data);
     }
 
-    /* all filters are finished */
-    ngx_pfree(rctx->r->pool, prctx);
+    ngx_pfree(prctx->pool, prctx->filters);
+    ngx_pfree(prctx->pool, prctx);
 }
 
 
@@ -169,22 +126,22 @@ ngx_http_proxy_wasm_destroy_context(ngx_proxy_wasm_t *pwm)
 
 
 ngx_int_t
-ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
-    ngx_wavm_ctx_t *wvctx)
+ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
+    ngx_wasm_phase_t *phase)
 {
-    ngx_int_t                    rc = NGX_ERROR;
-    ngx_http_request_t          *r;
-    ngx_http_wasm_req_ctx_t     *rctx;
-    ngx_http_proxy_wasm_rctx_t  *prctx;
+    ngx_int_t                 rc = NGX_ERROR;
+    ngx_http_request_t       *r;
+    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_proxy_wasm_ctx_t     *prctx;
 
-    rctx = ngx_http_proxy_wasm_rctx(pwm);
-    prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
+    prctx = fctx->filter_ctx;
+    rctx = ngx_http_proxy_wasm_host_get_rctx(fctx->instance);
     r = rctx->r;
 
     switch (phase->index) {
 
     case NGX_HTTP_REWRITE_PHASE:
-        rc = ngx_http_proxy_wasm_on_request_headers(pwm);
+        rc = ngx_http_proxy_wasm_on_request_headers(fctx);
         if (rc == NGX_OK) {
             /* next op */
             rc = NGX_DECLINED;
@@ -193,7 +150,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
         if (prctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
             if (r != r->main) {
                 /* subrequest */
-                ngx_wasm_log_error(NGX_LOG_WASM_NYI, pwm->log, 0,
+                ngx_wasm_log_error(NGX_LOG_WASM_NYI, fctx->log, 0,
                                    "NYI - proxy_wasm cannot pause "
                                    "after \"rewrite\" phase in subrequests");
 
@@ -202,8 +159,9 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
             } else {
                 /* rewrite treats NGX_AGAIN as NGX_OK which would
                  * finalize the connection */
-                ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwm->log, 0,
-                               "proxy_wasm delaying pause until \"access\" phase");
+                ngx_log_debug0(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
+                               "proxy_wasm delaying pause "
+                               "until \"access\" phase");
             }
 
             /* next phase */
@@ -214,8 +172,9 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
 
     case NGX_HTTP_ACCESS_PHASE:
         if (prctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
-            ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwm->log, 0,
+            ngx_log_debug0(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
                            "proxy_wasm pausing");
+
             rc = NGX_AGAIN;
 
         } else {
@@ -226,15 +185,19 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
         break;
 
     case NGX_HTTP_CONTENT_PHASE:
+
+        if (prctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
+            ngx_log_debug0(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
+                           "proxy_wasm pausing");
+
+            rc = NGX_AGAIN;
+            break;
+        }
+
         rc = ngx_http_wasm_read_client_request_body(r,
                       ngx_http_proxy_wasm_on_request_body);
 
-        if (prctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
-            ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwm->log, 0,
-                           "proxy_wasm pausing");
-            rc = NGX_AGAIN;
-
-        } else if (r != r->main) {
+        if (r != r->main) {
             /* subrequest */
             rc = NGX_OK;
         }
@@ -242,9 +205,9 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
         break;
 
     case NGX_HTTP_WASM_HEADER_FILTER_PHASE:
-        rc = ngx_http_proxy_wasm_on_response_headers(pwm);
+        rc = ngx_http_proxy_wasm_on_response_headers(fctx);
         if (prctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
-            ngx_wasm_log_error(NGX_LOG_WASM_NYI, pwm->log, 0,
+            ngx_wasm_log_error(NGX_LOG_WASM_NYI, fctx->log, 0,
                                "NYI - proxy_wasm cannot pause "
                                "after \"header_filter\" phase");
 
@@ -254,9 +217,9 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
         break;
 
     case NGX_HTTP_WASM_BODY_FILTER_PHASE:
-        rc = ngx_http_proxy_wasm_on_response_body(pwm);
+        rc = ngx_http_proxy_wasm_on_response_body(fctx);
         if (prctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
-            ngx_wasm_log_error(NGX_LOG_WASM_NYI, pwm->log, 0,
+            ngx_wasm_log_error(NGX_LOG_WASM_NYI, fctx->log, 0,
                                "NYI - proxy_wasm cannot pause "
                                "after \"body_filter\" phase");
 
@@ -266,15 +229,16 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
         break;
 
     case NGX_HTTP_LOG_PHASE:
-        rc = ngx_proxy_wasm_on_log(pwm);
+        rc = ngx_proxy_wasm_on_log(fctx);
         if (rc != NGX_OK) {
             break;
         }
 
-        /* fallthrough */
+        break;
 
     case NGX_HTTP_WASM_DONE_PHASE:
-        rc = ngx_proxy_wasm_on_done(pwm);
+        ngx_proxy_wasm_on_done(fctx);
+        rc = NGX_OK;
         break;
 
     default:
@@ -285,7 +249,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
     }
 
     if (rc == NGX_ERROR) {
-        pwm->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
+        fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
 
     } else if (!rctx->resp_content_chosen && rctx->local_resp_stashed) {
         /* next phase */
@@ -304,46 +268,46 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_t *pwm, ngx_wasm_phase_t *phase,
 
 
 static ngx_int_t
-ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_t *pwm)
+ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_filter_ctx_t *fctx)
 {
     ngx_int_t            rc;
-    ngx_uint_t           ctxid, nheaders;
+    ngx_uint_t           nheaders;
     ngx_http_request_t  *r;
+    ngx_proxy_wasm_t    *pwm;
     wasm_val_vec_t      *rets;
 
-    r = ngx_http_proxy_wasm_request(pwm);
-    ctxid = ngx_http_proxy_wasm_ctxid(pwm);
+    pwm = fctx->filter;
+    r = ngx_http_proxy_wasm_host_get_req(fctx->instance);
     nheaders = ngx_http_wasm_req_headers_count(r);
 
     if (pwm->abi_version == NGX_PROXY_WASM_0_1_0) {
         /* 0.1.0 */
-        rc = ngx_wavm_instance_call_funcref(pwm->instance,
+        rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                             pwm->proxy_on_http_request_headers,
-                                            &rets, ctxid, nheaders);
+                                            &rets, fctx->id, nheaders);
 
     } else {
         /* 0.2.0+ */
-        rc = ngx_wavm_instance_call_funcref(pwm->instance,
+        rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                             pwm->proxy_on_http_request_headers,
-                                            &rets, ctxid, nheaders,
+                                            &rets, fctx->id, nheaders,
                                             NGX_HTTP_PROXY_WASM_EOF);
     }
 
-    return ngx_http_proxy_wasm_next_action(pwm, rc, rets->data[0].of.i32);
+    return ngx_http_proxy_wasm_next_action(fctx, rc, rets->data[0].of.i32);
 }
 
 
 static void
 ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
 {
-    size_t                       len = 0;
-    ngx_int_t                    rc;
-    ngx_uint_t                   ctxid;
-    ngx_file_t                   file;
-    ngx_http_wasm_req_ctx_t     *rctx;
-    ngx_http_proxy_wasm_rctx_t  *prctx;
-    ngx_proxy_wasm_t            *pwm;
-    wasm_val_vec_t              *rets;
+    size_t                        i, len = 0;
+    ngx_int_t                     rc;
+    ngx_file_t                    file;
+    ngx_http_wasm_req_ctx_t      *rctx;
+    ngx_proxy_wasm_ctx_t         *prctx;
+    ngx_proxy_wasm_filter_ctx_t  *fctx;
+    wasm_val_vec_t               *rets;
 
     if (r->request_body == NULL
         || r->request_body->bufs == NULL)
@@ -388,70 +352,79 @@ ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
                    "proxy wasm client request body size: %d bytes", len);
 
     if (len) {
-        prctx = (ngx_http_proxy_wasm_rctx_t *) rctx->data;
-        pwm = prctx->pwm;
-        ctxid = ngx_http_proxy_wasm_ctxid(pwm);
+        prctx = (ngx_proxy_wasm_ctx_t *) rctx->data;
 
-        rc = ngx_wavm_instance_call_funcref(pwm->instance,
-                                            pwm->proxy_on_http_request_body,
-                                            &rets, ctxid, len,
-                                            NGX_HTTP_PROXY_WASM_EOF);
+        for (i = 0; i < prctx->max_filters; i++) {
+            fctx = prctx->filters[i];
 
-        (void) ngx_http_proxy_wasm_next_action(pwm, rc,
-                                               rets->data[0].of.i32);
+            ngx_wasm_assert(fctx);
+
+            if (fctx) {
+                rc = ngx_wavm_instance_call_funcref(fctx->instance,
+                         fctx->filter->proxy_on_http_request_body,
+                         &rets, prctx->ctxid, len,
+                         NGX_HTTP_PROXY_WASM_EOF);
+
+                (void) ngx_http_proxy_wasm_next_action(fctx, rc,
+                                                       rets->data[0].of.i32);
+            }
+        }
     }
 }
 
 
 static ngx_int_t
-ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_t *pwm)
+ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_filter_ctx_t *fctx)
 {
     ngx_int_t                 rc;
-    ngx_uint_t                ctxid, nheaders;
-    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_rctx(pwm);
-    ngx_http_request_t       *r = rctx->r;
+    ngx_uint_t                nheaders;
+    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_http_request_t       *r;
     wasm_val_vec_t           *rets;
+
+    rctx = ngx_http_proxy_wasm_host_get_rctx(fctx->instance);
+    r = rctx->r;
 
     /* rebuild shim headers */
     rctx->reset_resp_shims = 1;
 
-    ctxid = ngx_http_proxy_wasm_ctxid(pwm);
     nheaders = ngx_http_wasm_resp_headers_count(r);
     nheaders += ngx_http_wasm_count_shim_headers(rctx);
 
-    if (pwm->abi_version == NGX_PROXY_WASM_0_1_0) {
+    if (fctx->filter->abi_version == NGX_PROXY_WASM_0_1_0) {
         /* 0.1.0 */
-        rc = ngx_wavm_instance_call_funcref(pwm->instance,
-                                            pwm->proxy_on_http_response_headers,
-                                            &rets, ctxid, nheaders);
+        rc = ngx_wavm_instance_call_funcref(fctx->instance,
+                                            fctx->filter->proxy_on_http_response_headers,
+                                            &rets, fctx->id, nheaders);
 
     } else {
         /* 0.2.0+ */
-        rc = ngx_wavm_instance_call_funcref(pwm->instance,
-                                            pwm->proxy_on_http_response_headers,
-                                            &rets, ctxid, nheaders,
+        rc = ngx_wavm_instance_call_funcref(fctx->instance,
+                                            fctx->filter->proxy_on_http_response_headers,
+                                            &rets, fctx->id, nheaders,
                                             NGX_HTTP_PROXY_WASM_EOF);
     }
 
-    return ngx_http_proxy_wasm_next_action(pwm, rc, rets->data[0].of.i32);
+    return ngx_http_proxy_wasm_next_action(fctx, rc, rets->data[0].of.i32);
 }
 
 
 static ngx_int_t
-ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_t *pwm)
+ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_filter_ctx_t *fctx)
 {
-    ngx_int_t                 rc = NGX_OK;
-    ngx_uint_t                ctxid = ngx_http_proxy_wasm_ctxid(pwm);
-    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_rctx(pwm);
+    ngx_int_t                 rc;
+    ngx_http_wasm_req_ctx_t  *rctx;
     wasm_val_vec_t           *rets;
 
+    rctx = ngx_http_proxy_wasm_host_get_rctx(fctx->instance);
+
     if (rctx->resp_chunk_len || rctx->resp_chunk_eof) {
-        rc = ngx_wavm_instance_call_funcref(pwm->instance,
-                                            pwm->proxy_on_http_response_body,
-                                            &rets, ctxid, rctx->resp_chunk_len,
+        rc = ngx_wavm_instance_call_funcref(fctx->instance,
+                                            fctx->filter->proxy_on_http_response_body,
+                                            &rets, fctx->id, rctx->resp_chunk_len,
                                             rctx->resp_chunk_eof);
 
-        return ngx_http_proxy_wasm_next_action(pwm, rc, rets->data[0].of.i32);
+        return ngx_http_proxy_wasm_next_action(fctx, rc, rets->data[0].of.i32);
     }
 
     return NGX_OK;

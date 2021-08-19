@@ -146,10 +146,9 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 
     /* filter init */
 
-    pwm->resume_ = ngx_http_proxy_wasm_resume;
-    pwm->ctxid_ = ngx_http_proxy_wasm_ctxid;
     pwm->ecode_ = ngx_http_proxy_wasm_ecode;
-    pwm->create_context_ = ngx_http_proxy_wasm_create_context;
+    pwm->resume_ = ngx_http_proxy_wasm_resume;
+    pwm->get_context_ = ngx_http_proxy_wasm_get_context;
     pwm->destroy_context_ = ngx_http_proxy_wasm_destroy_context;
     pwm->max_pairs = NGX_HTTP_WASM_MAX_REQ_HEADERS;
 

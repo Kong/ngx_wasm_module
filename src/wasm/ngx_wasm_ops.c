@@ -221,7 +221,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
 
     phase = ngx_wasm_ops_engine_phase_lookup(ops_engine, phaseidx);
     if (phase == NULL) {
-        ngx_wasm_log_error(NGX_LOG_WASM_NYI, ctx->log, 0,
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, ctx->wvctx.log, 0,
                            "ops resume: no phase for index '%ui'",
                            phase);
         goto rc;
@@ -229,7 +229,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
 
     pipeline = ctx->ops_engine->pipelines[phase->index];
 
-    ngx_log_debug4(NGX_LOG_DEBUG_WASM, ctx->log, 0,
+    ngx_log_debug4(NGX_LOG_DEBUG_WASM, ctx->wvctx.log, 0,
                    "wasm ops resuming \"%V\" phase (idx: %ui, "
                    "nops: %ui, force_ops: %d)",
                    &phase->name, phaseidx, pipeline ? pipeline->ops->nelts : 0,
@@ -279,7 +279,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
 
 rc:
 
-    ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->log, 0,
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->wvctx.log, 0,
                    "wasm ops \"%V\" phase rc: %d",
                    &phase->name, rc);
 
@@ -302,7 +302,7 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wasm_phase_t *phase,
         return NGX_ERROR;
     }
 
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
+    ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->wvctx.log, 0,
                    "wasm ops calling \"%V.%V\" in \"%V\" phase",
                    &op->module->name, &funcref->name, &phase->name);
 
@@ -312,6 +312,9 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx, ngx_wasm_phase_t *phase,
     }
 
     rc = ngx_wavm_instance_call_funcref_vec(instance, funcref, NULL, NULL);
+
+    ngx_wavm_instance_destroy(instance);
+
     if (rc == NGX_ERROR) {
         return rc;
     }
@@ -326,7 +329,8 @@ static ngx_int_t
 ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *ctx, ngx_wasm_phase_t *phase,
     ngx_wasm_op_t *op)
 {
-    ngx_proxy_wasm_t  *pwmodule;
+    ngx_proxy_wasm_t             *pwmodule;
+    ngx_proxy_wasm_filter_ctx_t  *fctx;
 
     ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);
 
@@ -335,5 +339,10 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *ctx, ngx_wasm_phase_t *phase,
         return NGX_ERROR;
     }
 
-    return ngx_proxy_wasm_resume(pwmodule, phase, &ctx->wvctx);
+    fctx = ngx_proxy_wasm_filter_ctx(pwmodule, &ctx->wvctx);
+    if (fctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    return ngx_proxy_wasm_resume(fctx, phase);
 }

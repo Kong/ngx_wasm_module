@@ -329,9 +329,10 @@ failed:
 void
 ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
 {
-    ngx_int_t          rc;
-    ngx_proxy_wasm_t  *pwm = ev->data;
-    wasm_val_vec_t     args;
+    ngx_int_t                     rc;
+    wasm_val_vec_t                args;
+    ngx_proxy_wasm_ctx_t         *prctx = ev->data;
+    ngx_proxy_wasm_filter_ctx_t  *fctx = prctx->filters[0];
 
     ngx_free(ev);
 
@@ -339,28 +340,26 @@ ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
         return;
     }
 
-    if (pwm->proxy_on_timer_ready) {
-        ngx_wavm_ctx_update(pwm->instance->ctx, NULL, NULL);
-
+    if (fctx->filter->proxy_on_timer_ready) {
         wasm_val_vec_new_uninitialized(&args, 1);
-        ngx_wasm_vec_set_i32(&args, 0, pwm->ctxid);
+        ngx_wasm_vec_set_i32(&args, 0, fctx->filter_id);
 
-        rc = ngx_wavm_instance_call_funcref_vec(pwm->instance,
-                                                pwm->proxy_on_timer_ready,
+        rc = ngx_wavm_instance_call_funcref_vec(fctx->instance,
+                                                fctx->filter->proxy_on_timer_ready,
                                                 NULL, &args);
         wasm_val_vec_delete(&args);
 
         if (!ngx_exiting) {
-            ev = ngx_calloc(sizeof(ngx_event_t), pwm->instance->log);
+            ev = ngx_calloc(sizeof(ngx_event_t), fctx->log);
             if (ev == NULL) {
                 goto nomem;
             }
 
             ev->handler = ngx_proxy_wasm_tick_handler;
-            ev->data = pwm;
-            ev->log = pwm->log;
+            ev->data = prctx;
+            ev->log = prctx->log;
 
-            ngx_add_timer(ev, pwm->tick_period);
+            ngx_add_timer(ev, fctx->filter->tick_period);
         }
 
         if (rc != NGX_OK) {
@@ -372,7 +371,7 @@ ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
 
 nomem:
 
-    ngx_wasm_log_error(NGX_LOG_CRIT, pwm->instance->log, 0,
+    ngx_wasm_log_error(NGX_LOG_CRIT, fctx->log, 0,
                        "tick_handler: no memory");
 }
 

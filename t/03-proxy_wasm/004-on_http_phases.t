@@ -604,34 +604,40 @@ B
 
 === TEST 23: proxy_wasm - chained filters in same location{} block
 should run each filter after the other within each phase
+--- ONLY
 --- skip_no_debug: 7
+--- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
     location /t {
         proxy_wasm on_phases;
         proxy_wasm on_phases;
-        return 200;
+        echo ok;
     }
---- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- request
+POST /t
+Hello world
+--- response_body
+ok
+--- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?(?=\s+<)/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
-\[wasm\] #\d+ on_request_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_body, \d+ bytes.*?
-\[wasm\] #\d+ on_response_body, \d+ bytes.*?
-\[wasm\] #\d+ on_log .*?
-\[wasm\] #\d+ on_log .*?
-/
---- error_log eval
-[
-    qr/\[debug\] .*? wasm ops resuming \"header_filter\" phase \(idx: \d+, nops: \d+, force_ops: 1\)/,
-    qr/\[debug\] .*? wasm ops resuming \"log\" phase \(idx: \d+, nops: \d+, force_ops: 1\)/
-]
+qr/\[wasm\] #\d+ on_request_headers, 3 headers
+\[wasm\] #\d+ on_request_headers, 3 headers
+\[wasm\] #\d+ on_request_body, 11 bytes, end_of_stream: true
+\[wasm\] #\d+ on_request_body, 11 bytes, end_of_stream: true
+\[wasm\] #\d+ on_response_headers, 5 headers
+\[wasm\] #\d+ on_response_headers, 5 headers
+\[wasm\] #\d+ on_response_body, 3 bytes, end_of_stream: false
+\[wasm\] #\d+ on_response_body, 3 bytes, end_of_stream: false
+\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream: true
+\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream: true
+\[wasm\] #\d+ on_log
+\[wasm\] #\d+ on_log/
 --- no_error_log
 [error]
 [crit]
 [alert]
+[stderr]
 
 
 
