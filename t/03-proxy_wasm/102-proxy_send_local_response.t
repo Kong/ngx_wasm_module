@@ -81,6 +81,25 @@ qr/500 Internal Server Error/
 
 
 
+=== TEST 3: proxy_wasm - send_local_response() set status code (bad argument)
+--- ONLY
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls;
+        echo failed;
+    }
+--- pipelined_requests eval
+["GET /t/send_local_response/status/1000", "GET /t/send_local_response/status/204"]
+--- error_code eval
+[500, 204]
+--- ignore_response_body
+--- no_error_log
+[alert]
+
+
+
 === TEST 4: proxy_wasm - send_local_response() default response headers
 --- wasm_modules: hostcalls
 --- config

@@ -16,7 +16,6 @@ typedef ngx_int_t (*ngx_wasm_op_handler_pt)(ngx_wasm_op_ctx_t *ctx,
 
 
 struct ngx_wasm_op_ctx_s {
-    ngx_log_t                               *log;
     ngx_wasm_ops_engine_t                   *ops_engine;
     ngx_wavm_ctx_t                           wvctx;
 };
