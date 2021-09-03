@@ -1,3 +1,7 @@
+<p align="center">
+  <img alt="WasmX logo" src="data/logo.svg" style="width: 140px;" />
+</p>
+
 # WasmX/ngx_wasm_module
 
 > Nginx + WebAssembly
