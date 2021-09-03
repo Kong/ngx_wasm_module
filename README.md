@@ -1,3 +1,5 @@
+![WasmX logo](data/logo.svg)
+
 # WasmX/ngx_wasm_module
 
 > Nginx + WebAssembly
