@@ -11,7 +11,7 @@ ngx_int_t
 ngx_http_wasm_hfuncs_resp_get_status(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
+    ngx_http_wasm_req_ctx_t  *rctx = instance->data;
     ngx_http_request_t       *r = rctx->r;
     uint32_t                  status;
 
@@ -43,7 +43,7 @@ ngx_int_t
 ngx_http_wasm_hfuncs_resp_set_status(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
+    ngx_http_wasm_req_ctx_t  *rctx = instance->data;
     ngx_http_request_t       *r = rctx->r;
     uint32_t                  status;
 
@@ -80,7 +80,7 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
     ngx_int_t                 rc;
     ngx_buf_t                *b;
     ngx_chain_t              *cl = NULL;
-    ngx_http_wasm_req_ctx_t  *rctx = instance->ctx->data;
+    ngx_http_wasm_req_ctx_t  *rctx = instance->data;
     ngx_http_request_t       *r = rctx->r;
 
     body = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);

@@ -241,7 +241,7 @@ ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
                       , err);
     }
 
-    trap = wasm_trap_new(instance->ctx->store, &trapmsg);
+    trap = wasm_trap_new(instance->store, &trapmsg);
     wasm_byte_vec_delete(&trapmsg);
 
     return trap;
