@@ -286,14 +286,11 @@ ngx_http_wasm_cleanup(void *data)
 {
     ngx_http_wasm_req_ctx_t  *rctx = data;
     ngx_wasm_op_ctx_t        *opctx = &rctx->opctx;
-    //ngx_wavm_ctx_t           *wvctx = &opctx->wvctx;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rctx->r->connection->log, 0,
                    "wasm pool cleaning up");
 
     (void) ngx_wasm_ops_resume(opctx, NGX_HTTP_WASM_DONE_PHASE, 0);
-
-    //ngx_wavm_ctx_destroy(wvctx);
 }
 
 
@@ -324,15 +321,9 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 
         opctx = &rctx->opctx;
         opctx->ops_engine = loc->ops_engine;
-
-        ngx_memzero(&opctx->wvctx, sizeof(ngx_wavm_ctx_t));
-
-        opctx->wvctx.vm = loc->vm;
-        opctx->wvctx.pool = r->pool;
-        opctx->wvctx.log = r->connection->log;
-        opctx->wvctx.data = rctx;
-
-        ngx_wavm_ctx_init(&opctx->wvctx);
+        opctx->pool = r->pool;
+        opctx->log = r->connection->log;
+        opctx->data = rctx;
 
         cln = ngx_pool_cleanup_add(r->pool, 0);
         if (cln == NULL) {

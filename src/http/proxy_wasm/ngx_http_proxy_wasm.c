@@ -64,16 +64,13 @@ ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_filter_ctx_t *fctx,
 
 
 ngx_proxy_wasm_ctx_t *
-ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_t *pwm, ngx_wavm_ctx_t *wvctx)
+ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_t *pwm, void *data)
 {
-    ngx_http_request_t       *r;
-    ngx_http_wasm_req_ctx_t  *rctx;
     ngx_proxy_wasm_ctx_t     *prctx;
+    ngx_http_wasm_req_ctx_t  *rctx = data;
+    ngx_http_request_t       *r = rctx->r;
 
-    rctx = (ngx_http_wasm_req_ctx_t *) wvctx->data;
     prctx = (ngx_proxy_wasm_ctx_t *) rctx->data;
-    r = rctx->r;
-
     if (prctx == NULL) {
         prctx = ngx_pcalloc(r->pool, sizeof(ngx_proxy_wasm_ctx_t));
         if (prctx == NULL) {
@@ -82,7 +79,7 @@ ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_t *pwm, ngx_wavm_ctx_t *wvctx)
 
         prctx->pool = r->pool;
         prctx->log = r->connection->log;
-        prctx->ctxid = r->connection->number;
+        prctx->id = r->connection->number;
         prctx->current_filter = 0; // TODO: increment
         prctx->max_filters = *pwm->max_filters;
 
@@ -99,8 +96,8 @@ ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_t *pwm, ngx_wavm_ctx_t *wvctx)
         prctx->data = rctx;
     }
 
-    dd("filter ctxid: %ld, request ctxid: %ld",
-       pwm->ctxid, prctx->ctxid);
+    dd("filter id: %ld, request id: %ld",
+       pwm->ctxid, prctx->id);
 
     return prctx;
 }
@@ -362,7 +359,7 @@ ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
             if (fctx) {
                 rc = ngx_wavm_instance_call_funcref(fctx->instance,
                          fctx->filter->proxy_on_http_request_body,
-                         &rets, prctx->ctxid, len,
+                         &rets, prctx->id, len,
                          NGX_HTTP_PROXY_WASM_EOF);
 
                 (void) ngx_http_proxy_wasm_next_action(fctx, rc,

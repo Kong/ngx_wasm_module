@@ -8,7 +8,8 @@
 
 ngx_uint_t ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_phase_t *phase, ngx_uint_t ecode);
-ngx_proxy_wasm_ctx_t * ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_t *pwm, ngx_wavm_ctx_t *wvctx);
+ngx_proxy_wasm_ctx_t *ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_t *pwm,
+    void *data);
 void ngx_http_proxy_wasm_destroy_context(ngx_proxy_wasm_ctx_t *prctx);
 ngx_int_t ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_phase_t *phase);

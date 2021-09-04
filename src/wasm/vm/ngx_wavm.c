@@ -824,23 +824,9 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
 }
 
 
-void
-ngx_wavm_ctx_init(ngx_wavm_ctx_t *wvctx)
-{
-    ngx_wasm_assert(wvctx->vm);
-    ngx_wasm_assert(wvctx->pool);
-    ngx_wasm_assert(wvctx->log);
-
-    if (wvctx->store == NULL) {
-        wvctx->store = wvctx->vm->store;
-    }
-
-    ngx_queue_init(&wvctx->instances);
-}
-
-
 ngx_wavm_instance_t *
-ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *wvctx)
+ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule,
+    ngx_pool_t *pool, ngx_log_t *log, wasm_store_t *store, void *data)
 {
     size_t                     i;
     const char                *err = NGX_WAVM_NOMEM_CHAR;
@@ -861,21 +847,26 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *wvct
     module = lmodule->module;
     vm = module->vm;
 
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, wvctx->log, 0,
-                   "wasm creating instance of \"%V\" module in \"%V\" vm "
-                   "(wvctx: %p)", &module->name, vm->name, wvctx);
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, log, 0,
+                   "wasm creating instance of \"%V\" module in \"%V\" vm ",
+                   &module->name, vm->name);
+
+    if (store == NULL) {
+        store = vm->store;
+    }
 
     instance = ngx_palloc(vm->pool, sizeof(ngx_wavm_instance_t));
     if (instance == NULL) {
         goto error;
     }
 
-    instance->ctx = NULL;
+    instance->vm = vm;
     instance->lmodule = lmodule;
-    instance->pool = vm->pool;
+    instance->pool = pool;
     instance->tctxs = NULL;
     instance->funcs = NULL;
     instance->memory = NULL;
+    instance->data = data;
 
     instance->log = ngx_pcalloc(instance->pool, sizeof(ngx_log_t));
     if (instance->log == NULL) {
@@ -892,7 +883,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *wvct
 
     instance->log_ctx.vm = module->vm;
     instance->log_ctx.instance = instance;
-    instance->log_ctx.orig_log = wvctx->log;
+    instance->log_ctx.orig_log = log;
 
     /* link hfuncs */
 
@@ -915,7 +906,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *wvct
             tctx->hfunc = hfunc;
             tctx->instance = instance;
 
-            f = wasm_func_new_with_env(wvctx->store, hfunc->functype,
+            f = wasm_func_new_with_env(store, hfunc->functype,
                                        &ngx_wavm_hfuncs_trampoline,
                                        tctx, NULL);
 
@@ -927,7 +918,7 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *wvct
 
     ngx_wavm_err_init(&e);
 
-    if (ngx_wrt_instance_new(wvctx->store, module->module, &instance->env,
+    if (ngx_wrt_instance_new(store, module->module, &instance->env,
                              &instance->instance, &e) != NGX_OK)
     {
         err = NGX_WAVM_EMPTY_CHAR;
@@ -1012,16 +1003,15 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule, ngx_wavm_ctx_t *wvct
         }
     }
 
-    instance->ctx = wvctx;
-
-    ngx_queue_insert_tail(&wvctx->instances, &instance->ctx_q);
     ngx_queue_insert_tail(&vm->instances, &instance->q);
+
+    instance->store = store;
 
     return instance;
 
 error:
 
-    ngx_wavm_log_error(NGX_LOG_ERR, wvctx->log, &e,
+    ngx_wavm_log_error(NGX_LOG_ERR, log, &e,
                        "failed to instantiate \"%V\" module: %s",
                        &module->name, err);
 
@@ -1267,9 +1257,8 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
         ngx_pfree(instance->pool, instance->log);
     }
 
-    if (instance->ctx) {
+    if (instance->store) {
         ngx_queue_remove(&instance->q);
-        ngx_queue_remove(&instance->ctx_q);
     }
 
     ngx_pfree(instance->pool, instance);

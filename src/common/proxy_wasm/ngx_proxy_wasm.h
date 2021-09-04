@@ -129,7 +129,7 @@ typedef ngx_int_t (*ngx_proxy_wasm_resume_pt)(ngx_proxy_wasm_filter_ctx_t *fctx,
 typedef ngx_uint_t (*ngx_proxy_wasm_ecode_pt)(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_phase_t *phase, ngx_uint_t ecode);
 typedef ngx_proxy_wasm_ctx_t *(*ngx_proxy_wasm_get_context_pt)(
-    ngx_proxy_wasm_t *pwm, ngx_wavm_ctx_t *wvctx);
+    ngx_proxy_wasm_t *pwm, void *data);
 typedef void (*ngx_proxy_wasm_destroy_context_pt)(ngx_proxy_wasm_ctx_t *prctx);
 
 
@@ -137,7 +137,7 @@ typedef void (*ngx_proxy_wasm_destroy_context_pt)(ngx_proxy_wasm_ctx_t *prctx);
 struct ngx_proxy_wasm_ctx_s {
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
-    ngx_uint_t                         ctxid;
+    ngx_uint_t                         id;
     ngx_uint_t                         current_filter;
     ngx_uint_t                         max_filters;
     ngx_proxy_wasm_filter_ctx_t      **filters;
@@ -261,13 +261,9 @@ struct ngx_proxy_wasm_s {
 
 /* ngx_proxy_wasm_t */
 ngx_int_t ngx_proxy_wasm_init(ngx_proxy_wasm_t *pwmodule);
-ngx_proxy_wasm_filter_ctx_t *ngx_proxy_wasm_filter_ctx(ngx_proxy_wasm_t *pwm,
-    ngx_wavm_ctx_t *wvctx);
 void ngx_proxy_wasm_destroy(ngx_proxy_wasm_t *pwmodule);
 
 /* ngx_proxy_wasm_filter_ctx_t */
-ngx_proxy_wasm_filter_ctx_t *ngx_proxy_wasm_filter_ctx(ngx_proxy_wasm_t *pwm,
-    ngx_wavm_ctx_t *wvctx);
 ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_filter_ctx_t *fctx, size_t size);
 unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx, ngx_list_t *list,
     ngx_array_t *extras, ngx_wavm_ptr_t *out, size_t *out_size,

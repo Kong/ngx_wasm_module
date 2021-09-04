@@ -59,33 +59,23 @@ struct ngx_wavm_func_s {
 
 
 struct ngx_wavm_instance_s {
-    ngx_wavm_ctx_t                    *ctx;
+    ngx_wavm_t                        *vm;
     ngx_wavm_linked_module_t          *lmodule;
     ngx_queue_t                        q;          /* vm->instances */
-    ngx_queue_t                        ctx_q;      /* wvctx->instances */
-
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
     ngx_wavm_log_ctx_t                 log_ctx;
-    ngx_wavm_hfunc_tctx_t             *tctxs;
-    wasm_instance_t                   *instance;
+    wasm_store_t                      *store;
     wasm_memory_t                     *memory;
     wasm_extern_vec_t                  env;
     wasm_extern_vec_t                  exports;
+    wasm_instance_t                   *instance;
     ngx_wavm_func_t                  **funcs;
+    ngx_wavm_hfunc_tctx_t             *tctxs;
+    void                              *data;
 
     ngx_str_t                          trapmsg;
     u_char                            *trapbuf;
-};
-
-
-struct ngx_wavm_ctx_s {
-    ngx_wavm_t                        *vm;
-    ngx_pool_t                        *pool;
-    ngx_log_t                         *log;
-    wasm_store_t                      *store;
-    void                              *data;
-    ngx_queue_t                        instances;
 };
 
 
@@ -149,11 +139,8 @@ ngx_wavm_funcref_t *ngx_wavm_module_func_lookup(ngx_wavm_module_t *module,
     ngx_str_t *name);
 
 
-void ngx_wavm_ctx_init(ngx_wavm_ctx_t *wvctx);
-
-
 ngx_wavm_instance_t *ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule,
-    ngx_wavm_ctx_t *ctx);
+    ngx_pool_t *pool, ngx_log_t *log, wasm_store_t *store, void *data);
 ngx_int_t ngx_wavm_instance_call_func(ngx_wavm_instance_t *instance,
     ngx_wavm_func_t *f, wasm_val_vec_t **rets, ...);
 ngx_int_t ngx_wavm_instance_call_func_vec(ngx_wavm_instance_t *instance,
