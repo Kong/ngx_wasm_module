@@ -285,12 +285,16 @@ static void
 ngx_http_wasm_cleanup(void *data)
 {
     ngx_http_wasm_req_ctx_t  *rctx = data;
+    ngx_http_request_t       *r = rctx->r;
     ngx_wasm_op_ctx_t        *opctx = &rctx->opctx;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rctx->r->connection->log, 0,
-                   "wasm pool cleaning up");
+    if (r == r->main) {
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm cleaning up request pool (stream id: %l)",
+                       r->connection->number);
 
-    (void) ngx_wasm_ops_resume(opctx, NGX_HTTP_WASM_DONE_PHASE, 0);
+        (void) ngx_wasm_ops_resume(opctx, NGX_HTTP_WASM_DONE_PHASE, 0);
+    }
 }
 
 
@@ -444,9 +448,9 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 {
     ngx_int_t                  rc;
     ngx_http_wasm_req_ctx_t   *rctx;
-    //ngx_http_core_loc_conf_t  *clcf;
+    ngx_http_core_loc_conf_t  *clcf;
 
-    //clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc != NGX_OK) {
@@ -503,13 +507,13 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     }
 
-    //if (r != r->main
-    //    && !clcf->log_subrequest
-    //    && rc == NGX_OK)
-    //{
-    //    /* subrequest */
-    //    (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_DONE_PHASE, 0);
-    //}
+    if (r != r->main
+        && !clcf->log_subrequest
+        && rc == NGX_OK)
+    {
+        /* subrequest */
+        (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_DONE_PHASE, 0);
+    }
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm \"content\" phase rc: %d", rc);
@@ -521,8 +525,9 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 static ngx_int_t
 ngx_http_wasm_log_handler(ngx_http_request_t *r)
 {
-    ngx_int_t                 rc;
-    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_int_t                  rc;
+    ngx_http_wasm_req_ctx_t   *rctx;
+    ngx_http_core_loc_conf_t  *clcf;
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc != NGX_OK) {
@@ -536,6 +541,16 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
                              NGX_WASM_OPS_RUN_ALL);
     if (rc != NGX_OK) {
         return rc;
+    }
+
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
+    if (r != r->main && clcf->log_subrequest) {
+        /* r->connection->pool cleanup is too late to terminate
+         * chained subrequests reusing the same context id
+         * (r->connection->numer)
+         */
+        (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_DONE_PHASE, 0);
     }
 
     return NGX_OK;

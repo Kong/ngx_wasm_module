@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 1
+#define DDEBUG 0
 #endif
 #include "ddebug.h"
 
@@ -264,7 +264,7 @@ ngx_wavm_destroy(ngx_wavm_t *vm)
 
 #if 1
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
-                  "wasm free \"%V\" vm (vm: %p)",
+                  "wasm freeing \"%V\" vm (vm: %p)",
                    vm->name, vm);
 #endif
 
@@ -738,7 +738,7 @@ ngx_wavm_module_free(ngx_wavm_module_t *module)
     ngx_wavm_funcref_t         *funcref;
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, vm->log, 0,
-                   "wasm free \"%V\" module in \"%V\" vm"
+                   "wasm freeing \"%V\" module in \"%V\" vm"
                    " (vm: %p, module: %p)",
                    &module->name, vm->name, vm, module);
 
@@ -812,6 +812,7 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
     ngx_str_node_t  *sn;
 
     if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LOADED)) {
+        ngx_wasm_assert(0);
         return NULL;
     }
 
@@ -973,6 +974,10 @@ ngx_wavm_instance_create(ngx_wavm_linked_module_t *lmodule,
                 wasm_val_vec_new_empty(&func->rets);
             }
 
+            dd("caching \"%.*s\" function (nargs: %lu, nrets: %lu, func: %p)",
+               (int) func->name->size, func->name->data,
+               func->args.size, func->rets.size, func);
+
             instance->funcs[i] = func;
             break;
 
@@ -1035,12 +1040,12 @@ ngx_wavm_func_call(ngx_wavm_func_t *f, wasm_val_vec_t *args,
 
     ngx_wavm_err_init(e);
 
-    dd("wasm instance calling \"%.*s\" func (nargs: %ld, nrets: %ld)",
+    dd("instance calling \"%.*s\" (nargs: %ld, nrets: %ld)",
        (int) f->name->size, f->name->data, f->args.size, f->rets.size);
 
     rc = ngx_wrt_func_call(func, args, rets, e);
 
-    dd("wasm func call rc: %ld", rc);
+    dd("call rc: %ld", rc);
 
     return rc;
 }
@@ -1223,7 +1228,7 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
     lmodule = instance->lmodule;
 
     ngx_log_debug5(NGX_LOG_DEBUG_WASM, instance->pool->log, 0,
-                   "wasm free instance of \"%V\" module in \"%V\" vm"
+                   "wasm freeing \"%V\" instance in \"%V\" vm"
                    " (vm: %p, module: %p, instance: %p)",
                    &lmodule->module->name, lmodule->module->vm->name,
                    lmodule->module->vm, lmodule->module, instance);

@@ -84,8 +84,8 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[alert\] .*? \[wasm\] unknown ABI version/,
-    qr/\[crit\] .*? \[wasm\] unknown ABI version: proxy_wasm failed to resume/
+    qr/\[emerg\] .*? \[wasm\] failed initializing "a" filter \(unknown ABI version\)/,
+    qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(unknown ABI version\)/
 ]
 --- no_error_log
 [warn]
@@ -114,8 +114,8 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] missing one of: .*? \(incompatible SDK interface\)/,
-    qr/\[crit\] .*? \[wasm\] proxy_wasm could not resume "a" execution \(incompatible SDK interface\)/
+    qr/\[emerg\] .*? \[wasm\] missing malloc \(incompatible SDK interface\)/,
+    qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(incompatible SDK interface\)/
 ]
 --- no_error_log
 [warn]
@@ -146,7 +146,7 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_log eval
 [
     qr/\[emerg\] .*? \[wasm\] missing one of: .*? \(incompatible SDK interface\)/,
-    qr/\[crit\] .*? \[wasm\] proxy_wasm could not resume "a" execution \(incompatible SDK interface\)/
+    qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(incompatible SDK interface\)/
 ]
 --- no_error_log
 [warn]
@@ -175,8 +175,8 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[alert\] .*? \[wasm\] unknown ABI version/,
-    qr/\[crit\] .*? \[wasm\] unknown ABI version: proxy_wasm failed to resume/
+    qr/\[emerg\] .*? \[wasm\] failed initializing "a" filter \(unknown ABI version\)/,
+    qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(unknown ABI version\)/
 ]
 --- no_error_log
 [warn]
@@ -205,8 +205,8 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] missing one of: .*? \(incompatible SDK interface\)/,
-    qr/\[crit\] .*? \[wasm\] proxy_wasm could not resume "a" execution \(incompatible SDK interface\)/
+    qr/\[emerg\] .*? \[wasm\] failed initializing "a" filter \(incompatible ABI version\)/,
+    qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(incompatible ABI version\)/
 ]
 --- no_error_log
 [warn]
@@ -229,10 +229,10 @@ should create two instances of the same module
     }
 --- error_log eval
 [
-    qr/\[debug\] .*? wasm creating instance of \"on_tick\" module in \".*?\" vm/,
-    qr/\[debug\] .*? wasm creating instance of \"on_tick\" module in \".*?\" vm/,
-    qr/\[debug\] .*? initializing proxy_wasm filter/,
-    qr/\[debug\] .*? initializing proxy_wasm filter/,
+    qr/\[debug\] .*? wasm creating instance of "on_tick" module in "main" vm/,
+    qr/\[debug\] .*? wasm creating instance of "on_tick" module in "main" vm/,
+    qr/\[debug\] .*? proxy_wasm initializing "on_tick" filter/,
+    qr/\[debug\] .*? proxy_wasm initializing "on_tick" filter/,
 ]
 --- no_error_log
 [error]

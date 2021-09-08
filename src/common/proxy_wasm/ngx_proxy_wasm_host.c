@@ -30,7 +30,7 @@ ngx_proxy_wasm_host_get_fctx(ngx_wavm_instance_t *instance)
 
     prctx = ngx_proxy_wasm_host_get_prctx(instance);
 
-    return prctx->filters[prctx->current_filter];
+    return prctx->curr_filter_ctx;
 }
 
 
@@ -517,7 +517,7 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
 #endif
 
     dd("adding '%.*s: %.*s' to map of type '%d'",
-       (int) klen, (u_char *) key, (int) vlen, (u_char *) value, map_type);
+       (int) key.len, key.data, (int) value.len, value.data, map_type);
 
     rc = ngx_proxy_wasm_maps_set(instance, map_type, &key, &value,
                                  NGX_PROXY_WASM_MAP_ADD);
@@ -569,7 +569,7 @@ ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
 #endif
 
     dd("setting '%.*s: %.*s' into map of type '%d'",
-       (int) klen, (u_char *) key, (int) vlen, (u_char *) value, map_type);
+       (int) key.len, key.data, (int) value.len, value.data, map_type);
 
     rc = ngx_proxy_wasm_maps_set(instance, map_type, &key, &value,
                                  NGX_PROXY_WASM_MAP_SET);
@@ -690,7 +690,8 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     u_char                       *reason, *body, *marsh_headers;
     ngx_int_t                     rc;
     ngx_array_t                  *headers = NULL;
-    ngx_http_wasm_req_ctx_t      *rctx = instance->data;
+
+    ngx_http_wasm_req_ctx_t      *rctx = ngx_http_proxy_wasm_host_get_rctx(instance);
     ngx_http_request_t           *r = rctx->r;
     ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_host_get_fctx(instance);
 
@@ -717,6 +718,9 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
 
     rc = ngx_http_wasm_stash_local_response(rctx, status, reason, reason_len,
                                             headers, body, body_len);
+
+    dd("stash local response rc: %ld", rc);
+
     switch (rc) {
 
     case NGX_OK:
@@ -758,21 +762,21 @@ ngx_proxy_wasm_hfuncs_get_configuration(ngx_wavm_instance_t *instance,
     rbuf = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
     rlen = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
 
-    if (fctx->filter->filter_config.len) {
-        p = ngx_proxy_wasm_alloc(fctx, fctx->filter->filter_config.len);
+    if (fctx->filter->config.len) {
+        p = ngx_proxy_wasm_alloc(fctx, fctx->filter->config.len);
         if (p == 0) {
             return ngx_proxy_wasm_result_err(rets);
         }
 
         if (!ngx_wavm_memory_memcpy(instance->memory, p,
-                                    fctx->filter->filter_config.data,
-                                    fctx->filter->filter_config.len))
+                                    fctx->filter->config.data,
+                                    fctx->filter->config.len))
         {
             return ngx_proxy_wasm_result_invalid_mem(rets);
         }
 
         *rbuf = p;
-        *rlen = fctx->filter->filter_config.len;
+        *rlen = fctx->filter->config.len;
     }
 
     return ngx_proxy_wasm_result_ok(rets);
