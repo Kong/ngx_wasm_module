@@ -73,16 +73,15 @@ qr/500 Internal Server Error/
 --- error_log eval
 [
     qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
-    qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?unreachable/,
-    qr/\[crit\] .*? \[wasm\] proxy_wasm could not resume "hostcalls" execution \(instance trapped\)/,
+    qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?unreachable/
 ]
 --- no_error_log
 [alert]
+[emerg]
 
 
 
-=== TEST 3: proxy_wasm - send_local_response() set status code (bad argument)
---- ONLY
+=== TEST 4: proxy_wasm - send_local_response() set status code (bad argument)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -90,17 +89,18 @@ qr/500 Internal Server Error/
         proxy_wasm hostcalls;
         echo failed;
     }
---- pipelined_requests eval
+--- request eval
 ["GET /t/send_local_response/status/1000", "GET /t/send_local_response/status/204"]
 --- error_code eval
 [500, 204]
---- ignore_response_body
+--- response_body eval
+[qr/500 Internal Server Error/, qr//]
 --- no_error_log
 [alert]
 
 
 
-=== TEST 4: proxy_wasm - send_local_response() default response headers
+=== TEST 5: proxy_wasm - send_local_response() default response headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -123,7 +123,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_response_headers, 4 headers/
 
 
 
-=== TEST 5: proxy_wasm - send_local_response() set headers, no body
+=== TEST 6: proxy_wasm - send_local_response() set headers, no body
 should inject headers a produced response, not from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -152,7 +152,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 6: proxy_wasm - send_local_response() response headers with extra headers
+=== TEST 7: proxy_wasm - send_local_response() response headers with extra headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -174,7 +174,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 
 
 
-=== TEST 7: proxy_wasm - send_local_response() set body
+=== TEST 8: proxy_wasm - send_local_response() set body
 should produce a response body, not from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -193,7 +193,7 @@ stub
 
 
 
-=== TEST 8: proxy_wasm - send_local_response() response headers with body
+=== TEST 9: proxy_wasm - send_local_response() response headers with body
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -216,7 +216,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
 
 
 
-=== TEST 9: proxy_wasm - send_local_response() set special response headers
+=== TEST 10: proxy_wasm - send_local_response() set special response headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -257,7 +257,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 
 
 
-=== TEST 10: proxy_wasm - send_local_response() set escaped header names
+=== TEST 11: proxy_wasm - send_local_response() set escaped header names
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -275,7 +275,7 @@ Escape-Equal%3D: value
 
 
 
-=== TEST 11: proxy_wasm - send_local_response() from on_request_headers
+=== TEST 12: proxy_wasm - send_local_response() from on_request_headers
 should produce a response
 should invoke on_log
 --- load_nginx_modules: ngx_http_echo_module
@@ -300,7 +300,7 @@ Hello world
 
 
 
-=== TEST 12: proxy_wasm - send_local_response() from on_http_response_headers (with content)
+=== TEST 13: proxy_wasm - send_local_response() from on_http_response_headers (with content)
 should produce a trap
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -316,15 +316,14 @@ should produce a trap
 qr/\[wasm\] #\d+ entering "ResponseHeaders"/
 --- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
-qr/\[error\] .*? \[wasm\] response already sent.*?
-\[crit\] .*? \[wasm\] proxy_wasm could not resume "hostcalls" execution \(instance trapped\)/
+qr/\[error\] .*? \[wasm\] response already sent.*?/
 --- no_error_log
 [alert]
 stub
 
 
 
-=== TEST 13: proxy_wasm - send_local_response() from on_log
+=== TEST 14: proxy_wasm - send_local_response() from on_log
 should produce a trap in log phase
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -347,7 +346,7 @@ qr/\[error\] .*? \[wasm\] response already sent/
 
 
 
-=== TEST 14: proxy_wasm - send_local_response() invoked as a subrequest before content
+=== TEST 15: proxy_wasm - send_local_response() invoked as a subrequest before content
 should produce content from the subrequest, then from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -371,7 +370,7 @@ stub
 
 
 
-=== TEST 15: proxy_wasm - send_local_response() invoked as a subrequest after content
+=== TEST 16: proxy_wasm - send_local_response() invoked as a subrequest after content
 should produce content from echo, then the subrequest
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -397,7 +396,7 @@ stub
 
 
 
-=== TEST 16: proxy_wasm - send_local_response() in chained filters
+=== TEST 17: proxy_wasm - send_local_response() in chained filters
 should interrupt the current phase, preventing "response already stashed"
 should still run all response phases
 --- load_nginx_modules: ngx_http_echo_module
@@ -425,7 +424,7 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers
 
 
 
-=== TEST 17: proxy_wasm - send_local_response() in chained filters as a subrequest
+=== TEST 18: proxy_wasm - send_local_response() in chained filters as a subrequest
 should interrupt the current phase, preventing "response already stashed"
 should still run all response phases
 should not have a log phase (subrequest)

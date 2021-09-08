@@ -41,13 +41,14 @@ __DATA__
 
 
 === TEST 2: proxy_wasm - on_tick + http phases updates log context
+--- wait: 1
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
+    timer_resolution 10ms;
+
     wasm {
         module on_tick $TEST_NGINX_CRATES_DIR/on_tick.wasm;
     }
-
-    timer_resolution 10ms;
 --- config
     location /t {
         proxy_wasm on_tick;
@@ -59,11 +60,11 @@ __DATA__
 [
     qr/\[info\] .*? \[wasm\] ticking \<.*?\>$/,
     qr/\[info\] .*? \[wasm\] from request_headers \<.*?\>, client: .*?, server: .*?, request:/,
-    qr/\[info\] .*? \[wasm\] from request_headers \<.*?\>, client: .*?, server: .*?, request:/,
     qr/\[info\] .*? \[wasm\] ticking \<.*?\>$/,
 ]
 --- no_error_log
 [error]
+[crit]
 [alert]
 
 

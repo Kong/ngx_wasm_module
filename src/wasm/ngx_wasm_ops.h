@@ -41,7 +41,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_proxy_wasm_t                        *pwmodule;
+    ngx_proxy_wasm_t                        *filter;
 } ngx_wasm_op_proxy_wasm_t;
 
 
@@ -71,9 +71,9 @@ typedef struct {
 struct ngx_wasm_ops_engine_s {
     ngx_queue_t                              q;           /* main_conf_t->ops_engines */
     ngx_pool_t                              *pool;
-    ngx_wavm_t                              *vm;
     ngx_wasm_subsystem_t                    *subsystem;
     ngx_wasm_ops_pipeline_t                **pipelines;
+    ngx_wavm_t                              *vm;
 };
 
 

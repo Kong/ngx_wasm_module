@@ -152,6 +152,20 @@ ngx_int_t ngx_wavm_instance_call_funcref_vec(ngx_wavm_instance_t *instance,
 void ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance);
 
 
+static ngx_inline void
+ngx_wavm_instance_set_data(ngx_wavm_instance_t *instance, void *data)
+{
+    instance->data = data;
+}
+
+
+static ngx_inline void
+ngx_wavm_instance_set_log(ngx_wavm_instance_t *instance, ngx_log_t *log)
+{
+    instance->log_ctx.orig_log = log;
+}
+
+
 static ngx_inline void *
 ngx_wavm_memory_lift(wasm_memory_t *mem, ngx_wavm_ptr_t p)
 {

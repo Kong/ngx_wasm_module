@@ -237,7 +237,6 @@ from_request_body
 --- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
 qr/\[error\] .*? \[wasm\] cannot set request body.*?
-\[crit\] .*? \[wasm\] proxy_wasm could not resume "hostcalls" execution \(instance trapped\)
 \[error\] .*? \[wasm\] cannot set request body/
 --- no_error_log
 [alert]

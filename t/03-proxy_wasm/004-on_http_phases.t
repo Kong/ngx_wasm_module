@@ -517,6 +517,7 @@ ok
 qr/wasm ops resuming "done" phase
 wasm ops resuming "done" phase
 wasm ops resuming "log" phase
+wasm ops resuming "done" phase
 \Z/
 --- no_error_log eval
 [
@@ -552,8 +553,11 @@ ok
 --- grep_error_log eval: qr/wasm ops resuming "(log|done)" phase/
 --- grep_error_log_out eval
 qr/wasm ops resuming "log" phase
+wasm ops resuming "done" phase
 wasm ops resuming "log" phase
+wasm ops resuming "done" phase
 wasm ops resuming "log" phase
+wasm ops resuming "done" phase
 \Z/
 --- error_log eval
 [
@@ -604,7 +608,6 @@ B
 
 === TEST 23: proxy_wasm - chained filters in same location{} block
 should run each filter after the other within each phase
---- ONLY
 --- skip_no_debug: 7
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases

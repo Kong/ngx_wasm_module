@@ -327,9 +327,7 @@ qr/500 Internal Server Error/
 --- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
 --- grep_error_log_out eval
 qr/\[error\] \S+ \[wasm\] cannot set response body.*?
-\[crit\] .*? \[wasm\] proxy_wasm could not resume "hostcalls" execution \(instance trapped\)
 \[error\] \S+ \[wasm\] cannot set response body.*?
-\[crit\] .*? \[wasm\] proxy_wasm could not resume "hostcalls" execution \(instance trapped\)
 \[error\] \S+ \[wasm\] cannot set response body/
 --- no_error_log
 [alert]
