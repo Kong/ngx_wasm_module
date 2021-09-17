@@ -17,7 +17,7 @@ typedef ngx_str_t  ngx_wrt_res_t;
 #elif NGX_WASM_HAVE_IWASM
 #include <wasm_c_api.h>
 
-typedef ngx_str_t ngx_wrt_res_t;
+typedef ngx_str_t  ngx_wrt_res_t;
 #endif /* NGX_WASM_HAVE_* */
 
 
