@@ -5,7 +5,7 @@
 
 #include <ngx_wrt.h>
 
-static ngx_str_t wamr_no_wat = ngx_string("WAMR has no support for wat to wasm compilation");
+static ngx_str_t  wamr_no_wat = ngx_string("WAMR does not support wat to wasm compilation");
 
 
 wasm_config_t *
@@ -23,8 +23,8 @@ ngx_wrt_config_init(ngx_log_t *log, wasm_config_t *wasm_config,
                     ngx_wavm_conf_t *vm_config)
 {
   if (vm_config->compiler.len) {
-    ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
-                       "wamr does not support the compiler directive",
+    ngx_wavm_log_error(NGX_LOG_EMERG, log, NULL,
+                       "WAMR does not support the \"compiler\" directive",
                        &vm_config->compiler);
     return NGX_ERROR;
   }
@@ -115,7 +115,7 @@ ngx_wrt_error_log_handler(ngx_wrt_res_t *res, u_char *buf, size_t len)
   u_char *p = buf;
 
   if (res->len) {
-    p = ngx_snprintf(buf, ngx_min(len, res->len), "%V", res);
+    p = ngx_snprintf(buf, len, "%V", res);
 
     if (res != &wamr_no_wat) {
       ngx_free(res->data);

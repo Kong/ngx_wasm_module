@@ -31,7 +31,7 @@ case $ngx_wasm_runtime_name in
         ;;
     *)
         echo "$0: error: $ngx_addon_name does not support the \"$ngx_wasm_runtime_name\" runtime."
-        echo "Supported runtimes: wasmtime, wasmer, WAMR, WAVM."
+        echo "Supported runtimes: wasmtime, wasmer, iwasm, WAVM."
         echo
         exit 1
 esac
