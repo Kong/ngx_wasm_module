@@ -113,7 +113,7 @@ The build process will try to find a Wasm runtime in the following locations
 You may thus export the following environment variables:
 
 ```
-$ export NGX_WASM_RUNTIME={wasmtime,wasmer,iwasm} # defaults to wasmtime if unspecified
+$ export NGX_WASM_RUNTIME={wasmtime,wasmer,WAMR} # defaults to wasmtime if unspecified
 $ export NGX_WASM_RUNTIME_INC=/path/to/runtime/include
 $ export NGX_WASM_RUNTIME_LIB=/path/to/runtime/lib
 ```
