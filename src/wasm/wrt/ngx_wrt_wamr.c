@@ -43,6 +43,7 @@ ngx_wrt_engine_new(wasm_config_t *config, wasm_engine_t **out,
   return NGX_OK;
 }
 
+
 ngx_int_t
 ngx_wrt_wat2wasm(wasm_byte_vec_t *wat, wasm_byte_vec_t *wasm,
                  ngx_wavm_err_t *err)
