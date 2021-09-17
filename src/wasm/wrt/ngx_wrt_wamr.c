@@ -118,5 +118,6 @@ ngx_wrt_error_log_handler(ngx_wrt_res_t *res, u_char *buf, size_t len)
       ngx_free(res);
     }
   }
+
   return p;
 }
