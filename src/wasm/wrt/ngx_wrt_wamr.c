@@ -7,6 +7,7 @@
 
 static ngx_str_t wamr_no_wat = ngx_string("WAMR has no support for wat to wasm compilation");
 
+
 wasm_config_t *
 ngx_wrt_config_create()
 {
