@@ -79,6 +79,7 @@ ngx_wrt_module_new(wasm_store_t *s, wasm_byte_vec_t *bytes,
   return NGX_OK;
 }
 
+
 ngx_int_t
 ngx_wrt_instance_new(wasm_store_t *s, wasm_module_t *m,
                      wasm_extern_vec_t *imports, wasm_instance_t **instance,
