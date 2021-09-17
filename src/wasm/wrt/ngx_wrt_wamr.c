@@ -16,6 +16,7 @@ ngx_wrt_config_create()
   return wasm_config;
 }
 
+
 ngx_int_t
 ngx_wrt_config_init(ngx_log_t *log, wasm_config_t *wasm_config,
                     ngx_wavm_conf_t *vm_config)
