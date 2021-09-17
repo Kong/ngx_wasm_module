@@ -95,6 +95,7 @@ ngx_wrt_instance_new(wasm_store_t *s, wasm_module_t *m,
   return NGX_OK;
 }
 
+
 ngx_int_t
 ngx_wrt_func_call(wasm_func_t *f, wasm_val_vec_t *args, wasm_val_vec_t *rets,
                   ngx_wavm_err_t *err)
