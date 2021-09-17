@@ -66,6 +66,7 @@ ngx_wrt_module_validate(wasm_store_t *s, wasm_byte_vec_t *bytes,
   return NGX_OK;
 }
 
+
 ngx_int_t
 ngx_wrt_module_new(wasm_store_t *s, wasm_byte_vec_t *bytes,
                    wasm_module_t **out, ngx_wavm_err_t *err)
