@@ -79,6 +79,7 @@ Several runtimes are supported, and at least one of them must be specified:
   [Releases](https://github.com/bytecodealliance/wasmtime/releases), download
   and extract the `*-c-api.tar.xz` asset matching your OS and architecture).
 - [Wasmer](https://github.com/wasmerio/wasmer) (see [Releases](https://github.com/wasmerio/wasmer/releases), download and extract the asset matching your architecture).
+- [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime)
 
 [Back to TOC](#table-of-contents)
 
@@ -112,7 +113,7 @@ The build process will try to find a Wasm runtime in the following locations
 You may thus export the following environment variables:
 
 ```
-$ export NGX_WASM_RUNTIME={wasmtime,wasmer} # defaults to wasmtime if unspecified
+$ export NGX_WASM_RUNTIME={wasmtime,wasmer,iwasm} # defaults to wasmtime if unspecified
 $ export NGX_WASM_RUNTIME_INC=/path/to/runtime/include
 $ export NGX_WASM_RUNTIME_LIB=/path/to/runtime/lib
 ```

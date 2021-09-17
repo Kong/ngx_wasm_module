@@ -13,6 +13,11 @@ typedef wasmtime_error_t  ngx_wrt_res_t;
 #include <wasmer.h>
 
 typedef ngx_str_t  ngx_wrt_res_t;
+
+#elif NGX_WASM_HAVE_IWASM
+#include <wasm_c_api.h>
+
+typedef ngx_str_t ngx_wrt_res_t;
 #endif /* NGX_WASM_HAVE_* */
 
 

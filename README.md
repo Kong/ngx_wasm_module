@@ -130,6 +130,7 @@ still evolving and unstable.
 - Wasm C API: https://github.com/WebAssembly/wasm-c-api
 - Wasmer C API: https://docs.rs/wasmer-c-api/
 - Wasmtime C API: https://docs.wasmtime.dev/c-api/
+- WAMR C API: https://github.com/bytecodealliance/wasm-micro-runtime/tree/main/core/iwasm/include
 
 [Back to TOC](#table-of-contents)
 
