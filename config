@@ -25,6 +25,7 @@ case $ngx_wasm_runtime_name in
         ;;
    WAMR)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_wamr.c"
+        ngx_wasm_runtime_lib_name="iwasm"
 
         ngx_feature_name="NGX_WASM_HAVE_WAMR"
         ngx_feature_incs="#include <wasm_c_api.h>"
