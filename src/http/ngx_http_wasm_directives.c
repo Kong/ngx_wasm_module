@@ -99,7 +99,7 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 {
     ngx_str_t                 *values, *module_name, *config;
     ngx_wasm_op_t             *op;
-    ngx_proxy_wasm_t          *filter;
+    ngx_proxy_wasm_filter_t   *filter;
     ngx_http_wasm_loc_conf_t  *loc = conf;
 
     if (loc->vm == NULL) {
@@ -120,7 +120,7 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 
     /* filter alloc */
 
-    filter = ngx_pcalloc(cf->pool, sizeof(ngx_proxy_wasm_t));
+    filter = ngx_pcalloc(cf->pool, sizeof(ngx_proxy_wasm_filter_t));
     if (filter == NULL) {
         return NGX_CONF_ERROR;
     }

@@ -90,7 +90,7 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
             case NGX_WASM_OP_CALL:
                 op->handler = &ngx_wasm_op_call_handler;
                 op->conf.call.funcref = ngx_wavm_module_func_lookup(op->module,
-                                                                    &op->conf.call.func_name);
+                                                 &op->conf.call.func_name);
 
                 if (op->conf.call.funcref == NULL) {
                     ngx_wasm_log_error(NGX_LOG_EMERG, engine->pool->log, 0,
@@ -104,7 +104,8 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
             case NGX_WASM_OP_PROXY_WASM:
                 op->handler = &ngx_wasm_op_proxy_wasm_handler;
                 op->conf.proxy_wasm.filter->lmodule = op->lmodule;
-                op->conf.proxy_wasm.filter->max_filters = &pipeline->nproxy_wasm;
+                op->conf.proxy_wasm.filter->max_filters =
+                    &pipeline->nproxy_wasm;
 
                 (void) ngx_proxy_wasm_filter_init(op->conf.proxy_wasm.filter);
 
@@ -307,7 +308,8 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
                    "wasm ops calling \"%V.%V\" in \"%V\" phase",
                    &op->module->name, &funcref->name, &phase->name);
 
-    instance = ngx_wavm_instance_create(op->lmodule, opctx->pool, opctx->log, NULL, opctx->data);
+    instance = ngx_wavm_instance_create(op->lmodule, opctx->pool, opctx->log,
+                                        NULL, opctx->data);
     if (instance == NULL) {
         return NGX_ERROR;
     }
@@ -327,11 +329,11 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
 
 
 static ngx_int_t
-ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
-    ngx_wasm_op_t *op)
+ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
+    ngx_wasm_phase_t *phase, ngx_wasm_op_t *op)
 {
     ngx_int_t                     rc;
-    ngx_proxy_wasm_t             *filter;
+    ngx_proxy_wasm_filter_t      *filter;
     ngx_proxy_wasm_filter_ctx_t  *fctx;
 
     ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);

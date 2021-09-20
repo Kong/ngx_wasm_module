@@ -18,7 +18,7 @@
 typedef struct {
     ngx_http_request_t                *r;
     ngx_wasm_op_ctx_t                  opctx;
-    void                              *data; // for prctx (per stream extra context)
+    void                              *data; // for sctx (per stream extra context)
 
     ngx_chain_t                       *free;
 

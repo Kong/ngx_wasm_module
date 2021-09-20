@@ -7,7 +7,7 @@
 
 
 static ngx_inline ngx_wavm_funcref_t *
-ngx_proxy_wasm_func_lookup(ngx_proxy_wasm_t *filter, const char *n)
+ngx_proxy_wasm_func_lookup(ngx_proxy_wasm_filter_t *filter, const char *n)
 {
     ngx_str_t   name;
 
@@ -19,7 +19,7 @@ ngx_proxy_wasm_func_lookup(ngx_proxy_wasm_t *filter, const char *n)
 
 
 static ngx_proxy_wasm_abi_version_e
-ngx_proxy_wasm_abi_version(ngx_proxy_wasm_t *filter)
+ngx_proxy_wasm_abi_version(ngx_proxy_wasm_filter_t *filter)
 {
     size_t                    i;
     ngx_wavm_module_t        *module = filter->module;
@@ -53,11 +53,11 @@ ngx_proxy_wasm_abi_version(ngx_proxy_wasm_t *filter)
 }
 
 
-/* ngx_proxy_wasm_t */
+/* ngx_proxy_wasm_filter_t */
 
 
 ngx_int_t
-ngx_proxy_wasm_filter_init_root_instance(ngx_proxy_wasm_t *filter)
+ngx_proxy_wasm_filter_init_root_instance(ngx_proxy_wasm_filter_t *filter)
 {
     filter->root_sctx.instance = NULL;
     filter->root_sctx.curr_filter_ctx->instance = NULL;
@@ -67,24 +67,24 @@ ngx_proxy_wasm_filter_init_root_instance(ngx_proxy_wasm_t *filter)
 
 
 ngx_int_t
-ngx_proxy_wasm_filter_init_instance(ngx_proxy_wasm_ctx_t *prctx)
+ngx_proxy_wasm_filter_init_instance(ngx_proxy_wasm_stream_ctx_t *sctx)
 {
     ngx_int_t                     rc;
     wasm_val_vec_t               *rets;
     ngx_wavm_instance_t          *instance = NULL;
-    ngx_proxy_wasm_filter_ctx_t  *fctx = prctx->curr_filter_ctx;
-    ngx_proxy_wasm_t             *filter = fctx->filter;
+    ngx_proxy_wasm_filter_ctx_t  *fctx = sctx->curr_filter_ctx;
+    ngx_proxy_wasm_filter_t      *filter = fctx->filter;
 
     switch (filter->isolation) {
 
     case NGX_PROXY_WASM_ISOLATION_NONE:
         if (filter->root_sctx.curr_filter_ctx->instance) {
-            ngx_log_debug2(NGX_LOG_DEBUG_WASM, prctx->log, 0,
+            ngx_log_debug2(NGX_LOG_DEBUG_WASM, sctx->log, 0,
                            "proxy_wasm reusing \"%V\" root instance in \"%V\" vm",
                            filter->name, filter->module->vm->name);
 
-            prctx->instance = filter->root_sctx.curr_filter_ctx->instance;
-            fctx->instance = prctx->instance;
+            sctx->instance = filter->root_sctx.curr_filter_ctx->instance;
+            fctx->instance = sctx->instance;
             goto done;
         }
 
@@ -92,12 +92,12 @@ ngx_proxy_wasm_filter_init_instance(ngx_proxy_wasm_ctx_t *prctx)
 
     /*
     case NGX_PROXY_WASM_ISOLATION_STREAM:
-        if (prctx->instance) {
-            ngx_log_debug2(NGX_LOG_DEBUG_WASM, prctx->log, 0,
+        if (sctx->instance) {
+            ngx_log_debug2(NGX_LOG_DEBUG_WASM, sctx->log, 0,
                            "proxy_wasm reusing \"%V\" stream instance in \"%V\" vm",
                            filter->name, filter->module->vm->name);
 
-            fctx->instance = prctx->instance;
+            fctx->instance = sctx->instance;
             goto done;
         }
 
@@ -105,7 +105,7 @@ ngx_proxy_wasm_filter_init_instance(ngx_proxy_wasm_ctx_t *prctx)
 
     case NGX_PROXY_WASM_ISOLATION_FULL:
         if (fctx->instance) {
-            ngx_log_debug2(NGX_LOG_DEBUG_WASM, prctx->log, 0,
+            ngx_log_debug2(NGX_LOG_DEBUG_WASM, sctx->log, 0,
                            "proxy_wasm reusing \"%V\" request instance in \"%V\" vm",
                            filter->name, filter->module->vm->name);
             goto done;
@@ -120,19 +120,19 @@ ngx_proxy_wasm_filter_init_instance(ngx_proxy_wasm_ctx_t *prctx)
 
     }
 
-    ngx_wasm_assert(prctx->instance == NULL);
+    ngx_wasm_assert(sctx->instance == NULL);
     ngx_wasm_assert(fctx->instance == NULL);
 
 //create:
 
     instance = ngx_wavm_instance_create(filter->lmodule, fctx->pool,
-                                        fctx->log, NULL, prctx);
+                                        fctx->log, NULL, sctx);
     if (instance == NULL) {
-        prctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_FAILED;
+        sctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_FAILED;
         goto error;
     }
 
-    prctx->instance = instance;
+    sctx->instance = instance;
     fctx->instance = instance;
 
 //start:
@@ -162,8 +162,8 @@ ngx_proxy_wasm_filter_init_instance(ngx_proxy_wasm_ctx_t *prctx)
 
 done:
 
-    ngx_wavm_instance_set_data(fctx->instance, prctx);
-    ngx_wavm_instance_set_log(fctx->instance, prctx->log);
+    ngx_wavm_instance_set_data(fctx->instance, sctx);
+    ngx_wavm_instance_set_log(fctx->instance, sctx->log);
 
     return NGX_OK;
 
@@ -178,12 +178,12 @@ error:
 
 
 ngx_int_t
-ngx_proxy_wasm_filter_init(ngx_proxy_wasm_t *filter)
+ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
 {
     ngx_int_t                     rc;
     ngx_proxy_wasm_filter_ctx_t  *root_fctx;
 
-    ngx_memzero(&filter->root_sctx, sizeof(ngx_proxy_wasm_ctx_t));
+    ngx_memzero(&filter->root_sctx, sizeof(ngx_proxy_wasm_stream_ctx_t));
 
     filter->name = &filter->module->name;
     filter->index = *filter->max_filters;
@@ -255,8 +255,8 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_t *filter)
             ngx_proxy_wasm_func_lookup(filter, "proxy_on_memory_allocate");
         if (filter->proxy_on_memory_allocate == NULL) {
             filter->root_sctx.ecode = NGX_PROXY_WASM_ERR_BAD_MODULE_INTERFACE;
-            ngx_proxy_wasm_log_error(NGX_LOG_EMERG, filter->log, filter->root_sctx.ecode,
-                                     "missing malloc");
+            ngx_proxy_wasm_log_error(NGX_LOG_EMERG, filter->log,
+                                     filter->root_sctx.ecode, "missing malloc");
             goto error;
         }
     }
@@ -307,9 +307,11 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_t *filter)
     if (filter->abi_version < NGX_PROXY_WASM_VNEXT) {
         /* 0.1.0 - 0.2.1 */
         filter->proxy_on_downstream_close =
-            ngx_proxy_wasm_func_lookup(filter, "proxy_on_downstream_connection_close");
+            ngx_proxy_wasm_func_lookup(filter,
+                                       "proxy_on_downstream_connection_close");
         filter->proxy_on_upstream_close =
-            ngx_proxy_wasm_func_lookup(filter, "proxy_on_upstream_connection_close");
+            ngx_proxy_wasm_func_lookup(filter,
+                                       "proxy_on_upstream_connection_close");
     }
 
     /* http */
@@ -379,11 +381,17 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_t *filter)
     /* grpc callouts */
 
     filter->proxy_on_grpc_call_response_header_metadata =
-        ngx_proxy_wasm_func_lookup(filter, "proxy_on_grpc_call_response_header_metadata");
+        ngx_proxy_wasm_func_lookup(filter,
+                             "proxy_on_grpc_call_response_header_metadata");
+
     filter->proxy_on_grpc_call_response_message =
-        ngx_proxy_wasm_func_lookup(filter, "proxy_on_grpc_call_response_message");
+        ngx_proxy_wasm_func_lookup(filter,
+                            "proxy_on_grpc_call_response_message");
+
     filter->proxy_on_grpc_call_response_trailer_metadata =
-        ngx_proxy_wasm_func_lookup(filter, "proxy_on_grpc_call_response_trailer_metadata");
+        ngx_proxy_wasm_func_lookup(filter,
+                            "proxy_on_grpc_call_response_trailer_metadata");
+
     filter->proxy_on_grpc_call_close =
         ngx_proxy_wasm_func_lookup(filter, "proxy_on_grpc_call_close");
 
@@ -405,7 +413,8 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_t *filter)
         || filter->proxy_on_plugin_start == NULL)
     {
         filter->root_sctx.ecode = NGX_PROXY_WASM_ERR_BAD_MODULE_INTERFACE;
-        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, filter->log, filter->root_sctx.ecode,
+        ngx_proxy_wasm_log_error(NGX_LOG_EMERG, filter->log,
+                                 filter->root_sctx.ecode,
                                  "missing one of: on_context_create, "
                                  "on_vm_start, on_plugin_start");
         goto error;
@@ -424,7 +433,8 @@ error:
         filter->root_sctx.ecode = NGX_PROXY_WASM_ERR_UNKNOWN;
     }
 
-    ngx_proxy_wasm_log_error(NGX_LOG_EMERG, filter->log, filter->root_sctx.ecode,
+    ngx_proxy_wasm_log_error(NGX_LOG_EMERG, filter->log,
+                             filter->root_sctx.ecode,
                              "failed initializing \"%V\" filter",
                              filter->name);
 
@@ -437,67 +447,67 @@ done:
 
 
 void
-ngx_proxy_wasm_filter_destroy(ngx_proxy_wasm_t *filter)
+ngx_proxy_wasm_filter_destroy(ngx_proxy_wasm_filter_t *filter)
 {
+    ngx_proxy_wasm_stream_ctx_t  *root_sctx;
     ngx_proxy_wasm_filter_ctx_t  *root_fctx;
-    ngx_proxy_wasm_ctx_t         *root_prctx;
 
-    root_prctx = &filter->root_sctx;
-    root_fctx = root_prctx->curr_filter_ctx;
+    root_sctx = &filter->root_sctx;
+    root_fctx = root_sctx->curr_filter_ctx;
 
     if (root_fctx) {
-        ngx_pfree(root_prctx->pool, root_fctx);
+        ngx_pfree(root_sctx->pool, root_fctx);
     }
 }
 
 
 ngx_proxy_wasm_filter_ctx_t *
-ngx_proxy_wasm_filter_get_ctx(ngx_proxy_wasm_t *filter, void *data)
+ngx_proxy_wasm_filter_get_ctx(ngx_proxy_wasm_filter_t *filter, void *data)
 {
     ngx_int_t                     rc;
-    ngx_proxy_wasm_ctx_t         *prctx;
+    ngx_proxy_wasm_stream_ctx_t         *sctx;
     ngx_proxy_wasm_filter_ctx_t  *fctx = NULL;
 
     /*
      * data types:
      * - http subsystem: ngx_http_wasm_req_ctx_t
      */
-    prctx = filter->get_context_(filter, data);
-    if (prctx == NULL) {
+    sctx = filter->get_context_(filter, data);
+    if (sctx == NULL) {
         goto error;
     }
 
-    fctx = prctx->filter_ctxs[filter->index];
+    fctx = sctx->filter_ctxs[filter->index];
     if (fctx == NULL) {
-        fctx = ngx_pcalloc(prctx->pool, sizeof(ngx_proxy_wasm_filter_ctx_t));
+        fctx = ngx_pcalloc(sctx->pool, sizeof(ngx_proxy_wasm_filter_ctx_t));
         if (fctx == NULL) {
             goto error;
         }
 
         /* fctx->context_created = 0; */
-        fctx->pool = prctx->pool;
-        fctx->log = prctx->log;
+        fctx->pool = sctx->pool;
+        fctx->log = sctx->log;
         fctx->filter = filter;
-        fctx->stream_ctx = prctx;
+        fctx->stream_ctx = sctx;
 
-        prctx->filter_ctxs[filter->index] = fctx;
+        sctx->filter_ctxs[filter->index] = fctx;
     }
 
-    prctx->curr_filter_ctx = fctx;
+    sctx->curr_filter_ctx = fctx;
 
-    rc = ngx_proxy_wasm_filter_init_instance(prctx);
+    rc = ngx_proxy_wasm_filter_init_instance(sctx);
     if (rc != NGX_OK) {
         goto error;
     }
 
     if (!fctx->context_created) {
-        ngx_log_debug1(NGX_LOG_DEBUG_WASM, prctx->log, 0,
+        ngx_log_debug1(NGX_LOG_DEBUG_WASM, sctx->log, 0,
                        "proxy_wasm creating stream context id \"#%d\"",
-                       prctx->id);
+                       sctx->id);
 
         rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                         fctx->filter->proxy_on_context_create,
-                                        NULL, prctx->id, prctx->filter_id);
+                                        NULL, sctx->id, sctx->filter_id);
         if (rc != NGX_OK) {
             goto error;
         }
@@ -510,7 +520,7 @@ ngx_proxy_wasm_filter_get_ctx(ngx_proxy_wasm_t *filter, void *data)
 error:
 
     if (fctx) {
-        ngx_pfree(prctx->pool, fctx);
+        ngx_pfree(sctx->pool, fctx);
     }
 
     return NULL;
@@ -520,17 +530,17 @@ error:
 static void
 ngx_proxy_wasm_filter_ctx_free(ngx_proxy_wasm_filter_ctx_t *fctx)
 {
-    ngx_proxy_wasm_ctx_t  *prctx = fctx->stream_ctx;
+    ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->stream_ctx;
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, fctx->log, 0,
                    "proxy_wasm freeing stream \"#%d\""
                    " (fctx: %p)", fctx->stream_ctx->id, fctx);
 
-    prctx->filter_ctxs[fctx->filter->index] = NULL;
+    sctx->filter_ctxs[fctx->filter->index] = NULL;
 
     // TODO: free instance if full isolation
 
-    ngx_pfree(prctx->pool, fctx);
+    ngx_pfree(sctx->pool, fctx);
 }
 
 
@@ -538,9 +548,9 @@ ngx_int_t
 ngx_proxy_wasm_filter_ctx_err_code(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_uint_t ecode)
 {
-    ngx_int_t              rc = NGX_OK;
-    ngx_proxy_wasm_t      *filter = fctx->filter;
-    ngx_proxy_wasm_ctx_t  *sctx = fctx->stream_ctx;
+    ngx_int_t                     rc = NGX_OK;
+    ngx_proxy_wasm_filter_t      *filter = fctx->filter;
+    ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->stream_ctx;
 
     if (ecode == NGX_PROXY_WASM_ERR_NONE) {
         goto done;
@@ -597,7 +607,7 @@ done:
 }
 
 
-/* ngx_proxy_wasm_ctx_t */
+/* ngx_proxy_wasm_stream_ctx_t */
 
 
 ngx_wavm_ptr_t
@@ -607,7 +617,8 @@ ngx_proxy_wasm_alloc(ngx_proxy_wasm_filter_ctx_t *fctx, size_t size)
    ngx_int_t             rc;
    wasm_val_vec_t       *rets;
 
-   rc = ngx_wavm_instance_call_funcref(fctx->instance, fctx->filter->proxy_on_memory_allocate,
+   rc = ngx_wavm_instance_call_funcref(fctx->instance,
+                                       fctx->filter->proxy_on_memory_allocate,
                                        &rets, size);
    if (rc != NGX_OK) {
        ngx_wasm_log_error(NGX_LOG_CRIT, fctx->instance->log, 0,
@@ -662,8 +673,8 @@ ngx_int_t
 ngx_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_phase_t *phase)
 {
-    ngx_int_t          rc;
-    ngx_proxy_wasm_t  *filter = fctx->filter;
+    ngx_int_t                 rc;
+    ngx_proxy_wasm_filter_t  *filter = fctx->filter;
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, fctx->log, 0,
                    "proxy_wasm resuming \"%V\" filter in \"%V\" phase",
@@ -682,7 +693,7 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
 ngx_int_t
 ngx_proxy_wasm_on_log(ngx_proxy_wasm_filter_ctx_t *fctx)
 {
-    ngx_proxy_wasm_t  *filter = fctx->filter;
+    ngx_proxy_wasm_filter_t  *filter = fctx->filter;
 
     if (filter->abi_version < NGX_PROXY_WASM_VNEXT) {
         /* 0.1.0 - 0.2.1 */
@@ -702,35 +713,33 @@ ngx_proxy_wasm_on_log(ngx_proxy_wasm_filter_ctx_t *fctx)
 void
 ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
 {
-    ngx_proxy_wasm_t      *filter = fctx->filter;
-    ngx_proxy_wasm_ctx_t  *prctx = fctx->stream_ctx;
+    ngx_proxy_wasm_filter_t      *filter = fctx->filter;
+    ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->stream_ctx;
 
     ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
                    "proxy_wasm stream \"#%d\" finalizing filter %l/%l",
-                   prctx->id, fctx->filter->index + 1, prctx->n_filters);
+                   sctx->id, fctx->filter->index + 1, sctx->n_filters);
 
     /* check if all filters are finished for this request */
 
-    if (fctx->filter->index < prctx->n_filters - 1) {
+    if (fctx->filter->index < sctx->n_filters - 1) {
         ngx_proxy_wasm_filter_ctx_free(fctx);
         return;
     }
 
     /* all filters are finished */
 
-    if (!prctx->ecode) {
+    if (!sctx->ecode) {
         (void) ngx_wavm_instance_call_funcref(fctx->instance,
-                                              fctx->filter->proxy_on_context_finalize,
-                                              NULL, prctx->id);
+                                      fctx->filter->proxy_on_context_finalize,
+                                      NULL, sctx->id);
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, fctx->log, 0,
                    "proxy wasm destroying stream context id \"#%d\"",
-                   prctx->id);
+                   sctx->id);
 
     ngx_proxy_wasm_filter_ctx_free(fctx);
 
-    // TODO: free instance if stream isolation mode
-
-    filter->free_context_(prctx);
+    filter->free_context_(sctx);
 }
