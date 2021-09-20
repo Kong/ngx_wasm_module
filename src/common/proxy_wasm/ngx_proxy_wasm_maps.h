@@ -26,13 +26,13 @@ struct ngx_proxy_wasm_maps_key_s {
 
 
 ngx_list_t *ngx_proxy_wasm_maps_get_all(ngx_wavm_instance_t *instance,
-    ngx_proxy_wasm_map_type_t map_type, ngx_array_t *extras);
+    ngx_proxy_wasm_map_type_e map_type, ngx_array_t *extras);
 ngx_int_t ngx_proxy_wasm_maps_set_all(ngx_wavm_instance_t *instance,
-    ngx_proxy_wasm_map_type_t map_type, ngx_array_t *pairs);
+    ngx_proxy_wasm_map_type_e map_type, ngx_array_t *pairs);
 ngx_str_t *ngx_proxy_wasm_maps_get(ngx_wavm_instance_t *instance,
-    ngx_proxy_wasm_map_type_t map_type, ngx_str_t *key);
+    ngx_proxy_wasm_map_type_e map_type, ngx_str_t *key);
 ngx_int_t ngx_proxy_wasm_maps_set(ngx_wavm_instance_t *instance,
-    ngx_proxy_wasm_map_type_t map_type, ngx_str_t *key, ngx_str_t *value,
+    ngx_proxy_wasm_map_type_e map_type, ngx_str_t *key, ngx_str_t *value,
     ngx_uint_t map_op);
 
 

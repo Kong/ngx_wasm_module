@@ -6,14 +6,14 @@
 #include <ngx_proxy_wasm.h>
 
 
-ngx_int_t ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_err_t ecode);
-ngx_proxy_wasm_ctx_t *ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_t *pwm,
+ngx_int_t ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_err_e ecode);
+ngx_proxy_wasm_stream_ctx_t *ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_filter_t *filter,
     void *data);
-void ngx_http_proxy_wasm_free_context(ngx_proxy_wasm_ctx_t *prctx);
+void ngx_http_proxy_wasm_free_context(ngx_proxy_wasm_stream_ctx_t *sctx);
 ngx_int_t ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_phase_t *phase);
 
-ngx_proxy_wasm_ctx_t *ngx_proxy_wasm_host_get_prctx(
+ngx_proxy_wasm_stream_ctx_t *ngx_proxy_wasm_host_get_sctx(
     ngx_wavm_instance_t *instance);
 ngx_proxy_wasm_filter_ctx_t *ngx_proxy_wasm_host_get_fctx(
     ngx_wavm_instance_t *instance);

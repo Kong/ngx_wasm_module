@@ -41,7 +41,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_proxy_wasm_t                        *filter;
+    ngx_proxy_wasm_filter_t                 *filter;
 } ngx_wasm_op_proxy_wasm_t;
 
 

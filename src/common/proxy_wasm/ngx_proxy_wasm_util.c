@@ -24,7 +24,7 @@ static ngx_str_t  ngx_proxy_wasm_errlist[] = {
 
 
 static ngx_inline ngx_str_t *
-ngx_proxy_wasm_strerror(ngx_proxy_wasm_err_t err)
+ngx_proxy_wasm_filter_strerror(ngx_proxy_wasm_err_e err)
 {
     ngx_str_t  *msg;
 
@@ -327,12 +327,12 @@ failed:
 
 
 void
-ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
+ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 {
     ngx_int_t                     rc;
     wasm_val_vec_t                args;
-    ngx_proxy_wasm_ctx_t         *prctx = ev->data;
-    ngx_proxy_wasm_filter_ctx_t  *fctx = prctx->curr_filter_ctx;
+    ngx_proxy_wasm_stream_ctx_t  *sctx = ev->data;
+    ngx_proxy_wasm_filter_ctx_t  *fctx = sctx->curr_filter_ctx;
 
     ngx_free(ev);
 
@@ -341,15 +341,15 @@ ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
     }
 
     if (fctx->filter->proxy_on_timer_ready) {
-        ngx_wavm_instance_set_data(fctx->instance, prctx);
-        ngx_wavm_instance_set_log(fctx->instance, prctx->log);
+        ngx_wavm_instance_set_data(fctx->instance, sctx);
+        ngx_wavm_instance_set_log(fctx->instance, sctx->log);
 
         wasm_val_vec_new_uninitialized(&args, 1);
         ngx_wasm_vec_set_i32(&args, 0, fctx->filter->id);
 
         rc = ngx_wavm_instance_call_funcref_vec(fctx->instance,
-                                                fctx->filter->proxy_on_timer_ready,
-                                                NULL, &args);
+                                            fctx->filter->proxy_on_timer_ready,
+                                            NULL, &args);
         wasm_val_vec_delete(&args);
 
         if (!ngx_exiting) {
@@ -358,9 +358,9 @@ ngx_proxy_wasm_tick_handler(ngx_event_t *ev)
                 goto nomem;
             }
 
-            ev->handler = ngx_proxy_wasm_tick_handler;
-            ev->data = prctx;
-            ev->log = prctx->log;
+            ev->handler = ngx_proxy_wasm_filter_tick_handler;
+            ev->data = sctx;
+            ev->log = sctx->log;
 
             ngx_add_timer(ev, fctx->filter->tick_period);
         }
@@ -381,7 +381,7 @@ nomem:
 
 void
 ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
-    ngx_proxy_wasm_err_t err, const char *fmt, ...)
+    ngx_proxy_wasm_err_e err, const char *fmt, ...)
 {
     va_list     args;
     u_char     *p, *last, buf[NGX_MAX_ERROR_STR];
@@ -391,7 +391,7 @@ ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
     p = &buf[0];
 
     if (err) {
-        errmsg = ngx_proxy_wasm_strerror(err);
+        errmsg = ngx_proxy_wasm_filter_strerror(err);
     }
 
     if (fmt) {
