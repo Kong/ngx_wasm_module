@@ -1,4 +1,4 @@
-NGX ?= 1.21.1
+NGX ?= 1.21.3
 export NGX_BUILD_CONFIGURE ?=
 export NGX_BUILD_CC_OPT ?= -O0 -ggdb3 -gdwarf
 export NGX_BUILD_LD_OPT ?=

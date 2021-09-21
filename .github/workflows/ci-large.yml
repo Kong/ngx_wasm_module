@@ -23,7 +23,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         cc: [clang]
-        ngx: [1.21.1]
+        ngx: [1.21.3]
         runtime: [wasmtime, wasmer]
         wasmtime: [0.28.0]
         wasmer: [2.0.0]
@@ -83,7 +83,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
-        ngx: [1.21.1]
+        ngx: [1.21.3]
         runtime: [wasmtime, wasmer]
         wasmtime: [0.28.0]
         wasmer: [2.0.0]
@@ -150,7 +150,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         cc: [clang]
-        ngx: [1.21.1]
+        ngx: [1.21.3]
         runtime: [wasmtime, wasmer]
         wasmtime: [0.28.0]
         wasmer: [2.0.0]
