@@ -75,9 +75,9 @@
     fun:main
 }
 {
-   <wasmtime 0.28.0: ...>
+   <wasmtime 0.30.0: ...>
    Memcheck:Cond
-   fun:_ZN10wasmparser9validator9Validator3end17h9547d0fbe2e6e321E
+   fun:_ZN10wasmparser9validator9Validator3end17h754ba0a679ae09d9E
 }
 {
    <wasmer 2.0.0: wasm_module_validate uninitialized value>
