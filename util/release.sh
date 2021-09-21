@@ -247,15 +247,17 @@ release_bin() {
         LD_FLAGS="$(pwd)/wasmtime-$WASMTIME_VER/lib/libwasmtime.a -ldl -lpthread"
 
         build_static_binary $arch wasmtime $WASMTIME_VER
-    fi
 
-    if [ -n "$WASMER_VER" ]; then
+    elif [ -n "$WASMER_VER" ]; then
         download_wasmer $WASMER_VER $arch
 
         CC_FLAGS="-I$(pwd)/wasmer-$WASMER_VER/include"
         LD_FLAGS="$(pwd)/wasmer-$WASMER_VER/lib/libwasmer.a -ldl -lpthread"
 
         build_static_binary $arch wasmer $WASMER_VER
+
+    else
+        fatal "missing wasm vm, specify --wasmer or --wasmtime"
     fi
 }
 
@@ -303,6 +305,9 @@ elif [ -n "$RELEASE_BIN" ]; then
         darwin*) release_bin;;
         *)       fatal "unsupported OS \"$OSTYPE\""
     esac
+
+else
+    fatal "missing release type, specify --bin, --bin-all, or --src"
 fi
 
 # vim: ft=sh st=4 sts=4 sw=4:
