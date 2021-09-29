@@ -44,8 +44,9 @@ impl RootContext for TestRoot {
     }
 
     fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
+        info!("create context id #{}", context_id);
+
         Some(Box::new(TestHttpHostcalls {
-            context_id,
             config: self.config.clone(),
             on_phase: self
                 .config
@@ -60,7 +61,6 @@ impl RootContext for TestRoot {
 }
 
 struct TestHttpHostcalls {
-    context_id: u32,
     on_phase: TestPhase,
     config: HashMap<String, String>,
     request_body_size: Option<usize>,
@@ -84,7 +84,7 @@ impl TestHttpHostcalls {
             return;
         }
 
-        info!("#{} entering \"{:?}\"", self.context_id, self.on_phase);
+        info!("[hostcalls] testing in \"{:?}\"", self.on_phase);
 
         let path = self.get_http_request_header(":path").unwrap();
         if path.starts_with("/t/echo/header/") {
@@ -154,46 +154,38 @@ impl TestHttpHostcalls {
 impl Context for TestHttpHostcalls {}
 impl HttpContext for TestHttpHostcalls {
     fn on_http_request_headers(&mut self, nheaders: usize) -> Action {
-        debug!(
-            "#{} on_request_headers, {} headers",
-            self.context_id, nheaders
-        );
+        info!("[hostcalls] on_request_headers, {} headers", nheaders);
         self.exec_tests(TestPhase::RequestHeaders);
         Action::Continue
     }
 
     fn on_http_request_body(&mut self, size: usize, end_of_stream: bool) -> Action {
         self.request_body_size = Some(size);
-        debug!(
-            "#{} on_request_body, {} bytes, end_of_stream: {}",
-            self.context_id, size, end_of_stream
+        info!(
+            "[hostcalls] on_request_body, {} bytes, end_of_stream: {}",
+            size, end_of_stream
         );
         self.exec_tests(TestPhase::RequestBody);
         Action::Continue
     }
 
     fn on_http_response_headers(&mut self, nheaders: usize) -> Action {
-        debug!(
-            "#{} on_response_headers, {} headers",
-            self.context_id, nheaders
-        );
+        info!("[hostcalls] on_response_headers, {} headers", nheaders);
         self.exec_tests(TestPhase::ResponseHeaders);
         Action::Continue
     }
 
     fn on_http_response_body(&mut self, len: usize, end_of_stream: bool) -> Action {
-        debug!(
-            "#{} on_response_body, {} bytes, end_of_stream {}",
-            self.context_id, len, end_of_stream
+        info!(
+            "[hostcalls] on_response_body, {} bytes, end_of_stream {}",
+            len, end_of_stream
         );
-        if !end_of_stream || len > 0 {
-            self.exec_tests(TestPhase::ResponseBody);
-        }
+        self.exec_tests(TestPhase::ResponseBody);
         Action::Continue
     }
 
     fn on_log(&mut self) {
-        debug!("#{} on_log", self.context_id);
+        info!("[hostcalls] on_log");
         self.exec_tests(TestPhase::Log);
     }
 }

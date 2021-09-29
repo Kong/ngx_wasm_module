@@ -25,7 +25,7 @@ struct HttpHeadersRoot {
 impl Context for HttpHeadersRoot {}
 impl RootContext for HttpHeadersRoot {
     fn on_vm_start(&mut self, config_size: usize) -> bool {
-        info!("#{} on_vm_start, config_size: {}", ROOT_ID, config_size);
+        info!("on_vm_start, config_size: {}", config_size);
         true
     }
 
@@ -33,6 +33,8 @@ impl RootContext for HttpHeadersRoot {
         info!("#{} on_configure, config_size: {}", ROOT_ID, config_size);
 
         if let Some(config_bytes) = self.get_configuration() {
+            assert!(config_bytes.len() == config_size);
+
             let config_str = String::from_utf8(config_bytes).unwrap();
             self.config = config_str
                 .split_whitespace()
@@ -40,11 +42,11 @@ impl RootContext for HttpHeadersRoot {
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect();
 
-            info!("#{} config: {:?}", ROOT_ID, self.config);
+            info!("#{} config: {}", ROOT_ID, config_str);
 
             if let Some(period) = self.config.get("tick_period") {
                 self.set_tick_period(Duration::from_millis(
-                    period.parse().expect("bad tick_period or pause_delay"),
+                    period.parse().expect("bad tick_period"),
                 ));
             }
         }
@@ -73,7 +75,6 @@ impl RootContext for HttpHeadersRoot {
 }
 
 struct OnPhases {
-    // config
     context_id: u32,
     config: HashMap<String, String>,
     pause_on: Option<Phase>,

@@ -45,10 +45,8 @@
 
 
 typedef struct ngx_wavm_s  ngx_wavm_t;
+typedef struct ngx_wavm_store_s  ngx_wavm_store_t;
 typedef struct ngx_wavm_module_s  ngx_wavm_module_t;
-typedef struct ngx_wavm_linked_module_s  ngx_wavm_linked_module_t;
-typedef struct ngx_wavm_ctx_s  ngx_wavm_ctx_t;
-typedef struct ngx_wavm_instance_s  ngx_wavm_instance_t;
 typedef struct ngx_wavm_funcref_s  ngx_wavm_funcref_t;
 typedef struct ngx_wavm_func_s  ngx_wavm_func_t;
 typedef ngx_uint_t  ngx_wavm_ptr_t;
@@ -105,6 +103,7 @@ void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, ...);
 
 extern ngx_module_t  ngx_wasm_module;
+extern ngx_uint_t  ngx_wasm_max_module;
 
 
 /* ngx_str_node_t extensions */

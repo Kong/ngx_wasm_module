@@ -113,12 +113,18 @@ ngx_wavm_host_hfunc_create(ngx_pool_t *pool, ngx_wavm_host_def_t *host,
 
     for (func = host->funcs; func->ptr; func++) {
 
-        dd("strncmp: \"%.*s\", \"%.*s\", %d",
-           (int) func->name.len, func->name.data,
-           (int) name->len, name->data,
-           (int) name->len);
+        if (name->len != func->name.len) {
+            continue;
+        }
 
-        if (ngx_strncmp(func->name.data, name->data, name->len) != 0) {
+#if 0
+        dd("strncmp: \"%.*s\", \"%.*s\", (len: %d)",
+          (int) name->len, name->data,
+          (int) func->name.len, func->name.data,
+          (int) name->len);
+#endif
+
+        if (ngx_strncmp(name->data, func->name.data, func->name.len) != 0) {
             continue;
         }
 
@@ -149,31 +155,72 @@ ngx_wavm_host_hfunc_destroy(ngx_wavm_hfunc_t *hfunc)
 
 
 wasm_trap_t *
-ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
-    wasm_val_vec_t* rets)
+ngx_wavm_hfunc_trampoline(void *env,
+#ifdef NGX_WASM_HAVE_WASMTIME
+    wasmtime_caller_t *caller,
+    const wasmtime_val_t *args, size_t nargs,
+    wasmtime_val_t *rets, size_t nrets
+#else
+    const wasm_val_vec_t* args,
+    wasm_val_vec_t* rets
+#endif
+    )
 {
-    size_t                  errlen = 0, len;
-    const char             *err = NULL;
-    u_char                 *p, *buf, trapbuf[NGX_WAVM_HFUNCS_MAX_TRAP_LEN];
-    ngx_int_t               rc;
-    ngx_wavm_hfunc_tctx_t  *tctx = env;
-    ngx_wavm_instance_t    *instance = tctx->instance;
-    ngx_wavm_hfunc_t       *hfunc = tctx->hfunc;
-    wasm_val_t             *hargs, *hrets;
-    wasm_byte_vec_t         trapmsg;
-    wasm_trap_t            *trap = NULL;
+    size_t                     errlen = 0, len;
+    const char                *err = NULL;
+    u_char                    *p, *buf, trapbuf[NGX_WAVM_HFUNCS_MAX_TRAP_LEN];
+    ngx_int_t                  rc;
+    ngx_wavm_instance_t       *instance;
+    wasm_val_t                *hargs, *hrets;
+    wasm_byte_vec_t            trapmsg;
+    wasm_trap_t               *trap = NULL;
+    ngx_wavm_hfunc_t          *hfunc;
+#ifdef NGX_WASM_HAVE_WASMTIME
+    wasm_val_vec_t             vargs, vrets;
+
+#elif NGX_WASM_HAVE_WASMER
+    ngx_wasmer_hfunc_ctx_t    *hctx;
+
+#else
+#   error NYI: trampoline host context retrieval
+#endif
+
+#ifdef NGX_WASM_HAVE_WASMTIME
+    hfunc = (ngx_wavm_hfunc_t *) env;
+    instance = (ngx_wavm_instance_t *) ngx_wrt.get_ctx(caller);
+
+    wasm_val_vec_new_uninitialized(&vargs, nargs);
+    wasm_val_vec_new_uninitialized(&vrets, nrets);
+
+    ngx_wasmtime_valvec2wasm(&vargs, (wasmtime_val_t *) args, nargs);
+
+    hargs = (wasm_val_t *) vargs.data;
+    hrets = (wasm_val_t *) vrets.data;
+
+#elif NGX_WASM_HAVE_WASMER
+    hctx = (ngx_wasmer_hfunc_ctx_t *) env;
+    instance = hctx->instance;
+    hfunc = hctx->hfunc;
 
     hargs = (wasm_val_t *) args->data;
     hrets = (wasm_val_t *) rets->data;
+#endif
 
-    dd("wasm hfuncs trampoline (hfunc: \"%*s\", tctx: %p)",
-       (int) hfunc->def->name.len, hfunc->def->name.data, tctx);
+    dd("wasm hfuncs trampoline (hfunc: \"%*s\", instance: %p)",
+       (int) hfunc->def->name.len, hfunc->def->name.data, instance);
 
     ngx_str_null(&instance->trapmsg);
 
     instance->trapbuf = (u_char *) &trapbuf;
 
     rc = hfunc->def->ptr(instance, hargs, hrets);
+
+#ifdef NGX_WASM_HAVE_WASMTIME
+    ngx_wasm_valvec2wasmtime(rets, &vrets);
+
+    wasm_val_vec_delete(&vargs);
+    wasm_val_vec_delete(&vrets);
+#endif
 
     dd("wasm hfuncs trampoline rc: %ld", rc);
 
@@ -241,38 +288,9 @@ ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
                       , err);
     }
 
-    trap = wasm_trap_new(instance->store, &trapmsg);
+    trap = ngx_wrt.trap_new(&instance->wrt_store, &trapmsg);
+
     wasm_byte_vec_delete(&trapmsg);
 
     return trap;
-}
-
-
-void
-ngx_wavm_instance_trap_printf(ngx_wavm_instance_t *instance,
-#if (NGX_HAVE_VARIADIC_MACROS)
-    const char *fmt, ...)
-
-#else
-    const char *fmt, va_list args)
-#endif
-{
-    u_char               *p;
-    static const size_t   maxlen = NGX_WAVM_HFUNCS_MAX_TRAP_LEN - 1;
-
-#if (NGX_HAVE_VARIADIC_MACROS)
-    va_list  args;
-
-    va_start(args, fmt);
-    p = ngx_vsnprintf(instance->trapbuf, maxlen, fmt, args);
-    va_end(args);
-
-#else
-    p = ngx_vsnprintf(instance->trapbuf, maxlen, fmt, args);
-#endif
-
-    *p++ = '\0';
-
-    instance->trapmsg.len = p - instance->trapbuf;
-    instance->trapmsg.data = (u_char *) instance->trapbuf;
 }

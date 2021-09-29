@@ -25,7 +25,7 @@ should produce a log with the current time (ms as ~ns)
 ok
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] now: 2.*? UTC/,
+    qr/\[info\] .*? now: 2.*? UTC/,
 ]
 --- no_error_log
 [error]

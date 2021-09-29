@@ -331,18 +331,22 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 {
     ngx_int_t                     rc;
     wasm_val_vec_t                args;
-    ngx_proxy_wasm_stream_ctx_t  *sctx = ev->data;
-    ngx_proxy_wasm_filter_ctx_t  *fctx = sctx->curr_filter_ctx;
+    ngx_proxy_wasm_filter_ctx_t  *fctx = ev->data;
 
     ngx_free(ev);
+
+    ngx_wasm_assert(fctx->id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
     if (ngx_exiting) {
         return;
     }
 
     if (fctx->filter->proxy_on_timer_ready) {
-        ngx_wavm_instance_set_data(fctx->instance, sctx);
-        ngx_wavm_instance_set_log(fctx->instance, sctx->log);
+        fctx->stream_ctx = NULL;
+        fctx->data = NULL;
+
+        ngx_wavm_instance_set_data(fctx->instance, fctx);
+        ngx_wavm_instance_set_log(fctx->instance, fctx->log);
 
         wasm_val_vec_new_uninitialized(&args, 1);
         ngx_wasm_vec_set_i32(&args, 0, fctx->filter->id);
@@ -359,8 +363,8 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
             }
 
             ev->handler = ngx_proxy_wasm_filter_tick_handler;
-            ev->data = sctx;
-            ev->log = sctx->log;
+            ev->data = fctx;
+            ev->log = fctx->log;
 
             ngx_add_timer(ev, fctx->filter->tick_period);
         }

@@ -258,8 +258,8 @@ qq{
 --- no_error_log
 [error]
 [crit]
+[emerg]
 [alert]
-[stderr]
 stub
 stub
 
@@ -288,14 +288,18 @@ stub
                               test=/t/log/request_path';
     }
 --- ignore_response_body
---- error_log eval
-[
-    qr/\[wasm\] #\d+ entering "RequestHeaders"/,
-    qr/\[info\] .*? \[wasm\] path: \/t\/A/,
-    qr/\[wasm\] #\d+ entering "ResponseHeaders"/,
-    qr/\[info\] .*? \[wasm\] path: \/t\/B/,
-    qr/\[wasm\] #\d+ entering "Log"/,
-    qr/\[info\] .*? \[wasm\] path: \/t /,
-]
+--- grep_error_log eval: qr/(testing in|path:) .*/
+--- grep_error_log_out eval
+qr/testing in "RequestHeaders".*
+path: \/t\/A.*
+testing in "ResponseHeaders".*
+path: \/t\/B.*
+testing in "Log".*
+path: \/t/
 --- no_error_log
 [error]
+[crit]
+[emerg]
+[alert]
+stub
+stub

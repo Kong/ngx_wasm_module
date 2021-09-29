@@ -24,12 +24,12 @@ __DATA__
 GET /t/log/response_body
 --- response_body
 Hello world
---- grep_error_log eval: qr/\[(debug|info)\] .*? \[wasm\] .*?response(_|\s)body.*/
+--- grep_error_log eval: qr/(testing in|on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
-\[info\] .*? \[wasm\] #\d+ entering "ResponseBody" .*?
-\[info\] .*? \[wasm\] response body chunk: "Hello world\\n" .*?
-\[debug\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
+qr/on_response_body, 12 bytes, end_of_stream false.*
+testing in "ResponseBody".*
+response body chunk: "Hello world\\n".*
+on_response_body, 0 bytes, end_of_stream true.*/
 --- no_error_log
 [error]
 [crit]
@@ -50,13 +50,13 @@ GET /t/log/response_body
 --- response_body
 Hello
 world
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_response_body|(response body chunk)).*/
+--- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_body, 6 bytes, end_of_stream false
-\[wasm\] response body chunk: "Hello\\n" .*?
-\[wasm\] #\d+ on_response_body, 6 bytes, end_of_stream false
-\[wasm\] response body chunk: "world\\n" .*?
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
+qr/on_response_body, 6 bytes, end_of_stream false.*
+response body chunk: "Hello\\n".*
+on_response_body, 6 bytes, end_of_stream false.*
+response body chunk: "world\\n".*
+on_response_body, 0 bytes, end_of_stream true.*/
 --- no_error_log
 [error]
 [crit]
@@ -71,9 +71,9 @@ qr/\[wasm\] #\d+ on_response_body, 6 bytes, end_of_stream false
         return 200;
     }
 --- response_body
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_response_body|(response body chunk)).*/
+--- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
+qr/on_response_body, 0 bytes, end_of_stream true.*/
 --- no_error_log
 [error]
 [crit]
@@ -90,10 +90,11 @@ qr/\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
     }
 --- response_body
 Hello world
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_response_body|(response body chunk)).*/
+--- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
+qr/on_response_body, 12 bytes, end_of_stream false.*
+on_response_body, 0 bytes, end_of_stream true.*
+\z/
 --- no_error_log
 [error]
 [crit]
@@ -114,11 +115,11 @@ qr/\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
     }
 --- response_body
 aaaaaaaaaaaaaaaaaaaa
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_response_body|(response body chunk)).*/
+--- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_body, 21 bytes, end_of_stream false
-\[wasm\] response body chunk: "aaaaaaaaaa" .*?
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
+qr/on_response_body, 21 bytes, end_of_stream false.*
+response body chunk: "aaaaaaaaaa".*
+on_response_body, 0 bytes, end_of_stream true.*/
 --- no_error_log
 [crit]
 [alert]
@@ -137,7 +138,7 @@ qr/\[wasm\] #\d+ on_response_body, 21 bytes, end_of_stream false
 Hello world
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false/,
+    qr/on_response_body, 12 bytes, end_of_stream false/,
     qr/\[crit\] .*? panicked at 'unexpected status: 2'/
 ]
 --- no_error_log

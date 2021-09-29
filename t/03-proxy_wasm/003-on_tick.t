@@ -29,9 +29,9 @@ __DATA__
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] ticking/,
-    qr/\[info\] .*? \[wasm\] ticking/,
-    qr/\[info\] .*? \[wasm\] ticking/
+    qr/\[info\] \d+#\d+: ticking$/,
+    qr/\[info\] \d+#\d+: ticking$/,
+    qr/\[info\] \d+#\d+: ticking$/,
 ]
 --- no_error_log
 [error]
@@ -58,9 +58,9 @@ __DATA__
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] ticking \<.*?\>$/,
-    qr/\[info\] .*? \[wasm\] from request_headers \<.*?\>, client: .*?, server: .*?, request:/,
-    qr/\[info\] .*? \[wasm\] ticking \<.*?\>$/,
+    qr/\[info\] \d+#\d+: ticking$/,
+    qr/\[info\] .*? from request_headers, client: .*?, server: .*?, request:/,
+    qr/\[info\] \d+#\d+: ticking$/,
 ]
 --- no_error_log
 [error]
@@ -113,10 +113,10 @@ on_tick 50000
 ok
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] on_tick 20/,
-    qr/\[info\] .*? \[wasm\] on_tick 30/,
-    qr/\[info\] .*? \[wasm\] on_tick 20/,
-    qr/\[info\] .*? \[wasm\] on_tick 30/,
+    qr/\[info\] \d+#\d+: on_tick 20$/,
+    qr/\[info\] \d+#\d+: on_tick 30$/,
+    qr/\[info\] \d+#\d+: on_tick 20$/,
+    qr/\[info\] \d+#\d+: on_tick 30$/,
 ]
 --- no_error_log
 [error]

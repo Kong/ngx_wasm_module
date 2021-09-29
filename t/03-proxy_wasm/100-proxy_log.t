@@ -24,11 +24,11 @@ __DATA__
 ok
 --- error_log eval
 [
-    qr/\[debug\] .*? \[wasm\] proxy_log trace$/,
-    qr/\[info\] .*? \[wasm\] proxy_log info \</,
-    qr/\[warn\] .*? \[wasm\] proxy_log warn \</,
-    qr/\[error\] .*? \[wasm\] proxy_log error \</,
-    qr/\[crit\] .*? \[wasm\] proxy_log critical \</
+    qr/\[debug\] .*? \*\d+ proxy_log trace$/,
+    qr/\[info\] .*? \*\d+ proxy_log info, client:/,
+    qr/\[warn\] .*? \*\d+ proxy_log warn, client:/,
+    qr/\[error\] .*? \*\d+ proxy_log error, client:/,
+    qr/\[crit\] .*? \*\d+ proxy_log critical, client:/
 ]
 --- no_error_log
 [alert]
@@ -67,12 +67,12 @@ B
 C
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ entering "RequestHeaders"/,
-    qr/\[error\] .*? \[wasm\] proxy_log error/,
-    qr/\[wasm\] #\d+ entering "ResponseHeaders"/,
-    qr/\[error\] .*? \[wasm\] proxy_log error/,
-    qr/\[wasm\] #\d+ entering "Log"/,
-    qr/\[error\] .*? \[wasm\] proxy_log error/,
+    qr/testing in "RequestHeaders"/,
+    qr/\[error\] .*? proxy_log error/,
+    qr/testing in "ResponseHeaders"/,
+    qr/\[error\] .*? proxy_log error/,
+    qr/testing in "Log"/,
+    qr/\[error\] .*? proxy_log error/,
 ]
 --- no_error_log
 [alert]

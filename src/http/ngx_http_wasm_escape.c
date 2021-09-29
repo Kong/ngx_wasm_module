@@ -6,7 +6,7 @@
 #include <ngx_http_wasm.h>
 
 
-uintptr_t
+ngx_uint_t
 ngx_http_wasm_escape(u_char *dst, u_char *src, size_t size,
     ngx_http_wasm_escape_kind kind)
 {
@@ -128,7 +128,7 @@ ngx_http_wasm_escape(u_char *dst, u_char *src, size_t size,
             size--;
         }
 
-        return (uintptr_t) n;
+        return n;
     }
 
     while (size) {
@@ -145,5 +145,5 @@ ngx_http_wasm_escape(u_char *dst, u_char *src, size_t size,
         size--;
     }
 
-    return (uintptr_t) dst;
+    return 0;
 }

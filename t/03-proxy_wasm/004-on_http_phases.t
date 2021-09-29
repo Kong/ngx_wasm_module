@@ -27,7 +27,7 @@ Hello: wasm
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/\[info\] .*? on_request_headers, 3 headers/
 --- no_error_log
 [error]
 [crit]
@@ -50,7 +50,7 @@ Hello world
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 11 bytes, end_of_stream: true/
+qr/\[info\] .*? on_request_body, 11 bytes, end_of_stream: true/
 --- no_error_log
 [error]
 [crit]
@@ -75,7 +75,7 @@ Larger than a buffer
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 20 bytes, end_of_stream: true/
+qr/\[info\] .*? on_request_body, 20 bytes, end_of_stream: true/
 --- no_error_log
 [error]
 [crit]
@@ -102,7 +102,7 @@ ok
 --- error_log eval
 [
     qr/\[notice\] .*? a client request body is buffered to a temporary file/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 20 bytes, end_of_stream: true/
+    qr/\[info\] .*? on_request_body, 20 bytes, end_of_stream: true/
 ]
 --- no_error_log
 [error]
@@ -128,7 +128,7 @@ Connection: close\r
 Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
+qr/\[info\] .*? on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
@@ -153,7 +153,7 @@ Connection: close\r
 Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
+qr/\[info\] .*? on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
@@ -171,7 +171,7 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
     }
 --- response_body
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream: true/
+qr/\[info\] .*? on_response_body, 0 bytes, end_of_stream: true/
 --- no_error_log
 [error]
 [crit]
@@ -190,7 +190,7 @@ qr/\[info\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream: true/
 --- error_code: 204
 --- response_body
 --- no_error_log
-on_response_body
+on_response_body,
 [error]
 [crit]
 [alert]
@@ -210,8 +210,8 @@ on_response_body
 hello world
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream: false/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream: true/
+    qr/\[info\] .*? on_response_body, 12 bytes, end_of_stream: false/,
+    qr/\[info\] .*? on_response_body, 0 bytes, end_of_stream: true/
 ]
 --- no_error_log
 [error]
@@ -245,8 +245,8 @@ qq{
 Hello
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream: false/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream: true/
+    qr/\[info\] .*? on_response_body, 5 bytes, end_of_stream: false/,
+    qr/\[info\] .*? on_response_body, 0 bytes, end_of_stream: true/
 ]
 --- no_error_log
 [error]
@@ -266,7 +266,7 @@ Hello
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #\d+ on_log/
+qr/\[info\] .*? on_log/
 --- no_error_log
 [error]
 [crit]
@@ -290,9 +290,9 @@ qr/404 Not Found/
 --- error_log eval
 [
     qr/\[error\] .*? open\(\) \".*?\" failed/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_log/
+    qr/\[info\] .*? on_request_headers/,
+    qr/\[info\] .*? on_response_headers/,
+    qr/\[info\] .*? on_log/
 ]
 --- no_error_log
 [crit]
@@ -311,9 +311,9 @@ should produce a response in and of itself, proxy_wasm wraps around
 --- response_body
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_log/
+    qr/\[info\] .*? on_request_headers/,
+    qr/\[info\] .*? on_response_headers/,
+    qr/\[info\] .*? on_log/
 ]
 --- no_error_log
 [error]
@@ -390,9 +390,9 @@ qq{
 --- response_body
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_log/
+    qr/\[info\] .*? on_request_headers/,
+    qr/\[info\] .*? on_response_headers/,
+    qr/\[info\] .*? on_log/
 ]
 --- no_error_log
 [error]
@@ -418,8 +418,8 @@ should not execute a log phase
 --- response_body
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers .*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers .*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? on_request_headers, \d+ headers.*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? on_response_headers, \d+ headers.*? subrequest: "\/subrequest"/,
 ]
 --- no_error_log eval
 [
@@ -451,9 +451,9 @@ Hello from main request body
 ok
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers .*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 28 bytes, .*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers .*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? on_request_headers, \d+ headers.*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? on_request_body, 28 bytes, .*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? on_response_headers, \d+ headers.*? subrequest: "\/subrequest"/,
 ]
 --- no_error_log eval
 [
@@ -480,9 +480,9 @@ ok
 ok
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers .*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_body, 21 bytes, .*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers .*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? on_request_headers, \d+ headers.*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? on_request_body, 21 bytes, .*? subrequest: "\/subrequest"/,
+    qr/\[info\] .*? on_response_headers, \d+ headers.*? subrequest: "\/subrequest"/,
 ]
 --- no_error_log eval
 [
@@ -512,12 +512,10 @@ should invoke wasm ops "done" phase to destroy proxy-wasm ctxid in "content" pha
 --- response_body
 ok
 ok
---- grep_error_log eval: qr/wasm ops resuming "(log|done)" phase/
+--- grep_error_log eval: qr/proxy_wasm resuming ".*?" filter in "(log|done)" phase/
 --- grep_error_log_out eval
-qr/wasm ops resuming "done" phase
-wasm ops resuming "done" phase
-wasm ops resuming "log" phase
-wasm ops resuming "done" phase
+qr/proxy_wasm resuming "on_phases" filter in "done" phase
+proxy_wasm resuming "on_phases" filter in "done" phase
 \Z/
 --- no_error_log eval
 [
@@ -550,19 +548,17 @@ should not invoke wasm ops "done" phase when subrequests are logged
 --- response_body
 ok
 ok
---- grep_error_log eval: qr/wasm ops resuming "(log|done)" phase/
+--- grep_error_log eval: qr/proxy_wasm resuming ".*?" filter in "(log|done)" phase/
 --- grep_error_log_out eval
-qr/wasm ops resuming "log" phase
-wasm ops resuming "done" phase
-wasm ops resuming "log" phase
-wasm ops resuming "done" phase
-wasm ops resuming "log" phase
-wasm ops resuming "done" phase
+qr/proxy_wasm resuming "on_phases" filter in "log" phase
+proxy_wasm resuming "on_phases" filter in "done" phase
+proxy_wasm resuming "on_phases" filter in "log" phase
+proxy_wasm resuming "on_phases" filter in "done" phase
 \Z/
 --- error_log eval
 [
-    qr/on_log .*? subrequest: "\/subrequest"/,
-    qr/on_log .*? subrequest: "\/subrequest"/,
+    qr/on_log.*? subrequest: "\/subrequest"/,
+    qr/on_log.*? subrequest: "\/subrequest"/,
 ]
 --- no_error_log eval
 [
@@ -596,10 +592,10 @@ A
 B
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers .*? subrequest: "\/subrequest\/a"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers .*? subrequest: "\/subrequest\/a"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers .*? subrequest: "\/subrequest\/b"/,
-    qr/\[info\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers .*? subrequest: "\/subrequest\/b"/,
+    qr/\[info\] .*? on_request_headers, \d+ headers.*? subrequest: "\/subrequest\/a"/,
+    qr/\[info\] .*? on_response_headers, \d+ headers.*? subrequest: "\/subrequest\/a"/,
+    qr/\[info\] .*? on_request_headers, \d+ headers.*? subrequest: "\/subrequest\/b"/,
+    qr/\[info\] .*? on_response_headers, \d+ headers.*? subrequest: "\/subrequest\/b"/,
 ]
 --- no_error_log
 [error]
@@ -622,20 +618,20 @@ POST /t
 Hello world
 --- response_body
 ok
---- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?(?=\s+<)/
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_body, 11 bytes, end_of_stream: true
-\[wasm\] #\d+ on_request_body, 11 bytes, end_of_stream: true
-\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] #\d+ on_response_body, 3 bytes, end_of_stream: false
-\[wasm\] #\d+ on_response_body, 3 bytes, end_of_stream: false
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream: true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream: true
-\[wasm\] #\d+ on_log
-\[wasm\] #\d+ on_log/
+qr/#\d+ on_request_headers, 3 headers.*
+#\d+ on_request_headers, 3 headers.*
+#\d+ on_request_body, 11 bytes, end_of_stream: true.*
+#\d+ on_request_body, 11 bytes, end_of_stream: true.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_body, 3 bytes, end_of_stream: false.*
+#\d+ on_response_body, 3 bytes, end_of_stream: false.*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_log.*
+#\d+ on_log.*/
 --- no_error_log
 [error]
 [crit]
@@ -654,14 +650,14 @@ should run each filter after the other within each phase
     location /t {
         return 200;
     }
---- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
-\[wasm\] #\d+ on_request_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_log .*?
-\[wasm\] #\d+ on_log .*?
+qr/#\d+ on_request_headers, \d+ headers.*
+#\d+ on_request_headers, \d+ headers.*
+#\d+ on_response_headers, \d+ headers.*
+#\d+ on_response_headers, \d+ headers.*
+#\d+ on_log .*
+#\d+ on_log .*
 /
 --- no_error_log
 [error]
@@ -682,14 +678,14 @@ should run each filter after the other within each phase
     location /t {
         return 200;
     }
---- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
-\[wasm\] #\d+ on_request_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_log .*?
-\[wasm\] #\d+ on_log .*?
+qr/#\d+ on_request_headers, \d+ headers.*
+#\d+ on_request_headers, \d+ headers.*
+#\d+ on_response_headers, \d+ headers.*
+#\d+ on_response_headers, \d+ headers.*
+#\d+ on_log.*
+#\d+ on_log.*
 /
 --- no_error_log
 [error]
@@ -701,7 +697,8 @@ stub
 
 
 === TEST 26: proxy_wasm - mixed filters in server{} and http{} blocks
-should not chain; instead, server{} overrides http{}
+should run root context of both filters
+should not chain in request; instead, server{} overrides http{}
 --- wasm_modules: on_phases
 --- http_config
     proxy_wasm on_phases 'log_msg=http';
@@ -711,11 +708,11 @@ should not chain; instead, server{} overrides http{}
     location /t {
         return 200;
     }
---- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_log .*?
+qr/#\d+ on_request_headers, \d+ headers.*
+#\d+ on_response_headers, \d+ headers.*
+#\d+ on_log.*
 /
 --- error_log eval
 qr/log_msg: server .*? request: "GET \/t\s+/
@@ -739,12 +736,12 @@ should not chain; instead, location{} overrides server{}
         proxy_wasm on_phases 'log_msg=location';
         return 200;
     }
---- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_body, \d+ bytes.*?
-\[wasm\] #\d+ on_log .*?
+qr/#\d+ on_request_headers, \d+ headers.*
+#\d+ on_response_headers, \d+ headers.*
+#\d+ on_response_body, \d+ bytes.*
+#\d+ on_log.*
 /
 --- error_log eval
 qr/log_msg: location .*? request: "GET \/t\s+/
@@ -770,12 +767,12 @@ should not chain; instead, location{} overrides server{}, server{} overrides htt
         proxy_wasm on_phases 'log_msg=location';
         return 200;
     }
---- grep_error_log eval: qr/\[wasm\] #\d+ on_(request|response|log).*?$/
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_headers, \d+ headers .*?
-\[wasm\] #\d+ on_response_body, \d+ bytes.*?
-\[wasm\] #\d+ on_log .*?
+qr/#\d+ on_request_headers, \d+ headers.*
+#\d+ on_response_headers, \d+ headers.*
+#\d+ on_response_body, \d+ bytes.*
+#\d+ on_log.*
 /
 --- error_log eval
 qr/log_msg: location .*? request: "GET \/t\s+/

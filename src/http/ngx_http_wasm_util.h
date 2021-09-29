@@ -14,7 +14,7 @@ typedef enum {
 } ngx_http_wasm_escape_kind;
 
 
-uintptr_t ngx_http_wasm_escape(u_char *dst, u_char *src, size_t size,
+ngx_uint_t ngx_http_wasm_escape(u_char *dst, u_char *src, size_t size,
     ngx_http_wasm_escape_kind kind);
 ngx_str_t *ngx_http_copy_escaped(ngx_str_t *dst, ngx_pool_t *pool,
     ngx_http_wasm_escape_kind kind);

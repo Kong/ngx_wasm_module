@@ -12,54 +12,6 @@
 #endif
 
 
-ngx_proxy_wasm_stream_ctx_t *
-ngx_proxy_wasm_host_get_sctx(ngx_wavm_instance_t *instance)
-{
-    ngx_proxy_wasm_stream_ctx_t  *sctx;
-
-    sctx = (ngx_proxy_wasm_stream_ctx_t *) instance->data;
-
-    return sctx;
-}
-
-
-ngx_proxy_wasm_filter_ctx_t *
-ngx_proxy_wasm_host_get_fctx(ngx_wavm_instance_t *instance)
-{
-    ngx_proxy_wasm_stream_ctx_t  *sctx;
-
-    sctx = ngx_proxy_wasm_host_get_sctx(instance);
-
-    return sctx->curr_filter_ctx;
-}
-
-
-#ifdef NGX_WASM_HTTP
-ngx_http_wasm_req_ctx_t *
-ngx_http_proxy_wasm_host_get_rctx(ngx_wavm_instance_t *instance)
-{
-    ngx_proxy_wasm_stream_ctx_t  *sctx;
-    ngx_http_wasm_req_ctx_t      *rctx;
-
-    sctx = ngx_proxy_wasm_host_get_sctx(instance);
-    rctx = (ngx_http_wasm_req_ctx_t *) sctx->data;
-
-    return rctx;
-}
-
-
-ngx_http_request_t *
-ngx_http_proxy_wasm_host_get_req(ngx_wavm_instance_t *instance)
-{
-    ngx_http_wasm_req_ctx_t  *rctx;
-
-    rctx = ngx_http_proxy_wasm_host_get_rctx(instance);
-
-    return rctx->r;
-}
-#endif
-
-
 static ngx_chain_t *
 ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_buffer_type_e buf_type, unsigned *none)
@@ -69,7 +21,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_http_request_t       *r;
 
-    rctx = ngx_http_proxy_wasm_host_get_rctx(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
     r = rctx->r;
 #endif
 
@@ -123,9 +75,9 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    uint32_t     log_level, msg_size;
-    u_char      *msg_data;
-    ngx_uint_t   level;
+    uint32_t                      log_level, msg_size;
+    u_char                       *msg_data;
+    ngx_uint_t                    level;
 
     log_level = args[0].of.i32;
     msg_data = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
@@ -162,8 +114,8 @@ ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
 
     }
 
-    ngx_wasm_log_error(level, instance->log, 0, "%*s",
-                       msg_size, msg_data);
+    ngx_log_error(level, instance->log_ctx.orig_log, 0, "%*s",
+                  msg_size, msg_data);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -179,7 +131,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     ngx_buf_t                     *buf;
     ngx_wavm_ptr_t                *rbuf, p;
     ngx_proxy_wasm_buffer_type_e   buf_type;
-    ngx_proxy_wasm_filter_ctx_t   *fctx = ngx_proxy_wasm_host_get_fctx(instance);
+    ngx_proxy_wasm_filter_ctx_t   *fctx = ngx_proxy_wasm_get_fctx(instance);
 
     buf_type = args[0].of.i32;
     offset = args[1].of.i32;
@@ -270,7 +222,7 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
     size_t                         offset, max;
     ngx_http_wasm_req_ctx_t       *rctx;
 
-    rctx = ngx_http_proxy_wasm_host_get_rctx(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
 
     offset = args[1].of.i32;
     max = args[2].of.i32;
@@ -330,7 +282,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_pairs(ngx_wavm_instance_t *instance,
     ngx_array_t                   extras;
     ngx_wavm_ptr_t               *rbuf;
     ngx_proxy_wasm_map_type_e     map_type;
-    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_host_get_fctx(instance);
+    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_get_fctx(instance);
 
     map_type = args[0].of.i32;
     rbuf = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
@@ -370,7 +322,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_filter_ctx_t  *fctx;
     ngx_proxy_wasm_map_type_e     map_type;
 
-    fctx = ngx_proxy_wasm_host_get_fctx(instance);
+    fctx = ngx_proxy_wasm_get_fctx(instance);
 
     map_type = args[0].of.i32;
     key.data = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
@@ -417,7 +369,7 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t    *rctx;
 
-    rctx =  ngx_http_proxy_wasm_host_get_rctx(instance);
+    rctx =  ngx_http_proxy_wasm_get_rctx(instance);
 #endif
 
     map_type = args[0].of.i32;
@@ -442,7 +394,7 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
         }
 
         rc = ngx_http_wasm_clear_req_headers(
-                 ngx_http_proxy_wasm_host_get_req(instance));
+                 ngx_http_proxy_wasm_get_req(instance));
         break;
 
     case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
@@ -455,7 +407,7 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
         }
 
         rc = ngx_http_wasm_clear_resp_headers(
-                 ngx_http_proxy_wasm_host_get_req(instance));
+                 ngx_http_proxy_wasm_get_req(instance));
         break;
 #endif
 
@@ -494,7 +446,7 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t    *rctx;
 
-    rctx = ngx_http_proxy_wasm_host_get_rctx(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
 #endif
 
     map_type = args[0].of.i32;
@@ -548,7 +500,7 @@ ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t    *rctx;
 
-    rctx = ngx_http_proxy_wasm_host_get_rctx(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
 #endif
 
     map_type = args[0].of.i32;
@@ -630,10 +582,12 @@ ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
 {
     uint32_t                      period = args[0].of.i32;
     ngx_event_t                  *ev;
-    ngx_proxy_wasm_stream_ctx_t  *sctx;
-    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_host_get_fctx(instance);
+    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_get_fctx(instance);
 
-    sctx = ngx_proxy_wasm_host_get_sctx(instance);
+    if (fctx->id != NGX_PROXY_WASM_ROOT_CTX_ID) {
+        /* ignore */
+        return ngx_proxy_wasm_result_ok(rets);
+    }
 
     if (ngx_exiting) {
         ngx_wavm_instance_trap_printf(instance, "process exiting");
@@ -653,8 +607,8 @@ ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
     }
 
     ev->handler = ngx_proxy_wasm_filter_tick_handler;
-    ev->data = sctx;
-    ev->log = sctx->log;
+    ev->data = fctx;
+    ev->log = fctx->log;
 
     ngx_add_timer(ev, fctx->filter->tick_period);
 
@@ -704,8 +658,8 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     ngx_http_request_t           *r;
     ngx_proxy_wasm_filter_ctx_t  *fctx;
 
-    rctx = ngx_http_proxy_wasm_host_get_rctx(instance);
-    fctx = ngx_proxy_wasm_host_get_fctx(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    fctx = ngx_proxy_wasm_get_fctx(instance);
     r = rctx->r;
 
     status = args[0].of.i32;
@@ -746,11 +700,11 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_badarg(rets);
 
     case NGX_BUSY:
-        return ngx_proxy_wasm_result_erap(fctx, "local response already stashed",
+        return ngx_proxy_wasm_result_trap(fctx, "local response already stashed",
                                           rets);
 
     case NGX_ABORT:
-        return ngx_proxy_wasm_result_erap(fctx, "response already sent", rets);
+        return ngx_proxy_wasm_result_trap(fctx, "response already sent", rets);
 
     default:
         /* unreachable */
@@ -770,10 +724,12 @@ ngx_proxy_wasm_hfuncs_get_configuration(ngx_wavm_instance_t *instance,
 {
     size_t                       *rlen;
     ngx_wavm_ptr_t               *rbuf, p;
-    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_host_get_fctx(instance);
+    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_get_fctx(instance);
 
     rbuf = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
     rlen = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
+
+    dd("fctx->filter->config.len: %ld", fctx->filter->config.len);
 
     if (fctx->filter->config.len) {
         p = ngx_proxy_wasm_alloc(fctx, fctx->filter->config.len);

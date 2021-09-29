@@ -34,10 +34,10 @@ cannot update response headers (Content-Length)
 Content-Length: 12
 --- response_body
 updated
---- grep_error_log eval: qr/\[wasm\] .*?(response body chunk).*?(?=\s+<)/
+--- grep_error_log eval: qr/\[info\] .*? response body chunk.*/
 --- grep_error_log_out eval
-qr/\[wasm\] response body chunk: "Hello world\\n"
-\[wasm\] response body chunk: "updated\\n"/
+qr/.*? response body chunk: "Hello world\\n".*
+.*? response body chunk: "updated\\n".*/
 --- error_log eval
 [
     qr/on_response_body, 12 bytes, end_of_stream true/,
@@ -72,16 +72,16 @@ Transfer-Encoding: chunked
 Content-Length:
 --- response_body
 updated
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_response_body|(response body chunk)).*/
+--- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_body, 6 bytes, end_of_stream false
-\[wasm\] response body chunk: "Hello\\n" .*?
-\[wasm\] #\d+ on_response_body, 6 bytes, end_of_stream false
-\[wasm\] #\d+ on_response_body, 8 bytes, end_of_stream false
-\[wasm\] response body chunk: "updated\\n" .*?
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
+qr/on_response_body, 6 bytes, end_of_stream false.*
+response body chunk: "Hello\\n".*
+on_response_body, 6 bytes, end_of_stream false.*
+on_response_body, 8 bytes, end_of_stream false.*
+response body chunk: "updated\\n".*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 0 bytes, end_of_stream true.*/
 --- no_error_log
 [warn]
 [error]
@@ -105,11 +105,11 @@ qr/\[wasm\] #\d+ on_response_body, 6 bytes, end_of_stream false
 Transfer-Encoding: chunked
 Content-Length:
 --- response_body chomp
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_response_body|(response body chunk)).*/
+--- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream false
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
+qr/on_response_body, 5 bytes, end_of_stream false.*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 0 bytes, end_of_stream true.*/
 --- no_error_log
 [error]
 [crit]
@@ -141,15 +141,15 @@ Transfer-Encoding: chunked
 Content-Length:
 --- response_body
 HelloWorld
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_response_body|(response body chunk)).*/
+--- grep_error_log eval: qr/(on_response_body,|(overriding\s)?response body chunk).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream false
-\[wasm\] overriding response body chunk while Content-Length header already sent.*?
-\[wasm\] #\d+ on_response_body, 11 bytes, end_of_stream false
-\[wasm\] response body chunk: "HelloWorld\\n" .*?
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
+qr/on_response_body, 5 bytes, end_of_stream false.*
+overriding response body chunk while Content-Length header already sent.*
+on_response_body, 11 bytes, end_of_stream false.*
+response body chunk: "HelloWorld\\n".*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 0 bytes, end_of_stream true.*/
 --- no_error_log
 [error]
 [crit]
@@ -198,26 +198,26 @@ Content-Length:
 hello wasm
 Goodbye
 hello     LAST
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_response_body|(response body chunk)).*/
+--- grep_error_log eval: qr/(on_response_body,|(overriding\s)?response body chunk).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
-\[wasm\] overriding response body chunk while Content-Length header already sent.*?
-\[wasm\] #\d+ on_response_body, 11 bytes, end_of_stream false
-\[wasm\] response body chunk: "hello wasm\\n" .*?
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
-\[wasm\] overriding response body chunk while Content-Length header already sent.*?
-\[wasm\] #\d+ on_response_body, 8 bytes, end_of_stream false
-\[wasm\] response body chunk: "Goodbye\\n" .*?
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream false
-\[wasm\] overriding response body chunk while Content-Length header already sent.*?
-\[wasm\] #\d+ on_response_body, 15 bytes, end_of_stream false
-\[wasm\] response body chunk: "hello     LAST\\n" .*?
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
+qr/on_response_body, 12 bytes, end_of_stream false.*
+overriding response body chunk while Content-Length header already sent.*
+on_response_body, 11 bytes, end_of_stream false.*
+response body chunk: "hello wasm\\n".*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 12 bytes, end_of_stream false.*
+overriding response body chunk while Content-Length header already sent.*
+on_response_body, 8 bytes, end_of_stream false.*
+response body chunk: "Goodbye\\n".*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 5 bytes, end_of_stream false.*
+overriding response body chunk while Content-Length header already sent.*
+on_response_body, 15 bytes, end_of_stream false.*
+response body chunk: "hello     LAST\\n".*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 0 bytes, end_of_stream true.*/
 --- no_error_log
 [error]
 [crit]
@@ -266,24 +266,24 @@ Content-Length:
 --- response_body
 hello was
 LAST
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ on_response_body|(response body chunk)).*/
+--- grep_error_log eval: qr/(on_response_body,|(overriding\s)?response body chunk).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
-\[wasm\] overriding response body chunk while Content-Length header already sent.*?
-\[wasm\] #\d+ on_response_body, 9 bytes, end_of_stream false
-\[wasm\] response body chunk: "hello was" .*?
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 12 bytes, end_of_stream false
-\[wasm\] overriding response body chunk while Content-Length header already sent.*?
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream false
-\[wasm\] overriding response body chunk while Content-Length header already sent.*?
-\[wasm\] #\d+ on_response_body, 5 bytes, end_of_stream false
-\[wasm\] response body chunk: "LAST\\n" .*?
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true/
+qr/on_response_body, 12 bytes, end_of_stream false.*
+overriding response body chunk while Content-Length header already sent.*
+on_response_body, 9 bytes, end_of_stream false.*
+response body chunk: "hello was".*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 12 bytes, end_of_stream false.*
+overriding response body chunk while Content-Length header already sent.*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 5 bytes, end_of_stream false.*
+overriding response body chunk while Content-Length header already sent.*
+on_response_body, 5 bytes, end_of_stream false.*
+response body chunk: "LAST\\n".*
+on_response_body, 0 bytes, end_of_stream true.*
+on_response_body, 0 bytes, end_of_stream true.*/
 --- no_error_log
 [error]
 [crit]
@@ -324,11 +324,14 @@ Transfer-Encoding: chunked
 Content-Length:
 --- response_body eval
 qr/500 Internal Server Error/
---- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
+--- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] \S+ \[wasm\] cannot set response body.*?
-\[error\] \S+ \[wasm\] cannot set response body.*?
-\[error\] \S+ \[wasm\] cannot set response body/
+qr/\[error\] .*? \[wasm\] cannot set response body.*
+\[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*
+\[error\] \S+ \[wasm\] cannot set response body.*
+\[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*
+\[error\] \S+ \[wasm\] cannot set response body.*
+\[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*/
 --- no_error_log
 [alert]
 [stderr]
