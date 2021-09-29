@@ -114,7 +114,7 @@ qr/\[emerg\] .*? invalid module path ""/
 >>> a.wat
 (module)
 --- error_log eval
-qr/\[emerg\] .*? module "a" already defined/
+qr/\[emerg\] .*? "a" module already defined/
 --- no_error_log
 [error]
 [crit]
@@ -164,7 +164,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] initializing "main" wasm VM/,
-    qr/\[emerg\] .*? \[wasm\] failed loading "a" module bytes: .*?Unexpected EOF/
+    qr/\[emerg\] .*? \[wasm\] failed loading "a" module bytes: .*?unexpected EOF/
 ]
 --- no_error_log
 [error]

@@ -84,7 +84,7 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] failed initializing "a" filter \(unknown ABI version\)/,
+    qr/\[crit\] .*? \[wasm\] failed initializing "a" filter \(unknown ABI version\)/,
     qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(unknown ABI version\)/
 ]
 --- no_error_log
@@ -175,7 +175,7 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] failed initializing "a" filter \(unknown ABI version\)/,
+    qr/\[crit\] .*? \[wasm\] failed initializing "a" filter \(unknown ABI version\)/,
     qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(unknown ABI version\)/
 ]
 --- no_error_log
@@ -186,6 +186,7 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 === TEST 8: proxy_wasm directive - incompatible ABI version
+--- skip_no_debug: 6
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -200,12 +201,12 @@ qr/\[emerg\] .*? invalid module name ""/
 >>> a.wat
 (module
   (func $nop)
-  (export "proxy_abi_version_0_2_0" (func $nop))
+  (export "proxy_abi_version_vnext" (func $nop))
 )
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] failed initializing "a" filter \(incompatible ABI version\)/,
+    qr/\[crit\] .*? \[wasm\] failed initializing "a" filter \(incompatible ABI version\)/,
     qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(incompatible ABI version\)/
 ]
 --- no_error_log

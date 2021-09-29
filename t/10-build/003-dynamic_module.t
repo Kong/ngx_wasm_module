@@ -19,7 +19,7 @@ __DATA__
 [
     qr/T _?ngx_wavm/,
     qr/T _?ngx_http_wasm/,
-    qr/U _?wasm_instance_new/,
+    qr/U _?wasm(time)?_store_new/,
 ]
 
 
@@ -32,5 +32,5 @@ __DATA__
 [
     qr/T _?ngx_wavm/,
     qr/T _?ngx_http_wasm/,
-    qr/T _?wasm_instance_new/,
+    qr/T _?wasm(time)?_store_new/,
 ]

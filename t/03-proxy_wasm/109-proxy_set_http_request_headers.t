@@ -124,15 +124,14 @@ CORE::join "\n", map { "Header$_: value-$_" } 1..20
 Connection: close
 Hello: world
 Welcome: wasm
---- grep_error_log eval: qr/\[(info|error|crit)\] .*?(?=(\s+<|,|\n))/
+--- grep_error_log eval: qr/\[(error|hostcalls)\] [^on_].*/
 --- grep_error_log_out eval
-qr/.*?
-\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders"
-\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders"
-\[info\] .*? \[wasm\] #\d+ entering "ResponseHeaders"
-\[error\] .*? \[wasm\] cannot set request headers: response produced
-\[info\] .*? \[wasm\] #\d+ entering "Log"
-\[error\] .*? \[wasm\] cannot set request headers: response produced/
+qr/.*? testing in "RequestHeaders".*
+.*? testing in "RequestHeaders".*
+.*? testing in "ResponseHeaders".*
+\[error\] .*? \[wasm\] cannot set request headers: response produced.*
+.*? testing in "Log".*
+\[error\] .*? \[wasm\] cannot set request headers: response produced.*/
 --- no_error_log
 [warn]
 [crit]

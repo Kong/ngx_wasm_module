@@ -22,13 +22,14 @@ ngx_http_copy_escaped(ngx_str_t *dst, ngx_pool_t *pool,
     escape = ngx_http_wasm_escape(NULL, data, len, kind);
     if (escape > 0) {
         /* null-terminated for ngx_http_header_filter */
-        dst->data = ngx_pnalloc(pool, len + 2 * escape + 1);
+        dst->len = len + 2 * escape;
+        dst->data = ngx_pnalloc(pool, dst->len + 1);
         if (dst->data == NULL) {
             return NULL;
         }
 
-        ngx_http_wasm_escape(dst->data, data, len, kind);
-        dst->len = len + 2 * escape;
+        (void) ngx_http_wasm_escape(dst->data, data, len, kind);
+
         dst->data[dst->len] = '\0';
     }
 

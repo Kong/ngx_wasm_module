@@ -76,14 +76,11 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
         for (j = 0; j < pipeline->ops->nelts; j++) {
             op = ((ngx_wasm_op_t **) pipeline->ops->elts)[j];
 
-            if (op->lmodule != NULL) {
+            if (op->init) {
                 continue;
             }
 
-            op->lmodule = ngx_wavm_module_link(op->module, op->host);
-            if (op->lmodule == NULL) {
-                return;
-            }
+            (void) ngx_wavm_module_link(op->module, op->host);
 
             switch (op->code) {
 
@@ -103,7 +100,6 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
 
             case NGX_WASM_OP_PROXY_WASM:
                 op->handler = &ngx_wasm_op_proxy_wasm_handler;
-                op->conf.proxy_wasm.filter->lmodule = op->lmodule;
                 op->conf.proxy_wasm.filter->max_filters =
                     &pipeline->nproxy_wasm;
 
@@ -118,6 +114,8 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
                 return;
 
             }
+
+            op->init = 1;
         }
 
         pipeline->init = 1;
@@ -143,6 +141,10 @@ ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine)
         for (j = 0; j < pipeline->ops->nelts; j++) {
             op = ((ngx_wasm_op_t **) pipeline->ops->elts)[j];
 
+            if (!op->init) {
+                continue;
+            }
+
             switch (op->code) {
 
             case NGX_WASM_OP_CALL:
@@ -158,6 +160,8 @@ ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine)
                 break;
 
             }
+
+            op->init = 0;
         }
     }
 }
@@ -231,11 +235,13 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
 
     pipeline = ctx->ops_engine->pipelines[phase->index];
 
+#if 0
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, ctx->log, 0,
                    "wasm ops resuming \"%V\" phase (idx: %ui, "
                    "nops: %ui, force_ops: %d)",
                    &phase->name, phaseidx, pipeline ? pipeline->ops->nelts : 0,
                    force_ops);
+#endif
 
     if (pipeline == NULL) {
         goto rc;
@@ -243,10 +249,6 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
 
     for (i = 0; i < pipeline->ops->nelts; i++) {
         op = ((ngx_wasm_op_t **) pipeline->ops->elts)[i];
-        if (op->lmodule == NULL) {
-            rc = NGX_ERROR;
-            goto rc;
-        }
 
         rc = op->handler(ctx, phase, op);
 
@@ -281,9 +283,11 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
 
 rc:
 
+#if 0
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->log, 0,
                    "wasm ops \"%V\" phase rc: %d",
                    &phase->name, rc);
+#endif
 
     return rc;
 }
@@ -308,8 +312,8 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
                    "wasm ops calling \"%V.%V\" in \"%V\" phase",
                    &op->module->name, &funcref->name, &phase->name);
 
-    instance = ngx_wavm_instance_create(op->lmodule, opctx->pool, opctx->log,
-                                        NULL, opctx->data);
+    instance = ngx_wavm_instance_create(op->module, opctx->pool, opctx->log,
+                                        opctx->data);
     if (instance == NULL) {
         return NGX_ERROR;
     }
@@ -343,8 +347,7 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
         return NGX_ERROR;
     }
 
-    rc = ngx_proxy_wasm_filter_ctx_err_code(filter->root_sctx.curr_filter_ctx,
-                                            filter->root_sctx.ecode);
+    rc = ngx_proxy_wasm_filter_ctx_err_code(&filter->root_fctx, phase);
     if (rc != NGX_OK) {
         return rc;
     }

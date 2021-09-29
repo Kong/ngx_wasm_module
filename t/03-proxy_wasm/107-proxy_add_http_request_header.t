@@ -34,10 +34,10 @@ should add a request header visible in the second filter
 Host: localhost
 Connection: close
 Hello: world
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -54,10 +54,10 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 Host: localhost
 Connection: close
 Hello:\s
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -76,10 +76,10 @@ Host: localhost
 Connection: close
 Hello: world
 Hello: world
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 4 headers.*/
 
 
 
@@ -98,10 +98,10 @@ Host: localhost
 Connection: close
 Hello: world
 Hello:\s
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 4 headers.*/
 
 
 
@@ -120,10 +120,10 @@ Host: localhost
 Connection: close
 Hello: world
 Hello: world
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -160,10 +160,10 @@ Connection: keep-alive
 Host: localhost
 Connection: keep-alive
 Connection: closed
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -179,10 +179,10 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 Host: localhost
 Connection: close
 Connection:\s
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -198,10 +198,10 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 Host: localhost
 Connection: close
 Content-Length: 0
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -276,10 +276,10 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length request header: 
 Host: localhost
 Connection: close
 User-Agent: Mozilla/5.0
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -316,10 +316,10 @@ qr/\[error\] .*? \[wasm\] cannot add new "User-Agent" builtin request header/
 Host: localhost
 Connection: close
 User-Agent:\s
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -336,10 +336,10 @@ pwm-add-req-header: If-Modified-Since=Wed, 21 Oct 2015 07:28:00 GMT
 Host: localhost
 Connection: close
 If-Modified-Since: Wed, 21 Oct 2015 07:28:00 GMT
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 4 headers.*/
 
 
 
@@ -376,10 +376,10 @@ qr/\[error\] .*? \[wasm\] cannot add new "If-Modified-Since" builtin request hea
 Host: localhost
 Connection: close
 If-Modified-Since:\s
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -395,10 +395,10 @@ qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
 Host: localhost
 Connection: close
 X-Forwarded-For: 10.0.0.2
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -417,10 +417,10 @@ Host: localhost
 Connection: close
 X-Forwarded-For: 10.0.0.1
 X-Forwarded-For: 10.0.0.2
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 4 headers.*/
 
 
 
@@ -438,10 +438,10 @@ pwm-add-req-header: User-Agent=MSIE 4.0
 Host: localhost
 Connection: close
 User-Agent: MSIE 4.0
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 4 headers.*/
 
 
 
@@ -459,10 +459,10 @@ pwm-add-req-header: User-Agent=MSIE 6.0
 Host: localhost
 Connection: close
 User-Agent: MSIE 6.0
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 4 headers.*/
 
 
 
@@ -479,10 +479,10 @@ should set r->headers_in.opera = 1 (coverage only)
 Host: localhost
 Connection: close
 User-Agent: Opera
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -499,10 +499,10 @@ should set r->headers_in.gecko = 1 (coverage only)
 Host: localhost
 Connection: close
 User-Agent: Gecko/
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -519,10 +519,10 @@ should set r->headers_in.chrome = 1 (coverage only)
 Host: localhost
 Connection: close
 User-Agent: Chrome/
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 
 
 
@@ -540,10 +540,10 @@ pwm-add-req-header: User-Agent=Safari/Mac OS X
 Host: localhost
 Connection: close
 User-Agent: Safari/Mac OS X
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 4 headers.*/
 
 
 
@@ -561,10 +561,10 @@ pwm-add-req-header: User-Agent=Konqueror
 Host: localhost
 Connection: close
 User-Agent: Konqueror
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 3 headers
-\[debug\] .*? \[wasm\] #\d+ on_request_headers, 4 headers/
+qr/.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 4 headers.*/
 
 
 
@@ -588,15 +588,14 @@ pwm-add-req-header: Hello=world
 --- response_body_like
 Hello: world
 Hello: world
---- grep_error_log eval: qr/\[(info|error|crit)\] .*?(?=(\s+<|,|\n))/
+--- grep_error_log eval: qr/\[(info|error)\] .*? (testing in|cannot add).*/
 --- grep_error_log_out eval
-qr/.*?
-\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders"
-\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders"
-\[info\] .*? \[wasm\] #\d+ entering "ResponseHeaders"
-\[error\] .*? \[wasm\] cannot add request header: response produced
-\[info\] .*? \[wasm\] #\d+ entering "Log"
-\[error\] .*? \[wasm\] cannot add request header: response produced/
+qr/.*? testing in "RequestHeaders".*
+.*? testing in "RequestHeaders".*
+.*? testing in "ResponseHeaders".*
+.*? cannot add request header: response produced.*
+.*? testing in "Log".*
+.*? cannot add request header: response produced.*/
 --- no_error_log
 [warn]
 [crit]

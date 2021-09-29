@@ -32,17 +32,16 @@ Transfer-Encoding: chunked\r
 Connection: close\r
 Hello: world\r
 Welcome: wasm\r
---- grep_error_log eval: qr/(\[info\] .*? \[wasm\] .*?(?=\s+<)|\[debug\] .*?on_response_headers.*)/
+--- grep_error_log eval: qr/(testing in|resp|on_response_headers,) .*/
 --- grep_error_log_out eval
-qr/.*?
-\[debug\] .*? \[wasm\] .*? on_response_headers, 5 headers
-\[info\] .*? \[wasm\] .*? entering "ResponseHeaders"
-\[debug\] .*? \[wasm\] .*? on_response_headers, 4 headers
-\[info\] .*? \[wasm\] .*? entering "ResponseHeaders"
-\[info\] .*? \[wasm\] resp Transfer-Encoding: chunked
-\[info\] .*? \[wasm\] resp Connection: close
-\[info\] .*? \[wasm\] resp Hello: world
-\[info\] .*? \[wasm\] resp Welcome: wasm/
+qr/on_response_headers, 5 headers.*
+testing in "ResponseHeaders".*
+on_response_headers, 4 headers.*
+testing in "ResponseHeaders".*
+resp Transfer-Encoding: chunked.*
+resp Connection: close.*
+resp Hello: world.*
+resp Welcome: wasm.*/
 --- no_error_log
 [error]
 [crit]
@@ -68,17 +67,16 @@ Content-Type: text\/none\r
 Transfer-Encoding: chunked\r
 Connection: close\r
 Server: proxy-wasm\r
---- grep_error_log eval: qr/(\[info\] .*? \[wasm\] .*?(?=\s+<)|\[debug\] .*?on_response_headers.*)/
+--- grep_error_log eval: qr/(testing in|resp|on_response_headers,) .*/
 --- grep_error_log_out eval
-qr/.*?
-\[debug\] .*? \[wasm\] .*? on_response_headers, 4 headers
-\[info\] .*? \[wasm\] .*? entering "ResponseHeaders"
-\[debug\] .*? \[wasm\] .*? on_response_headers, 4 headers
-\[info\] .*? \[wasm\] .*? entering "ResponseHeaders"
-\[info\] .*? \[wasm\] resp Content-Type: text\/none
-\[info\] .*? \[wasm\] resp Transfer-Encoding: chunked
-\[info\] .*? \[wasm\] resp Connection: close
-\[info\] .*? \[wasm\] resp Server: proxy-wasm/
+qr/on_response_headers, 4 headers.*
+testing in "ResponseHeaders".*
+on_response_headers, 4 headers.*
+testing in "ResponseHeaders".*
+resp Content-Type: text\/none.*
+resp Transfer-Encoding: chunked.*
+resp Connection: close.*
+resp Server: proxy-wasm.*/
 --- no_error_log
 [error]
 [crit]
@@ -130,12 +128,13 @@ should log an error (but no trap) when headers are sent
 --- response_headers
 From: response_headers
 --- ignore_response_body
---- grep_error_log eval: qr/\[(error|info)\] .*? \[wasm\] .*/
+--- grep_error_log eval: qr/(\[error\]|testing in) .*/
 --- grep_error_log_out eval
-qr/.*?
-\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders" .*?
-\[info\] .*? \[wasm\] #\d+ entering "ResponseHeaders" .*?
-\[info\] .*? \[wasm\] #\d+ entering "Log" .*?
+qr/testing in "RequestHeaders".*
+testing in "ResponseHeaders".*
+testing in "ResponseBody".*
+\[error\] .*? \[wasm\] cannot set response headers: headers already sent.*
+testing in "Log".*
 \[error\] .*? \[wasm\] cannot set response headers: headers already sent/
 --- no_error_log
 [warn]

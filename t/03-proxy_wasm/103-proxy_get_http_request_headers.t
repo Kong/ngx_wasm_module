@@ -98,7 +98,7 @@ Connection: close
 --- error_log eval
 [
     qr/\[warn\] .*? marshalled map truncated to 100 elements/,
-    qr/\[debug\] .*? on_request_headers, 107 headers/
+    qr/on_request_headers, 107 headers/
 ]
 --- no_error_log
 [error]
@@ -154,10 +154,10 @@ Connection: close
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ entering "RequestHeaders"/,
-    qr/\[info\] .*? \[wasm\] Host: localhost/,
-    qr/\[wasm\] #\d+ entering "ResponseHeaders"/,
-    qr/\[info\] .*? \[wasm\] Host: localhost/,
+    qr/testing in "RequestHeaders"/,
+    qr/\[info\] .*? Host: localhost/,
+    qr/testing in "ResponseHeaders"/,
+    qr/\[info\] .*? Host: localhost/,
 ]
 --- no_error_log
 [error]
@@ -176,8 +176,8 @@ Connection: close
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ entering "Log"/,
-    qr/\[info\] .*? \[wasm\] Host: localhost/,
+    qr/testing in "Log"/,
+    qr/\[info\] .*? Host: localhost/,
 ]
 --- no_error_log
 [error]

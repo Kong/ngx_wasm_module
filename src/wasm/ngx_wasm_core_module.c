@@ -12,8 +12,6 @@ static char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 static char *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
 static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
 static ngx_int_t ngx_wasm_core_init_process(ngx_cycle_t *cycle);
-static void ngx_wasm_core_exit_process(ngx_cycle_t *cycle);
-static void ngx_wasm_core_exit_master(ngx_cycle_t *cycle);
 
 extern ngx_wavm_host_def_t  ngx_wasm_core_interface;
 
@@ -62,18 +60,33 @@ ngx_module_t  ngx_wasm_core_module = {
     ngx_wasm_core_init_process,            /* init process */
     NULL,                                  /* init thread */
     NULL,                                  /* exit thread */
-    ngx_wasm_core_exit_process,            /* exit process */
-    ngx_wasm_core_exit_master,             /* exit master */
+    NULL,                                  /* exit process */
+    NULL,                                  /* exit master */
     NGX_MODULE_V1_PADDING
 };
+
+
+ngx_inline ngx_wavm_t *
+ngx_wasm_main_vm(ngx_cycle_t *cycle)
+{
+    ngx_wasm_core_conf_t  *wcf;
+
+    wcf = ngx_wasm_core_cycle_get_conf(cycle);
+    if (wcf == NULL) {
+        return NULL;
+    }
+
+    return wcf->vm;
+}
 
 
 static void
 ngx_wasm_core_cleanup_pool(void *data)
 {
     ngx_cycle_t  *cycle = data;
+    ngx_wavm_t   *vm = ngx_wasm_main_vm(cycle);
 
-    ngx_wasm_core_exit_process(cycle);
+    ngx_wavm_destroy(vm);
 }
 
 
@@ -134,7 +147,7 @@ ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (rc != NGX_OK) {
         if (rc == NGX_DECLINED) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "[wasm] module \"%V\" already defined", name);
+                               "[wasm] \"%V\" module already defined", name);
         }
 
         /* NGX_ERROR, NGX_ABORT */
@@ -184,38 +197,4 @@ ngx_wasm_core_init_process(ngx_cycle_t *cycle)
     ngx_wavm_load(vm);
 
     return NGX_OK;
-}
-
-
-static void
-ngx_wasm_core_exit_process(ngx_cycle_t *cycle)
-{
-    ngx_wasm_core_conf_t  *wcf;
-
-    wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    if (wcf && wcf->vm) {
-        ngx_wavm_destroy(wcf->vm);
-        wcf->vm = NULL;
-    }
-}
-
-
-static void
-ngx_wasm_core_exit_master(ngx_cycle_t *cycle)
-{
-    ngx_wasm_core_exit_process(cycle);
-}
-
-
-ngx_inline ngx_wavm_t *
-ngx_wasm_main_vm(ngx_cycle_t *cycle)
-{
-    ngx_wasm_core_conf_t  *wcf;
-
-    wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    if (wcf == NULL) {
-        return NULL;
-    }
-
-    return wcf->vm;
 }

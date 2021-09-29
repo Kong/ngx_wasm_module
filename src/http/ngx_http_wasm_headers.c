@@ -62,7 +62,6 @@ ngx_http_wasm_set_header(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-
     if (value && ngx_http_copy_escaped(value, r->pool,
                                        NGX_HTTP_WASM_ESCAPE_HEADER_VALUE)
         == NULL)

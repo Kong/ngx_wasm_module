@@ -24,10 +24,10 @@ __DATA__
 Host: localhost
 Connection: close
 Hello: wasm
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 2 headers
-\[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 --- no_error_log
 [error]
 [crit]
@@ -46,10 +46,10 @@ qr/\[wasm\] #\d+ on_request_headers, 2 headers
 Host: localhost
 Connection: close
 hello: wasm
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 2 headers
-\[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 3 headers.*/
 --- no_error_log
 [error]
 [crit]
@@ -116,12 +116,12 @@ Hello: invalid
 Host: localhost
 Connection: close
 Hello: wasm
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 3 headers.*/
 --- no_error_log
 [error]
 [crit]
@@ -147,11 +147,12 @@ qr/\[wasm\] #\d+ on_request_headers, 3 headers
 qq{Host: localhost
 }.(CORE::join "\n", map { "Header$_: value-$_" } 1..20)
 . "\nConnection: close\n"
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 22 headers
-\[wasm\] #\d+ on_request_headers, 22 headers
-\[wasm\] #\d+ on_request_headers, 22 headers/
+qr/.*? on_request_headers, 22 headers.*
+.*? on_request_headers, 22 headers.*
+.*? on_request_headers, 22 headers.*
+.*? on_request_headers, 22 headers.*/
 --- no_error_log
 [error]
 [crit]
@@ -175,11 +176,11 @@ Connection: close
 --- response_body
 Host: localhost
 Connection: keep-alive
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 2 headers
-\[wasm\] #\d+ on_request_headers, 2 headers
-\[wasm\] #\d+ on_request_headers, 2 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 2 headers.*/
 --- no_error_log
 [error]
 [crit]
@@ -199,11 +200,11 @@ qr/\[wasm\] #\d+ on_request_headers, 2 headers
 --- response_body
 Host: localhost
 Connection: closed
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 2 headers
-\[wasm\] #\d+ on_request_headers, 2 headers
-\[wasm\] #\d+ on_request_headers, 2 headers/
+qr/.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 2 headers.*/
 --- no_error_log
 [error]
 [crit]
@@ -226,11 +227,11 @@ Content-Length: 10
 Host: localhost
 Connection: close
 Content-Length: 0
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 3 headers/
+qr/.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 3 headers.*/
 --- no_error_log
 [error]
 [crit]
@@ -252,11 +253,11 @@ Content-Length: 10
 --- response_body
 Host: localhost
 Connection: close
---- grep_error_log eval: qr/\[wasm\].*? #\d+ on_request_headers.*/
+--- grep_error_log eval: qr/\[hostcalls\] on_request_headers.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_request_headers, 3 headers
-\[wasm\] #\d+ on_request_headers, 2 headers
-\[wasm\] #\d+ on_request_headers, 2 headers/
+qr/.*? on_request_headers, 3 headers.*
+.*? on_request_headers, 2 headers.*
+.*? on_request_headers, 2 headers.*/
 --- no_error_log
 [error]
 [crit]
@@ -288,7 +289,7 @@ qq{
 --- response_body
 /test
 --- error_log
-[wasm] path: /test
+path: /test
 --- no_error_log
 [error]
 [crit]
@@ -377,15 +378,14 @@ should log an error (but no trap) when response is produced
 From: client
 --- response_body_like
 From: request_headers
---- grep_error_log eval: qr/\[(info|error|crit)\] .*?(?=(\s+<|,|\n))/
+--- grep_error_log eval: qr/\[(error|hostcalls)\] [^on_].*/
 --- grep_error_log_out eval
-qr/.*?
-\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders"
-\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders"
-\[info\] .*? \[wasm\] #\d+ entering "ResponseHeaders"
-\[error\] .*? \[wasm\] cannot set request header: response produced
-\[info\] .*? \[wasm\] #\d+ entering "Log"
-\[error\] .*? \[wasm\] cannot set request header: response produced/
+qr/.*? testing in "RequestHeaders".*
+.*? testing in "RequestHeaders".*
+.*? testing in "ResponseHeaders".*
+\[error\] .*? \[wasm\] cannot set request header: response produced.*
+.*? testing in "Log".*
+\[error\] .*? \[wasm\] cannot set request header: response produced.*/
 --- no_error_log
 [crit]
 [alert]

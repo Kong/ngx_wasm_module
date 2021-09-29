@@ -51,12 +51,13 @@ struct ngx_wasm_op_s {
     ngx_wasm_op_handler_pt                   handler;
     ngx_wavm_host_def_t                     *host;
     ngx_wavm_module_t                       *module;
-    ngx_wavm_linked_module_t                *lmodule;
 
     union {
         ngx_wasm_op_call_t                   call;
         ngx_wasm_op_proxy_wasm_t             proxy_wasm;
     } conf;
+
+    unsigned                                 init:1;
 };
 
 

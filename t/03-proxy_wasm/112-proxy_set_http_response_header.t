@@ -25,12 +25,11 @@ __DATA__
     }
 --- response_headers
 Hello: world
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*/
+--- grep_error_log eval: qr/(resp Hello|on_response_headers,).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp Hello: world .*?
-\z/
+qr/on_response_headers, 5 headers.*
+on_response_headers, 6 headers.*
+resp Hello: world.*/
 --- no_error_log
 [error]
 [crit]
@@ -50,12 +49,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
     }
 --- response_headers
 Hello: world
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp [Hh]ello).*/
+--- grep_error_log eval: qr/(resp hello|on_response_headers,).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp hello: world .*?
-\z/
+qr/on_response_headers, 5 headers.*
+on_response_headers, 6 headers.*
+resp hello: world.*/
 --- no_error_log
 [error]
 [crit]
@@ -77,10 +75,10 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
     }
 --- response_headers_like
 Hello:
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp [Hh]ello).*/
+--- grep_error_log eval: qr/(resp [Hh]ello|on_response_headers,).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] #\d+ on_response_headers, 5 headers
+qr/on_response_headers, 6 headers.*
+on_response_headers, 5 headers.*
 \z/
 --- no_error_log
 [error]
@@ -106,13 +104,12 @@ qr/\[wasm\] #\d+ on_response_headers, 6 headers
     }
 --- response_headers
 Hello: wasm
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Hello).*/
+--- grep_error_log eval: qr/(resp [Hh]ello|on_response_headers,).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp Hello: wasm .*?
-\z/
+qr/on_response_headers, 6 headers.*
+on_response_headers, 6 headers.*
+on_response_headers, 6 headers.*
+resp Hello: wasm.*/
 --- no_error_log
 [error]
 [crit]
@@ -137,13 +134,12 @@ qr/\[wasm\] #\d+ on_response_headers, 6 headers
     }
 --- response_headers
 hello: wasm
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp [Hh]ello).*/
+--- grep_error_log eval: qr/(resp [Hh]ello|on_response_headers,).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp hello: wasm .*?
-\z/
+qr/on_response_headers, 6 headers.*
+on_response_headers, 6 headers.*
+on_response_headers, 6 headers.*
+resp hello: wasm.*/
 --- no_error_log
 [error]
 [crit]
@@ -165,12 +161,11 @@ qr/\[wasm\] #\d+ on_response_headers, 6 headers
 Connection: keep-alive
 --- response_headers
 Connection: close
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Connection).*/
+--- grep_error_log eval: qr/(resp Connection|on_response_headers,).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] resp Connection: close .*?
-\z/
+qr/on_response_headers, 5 headers.*
+on_response_headers, 5 headers.*
+resp Connection: close.*/
 --- no_error_log
 [error]
 [crit]
@@ -193,12 +188,11 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 Connection: upgrade
 --- error_log eval
 qr/\[wasm\] setting "Connection: upgrade" response header, switching status code: 101/
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Connection).*/
+--- grep_error_log eval: qr/(resp Connection|on_response_headers,).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] resp Connection: upgrade .*?
-\z/
+qr/on_response_headers, 5 headers.*
+on_response_headers, 5 headers.*
+resp Connection: upgrade.*/
 --- no_error_log
 [error]
 
@@ -207,6 +201,7 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 === TEST 8: proxy_wasm - set_http_response_header() sets Connection header (keep-alive)
 --- timeout_no_valgrind: 1s
 --- abort
+--- timeout: 1s
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -225,13 +220,13 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
 Connection: close
 --- response_headers
 Connection: keep-alive
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ entering)|resp Connection).*/
+--- grep_error_log eval: qr/(resp Connection|testing in).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ entering "ResponseHeaders" .*?
-\[wasm\] #\d+ entering "ResponseHeaders" .*?
-\[wasm\] resp Connection: keep-alive .*?
-\[wasm\] #\d+ entering "Log" .*?
-\[wasm\] resp Connection: keep-alive .*/
+qr/testing in "ResponseHeaders".*
+testing in "ResponseHeaders".*
+resp Connection: keep-alive.*
+testing in "Log".*
+resp Connection: keep-alive.*/
 --- no_error_log
 [error]
 [crit]
@@ -254,11 +249,10 @@ Connection: close
 Connection: close
 --- error_log eval
 qr/\[error\] .*? \[wasm\] attempt to set invalid Connection response header: "unknown"/
---- grep_error_log eval: qr/\[wasm\] #\d+ (on_response_[a-z]+).*/
+--- grep_error_log eval: qr/\[hostcalls\] on_response_[a-z]+.*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_headers, 5 headers
-\[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\z/
+qr/.*? on_response_headers, 5 headers.*
+.*? on_response_body, 0 bytes, end_of_stream true.*/
 
 
 
@@ -277,11 +271,10 @@ qr/\[wasm\] #\d+ on_response_headers, 5 headers
     }
 --- response_headers
 Last-Modified:
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Last-Modified).*/
+--- grep_error_log eval: qr/(resp Last-Modified|on_response_headers,).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] #\d+ on_response_headers, 5 headers
-\z/
+qr/on_response_headers, 6 headers.*
+on_response_headers, 5 headers.*/
 --- no_error_log
 [error]
 [crit]
@@ -306,12 +299,11 @@ pwm-set-resp-header: Cache-Control=no-cache
 --- response_headers
 Cache-Control: no-cache
 --- response_body
---- grep_error_log eval: qr/\[wasm\].*? ((#\d+ on_response_headers)|resp Cache-Control).*/
+--- grep_error_log eval: qr/(resp Cache-Control|on_response_headers,).*/
 --- grep_error_log_out eval
-qr/\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] #\d+ on_response_headers, 6 headers
-\[wasm\] resp Cache-Control: no-cache .*?
-\z/
+qr/on_response_headers, 6 headers.*
+on_response_headers, 6 headers.*
+resp Cache-Control: no-cache.*/
 --- no_error_log
 [error]
 
@@ -342,13 +334,14 @@ should log an error (but no trap) when headers are sent
 --- response_headers
 From: response_headers
 --- ignore_response_body
---- grep_error_log eval: qr/\[(error|info)\] .*? \[wasm\] .*/
+--- grep_error_log eval: qr/\[(error|hostcalls)\] [^on_].*/
 --- grep_error_log_out eval
-qr/.*?
-\[info\] .*? \[wasm\] #\d+ entering "RequestHeaders" .*?
-\[info\] .*? \[wasm\] #\d+ entering "ResponseHeaders" .*?
-\[info\] .*? \[wasm\] #\d+ entering "Log" .*?
-\[error\] .*? \[wasm\] cannot set response header: headers already sent/
+qr/.*? testing in "RequestHeaders".*
+.*? testing in "ResponseHeaders".*
+.*? testing in "ResponseBody".*
+\[error\] .*? \[wasm\] cannot set response header: headers already sent.*
+.*? testing in "Log".*
+\[error\] .*? \[wasm\] cannot set response header: headers already sent.*/
 --- no_error_log
 [warn]
 [crit]

@@ -23,7 +23,7 @@ __DATA__
     }
 --- response_body
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #0 on_vm_start, config_size: 0/
+qr/\[info\] .*? on_vm_start, config_size: 0/
 --- no_error_log
 [error]
 [crit]
@@ -39,7 +39,7 @@ qr/\[info\] .*? \[wasm\] #0 on_vm_start, config_size: 0/
     }
 --- response_body
 --- error_log eval
-qr/\[info\] .*? \[wasm\] #0 on_configure, config_size: 0/
+qr/\[info\] .*? on_configure, config_size: 0/
 --- no_error_log
 [error]
 [crit]
@@ -56,8 +56,8 @@ qr/\[info\] .*? \[wasm\] #0 on_configure, config_size: 0/
 --- response_body
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] #0 on_configure, config_size: 17/,
-    qr/\[info\] .*? \[wasm\] #0 config: \{"foo": "bar", "key": "value"\}/
+    qr/\[info\] .*? #0 on_configure, config_size: 17/,
+    qr/\[info\] .*? #0 config: key=value foo=bar/
 ]
 --- no_error_log
 [error]

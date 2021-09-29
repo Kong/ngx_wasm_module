@@ -115,7 +115,7 @@ Content-Length: 0\r
 Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_response_headers, 4 headers/
+qr/\[info\] .*? on_response_headers, 4 headers/
 --- no_error_log
 [error]
 [crit]
@@ -140,12 +140,13 @@ Content-Length: 0\r
 Server: [\S\s]+\r
 Date: .*? GMT\r
 --- response_body
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] .*/
+--- grep_error_log eval: qr/\[hostcalls\] .*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_response_headers, 5 headers
-\[debug\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[debug\] .*? \[wasm\] #\d+ on_log/
+qr/.*? on_request_headers, 2 headers, .*
+.*? testing in "RequestHeaders", .*
+.*? on_response_headers, 5 headers, .*
+.*? on_response_body, 0 bytes, end_of_stream true, .*
+.*? on_log.*/
 --- no_error_log
 [error]
 [crit]
@@ -167,7 +168,7 @@ Content-Length: 0\r
 Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
+qr/\[info\] .*? on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
@@ -208,7 +209,7 @@ Content-Length: 12\r
 Server: [\S\s]+\r
 Date: [\S\s]+\r
 --- error_log eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_response_headers, 5 headers/
+qr/\[info\] .*? on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
@@ -244,12 +245,13 @@ E-Tag: 377060cd8c284d8af7ad3082f20958d2\r
 Cache-Control: no-cache\r
 Link: <\/feed>; rel="alternate"\r
 --- ignore_response_body
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] .*/
+--- grep_error_log eval: qr/\[hostcalls\] .*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, 2 headers
-\[debug\] .*? \[wasm\] #\d+ on_response_headers, 16 headers
-\[debug\] .*? \[wasm\] #\d+ on_response_body, 0 bytes, end_of_stream true
-\[debug\] .*? \[wasm\] #\d+ on_log/
+qr/.*? on_request_headers, 2 headers, .*
+.*? testing in "RequestHeaders", .*
+.*? on_response_headers, 16 headers, .*
+.*? on_response_body, 0 bytes, end_of_stream true, .*
+.*? on_log.*/
 --- no_error_log
 [error]
 [crit]
@@ -292,8 +294,8 @@ Content-Type: text/plain
 Hello world
 --- error_log eval
 [
-    qr/\[wasm\] #\d+ entering "RequestHeaders"/,
-    qr/\[debug\] .*? \[wasm\] #\d+ on_log/
+    qr/testing in "RequestHeaders"/,
+    qr/\[info\] .*? on_log/
 ]
 --- no_error_log
 [error]
@@ -313,10 +315,11 @@ should produce a trap
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[wasm\] #\d+ entering "ResponseHeaders"/
---- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
+qr/testing in "ResponseHeaders"/
+--- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] .*? \[wasm\] response already sent.*?/
+qr/\[error\] .*? \[wasm\] response already sent.*
+\[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*/
 --- no_error_log
 [alert]
 stub
@@ -336,12 +339,13 @@ should produce a trap in log phase
 --- response_body
 ok
 --- error_log eval
-qr/\[wasm\] #\d+ entering "Log"/
---- grep_error_log eval: qr/\[(error|crit)\] .*?(?=(\s+<|,|\n))/
+qr/testing in "Log"/
+--- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] .*? \[wasm\] response already sent/
+qr/\[error\] .*? \[wasm\] response already sent.*
+\[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*/
 --- no_error_log
-[crit]
+[emerg]
 [alert]
 
 
@@ -408,15 +412,16 @@ should still run all response phases
     }
 --- response_body
 Hello world
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] .*/
+--- grep_error_log eval: qr/\[hostcalls\] .*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers
-\[debug\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers
-\[debug\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers
-\[debug\] .*? \[wasm\] #\d+ on_response_body, \d+ bytes, end_of_stream true
-\[debug\] .*? \[wasm\] #\d+ on_response_body, \d+ bytes, end_of_stream true
-\[debug\] .*? \[wasm\] #\d+ on_log
-\[debug\] .*? \[wasm\] #\d+ on_log/
+qr/.*? on_request_headers, \d+ headers.*
+.*? testing in "RequestHeaders".*
+.*? on_response_headers, \d+ headers.*
+.*? on_response_headers, \d+ headers.*
+.*? on_response_body, \d+ bytes, end_of_stream true.*
+.*? on_response_body, \d+ bytes, end_of_stream true.*
+.*? on_log.*
+.*? on_log.*/
 --- no_error_log
 [error]
 [crit]
@@ -443,14 +448,15 @@ should not have a log phase (subrequest)
 --- response_body
 ok
 Hello world
---- grep_error_log eval: qr/\[debug\] .*? \[wasm\] .*/
+--- grep_error_log eval: qr/\[hostcalls\] .*/
 --- grep_error_log_out eval
-qr/\[debug\] .*? \[wasm\] #\d+ on_request_headers, \d+ headers
-\[debug\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers
-\[debug\] .*? \[wasm\] #\d+ on_response_headers, \d+ headers
-\[debug\] .*? \[wasm\] #\d+ on_response_body, \d+ bytes, end_of_stream true
-\[debug\] .*? \[wasm\] #\d+ on_response_body, \d+ bytes, end_of_stream true/
+qr/.*? on_request_headers, \d+ headers.*
+.*? testing in "RequestHeaders".*
+.*? on_response_headers, \d+ headers.*
+.*? on_response_headers, \d+ headers.*
+.*? on_response_body, \d+ bytes, end_of_stream true.*
+.*? on_response_body, \d+ bytes, end_of_stream true.*/
 --- no_error_log
-on_log
+\s+on_log\s+
 [error]
 [crit]

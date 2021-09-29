@@ -361,11 +361,11 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "wasm finalizing? (rc: %d, rctx->resp_sent_last: %d)",
-                   rc, rctx->resp_sent_last);
-
     if (rctx->resp_sent_last) {
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm finalizing (rc: %d, resp_finalized: %d)",
+                       rc, rctx->resp_finalized);
+
         rc = NGX_DONE;
 
         if (!rctx->resp_finalized) {
@@ -420,8 +420,12 @@ ngx_http_wasm_preaccess_handler(ngx_http_request_t *r)
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_PREACCESS_PHASE, 0);
+    rc = ngx_http_wasm_check_finalize(rctx, rc);
 
-    return ngx_http_wasm_check_finalize(rctx, rc);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "wasm \"preaccess\" phase rc: %d", rc);
+
+    return rc;
 }
 
 
@@ -437,8 +441,12 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_ACCESS_PHASE, 0);
+    rc = ngx_http_wasm_check_finalize(rctx, rc);
 
-    return ngx_http_wasm_check_finalize(rctx, rc);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "wasm \"access\" phase rc: %d", rc);
+
+    return rc;
 }
 #endif
 
@@ -454,7 +462,7 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc != NGX_OK) {
-        return rc;
+        goto done;
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE, 0);
@@ -463,9 +471,9 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
         || rc == NGX_DONE
         || rc == NGX_AGAIN)
     {
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm \"content\" phase rc: %d (content produced)", rc);
-        return rc;
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm \"content\" phase: content already produced");
+        goto done;
     }
 
     ngx_wasm_assert(rc == NGX_OK || rc == NGX_DECLINED);
@@ -514,6 +522,8 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
         /* subrequest */
         (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_DONE_PHASE, 0);
     }
+
+done:
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm \"content\" phase rc: %d", rc);

@@ -46,23 +46,23 @@ response
                               test=/t/log/response_headers';
     }
 --- ignore_response_body
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] resp Transfer-Encoding: chunked
-\[wasm\] resp Connection: close
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp Content-Type: text\/plain
-\[wasm\] resp Transfer-Encoding: chunked
-\[wasm\] resp Connection: close
-\[wasm\] resp Server: nginx.*?
-\[wasm\] resp Date: .*? GMT
-\[wasm\] .*? entering "Log"
-\[wasm\] resp Content-Type: text\/plain
-\[wasm\] resp Transfer-Encoding: chunked
-\[wasm\] resp Connection: close
-\[wasm\] resp Server: nginx.*?
-\[wasm\] resp Date: .*? GMT/
+qr/testing in "RequestHeaders".*
+resp Transfer-Encoding: chunked.*
+resp Connection: close.*
+testing in "ResponseHeaders".*
+resp Content-Type: text\/plain.*
+resp Transfer-Encoding: chunked.*
+resp Connection: close.*
+resp Server: nginx.*
+resp Date: .*? GMT.*
+testing in "Log".*
+resp Content-Type: text\/plain.*
+resp Transfer-Encoding: chunked.*
+resp Connection: close.*
+resp Server: nginx.*
+resp Date: .*? GMT.*/
 
 
 
@@ -83,26 +83,26 @@ qr/\[wasm\] .*? entering "RequestHeaders"
         return 200;
     }
 --- ignore_response_body
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp Content-Type: text\/plain
-\[wasm\] resp Content-Length: 0
-\[wasm\] resp Connection: close
-\[wasm\] resp Hello: world
-\[wasm\] resp Server: nginx.*?
-\[wasm\] resp Date: .*? GMT
-\[wasm\] resp Hello: world
-\[wasm\] .*? entering "Log"
-\[wasm\] resp Content-Type: text\/plain
-\[wasm\] resp Content-Length: 0
-\[wasm\] resp Connection: close
-\[wasm\] resp Hello: world
-\[wasm\] resp Server: nginx.*?
-\[wasm\] resp Date: .*? GMT
-\[wasm\] resp Hello: world/
+qr/testing in "RequestHeaders".*
+testing in "ResponseHeaders".*
+testing in "ResponseHeaders".*
+resp Content-Type: text\/plain.*
+resp Content-Length: 0.*
+resp Connection: close.*
+resp Hello: world.*
+resp Server: nginx.*
+resp Date: .*? GMT.*
+resp Hello: world.*
+testing in "Log".*
+resp Content-Type: text\/plain.*
+resp Content-Length: 0.*
+resp Connection: close.*
+resp Hello: world.*
+resp Server: nginx.*
+resp Date: .*? GMT.*
+resp Hello: world.*/
 
 
 
@@ -126,7 +126,7 @@ qq^
 --- error_log eval
 [
     qr/\[warn\] .*? marshalled map truncated to 100 elements/,
-    qr/\[debug\] .*? on_response_headers, 106 headers/
+    qr/on_response_headers, 106 headers/
 ]
 --- no_error_log
 [error]

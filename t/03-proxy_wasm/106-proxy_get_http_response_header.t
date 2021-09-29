@@ -27,7 +27,7 @@ __DATA__
 --- response_headers
 Hello: world
 --- error_log eval
-qr/\[wasm\] resp header "hello: world"/
+qr/resp header "hello: world"/
 --- no_error_log
 [error]
 [crit]
@@ -82,14 +82,14 @@ should produce a result in: on_request_headers, on_response_header, on_log
 Hello: there
 --- response_body
 ok
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] resp header "hello: there"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp header "hello: there"
-\[wasm\] .*? entering "Log"
-\[wasm\] resp header "hello: there"/
+qr/testing in "RequestHeaders".*
+resp header "hello: there".*
+testing in "ResponseHeaders".*
+resp header "hello: there".*
+testing in "Log".*
+resp header "hello: there".*/
 --- no_error_log
 [error]
 
@@ -118,13 +118,13 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 Server: nginx.*?
 --- response_body
 ok
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp header "Server: nginx.*?"
-\[wasm\] .*? entering "Log"
-\[wasm\] resp header "Server: nginx.*?"/
+qr/testing in "RequestHeaders".*
+testing in "ResponseHeaders".*
+resp header "Server: nginx.*?".*
+testing in "Log".*
+resp header "Server: nginx.*?".*/
 --- no_error_log
 [error]
 
@@ -153,13 +153,13 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 Date: .*? GMT
 --- response_body
 ok
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp header "Date: .*? GMT"
-\[wasm\] .*? entering "Log"
-\[wasm\] resp header "Date: .*? GMT"/
+qr/testing in "RequestHeaders".*
+testing in "ResponseHeaders".*
+resp header "Date: .*? GMT".*
+testing in "Log".*
+resp header "Date: .*? GMT".*/
 --- no_error_log
 [error]
 
@@ -186,13 +186,13 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- response_headers_like
 Last-Modified: .*? GMT
 --- ignore_response_body
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp header "Last-Modified: .*? GMT"
-\[wasm\] .*? entering "Log"
-\[wasm\] resp header "Last-Modified: .*? GMT"/
+qr/testing in "RequestHeaders".*
+testing in "ResponseHeaders".*
+resp header "Last-Modified: .*? GMT".*
+testing in "Log".*
+resp header "Last-Modified: .*? GMT".*/
 --- no_error_log
 [error]
 [crit]
@@ -222,13 +222,13 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 Content-Type: text/plain
 --- response_body
 Hello world
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp header "Content-Type: text\/plain"
-\[wasm\] .*? entering "Log"
-\[wasm\] resp header "Content-Type: text\/plain"/
+qr/testing in "RequestHeaders".*
+testing in "ResponseHeaders".*
+resp header "Content-Type: text\/plain".*
+testing in "Log.*"
+resp header "Content-Type: text\/plain".*/
 --- no_error_log
 [error]
 
@@ -257,11 +257,11 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- response_headers
 Content-Type:
 --- response_body
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] .*? entering "Log"/
+qr/testing in "RequestHeaders".*
+testing in "ResponseHeaders".*
+testing in "Log.*"/
 --- no_error_log
 [error]
 
@@ -288,14 +288,14 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- response_headers_like
 Connection: close
 --- response_body
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] resp header "connection: close"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp header "connection: close"
-\[wasm\] .*? entering "Log"
-\[wasm\] resp header "connection: close"/
+qr/testing in "RequestHeaders".*
+resp header "connection: close".*
+testing in "ResponseHeaders".*
+resp header "connection: close".*
+testing in "Log".*
+resp header "connection: close".*/
 --- no_error_log
 [error]
 
@@ -326,14 +326,14 @@ Connection: keep-alive
 --- response_headers
 Connection: keep-alive
 --- response_body
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] resp header "connection: keep-alive"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp header "connection: keep-alive"
-\[wasm\] .*? entering "Log"
-\[wasm\] resp header "connection: keep-alive"/
+qr/testing in "RequestHeaders".*
+resp header "connection: keep-alive".*
+testing in "ResponseHeaders".*
+resp header "connection: keep-alive".*
+testing in "Log".*
+resp header "connection: keep-alive".*/
 --- no_error_log
 [error]
 
@@ -361,14 +361,14 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 Connection: upgrade
 --- error_code: 101
 --- ignore_response_body
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] resp header "connection: close"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp header "connection: upgrade"
-\[wasm\] .*? entering "Log"
-\[wasm\] resp header "connection: upgrade"/
+qr/testing in "RequestHeaders".*
+resp header "connection: close".*
+testing in "ResponseHeaders".*
+resp header "connection: upgrade".*
+testing in "Log".*
+resp header "connection: upgrade".*/
 --- no_error_log
 [error]
 [crit]
@@ -402,14 +402,14 @@ Connection: keep-alive
 --- response_headers
 Keep-Alive: timeout=60
 --- ignore_response_body
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] resp header "Keep-Alive: timeout=60"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp header "Keep-Alive: timeout=60"
-\[wasm\] .*? entering "Log"
-\[wasm\] resp header "Keep-Alive: timeout=60"/
+qr/testing in "RequestHeaders".*
+resp header "Keep-Alive: timeout=60".*
+testing in "ResponseHeaders".*
+resp header "Keep-Alive: timeout=60".*
+testing in "Log".*
+resp header "Keep-Alive: timeout=60".*/
 --- no_error_log
 [error]
 [crit]
@@ -438,14 +438,14 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- response_headers
 Transfer-Encoding: chunked
 --- ignore_response_body
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] resp header "Transfer-Encoding: chunked"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] resp header "Transfer-Encoding: chunked"
-\[wasm\] .*? entering "Log"
-\[wasm\] resp header "Transfer-Encoding: chunked"/
+qr/testing in "RequestHeaders".*
+resp header "Transfer-Encoding: chunked".*
+testing in "ResponseHeaders".*
+resp header "Transfer-Encoding: chunked".*
+testing in "Log".*
+resp header "Transfer-Encoding: chunked".*/
 --- no_error_log
 [error]
 [crit]
@@ -473,12 +473,12 @@ qr/\[wasm\] .*? entering "RequestHeaders"
 --- response_headers
 Transfer-Encoding:
 --- ignore_response_body
---- grep_error_log eval: qr/\[wasm\] .*?(#\d+ entering "\S+"|resp\s).*?(?=\s+<)/
+--- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
-qr/\[wasm\] .*? entering "RequestHeaders"
-\[wasm\] resp header "Transfer-Encoding: chunked"
-\[wasm\] .*? entering "ResponseHeaders"
-\[wasm\] .*? entering "Log"/
+qr/testing in "RequestHeaders".*
+resp header "Transfer-Encoding: chunked".*
+testing in "ResponseHeaders".*
+testing in "Log".*/
 --- no_error_log
 [error]
 [crit]

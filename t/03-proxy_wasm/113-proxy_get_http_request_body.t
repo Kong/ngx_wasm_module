@@ -174,6 +174,6 @@ Hello from main request body
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .*? \[wasm\] request body: Hello from main request body/
+qr/request body: Hello from main request body/
 --- no_error_log
 [error]

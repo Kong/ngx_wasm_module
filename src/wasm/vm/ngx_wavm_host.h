@@ -52,33 +52,26 @@ extern const wasm_valkind_t *ngx_wavm_arity_i32_i64[];
 #define ngx_wavm_hfunc_null            { ngx_null_string, NULL, NULL, NULL }
 
 
-typedef struct {
+struct ngx_wavm_hfunc_s {
     ngx_pool_t                        *pool;
     ngx_wavm_host_func_def_t          *def;
     wasm_functype_t                   *functype;
-} ngx_wavm_hfunc_t;
-
-
-typedef struct {
-    ngx_wavm_hfunc_t                  *hfunc;
-    ngx_wavm_instance_t               *instance;
-} ngx_wavm_hfunc_tctx_t;
+    ngx_uint_t                         idx;
+};
 
 
 ngx_wavm_hfunc_t *ngx_wavm_host_hfunc_create(ngx_pool_t *pool,
     ngx_wavm_host_def_t *host, ngx_str_t *name);
 void ngx_wavm_host_hfunc_destroy(ngx_wavm_hfunc_t *hfunc);
 
-
-wasm_trap_t *ngx_wavm_hfuncs_trampoline(void *env, const wasm_val_vec_t* args,
-    wasm_val_vec_t* rets);
-
-
-void ngx_wavm_instance_trap_printf(ngx_wavm_instance_t *instance,
-#if (NGX_HAVE_VARIADIC_MACROS)
-    const char *fmt, ...);
+wasm_trap_t * ngx_wavm_hfunc_trampoline(void *env,
+#ifdef NGX_WASM_HAVE_WASMTIME
+    wasmtime_caller_t *caller,
+    const wasmtime_val_t *args, size_t nargs,
+    wasmtime_val_t *rets, size_t nret);
 #else
-    const char *fmt, va_list args);
+    const wasm_val_vec_t* args,
+    wasm_val_vec_t* rets);
 #endif
 
 

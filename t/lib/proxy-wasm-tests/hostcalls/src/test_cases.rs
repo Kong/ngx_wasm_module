@@ -238,6 +238,11 @@ pub(crate) fn test_set_http_request_body(ctx: &mut TestHttpHostcalls) {
 }
 
 pub(crate) fn test_set_response_body(ctx: &mut TestHttpHostcalls) {
+    let key = "set_response_body".to_string();
+    if ctx.config.get(&key).is_some() {
+        return;
+    }
+
     let mut body;
     if let Some(value) = ctx.config.get("value") {
         body = value.to_string();
@@ -260,4 +265,6 @@ pub(crate) fn test_set_response_body(ctx: &mut TestHttpHostcalls) {
         .map_or(body.len(), |v| v.parse::<usize>().unwrap());
 
     ctx.set_http_response_body(offset, len, body.as_bytes());
+
+    ctx.config.insert(key.clone(), key);
 }
