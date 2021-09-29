@@ -8,4 +8,5 @@ t/servroot*
 *.svg
 *.log*
 *.gcov
+*.wasm
 vgcore.*
