@@ -232,6 +232,7 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
     switch (filter->abi_version) {
 
     case NGX_PROXY_WASM_0_1_0:
+    case NGX_PROXY_WASM_0_2_0:
     case NGX_PROXY_WASM_0_2_1:
         break;
 
