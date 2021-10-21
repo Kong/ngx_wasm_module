@@ -1,6 +1,6 @@
 FROM amd64/archlinux:latest
 
-RUN pacman -Sy --noconfirm \
+RUN pacman -Syyu --noconfirm \
     gcc \
     clang \
     make
