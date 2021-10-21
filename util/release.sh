@@ -34,14 +34,23 @@ while (( "$#" )); do
             ;;
         --ngx)
             NGX_VER="$2"
+            if [ -z "$NGX_VER" ]; then
+                fatal "--ngx argument missing version"
+            fi
             shift 2
             ;;
         --wasmtime)
             WASMTIME_VER="$2"
+            if [ -z "$WASMTIME_VER" ]; then
+                fatal "--wasmtime argument missing version"
+            fi
             shift 2
             ;;
         --wasmer)
             WASMER_VER="$2"
+            if [ -z "$WASMER_VER" ]; then
+                fatal "--wasmer argument missing version"
+            fi
             shift 2
             ;;
         *)
@@ -119,7 +128,7 @@ build_static_binary() {
 
     case $distro in
         darwin*) distro='macos';;
-        arch)   distro='archlinux';;
+        arch)    distro='archlinux';;
         ubuntu|centos)
             if [ -n $VERSION_ID ]; then
                 distro=$distro$VERSION_ID
@@ -217,7 +226,7 @@ build_static_binary() {
         --without-mail_smtp_module \
         --without-http_scgi_module \
         --without-http_uwsgi_module \
-        --without-http_fastcgi_module
+        --without-http_fastcgi_module || cat $DIR_BUILD/build-$dist_bin_name/autoconf*
 
     make -j${n_jobs}
 
@@ -239,6 +248,8 @@ release_bin() {
         aarch64) arch='arm64';;
         *)       arch=$arch
     esac
+
+    notice "Building $arch binary..."
 
     if [ -n "$WASMTIME_VER" ]; then
         download_wasmtime $WASMTIME_VER

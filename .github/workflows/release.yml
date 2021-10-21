@@ -82,7 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build binary
-        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --src --bin
+        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -102,7 +102,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build binary
-        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --src --bin
+        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -122,7 +122,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build binary
-        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --src --bin
+        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -142,7 +142,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build binary
-        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --src --bin
+        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -157,7 +157,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build binary
-        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --src --bin
+        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
