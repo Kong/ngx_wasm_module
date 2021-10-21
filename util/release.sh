@@ -291,15 +291,18 @@ release_all_bin_docker() {
 
 if [ -n "$RELEASE_SOURCE" ]; then
     release_source
-fi
 
-if [ -n "$RELEASE_BIN_ALL" ]; then
+elif [ -n "$RELEASE_BIN_ALL" ]; then
+    release_source
+
     case $OSTYPE in
         linux*)  release_all_bin_docker;;
         *)       fatal "cannot build release from docker images on \"$OSTYPE\""
     esac
 
 elif [ -n "$RELEASE_BIN" ]; then
+    release_source
+
     case $OSTYPE in
         linux*)  release_bin;;
         darwin*) release_bin;;
