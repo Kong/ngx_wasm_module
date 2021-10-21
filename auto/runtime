@@ -11,13 +11,13 @@ if [ -z "$ngx_wasm_runtime_lib_name" ]; then
 fi
 
 if [ -n "$ngx_wasm_runtime_inc" ]; then
-    ngx_feature="$ngx_feature, -I $ngx_wasm_runtime_inc"
+    ngx_feature="$ngx_feature, $ngx_wasm_runtime_inc"
     ngx_feature_path="$ngx_wasm_runtime_inc"
 fi
 
 if [ -n "$ngx_wasm_runtime_lib" ]; then
-    ngx_feature="$ngx_feature, -L $ngx_wasm_runtime_lib -l$ngx_wasm_runtime_lib_name"
-    ngx_feature_libs="-L $ngx_wasm_runtime_lib -l$ngx_wasm_runtime_lib_name"
+    ngx_feature="$ngx_feature, $ngx_wasm_runtime_lib -l$ngx_wasm_runtime_lib_name"
+    ngx_feature_libs="$ngx_wasm_runtime_lib -l$ngx_wasm_runtime_lib_name"
 fi
 
 if [ -n "$ngx_wasm_runtime_opt" ]; then
