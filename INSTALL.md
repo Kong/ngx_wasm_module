@@ -71,11 +71,12 @@ Nginx builds:
 $ cd nginx-*
 $ ./configure --add-module=/path/to/ngx_wasm_module \
     --with-cc-opt='-O3 -I/path/to/wasmtime/include' \
-    --with-ld-opt='-L/path/to/wasmtime/lib -lwasmtime'
+    --with-ld-opt='-L/path/to/wasmtime/lib -lwasmtime -Wl,-rpath,/path/to/wasmtime/lib'
 ```
 
 > Note: to compile with Wasmer, export the `NGX_WASM_RUNTIME=wasmer` environment
-> variable.
+> variable. See [Examples](examples) for a list of supported environment
+> variables.
 
 Then, build and install Nginx:
 
