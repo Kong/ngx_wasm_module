@@ -345,8 +345,7 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
         fctx->stream_ctx = NULL;
         fctx->data = NULL;
 
-        ngx_wavm_instance_set_data(fctx->instance, fctx);
-        ngx_wavm_instance_set_log(fctx->instance, fctx->log);
+        ngx_wavm_instance_set_data(fctx->instance, fctx, fctx->log);
 
         wasm_val_vec_new_uninitialized(&args, 1);
         ngx_wasm_vec_set_i32(&args, 0, fctx->filter->id);

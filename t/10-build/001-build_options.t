@@ -44,7 +44,7 @@ ngx_wasm_module [dev
 
 
 === TEST 4: build with minimal libraries
---- build: NGX_BUILD_CONFIGURE='--without-pcre --without-http_rewrite_module --without-http_gzip_module --without-http_auth_basic_module' make
+--- build: NGX_BUILD_CONFIGURE_OPT='--without-pcre --without-http_rewrite_module --without-http_gzip_module --without-http_auth_basic_module' make
 --- no_grep_libs eval
 [
     qr/libz/,
@@ -55,7 +55,7 @@ ngx_wasm_module [dev
 
 
 === TEST 5: build without http
---- build: NGX_BUILD_CONFIGURE='--without-http' make
+--- build: NGX_BUILD_CONFIGURE_OPT='--without-http' make
 --- grep_nginxV
 --without-http
 --- run_cmd eval: qq{nm -g $::buildroot/nginx}

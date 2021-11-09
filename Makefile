@@ -1,8 +1,11 @@
 NGX ?= 1.21.3
-export NGX_BUILD_CONFIGURE ?=
+export NGX_BUILD_DIR_SCRROOT ?=
+export NGX_BUILD_DIR_BUILDROOT ?=
+export NGX_BUILD_DIR_PREFIX ?=
+export NGX_BUILD_CONFIGURE_OPT ?=
+export NGX_BUILD_DYNAMIC_MODULE ?= 0
 export NGX_BUILD_CC_OPT ?= -O0 -ggdb3 -gdwarf
 export NGX_BUILD_LD_OPT ?=
-export NGX_BUILD_DYNAMIC_MODULE ?= 0
 export NGX_BUILD_DEBUG ?= 1
 export NGX_BUILD_NOPOOL ?= 0
 export NGX_BUILD_FSANITIZE ?=
@@ -14,7 +17,6 @@ export NGX_WASM_RUNTIME ?= wasmtime
 export NGX_WASM_RUNTIME_INC ?=
 export NGX_WASM_RUNTIME_LIB ?=
 export NGX_WASM_RUNTIME_LD_OPT ?=
-export NGX_WASM_RUNTIME_PATH ?=
 
 .PHONY: build
 build:
