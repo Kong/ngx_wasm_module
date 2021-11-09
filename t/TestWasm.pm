@@ -135,6 +135,16 @@ add_block_preprocessor(sub {
     {
         $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND} && !defined $ENV{TEST_NGINX_VALGRIND_ALL}', $1);
     }
+
+    # --- timeout_no_valgrind: 1s
+
+    if (defined $block->timeout_no_valgrind
+        && !defined $ENV{TEST_NGINX_USE_VALGRIND}
+        && !defined $block->timeout
+        && $block->timeout_no_valgrind =~ m/\s*(\S+)/)
+    {
+        $block->set_value("timeout", $1);
+    }
 });
 
 no_long_string();
