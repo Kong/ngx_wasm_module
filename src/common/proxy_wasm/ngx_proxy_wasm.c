@@ -425,8 +425,7 @@ ngx_proxy_wasm_filter_get_ctx(ngx_proxy_wasm_filter_t *filter, void *data)
 
         fctx->instance = filter->root_fctx.instance;
 
-        ngx_wavm_instance_set_data(fctx->instance, fctx);
-        ngx_wavm_instance_set_log(fctx->instance, fctx->log);
+        ngx_wavm_instance_set_data(fctx->instance, fctx, fctx->log);
 
         goto init;
 

@@ -80,7 +80,7 @@ build_nginx() {
     local hash=$(echo "ngx=$ngx_ver.$ngx_src.\
                        build_name=$name.\
                        cc=$CC.\
-                       conf_opt=$NGX_BUILD_CONFIGURE.\
+                       conf_opt=$NGX_BUILD_CONFIGURE_OPT.\
                        cc_opt=$NGX_BUILD_CC_OPT.\
                        ld_opt=$NGX_BUILD_LD_OPT.\
                        dynamic=$NGX_BUILD_DYNAMIC_MODULE" | shasum | awk '{ print $1 }')
@@ -115,7 +115,7 @@ build_nginx() {
 
     # ngx_echo_module, ngx_headers_more_module do not support --without-http
 
-    if ! [[ "$NGX_BUILD_CONFIGURE" =~ "--without-http" ]]; then
+    if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http" ]]; then
         build_opts+="--add-dynamic-module=$DIR_NGX_ECHO_MODULE "
         build_opts+="--add-dynamic-module=$DIR_NGX_HEADERS_MORE_MODULE "
     fi
@@ -144,7 +144,7 @@ build_nginx() {
                 "--with-cc-opt='$NGX_BUILD_CC_OPT'" \
                 "--with-ld-opt='$NGX_BUILD_LD_OPT'" \
                 "${build_opts[@]}" \
-                "$NGX_BUILD_CONFIGURE" \
+                "$NGX_BUILD_CONFIGURE_OPT" \
 
             echo $hash > "$NGX_BUILD_DIR_SRCROOT/.hash"
         fi

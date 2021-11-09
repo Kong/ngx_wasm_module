@@ -132,15 +132,10 @@ void ngx_wavm_instance_trap_printf(ngx_wavm_instance_t *instance,
 
 
 static ngx_inline void
-ngx_wavm_instance_set_data(ngx_wavm_instance_t *instance, void *data)
+ngx_wavm_instance_set_data(ngx_wavm_instance_t *instance, void *data,
+    ngx_log_t *log)
 {
     instance->data = data;
-}
-
-
-static ngx_inline void
-ngx_wavm_instance_set_log(ngx_wavm_instance_t *instance, ngx_log_t *log)
-{
     instance->log_ctx.orig_log = log;
 }
 
