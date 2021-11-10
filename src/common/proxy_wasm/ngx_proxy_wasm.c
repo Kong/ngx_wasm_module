@@ -523,7 +523,13 @@ ngx_proxy_wasm_filter_ctx_err_code(ngx_proxy_wasm_filter_ctx_t *fctx,
         fctx->ecode_logged = 1;
     }
 
-    rc = filter->ecode_(fctx->ecode, phase);
+    if (fctx->ecode == NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED
+        && phase->index == NGX_WASM_DONE_PHASE)
+    {
+        goto done;
+    }
+
+    rc = filter->ecode_(fctx->ecode);
 
 done:
 
@@ -662,14 +668,14 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
 
            ngx_wavm_instance_destroy(fctx->instance);
 
-            rc = ngx_proxy_wasm_filter_init_root_fctx(filter);
-            if (rc != NGX_OK) {
-                ngx_proxy_wasm_log_error(NGX_LOG_CRIT, filter->log,
-                                         filter->root_fctx.ecode,
-                                         "failed recycling \"%V\" filter"
-                                         " root instance",
-                                         filter->name);
-            }
+           rc = ngx_proxy_wasm_filter_init_root_fctx(filter);
+           if (rc != NGX_OK) {
+               ngx_proxy_wasm_log_error(NGX_LOG_CRIT, filter->log,
+                                        filter->root_fctx.ecode,
+                                        "failed recycling \"%V\" filter"
+                                        " root instance",
+                                        filter->name);
+           }
         }
 
         break;

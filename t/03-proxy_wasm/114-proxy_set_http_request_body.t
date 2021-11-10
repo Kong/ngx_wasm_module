@@ -240,6 +240,7 @@ qr/\[error\] .*? \[wasm\] cannot set request body.*
 \[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*
 \[error\] .*? \[wasm\] cannot set request body.*
 \[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*
+\[crit\] .*? \*\d+ \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\) while closing request.*
 \z/
 --- no_error_log
 [alert]
