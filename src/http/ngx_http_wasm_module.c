@@ -65,8 +65,8 @@ static ngx_wasm_phase_t  ngx_http_wasm_phases[] = {
       (1 << NGX_HTTP_LOG_PHASE) },
 
     { ngx_string("done"),
-      NGX_HTTP_WASM_DONE_PHASE,
-      (1 << NGX_HTTP_WASM_DONE_PHASE) },
+      NGX_WASM_DONE_PHASE,
+      (1 << NGX_WASM_DONE_PHASE) },
 
     { ngx_null_string, 0, 0 }
 };
@@ -293,7 +293,7 @@ ngx_http_wasm_cleanup(void *data)
                        "wasm cleaning up request pool (stream id: %l)",
                        r->connection->number);
 
-        (void) ngx_wasm_ops_resume(opctx, NGX_HTTP_WASM_DONE_PHASE, 0);
+        (void) ngx_wasm_ops_resume(opctx, NGX_WASM_DONE_PHASE, 0);
     }
 }
 
@@ -520,7 +520,7 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
         && rc == NGX_OK)
     {
         /* subrequest */
-        (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_DONE_PHASE, 0);
+        (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_WASM_DONE_PHASE, 0);
     }
 
 done:
@@ -560,7 +560,7 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
          * chained subrequests reusing the same context id
          * (r->connection->numer)
          */
-        (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_DONE_PHASE, 0);
+        (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_WASM_DONE_PHASE, 0);
     }
 
     return NGX_OK;

@@ -120,11 +120,12 @@ qr/\[emerg\] .*? invalid module name ""/
 --- no_error_log
 [warn]
 [error]
-[alert]
+[stderr]
 
 
 
 === TEST 6: proxy_wasm directive - missing malloc, fallback proxy_on_memory_allocate
+should error since missing on_context_create
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -151,7 +152,7 @@ qr/\[emerg\] .*? invalid module name ""/
 --- no_error_log
 [warn]
 [error]
-[alert]
+[stderr]
 
 
 
@@ -212,7 +213,7 @@ qr/\[emerg\] .*? invalid module name ""/
 --- no_error_log
 [warn]
 [error]
-[alert]
+[stderr]
 
 
 

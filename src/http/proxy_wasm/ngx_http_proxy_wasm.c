@@ -44,12 +44,8 @@ ngx_http_proxy_wasm_next_action(ngx_proxy_wasm_filter_ctx_t *fctx, ngx_int_t rc,
 
 
 ngx_int_t
-ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_err_e ecode, ngx_wasm_phase_t *phase)
+ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_err_e ecode)
 {
-    if (phase->index == NGX_HTTP_WASM_DONE_PHASE) {
-        return NGX_OK;
-    }
-
     return NGX_HTTP_INTERNAL_SERVER_ERROR;
 }
 
@@ -208,7 +204,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
 
         break;
 
-    case NGX_HTTP_WASM_DONE_PHASE:
+    case NGX_WASM_DONE_PHASE:
         ngx_proxy_wasm_on_done(fctx);
         rc = NGX_OK;
         break;

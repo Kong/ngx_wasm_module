@@ -6,8 +6,7 @@
 #include <ngx_proxy_wasm.h>
 
 
-ngx_int_t ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_err_e ecode,
-    ngx_wasm_phase_t *phase);
+ngx_int_t ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_err_e ecode);
 ngx_proxy_wasm_stream_ctx_t *ngx_http_proxy_wasm_get_context(
     ngx_proxy_wasm_filter_t *filter, void *data);
 void ngx_http_proxy_wasm_free_context(ngx_proxy_wasm_stream_ctx_t *sctx);

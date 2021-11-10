@@ -133,8 +133,7 @@ typedef struct ngx_proxy_wasm_stream_ctx_s  ngx_proxy_wasm_stream_ctx_t;
 
 typedef ngx_int_t (*ngx_proxy_wasm_resume_pt)(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_phase_t *phase);
-typedef ngx_int_t (*ngx_proxy_wasm_ecode_pt)(ngx_proxy_wasm_err_e ecode,
-    ngx_wasm_phase_t *phase);
+typedef ngx_int_t (*ngx_proxy_wasm_ecode_pt)(ngx_proxy_wasm_err_e ecode);
 typedef ngx_proxy_wasm_stream_ctx_t *(*ngx_proxy_wasm_get_context_pt)(
     ngx_proxy_wasm_filter_t *filter, void *data);
 typedef void (*ngx_proxy_wasm_free_context_pt)(
