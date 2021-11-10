@@ -87,7 +87,7 @@ fi
 
 cargo build \
     --lib \
-    --target wasm32-unknown-unknown \
+    --target wasm32-wasi \
     --out-dir $DIR_TESTS_LIB_WASM \
     -Z unstable-options
 

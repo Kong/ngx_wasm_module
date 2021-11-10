@@ -53,7 +53,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          target: wasm32-unknown-unknown
+          target: wasm32-wasi
       - name: Set up Wasm runtime
         uses: ./.github/actions/wasm-runtime
         with:
@@ -114,7 +114,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          target: wasm32-unknown-unknown
+          target: wasm32-wasi
       - name: Set up Wasm runtime
         uses: ./.github/actions/wasm-runtime
         with:
