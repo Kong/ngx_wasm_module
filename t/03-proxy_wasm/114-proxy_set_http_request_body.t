@@ -237,10 +237,9 @@ from_request_body
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
 qr/\[error\] .*? \[wasm\] cannot set request body.*
-\[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*
+\[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*? subrequest: "\/response_headers".*
 \[error\] .*? \[wasm\] cannot set request body.*
-\[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*
-\[crit\] .*? \*\d+ \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\) while closing request.*
+\[crit\] .*? \*\d+ \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\) while logging request.*
 \z/
 --- no_error_log
 [alert]

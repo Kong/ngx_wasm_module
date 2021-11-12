@@ -89,6 +89,7 @@ typedef struct {
     wasm_exporttype_vec_t         *export_types;
     ngx_wrt_import_t              *imports;
     ngx_uint_t                     nimports;
+    unsigned                       wasi:1;
 } ngx_wrt_module_t;
 
 typedef struct {
@@ -106,8 +107,9 @@ typedef struct {
     ngx_wrt_module_t              *module;
     wasm_memory_t                 *memory;
     wasm_instance_t               *instance;
-    wasm_extern_vec_t              env;
     ngx_wasmer_hfunc_ctx_t        *ctxs;
+    wasmer_named_extern_vec_t      wasi_imports;
+    wasm_extern_vec_t              env;
     wasm_extern_vec_t              externs;
 } ngx_wrt_instance_t;
 
@@ -117,7 +119,7 @@ typedef struct {
     wasm_extern_t                 *ext;
     ngx_wrt_extern_kind_e          kind;
 } ngx_wrt_extern_t;
-#endif /* NGX_WASM_HAVE_* */
+#endif  /* NGX_WASM_HAVE_* */
 
 
 typedef struct {

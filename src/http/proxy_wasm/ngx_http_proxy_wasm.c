@@ -198,10 +198,6 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
 
     case NGX_HTTP_LOG_PHASE:
         rc = ngx_proxy_wasm_on_log(fctx);
-        if (rc != NGX_OK) {
-            break;
-        }
-
         break;
 
     case NGX_WASM_DONE_PHASE:

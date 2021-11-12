@@ -119,8 +119,8 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
 
     filter->name = &filter->module->name;
     filter->index = *filter->max_filters;
-    //filter->isolation = NGX_PROXY_WASM_ISOLATION_STREAM;
-    filter->isolation = NGX_PROXY_WASM_ISOLATION_NONE;
+    filter->isolation = NGX_PROXY_WASM_ISOLATION_STREAM;
+    //filter->isolation = NGX_PROXY_WASM_ISOLATION_NONE;
     filter->id = ngx_crc32_long(filter->name->data, filter->name->len);
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, filter->log, 0,
@@ -696,7 +696,7 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
 
     if (fctx->filter->index == sctx->filter_max - 1) {
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                       "proxy wasm destroying stream context id \"#%d\"",
+                       "proxy_wasm destroying stream context id \"#%d\"",
                        sctx->id);
 
         if (sctx->authority.data) {
