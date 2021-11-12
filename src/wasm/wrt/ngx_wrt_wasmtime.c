@@ -510,7 +510,7 @@ ngx_wasmtime_log_handler(ngx_wrt_res_t *res, u_char *buf, size_t len)
 }
 
 
-ngx_wrt_t ngx_wrt = {
+ngx_wrt_t  ngx_wrt = {
     ngx_wasmtime_init_conf,
     ngx_wasmtime_init_engine,
     ngx_wasmtime_destroy_engine,

@@ -15,11 +15,10 @@ typedef enum {
 
 struct ngx_wrt_import_s {
     ngx_wrt_import_kind_e          kind;
-    ngx_uint_t                     idx;
 
     union {
         ngx_wavm_hfunc_t          *hfunc;
-        wasm_extern_t             *wasi_extern;
+        ngx_uint_t                 wasi_idx;
     } of;
 };
 
@@ -215,6 +214,8 @@ linking:
                            importmodule->data,
                            wasi_version_name->len) == 0)
         {
+            module->wasi = 1;
+
             /* resolve wasi */
 
             for (j = 0; j < wasi_imports.size; j++) {
@@ -229,10 +230,9 @@ linking:
                        (int) importname->size, importname->data);
 
                     import = &module->imports[i];
-                    import->idx = i;
                     import->kind = NGX_WRT_IMPORT_WASI;
-                    import->of.wasi_extern = (wasm_extern_t *)
-                                    wasmer_named_extern_unwrap(wasmer_extern);
+                    import->of.wasi_idx = j;
+
                     module->nimports++;
                     break;
                 }
@@ -255,7 +255,6 @@ linking:
                        (int) hfunc->def->name.len, hfunc->def->name.data);
 
                     import = &module->imports[i];
-                    import->idx = i;
                     import->kind = NGX_WRT_IMPORT_HFUNC;
                     import->of.hfunc = hfunc;
 
@@ -318,6 +317,16 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
     ngx_wasmer_hfunc_ctx_t  *hctx, *hctxs;
     wasm_func_t             *func;
 
+    if (module->wasi
+        && !wasi_get_unordered_imports(module->engine->store,
+                                       module->module,
+                                       module->engine->wasi_env,
+                                       &instance->wasi_imports))
+    {
+        ngx_wasmer_last_err(&err->res);
+        return NGX_ERROR;
+    }
+
     wasm_extern_vec_new_uninitialized(&instance->env, module->nimports);
 
     hctxs = ngx_calloc(sizeof(ngx_wasmer_hfunc_ctx_t) * module->nimports,
@@ -332,7 +341,10 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
         switch (import->kind) {
 
         case NGX_WRT_IMPORT_WASI:
-            instance->env.data[i] = import->of.wasi_extern;
+            instance->env.data[i] = (wasm_extern_t *)
+                wasm_extern_copy(
+                     wasmer_named_extern_unwrap(
+                         instance->wasi_imports.data[import->of.wasi_idx]));
             nimports++;
             break;
 
@@ -354,10 +366,10 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
             return NGX_ABORT;
 
         }
-
     }
 
     ngx_wasm_assert(nimports == module->nimports);
+    ngx_wasm_assert(instance->env.size == module->nimports);
 
     instance->store = store;
     instance->module = module;
@@ -381,39 +393,41 @@ ngx_wasmer_destroy_instance(ngx_wrt_instance_t *instance)
 {
 #if 0
     size_t             i;
-    ngx_wrt_extern_t  *wextern;
     wasm_func_t       *func;
     wasm_extern_t     *ext;
+    ngx_wrt_import_t  *import;
 #endif
 
     if (instance->instance) {
         wasm_instance_delete(instance->instance);
     }
 
-    if (instance->externs) {
-#if 0
-       for (i = 0; i < instance->module->exports.size; i++) {
-          wextern = instance->externs.data[i];
-          ngx_free(wextern->name.data);
-       }
-#endif
-    }
-
     if (instance->ctxs) {
 #if 0
         for (i = 0; i < instance->module->nimports; i++) {
-           ext = instance->env.data[i];
-           func = wasm_extern_as_func(ext);
+            import = &instance->module->imports[i];
 
-           wasm_func_delete(func);
+            switch (import->kind) {
+            case NGX_WRT_IMPORT_HFUNC:
+               ext = instance->env.data[i];
+               func = wasm_extern_as_func(ext);
+
+               wasm_func_delete(func);
+               break;
+
+            default:
+               break;
+            }
         }
 #endif
 
         ngx_free(instance->ctxs);
+
+        wasm_extern_vec_delete(&instance->externs);
     }
 
     wasm_extern_vec_delete(&instance->env);
-    wasm_extern_vec_delete(&instance->externs);
+    wasmer_named_extern_vec_delete(&instance->wasi_imports);
 }
 
 
@@ -493,7 +507,7 @@ ngx_wasmer_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
     }
 
     if (wasmer_last_error_length()) {
-        dd("last err caught");
+        dd("err caught");
         ngx_wasmer_last_err(&err->res);
         return NGX_ERROR;
     }
@@ -587,7 +601,7 @@ error:
 }
 
 
-ngx_wrt_t ngx_wrt = {
+ngx_wrt_t  ngx_wrt = {
     ngx_wasmer_init_conf,
     ngx_wasmer_init_engine,
     ngx_wasmer_destroy_engine,

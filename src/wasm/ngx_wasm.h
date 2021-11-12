@@ -18,7 +18,7 @@
 #define NGX_WASM_MODULE              0x5741534d   /* "WASM" */
 #define NGX_WASM_CONF                0x00300000
 
-#define NGX_WASM_DONE_PHASE          20
+#define NGX_WASM_DONE_PHASE          15
 
 #define NGX_WASM_BAD_FD              (ngx_socket_t) -1
 

@@ -73,8 +73,8 @@ static ngx_wasm_phase_t  ngx_http_wasm_phases[] = {
 
 
 ngx_wasm_subsystem_t  ngx_http_wasm_subsystem = {
-    NGX_HTTP_LOG_PHASE + 1 + 1,    /* nphases (+1: 0-based, +1: header_filter) */
-    ngx_http_wasm_phases,          /* phases */
+    NGX_WASM_DONE_PHASE + 1,
+    ngx_http_wasm_phases,
 };
 
 
@@ -284,16 +284,21 @@ ngx_http_wasm_exit_process(ngx_cycle_t *cycle)
 static void
 ngx_http_wasm_cleanup(void *data)
 {
-    ngx_http_wasm_req_ctx_t  *rctx = data;
-    ngx_http_request_t       *r = rctx->r;
-    ngx_wasm_op_ctx_t        *opctx = &rctx->opctx;
+    ngx_http_wasm_req_ctx_t   *rctx = data;
+    ngx_http_request_t        *r = rctx->r;
+    ngx_wasm_op_ctx_t         *opctx = &rctx->opctx;
+    ngx_http_core_loc_conf_t  *clcf;
 
-    if (r == r->main) {
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm cleaning up request pool (stream id: %l)",
-                       r->connection->number);
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-        (void) ngx_wasm_ops_resume(opctx, NGX_WASM_DONE_PHASE, 0);
+    if (r != r->main && !clcf->log_subrequest) {
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm cleaning up request pool (stream id: %l, "
+                       "r: %p, main: %d)", r->connection->number,
+                       r, r->main == r);
+
+        (void) ngx_wasm_ops_resume(opctx, NGX_WASM_DONE_PHASE,
+                                   NGX_WASM_OPS_RUN_ALL);
     }
 }
 
@@ -317,6 +322,10 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         if (rctx == NULL) {
             return NGX_ERROR;
         }
+
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm rctx created: %p (r: %p, main: %d)",
+                       rctx, r, r->main == r);
 
         rctx->r = r;
         rctx->req_keepalive = r->keepalive;
@@ -345,6 +354,13 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
             r->content_handler = ngx_http_wasm_content_handler;
         }
     }
+#if (NGX_DEBUG)
+    else {
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm rctx reused: %p (r: %p, main: %d)",
+                       rctx, r, r->main == r);
+     }
+#endif
 
     *out = rctx;
 
@@ -456,9 +472,6 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 {
     ngx_int_t                  rc;
     ngx_http_wasm_req_ctx_t   *rctx;
-    ngx_http_core_loc_conf_t  *clcf;
-
-    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc != NGX_OK) {
@@ -515,14 +528,6 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     }
 
-    if (r != r->main
-        && !clcf->log_subrequest
-        && rc == NGX_OK)
-    {
-        /* subrequest */
-        (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_WASM_DONE_PHASE, 0);
-    }
-
 done:
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -537,7 +542,6 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
 {
     ngx_int_t                  rc;
     ngx_http_wasm_req_ctx_t   *rctx;
-    ngx_http_core_loc_conf_t  *clcf;
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc != NGX_OK) {
@@ -549,19 +553,9 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_LOG_PHASE,
                              NGX_WASM_OPS_RUN_ALL);
-    if (rc != NGX_OK) {
-        return rc;
-    }
 
-    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+    (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_WASM_DONE_PHASE,
+                               NGX_WASM_OPS_RUN_ALL);
 
-    if (r != r->main && clcf->log_subrequest) {
-        /* r->connection->pool cleanup is too late to terminate
-         * chained subrequests reusing the same context id
-         * (r->connection->numer)
-         */
-        (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_WASM_DONE_PHASE, 0);
-    }
-
-    return NGX_OK;
+    return rc;
 }

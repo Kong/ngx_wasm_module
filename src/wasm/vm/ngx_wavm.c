@@ -1240,6 +1240,10 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
                    &module->name, module->vm->name,
                    module->vm, module, instance);
 
+    if (instance->vm) {
+        ngx_queue_remove(&instance->q);
+    }
+
     if (instance->funcs.nelts) {
         for (i = 0; i < instance->funcs.nelts; i++) {
             func = &((ngx_wavm_func_t *) instance->funcs.elts)[i];
@@ -1268,10 +1272,6 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
 
     if (instance->log) {
         ngx_pfree(instance->pool, instance->log);
-    }
-
-    if (instance->vm) {
-        ngx_queue_remove(&instance->q);
     }
 
     ngx_wrt.instance_destroy(&instance->wrt_instance);

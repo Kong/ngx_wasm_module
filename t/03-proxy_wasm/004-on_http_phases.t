@@ -392,11 +392,11 @@ qq{
 [
     qr/\[info\] .*? on_request_headers/,
     qr/\[info\] .*? on_response_headers/,
+    qr/\[info\] .*? on_response_body/,
     qr/\[info\] .*? on_log/
 ]
 --- no_error_log
 [error]
-[crit]
 
 
 
@@ -501,6 +501,7 @@ should invoke wasm ops "done" phase to destroy proxy-wasm ctxid in "content" pha
     location /subrequest {
         internal;
         proxy_wasm on_phases;
+        proxy_wasm on_phases;
         echo ok;
     }
 
@@ -537,6 +538,7 @@ should not invoke wasm ops "done" phase when subrequests are logged
 
     location /subrequest {
         proxy_wasm on_phases;
+        proxy_wasm on_phases;
         echo ok;
     }
 
@@ -551,8 +553,12 @@ ok
 --- grep_error_log eval: qr/proxy_wasm resuming ".*?" filter in "(log|done)" phase/
 --- grep_error_log_out eval
 qr/proxy_wasm resuming "on_phases" filter in "log" phase
+proxy_wasm resuming "on_phases" filter in "log" phase
+proxy_wasm resuming "on_phases" filter in "done" phase
 proxy_wasm resuming "on_phases" filter in "done" phase
 proxy_wasm resuming "on_phases" filter in "log" phase
+proxy_wasm resuming "on_phases" filter in "log" phase
+proxy_wasm resuming "on_phases" filter in "done" phase
 proxy_wasm resuming "on_phases" filter in "done" phase
 \Z/
 --- error_log eval
@@ -656,6 +662,8 @@ qr/#\d+ on_request_headers, \d+ headers.*
 #\d+ on_request_headers, \d+ headers.*
 #\d+ on_response_headers, \d+ headers.*
 #\d+ on_response_headers, \d+ headers.*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*
 #\d+ on_log .*
 #\d+ on_log .*
 /
@@ -684,6 +692,8 @@ qr/#\d+ on_request_headers, \d+ headers.*
 #\d+ on_request_headers, \d+ headers.*
 #\d+ on_response_headers, \d+ headers.*
 #\d+ on_response_headers, \d+ headers.*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*
 #\d+ on_log.*
 #\d+ on_log.*
 /
@@ -712,6 +722,7 @@ should not chain in request; instead, server{} overrides http{}
 --- grep_error_log_out eval
 qr/#\d+ on_request_headers, \d+ headers.*
 #\d+ on_response_headers, \d+ headers.*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*
 #\d+ on_log.*
 /
 --- error_log eval

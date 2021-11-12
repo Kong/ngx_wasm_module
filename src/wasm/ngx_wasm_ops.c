@@ -244,6 +244,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
 #endif
 
     if (pipeline == NULL) {
+        dd("no pipeline");
         goto rc;
     }
 
