@@ -104,6 +104,7 @@ ngx_proxy_wasm_init_root_ctx(ngx_proxy_wasm_filter_t *filter)
                                         filter->proxy_on_vm_start, &rets,
                                         filter->id, 0);
     if (rc != NGX_OK || !rets->data[0].of.i32) {
+        root_fctx->ecode = NGX_PROXY_WASM_ERR_START_FAILED;
         return NGX_ERROR;
     }
 
@@ -111,6 +112,7 @@ ngx_proxy_wasm_init_root_ctx(ngx_proxy_wasm_filter_t *filter)
                                         filter->proxy_on_plugin_start, &rets,
                                         filter->id, filter->config.len);
     if (rc != NGX_OK || !rets->data[0].of.i32) {
+        root_fctx->ecode = NGX_PROXY_WASM_ERR_START_FAILED;
         return NGX_ERROR;
     }
 
@@ -456,6 +458,7 @@ init:
                                             filter->proxy_on_plugin_start, &rets,
                                             filter->id, filter->config.len);
         if (rc != NGX_OK || !rets->data[0].of.i32) {
+            fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_FAILED;
             goto error;
         }
     }

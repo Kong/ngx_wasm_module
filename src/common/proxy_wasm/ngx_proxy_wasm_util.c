@@ -19,6 +19,7 @@ static ngx_str_t  ngx_proxy_wasm_errlist[] = {
     ngx_string("incompatible SDK interface"),
     ngx_string("instantiation failed"),
     ngx_string("instance trapped"),
+    ngx_string("initialization failed"),
     ngx_string("unknown error")
 };
 

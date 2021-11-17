@@ -61,3 +61,22 @@ qr/\[info\] .*? on_configure, config_size: 0/
 ]
 --- no_error_log
 [error]
+
+
+
+=== TEST 4: proxy_wasm - on_configure returns false
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        proxy_wasm on_phases 'fail_configure=true';
+        return 200;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+[
+    qr/\[crit\] .*? proxy_wasm failed initializing "on_phases" filter \(initialization failed\)/,
+    qr/\[crit\] .*? proxy_wasm #\d+ "on_phases" filter \(1\/1\) failed resuming \(initialization failed\)/
+]
+--- no_error_log
+[error]
