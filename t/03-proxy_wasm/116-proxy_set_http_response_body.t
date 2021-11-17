@@ -326,11 +326,11 @@ Content-Length:
 qr/500 Internal Server Error/
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] .*? \[wasm\] cannot set response body.*
+qr/\[error\] .*? cannot set response body.*
 \[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/request_headers".*
-\[error\] \S+ \[wasm\] cannot set response body.*
+\[error\] .*? cannot set response body.*
 \[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
-\[error\] \S+ \[wasm\] cannot set response body.*
+\[error\] .*? cannot set response body.*
 \[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\) while logging request.*/
 --- no_error_log
 [alert]

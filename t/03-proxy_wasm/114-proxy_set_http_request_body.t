@@ -242,9 +242,9 @@ from_request_body
 [\s\S]+500 Internal Server Error/
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] .*? \[wasm\] cannot set request body.*
+qr/\[error\] .*? cannot set request body.*
 \[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
-\[error\] .*? \[wasm\] cannot set request body.*
+\[error\] .*? cannot set request body.*
 \[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\) while logging request.*
 \z/
 --- no_error_log
