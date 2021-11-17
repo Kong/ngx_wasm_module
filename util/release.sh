@@ -14,7 +14,7 @@ fi
 source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
-PCRE_VER=8.44
+PCRE_VER=8.45
 OPENSSL_VER=1.1.1k
 ZLIB_VER=1.2.11
 
@@ -165,7 +165,7 @@ build_static_binary() {
     # pcre
 
     download pcre-$PCRE_VER.tar.gz \
-        "https://ftp.pcre.org/pub/pcre/pcre-$PCRE_VER.tar.gz"
+        "https://downloads.sourceforge.net/project/pcre/pcre/$PCRE_VER/pcre-$PCRE_VER.tar.gz"
 
     if [ ! -d "pcre-$PCRE_VER" ]; then
         tar -xf pcre-$PCRE_VER.tar.gz
