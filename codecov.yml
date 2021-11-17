@@ -4,9 +4,15 @@ coverage:
   round: down
   range: "75...100"
   status:
-    patch:
+    project:
       default:
-        target: 75%
+        target: auto
+        threshold: 3%
+        base: auto
+        flags:
+          - unit
+        paths:
+          - "src"
 
 parsers:
   gcov:
@@ -25,3 +31,4 @@ comment:
   require_changes: true
   require_base: no
   require_head: yes
+
