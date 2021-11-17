@@ -244,7 +244,7 @@ static void
 ngx_wavm_engine_destroy(ngx_wavm_t *vm)
 {
     if (ngx_wavm_state(vm, NGX_WAVM_INIT)) {
-        ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
+        ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                        "wasm deleting \"%V\" engine (engine: %p)",
                        vm->name, &vm->wrt_engine);
 
@@ -278,7 +278,7 @@ ngx_wavm_destroy(ngx_wavm_t *vm)
     ngx_wavm_module_t     *module;
 
 #if 1
-    ngx_log_debug2(NGX_LOG_DEBUG_WASM, vm->pool->log, 0,
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                   "wasm freeing \"%V\" vm (vm: %p)",
                    vm->name, vm);
 #endif
@@ -520,7 +520,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
         importmodule = wasm_importtype_module(importtype);
         importname = wasm_importtype_name(importtype);
 
-        dd("wavm checking \"%.*s\" module import \"%.*s.%.*s\" (%lu/%lu)",
+        dd("checking \"%.*s\" module import \"%.*s.%.*s\" (%lu/%lu)",
            (int) module->name.len, module->name.data,
            (int) importmodule->size, importmodule->data,
            (int) importname->size, importname->data,
@@ -546,7 +546,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
         exportname = wasm_exporttype_name(exporttype);
         externtype = wasm_exporttype_type(exporttype);
 
-        dd("wavm caching \"%.*s\" module export \"%.*s\" (%lu/%lu)",
+        dd("caching \"%.*s\" module export \"%.*s\" (%lu/%lu)",
            (int) module->name.len, module->name.data, (int) exportname->size,
            exportname->data, i + 1, module->exports.size);
 
@@ -1234,7 +1234,7 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
     ngx_wavm_func_t    *func;
     ngx_wavm_module_t  *module = instance->module;
 
-    ngx_log_debug5(NGX_LOG_DEBUG_WASM, instance->pool->log, 0,
+    ngx_log_debug5(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                    "wasm freeing \"%V\" instance in \"%V\" vm"
                    " (vm: %p, module: %p, instance: %p)",
                    &module->name, module->vm->name,
@@ -1248,14 +1248,15 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
         for (i = 0; i < instance->funcs.nelts; i++) {
             func = &((ngx_wavm_func_t *) instance->funcs.elts)[i];
 
-            dd("freeing func \"%*s\" (functype: %p, i: %zu)",
-               (int) func->name.len, (u_char *) func->name.data,
-               func->functype, i);
-
             if (func->functype) {
+                dd("freeing func \"%*s\" (functype: %p, i: %zu)",
+                   (int) func->name.len, (u_char *) func->name.data,
+                   func->functype, i);
+
                 wasm_val_vec_delete(&func->args);
                 wasm_val_vec_delete(&func->rets);
                 wasm_functype_delete((wasm_functype_t *) func->functype);
+                func->functype = NULL;
             }
         }
 

@@ -481,7 +481,11 @@ done:
 error:
 
     if (fctx) {
-        ngx_pfree(fctx->pool, fctx);
+        if (fctx->instance) {
+            ngx_wavm_instance_destroy(fctx->instance);
+        }
+
+        ngx_memzero(fctx, sizeof(ngx_proxy_wasm_filter_ctx_t));
     }
 
     return NULL;
