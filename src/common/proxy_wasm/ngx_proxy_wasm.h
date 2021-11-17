@@ -12,7 +12,6 @@
 typedef enum {
     NGX_PROXY_WASM_ISOLATION_NONE = 0,
     NGX_PROXY_WASM_ISOLATION_STREAM = 1,
-    NGX_PROXY_WASM_ISOLATION_FULL = 2,
 } ngx_proxy_wasm_isolation_mode_e;
 
 
@@ -189,6 +188,7 @@ struct ngx_proxy_wasm_filter_s {
     ngx_proxy_wasm_get_context_pt      get_context_;
     ngx_proxy_wasm_free_context_pt     free_context_;
     ngx_uint_t                        *max_filters;
+    ngx_uint_t                         max_id;
 
     /* dyn config */
 
@@ -269,12 +269,9 @@ struct ngx_proxy_wasm_filter_s {
 
 /* ngx_proxy_wasm_filter_t */
 ngx_int_t ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filterodule);
+ngx_int_t ngx_proxy_wasm_filter_resume(ngx_proxy_wasm_filter_t *filter,
+    ngx_wasm_phase_t *phase, ngx_log_t *log, void *data);
 void ngx_proxy_wasm_filter_destroy(ngx_proxy_wasm_filter_t *filter);
-
-ngx_int_t ngx_proxy_wasm_filter_init_root_instance(
-    ngx_proxy_wasm_filter_t *filter);
-ngx_int_t ngx_proxy_wasm_filter_init_instance(ngx_proxy_wasm_stream_ctx_t *sctx,
-    void *data);
 
 /* ngx_proxy_wasm_filter_ctx_t */
 ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_filter_ctx_t *fctx,
@@ -284,8 +281,6 @@ unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx,
     size_t *out_size, ngx_uint_t *truncated);
 
 /* phases */
-ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
-    ngx_wasm_phase_t *phase);
 ngx_int_t ngx_proxy_wasm_on_log(ngx_proxy_wasm_filter_ctx_t *fctx);
 void ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx);
 
@@ -302,8 +297,6 @@ void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
     ngx_proxy_wasm_err_e err, const char *fmt, ...);
 
 
-ngx_proxy_wasm_filter_ctx_t *ngx_proxy_wasm_filter_get_ctx(
-    ngx_proxy_wasm_filter_t *filter, void *data);
 ngx_int_t ngx_proxy_wasm_filter_ctx_err_code(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_phase_t *phase);
 

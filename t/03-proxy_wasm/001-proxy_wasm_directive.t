@@ -84,8 +84,8 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[crit\] .*? \[wasm\] failed initializing "a" filter \(unknown ABI version\)/,
-    qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(unknown ABI version\)/
+    qr/\[crit\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/,
+    qr/\[crit\] .*? proxy_wasm #0 "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
 ]
 --- no_error_log
 [warn]
@@ -114,8 +114,8 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] missing malloc \(incompatible SDK interface\)/,
-    qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(incompatible SDK interface\)/
+    qr/\[emerg\] .*? proxy_wasm "a" filter missing malloc \(incompatible SDK interface\)/,
+    qr/\[crit\] .*? proxy_wasm #0 "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
 ]
 --- no_error_log
 [warn]
@@ -146,8 +146,8 @@ should error since missing on_context_create
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[emerg\] .*? \[wasm\] missing one of: .*? \(incompatible SDK interface\)/,
-    qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(incompatible SDK interface\)/
+    qr/\[emerg\] .*? proxy_wasm "a" filter missing one of: .*? \(incompatible SDK interface\)/,
+    qr/\[crit\] .*? proxy_wasm #0 "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
 ]
 --- no_error_log
 [warn]
@@ -176,8 +176,8 @@ should error since missing on_context_create
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[crit\] .*? \[wasm\] failed initializing "a" filter \(unknown ABI version\)/,
-    qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(unknown ABI version\)/
+    qr/\[crit\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/,
+    qr/\[crit\] .*? proxy_wasm #0 "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
 ]
 --- no_error_log
 [warn]
@@ -207,8 +207,8 @@ should error since missing on_context_create
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[crit\] .*? \[wasm\] failed initializing "a" filter \(incompatible ABI version\)/,
-    qr/\[crit\] .*? \[wasm\] proxy_wasm failed resuming "a" filter \(incompatible ABI version\)/
+    qr/\[crit\] .*? proxy_wasm failed initializing "a" filter \(incompatible ABI version\)/,
+    qr/\[crit\] .*? proxy_wasm #0 "a" filter \(1\/1\) failed resuming \(incompatible ABI version\)/
 ]
 --- no_error_log
 [warn]

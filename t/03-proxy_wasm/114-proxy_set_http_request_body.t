@@ -203,6 +203,7 @@ HelloWorld
 --- wasm_modules: hostcalls
 --- config
     location /request_headers {
+        # ok
         proxy_wasm hostcalls 'on=request_headers \
                               test=/t/set_request_body \
                               value=from_request_headers';
@@ -210,6 +211,7 @@ HelloWorld
     }
 
     location /request_body {
+        # ok
         proxy_wasm hostcalls 'on=request_body \
                               test=/t/set_request_body \
                               value=from_request_body';
@@ -217,6 +219,7 @@ HelloWorld
     }
 
     location /response_headers {
+        # cannot set request body
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/set_request_body';
         echo $request_body;
@@ -227,7 +230,10 @@ HelloWorld
         echo_subrequest POST /request_body     -b 'orig';
         echo_subrequest POST /response_headers -b 'orig';
 
+        # cannot set request body
         proxy_wasm hostcalls 'on=log test=/t/set_request_body';
+
+        # cannot resume
         proxy_wasm hostcalls 'on=log test=/t/log/request_body';
     }
 --- response_body eval
@@ -237,9 +243,9 @@ from_request_body
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
 qr/\[error\] .*? \[wasm\] cannot set request body.*
-\[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*? subrequest: "\/response_headers".*
+\[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
 \[error\] .*? \[wasm\] cannot set request body.*
-\[crit\] .*? \*\d+ \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\) while logging request.*
+\[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\) while logging request.*
 \z/
 --- no_error_log
 [alert]

@@ -99,3 +99,11 @@
    ...
    fun:_ZN12wasmer_c_api10wasm_c_api9externals8function22wasm_func_new_with_env28_$u7b$$u7b$closure$u7d$$u7d$17h500109d2acf40e46E
 }
+{
+   <wasmer 2.0.0: wasi_get_unordered_imports>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:realloc
+   fun:wasi_get_unordered_imports
+   fun:ngx_wasmer_link_module
+}
