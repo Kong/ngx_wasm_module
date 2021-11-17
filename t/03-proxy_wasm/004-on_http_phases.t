@@ -513,10 +513,12 @@ should invoke wasm ops "done" phase to destroy proxy-wasm ctxid in "content" pha
 --- response_body
 ok
 ok
---- grep_error_log eval: qr/proxy_wasm resuming ".*?" filter in "(log|done)" phase/
+--- grep_error_log eval: qr/proxy_wasm .*? resuming in "(log|done)" phase/
 --- grep_error_log_out eval
-qr/proxy_wasm resuming "on_phases" filter in "done" phase
-proxy_wasm resuming "on_phases" filter in "done" phase
+qr/proxy_wasm stream #\d+ "on_phases" filter \(1\/2\) resuming in "done" phase
+proxy_wasm stream #\d+ "on_phases" filter \(2\/2\) resuming in "done" phase
+proxy_wasm stream #\d+ "on_phases" filter \(1\/2\) resuming in "done" phase
+proxy_wasm stream #\d+ "on_phases" filter \(2\/2\) resuming in "done" phase
 \Z/
 --- no_error_log eval
 [
@@ -550,16 +552,16 @@ should not invoke wasm ops "done" phase when subrequests are logged
 --- response_body
 ok
 ok
---- grep_error_log eval: qr/proxy_wasm resuming ".*?" filter in "(log|done)" phase/
+--- grep_error_log eval: qr/proxy_wasm .*? resuming in "(log|done)" phase/
 --- grep_error_log_out eval
-qr/proxy_wasm resuming "on_phases" filter in "log" phase
-proxy_wasm resuming "on_phases" filter in "log" phase
-proxy_wasm resuming "on_phases" filter in "done" phase
-proxy_wasm resuming "on_phases" filter in "done" phase
-proxy_wasm resuming "on_phases" filter in "log" phase
-proxy_wasm resuming "on_phases" filter in "log" phase
-proxy_wasm resuming "on_phases" filter in "done" phase
-proxy_wasm resuming "on_phases" filter in "done" phase
+qr/proxy_wasm stream #\d+ "on_phases" filter \(1\/2\) resuming in "log" phase
+proxy_wasm stream #\d+ "on_phases" filter \(2\/2\) resuming in "log" phase
+proxy_wasm stream #\d+ "on_phases" filter \(1\/2\) resuming in "done" phase
+proxy_wasm stream #\d+ "on_phases" filter \(2\/2\) resuming in "done" phase
+proxy_wasm stream #\d+ "on_phases" filter \(1\/2\) resuming in "log" phase
+proxy_wasm stream #\d+ "on_phases" filter \(2\/2\) resuming in "log" phase
+proxy_wasm stream #\d+ "on_phases" filter \(1\/2\) resuming in "done" phase
+proxy_wasm stream #\d+ "on_phases" filter \(2\/2\) resuming in "done" phase
 \Z/
 --- error_log eval
 [

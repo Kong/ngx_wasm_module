@@ -101,11 +101,6 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
     rctx = ngx_http_proxy_wasm_get_rctx(fctx->instance);
     r = rctx->r;
 
-    rc = ngx_proxy_wasm_filter_ctx_err_code(fctx, phase);
-    if (rc != NGX_OK) {
-        return rc;
-    }
-
     switch (phase->index) {
 
     case NGX_HTTP_REWRITE_PHASE:
@@ -253,14 +248,14 @@ ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_filter_ctx_t *fctx)
         /* 0.1.0 */
         rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                             filter->proxy_on_http_request_headers,
-                                            &rets, fctx->stream_ctx->id,
+                                            &rets, fctx->id,
                                             nheaders);
 
     } else {
         /* 0.2.0+ */
         rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                             filter->proxy_on_http_request_headers,
-                                            &rets, fctx->stream_ctx->id,
+                                            &rets, fctx->id,
                                             nheaders, NGX_HTTP_PROXY_WASM_EOF);
     }
 
@@ -330,7 +325,7 @@ ngx_http_proxy_wasm_on_request_body(ngx_http_request_t *r)
             if (fctx) {
                 rc = ngx_wavm_instance_call_funcref(fctx->instance,
                          fctx->filter->proxy_on_http_request_body,
-                         &rets, sctx->id, len,
+                         &rets, fctx->id, len,
                          NGX_HTTP_PROXY_WASM_EOF);
 
                 (void) ngx_http_proxy_wasm_next_action(fctx, rc,
@@ -363,13 +358,13 @@ ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_filter_ctx_t *fctx)
         /* 0.1.0 */
         rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                             fctx->filter->proxy_on_http_response_headers,
-                                            &rets, fctx->stream_ctx->id, nheaders);
+                                            &rets, fctx->id, nheaders);
 
     } else {
         /* 0.2.0+ */
         rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                             fctx->filter->proxy_on_http_response_headers,
-                                            &rets, fctx->stream_ctx->id, nheaders,
+                                            &rets, fctx->id, nheaders,
                                             NGX_HTTP_PROXY_WASM_EOF);
     }
 
@@ -389,7 +384,7 @@ ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_filter_ctx_t *fctx)
     if (rctx->resp_chunk_len || rctx->resp_chunk_eof) {
         rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                             fctx->filter->proxy_on_http_response_body,
-                                            &rets, fctx->stream_ctx->id,
+                                            &rets, fctx->id,
                                             rctx->resp_chunk_len,
                                             rctx->resp_chunk_eof);
 

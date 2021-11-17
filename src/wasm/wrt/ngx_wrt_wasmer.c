@@ -188,13 +188,6 @@ ngx_wasmer_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
 
     }
 
-    if (!wasi_get_unordered_imports(module->engine->store, module->module,
-                                    module->engine->wasi_env, &wasi_imports))
-    {
-        ngx_wasmer_last_err(&err->res);
-        return NGX_ERROR;
-    }
-
 linking:
 
     /* linking */
@@ -215,6 +208,15 @@ linking:
                            wasi_version_name->len) == 0)
         {
             module->wasi = 1;
+
+            if (!wasi_get_unordered_imports(module->engine->store,
+                                            module->module,
+                                            module->engine->wasi_env,
+                                            &wasi_imports))
+            {
+                ngx_wasmer_last_err(&err->res);
+                return NGX_ERROR;
+            }
 
             /* resolve wasi */
 
@@ -270,6 +272,10 @@ linking:
     }
 
     ngx_wasm_assert(module->nimports == module->import_types->size);
+
+    if (module->wasi) {
+        wasmer_named_extern_vec_delete(&wasi_imports);
+    }
 
     return NGX_OK;
 }
@@ -427,7 +433,10 @@ ngx_wasmer_destroy_instance(ngx_wrt_instance_t *instance)
     }
 
     wasm_extern_vec_delete(&instance->env);
-    wasmer_named_extern_vec_delete(&instance->wasi_imports);
+
+    if (instance->module->wasi) {
+        wasmer_named_extern_vec_delete(&instance->wasi_imports);
+    }
 }
 
 

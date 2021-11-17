@@ -319,7 +319,7 @@ qr/testing in "ResponseHeaders"/
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
 qr/\[error\] .*? \[wasm\] response already sent.*
-\[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*/
+\[crit\] .*? proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
 --- no_error_log
 [alert]
 stub
@@ -343,7 +343,7 @@ qr/testing in "Log"/
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
 qr/\[error\] .*? \[wasm\] response already sent.*
-\[crit\] .*? \[wasm\] proxy_wasm failed resuming "hostcalls" filter \(instance trapped\).*/
+\[crit\] .*? proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
 --- no_error_log
 [emerg]
 [alert]

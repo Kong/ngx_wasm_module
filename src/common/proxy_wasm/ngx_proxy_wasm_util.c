@@ -344,6 +344,7 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
     if (fctx->filter->proxy_on_timer_ready) {
         fctx->stream_ctx = NULL;
         fctx->data = NULL;
+        fctx->log = fctx->filter->log;
 
         ngx_wavm_instance_set_data(fctx->instance, fctx, fctx->log);
 
@@ -406,11 +407,11 @@ ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
             p = ngx_slprintf(p, last, " (%V)", errmsg);
         }
 
-        ngx_wasm_log_error(level, log, 0, "%*s", p - buf, buf);
+        ngx_log_error(level, log, 0, "%*s", p - buf, buf);
         return;
 
     } else if (err) {
-        ngx_wasm_log_error(level, log, 0, "%V", errmsg);
+        ngx_log_error(level, log, 0, "%V", errmsg);
         return;
     }
 

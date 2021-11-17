@@ -253,8 +253,6 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
 
         rc = op->handler(ctx, phase, op);
 
-        dd("rc: %ld", rc);
-
         if (rc == NGX_ERROR || rc > NGX_OK) {
             /* NGX_ERROR, NGX_HTTP_* */
             break;
@@ -337,9 +335,7 @@ static ngx_int_t
 ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     ngx_wasm_phase_t *phase, ngx_wasm_op_t *op)
 {
-    ngx_int_t                     rc;
-    ngx_proxy_wasm_filter_t      *filter;
-    ngx_proxy_wasm_filter_ctx_t  *fctx;
+    ngx_proxy_wasm_filter_t  *filter;
 
     ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);
 
@@ -348,15 +344,6 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
         return NGX_ERROR;
     }
 
-    rc = ngx_proxy_wasm_filter_ctx_err_code(&filter->root_fctx, phase);
-    if (rc != NGX_OK) {
-        return rc;
-    }
-
-    fctx = ngx_proxy_wasm_filter_get_ctx(filter, opctx->data);
-    if (fctx == NULL) {
-        return NGX_ERROR;
-    }
-
-    return ngx_proxy_wasm_resume(fctx, phase);
+    return ngx_proxy_wasm_filter_resume(filter, phase,
+                                        opctx->log, opctx->data);
 }
