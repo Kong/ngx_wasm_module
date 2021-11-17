@@ -856,12 +856,13 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
         goto error;
     }
 
-    instance->log->file = vm->log->file;
-    instance->log->next = vm->log->next;
-    instance->log->wdata = vm->log->wdata;
-    instance->log->writer = vm->log->writer;
-    instance->log->log_level = vm->log->log_level;
+    instance->log->file = log->file;
+    instance->log->next = log->next;
+    instance->log->wdata = log->wdata;
+    instance->log->writer = log->writer;
+    instance->log->log_level = log->log_level;
     instance->log->handler = ngx_wavm_log_error_handler;
+    instance->log->connection = log->connection;
     instance->log->data = &instance->log_ctx;
 
     instance->log_ctx.vm = module->vm;
@@ -1080,7 +1081,8 @@ ngx_wavm_instance_call_func_va(ngx_wavm_instance_t *instance,
 
     rc = ngx_wavm_func_call(func, &func->args, &func->rets, &e);
     if (rc != NGX_OK) {
-        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &e, NULL);
+        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &e,
+                           "in %V", &func->name);
     }
 
     if (rets) {
@@ -1129,7 +1131,8 @@ ngx_wavm_instance_call_func_vec(ngx_wavm_instance_t *instance,
 
     rc = ngx_wavm_func_call(func, &func->args, &func->rets, &e);
     if (rc != NGX_OK) {
-        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &e, NULL);
+        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &e,
+                           "in %V", &func->name);
     }
 
     if (rets) {
@@ -1300,9 +1303,13 @@ ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
     }
 
     if (e && e->trap) {
+        if (fmt) {
+            p = ngx_slprintf(p, last, " ");
+        }
+
         wasm_trap_message(e->trap, &trapmsg);
 
-        p = ngx_slprintf(p, last, "%*s",
+        p = ngx_slprintf(p, last, "[trap: %*s]",
                          trapmsg.size
 #ifdef NGX_WASM_HAVE_WASMER
                          /* wasmer appends NULL in wasm_trap_message */

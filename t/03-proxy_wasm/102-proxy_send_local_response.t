@@ -73,7 +73,7 @@ qr/500 Internal Server Error/
 --- error_log eval
 [
     qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
-    qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?unreachable/
+    qr/\[error\] .*? unreachable.*/
 ]
 --- no_error_log
 [alert]
@@ -318,7 +318,7 @@ should produce a trap
 qr/testing in "ResponseHeaders"/
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] .*? \[wasm\] response already sent.*
+qr/\[error\] .*? response already sent.*
 \[crit\] .*? proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
 --- no_error_log
 [alert]
@@ -342,7 +342,7 @@ ok
 qr/testing in "Log"/
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] .*? \[wasm\] response already sent.*
+qr/\[error\] .*? response already sent.*
 \[crit\] .*? proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
 --- no_error_log
 [emerg]
@@ -403,7 +403,6 @@ stub
 === TEST 17: proxy_wasm - send_local_response() in chained filters
 should interrupt the current phase, preventing "response already stashed"
 should still run all response phases
---- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {

@@ -136,6 +136,7 @@ ngx_wavm_instance_set_data(ngx_wavm_instance_t *instance, void *data,
     ngx_log_t *log)
 {
     instance->data = data;
+    instance->log->connection = log->connection;
     instance->log_ctx.orig_log = log;
 }
 

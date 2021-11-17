@@ -218,7 +218,7 @@ qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "a" module/
 )
 --- error_code: 500
 --- error_log eval
-qr/\[error\] .*? \[wasm\] (?:wasm trap\: )?integer divide by zero/
+qr/\[error\] .*? integer divide by zero/
 --- no_error_log
 [crit]
 [alert]

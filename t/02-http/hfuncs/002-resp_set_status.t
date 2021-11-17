@@ -58,6 +58,6 @@ hello say
 --- ignore_response_body
 --- grep_error_log eval: qr/\[error\] .*?$/
 --- grep_error_log_out eval
-qr/\[wasm\] bad host usage: headers already sent/
+qr/bad host usage: headers already sent/
 --- no_error_log
 [alert]
