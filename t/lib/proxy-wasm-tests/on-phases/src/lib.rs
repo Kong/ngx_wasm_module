@@ -44,6 +44,10 @@ impl RootContext for HttpHeadersRoot {
 
             info!("#{} config: {}", ROOT_ID, config_str);
 
+            if self.config.contains_key("fail_configure") {
+                return false;
+            }
+
             if let Some(period) = self.config.get("tick_period") {
                 self.set_tick_period(Duration::from_millis(
                     period.parse().expect("bad tick_period"),
