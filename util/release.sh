@@ -258,16 +258,18 @@ release_bin() {
         LD_FLAGS="$(pwd)/wasmtime-$WASMTIME_VER/lib/libwasmtime.a -ldl -lpthread"
 
         build_static_binary $arch wasmtime $WASMTIME_VER
+    fi
 
-    elif [ -n "$WASMER_VER" ]; then
+    if [ -n "$WASMER_VER" ]; then
         download_wasmer $WASMER_VER $arch
 
         CC_FLAGS="-I$(pwd)/wasmer-$WASMER_VER/include"
         LD_FLAGS="$(pwd)/wasmer-$WASMER_VER/lib/libwasmer.a -ldl -lpthread"
 
         build_static_binary $arch wasmer $WASMER_VER
+    fi
 
-    else
+    if [[ -z "$WASMTIME_VER" && -z "$WASMER_VER" ]]; then
         fatal "missing wasm vm, specify --wasmer or --wasmtime"
     fi
 }
