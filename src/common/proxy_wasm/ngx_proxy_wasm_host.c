@@ -198,6 +198,8 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
 
     } else {
         ngx_wasm_assert(cl);
+        ngx_wasm_assert(cl->buf);
+        ngx_wasm_assert(cl->next);
         len = 0;
 
         for (/* void */; cl; cl = cl->next) {

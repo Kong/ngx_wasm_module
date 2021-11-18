@@ -6,7 +6,7 @@
 #include <ngx_proxy_wasm.h>
 
 
-static ngx_int_t ngx_proxy_wasm_init_root_ctx(
+static ngx_int_t ngx_proxy_wasm_init_root_instance(
     ngx_proxy_wasm_filter_t *filter);
 static ngx_proxy_wasm_filter_ctx_t *ngx_proxy_wasm_filter_get_ctx(
     ngx_proxy_wasm_filter_t *filter, ngx_log_t *log, void *data);
@@ -73,7 +73,7 @@ ngx_proxy_wasm_abi_version(ngx_proxy_wasm_filter_t *filter)
 
 
 static ngx_int_t
-ngx_proxy_wasm_init_root_ctx(ngx_proxy_wasm_filter_t *filter)
+ngx_proxy_wasm_init_root_instance(ngx_proxy_wasm_filter_t *filter)
 {
     ngx_int_t                     rc;
     ngx_proxy_wasm_filter_ctx_t  *root_fctx = &filter->root_fctx;
@@ -352,7 +352,9 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
         goto error;
     }
 
-    rc = ngx_proxy_wasm_init_root_ctx(filter);
+    /* root instance */
+
+    rc = ngx_proxy_wasm_init_root_instance(filter);
     if (rc != NGX_OK) {
         goto error;
     }
@@ -553,7 +555,7 @@ ngx_proxy_wasm_filter_resume(ngx_proxy_wasm_filter_t *filter,
 
            ngx_wavm_instance_destroy(fctx->instance);
 
-           rc = ngx_proxy_wasm_init_root_ctx(filter);
+           rc = ngx_proxy_wasm_init_root_instance(filter);
            if (rc != NGX_OK) {
                ngx_proxy_wasm_log_error(NGX_LOG_CRIT, log,
                                         filter->root_fctx.ecode,
