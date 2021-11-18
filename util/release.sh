@@ -92,11 +92,11 @@ release_source() {
 
     mkdir -p $DIST_SRC
     cp -R \
-        $NGX_WASM_DIR/config \
-        $NGX_WASM_DIR/auto \
-        $NGX_WASM_DIR/src \
-        $NGX_WASM_DIR/misc/INSTALL \
-        $DIST_SRC
+       $NGX_WASM_DIR/config \
+       $NGX_WASM_DIR/auto \
+       $NGX_WASM_DIR/src \
+       $NGX_WASM_DIR/assets/release/INSTALL \
+       $DIST_SRC
 
     tar czf $DIST_SRC.tar.gz $DIST_SRC
     cp $DIST_SRC.tar.gz $DIR_DIST_OUT
@@ -232,9 +232,9 @@ build_static_binary() {
 
     cd $DIR_DIST_WORK
     cp $DIR_BUILD/build-$dist_bin_name/nginx \
-       $NGX_WASM_DIR/misc/nginx.conf \
-       $NGX_WASM_DIR/misc/README \
-        $dist_bin_name
+       $NGX_WASM_DIR/assets/release/nginx.conf \
+       $NGX_WASM_DIR/assets/release/README \
+       $dist_bin_name
 
     tar czf $dist_bin_name.tar.gz $dist_bin_name
     mv $dist_bin_name.tar.gz $DIR_DIST_OUT
