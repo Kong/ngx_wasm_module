@@ -60,7 +60,7 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
 
 static ngx_int_t
 ngx_wasmtime_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
-    ngx_wrt_err_t *err)
+    ngx_pool_t *pool, ngx_wrt_err_t *err)
 {
     engine->engine = wasm_engine_new_with_config(config);
     if (engine->engine == NULL) {
@@ -223,8 +223,9 @@ ngx_wasmtime_destroy_store(ngx_wrt_store_t *store)
 
 static ngx_int_t
 ngx_wasmtime_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
-    ngx_wrt_module_t *module, ngx_wrt_err_t *err)
+    ngx_wrt_module_t *module, ngx_pool_t *pool, ngx_wrt_err_t *err)
 {
+    instance->pool = pool;
     instance->store = store;
     instance->module = module;
     instance->wasi_config = wasi_config_new();
@@ -281,9 +282,10 @@ ngx_wasmtime_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
 
     ngx_wasm_assert(idx < m->export_types->size);
 
+    ext->instance = instance;
     ext->context = s->context;
     ext->name.len = name_len;
-    ext->name.data = ngx_alloc(name_len, ngx_cycle->log);
+    ext->name.data = ngx_pnalloc(instance->pool, name_len);
     if (ext->name.data == NULL) {
         return NGX_ERROR;
     }
@@ -324,7 +326,7 @@ ngx_wasmtime_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
 static void
 ngx_wasmtime_destroy_extern(ngx_wrt_extern_t *ext)
 {
-    ngx_free(ext->name.data);
+    ngx_pfree(ext->instance->pool, ext->name.data);
 }
 
 
@@ -432,14 +434,14 @@ ngx_wasmtime_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
 
     func = &item.of.func;
 
-    wargs = ngx_alloc(args->size * sizeof(wasmtime_val_t), ngx_cycle->log);
+    wargs = ngx_pcalloc(instance->pool, sizeof(wasmtime_val_t) * args->size);
     if (wargs == NULL) {
         goto done;
     }
 
     ngx_wasm_valvec2wasmtime(wargs, args);
 
-    wrets = ngx_calloc(rets->size * sizeof(wasmtime_val_t), ngx_cycle->log);
+    wrets = ngx_pcalloc(instance->pool, sizeof(wasmtime_val_t) * rets->size);
     if (wrets == NULL) {
         goto done;
     }
@@ -464,11 +466,11 @@ ngx_wasmtime_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
 done:
 
     if (wargs) {
-        ngx_free(wargs);
+        ngx_pfree(instance->pool, wargs);
     }
 
     if (wrets) {
-        ngx_free(wrets);
+        ngx_pfree(instance->pool, wrets);
     }
 
     return rc;

@@ -50,6 +50,7 @@ typedef struct {
 } ngx_wrt_store_t;
 
 typedef struct {
+    ngx_pool_t                    *pool;
     ngx_wrt_store_t               *store;
     ngx_wrt_module_t              *module;
     wasi_config_t                 *wasi_config;
@@ -58,9 +59,10 @@ typedef struct {
 } ngx_wrt_instance_t;
 
 typedef struct {
+    ngx_wrt_instance_t            *instance;
     wasmtime_context_t            *context;
-    ngx_str_t                      name;
     wasmtime_extern_t              ext;
+    ngx_str_t                      name;
     ngx_wrt_extern_kind_e          kind;
 } ngx_wrt_extern_t;
 
@@ -75,6 +77,7 @@ typedef ngx_str_t  ngx_wrt_res_t;
 typedef struct ngx_wrt_import_s  ngx_wrt_import_t;
 
 typedef struct {
+    ngx_pool_t                    *pool;
     wasm_config_t                 *wasm_config;
     wasi_config_t                 *wasi_config;
     wasi_env_t                    *wasi_env;
@@ -103,6 +106,7 @@ typedef struct {
 } ngx_wasmer_hfunc_ctx_t;
 
 typedef struct {
+    ngx_pool_t                    *pool;
     ngx_wrt_store_t               *store;
     ngx_wrt_module_t              *module;
     wasm_memory_t                 *memory;
@@ -134,6 +138,7 @@ typedef struct {
                                               ngx_log_t *log);
     ngx_int_t                    (*engine_init)(ngx_wrt_engine_t *engine,
                                                 wasm_config_t *config,
+                                                ngx_pool_t *pool,
                                                 ngx_wrt_err_t *err);
     void                         (*engine_destroy)(ngx_wrt_engine_t *engine);
     ngx_int_t                    (*validate)(ngx_wrt_engine_t *engine,
@@ -159,6 +164,7 @@ typedef struct {
     ngx_int_t                    (*instance_init)(ngx_wrt_instance_t *instance,
                                                   ngx_wrt_store_t *store,
                                                   ngx_wrt_module_t *module,
+                                                  ngx_pool_t *pool,
                                                   ngx_wrt_err_t *err);
     void                         (*instance_destroy)(
                                          ngx_wrt_instance_t *instance);

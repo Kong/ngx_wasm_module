@@ -58,7 +58,7 @@ ngx_wasmer_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
 
 static ngx_int_t
 ngx_wasmer_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
-    ngx_wrt_err_t *err)
+    ngx_pool_t *pool, ngx_wrt_err_t *err)
 {
     engine->engine = wasm_engine_new_with_config(config);
     if (engine->engine == NULL) {
@@ -72,6 +72,7 @@ ngx_wasmer_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
         return NGX_ERROR;
     }
 
+    engine->pool = pool;
     engine->wasi_config = wasi_config_new("ngx_wasm_module");
     engine->wasi_env = wasi_env_new(engine->wasi_config);
 
@@ -135,8 +136,8 @@ ngx_wasmer_init_module(ngx_wrt_module_t *module, ngx_wrt_engine_t *engine,
     module->import_types = imports;
     module->export_types = exports;
     module->nimports = 0;
-    module->imports = ngx_calloc(sizeof(ngx_wrt_import_t) * imports->size,
-                                 ngx_cycle->log);
+    module->imports = ngx_pcalloc(engine->pool,
+                                  sizeof(ngx_wrt_import_t) * imports->size);
     if (module->imports == NULL) {
         return NGX_ERROR;
     }
@@ -284,7 +285,7 @@ linking:
 static void
 ngx_wasmer_destroy_module(ngx_wrt_module_t *module)
 {
-    ngx_free(module->imports);
+    ngx_pfree(module->engine->pool, module->imports);
     wasm_module_delete(module->module);
     wasm_importtype_vec_delete(module->import_types);
     wasm_exporttype_vec_delete(module->export_types);
@@ -315,7 +316,7 @@ ngx_wasmer_destroy_store(ngx_wrt_store_t *store)
 
 static ngx_int_t
 ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
-    ngx_wrt_module_t *module, ngx_wrt_err_t *err)
+    ngx_wrt_module_t *module, ngx_pool_t *pool, ngx_wrt_err_t *err)
 {
     size_t                   i;
     ngx_uint_t               nimports = 0;
@@ -335,8 +336,8 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
 
     wasm_extern_vec_new_uninitialized(&instance->env, module->nimports);
 
-    hctxs = ngx_calloc(sizeof(ngx_wasmer_hfunc_ctx_t) * module->nimports,
-                       ngx_cycle->log);
+    hctxs = ngx_pcalloc(pool,
+                        sizeof(ngx_wasmer_hfunc_ctx_t) * module->nimports);
     if (hctxs == NULL) {
         return NGX_ERROR;
     }
@@ -377,6 +378,7 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
     ngx_wasm_assert(nimports == module->nimports);
     ngx_wasm_assert(instance->env.size == module->nimports);
 
+    instance->pool = pool;
     instance->store = store;
     instance->module = module;
     instance->instance = wasm_instance_new(store->store, module->module,
@@ -427,7 +429,7 @@ ngx_wasmer_destroy_instance(ngx_wrt_instance_t *instance)
         }
 #endif
 
-        ngx_free(instance->ctxs);
+        ngx_pfree(instance->pool, instance->ctxs);
 
         wasm_extern_vec_delete(&instance->externs);
     }
