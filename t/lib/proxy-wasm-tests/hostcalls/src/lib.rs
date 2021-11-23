@@ -7,6 +7,7 @@ use log::*;
 use proxy_wasm::traits::*;
 use proxy_wasm::types::*;
 use std::collections::HashMap;
+use url::Url;
 
 #[derive(Debug, PartialEq, enum_utils::FromStr)]
 #[enumeration(rename_all = "snake_case")]
@@ -88,8 +89,20 @@ impl TestHttpHostcalls {
 
         let path = self.get_http_request_header(":path").unwrap();
         if path.starts_with("/t/echo/header/") {
+            let res = Url::options()
+                .base_url(Some(&Url::parse("http://localhost").unwrap()))
+                .parse(&path);
+
+            if let Err(e) = res {
+                error!("{}", e);
+                return;
+            }
+
             /* /t/echo/header/{header_name: String} */
-            let header_name = path
+
+            let url = res.unwrap();
+            let header_name = url
+                .path()
                 .split('/')
                 .collect::<Vec<&str>>()
                 .split_off(4)

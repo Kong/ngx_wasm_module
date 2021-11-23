@@ -286,15 +286,25 @@ ngx_proxy_wasm_maps_set(ngx_wavm_instance_t *instance,
 #endif
 
     rc = ngx_proxy_wasm_maps_set_special_key(instance, map_type, key, value);
-    if (rc == NGX_DONE) {
-        rc = NGX_OK;
-        goto done;
-    }
 
-    if (rc == NGX_ABORT) {
+    switch (rc) {
+    case NGX_OK:
+    case NGX_ERROR:
+        goto done;
+
+    case NGX_ABORT:
+        /* read-only */
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                            "cannot set read-only \"%V\" header", key);
         goto done;
+
+    case NGX_DECLINED:
+        /* not found */
+        break;
+
+    default:
+        ngx_wasm_assert(0);
+        return NGX_ERROR;
     }
 
     ngx_wasm_assert(rc == NGX_DECLINED);
@@ -380,9 +390,7 @@ ngx_proxy_wasm_maps_set_special_key(ngx_wavm_instance_t *instance,
             return NGX_ABORT;
         }
 
-        if (mkey->set_(instance, value) == NGX_OK) {
-            return NGX_DONE;
-        }
+        return mkey->set_(instance, value);
     }
 
     return NGX_DECLINED;
@@ -393,21 +401,61 @@ ngx_proxy_wasm_maps_set_special_key(ngx_wavm_instance_t *instance,
 static ngx_str_t *
 ngx_proxy_wasm_maps_get_path(ngx_wavm_instance_t *instance)
 {
-    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    ngx_http_request_t       *r = rctx->r;
+    size_t                        len;
+    u_char                       *p;
+    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_get_fctx(instance);
+    ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->stream_ctx;
+    ngx_http_wasm_req_ctx_t      *rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    ngx_http_request_t           *r = rctx->r;
 
-    return &r->uri;
+    if (sctx->path.len) {
+        return &sctx->path;
+    }
+
+    len = r->uri.len;
+
+    if (r->args.len) {
+        len += r->args.len + 1;
+    }
+
+    sctx->path.data = ngx_pnalloc(sctx->pool, len);
+    if (sctx->path.data == NULL) {
+        return NULL;
+    }
+
+    p = ngx_cpymem(sctx->path.data, r->uri.data, r->uri.len);
+
+    if (r->args.len) {
+        *p++ = '?';
+        ngx_memcpy(p, r->args.data, r->args.len);
+    }
+
+    sctx->path.len = len;
+
+    return &sctx->path;
 }
 
 
 static ngx_int_t
 ngx_proxy_wasm_maps_set_path(ngx_wavm_instance_t *instance, ngx_str_t *value)
 {
-    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    ngx_http_request_t       *r = rctx->r;
+    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_get_fctx(instance);
+    ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->stream_ctx;
+    ngx_http_wasm_req_ctx_t      *rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    ngx_http_request_t           *r = rctx->r;
+
+    if (ngx_strchr(value->data, '?')) {
+        ngx_wavm_instance_trap_printf(instance, "NYI - cannot set request path with querystring");
+        return NGX_ERROR;
+    }
 
     r->uri.len = value->len;
     r->uri.data = value->data;
+
+    if (sctx->path.len) {
+        ngx_pfree(sctx->pool, sctx->path.data);
+        sctx->path.len = 0;
+    }
 
     return NGX_OK;
 }
