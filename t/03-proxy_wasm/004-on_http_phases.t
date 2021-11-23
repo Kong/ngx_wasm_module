@@ -8,7 +8,7 @@ skip_valgrind();
 
 #repeat_each(2);
 
-plan tests => repeat_each() * (blocks() * 7);
+plan tests => repeat_each() * (blocks() * 5);
 
 run_tests();
 
@@ -31,8 +31,6 @@ qr/\[info\] .*? on_request_headers, 3 headers/
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
 
 
 
@@ -54,8 +52,6 @@ qr/\[info\] .*? on_request_body, 11 bytes, end_of_stream: true/
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
 
 
 
@@ -79,8 +75,6 @@ qr/\[info\] .*? on_request_body, 20 bytes, end_of_stream: true/
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
 
 
 
@@ -106,8 +100,6 @@ ok
 ]
 --- no_error_log
 [error]
-[crit]
-[alert]
 
 
 
@@ -132,8 +124,6 @@ qr/\[info\] .*? on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
 
 
 
@@ -157,8 +147,6 @@ qr/\[info\] .*? on_response_headers, 5 headers/
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
 
 
 
@@ -175,8 +163,6 @@ qr/\[info\] .*? on_response_body, 0 bytes, end_of_stream: true/
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
 
 
 
@@ -193,8 +179,6 @@ qr/\[info\] .*? on_response_body, 0 bytes, end_of_stream: true/
 on_response_body,
 [error]
 [crit]
-[alert]
-[stderr]
 
 
 
@@ -215,8 +199,6 @@ hello world
 ]
 --- no_error_log
 [error]
-[crit]
-[alert]
 
 
 
@@ -250,8 +232,6 @@ Hello
 ]
 --- no_error_log
 [error]
-[crit]
-[alert]
 
 
 
@@ -270,8 +250,6 @@ qr/\[info\] .*? on_log/
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
 
 
 
@@ -287,15 +265,18 @@ should cause HTTP 404 from static module (default content handler)
 --- error_code: 404
 --- response_body eval
 qr/404 Not Found/
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/#\d+ on_request_headers, 2 headers.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_body, \d+ bytes.*
+#\d+ on_log.*/
 --- error_log eval
-[
-    qr/\[error\] .*? open\(\) \".*?\" failed/,
-    qr/\[info\] .*? on_request_headers/,
-    qr/\[info\] .*? on_response_headers/,
-    qr/\[info\] .*? on_log/
-]
+qr/\[error\] .*? open\(\) \".*?\" failed/
 --- no_error_log
 [crit]
+
+
 
 
 
@@ -309,12 +290,11 @@ should produce a response in and of itself, proxy_wasm wraps around
     }
 --- error_code: 201
 --- response_body
---- error_log eval
-[
-    qr/\[info\] .*? on_request_headers/,
-    qr/\[info\] .*? on_response_headers/,
-    qr/\[info\] .*? on_log/
-]
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_body, 0 bytes.*
+#\d+ on_log.*/
 --- no_error_log
 [error]
 [crit]
@@ -332,13 +312,16 @@ should produce a response in and of itself, proxy_wasm wraps around
 --- error_code: 200
 --- response_body
 ok
---- error_log eval
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/#\d+ on_request_headers, 2 headers.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_body, 3 bytes, end_of_stream: false.*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_log.*/
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
-stub
 
 
 
@@ -354,13 +337,16 @@ below it, it should wrap around echo
     }
 --- response_body
 ok
---- error_log eval
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/#\d+ on_request_headers, 2 headers.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_body, 3 bytes, end_of_stream: false.*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_log.*/
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
-stub
 
 
 
@@ -388,51 +374,46 @@ qq{
     }
 --- error_code: 201
 --- response_body
---- error_log eval
-[
-    qr/\[info\] .*? on_request_headers/,
-    qr/\[info\] .*? on_response_headers/,
-    qr/\[info\] .*? on_response_body/,
-    qr/\[info\] .*? on_log/
-]
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/#\d+ on_request_headers, 2 headers.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_log.*/
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 17: proxy_wasm - as a subrequest
+=== TEST 17: proxy_wasm - as a subrequest with return in rewrite
 should not execute a log phase
---- wasm_modules: on_phases
 --- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
 --- config
     location /subrequest {
         internal;
         proxy_wasm on_phases;
-        return 201;
+        return 204;
     }
 
     location /t {
         echo_subrequest GET '/subrequest';
     }
---- error_code: 200
 --- response_body
---- error_log eval
-[
-    qr/\[info\] .*? on_request_headers, \d+ headers.*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? on_response_headers, \d+ headers.*? subrequest: "\/subrequest"/,
-]
---- no_error_log eval
-[
-    qr/on_log .*? subrequest: "\/subrequest"/,
-    qr/\[error\]/,
-    qr/\[crit\]/
-]
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/#\d+ on_request_headers, 2 headers.*? subrequest: "\/subrequest".*
+#\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*/
+--- no_error_log
+[error]
+on_log
 
 
 
 === TEST 18: proxy_wasm - as a subrequest with a main request body
---- wasm_modules: on_phases
 --- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
 --- config
     location /subrequest {
         internal;
@@ -449,17 +430,16 @@ Hello from main request body
 --- error_code: 200
 --- response_body
 ok
---- error_log eval
-[
-    qr/\[info\] .*? on_request_headers, \d+ headers.*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? on_request_body, 28 bytes, .*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? on_response_headers, \d+ headers.*? subrequest: "\/subrequest"/,
-]
---- no_error_log eval
-[
-    qr/on_log .*? subrequest: "\/subrequest"/,
-    qr/\[error\]/,
-]
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/#\d+ on_request_headers, 3 headers.*? subrequest: "\/subrequest".*
+#\d+ on_request_body, 28 bytes, end_of_stream: true.*? subrequest: "\/subrequest".*
+#\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*
+#\d+ on_response_body, 3 bytes, end_of_stream: false.*? subrequest: "\/subrequest".*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*? subrequest: "\/subrequest".*/
+--- no_error_log
+[error]
+on_log
 
 
 
@@ -478,23 +458,22 @@ ok
 --- error_code: 200
 --- response_body
 ok
---- error_log eval
-[
-    qr/\[info\] .*? on_request_headers, \d+ headers.*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? on_request_body, 21 bytes, .*? subrequest: "\/subrequest"/,
-    qr/\[info\] .*? on_response_headers, \d+ headers.*? subrequest: "\/subrequest"/,
-]
---- no_error_log eval
-[
-    qr/on_log .*? subrequest: "\/subrequest"/,
-    qr/\[error\]/,
-]
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/#\d+ on_request_headers, 3 headers.*? subrequest: "\/subrequest".*
+#\d+ on_request_body, 21 bytes, end_of_stream: true.*? subrequest: "\/subrequest".*
+#\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*
+#\d+ on_response_body, 3 bytes, end_of_stream: false.*? subrequest: "\/subrequest".*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*? subrequest: "\/subrequest".*/
+--- no_error_log
+[error]
+on_log
 
 
 
 === TEST 20: proxy_wasm - as a chained subrequest
 should invoke wasm ops "done" phase to destroy proxy-wasm ctxid in "content" phase
---- skip_no_debug: 7
+--- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -520,19 +499,15 @@ proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
 proxy_wasm "on_phases" filter \(1\/2\) resuming in "done" phase
 proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
 \Z/
---- no_error_log eval
-[
-    qr/on_log .*? subrequest: "\/subrequest"/,
-    qr/\[error\]/,
-    "stub",
-    "stub",
-]
+--- no_error_log
+[error]
+on_log
 
 
 
 === TEST 21: proxy_wasm - as a chained subrequest (logged)
 should not invoke wasm ops "done" phase when subrequests are logged
---- skip_no_debug: 7
+--- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -568,11 +543,6 @@ proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
     qr/on_log.*? subrequest: "\/subrequest"/,
     qr/on_log.*? subrequest: "\/subrequest"/,
 ]
---- no_error_log eval
-[
-    qr/\[error\]/,
-    "stub",
-]
 
 
 
@@ -598,21 +568,25 @@ proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
 --- response_body
 A
 B
---- error_log eval
-[
-    qr/\[info\] .*? on_request_headers, \d+ headers.*? subrequest: "\/subrequest\/a"/,
-    qr/\[info\] .*? on_response_headers, \d+ headers.*? subrequest: "\/subrequest\/a"/,
-    qr/\[info\] .*? on_request_headers, \d+ headers.*? subrequest: "\/subrequest\/b"/,
-    qr/\[info\] .*? on_response_headers, \d+ headers.*? subrequest: "\/subrequest\/b"/,
-]
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/#\d+ on_request_headers, 2 headers.*? subrequest: "\/subrequest\/a".*
+#\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest\/a".*
+#\d+ on_response_body, 2 bytes, end_of_stream: false.*? subrequest: "\/subrequest\/a".*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*? subrequest: "\/subrequest\/a".*
+#\d+ on_request_headers, 2 headers.*? subrequest: "\/subrequest\/b".*
+#\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest\/b".*
+#\d+ on_response_body, 2 bytes, end_of_stream: false.*? subrequest: "\/subrequest\/b".*
+#\d+ on_response_body, 0 bytes, end_of_stream: true.*? subrequest: "\/subrequest\/b".*/
 --- no_error_log
 [error]
+on_log
 
 
 
 === TEST 23: proxy_wasm - chained filters in same location{} block
 should run each filter after the other within each phase
---- skip_no_debug: 7
+--- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -643,74 +617,75 @@ qr/#\d+ on_request_headers, 3 headers.*
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
 
 
 
 === TEST 24: proxy_wasm - chained filters in server{} block
 should run each filter after the other within each phase
+--- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
     proxy_wasm on_phases;
     proxy_wasm on_phases;
 
     location /t {
-        return 200;
+        echo ok;
     }
+--- response_body
+ok
 --- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
-qr/#\d+ on_request_headers, \d+ headers.*
-#\d+ on_request_headers, \d+ headers.*
-#\d+ on_response_headers, \d+ headers.*
-#\d+ on_response_headers, \d+ headers.*
+qr/#\d+ on_request_headers, 2 headers.*
+#\d+ on_request_headers, 2 headers.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_body, 3 bytes, end_of_stream: false.*
+#\d+ on_response_body, 3 bytes, end_of_stream: false.*
 #\d+ on_response_body, 0 bytes, end_of_stream: true.*
 #\d+ on_response_body, 0 bytes, end_of_stream: true.*
 #\d+ on_log .*
-#\d+ on_log .*
-/
+#\d+ on_log .*/
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
-stub
 
 
 
 === TEST 25: proxy_wasm - chained filters in http{} block
 should run each filter after the other within each phase
+--- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- http_config
     proxy_wasm on_phases;
     proxy_wasm on_phases;
 --- config
     location /t {
-        return 200;
+        echo ok;
     }
+--- response_body
+ok
 --- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
-qr/#\d+ on_request_headers, \d+ headers.*
-#\d+ on_request_headers, \d+ headers.*
-#\d+ on_response_headers, \d+ headers.*
-#\d+ on_response_headers, \d+ headers.*
+qr/#\d+ on_request_headers, 2 headers.*
+#\d+ on_request_headers, 2 headers.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_body, 3 bytes, end_of_stream: false.*
+#\d+ on_response_body, 3 bytes, end_of_stream: false.*
 #\d+ on_response_body, 0 bytes, end_of_stream: true.*
 #\d+ on_response_body, 0 bytes, end_of_stream: true.*
-#\d+ on_log.*
-#\d+ on_log.*
-/
+#\d+ on_log .*
+#\d+ on_log .*/
 --- no_error_log
 [error]
 [crit]
-[alert]
-[stderr]
-stub
 
 
 
 === TEST 26: proxy_wasm - mixed filters in server{} and http{} blocks
 should run root context of both filters
 should not chain in request; instead, server{} overrides http{}
+--- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- http_config
     proxy_wasm on_phases 'log_msg=http';
@@ -718,28 +693,26 @@ should not chain in request; instead, server{} overrides http{}
     proxy_wasm on_phases 'log_msg=server';
 
     location /t {
-        return 200;
+        echo ok;
     }
 --- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
-qr/#\d+ on_request_headers, \d+ headers.*
-#\d+ on_response_headers, \d+ headers.*
+qr/#\d+ on_request_headers, 2 headers.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_body, 3 bytes, end_of_stream: false.*
 #\d+ on_response_body, 0 bytes, end_of_stream: true.*
-#\d+ on_log.*
-/
+#\d+ on_log.*/
 --- error_log eval
 qr/log_msg: server .*? request: "GET \/t\s+/
 --- no_error_log eval
 [
     qr/log_msg: http .*? request: "GET \/t\s+/,
-    qr/\[error\]/,
-    qr/\[crit\]/,
-    qr/\[alert\]/
+    qr/\[error\]/
 ]
 
 
 
-=== TEST 27: proxy_wasm - mixed filters in server{} and location{} blocks
+=== TEST 27: proxy_wasm - mixed filters in server{} and location{} blocks (return in rewrite)
 should not chain; instead, location{} overrides server{}
 --- wasm_modules: on_phases
 --- config
@@ -751,19 +724,15 @@ should not chain; instead, location{} overrides server{}
     }
 --- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
-qr/#\d+ on_request_headers, \d+ headers.*
-#\d+ on_response_headers, \d+ headers.*
+qr/#\d+ on_response_headers, \d+ headers.*
 #\d+ on_response_body, \d+ bytes.*
-#\d+ on_log.*
-/
+#\d+ on_log.*/
 --- error_log eval
 qr/log_msg: location .*? request: "GET \/t\s+/
 --- no_error_log eval
 [
     qr/log_msg: server .*? request: "GET \/t\s+/,
-    qr/\[error\]/,
-    qr/\[crit\]/,
-    qr/\[alert\]/
+    qr/\[error\]/
 ]
 
 
@@ -782,17 +751,13 @@ should not chain; instead, location{} overrides server{}, server{} overrides htt
     }
 --- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
-qr/#\d+ on_request_headers, \d+ headers.*
-#\d+ on_response_headers, \d+ headers.*
+qr/#\d+ on_response_headers, \d+ headers.*
 #\d+ on_response_body, \d+ bytes.*
-#\d+ on_log.*
-/
+#\d+ on_log.*/
 --- error_log eval
 qr/log_msg: location .*? request: "GET \/t\s+/
 --- no_error_log eval
 [
     qr/log_msg: server .*? request: "GET \/t\s+/,
-    qr/log_msg: http .*? request: "GET \/t\s+/,
-    qr/\[error\]/,
-    qr/\[crit\]/
+    qr/log_msg: http .*? request: "GET \/t\s+/
 ]

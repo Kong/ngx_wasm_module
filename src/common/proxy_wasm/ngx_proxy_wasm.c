@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 0
+#define DDEBUG 1
 #endif
 #include "ddebug.h"
 
@@ -589,6 +589,14 @@ ngx_proxy_wasm_filter_resume(ngx_proxy_wasm_filter_t *filter,
                    *filter->n_filters, fctx->id, fctx->ecode, fctx, ictx);
 
     if (fctx->ecode) {
+
+        if (fctx->ecode == NGX_PROXY_WASM_ERR_DISPATCH_FAILED) {
+            /* TODO: state-aware sctx/fctx? */
+            fctx->ecode = NGX_PROXY_WASM_ERR_NONE;
+            rc = NGX_OK;
+            goto skip;
+        }
+
         if (!fctx->ecode_logged && phase->index != NGX_WASM_DONE_PHASE) {
             ngx_proxy_wasm_log_error(NGX_LOG_WARN, fctx->log, fctx->ecode,
                                      "proxy_wasm \"%V\" filter (%l/%l) "
@@ -613,9 +621,16 @@ ngx_proxy_wasm_filter_resume(ngx_proxy_wasm_filter_t *filter,
     }
 
     rc = filter->resume_(fctx, phase);
-
-    if (ictx->instance->trapped) {
+    if (rc == NGX_ABORT) {
         fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
+        rc = NGX_ERROR;
+
+    } else if (rc == NGX_AGAIN) {
+        ngx_log_debug4(NGX_LOG_DEBUG_WASM, fctx->log, 0,
+                       "proxy_wasm \"%V\" filter (%l/%l) "
+                       "yielded in \"%V\" phase",
+                       filter->name, filter->index + 1,
+                       *filter->n_filters, &phase->name);
     }
 
 skip:
@@ -961,7 +976,26 @@ ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx, ngx_list_t *list,
 }
 
 
-/* phases */
+void
+ngx_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx)
+{
+    ngx_proxy_wasm_filter_t      *filter = fctx->filter;
+    ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->sctx;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t      *rctx = sctx->data;
+    ngx_http_request_t           *r = rctx->r;
+#endif
+
+    ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
+                   "proxy_wasm \"%V\" filter (%l/%l) "
+                   "resuming main request",
+                   filter->name, filter->index + 1,
+                   *filter->n_filters);
+
+    sctx->next_action = NGX_PROXY_WASM_ACTION_CONTINUE;
+
+    r->write_event_handler(r);
+}
 
 
 ngx_int_t
@@ -988,8 +1022,8 @@ ngx_proxy_wasm_on_log(ngx_proxy_wasm_filter_ctx_t *fctx)
 void
 ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
 {
-    ngx_proxy_wasm_filter_t        *filter = fctx->filter;
-    ngx_wavm_instance_t            *instance;
+    ngx_proxy_wasm_filter_t  *filter = fctx->filter;
+    ngx_wavm_instance_t      *instance;
 
     if (fctx->created) {
         ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,

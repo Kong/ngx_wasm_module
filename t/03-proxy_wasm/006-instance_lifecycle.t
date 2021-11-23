@@ -164,6 +164,7 @@ qr/.*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 
 
 === TEST 4: proxy_wasm - trap with stream isolation mode
+--- ONLY
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

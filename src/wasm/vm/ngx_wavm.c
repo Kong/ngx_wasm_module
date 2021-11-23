@@ -872,7 +872,6 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
     instance->externs = NULL;
     instance->memory = NULL;
     instance->data = data;
-    instance->trapped = 0;
 
     ngx_wrt_err_init(&instance->wrt_error);
 
@@ -1054,9 +1053,8 @@ ngx_wavm_func_call(ngx_wavm_func_t *f, wasm_val_vec_t *args,
                       &f->name, f->idx,
                       args, rets, e);
 
-    if (rc == NGX_ERROR) {
+    if (rc == NGX_ABORT) {
         f->instance->state |= NGX_WAVM_INSTANCE_TRAPPED;
-        f->instance->trapped = 1;
     }
 
 done:
@@ -1129,12 +1127,16 @@ ngx_wavm_instance_call_func_va(ngx_wavm_instance_t *instance,
                             &instance->wrt_error);
     if (rc != NGX_OK) {
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &instance->wrt_error,
-                           "in %V", &func->name);
+                           "%s in %V:",
+                           rc == NGX_ABORT ? "trap" : "error",
+                           &func->name);
     }
 
     if (rets) {
         *rets = &func->rets;
     }
+
+    ngx_wasm_assert(rc == NGX_OK || rc == NGX_ERROR || rc == NGX_ABORT);
 
     return rc;
 }
@@ -1248,26 +1250,24 @@ ngx_wavm_instance_call_funcref_vec(ngx_wavm_instance_t *instance,
 
 void
 ngx_wavm_instance_trap_printf(ngx_wavm_instance_t *instance,
-#if (NGX_HAVE_VARIADIC_MACROS)
     const char *fmt, ...)
+{
+    va_list  args;
 
-#else
+    va_start(args, fmt);
+    ngx_wavm_instance_trap_vprintf(instance, fmt, args);
+    va_end(args);
+}
+
+
+void
+ngx_wavm_instance_trap_vprintf(ngx_wavm_instance_t *instance,
     const char *fmt, va_list args)
-#endif
 {
     u_char               *p;
     static const size_t   maxlen = NGX_WAVM_HFUNCS_MAX_TRAP_LEN - 1;
 
-#if (NGX_HAVE_VARIADIC_MACROS)
-    va_list  args;
-
-    va_start(args, fmt);
     p = ngx_vsnprintf(instance->trapbuf, maxlen, fmt, args);
-    va_end(args);
-
-#else
-    p = ngx_vsnprintf(instance->trapbuf, maxlen, fmt, args);
-#endif
 
     *p++ = '\0';
 
@@ -1365,7 +1365,7 @@ ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
 
         wasm_trap_message(e->trap, &trapmsg);
 
-        p = ngx_slprintf(p, last, "[trap: %*s]",
+        p = ngx_slprintf(p, last, "%*s",
                          trapmsg.size
 #ifdef NGX_WASM_HAVE_WASMER
                          /* wasmer appends NULL in wasm_trap_message */

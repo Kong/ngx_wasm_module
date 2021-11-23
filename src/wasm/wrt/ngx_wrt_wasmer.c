@@ -530,7 +530,7 @@ ngx_wasmer_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
     err->trap = wasm_func_call(func, args, rets);
     if (err->trap) {
         dd("trap caught");
-        return NGX_ERROR;
+        return NGX_ABORT;
     }
 
     if (wasmer_last_error_length()) {

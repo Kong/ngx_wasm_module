@@ -320,8 +320,8 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
 
     ngx_wavm_instance_destroy(instance);
 
-    if (rc == NGX_ERROR) {
-        return rc;
+    if (rc == NGX_ERROR || rc == NGX_ABORT) {
+        return NGX_ERROR;
     }
 
     ngx_wasm_assert(rc == NGX_OK);

@@ -79,6 +79,8 @@ NGX_WASM_DEPS="\
     $ngx_addon_dir/src/wasm/vm/ngx_wavm.h \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.h \
     $ngx_addon_dir/src/wasm/ngx_wasm_ops.h \
+    $ngx_addon_dir/src/common/ngx_wasm_socket_tcp.h \
+    $ngx_addon_dir/src/common/ngx_wasm_socket_tcp_readers.h \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.h \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_maps.h"
 
@@ -88,6 +90,8 @@ NGX_WASM_SRCS="\
     $ngx_addon_dir/src/wasm/ngx_wasm_util.c \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm.c \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.c \
+    $ngx_addon_dir/src/common/ngx_wasm_socket_tcp.c \
+    $ngx_addon_dir/src/common/ngx_wasm_socket_tcp_readers.c \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.c \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_host.c \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_maps.c \
@@ -106,7 +110,8 @@ NGX_HTTP_WASM_DEPS="\
     $ngx_addon_dir/src/http/ngx_http_wasm.h \
     $ngx_addon_dir/src/http/ngx_http_wasm_util.h \
     $ngx_addon_dir/src/http/ngx_http_wasm_headers.h \
-    $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.h"
+    $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.h \
+    $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm_dispatch.h"
 
 NGX_HTTP_WASM_SRCS="\
     $ngx_addon_dir/src/http/ngx_http_wasm_module.c \
@@ -119,7 +124,8 @@ NGX_HTTP_WASM_SRCS="\
     $ngx_addon_dir/src/http/ngx_http_wasm_host.c \
     $ngx_addon_dir/src/http/ngx_http_wasm_util.c \
     $ngx_addon_dir/src/http/ngx_http_wasm_escape.c \
-    $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.c"
+    $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.c \
+    $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm_dispatch.c"
 
 NGX_HTTP_WASM_FILTER_SRCS="\
     $ngx_addon_dir/src/http/ngx_http_wasm_filter_module.c"

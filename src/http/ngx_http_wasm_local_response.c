@@ -22,9 +22,8 @@ ngx_http_wasm_discard_local_response(ngx_http_wasm_req_ctx_t *rctx)
         ngx_pfree(r->pool, rctx->local_resp_reason.data);
     }
 
-    if (rctx->local_resp_headers) {
-        ngx_array_destroy(rctx->local_resp_headers);
-        rctx->local_resp_headers = NULL;
+    if (rctx->local_resp_headers.elts) {
+        ngx_array_destroy(&rctx->local_resp_headers);
     }
 
     if (rctx->local_resp_body) {
@@ -39,10 +38,11 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     ngx_int_t status, u_char *reason, size_t reason_len, ngx_array_t *headers,
     u_char *body, size_t body_len)
 {
-    size_t               len;
+    size_t               len, i;
     u_char              *p = NULL;
     ngx_buf_t           *b = NULL;
     ngx_chain_t         *cl = NULL;
+    ngx_table_elt_t     *elt, **eltp;
     ngx_http_request_t  *r = rctx->r;
 
     if (rctx->resp_content_chosen) {
@@ -80,7 +80,24 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
 
     /* headers */
 
-    rctx->local_resp_headers = headers;
+    if (ngx_array_init(&rctx->local_resp_headers,
+                       rctx->pool, headers->nelts,
+                       sizeof(ngx_table_elt_t))
+        != NGX_OK)
+    {
+        goto fail;
+    }
+
+    for (i = 0; i < headers->nelts; i++) {
+        elt = &((ngx_table_elt_t *) headers->elts)[i];
+
+        eltp = ngx_array_push(&rctx->local_resp_headers);
+        if (eltp == NULL) {
+            goto fail;
+        }
+
+        *eltp = elt;
+    }
 
     /* body */
 
@@ -161,15 +178,13 @@ ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx)
         r->headers_out.status_line.len = rctx->local_resp_reason.len;
     }
 
-    if (rctx->local_resp_headers) {
-        for (i = 0; i < rctx->local_resp_headers->nelts; i++) {
-            elt = &((ngx_table_elt_t *) rctx->local_resp_headers->elts)[i];
+    for (i = 0; i < rctx->local_resp_headers.nelts; i++) {
+        elt = &((ngx_table_elt_t *) rctx->local_resp_headers.elts)[i];
 
-            rc = ngx_http_wasm_set_resp_header(r, &elt->key, &elt->value,
-                                               NGX_HTTP_WASM_HEADERS_SET);
-            if (rc != NGX_OK) {
-                return NGX_ERROR;
-            }
+        rc = ngx_http_wasm_set_resp_header(r, &elt->key, &elt->value,
+                                           NGX_HTTP_WASM_HEADERS_SET);
+        if (rc != NGX_OK) {
+            return NGX_ERROR;
         }
     }
 

@@ -83,52 +83,89 @@ ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
 }
 
 
-void
-ngx_wasm_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free,
-    ngx_chain_t **busy, ngx_chain_t **out, ngx_buf_tag_t tag)
+ngx_chain_t *
+ngx_wasm_chain_get_free_buf(ngx_log_t *log, ngx_pool_t *p, ngx_chain_t **free,
+    size_t len, ngx_buf_tag_t tag)
 {
-    ngx_chain_t  *ch, *cl = NULL;
+    ngx_buf_t    *b;
+    ngx_chain_t  *cl;
+    u_char       *start, *end;
 
-    while (*busy) {
-        ch = *busy;
+    if (*free) {
+        cl = *free;
+        *free = cl->next;
+        cl->next = NULL;
 
-        if (ngx_buf_size(ch->buf) != 0) {
-            cl = ch;
-            *busy = ch->next;
-            continue;
-        }
+        b = cl->buf;
+        start = b->start;
+        end = b->end;
+        if (start && (size_t) (end - start) >= len) {
+            ngx_log_debug4(NGX_LOG_DEBUG_WASM, log, 0,
+                           "wasm reuse free buf memory %O >= %uz, cl:%p, p:%p",
+                           (off_t) (end - start), len, cl, start);
 
-        if (ch->buf->tag != tag) {
-            if (cl) {
-                ngx_wasm_assert(cl->next);
-                cl->next = ch->next;
+            ngx_memzero(b, sizeof(ngx_buf_t));
+
+            b->start = start;
+            b->pos = start;
+            b->last = start;
+            b->end = end;
+            b->tag = tag;
+
+            if (len) {
+                b->temporary = 1;
             }
 
-            *busy = ch->next;
-            ngx_free_chain(p, ch);
-            ch = NULL;
-            continue;
+            return cl;
         }
 
-        ch->buf->pos = ch->buf->start;
-        ch->buf->last = ch->buf->start;
+        ngx_log_debug4(NGX_LOG_DEBUG_WASM, log, 0,
+                       "wasm reuse free buf chain, but reallocate memory "
+                       "because %uz >= %O, cl:%p, p:%p", len,
+                       (off_t) (b->end - b->start), cl, b->start);
 
-        cl = ch;
-        *busy = ch->next;
-        ch->next = *free;
-        *free = ch;
-    }
-
-    *busy = cl;
-
-    if (out && *out) {
-        if (*busy == NULL) {
-            *busy = *out;
-
-        } else {
-            (*busy)->next = *out;
+        if (ngx_buf_in_memory(b) && b->start) {
+            ngx_pfree(p, b->start);
         }
+
+        ngx_memzero(b, sizeof(ngx_buf_t));
+
+        if (len == 0) {
+            return cl;
+        }
+
+        b->start = ngx_palloc(p, len);
+        if (b->start == NULL) {
+            return NULL;
+        }
+
+        b->end = b->start + len;
+        b->pos = b->start;
+        b->last = b->start;
+        b->tag = tag;
+        b->temporary = 1;
+
+        return cl;
     }
+
+    cl = ngx_alloc_chain_link(p);
+    if (cl == NULL) {
+        return NULL;
+    }
+
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, log, 0,
+                   "wasm allocate new chainlink and new buf of size %uz, cl:%p",
+                   len, cl);
+
+    cl->buf = len ? ngx_create_temp_buf(p, len) : ngx_calloc_buf(p);
+    if (cl->buf == NULL) {
+        return NULL;
+    }
+
+    cl->buf->tag = tag;
+    cl->next = NULL;
+
+    return cl;
 }
 
 

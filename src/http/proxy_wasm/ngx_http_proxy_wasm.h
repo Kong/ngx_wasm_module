@@ -2,8 +2,9 @@
 #define _NGX_HTTP_PROXY_WASM_H_INCLUDED_
 
 
-#include <ngx_http_wasm.h>
 #include <ngx_proxy_wasm.h>
+#include <ngx_http_wasm.h>
+#include <ngx_http_proxy_wasm_dispatch.h>
 
 
 ngx_int_t ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_err_e ecode);
