@@ -99,7 +99,7 @@ stub
 
 
 === TEST 5: proxy_wasm - get_http_request_header() retrieves ':path' from r->uri (parsed)
-URI should be normalized
+URI component should be normalized
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -119,7 +119,28 @@ stub
 
 
 
-=== TEST 6: proxy_wasm - get_http_request_header() retrieves ':path' as a subrequest
+=== TEST 6: proxy_wasm - get_http_request_header() retrieves ':path' with r->args (querystring)
+Path should include querystring
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls;
+    }
+--- request
+GET /t/echo/header/:path?foo=bar&hello=world
+--- response_body
+:path: /t/echo/header/:path?foo=bar&hello=world
+--- no_error_log
+[error]
+[crit]
+[alert]
+[stderr]
+stub
+stub
+
+
+
+=== TEST 7: proxy_wasm - get_http_request_header() retrieves ':path' as a subrequest
 should respond with the subrequest's path (/t/echo/header/...) and not the main
 request's path (/t)
 --- load_nginx_modules: ngx_http_echo_module
@@ -144,7 +165,7 @@ stub
 
 
 
-=== TEST 7: proxy_wasm - get_http_request_header() retrieves ':authority'
+=== TEST 8: proxy_wasm - get_http_request_header() retrieves ':authority'
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -169,7 +190,7 @@ stub
 
 
 
-=== TEST 8: proxy_wasm - get_http_request_header() retrieves ':authority' without server_name on unix listener
+=== TEST 9: proxy_wasm - get_http_request_header() retrieves ':authority' without server_name on unix listener
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config eval
@@ -202,7 +223,7 @@ stub
 
 
 
-=== TEST 9: proxy_wasm - get_http_request_header() retrieves ':scheme' (http)
+=== TEST 10: proxy_wasm - get_http_request_header() retrieves ':scheme' (http)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -229,7 +250,7 @@ stub
 
 
 
-=== TEST 10: proxy_wasm - get_http_request_header() retrieves ':scheme' (https)
+=== TEST 11: proxy_wasm - get_http_request_header() retrieves ':scheme' (https)
 --- skip_eval: 8: $::nginxV !~ m/built with OpenSSL/
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -265,7 +286,7 @@ stub
 
 
 
-=== TEST 11: proxy_wasm - get_http_request_header() x on_phases
+=== TEST 12: proxy_wasm - get_http_request_header() x on_phases
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

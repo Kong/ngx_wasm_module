@@ -786,6 +786,10 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
             ngx_pfree(sctx->pool, sctx->scheme.data);
         }
 
+        if (sctx->path.data) {
+            ngx_pfree(sctx->pool, sctx->path.data);
+        }
+
         if (sctx->filter_ctxs) {
             ngx_pfree(sctx->pool, sctx->filter_ctxs);
         }

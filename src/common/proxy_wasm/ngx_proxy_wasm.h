@@ -156,6 +156,7 @@ struct ngx_proxy_wasm_stream_ctx_s {
 
     ngx_str_t                          authority;
     ngx_str_t                          scheme;
+    ngx_str_t                          path;  /* r->uri + r->args */
 };
 
 

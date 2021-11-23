@@ -296,7 +296,26 @@ path: /test
 
 
 
-=== TEST 12: proxy_wasm - set_http_request_header() sets ':method'
+=== TEST 12: proxy_wasm - set_http_request_headers() cannot set ':path' with querystring (NYI)
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=/test?foo=bar';
+        return 200;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- grep_error_log eval: qr/\[(error|crit)\] .*/
+--- grep_error_log_out eval
+qr/\[error\] .*?cannot set request path with querystring.*
+\[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*/
+--- no_error_log
+[alert]
+[stderr]
+
+
+
+=== TEST 13: proxy_wasm - set_http_request_header() sets ':method'
 --- wasm_modules: hostcalls
 --- http_config eval
 qq{
@@ -326,7 +345,7 @@ POST
 
 
 
-=== TEST 13: proxy_wasm - set_http_request_header() cannot ':scheme'
+=== TEST 14: proxy_wasm - set_http_request_header() cannot set ':scheme'
 --- wasm_modules: hostcalls
 --- http_config eval
 qq{
@@ -357,7 +376,7 @@ qr/\[error\] .*? \[wasm\] cannot set read-only ":scheme" header/
 
 
 
-=== TEST 14: proxy_wasm - set_http_request_header() x on_phases
+=== TEST 15: proxy_wasm - set_http_request_header() x on_phases
 should log an error (but no trap) when response is produced
 --- wasm_modules: hostcalls
 --- config
