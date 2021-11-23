@@ -309,7 +309,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_pairs(ngx_wavm_instance_t *instance,
     rbuf = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
     rlen = ngx_wavm_memory_lift(instance->memory, args[2].of.i32);
 
-    ngx_array_init(&extras, instance->pool, 8, sizeof(ngx_table_elt_t));
+    ngx_array_init(&extras, fctx->pool, 8, sizeof(ngx_table_elt_t));
 
     list = ngx_proxy_wasm_maps_get_all(instance, map_type, &extras);
     if (list == NULL) {
@@ -381,22 +381,21 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t                      map_size;
-    ngx_int_t                   rc = NGX_ERROR;
-    ngx_wavm_ptr_t             *map_data;
-    ngx_proxy_wasm_map_type_e   map_type;
-    ngx_array_t                *headers;
+    size_t                        map_size;
+    ngx_int_t                     rc = NGX_ERROR;
+    ngx_wavm_ptr_t               *map_data;
+    ngx_proxy_wasm_map_type_e     map_type;
+    ngx_array_t                  *headers;
+    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_get_fctx(instance);
 #ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t    *rctx;
-
-    rctx =  ngx_http_proxy_wasm_get_rctx(instance);
+    ngx_http_wasm_req_ctx_t      *rctx = ngx_http_proxy_wasm_get_rctx(instance);
 #endif
 
     map_type = args[0].of.i32;
     map_data = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
     map_size = args[2].of.i32;
 
-    headers = ngx_proxy_wasm_pairs_unmarshal(instance->pool,
+    headers = ngx_proxy_wasm_pairs_unmarshal(fctx->pool,
                                              (u_char *) map_data, map_size);
     if (headers == NULL) {
         return ngx_proxy_wasm_result_err(rets);
@@ -675,12 +674,10 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     ngx_array_t                  *headers = NULL;
 
     ngx_http_wasm_req_ctx_t      *rctx;
-    ngx_http_request_t           *r;
     ngx_proxy_wasm_filter_ctx_t  *fctx;
 
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
     fctx = ngx_proxy_wasm_get_fctx(instance);
-    r = rctx->r;
 
     status = args[0].of.i32;
     reason = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
@@ -696,7 +693,7 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
 #endif
 
     if (headers_len) {
-        headers = ngx_proxy_wasm_pairs_unmarshal(r->pool, marsh_headers,
+        headers = ngx_proxy_wasm_pairs_unmarshal(fctx->pool, marsh_headers,
                                                  headers_len);
         if (headers == NULL) {
             return ngx_proxy_wasm_result_err(rets);
