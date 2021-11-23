@@ -127,7 +127,7 @@ ngx_wavm_engine_init(ngx_wavm_t *vm)
         goto error;
     }
 
-    rc = ngx_wrt.engine_init(&vm->wrt_engine, config, &e);
+    rc = ngx_wrt.engine_init(&vm->wrt_engine, config, vm->pool, &e);
     if (rc != NGX_OK) {
         goto error;
     }
@@ -878,7 +878,8 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
 
     rc = ngx_wrt.instance_init(&instance->wrt_instance,
                                &instance->wrt_store,
-                               &module->wrt_module, &e);
+                               &module->wrt_module,
+                               pool, &e);
     if (rc != NGX_OK) {
         err = NGX_WAVM_EMPTY_CHAR;
         goto error;
