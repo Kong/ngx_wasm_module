@@ -66,8 +66,8 @@ ngx_wavm_t *ngx_wasm_main_vm(ngx_cycle_t *cycle);
 size_t ngx_wasm_chain_len(ngx_chain_t *in, unsigned *eof);
 ngx_uint_t ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
     unsigned *flush);
-void ngx_wasm_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free,
-    ngx_chain_t **busy, ngx_chain_t **out, ngx_buf_tag_t tag);
+ngx_chain_t *ngx_wasm_chain_get_free_buf(ngx_log_t *log, ngx_pool_t *p,
+    ngx_chain_t **free, size_t len, ngx_buf_tag_t tag);
 ngx_uint_t ngx_wasm_list_nelts(ngx_list_t *list);
 ngx_int_t ngx_wasm_bytes_from_path(wasm_byte_vec_t *out, u_char *path,
     ngx_log_t *log);

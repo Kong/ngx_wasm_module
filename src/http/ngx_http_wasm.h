@@ -17,10 +17,13 @@
 
 typedef struct {
     ngx_http_request_t                *r;
+    ngx_connection_t                  *connection;
+    ngx_pool_t                        *pool;  /* r->pool */
     ngx_wasm_op_ctx_t                  opctx;
-    void                              *data; // for sctx (per stream extra context)
+    void                              *data;  /* per-stream extra context */
 
-    ngx_chain_t                       *free;
+    ngx_chain_t                       *free_bufs;
+    ngx_chain_t                       *busy_bufs;
 
     ngx_http_handler_pt                r_content_handler;
     ngx_array_t                        resp_shim_headers;
@@ -32,7 +35,7 @@ typedef struct {
 
     ngx_int_t                          local_resp_status;
     ngx_str_t                          local_resp_reason;
-    ngx_array_t                       *local_resp_headers;
+    ngx_array_t                        local_resp_headers;
     ngx_chain_t                       *local_resp_body;
     off_t                              local_resp_body_len;
     unsigned                           local_resp_stashed:1;
@@ -112,6 +115,8 @@ ngx_int_t ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx,
 extern ngx_wasm_subsystem_t  ngx_http_wasm_subsystem;
 extern ngx_wavm_host_def_t   ngx_http_wasm_host_interface;
 extern ngx_module_t          ngx_http_wasm_module;
+
+static const ngx_buf_tag_t   buf_tag = &ngx_http_wasm_module;
 
 
 #endif /* _NGX_HTTP_WASM_H_INCLUDED_ */

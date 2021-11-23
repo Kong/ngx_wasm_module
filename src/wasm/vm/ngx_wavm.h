@@ -6,7 +6,7 @@
 #include <ngx_wavm_host.h>
 
 
-#define NGX_WAVM_OK                    0
+#define NGX_WAVM_OK                   0
 #define NGX_WAVM_ERROR               -10
 #define NGX_WAVM_BAD_ARG             -11
 #define NGX_WAVM_BAD_USAGE           -12
@@ -124,11 +124,9 @@ ngx_int_t ngx_wavm_instance_call_funcref_vec(ngx_wavm_instance_t *instance,
     ngx_wavm_funcref_t *funcref, wasm_val_vec_t **rets, wasm_val_vec_t *args);
 void ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance);
 void ngx_wavm_instance_trap_printf(ngx_wavm_instance_t *instance,
-#if (NGX_HAVE_VARIADIC_MACROS)
     const char *fmt, ...);
-#else
+void ngx_wavm_instance_trap_vprintf(ngx_wavm_instance_t *instance,
     const char *fmt, va_list args);
-#endif
 
 
 static ngx_inline void

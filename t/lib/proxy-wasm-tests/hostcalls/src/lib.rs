@@ -1,7 +1,8 @@
+mod callouts;
 mod echo;
 mod test_cases;
 
-use crate::{echo::*, test_cases::*};
+use crate::{callouts::*, echo::*, test_cases::*};
 use http::StatusCode;
 use log::*;
 use proxy_wasm::traits::*;
@@ -80,9 +81,9 @@ impl TestHttpHostcalls {
         self.send_plain_response(StatusCode::NOT_FOUND, None)
     }
 
-    fn exec_tests(&mut self, cur_phase: TestPhase) {
+    fn exec_tests(&mut self, cur_phase: TestPhase) -> Action {
         if cur_phase != self.on_phase {
-            return;
+            return Action::Continue;
         }
 
         info!("[hostcalls] testing in \"{:?}\"", self.on_phase);
@@ -95,7 +96,6 @@ impl TestHttpHostcalls {
 
             if let Err(e) = res {
                 error!("{}", e);
-                return;
             }
 
             /* /t/echo/header/{header_name: String} */
@@ -110,7 +110,7 @@ impl TestHttpHostcalls {
                 .unwrap();
 
             echo_header(self, header_name);
-            return;
+            return Action::Continue;
         }
 
         match self.config.get("test").unwrap_or(&path).as_str() {
@@ -154,6 +154,12 @@ impl TestHttpHostcalls {
             "/t/echo/headers/all" => echo_all_headers(self),
             "/t/echo/body" => echo_body(self, self.request_body_size),
 
+            /* http dispatch */
+            "/t/dispatch_http_call" => {
+                dispatch_call(self);
+                return Action::Pause;
+            }
+
             /* errors */
             "/t/error/get_response_body" => {
                 let _body = self.get_http_response_body(usize::MAX, usize::MAX);
@@ -164,15 +170,39 @@ impl TestHttpHostcalls {
 
             _ => (),
         }
+
+        Action::Continue
     }
 }
 
-impl Context for TestHttpHostcalls {}
+impl Context for TestHttpHostcalls {
+    fn on_http_call_response(
+        &mut self,
+        token_id: u32,
+        num_headers: usize,
+        _body_size: usize,
+        _num_trailers: usize,
+    ) {
+        info!(
+            "[hostcalls] in http_call_response (token_id: {}, n_headers: {})",
+            token_id, num_headers
+        );
+
+        if let Some(bytes) = self.get_http_call_response_body(0, 1000) {
+            let body = String::from_utf8(bytes).unwrap();
+            let response = body.trim().to_string();
+            info!("{:?}", response);
+            self.send_plain_response(StatusCode::OK, Some(response));
+        }
+
+        self.resume_http_request()
+    }
+}
+
 impl HttpContext for TestHttpHostcalls {
     fn on_http_request_headers(&mut self, nheaders: usize) -> Action {
         info!("[hostcalls] on_request_headers, {} headers", nheaders);
-        self.exec_tests(TestPhase::RequestHeaders);
-        Action::Continue
+        self.exec_tests(TestPhase::RequestHeaders)
     }
 
     fn on_http_request_body(&mut self, size: usize, end_of_stream: bool) -> Action {
@@ -181,14 +211,12 @@ impl HttpContext for TestHttpHostcalls {
             "[hostcalls] on_request_body, {} bytes, end_of_stream: {}",
             size, end_of_stream
         );
-        self.exec_tests(TestPhase::RequestBody);
-        Action::Continue
+        self.exec_tests(TestPhase::RequestBody)
     }
 
     fn on_http_response_headers(&mut self, nheaders: usize) -> Action {
         info!("[hostcalls] on_response_headers, {} headers", nheaders);
-        self.exec_tests(TestPhase::ResponseHeaders);
-        Action::Continue
+        self.exec_tests(TestPhase::ResponseHeaders)
     }
 
     fn on_http_response_body(&mut self, len: usize, end_of_stream: bool) -> Action {
@@ -196,8 +224,7 @@ impl HttpContext for TestHttpHostcalls {
             "[hostcalls] on_response_body, {} bytes, end_of_stream {}",
             len, end_of_stream
         );
-        self.exec_tests(TestPhase::ResponseBody);
-        Action::Continue
+        self.exec_tests(TestPhase::ResponseBody)
     }
 
     fn on_log(&mut self) {

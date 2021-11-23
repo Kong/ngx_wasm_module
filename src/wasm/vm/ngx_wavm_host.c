@@ -232,6 +232,8 @@ ngx_wavm_hfunc_trampoline(void *env,
             return NULL;
         }
 
+        dd("host trap");
+
         break;
 
     case NGX_WAVM_ERROR:

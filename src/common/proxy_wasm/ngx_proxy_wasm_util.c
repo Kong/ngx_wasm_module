@@ -3,9 +3,10 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_proxy_wasm.h>
 #include <ngx_event.h>
 #include <ngx_wavm.h>
+#include <ngx_proxy_wasm.h>
+#include <ngx_wasm_socket_tcp.h>
 
 
 #define NGX_PROXY_WASM_PTR_SIZE  4
@@ -37,7 +38,40 @@ ngx_proxy_wasm_filter_strerror(ngx_proxy_wasm_err_e err)
 }
 
 
-/* utils */
+void
+ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
+    ngx_proxy_wasm_err_e err, const char *fmt, ...)
+{
+    va_list     args;
+    u_char     *p, *last, buf[NGX_MAX_ERROR_STR];
+    ngx_str_t  *errmsg = NULL;
+
+    last = buf + NGX_MAX_ERROR_STR;
+    p = &buf[0];
+
+    if (err) {
+        errmsg = ngx_proxy_wasm_filter_strerror(err);
+    }
+
+    if (fmt) {
+        va_start(args, fmt);
+        p = ngx_vslprintf(p, last, fmt, args);
+        va_end(args);
+
+        if (err) {
+            p = ngx_slprintf(p, last, " (%V)", errmsg);
+        }
+
+        ngx_log_error(level, log, 0, "%*s", p - buf, buf);
+        return;
+
+    } else if (err) {
+        ngx_log_error(level, log, 0, "%V", errmsg);
+        return;
+    }
+
+    ngx_wasm_assert(0);
+}
 
 
 ngx_uint_t
@@ -252,24 +286,28 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *extras, u_char *buf,
 }
 
 
-ngx_array_t *
-ngx_proxy_wasm_pairs_unmarshal(ngx_pool_t *pool, u_char *buf, size_t len)
+ngx_int_t
+ngx_proxy_wasm_pairs_unmarshal(ngx_array_t *dst, ngx_pool_t *pool,
+    u_char *buf, size_t len)
 {
     size_t            i;
     uint32_t          count;
     ngx_table_elt_t  *elt;
-    ngx_array_t      *a;
 
-    count = *((uint32_t *) buf);
-    buf += NGX_PROXY_WASM_PTR_SIZE;
+    if (len) {
+        count = *((uint32_t *) buf);
+        buf += NGX_PROXY_WASM_PTR_SIZE;
 
-    a = ngx_array_create(pool, count, sizeof(ngx_table_elt_t));
-    if (a == NULL) {
-        return NULL;
+    } else {
+        count = 0;
+    }
+
+    if (ngx_array_init(dst, pool, count, sizeof(ngx_table_elt_t)) != NGX_OK) {
+        return NGX_ERROR;
     }
 
     for (i = 0; i < count; i++) {
-        elt = ngx_array_push(a);
+        elt = ngx_array_push(dst);
         if (elt == NULL) {
             goto failed;
         }
@@ -283,8 +321,8 @@ ngx_proxy_wasm_pairs_unmarshal(ngx_pool_t *pool, u_char *buf, size_t len)
         buf += NGX_PROXY_WASM_PTR_SIZE;
     }
 
-    for (i = 0; i < a->nelts; i++) {
-        elt = &((ngx_table_elt_t *) a->elts)[i];
+    for (i = 0; i < dst->nelts; i++) {
+        elt = &((ngx_table_elt_t *) dst->elts)[i];
 
         elt->key.data = ngx_pnalloc(pool, elt->key.len + 1);
         if (elt->key.data == NULL) {
@@ -304,26 +342,27 @@ ngx_proxy_wasm_pairs_unmarshal(ngx_pool_t *pool, u_char *buf, size_t len)
 
 #if 0
         dd("key: %.*s, value: %.*s",
-           (int) elt[i].key.len, elt[i].key.data,
-           (int) elt[i].value.len, elt[i].value.data);
+           (int) elt->key.len, elt->key.data,
+           (int) elt->value.len, elt->value.data);
 #endif
-
     }
 
-    return a;
+    return NGX_OK;
 
 failed:
 
+#if 0
     for (i = 0; i < a->nelts; i++) {
         elt = ((ngx_table_elt_t **) a->elts)[i];
         if (elt) {
             ngx_pfree(pool, elt);
         }
     }
+#endif
 
-    ngx_array_destroy(a);
+    ngx_array_destroy(dst);
 
-    return NULL;
+    return NGX_ERROR;
 }
 
 
@@ -384,40 +423,4 @@ nomem:
 
     ngx_wasm_log_error(NGX_LOG_CRIT, fctx->log, 0,
                        "tick_handler: no memory");
-}
-
-
-void
-ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
-    ngx_proxy_wasm_err_e err, const char *fmt, ...)
-{
-    va_list     args;
-    u_char     *p, *last, buf[NGX_MAX_ERROR_STR];
-    ngx_str_t  *errmsg = NULL;
-
-    last = buf + NGX_MAX_ERROR_STR;
-    p = &buf[0];
-
-    if (err) {
-        errmsg = ngx_proxy_wasm_filter_strerror(err);
-    }
-
-    if (fmt) {
-        va_start(args, fmt);
-        p = ngx_vslprintf(p, last, fmt, args);
-        va_end(args);
-
-        if (err) {
-            p = ngx_slprintf(p, last, " (%V)", errmsg);
-        }
-
-        ngx_log_error(level, log, 0, "%*s", p - buf, buf);
-        return;
-
-    } else if (err) {
-        ngx_log_error(level, log, 0, "%V", errmsg);
-        return;
-    }
-
-    ngx_wasm_assert(0);
 }

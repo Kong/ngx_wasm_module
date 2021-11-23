@@ -6,9 +6,6 @@
 #include <ngx_http_wasm_util.h>
 
 
-static const ngx_buf_tag_t   buf_tag = &ngx_http_wasm_module;
-
-
 ngx_str_t *
 ngx_http_copy_escaped(ngx_str_t *dst, ngx_pool_t *pool,
     ngx_http_wasm_escape_kind kind)
@@ -276,8 +273,8 @@ ngx_http_wasm_set_req_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
     buf->last = ngx_cpymem(buf->last, body->data, body->len);
     buf->last_buf = 1;
 
-    ngx_wasm_chain_update_chains(r->pool, &rctx->free, &rb->bufs,
-                                 &nl, buf_tag);
+    ngx_chain_update_chains(r->pool, &rctx->free_bufs, &rctx->busy_bufs,
+                            &nl, buf_tag);
 
 done:
 
@@ -298,10 +295,6 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
     ngx_http_request_t          *r;
 
     r = rctx->r;
-    in = rctx->resp_chunk;
-    if (in == NULL) {
-        return NGX_DECLINED;
-    }
 
     if (r->header_sent && !r->chunked) {
         ngx_wasm_log_error(NGX_LOG_WARN, r->connection->log, 0,
@@ -309,23 +302,22 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
                            "Content-Length header already sent");
     }
 
-    fill = ngx_wasm_chain_clear(in, at, &eof, &flush);
-
     body->len = ngx_min(body->len, max);
 
+    in = rctx->resp_chunk;
+    if (in == NULL) {
+        return NGX_DECLINED;
+    }
+
+    fill = ngx_wasm_chain_clear(in, at, &eof, &flush);
+
     if (body->len) {
+
         /* append new buffer */
-        nl = ngx_chain_get_free_buf(r->pool, &rctx->free);
-        if (nl == NULL) {
-            return NGX_ERROR;
-        }
 
-        nl->buf = ngx_create_temp_buf(r->pool, body->len + fill);
-        if (nl->buf == NULL) {
-            return NGX_ERROR;
-        }
-
-        /* set */
+        nl = ngx_wasm_chain_get_free_buf(r->connection->log, r->pool,
+                                         &rctx->free_bufs, body->len + fill,
+                                         buf_tag);
 
         buf = nl->buf;
 
@@ -351,8 +343,8 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
             }
         }
 
-        ngx_wasm_chain_update_chains(r->pool, &rctx->free, &rctx->resp_chunk,
-                                     &nl, buf_tag);
+        ngx_chain_update_chains(r->pool, &rctx->free_bufs, &rctx->busy_bufs,
+                                &nl, buf_tag);
 
     } else {
         /* discard chunk */

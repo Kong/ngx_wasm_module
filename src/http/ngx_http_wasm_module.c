@@ -362,6 +362,8 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
                        rctx, r, r->main == r);
 
         rctx->r = r;
+        rctx->pool = r->pool;
+        rctx->connection = r->connection;
         rctx->req_keepalive = r->keepalive;
 
         ngx_http_set_ctx(r, rctx, ngx_http_wasm_module);

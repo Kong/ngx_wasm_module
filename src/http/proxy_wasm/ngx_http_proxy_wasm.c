@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 0
+#define DDEBUG 1
 #endif
 #include "ddebug.h"
 
@@ -29,7 +29,12 @@ ngx_http_proxy_wasm_next_action(ngx_proxy_wasm_filter_ctx_t *fctx, ngx_int_t rc,
 
     switch (ret) {
     case NGX_PROXY_WASM_ACTION_PAUSE:
+        dd("next action: yield");
+        sctx->next_action = ret;
+        break;
+
     case NGX_PROXY_WASM_ACTION_CONTINUE:
+        dd("next action: continue");
         sctx->next_action = ret;
         break;
 
@@ -92,6 +97,7 @@ ngx_int_t
 ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_phase_t *phase)
 {
+    size_t                        i;
     ngx_int_t                     rc;
     ngx_http_request_t           *r;
     ngx_http_wasm_req_ctx_t      *rctx;
@@ -105,7 +111,10 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
 
     switch (phase->index) {
 
+#define NGX_HTTP_PROXY_WASM_REQ_HEADERS_IN_REWRITE  0
+
     case NGX_HTTP_REWRITE_PHASE:
+#if (NGX_HTTP_PROXY_WASM_REQ_HEADERS_IN_REWRITE)
         rc = ngx_http_proxy_wasm_on_request_headers(fctx);
         if (rc == NGX_OK) {
             /* next op */
@@ -116,7 +125,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
             if (r != r->main) {
                 /* subrequest */
                 ngx_wasm_log_error(NGX_LOG_WASM_NYI, fctx->log, 0,
-                                   "NYI - proxy_wasm cannot pause "
+                                   "NYI - proxy_wasm cannot yield "
                                    "after \"rewrite\" phase in subrequests");
 
                 sctx->next_action = NGX_PROXY_WASM_ACTION_CONTINUE;
@@ -125,26 +134,48 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
                 /* rewrite treats NGX_AGAIN as NGX_OK which would
                  * finalize the connection */
                 ngx_log_debug0(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
-                               "proxy_wasm delaying pause "
+                               "proxy_wasm delaying yield "
                                "until \"access\" phase");
             }
 
             /* next phase */
             rc = NGX_DONE;
         }
+#else
+        if (r != r->main) {
+            /* subrequest */
+            rc = ngx_http_proxy_wasm_on_request_headers(fctx);
+            if (rc == NGX_OK) {
+                /* next op */
+                rc = NGX_DECLINED;
+            }
 
+            /* TODO: yield */
+            break;
+        }
+#endif
+        rc = NGX_DECLINED;
         break;
 
     case NGX_HTTP_ACCESS_PHASE:
-        if (sctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
+#if (NGX_HTTP_PROXY_WASM_REQ_HEADERS_IN_REWRITE)
+        rc = NGX_DECLINED;
+#else
+        for (i = 0; i < sctx->fctxs.nelts; i++) {
+            fctx = ((ngx_proxy_wasm_filter_ctx_t **) sctx->fctxs.elts)[i];
+
+            rc = ngx_http_proxy_wasm_on_request_headers(fctx);
+            if (rc == NGX_ERROR || rc == NGX_ABORT) {
+                break;
+            }
+        }
+#endif
+
+        if (rc == NGX_OK && sctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
             ngx_log_debug0(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
                            "proxy_wasm pausing during \"access\" phase");
 
             rc = NGX_AGAIN;
-
-        } else {
-            /* next phase */
-            rc = NGX_OK;
         }
 
         break;
@@ -173,7 +204,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
         rc = ngx_http_proxy_wasm_on_response_headers(fctx);
         if (sctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
             ngx_wasm_log_error(NGX_LOG_WASM_NYI, fctx->log, 0,
-                               "NYI - proxy_wasm cannot pause "
+                               "NYI - proxy_wasm cannot yield "
                                "after \"header_filter\" phase");
 
             sctx->next_action = NGX_PROXY_WASM_ACTION_CONTINUE;
@@ -185,7 +216,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
         rc = ngx_http_proxy_wasm_on_response_body(fctx);
         if (sctx->next_action == NGX_PROXY_WASM_ACTION_PAUSE) {
             ngx_wasm_log_error(NGX_LOG_WASM_NYI, fctx->log, 0,
-                               "NYI - proxy_wasm cannot pause "
+                               "NYI - proxy_wasm cannot yield "
                                "after \"body_filter\" phase");
 
             sctx->next_action = NGX_PROXY_WASM_ACTION_CONTINUE;
@@ -217,6 +248,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_assert(rc == NGX_OK
                     || rc == NGX_DONE
                     || rc == NGX_AGAIN
+                    || rc == NGX_ABORT
                     || rc == NGX_ERROR
                     || rc == NGX_DECLINED
                     || rc >= NGX_HTTP_SPECIAL_RESPONSE);
