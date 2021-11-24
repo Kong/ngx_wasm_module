@@ -302,7 +302,7 @@ resp header "connection: close".*/
 
 
 === TEST 10: proxy_wasm - get_http_response_header() get Connection header (keep-alive)
---- timeout_no_valgrind: 1s
+--- timeout_no_valgrind: 3s
 --- abort
 --- wasm_modules: hostcalls
 --- config
@@ -376,7 +376,7 @@ resp header "connection: upgrade".*/
 
 
 === TEST 12: proxy_wasm - get_http_response_header() get Keep-Alive header
---- timeout_no_valgrind: 1s
+--- timeout_no_valgrind: 3s
 --- abort
 --- wasm_modules: hostcalls
 --- config
