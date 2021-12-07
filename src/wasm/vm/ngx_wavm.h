@@ -42,11 +42,14 @@ struct ngx_wavm_func_s {
 
 struct ngx_wavm_instance_s {
     ngx_queue_t                        q;          /* vm->instances */
+    ngx_uint_t                         state;
     ngx_wavm_t                        *vm;
     ngx_wavm_module_t                 *module;
+    ngx_pool_cleanup_t                *cln;
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
     ngx_wavm_log_ctx_t                 log_ctx;
+    ngx_wrt_err_t                      wrt_error;
     ngx_wrt_store_t                    wrt_store;
     ngx_wrt_instance_t                 wrt_instance;
     ngx_wrt_extern_t                 **externs;
@@ -55,12 +58,14 @@ struct ngx_wavm_instance_s {
     ngx_str_t                          trapmsg;
     u_char                            *trapbuf;
     void                              *data;
+    unsigned                           trapped:1;
 };
 
 
 struct ngx_wavm_module_s {
     ngx_str_node_t                     sn;         /* vm->modules_tree */
     ngx_wavm_t                        *vm;
+    ngx_uint_t                         idx;
     ngx_uint_t                         state;
     ngx_str_t                          name;
     ngx_str_t                          path;
@@ -80,7 +85,7 @@ struct ngx_wavm_s {
     const ngx_str_t                   *name;
     ngx_wavm_conf_t                   *config;
     ngx_uint_t                         state;
-    ngx_uint_t                         lmodules_max;
+    ngx_uint_t                         modules_max;
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
     ngx_wavm_log_ctx_t                 log_ctx;
@@ -89,11 +94,6 @@ struct ngx_wavm_s {
     ngx_queue_t                        instances;
     ngx_wavm_host_def_t               *core_host;
     ngx_wrt_engine_t                   wrt_engine;
-};
-
-
-struct ngx_wavm_conf_s {
-    ngx_str_t        compiler;
 };
 
 

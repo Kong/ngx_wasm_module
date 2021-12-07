@@ -100,6 +100,7 @@ Hello world
 
 
 === TEST 5: proxy_wasm - set_http_request_body() with offset argument
+--- ONLY
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -142,7 +143,7 @@ Hello world
         echo_subrequest GET /c;
         echo_subrequest GET /d;
         echo_subrequest GET /reset;
-        echo_subrequest GET /e;
+        #echo_subrequest GET /e;
     }
 --- response_body
 HelloWorld

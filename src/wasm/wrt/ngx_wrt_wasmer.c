@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 0
+#define DDEBUG 1
 #endif
 #include "ddebug.h"
 
@@ -321,7 +321,7 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
     size_t                   i;
     ngx_uint_t               nimports = 0;
     ngx_wrt_import_t        *import;
-    ngx_wasmer_hfunc_ctx_t  *hctx, *hctxs;
+    ngx_wasmer_hfunc_ctx_t  *hctx, *hctxs = NULL;
     wasm_func_t             *func;
 
     if (module->wasi
@@ -339,7 +339,7 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
     hctxs = ngx_pcalloc(pool,
                         sizeof(ngx_wasmer_hfunc_ctx_t) * module->nimports);
     if (hctxs == NULL) {
-        return NGX_ERROR;
+        goto error;
     }
 
     for (i = 0; i < module->nimports; i++) {
@@ -384,8 +384,8 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
     instance->instance = wasm_instance_new(store->store, module->module,
                                            &instance->env, &err->trap);
     if (instance->instance == NULL) {
-        ngx_wasmer_last_err(&err->res);
-        return NGX_ERROR;
+        dd("wasm_instance_new failed");
+        goto error;
     }
 
     wasm_instance_exports(instance->instance, &instance->externs);
@@ -393,6 +393,22 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
     instance->ctxs = hctxs;
 
     return NGX_OK;
+
+error:
+
+    if (module->wasi) {
+        wasmer_named_extern_vec_delete(&instance->wasi_imports);
+    }
+
+    if (hctxs) {
+        ngx_pfree(pool, hctxs);
+    }
+
+    wasm_extern_vec_delete(&instance->env);
+
+    ngx_wasmer_last_err(&err->res);
+
+    return NGX_ERROR;
 }
 
 
