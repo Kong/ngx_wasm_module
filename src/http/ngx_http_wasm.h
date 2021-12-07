@@ -53,6 +53,7 @@ typedef struct {
 typedef struct {
     ngx_wavm_t                        *vm;
     ngx_wasm_ops_engine_t             *ops_engine;
+    ngx_uint_t                         isolation;
 } ngx_http_wasm_loc_conf_t;
 
 
@@ -77,6 +78,8 @@ char *ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
+char *ngx_http_wasm_proxy_wasm_isolation_directive(ngx_conf_t *cf,
+    ngx_command_t *cmd, void *conf);
 
 
 /* shims */

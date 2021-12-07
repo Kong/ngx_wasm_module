@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 0
+#define DDEBUG 1
 #endif
 #include "ddebug.h"
 
@@ -94,6 +94,13 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       NGX_HTTP_MODULE,
       NULL },
 
+    { ngx_string("proxy_wasm_isolation"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
+      ngx_http_wasm_proxy_wasm_isolation_directive,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      NGX_HTTP_MODULE,
+      NULL },
+
       ngx_null_command
 };
 
@@ -175,6 +182,8 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
         return NULL;
     }
 
+    loc->isolation = NGX_CONF_UNSET_UINT;
+
     loc->vm = ngx_wasm_main_vm(cf->cycle);
     if (loc->vm) {
         loc->ops_engine = ngx_wasm_ops_engine_new(cf->pool, loc->vm,
@@ -195,6 +204,11 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_wasm_main_conf_t  *mcf;
     ngx_http_wasm_loc_conf_t   *prev = parent;
     ngx_http_wasm_loc_conf_t   *conf = child;
+
+    ngx_conf_merge_ptr_value(conf->vm, prev->vm, NULL);
+    ngx_conf_merge_ptr_value(conf->ops_engine, prev->ops_engine, NULL);
+    ngx_conf_merge_uint_value(conf->isolation, prev->isolation,
+                              NGX_PROXY_WASM_ISOLATION_UNIQUE);
 
     if (conf->ops_engine) {
         mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);

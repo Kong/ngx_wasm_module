@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 0
+#define DDEBUG 1
 #endif
 #include "ddebug.h"
 
@@ -140,10 +140,10 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 
     /* filter init */
 
+    filter->isolation = &loc->isolation;
     filter->ecode_ = ngx_http_proxy_wasm_ecode;
     filter->resume_ = ngx_http_proxy_wasm_resume;
     filter->get_context_ = ngx_http_proxy_wasm_get_context;
-    //filter->free_context_ = ngx_http_proxy_wasm_free_context;
     filter->max_pairs = NGX_HTTP_WASM_MAX_REQ_HEADERS;
 
     filter->module = ngx_wavm_module_lookup(loc->ops_engine->vm, module_name);
@@ -176,6 +176,47 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     }
 
     op->conf.proxy_wasm.filter = filter;
+
+    return NGX_CONF_OK;
+}
+
+
+char *
+ngx_http_wasm_proxy_wasm_isolation_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
+{
+    ngx_str_t                 *values, *value;
+    ngx_http_wasm_loc_conf_t  *loc = conf;
+
+    if (loc->vm == NULL) {
+        return NGX_WASM_CONF_ERR_NO_WASM;
+    }
+
+    /* args */
+
+    values = cf->args->elts;
+    value = &values[1];
+
+    if (value->len == 0) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "invalid isolation mode \"%V\"", value);
+        return NGX_CONF_ERROR;
+    }
+
+    if (ngx_strncmp(value->data, "unique", 6) == 0) {
+        loc->isolation = NGX_PROXY_WASM_ISOLATION_UNIQUE;
+
+    } else if (ngx_strncmp(value->data, "stream", 6) == 0) {
+        loc->isolation = NGX_PROXY_WASM_ISOLATION_STREAM;
+
+    } else if (ngx_strncmp(value->data, "filter", 6) == 0) {
+        loc->isolation = NGX_PROXY_WASM_ISOLATION_FILTER;
+
+    } else {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "invalid isolation mode \"%V\"", value);
+        return NGX_CONF_ERROR;
+    }
 
     return NGX_CONF_OK;
 }

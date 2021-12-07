@@ -10,8 +10,9 @@
 
 
 typedef enum {
-    NGX_PROXY_WASM_ISOLATION_NONE = 0,
+    NGX_PROXY_WASM_ISOLATION_UNIQUE = 0,
     NGX_PROXY_WASM_ISOLATION_STREAM = 1,
+    NGX_PROXY_WASM_ISOLATION_FILTER = 2,
 } ngx_proxy_wasm_isolation_mode_e;
 
 
@@ -197,7 +198,7 @@ struct ngx_proxy_wasm_filter_s {
     ngx_uint_t                         id;
     ngx_uint_t                         max_pairs;
     ngx_uint_t                         tick_period;
-    ngx_proxy_wasm_isolation_mode_e    isolation;
+    ngx_uint_t                        *isolation;
 
     /**
      * SDK
@@ -216,7 +217,7 @@ struct ngx_proxy_wasm_filter_s {
     ngx_wavm_funcref_t                *proxy_on_context_create;
     ngx_wavm_funcref_t                *proxy_on_context_finalize;
     ngx_wavm_funcref_t                *proxy_on_done; // legacy: 0.1.0 - 0.2.1
-    ngx_wavm_funcref_t                *proxy_on_log; // legacy: 0.1.0 - 0.2.1
+    ngx_wavm_funcref_t                *proxy_on_log;  // legacy: 0.1.0 - 0.2.1
 
     /* configuration */
 

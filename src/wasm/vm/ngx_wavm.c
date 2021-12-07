@@ -22,6 +22,13 @@ typedef enum {
     NGX_WAVM_MODULE_INVALID = (1 << 4),
 } ngx_wavm_module_state;
 
+typedef enum {
+    NGX_WAVM_INSTANCE_INIT = (1 << 0),
+    NGX_WAVM_INSTANCE_CREATED = (1 << 1),
+    NGX_WAVM_STORE_CREATED = (1 << 2),
+    NGX_WAVM_INSTANCE_TRAPPED = (1 << 3),
+} ngx_wavm_instance_state;
+
 
 static ngx_int_t ngx_wavm_engine_init(ngx_wavm_t *vm);
 static void ngx_wavm_engine_destroy(ngx_wavm_t *vm);
@@ -585,6 +592,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
         }
     }
 
+    module->idx = vm->modules_max++;
     module->state |= NGX_WAVM_MODULE_LOADED;
 
     ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL,
@@ -812,6 +820,19 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
 }
 
 
+static void
+ngx_wavm_instance_cleanup(void *data)
+{
+    ngx_wavm_instance_t  *instance = data;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, instance->log, 0,
+                   "wasm cleaning up instance pool (instance: %p)",
+                   instance);
+
+    ngx_wavm_instance_destroy(instance);
+}
+
+
 ngx_wavm_instance_t *
 ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
     ngx_log_t *log, void *data)
@@ -832,7 +853,7 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
     ngx_wrt_err_init(&e);
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, log, 0,
-                   "wasm creating instance of \"%V\" module in \"%V\" vm ",
+                   "wasm creating \"%V\" instance in \"%V\" vm ",
                    &module->name, vm->name);
 
     if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LINKED)) {
@@ -840,16 +861,31 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
         goto error;
     }
 
-    instance = ngx_palloc(vm->pool, sizeof(ngx_wavm_instance_t));
+    instance = ngx_pcalloc(pool, sizeof(ngx_wavm_instance_t));
     if (instance == NULL) {
         goto error;
     }
 
+    instance->vm = vm;
     instance->module = module;
     instance->pool = pool;
     instance->externs = NULL;
     instance->memory = NULL;
     instance->data = data;
+    instance->trapped = 0;
+
+    ngx_wrt_err_init(&instance->wrt_error);
+
+    ngx_array_init(&instance->funcs, instance->pool, module->exports.size,
+                   sizeof(ngx_wavm_func_t));
+
+    instance->cln = ngx_pool_cleanup_add(instance->pool, 0);
+    if (instance->cln == NULL) {
+        goto error;
+    }
+
+    instance->cln->handler = ngx_wavm_instance_cleanup;
+    instance->cln->data = instance;
 
     instance->log = ngx_pcalloc(instance->pool, sizeof(ngx_log_t));
     if (instance->log == NULL) {
@@ -874,16 +910,20 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
         goto error;
     }
 
+    instance->state |= NGX_WAVM_STORE_CREATED;
+
     /* instantiate */
 
     rc = ngx_wrt.instance_init(&instance->wrt_instance,
                                &instance->wrt_store,
                                &module->wrt_module,
-                               pool, &e);
+                               instance->pool, &e);
     if (rc != NGX_OK) {
         err = NGX_WAVM_EMPTY_CHAR;
         goto error;
     }
+
+    instance->state |= NGX_WAVM_INSTANCE_CREATED;
 
     /* cache exports */
 
@@ -893,9 +933,6 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
     if (instance->externs == NULL) {
         goto error;
     }
-
-    ngx_array_init(&instance->funcs, instance->pool, module->exports.size,
-                   sizeof(ngx_wavm_func_t));
 
     for (i = 0; i < module->exports.size; i++) {
         exporttype = ((wasm_exporttype_t **) module->exports.data)[i];
@@ -979,10 +1016,7 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
         }
     }
 
-    ngx_queue_insert_tail(&vm->instances, &instance->q);
-
-    /* mark queue insert */
-    instance->vm = vm;
+    //ngx_queue_insert_tail(&vm->instances, &instance->q);
 
     return instance;
 
@@ -1004,16 +1038,28 @@ static ngx_inline ngx_int_t
 ngx_wavm_func_call(ngx_wavm_func_t *f, wasm_val_vec_t *args,
     wasm_val_vec_t *rets, ngx_wrt_err_t *e)
 {
-    ngx_int_t     rc;
+    ngx_int_t   rc;
 
     ngx_wasm_assert(args);
     ngx_wasm_assert(rets);
+
+    if (ngx_wavm_state(f->instance, NGX_WAVM_INSTANCE_TRAPPED)) {
+        rc = NGX_ABORT;
+        goto done;
+    }
 
     ngx_wrt_err_init(e);
 
     rc = ngx_wrt.call(&f->instance->wrt_instance,
                       &f->name, f->idx,
                       args, rets, e);
+
+    if (rc == NGX_ERROR) {
+        f->instance->state |= NGX_WAVM_INSTANCE_TRAPPED;
+        f->instance->trapped = 1;
+    }
+
+done:
 
     dd("\"%.*s\" rc: %ld", (int) f->name.len, f->name.data, rc);
 
@@ -1075,14 +1121,14 @@ static ngx_int_t
 ngx_wavm_instance_call_func_va(ngx_wavm_instance_t *instance,
     ngx_wavm_func_t *func, wasm_val_vec_t **rets, va_list args)
 {
-    ngx_int_t        rc;
-    ngx_wrt_err_t   e;
+    ngx_int_t   rc;
 
     ngx_wavm_val_vec_set(&func->args, func->argstypes, args);
 
-    rc = ngx_wavm_func_call(func, &func->args, &func->rets, &e);
+    rc = ngx_wavm_func_call(func, &func->args, &func->rets,
+                            &instance->wrt_error);
     if (rc != NGX_OK) {
-        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &e,
+        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &instance->wrt_error,
                            "in %V", &func->name);
     }
 
@@ -1098,8 +1144,8 @@ ngx_int_t
 ngx_wavm_instance_call_func(ngx_wavm_instance_t *instance,
     ngx_wavm_func_t *func, wasm_val_vec_t **rets, ...)
 {
-    va_list          args;
-    ngx_int_t        rc;
+    va_list     args;
+    ngx_int_t   rc;
 
     va_start(args, rets);
     rc = ngx_wavm_instance_call_func_va(instance, func, rets, args);
@@ -1113,10 +1159,9 @@ ngx_int_t
 ngx_wavm_instance_call_func_vec(ngx_wavm_instance_t *instance,
     ngx_wavm_func_t *func, wasm_val_vec_t **rets, wasm_val_vec_t *args)
 {
-    size_t           i;
-    ngx_int_t        rc;
-    ngx_wrt_err_t   e;
-    const char      *err = NULL;
+    size_t       i;
+    ngx_int_t    rc;
+    const char  *err = NULL;
 
     if (args && args->size) {
         if (args->size == func->args.size) {
@@ -1130,9 +1175,10 @@ ngx_wavm_instance_call_func_vec(ngx_wavm_instance_t *instance,
         }
     }
 
-    rc = ngx_wavm_func_call(func, &func->args, &func->rets, &e);
+    rc = ngx_wavm_func_call(func, &func->args, &func->rets,
+                            &instance->wrt_error);
     if (rc != NGX_OK) {
-        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &e,
+        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &instance->wrt_error,
                            "in %V", &func->name);
     }
 
@@ -1156,9 +1202,9 @@ ngx_int_t
 ngx_wavm_instance_call_funcref(ngx_wavm_instance_t *instance,
     ngx_wavm_funcref_t *funcref, wasm_val_vec_t **rets, ...)
 {
-    va_list            args;
-    ngx_int_t          rc;
-    ngx_wavm_func_t   *func;
+    va_list           args;
+    ngx_int_t         rc;
+    ngx_wavm_func_t  *func;
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, instance->log, 0,
                    "wasm calling \"%V.%V\" function "
@@ -1237,16 +1283,13 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
     ngx_wrt_extern_t   *wextern;
     ngx_wavm_func_t    *func;
     ngx_wavm_module_t  *module = instance->module;
+    ngx_log_t          *log = instance->log ? instance->log : ngx_cycle->log;
 
-    ngx_log_debug5(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
+    ngx_log_debug5(NGX_LOG_DEBUG_WASM, log, 0,
                    "wasm freeing \"%V\" instance in \"%V\" vm"
                    " (vm: %p, module: %p, instance: %p)",
                    &module->name, module->vm->name,
                    module->vm, module, instance);
-
-    if (instance->vm) {
-        ngx_queue_remove(&instance->q);
-    }
 
     if (instance->funcs.nelts) {
         for (i = 0; i < instance->funcs.nelts; i++) {
@@ -1263,24 +1306,35 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
                 func->functype = NULL;
             }
         }
-
-        ngx_array_destroy(&instance->funcs);
     }
 
-    dd("module->exports.size: %d, instance->funcs.nelts: %d",
-       (int) module->exports.size, (int) instance->funcs.nelts);
+    ngx_array_destroy(&instance->funcs);
 
-    for (i = 0; i < module->exports.size; i++) {
-        wextern = &((ngx_wrt_extern_t *) instance->externs)[i];
-        ngx_wrt.extern_destroy(wextern);
+    if (instance->externs) {
+        for (i = 0; i < module->exports.size; i++) {
+            wextern = &((ngx_wrt_extern_t *) instance->externs)[i];
+            ngx_wrt.extern_destroy(wextern);
+        }
     }
 
     if (instance->log) {
         ngx_pfree(instance->pool, instance->log);
     }
 
-    ngx_wrt.instance_destroy(&instance->wrt_instance);
-    ngx_wrt.store_destroy(&instance->wrt_store);
+    if (ngx_wavm_state(instance, NGX_WAVM_INSTANCE_CREATED)) {
+        ngx_wrt.instance_destroy(&instance->wrt_instance);
+    }
+
+    if (ngx_wavm_state(instance, NGX_WAVM_STORE_CREATED)) {
+        ngx_wrt.store_destroy(&instance->wrt_store);
+    }
+
+    if (instance->cln) {
+        /* cancel cleanup */
+        instance->cln->handler = NULL;
+    }
+
+    //ngx_queue_remove(&instance->q);
 
     ngx_pfree(instance->pool, instance);
 }
@@ -1290,9 +1344,9 @@ void
 ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
     const char *fmt, ...)
 {
-    va_list            args;
-    u_char            *p, *last, errstr[NGX_MAX_ERROR_STR];
-    wasm_message_t     trapmsg;
+    va_list          args;
+    wasm_message_t   trapmsg;
+    u_char          *p, *last, errstr[NGX_MAX_ERROR_STR];
 
     last = errstr + NGX_MAX_ERROR_STR;
     p = &errstr[0];

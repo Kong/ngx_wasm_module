@@ -14,8 +14,6 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
     wasm_name_t        msg;
     wasmtime_error_t  *err = NULL;
 
-    wasmtime_config_debug_info_set(config, false);
-
     if (conf->compiler.len) {
         if (ngx_strncmp(conf->compiler.data, "auto", 4) == 0) {
             err = wasmtime_config_strategy_set(config,
@@ -49,6 +47,12 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
                            "using wasmtime with compiler: \"%V\"",
                            &conf->compiler);
     }
+
+#ifdef NGX_WASM_NOPOOL
+    wasmtime_config_debug_info_set(config, false);
+    wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_NONE);
+    wasmtime_config_static_memory_maximum_size_set(config, 0);
+#endif
 
     return NGX_OK;
 }
@@ -226,11 +230,13 @@ ngx_wasmtime_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
     instance->module = module;
     instance->wasi_config = wasi_config_new();
 
-    //wasi_config_inherit_argv(wasi_config);
-    //wasi_config_inherit_env(wasi_config);
-    //wasi_config_inherit_stdin(wasi_config);
-    //wasi_config_inherit_stdout(wasi_config);
-    //wasi_config_inherit_stderr(wasi_config);
+#if 0
+    wasi_config_inherit_argv(instance->wasi_config);
+    wasi_config_inherit_env(instance->wasi_config);
+    wasi_config_inherit_stdin(instance->wasi_config);
+    wasi_config_inherit_stdout(instance->wasi_config);
+    wasi_config_inherit_stderr(instance->wasi_config);
+#endif
 
     err->res = wasmtime_context_set_wasi(store->context,
                                          instance->wasi_config);
@@ -447,11 +453,7 @@ ngx_wasmtime_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
                                   wargs, args->size,
                                   wrets, rets->size,
                                   &err->trap);
-    if (err->trap) {
-        goto done;
-    }
-
-    if (err->res) {
+    if (err->trap || err->res) {
         goto done;
     }
 

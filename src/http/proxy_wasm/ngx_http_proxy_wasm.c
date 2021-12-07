@@ -64,7 +64,9 @@ ngx_http_proxy_wasm_get_context(ngx_proxy_wasm_filter_t *filter, void *data)
             return NULL;
         }
 
-        sctx->pool = r->pool;
+        sctx->pool = r == r->main
+                     ? r->connection->pool
+                     : r->pool;
         sctx->log = r->connection->log;
         sctx->id = r->connection->number;
         sctx->filter_max = *filter->max_filters;
@@ -207,7 +209,9 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
 
     }
 
+#if 0
     if (rc == NGX_ERROR) {
+        /* remove */
         fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
 
         if (fctx->filter->isolation == NGX_PROXY_WASM_ISOLATION_NONE) {
@@ -215,7 +219,10 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
             fctx->filter->root_fctx.ecode = fctx->ecode;
         }
 
-    } else if (!rctx->resp_content_chosen && rctx->local_resp_stashed) {
+    } else
+#endif
+
+    if (!rctx->resp_content_chosen && rctx->local_resp_stashed) {
         /* next phase */
         rc = NGX_DONE;
     }

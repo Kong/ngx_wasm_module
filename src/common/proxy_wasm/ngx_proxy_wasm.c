@@ -1,9 +1,12 @@
 #ifndef DDEBUG
-#define DDEBUG 0
+#define DDEBUG 1
 #endif
 #include "ddebug.h"
 
 #include <ngx_proxy_wasm.h>
+#ifdef NGX_WASM_HTTP
+#include <ngx_http_proxy_wasm.h>
+#endif
 
 
 static ngx_int_t ngx_proxy_wasm_init_root_instance(
@@ -129,15 +132,15 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
 
     filter->name = &filter->module->name;
     filter->index = *filter->max_filters;
-    filter->isolation = NGX_PROXY_WASM_ISOLATION_STREAM;
-    //filter->isolation = NGX_PROXY_WASM_ISOLATION_NONE;
     filter->id = ngx_crc32_long(filter->name->data, filter->name->len);
     filter->max_id = 1;
 
-    ngx_log_debug4(NGX_LOG_DEBUG_WASM, filter->log, 0,
+    ngx_log_debug5(NGX_LOG_DEBUG_WASM, filter->log, 0,
                    "proxy_wasm initializing \"%V\" filter "
-                   "(config size: %d, filter: %p, filter->id: %ui)",
-                   filter->name, filter->config.len, filter, filter->id);
+                   "(config size: %d, filter: %p, filter->id: %ui, "
+                   "isolation: %ui)",
+                   filter->name, filter->config.len, filter, filter->id,
+                   *filter->isolation);
 
     /* setup root ctx */
 
@@ -407,29 +410,38 @@ ngx_proxy_wasm_filter_get_ctx(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log,
         fctx->ecode = NGX_PROXY_WASM_ERR_NONE;
         fctx->instance = NULL;
 
-    } else if (fctx->ecode) {
-        goto error;
+    //} else if (fctx->ecode) {
+    //    goto done;
     }
 
-    switch (filter->isolation) {
-    case NGX_PROXY_WASM_ISOLATION_NONE:
-        ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                       "proxy_wasm \"%V\" filter reusing root instance"
-                       " (id: #%l data: %p)",
-                       filter->name, fctx->id, data);
+    dd("filter->isolation: %lu", *filter->isolation);
 
+    switch (*filter->isolation) {
+    case NGX_PROXY_WASM_ISOLATION_UNIQUE:
         fctx->instance = filter->root_fctx.instance;
+
+        ngx_log_debug6(NGX_LOG_DEBUG_WASM, fctx->log, 0,
+                       "proxy_wasm stream #%d \"%V\" filter (%l/%l) "
+                       "reusing root instance (instance: %p, data: %p)",
+                       fctx->id, filter->name,
+                       filter->index + 1, sctx->filter_max,
+                       fctx->instance, data);
         goto init;
 
-    case NGX_PROXY_WASM_ISOLATION_STREAM:
+    case NGX_PROXY_WASM_ISOLATION_FILTER:
         if (fctx->instance) {
-            ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                           "proxy_wasm \"%V\" filter reusing instance"
-                           " (id: #%l data: %p)",
-                           filter->name, fctx->id, data);
+            ngx_log_debug6(NGX_LOG_DEBUG_WASM, fctx->log, 0,
+                           "proxy_wasm stream #%d \"%V\" filter (%l/%l) "
+                           "reusing instance (instance: %p, data: %p)",
+                           fctx->id, filter->name,
+                           filter->index + 1, sctx->filter_max,
+                           fctx->instance, data);
             goto init;
         }
 
+        break;
+
+    case NGX_PROXY_WASM_ISOLATION_STREAM:
         break;
 
     default:
@@ -452,7 +464,7 @@ init:
 
     /* start context */
 
-    if (filter->isolation == NGX_PROXY_WASM_ISOLATION_STREAM) {
+    if (*filter->isolation != NGX_PROXY_WASM_ISOLATION_UNIQUE) {
         rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                             filter->proxy_on_context_create,
                                             NULL,
@@ -482,6 +494,10 @@ init:
 
 done:
 
+    if (fctx->instance->trapped) {
+        fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
+    }
+
     ngx_wavm_instance_set_data(fctx->instance, fctx, fctx->log);
 
     return fctx;
@@ -509,12 +525,15 @@ ngx_proxy_wasm_filter_resume(ngx_proxy_wasm_filter_t *filter,
     ngx_int_t                     rc;
     ngx_proxy_wasm_filter_ctx_t  *fctx;
 
-    dd("enter");
-
     rc = ngx_proxy_wasm_err_code(&filter->root_fctx, phase);
     if (rc != NGX_OK) {
         goto done;
     }
+
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, log, 0,
+                   "proxy_wasm \"%V\" filter "
+                   "resuming in \"%V\" phase",
+                   filter->name, &phase->name);
 
     fctx = ngx_proxy_wasm_filter_get_ctx(filter, log, data);
     if (fctx == NULL) {
@@ -533,20 +552,11 @@ ngx_proxy_wasm_filter_resume(ngx_proxy_wasm_filter_t *filter,
         goto done;
     }
 
-    ngx_log_debug5(NGX_LOG_DEBUG_WASM, log, 0,
-                   "proxy_wasm stream #%d \"%V\" filter (%l/%l) "
-                   "resuming in \"%V\" phase",
-                   fctx->id, filter->name,
-                   filter->index + 1, fctx->stream_ctx->filter_max,
-                   &phase->name);
-
     rc = filter->resume_(fctx, phase);
 
-    if (rc == NGX_ERROR
-        && fctx->ecode == NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED)
-    {
-        switch (filter->isolation) {
-        case NGX_PROXY_WASM_ISOLATION_NONE:
+    if (fctx->ecode == NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED) {
+        switch (*filter->isolation) {
+        case NGX_PROXY_WASM_ISOLATION_UNIQUE:
            ngx_log_debug4(NGX_LOG_DEBUG_WASM, log, 0,
                           "proxy_wasm stream #%d \"%V\" filter (%l/%l) "
                           "recycling trapped root instance",
@@ -649,6 +659,7 @@ ngx_proxy_wasm_err_code(ngx_proxy_wasm_filter_ctx_t *fctx,
         && fctx->instance
         && phase->index == NGX_WASM_DONE_PHASE)
     {
+        /* this feels hacky */
         goto done;
     }
 
@@ -746,6 +757,7 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
     ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->stream_ctx;
 
     if (fctx->context_created && !fctx->ecode) {
+        /* (fctx-1)->ecode is not the same... */
         ngx_log_debug4(NGX_LOG_DEBUG_WASM, fctx->log, 0,
                        "proxy_wasm stream #%d \"%V\" filter (%l/%l) "
                        "finalizing context",
@@ -757,26 +769,40 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
                                               NULL, fctx->id);
     }
 
-    switch (filter->isolation) {
-    case NGX_PROXY_WASM_ISOLATION_STREAM:
-        // TODO: cache reusable instances
-        ngx_wavm_instance_destroy(fctx->instance);
-        break;
-    default:
-        break;
-    }
-
-    fctx->instance = NULL;
-    fctx->ecode = NGX_PROXY_WASM_ERR_NONE;
-    fctx->ecode_logged = 0;
-    fctx->context_created = 0;
+    //fctx->instance = NULL;
+    //fctx->ecode = NGX_PROXY_WASM_ERR_NONE;
+    //fctx->ecode_logged = 0;
+    //fctx->context_created = 0;
 
     if (filter->index == sctx->filter_max - 1) {
+
         ngx_log_debug4(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                       "proxy_wasm stream #%d \"%V\" filter (%l/%l) "
+                       "proxy_wasm stream #%d "
                        "freeing stream context",
                        fctx->id, filter->name,
                        filter->index + 1, sctx->filter_max);
+
+        switch (*filter->isolation) {
+        case NGX_PROXY_WASM_ISOLATION_STREAM:
+#ifdef NGX_WASM_HTTP
+            ngx_http_wasm_req_ctx_t  *rctx;
+
+            rctx = ngx_http_proxy_wasm_get_rctx(fctx->instance);
+            if (rctx->r == rctx->r->main) {
+#endif
+
+            dd("HERE");
+
+            /* TODO: cache reusable instances */
+            ngx_wavm_instance_destroy(fctx->instance);
+
+#ifdef NGX_WASM_HTTP
+            }
+#endif
+            break;
+        default:
+            break;
+        }
 
         if (sctx->authority.data) {
             ngx_pfree(sctx->pool, sctx->authority.data);
