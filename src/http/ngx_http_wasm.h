@@ -6,6 +6,7 @@
 #include <ngx_http_wasm_util.h>
 #include <ngx_http_wasm_headers.h>
 #include <ngx_wasm_ops.h>
+#include <ngx_proxy_wasm.h>
 
 
 #define NGX_HTTP_WASM_MAX_REQ_HEADERS      100
@@ -59,6 +60,7 @@ typedef struct {
 
 typedef struct {
     ngx_queue_t                        ops_engines;
+    ngx_proxy_wasm_store_t             store;
 } ngx_http_wasm_main_conf_t;
 
 
