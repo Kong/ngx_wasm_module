@@ -9,6 +9,9 @@
 #endif
 
 
+static ngx_uint_t  context_id = 1;
+
+
 static ngx_int_t ngx_proxy_wasm_init_root_instance(
     ngx_proxy_wasm_filter_t *filter);
 static ngx_proxy_wasm_filter_ctx_t *ngx_proxy_wasm_filter_get_ctx(
@@ -129,11 +132,16 @@ ngx_int_t
 ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
 {
     ngx_int_t   rc;
+    uint32_t    hash;
 
     filter->name = &filter->module->name;
     filter->index = *filter->max_filters;
-    filter->id = ngx_crc32_long(filter->name->data, filter->name->len);
-    filter->max_id = 1;
+
+    ngx_crc32_init(hash);
+    ngx_crc32_update(&hash, filter->name->data, filter->name->len);
+    ngx_crc32_update(&hash, filter->config.data, filter->config.len);
+
+    filter->id = hash + filter->index;
 
     ngx_log_debug5(NGX_LOG_DEBUG_WASM, filter->log, 0,
                    "proxy_wasm initializing \"%V\" filter "
@@ -379,13 +387,82 @@ done:
 }
 
 
+ngx_wavm_instance_t *
+ngx_proxy_wasm_instance_new(ngx_proxy_wasm_store_t *store,
+    ngx_proxy_wasm_filter_t *filter, ngx_pool_t *pool, ngx_log_t *log,
+    ngx_proxy_wasm_filter_ctx_t *fctx)
+{
+    ngx_wavm_instance_t  *instance;
+    ngx_wavm_module_t    *module = filter->module;
+    ngx_wavm_t           *vm = module->vm;
+
+    if (!store->module_max) {
+        store->pool = pool;
+        store->module_max = vm->modules_max;
+        store->instances = ngx_pcalloc(pool,
+                                       store->module_max
+                                       * sizeof(ngx_wavm_instance_t *));
+        if (store->instances == NULL) {
+            return NULL;
+        }
+    }
+
+    ngx_wasm_assert(store->module_max);
+
+    instance = store->instances[module->idx];
+
+    if (instance == NULL) {
+        instance = ngx_wavm_instance_create(module, pool, log, fctx);
+        if (instance == NULL) {
+            return NULL;
+        }
+
+        store->instances[module->idx] = instance;
+    }
+#if NGX_DEBUG
+    else {
+        ngx_log_debug6(NGX_LOG_DEBUG_WASM, fctx->log, 0,
+                       "proxy_wasm context #%d \"%V\" filter (%l/%l) "
+                       "reusing instance (instance: %p, fctx: %p)",
+                       fctx->id, filter->name,
+                       filter->index + 1, fctx->stream_ctx->filter_max,
+                       instance, fctx);
+    }
+#endif
+
+    ngx_wasm_assert(instance->module == filter->module);
+
+    return instance;
+}
+
+
+void
+ngx_proxy_wasm_store_free(ngx_proxy_wasm_store_t *store)
+{
+    size_t                i;
+    ngx_wavm_instance_t  *instance;
+
+    for (i = 0; i < store->module_max; i++) {
+        instance = store->instances[i];
+
+        if (instance) {
+            ngx_wavm_instance_destroy(instance);
+        }
+    }
+
+    ngx_pfree(store->pool, store->instances);
+}
+
+
 static ngx_proxy_wasm_filter_ctx_t *
-ngx_proxy_wasm_filter_get_ctx(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log,
-    void *data)
+ngx_proxy_wasm_filter_get_ctx(ngx_proxy_wasm_filter_t *filter,
+    ngx_log_t *log, void *data)
 {
     ngx_int_t                     rc;
+    ngx_pool_t                   *pool = NULL;
     ngx_proxy_wasm_stream_ctx_t  *sctx = NULL;
     ngx_proxy_wasm_filter_ctx_t  *fctx = NULL;
+    ngx_proxy_wasm_store_t       *store = NULL;
     wasm_val_vec_t               *rets;
 
     sctx = filter->get_context_(filter, data);
@@ -399,7 +476,7 @@ ngx_proxy_wasm_filter_get_ctx(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log,
 
         /* init fctx */
 
-        fctx->id = filter->max_id++;
+        fctx->id = context_id++;
         fctx->pool = sctx->pool;
         fctx->log = sctx->log;
         fctx->filter = filter;
@@ -418,30 +495,18 @@ ngx_proxy_wasm_filter_get_ctx(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log,
 
     switch (*filter->isolation) {
     case NGX_PROXY_WASM_ISOLATION_UNIQUE:
-        fctx->instance = filter->root_fctx.instance;
-
-        ngx_log_debug6(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                       "proxy_wasm stream #%d \"%V\" filter (%l/%l) "
-                       "reusing root instance (instance: %p, data: %p)",
-                       fctx->id, filter->name,
-                       filter->index + 1, sctx->filter_max,
-                       fctx->instance, data);
-        goto init;
+        store = filter->store;
+        pool = filter->pool;
+        break;
 
     case NGX_PROXY_WASM_ISOLATION_FILTER:
-        if (fctx->instance) {
-            ngx_log_debug6(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                           "proxy_wasm stream #%d \"%V\" filter (%l/%l) "
-                           "reusing instance (instance: %p, data: %p)",
-                           fctx->id, filter->name,
-                           filter->index + 1, sctx->filter_max,
-                           fctx->instance, data);
-            goto init;
-        }
-
+        store = &fctx->store;
+        pool = fctx->pool;
         break;
 
     case NGX_PROXY_WASM_ISOLATION_STREAM:
+        store = &sctx->store;
+        pool = sctx->pool;
         break;
 
     default:
@@ -449,22 +514,26 @@ ngx_proxy_wasm_filter_get_ctx(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log,
         goto error;
     }
 
-    fctx->instance = ngx_wavm_instance_create(filter->module,
-                                        fctx->pool, fctx->log, fctx);
+    fctx->instance = ngx_proxy_wasm_instance_new(store, filter, pool,
+                                                 sctx->log, fctx);
     if (fctx->instance == NULL) {
         fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_FAILED;
         goto error;
     }
 
-init:
-
     if (fctx->context_created) {
+        dd("context id #%ld already created (fctx: %p)", fctx->id, fctx);
         goto done;
     }
 
+    dd("creating context id #%ld (fctx: %p)", fctx->id, fctx);
+
     /* start context */
 
-    if (*filter->isolation != NGX_PROXY_WASM_ISOLATION_UNIQUE) {
+    //if (*filter->isolation != NGX_PROXY_WASM_ISOLATION_UNIQUE) {
+
+        dd("start plugin filter->id: %ld", filter->id);
+
         rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                             filter->proxy_on_context_create,
                                             NULL,
@@ -476,12 +545,13 @@ init:
 
         rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                             filter->proxy_on_plugin_start, &rets,
-                                            filter->id, filter->config.len);
+                                            filter->id,
+                                            filter->config.len);
         if (rc != NGX_OK || !rets->data[0].of.i32) {
             fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_FAILED;
             goto error;
         }
-    }
+    //}
 
     rc = ngx_wavm_instance_call_funcref(fctx->instance,
                                         filter->proxy_on_context_create, NULL,
@@ -558,7 +628,7 @@ ngx_proxy_wasm_filter_resume(ngx_proxy_wasm_filter_t *filter,
         switch (*filter->isolation) {
         case NGX_PROXY_WASM_ISOLATION_UNIQUE:
            ngx_log_debug4(NGX_LOG_DEBUG_WASM, log, 0,
-                          "proxy_wasm stream #%d \"%V\" filter (%l/%l) "
+                          "proxy_wasm context #%d \"%V\" filter (%l/%l) "
                           "recycling trapped root instance",
                           fctx->id, filter->name,
                           filter->index + 1, fctx->stream_ctx->filter_max);
@@ -759,7 +829,7 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
     if (fctx->context_created && !fctx->ecode) {
         /* (fctx-1)->ecode is not the same... */
         ngx_log_debug4(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                       "proxy_wasm stream #%d \"%V\" filter (%l/%l) "
+                       "proxy_wasm context #%d \"%V\" filter (%l/%l) "
                        "finalizing context",
                        fctx->id, filter->name,
                        filter->index + 1, sctx->filter_max);
@@ -777,7 +847,7 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
     if (filter->index == sctx->filter_max - 1) {
 
         ngx_log_debug4(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                       "proxy_wasm stream #%d "
+                       "proxy_wasm context #%d "
                        "freeing stream context",
                        fctx->id, filter->name,
                        filter->index + 1, sctx->filter_max);
@@ -791,10 +861,8 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
             if (rctx->r == rctx->r->main) {
 #endif
 
-            dd("HERE");
-
             /* TODO: cache reusable instances */
-            ngx_wavm_instance_destroy(fctx->instance);
+            //ngx_wavm_instance_destroy(fctx->instance);
 
 #ifdef NGX_WASM_HTTP
             }
@@ -803,6 +871,8 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
         default:
             break;
         }
+
+        ngx_proxy_wasm_store_free(&sctx->store);
 
         if (sctx->authority.data) {
             ngx_pfree(sctx->pool, sctx->authority.data);

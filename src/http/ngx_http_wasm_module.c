@@ -289,6 +289,8 @@ ngx_http_wasm_exit_process(ngx_cycle_t *cycle)
 
         ngx_wasm_ops_engine_destroy(ops_engine);
     }
+
+    ngx_proxy_wasm_store_free(&mcf->store);
 }
 
 

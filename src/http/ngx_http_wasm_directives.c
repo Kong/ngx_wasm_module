@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 1
+#define DDEBUG 0
 #endif
 #include "ddebug.h"
 
@@ -97,10 +97,13 @@ char *
 ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf)
 {
-    ngx_str_t                 *values, *module_name, *config;
-    ngx_wasm_op_t             *op;
-    ngx_proxy_wasm_filter_t   *filter;
-    ngx_http_wasm_loc_conf_t  *loc = conf;
+    ngx_str_t                  *values, *module_name, *config;
+    ngx_wasm_op_t              *op;
+    ngx_proxy_wasm_filter_t    *filter;
+    ngx_http_wasm_main_conf_t  *mcf;
+    ngx_http_wasm_loc_conf_t   *loc = conf;
+
+    mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
 
     if (loc->vm == NULL) {
         return NGX_WASM_CONF_ERR_NO_WASM;
@@ -127,6 +130,7 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 
     filter->pool = cf->pool;
     filter->log = &cf->cycle->new_log;
+    filter->store = &mcf->store;
 
     if (cf->args->nelts > 2) {
         config = &values[2];
