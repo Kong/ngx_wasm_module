@@ -404,7 +404,7 @@ ngx_proxy_wasm_maps_get_path(ngx_wavm_instance_t *instance)
     size_t                        len;
     u_char                       *p;
     ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_get_fctx(instance);
-    ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->stream_ctx;
+    ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->sctx;
     ngx_http_wasm_req_ctx_t      *rctx = ngx_http_proxy_wasm_get_rctx(instance);
     ngx_http_request_t           *r = rctx->r;
 
@@ -440,7 +440,7 @@ static ngx_int_t
 ngx_proxy_wasm_maps_set_path(ngx_wavm_instance_t *instance, ngx_str_t *value)
 {
     ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_get_fctx(instance);
-    ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->stream_ctx;
+    ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->sctx;
     ngx_http_wasm_req_ctx_t      *rctx = ngx_http_proxy_wasm_get_rctx(instance);
     ngx_http_request_t           *r = rctx->r;
 
@@ -498,7 +498,7 @@ ngx_proxy_wasm_maps_get_scheme(ngx_wavm_instance_t *instance)
 
     fctx = ngx_proxy_wasm_get_fctx(instance);
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    sctx = fctx->stream_ctx;
+    sctx = fctx->sctx;
     r = rctx->r;
 
     if (sctx->scheme.len) {
@@ -541,7 +541,7 @@ ngx_proxy_wasm_maps_get_authority(ngx_wavm_instance_t *instance)
 
     fctx = ngx_proxy_wasm_get_fctx(instance);
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    sctx = fctx->stream_ctx;
+    sctx = fctx->sctx;
     r = rctx->r;
 
     if (sctx->authority.len) {

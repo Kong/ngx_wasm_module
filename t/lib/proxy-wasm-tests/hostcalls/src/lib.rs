@@ -158,6 +158,9 @@ impl TestHttpHostcalls {
             "/t/error/get_response_body" => {
                 let _body = self.get_http_response_body(usize::MAX, usize::MAX);
             }
+            "/t/trap" => {
+                panic!("trap");
+            }
 
             _ => (),
         }
