@@ -330,35 +330,36 @@ failed:
 void
 ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 {
-    ngx_int_t                     rc;
-    wasm_val_vec_t                args;
-    ngx_proxy_wasm_filter_ctx_t  *fctx = ev->data;
+    ngx_int_t                       rc;
+    wasm_val_vec_t                  args;
+    ngx_proxy_wasm_filter_ctx_t    *fctx = ev->data;
+    ngx_proxy_wasm_instance_ctx_t  *ictx;
+    ngx_wavm_instance_t            *instance;
+
+    instance = ngx_proxy_wasm_fctx2instance(fctx);
+    ictx = (ngx_proxy_wasm_instance_ctx_t *) instance->data;
 
     ngx_free(ev);
 
-    ngx_wasm_assert(fctx->id == NGX_PROXY_WASM_ROOT_CTX_ID);
+    ngx_wasm_assert(fctx->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
     if (ngx_exiting) {
         return;
     }
 
     if (fctx->filter->proxy_on_timer_ready) {
-        fctx->stream_ctx = NULL;
-        fctx->data = NULL;
-        fctx->log = fctx->filter->log;
-
-        ngx_wavm_instance_set_data(fctx->instance, fctx, fctx->log);
+        ngx_wavm_instance_set_data(instance, ictx, ev->log);
 
         wasm_val_vec_new_uninitialized(&args, 1);
-        ngx_wasm_vec_set_i32(&args, 0, fctx->filter->id);
+        ngx_wasm_vec_set_i32(&args, 0, fctx->id);
 
-        rc = ngx_wavm_instance_call_funcref_vec(fctx->instance,
+        rc = ngx_wavm_instance_call_funcref_vec(instance,
                                             fctx->filter->proxy_on_timer_ready,
                                             NULL, &args);
         wasm_val_vec_delete(&args);
 
         if (!ngx_exiting) {
-            ev = ngx_calloc(sizeof(ngx_event_t), fctx->log);
+            ev = ngx_calloc(sizeof(ngx_event_t), ev->log);
             if (ev == NULL) {
                 goto nomem;
             }

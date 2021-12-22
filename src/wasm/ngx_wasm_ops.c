@@ -100,8 +100,7 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
 
             case NGX_WASM_OP_PROXY_WASM:
                 op->handler = &ngx_wasm_op_proxy_wasm_handler;
-                op->conf.proxy_wasm.filter->max_filters =
-                    &pipeline->nproxy_wasm;
+                op->conf.proxy_wasm.filter->n_filters = &pipeline->nproxy_wasm;
 
                 (void) ngx_proxy_wasm_filter_init(op->conf.proxy_wasm.filter);
 

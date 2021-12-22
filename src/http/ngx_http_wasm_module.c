@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 1
+#define DDEBUG 0
 #endif
 #include "ddebug.h"
 
@@ -166,6 +166,8 @@ ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
+    ngx_proxy_wasm_store_init(&mcf->store);
+
     ngx_queue_init(&mcf->ops_engines);
 
     return mcf;
@@ -290,7 +292,7 @@ ngx_http_wasm_exit_process(ngx_cycle_t *cycle)
         ngx_wasm_ops_engine_destroy(ops_engine);
     }
 
-    ngx_proxy_wasm_store_free(&mcf->store);
+    ngx_proxy_wasm_store_destroy(&mcf->store);
 }
 
 
