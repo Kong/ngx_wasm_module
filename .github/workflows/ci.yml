@@ -29,7 +29,7 @@ jobs:
         ngx: [1.21.5]
         runtime: [wasmtime, wasmer]
         wasmtime: [0.30.0]
-        wasmer: [2.0.0]
+        wasmer: [2.1.1]
         hup: [1, 0]
         debug: [1, 0]
     steps:
@@ -100,7 +100,7 @@ jobs:
         ngx: [1.21.5]
         runtime: [wasmtime, wasmer]
         wasmtime: [0.30.0]
-        wasmer: [2.0.0]
+        wasmer: [2.1.1]
         hup: [0]
         debug: [1]
     steps:
@@ -238,7 +238,7 @@ jobs:
         ngx: [1.21.5]
         runtime: [wasmtime, wasmer]
         wasmtime: [0.30.0]
-        wasmer: [2.0.0]
+        wasmer: [2.1.1]
     steps:
       - uses: actions/checkout@v2
       - name: "Set up cache - ngx_wasm_module work/ dir"
