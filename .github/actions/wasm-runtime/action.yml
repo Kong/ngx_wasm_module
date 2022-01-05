@@ -2,7 +2,7 @@ name: 'Wasm runtime'
 description: 'Install a Wasm runtime C API'
 inputs:
   runtime:
-    description: 'Wasm runtime (wasmtimer, wasmer)'
+    description: 'Wasm runtime (wasmtime, wasmer)'
     default: 'wasmtime'
     required: false
   version:

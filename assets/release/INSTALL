@@ -16,7 +16,7 @@ and library with:
         --with-ld-opt='-L/path/to/wasmtime/lib -lwasmtime'
 
     Note: when linking against libwasmer, set the 'NGX_WASM_RUNTIME=wasmer'
-    environment variable.
+    environment variable as well.
 
 Build/install Nginx with:
 
