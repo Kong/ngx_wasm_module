@@ -14,7 +14,7 @@ __DATA__
 
 === TEST 1: proxy_wasm - on_request_headers -> Pause
 should delay pause until access phase (NGX_AGAIN)
---- timeout_no_valgrind: 3s
+--- timeout_no_valgrind: 10s
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -38,7 +38,7 @@ pausing after "RequestHeaders"
 
 === TEST 2: proxy_wasm - on_request_body -> Pause
 should pause on content phase (NGX_AGAIN)
---- timeout_no_valgrind: 3s
+--- timeout_no_valgrind: 10s
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -61,7 +61,7 @@ pausing after "RequestBody"
 
 
 === TEST 3: proxy_wasm - async subrequests
---- timeout_no_valgrind: 3s
+--- timeout_no_valgrind: 10s
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases

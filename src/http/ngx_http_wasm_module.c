@@ -166,7 +166,7 @@ ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    ngx_proxy_wasm_store_init(&mcf->store);
+    ngx_proxy_wasm_store_init(&mcf->store, cf->pool);
 
     ngx_queue_init(&mcf->ops_engines);
 
@@ -209,6 +209,11 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_ptr_value(conf->vm, prev->vm, NULL);
     ngx_conf_merge_ptr_value(conf->ops_engine, prev->ops_engine, NULL);
+
+    if (prev->isolation == NGX_CONF_UNSET_UINT) {
+        prev->isolation = NGX_PROXY_WASM_ISOLATION_UNIQUE;
+    }
+
     ngx_conf_merge_uint_value(conf->isolation, prev->isolation,
                               NGX_PROXY_WASM_ISOLATION_UNIQUE);
 

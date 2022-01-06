@@ -318,8 +318,8 @@ should produce a trap
 qr/testing in "ResponseHeaders"/
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] .*? response already sent.*
-\[crit\] .*? proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
+qr/\[error\] .*?response already sent.*
+\[crit\] .*? proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
 --- no_error_log
 [alert]
 stub
@@ -342,8 +342,8 @@ ok
 qr/testing in "Log"/
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] .*? response already sent.*
-\[crit\] .*? proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
+qr/\[error\] .*?response already sent.*
+\[crit\] .*? proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
 --- no_error_log
 [emerg]
 [alert]

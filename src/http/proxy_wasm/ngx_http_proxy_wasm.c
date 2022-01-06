@@ -69,10 +69,13 @@ ngx_http_proxy_wasm_stream_ctx(ngx_proxy_wasm_filter_t *filter, void *data)
         sctx->log = r->connection->log;
         sctx->n_filters = *filter->n_filters;
 
+        ngx_array_init(&sctx->stores, sctx->pool, sctx->n_filters,
+                       sizeof(ngx_proxy_wasm_store_t *));
+
         ngx_array_init(&sctx->fctxs, sctx->pool, sctx->n_filters,
                        sizeof(ngx_proxy_wasm_filter_ctx_t *));
 
-        ngx_proxy_wasm_store_init(&sctx->store);
+        ngx_proxy_wasm_store_init(&sctx->store, sctx->pool);
 
         /* for on_request_body retrieval */
 

@@ -100,7 +100,6 @@ Hello world
 
 
 === TEST 5: proxy_wasm - set_http_request_body() with offset argument
---- ONLY
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -143,7 +142,7 @@ Hello world
         echo_subrequest GET /c;
         echo_subrequest GET /d;
         echo_subrequest GET /reset;
-        #echo_subrequest GET /e;
+        echo_subrequest GET /e;
     }
 --- response_body
 HelloWorld
@@ -231,11 +230,8 @@ HelloWorld
         echo_subrequest POST /request_body     -b 'orig';
         echo_subrequest POST /response_headers -b 'orig';
 
-        # cannot set request body
-        proxy_wasm hostcalls 'on=log test=/t/set_request_body';
-
         # cannot resume
-        proxy_wasm hostcalls 'on=log test=/t/log/request_body';
+        proxy_wasm hostcalls 'on=response_body test=/t/log/request_body';
     }
 --- response_body eval
 qr/from_request_headers
@@ -243,10 +239,9 @@ from_request_body
 [\s\S]+500 Internal Server Error/
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] .*? cannot set request body.*
-\[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
-\[error\] .*? cannot set request body.*
-\[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\) while logging request.*
+qr/\[error\] .*?cannot set request body.*
+\[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
+\[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? request: "GET \/t HTTP\/1\.1".*
 \z/
 --- no_error_log
 [alert]
