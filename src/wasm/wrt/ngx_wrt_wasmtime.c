@@ -21,10 +21,6 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
             err = wasmtime_config_strategy_set(config,
                            WASMTIME_STRATEGY_AUTO);
 
-        } else if (ngx_strncmp(conf->compiler.data, "lightbeam", 9) == 0) {
-            err = wasmtime_config_strategy_set(config,
-                           WASMTIME_STRATEGY_LIGHTBEAM);
-
         } else if (ngx_strncmp(conf->compiler.data, "cranelift", 9) == 0) {
             err = wasmtime_config_strategy_set(config,
                            WASMTIME_STRATEGY_CRANELIFT);

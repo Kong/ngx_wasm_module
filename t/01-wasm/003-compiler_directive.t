@@ -68,24 +68,7 @@ qr/\[info\] .*? \[wasm\] using wasmtime with compiler: "auto"/
 
 
 
-=== TEST 5: compiler directive - wasmtime 'lightbeam'
---- skip_eval: 4: $::nginxV !~ m/wasmtime/
---- must_die
---- main_config
-    wasm {
-        compiler lightbeam;
-    }
---- error_log eval
-[
-    qr/\[error\] .*? \[wasm\] failed setting "lightbeam" compiler: lightbeam .*? enabled at compile time/,
-    qr/\[emerg\] .*? \[wasm\] failed initializing wasm VM: invalid configuration/
-]
---- no_error_log
-using wasmtime with compiler: "lightbeam"
-
-
-
-=== TEST 6: compiler directive - wasmtime 'cranelift'
+=== TEST 5: compiler directive - wasmtime 'cranelift'
 --- skip_eval: 4: $::nginxV !~ m/wasmtime/
 --- main_config
     wasm {
@@ -99,7 +82,7 @@ qr/\[info\] .*? \[wasm\] using wasmtime with compiler: "cranelift"/
 
 
 
-=== TEST 7: compiler directive - wasmer 'cranelift'
+=== TEST 6: compiler directive - wasmer 'cranelift'
 --- skip_eval: 4: $::nginxV !~ m/wasmer/
 --- main_config
     wasm {
@@ -113,7 +96,7 @@ qr/\[info\] .*? \[wasm\] using wasmer with compiler: "cranelift"/
 
 
 
-=== TEST 8: compiler directive - wasmer 'singlepass'
+=== TEST 7: compiler directive - wasmer 'singlepass'
 --- skip_eval: 4: $::nginxV !~ m/wasmer/
 --- main_config
     wasm {
@@ -127,7 +110,7 @@ qr/\[info\] .*? \[wasm\] using wasmer with compiler: "singlepass"/
 
 
 
-=== TEST 9: compiler directive - wasmer 'llvm'
+=== TEST 8: compiler directive - wasmer 'llvm'
 --- SKIP
 --- skip_eval: 4: $::nginxV !~ m/wasmer/
 --- main_config
