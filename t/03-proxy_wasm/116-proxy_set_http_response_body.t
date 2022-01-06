@@ -296,6 +296,8 @@ should not be retrievable after on_http_response_body since buffers are consumed
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
+    proxy_wasm_isolation filter;
+
     location /request_headers {
         internal;
         echo;
@@ -326,12 +328,12 @@ Content-Length:
 qr/500 Internal Server Error/
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] .*? cannot set response body.*
-\[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/request_headers".*
-\[error\] .*? cannot set response body.*
-\[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
-\[error\] .*? cannot set response body.*
-\[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\) while logging request.*/
+qr/\[error\] .*?cannot set response body.*
+\[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/request_headers".*
+\[error\] .*?cannot set response body.*
+\[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
+\[error\] .*?cannot set response body.*
+\[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\) while logging request.*/
 --- no_error_log
 [alert]
 [stderr]

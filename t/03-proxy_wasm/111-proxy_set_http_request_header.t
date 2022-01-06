@@ -160,7 +160,7 @@ qr/.*? on_request_headers, 22 headers.*
 
 
 === TEST 7: proxy_wasm - set_http_request_header() sets Connection header (keep-alive)
---- timeout_no_valgrind: 3s
+--- timeout_no_valgrind: 20s
 --- abort
 --- wasm_modules: hostcalls
 --- config
@@ -308,7 +308,7 @@ path: /test
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
 qr/\[error\] .*?cannot set request path with querystring.*
-\[crit\] .*? \*\d+ proxy_wasm #\d+ "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*/
+\[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*/
 --- no_error_log
 [alert]
 [stderr]

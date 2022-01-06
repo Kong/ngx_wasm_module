@@ -85,7 +85,7 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_log eval
 [
     qr/\[crit\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/,
-    qr/\[crit\] .*? proxy_wasm #0 "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
+    qr/\[crit\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
 ]
 --- no_error_log
 [warn]
@@ -115,7 +115,7 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_log eval
 [
     qr/\[emerg\] .*? proxy_wasm "a" filter missing malloc \(incompatible SDK interface\)/,
-    qr/\[crit\] .*? proxy_wasm #0 "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
+    qr/\[crit\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
 ]
 --- no_error_log
 [warn]
@@ -147,7 +147,7 @@ should error since missing on_context_create
 --- error_log eval
 [
     qr/\[emerg\] .*? proxy_wasm "a" filter missing one of: .*? \(incompatible SDK interface\)/,
-    qr/\[crit\] .*? proxy_wasm #0 "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
+    qr/\[crit\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
 ]
 --- no_error_log
 [warn]
@@ -177,7 +177,7 @@ should error since missing on_context_create
 --- error_log eval
 [
     qr/\[crit\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/,
-    qr/\[crit\] .*? proxy_wasm #0 "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
+    qr/\[crit\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
 ]
 --- no_error_log
 [warn]
@@ -208,7 +208,7 @@ should error since missing on_context_create
 --- error_log eval
 [
     qr/\[crit\] .*? proxy_wasm failed initializing "a" filter \(incompatible ABI version\)/,
-    qr/\[crit\] .*? proxy_wasm #0 "a" filter \(1\/1\) failed resuming \(incompatible ABI version\)/
+    qr/\[crit\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible ABI version\)/
 ]
 --- no_error_log
 [warn]
@@ -231,8 +231,8 @@ should create two instances of the same module
     }
 --- error_log eval
 [
-    qr/\[debug\] .*? wasm creating instance of "on_tick" module in "main" vm/,
-    qr/\[debug\] .*? wasm creating instance of "on_tick" module in "main" vm/,
+    qr/\[debug\] .*? wasm creating "on_tick" instance in "main" vm/,
+    qr/\[debug\] .*? wasm creating "on_tick" instance in "main" vm/,
     qr/\[debug\] .*? proxy_wasm initializing "on_tick" filter/,
     qr/\[debug\] .*? proxy_wasm initializing "on_tick" filter/,
 ]

@@ -192,9 +192,8 @@ qr/.*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "body_filter" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "log" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "done" phase.*
-.*?proxy_wasm "hostcalls" filter \(1\/2\) destroying trapped instance.*
-.*?wasm freeing "hostcalls" instance in "main" vm.*
 .*?proxy_wasm freeing stream context #\d+.*
+.*?wasm freeing "hostcalls" instance in "main" vm.*
 (.*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 .*?wasm creating "hostcalls" instance in "main" vm.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "access" phase.*
@@ -208,8 +207,8 @@ qr/.*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) finalizing context.*
 .*?proxy_wasm "hostcalls" filter \(2\/2\) resuming in "done" phase.*
 .*?proxy_wasm "hostcalls" filter \(2\/2\) finalizing context.*
-.*?proxy_wasm freeing stream context #\d+.*
-.*?wasm freeing "hostcalls" instance in "main" vm.*)?/
+.*?wasm freeing "hostcalls" instance in "main" vm.*
+.*?proxy_wasm freeing stream context #\d+.*)?/
 --- no_error_log
 [emerg]
 [alert]

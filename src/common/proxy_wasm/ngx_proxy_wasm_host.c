@@ -603,9 +603,8 @@ ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
     ngx_event_t                  *ev;
     ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_get_fctx(instance);
 
-    if (fctx->root_id != NGX_PROXY_WASM_ROOT_CTX_ID) {
+    if (!fctx->root_instance || fctx->root_id != NGX_PROXY_WASM_ROOT_CTX_ID) {
         /* ignore */
-        dd("ignore (fctx->root_id: %ld)", fctx->root_id);
         return ngx_proxy_wasm_result_ok(rets);
     }
 

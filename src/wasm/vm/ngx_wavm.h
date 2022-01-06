@@ -31,7 +31,7 @@ struct ngx_wavm_funcref_s {
 struct ngx_wavm_func_s {
     ngx_uint_t                         idx;
     ngx_str_t                          name;
-    const wasm_functype_t             *functype;
+    wasm_functype_t                   *functype;
     const wasm_valtype_vec_t          *argstypes;
     wasm_val_vec_t                     args;
     wasm_val_vec_t                     rets;

@@ -12,7 +12,8 @@
     (ngx_proxy_wasm_filter_ctx_t *)                                          \
      ((u_char *) (n) - offsetof(ngx_proxy_wasm_filter_ctx_t, node))
 
-#define ngx_proxy_wasm_store_init(s)                                         \
+#define ngx_proxy_wasm_store_init(s, p)                                      \
+    (s)->pool = (p);                                                           \
     ngx_queue_init(&(s)->free);                                              \
     ngx_queue_init(&(s)->busy)
 
@@ -163,7 +164,6 @@ typedef struct {
     //ngx_rbtree_t                       tree_contexts;
     ngx_rbtree_node_t                  sentinel_roots;
     ngx_rbtree_node_t                  sentinel_contexts;
-    ngx_proxy_wasm_err_e               ecode;
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
     ngx_wavm_instance_t               *instance;
@@ -183,6 +183,7 @@ struct ngx_proxy_wasm_stream_ctx_s {
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
     ngx_array_t                        fctxs;
+    ngx_array_t                        stores;
     ngx_proxy_wasm_store_t             store;
 
     /* control */
@@ -200,6 +201,7 @@ struct ngx_proxy_wasm_stream_ctx_s {
 struct ngx_proxy_wasm_filter_ctx_s {
     ngx_uint_t                         id;
     ngx_uint_t                         root_id;
+    ngx_proxy_wasm_err_e               ecode;
     ngx_rbtree_node_t                  node;
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
@@ -213,6 +215,7 @@ struct ngx_proxy_wasm_filter_ctx_s {
     unsigned                           created:1;
     unsigned                           started:1;
     unsigned                           ecode_logged:1;
+    unsigned                           root_instance:1;
 };
 
 
@@ -228,7 +231,7 @@ struct ngx_proxy_wasm_filter_s {
     ngx_proxy_wasm_ecode_pt            ecode_;
     ngx_proxy_wasm_resume_pt           resume_;
     ngx_proxy_wasm_get_context_pt      get_context_;
-    ngx_proxy_wasm_free_context_pt     free_context_;
+    ngx_proxy_wasm_err_e               ecode;
 
     /* dyn config */
 

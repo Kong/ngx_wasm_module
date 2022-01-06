@@ -76,7 +76,7 @@ qr/\[info\] .*? on_configure, config_size: 0/
 --- error_log eval
 [
     qr/\[crit\] .*? proxy_wasm failed initializing "on_phases" filter \(initialization failed\)/,
-    qr/\[crit\] .*? proxy_wasm #\d+ "on_phases" filter \(1\/1\) failed resuming \(initialization failed\)/
+    qr/\[crit\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(initialization failed\)/
 ]
 --- no_error_log
 [error]

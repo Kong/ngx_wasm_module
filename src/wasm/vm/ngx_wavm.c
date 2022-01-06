@@ -1283,9 +1283,9 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
     ngx_wrt_extern_t   *wextern;
     ngx_wavm_func_t    *func;
     ngx_wavm_module_t  *module = instance->module;
-    ngx_log_t          *log = instance->log ? instance->log : ngx_cycle->log;
 
-    ngx_log_debug5(NGX_LOG_DEBUG_WASM, log, 0,
+    ngx_log_debug5(NGX_LOG_DEBUG_WASM,
+                   instance->log ? instance->log : ngx_cycle->log, 0,
                    "wasm freeing \"%V\" instance in \"%V\" vm"
                    " (vm: %p, module: %p, instance: %p)",
                    &module->name, module->vm->name,
@@ -1302,7 +1302,8 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
 
                 wasm_val_vec_delete(&func->args);
                 wasm_val_vec_delete(&func->rets);
-                wasm_functype_delete((wasm_functype_t *) func->functype);
+                //wasm_functype_delete((wasm_functype_t *) func->functype);
+                wasm_functype_delete(func->functype);
                 func->functype = NULL;
             }
         }

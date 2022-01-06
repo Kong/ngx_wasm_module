@@ -95,25 +95,25 @@
    fun:_ZN10wasmparser6parser6Parser5parse17ha6f66a955d5ddc0fE
 }
 {
-   <wasmer 2.1.1: wasm_functype_new/wasm_func_type>
+   <wasmer 2.1.1: wasm_functype_new>
    Memcheck:Leak
    match-leak-kinds: definite
-   fun:malloc
-   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h443ca409575a9212E
-   fun:_ZN6wasmer10wasm_c_api5types8function16WasmFunctionType3new17h473832a4826bdc04E
+   ...
+   fun:_ZN12wasmer_c_api10wasm_c_api5types8function16WasmFunctionType3new17hc46bb8fdb96d9089E
 }
 {
    <wasmer 2.1.1: wasm_func_call>
    Memcheck:Leak
    match-leak-kinds: definite
    ...
-   fun:_ZN6wasmer10wasm_c_api9externals8function22wasm_func_new_with_env28_$u7b$$u7b$closure$u7d$$u7d$17hd0cd15d537b3518dE
+   fun:_ZN12wasmer_c_api10wasm_c_api9externals8function22wasm_func_new_with_env28_$u7b$$u7b$closure$u7d$$u7d$17hf00d5171586eefb4E
 }
 {
    <wasmer 2.1.1: wasi_get_unordered_imports>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:realloc
+   ...
    fun:wasi_get_unordered_imports
    fun:ngx_wasmer_link_module
 }
