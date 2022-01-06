@@ -75,19 +75,24 @@
     fun:main
 }
 {
-   <wasmtime 0.30.0: wasmtime_module_validate>
+   <wasmtime 0.33.0: wasmtime_module_validate>
    Memcheck:Cond
-   fun:_ZN10wasmparser9validator9Validator3end17h754ba0a679ae09d9E
+   fun:_ZN10wasmparser9validator9Validator3end17h04e7ca83579e59d7E
 }
 {
-   <wasmer 2.1.1: wasm_module_validate>
+   <wasmtime 0.33.0: wasm_module_validate>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17ha6f66a955d5ddc0fE
+   fun:_ZN10wasmparser6parser6Parser5parse17h7dd19cf53dd0398dE
 }
 {
    <wasmer 2.1.1: wasm_module_validate>
    Memcheck:Cond
    fun:_ZN10wasmparser9validator9Validator3end17h50fce163da0607f3E
+}
+{
+   <wasmer 2.1.1: wasm_module_validate>
+   Memcheck:Cond
+   fun:_ZN10wasmparser6parser6Parser5parse17ha6f66a955d5ddc0fE
 }
 {
    <wasmer 2.1.1: wasm_functype_new/wasm_func_type>

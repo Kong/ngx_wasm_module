@@ -73,7 +73,7 @@ qr/500 Internal Server Error/
 --- error_log eval
 [
     qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
-    qr/\[error\] .*? unreachable.*/
+    qr/\[error\] .*?unreachable.*/
 ]
 --- no_error_log
 [alert]
