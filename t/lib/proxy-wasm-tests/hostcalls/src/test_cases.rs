@@ -217,12 +217,11 @@ pub(crate) fn test_set_response_headers(ctx: &mut TestHttpHostcalls) {
 }
 
 pub(crate) fn test_set_http_request_body(ctx: &mut TestHttpHostcalls) {
-    let body;
-    if let Some(value) = ctx.config.get("value") {
-        body = value.to_string();
+    let body = if let Some(value) = ctx.config.get("value") {
+        value.to_string()
     } else {
-        body = "Hello world".into();
-    }
+        "Hello world".into()
+    };
 
     let offset = ctx
         .config
@@ -243,12 +242,11 @@ pub(crate) fn test_set_response_body(ctx: &mut TestHttpHostcalls) {
         return;
     }
 
-    let mut body;
-    if let Some(value) = ctx.config.get("value") {
-        body = value.to_string();
+    let mut body = if let Some(value) = ctx.config.get("value") {
+        value.to_string()
     } else {
-        body = "Hello world".into();
-    }
+        "Hello world".into()
+    };
 
     if !body.is_empty() {
         body.push('\n');
