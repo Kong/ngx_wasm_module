@@ -207,8 +207,8 @@ ngx_http_wasm_proxy_wasm_isolation_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    if (ngx_strncmp(value->data, "unique", 6) == 0) {
-        loc->isolation = NGX_PROXY_WASM_ISOLATION_UNIQUE;
+    if (ngx_strncmp(value->data, "none", 4) == 0) {
+        loc->isolation = NGX_PROXY_WASM_ISOLATION_NONE;
 
     } else if (ngx_strncmp(value->data, "stream", 6) == 0) {
         loc->isolation = NGX_PROXY_WASM_ISOLATION_STREAM;

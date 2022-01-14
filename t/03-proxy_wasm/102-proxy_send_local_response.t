@@ -342,11 +342,10 @@ ok
 qr/testing in "Log"/
 --- grep_error_log eval: qr/\[(error|crit)\] .*/
 --- grep_error_log_out eval
-qr/\[error\] .*?response already sent.*
-\[crit\] .*? proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
+qr/\[error\] .*?response already sent.*/
 --- no_error_log
 [emerg]
-[alert]
+failed resuming
 
 
 

@@ -8,10 +8,6 @@
 
 #define NGX_PROXY_WASM_ROOT_CTX_ID  0
 
-#define ngx_proxy_wasm_n2fctx(n)                                             \
-    (ngx_proxy_wasm_filter_ctx_t *)                                          \
-     ((u_char *) (n) - offsetof(ngx_proxy_wasm_filter_ctx_t, node))
-
 #define ngx_proxy_wasm_store_init(s, p)                                      \
     (s)->pool = (p);                                                           \
     ngx_queue_init(&(s)->free);                                              \
@@ -19,7 +15,7 @@
 
 
 typedef enum {
-    NGX_PROXY_WASM_ISOLATION_UNIQUE = 0,
+    NGX_PROXY_WASM_ISOLATION_NONE = 0,
     NGX_PROXY_WASM_ISOLATION_STREAM = 1,
     NGX_PROXY_WASM_ISOLATION_FILTER = 2,
 } ngx_proxy_wasm_isolation_mode_e;
@@ -160,8 +156,8 @@ typedef struct {
 typedef struct {
     ngx_uint_t                         filter_id;
     ngx_uint_t                         next_context_id;
+    ngx_uint_t                         nrefs;
     ngx_rbtree_t                       tree_roots;
-    //ngx_rbtree_t                       tree_contexts;
     ngx_rbtree_node_t                  sentinel_roots;
     ngx_rbtree_node_t                  sentinel_contexts;
     ngx_pool_t                        *pool;
@@ -183,8 +179,8 @@ struct ngx_proxy_wasm_stream_ctx_s {
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
     ngx_array_t                        fctxs;
-    ngx_array_t                        stores;
     ngx_proxy_wasm_store_t             store;
+    void                              *data;
 
     /* control */
 
@@ -195,6 +191,8 @@ struct ngx_proxy_wasm_stream_ctx_s {
     ngx_str_t                          authority;
     ngx_str_t                          scheme;
     ngx_str_t                          path;  /* r->uri + r->args */
+
+    unsigned                           main:1;
 };
 
 
@@ -208,7 +206,6 @@ struct ngx_proxy_wasm_filter_ctx_s {
     ngx_proxy_wasm_instance_ctx_t     *ictx;
     ngx_proxy_wasm_stream_ctx_t       *sctx;
     ngx_proxy_wasm_filter_t           *filter;
-    void                              *data;
 
     /* flags */
 

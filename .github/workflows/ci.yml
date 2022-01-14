@@ -92,6 +92,7 @@ jobs:
       NGX_BUILD_FORCE: 1
       NGX_BUILD_NOPOOL: 1
       TEST_NGINX_USE_VALGRIND: 1
+      TEST_NGINX_TIMEOUT: 120
     strategy:
       fail-fast: false
       matrix:

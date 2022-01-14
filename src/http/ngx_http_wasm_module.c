@@ -6,6 +6,9 @@
 #include <ngx_http_wasm.h>
 
 
+#define NGX_HTTP_WASM_DONE_IN_LOG 0
+
+
 static void *ngx_http_wasm_create_main_conf(ngx_conf_t *cf);
 static void *ngx_http_wasm_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent,
@@ -211,11 +214,11 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_ptr_value(conf->ops_engine, prev->ops_engine, NULL);
 
     if (prev->isolation == NGX_CONF_UNSET_UINT) {
-        prev->isolation = NGX_PROXY_WASM_ISOLATION_UNIQUE;
+        prev->isolation = NGX_PROXY_WASM_ISOLATION_NONE;
     }
 
     ngx_conf_merge_uint_value(conf->isolation, prev->isolation,
-                              NGX_PROXY_WASM_ISOLATION_UNIQUE);
+                              NGX_PROXY_WASM_ISOLATION_NONE);
 
     if (conf->ops_engine) {
         mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
@@ -308,13 +311,19 @@ static void
 ngx_http_wasm_cleanup(void *data)
 {
     ngx_http_wasm_req_ctx_t   *rctx = data;
-    ngx_http_request_t        *r = rctx->r;
     ngx_wasm_op_ctx_t         *opctx = &rctx->opctx;
+#if (NGX_HTTP_WASM_DONE_IN_LOG)
     ngx_http_core_loc_conf_t  *clcf;
+#endif
+#if (NGX_DEBUG)
+    ngx_http_request_t        *r = rctx->r;
+#endif
 
+#if (NGX_HTTP_WASM_DONE_IN_LOG)
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     if (r != r->main && !clcf->log_subrequest) {
+#endif
         ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "wasm cleaning up request pool (stream id: %l, "
                        "r: %p, main: %d)", r->connection->number,
@@ -322,7 +331,9 @@ ngx_http_wasm_cleanup(void *data)
 
         (void) ngx_wasm_ops_resume(opctx, NGX_WASM_DONE_PHASE,
                                    NGX_WASM_OPS_RUN_ALL);
+#if (NGX_HTTP_WASM_DONE_IN_LOG)
     }
+#endif
 }
 
 
@@ -577,8 +588,10 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_LOG_PHASE,
                              NGX_WASM_OPS_RUN_ALL);
 
+#if (NGX_HTTP_WASM_DONE_IN_LOG)
     (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_WASM_DONE_PHASE,
                                NGX_WASM_OPS_RUN_ALL);
+#endif
 
     return rc;
 }
