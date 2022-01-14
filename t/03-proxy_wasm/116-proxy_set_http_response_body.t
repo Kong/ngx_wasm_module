@@ -332,8 +332,7 @@ qr/\[error\] .*?cannot set response body.*
 \[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/request_headers".*
 \[error\] .*?cannot set response body.*
 \[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
-\[error\] .*?cannot set response body.*
-\[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\) while logging request.*/
+\[error\] .*?cannot set response body.*/
 --- no_error_log
 [alert]
 [stderr]

@@ -18,10 +18,12 @@ static ngx_inline ngx_http_wasm_req_ctx_t *
 ngx_http_proxy_wasm_get_rctx(ngx_wavm_instance_t *instance)
 {
     ngx_proxy_wasm_filter_ctx_t  *fctx;
+    ngx_proxy_wasm_stream_ctx_t  *sctx;
     ngx_http_wasm_req_ctx_t      *rctx;
 
     fctx = ngx_proxy_wasm_get_fctx(instance);
-    rctx = (ngx_http_wasm_req_ctx_t *) fctx->data;
+    sctx = fctx->sctx;
+    rctx = (ngx_http_wasm_req_ctx_t *) sctx->data;
 
     return rctx;
 }

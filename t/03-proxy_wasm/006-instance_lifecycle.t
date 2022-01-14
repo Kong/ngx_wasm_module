@@ -13,7 +13,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - default isolation mode (unique)
+=== TEST 1: proxy_wasm - default isolation mode (none)
 should use a global instance reused across streams
 --- wasm_modules: hostcalls
 --- config
@@ -57,19 +57,17 @@ qr/.*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 .*?proxy_wasm "hostcalls" filter \(2\/2\) resuming in "done" phase.*
 .*?proxy_wasm "hostcalls" filter \(2\/2\) finalizing context.*
 .*?proxy_wasm freeing stream context #\d+.*)?/
---- no_error_log eval
-[
-    qr/wasm freeing "hostcalls" instance in "main" vm/,
-    qr/\[error\]/
-]
+--- no_error_log
+[error]
+[crit]
 
 
 
-=== TEST 2: proxy_wasm - trap with unique isolation mode
+=== TEST 2: proxy_wasm - trap with none isolation mode
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
-    proxy_wasm_isolation unique;
+    proxy_wasm_isolation none;
 
     location /t {
         proxy_wasm hostcalls;
@@ -90,11 +88,9 @@ qr/.*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "body_filter" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "log" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "done" phase.*
-.*?proxy_wasm "hostcalls" filter \(1\/2\) destroying trapped instance.*
 .*?wasm freeing "hostcalls" instance in "main" vm.*
 .*?proxy_wasm freeing stream context #\d+.*
 (.*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-.*?wasm creating "hostcalls" instance in "main" vm.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "access" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "content" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "header_filter" phase.*
@@ -192,8 +188,8 @@ qr/.*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "body_filter" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "log" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "done" phase.*
-.*?proxy_wasm freeing stream context #\d+.*
 .*?wasm freeing "hostcalls" instance in "main" vm.*
+.*?proxy_wasm freeing stream context #\d+.*
 (.*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 .*?wasm creating "hostcalls" instance in "main" vm.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "access" phase.*
@@ -207,8 +203,8 @@ qr/.*?proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 .*?proxy_wasm "hostcalls" filter \(1\/2\) finalizing context.*
 .*?proxy_wasm "hostcalls" filter \(2\/2\) resuming in "done" phase.*
 .*?proxy_wasm "hostcalls" filter \(2\/2\) finalizing context.*
-.*?wasm freeing "hostcalls" instance in "main" vm.*
-.*?proxy_wasm freeing stream context #\d+.*)?/
+.*?proxy_wasm freeing stream context #\d+.*
+.*?wasm freeing "hostcalls" instance in "main" vm.*)?/
 --- no_error_log
 [emerg]
 [alert]

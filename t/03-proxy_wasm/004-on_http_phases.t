@@ -556,10 +556,10 @@ ok
 --- grep_error_log_out eval
 qr/proxy_wasm "on_phases" filter \(1\/2\) resuming in "log" phase
 proxy_wasm "on_phases" filter \(2\/2\) resuming in "log" phase
-proxy_wasm "on_phases" filter \(1\/2\) resuming in "done" phase
-proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
 proxy_wasm "on_phases" filter \(1\/2\) resuming in "log" phase
 proxy_wasm "on_phases" filter \(2\/2\) resuming in "log" phase
+proxy_wasm "on_phases" filter \(1\/2\) resuming in "done" phase
+proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
 proxy_wasm "on_phases" filter \(1\/2\) resuming in "done" phase
 proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
 \Z/
