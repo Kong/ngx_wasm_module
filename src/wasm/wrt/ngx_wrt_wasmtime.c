@@ -34,7 +34,7 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
             wasmtime_error_message(err, &msg);
 
             ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
-                               "failed setting \"%V\" compiler: %*.s",
+                               "failed setting \"%V\" compiler: %.*s",
                                &conf->compiler, msg.size, msg.data);
 
             wasmtime_error_delete(err);
