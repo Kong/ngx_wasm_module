@@ -871,8 +871,7 @@ ngx_proxy_wasm_start(ngx_proxy_wasm_filter_ctx_t *fctx)
     }
 
     if (fctx->root_id == NGX_PROXY_WASM_ROOT_CTX_ID && !fctx->started) {
-        dd("start filter ctx (root_id: %ld, id: %ld, ictx: %p, "
-           "root instance: %d)",
+        dd("start filter ctx (root_id: %ld, id: %ld, ictx: %p, root: %d)",
            fctx->root_id, fctx->id, ictx, fctx->root_instance);
 
         rc = ngx_wavm_instance_call_funcref(instance,

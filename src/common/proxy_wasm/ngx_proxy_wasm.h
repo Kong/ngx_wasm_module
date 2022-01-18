@@ -9,7 +9,7 @@
 #define NGX_PROXY_WASM_ROOT_CTX_ID  0
 
 #define ngx_proxy_wasm_store_init(s, p)                                      \
-    (s)->pool = (p);                                                           \
+    (s)->pool = (p);                                                         \
     ngx_queue_init(&(s)->free);                                              \
     ngx_queue_init(&(s)->busy)
 
