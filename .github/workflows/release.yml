@@ -167,7 +167,7 @@ jobs:
 
   upload-artifacts:
     name: Upload release artifacts
-    needs: [build-images, build-ubuntu-bionic, build-ubuntu-focal, build-centos7, build-arch, build-macos]
+    needs: [build-images, build-ubuntu-bionic, build-ubuntu-focal, build-arch, build-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Retrieve sibling release artifacts
