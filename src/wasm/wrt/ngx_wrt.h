@@ -30,6 +30,7 @@ typedef enum {
 #include <wasi.h>
 #include <wasmtime.h>
 
+
 typedef wasmtime_error_t  ngx_wrt_res_t;
 
 typedef struct {
@@ -72,6 +73,7 @@ void ngx_wasmtime_valvec2wasm(wasm_val_vec_t *out, wasmtime_val_t *vec,
 
 #elif NGX_WASM_HAVE_WASMER
 #include <wasmer.h>
+
 
 typedef ngx_str_t  ngx_wrt_res_t;
 typedef struct ngx_wrt_import_s  ngx_wrt_import_t;

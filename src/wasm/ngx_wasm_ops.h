@@ -19,7 +19,7 @@ struct ngx_wasm_op_ctx_s {
     ngx_wasm_ops_engine_t                   *ops_engine;
     ngx_pool_t                              *pool;
     ngx_log_t                               *log;
-    void                                    *data; // for rctx storing/retrieval
+    void                                    *data;  /* rctx */
 };
 
 
