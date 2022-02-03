@@ -1,4 +1,4 @@
-FROM amd64/centos:8
+FROM amd64/centos:7
 
 RUN yum update -y && yum install -y \
     gcc \
