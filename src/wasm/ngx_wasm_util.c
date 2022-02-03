@@ -4,7 +4,6 @@
 #include "ddebug.h"
 
 #include <ngx_wasm.h>
-#include <ngx_event.h>
 
 
 size_t
