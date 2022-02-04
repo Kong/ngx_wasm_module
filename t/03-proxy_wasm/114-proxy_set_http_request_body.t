@@ -238,11 +238,11 @@ HelloWorld
 qr/from_request_headers
 from_request_body
 [\s\S]+500 Internal Server Error/
---- grep_error_log eval: qr/\[(error|crit)\] .*/
+--- grep_error_log eval: qr/(\[error\]|\[.*?failed resuming).*/
 --- grep_error_log_out eval
 qr/\[error\] .*?cannot set request body.*
-\[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
-\[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? request: "GET \/t HTTP\/1\.1".*
+\[warn\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
+\[warn\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? request: "GET \/t HTTP\/1\.1".*
 \z/
 --- no_error_log
 [alert]

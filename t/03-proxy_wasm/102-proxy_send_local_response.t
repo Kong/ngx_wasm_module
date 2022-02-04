@@ -316,10 +316,10 @@ should produce a trap
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
 qr/testing in "ResponseHeaders"/
---- grep_error_log eval: qr/\[(error|crit)\] .*/
+--- grep_error_log eval: qr/(\[error\]|\[.*?failed resuming).*/
 --- grep_error_log_out eval
 qr/\[error\] .*?response already sent.*
-\[crit\] .*? proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
+\[warn\] .*? proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
 --- no_error_log
 [alert]
 stub

@@ -84,12 +84,12 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[crit\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/,
-    qr/\[crit\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
+    qr/\[emerg\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/,
+    qr/\[warn\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
 ]
 --- no_error_log
-[warn]
 [error]
+[crit]
 [stderr]
 
 
@@ -115,11 +115,11 @@ qr/\[emerg\] .*? invalid module name ""/
 --- error_log eval
 [
     qr/\[emerg\] .*? proxy_wasm "a" filter missing malloc \(incompatible SDK interface\)/,
-    qr/\[crit\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
+    qr/\[warn\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
 ]
 --- no_error_log
-[warn]
 [error]
+[crit]
 [stderr]
 
 
@@ -147,11 +147,11 @@ should error since missing on_context_create
 --- error_log eval
 [
     qr/\[emerg\] .*? proxy_wasm "a" filter missing one of: .*? \(incompatible SDK interface\)/,
-    qr/\[crit\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
+    qr/\[warn\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
 ]
 --- no_error_log
-[warn]
 [error]
+[crit]
 [stderr]
 
 
@@ -176,12 +176,12 @@ should error since missing on_context_create
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[crit\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/,
-    qr/\[crit\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
+    qr/\[emerg\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/,
+    qr/\[warn\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
 ]
 --- no_error_log
-[warn]
 [error]
+[crit]
 [stderr]
 
 
@@ -207,12 +207,12 @@ should error since missing on_context_create
 --- error_code: 500
 --- error_log eval
 [
-    qr/\[crit\] .*? proxy_wasm failed initializing "a" filter \(incompatible ABI version\)/,
-    qr/\[crit\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible ABI version\)/
+    qr/\[emerg\] .*? proxy_wasm failed initializing "a" filter \(incompatible ABI version\)/,
+    qr/\[warn\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible ABI version\)/
 ]
 --- no_error_log
-[warn]
 [error]
+[crit]
 [stderr]
 
 
