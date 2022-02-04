@@ -50,12 +50,12 @@ jobs:
           file: ./util/Dockerfiles/Dockerfile.amd64.ubuntu-20.04
           tags: ghcr.io/kong/wasmx-build-ubuntu:20.04
           push: true
-      - name: "Centos 7 build image"
-        uses: docker/build-push-action@v2
-        with:
-          file: ./util/Dockerfiles/Dockerfile.amd64.centos7
-          tags: ghcr.io/kong/wasmx-build-centos:7
-          push: true
+      #- name: "Centos 7 build image"
+      #  uses: docker/build-push-action@v2
+      #  with:
+      #    file: ./util/Dockerfiles/Dockerfile.amd64.centos7
+      #    tags: ghcr.io/kong/wasmx-build-centos:7
+      #    push: true
       - name: ArchLinux build image
         uses: docker/build-push-action@v2
         with:
