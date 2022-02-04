@@ -326,12 +326,12 @@ Transfer-Encoding: chunked
 Content-Length:
 --- response_body eval
 qr/500 Internal Server Error/
---- grep_error_log eval: qr/\[(error|crit)\] .*/
+--- grep_error_log eval: qr/(\[error\]|\[.*?failed resuming).*/
 --- grep_error_log_out eval
 qr/\[error\] .*?cannot set response body.*
-\[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/request_headers".*
+\[warn\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/request_headers".*
 \[error\] .*?cannot set response body.*
-\[crit\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
+\[warn\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
 \[error\] .*?cannot set response body.*/
 --- no_error_log
 [alert]

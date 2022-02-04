@@ -536,7 +536,7 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
 
 error:
 
-    ngx_proxy_wasm_log_error(NGX_LOG_CRIT, filter->log,
+    ngx_proxy_wasm_log_error(NGX_LOG_EMERG, filter->log,
                              fctx ? fctx->ecode : filter->ecode,
                              "proxy_wasm failed initializing \"%V\" filter",
                              filter->name);
@@ -590,7 +590,7 @@ ngx_proxy_wasm_filter_resume(ngx_proxy_wasm_filter_t *filter,
 
     if (fctx->ecode) {
         if (!fctx->ecode_logged && phase->index != NGX_WASM_DONE_PHASE) {
-            ngx_proxy_wasm_log_error(NGX_LOG_CRIT, fctx->log, fctx->ecode,
+            ngx_proxy_wasm_log_error(NGX_LOG_WARN, fctx->log, fctx->ecode,
                                      "proxy_wasm \"%V\" filter (%l/%l) "
                                      "failed resuming",
                                      filter->name, filter->index + 1,

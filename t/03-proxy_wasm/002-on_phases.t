@@ -75,8 +75,8 @@ qr/\[info\] .*? on_configure, config_size: 0/
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
 [
-    qr/\[crit\] .*? proxy_wasm failed initializing "on_phases" filter \(initialization failed\)/,
-    qr/\[crit\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(initialization failed\)/
+    qr/\[emerg\] .*? proxy_wasm failed initializing "on_phases" filter \(initialization failed\)/,
+    qr/\[warn\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(initialization failed\)/
 ]
 --- no_error_log
 [error]
