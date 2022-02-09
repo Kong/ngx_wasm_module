@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 1
+#define DDEBUG 0
 #endif
 #include "ddebug.h"
 
@@ -148,8 +148,7 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
 
     /* get buffer */
 
-    nl = ngx_wasm_chain_get_free_buf(r->connection->log, r->pool,
-                                     &rctx->free_bufs, len, buf_tag);
+    nl = ngx_wasm_chain_get_free_buf(r->pool, &rctx->free_bufs, len, buf_tag);
     if (nl == NULL) {
         return NULL;
     }
@@ -228,7 +227,7 @@ static void
 ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 {
     size_t                           i;
-    ngx_int_t                        rc;
+    ngx_int_t                        rc = NGX_ERROR;
     ngx_uint_t                       n_headers;
     ngx_chain_t                     *nl;
     ngx_list_part_t                 *part;
@@ -243,7 +242,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
     ngx_wasm_assert(&call->sock == sock);
 
     if (sock->timedout) {
-        goto error;
+        return;
     }
 
     switch (call->state) {
@@ -264,11 +263,11 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 
         ngx_wasm_assert(rc == NGX_OK);
 
-        call->state = NGX_HTTP_PROXY_WASM_DISPATCH_WRITE;
+        call->state = NGX_HTTP_PROXY_WASM_DISPATCH_CONNECTED;
 
         /* fallthrough */
 
-    case NGX_HTTP_PROXY_WASM_DISPATCH_WRITE:
+    case NGX_HTTP_PROXY_WASM_DISPATCH_CONNECTED:
 
         nl = ngx_http_proxy_wasm_dispatch_request(call);
         if (nl == NULL) {
@@ -277,19 +276,6 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 
         ngx_log_debug0(NGX_LOG_DEBUG_ALL, sock->log, 0,
                        "proxy_wasm http dispatch sending request");
-
-        /* fallthrough */
-
-    case NGX_HTTP_PROXY_WASM_DISPATCH_WRITING:
-
-#if (NGX_DEBUG)
-        if (call->state != NGX_HTTP_PROXY_WASM_DISPATCH_WRITE) {
-            ngx_log_debug0(NGX_LOG_DEBUG_ALL, sock->log, 0,
-                           "proxy_wasm http dispatch resuming send");
-        }
-#endif
-
-        call->state = NGX_HTTP_PROXY_WASM_DISPATCH_WRITING;
 
         rc = ngx_wasm_socket_tcp_send(sock, nl);
         if (rc == NGX_ERROR) {
@@ -305,11 +291,11 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         ngx_chain_update_chains(r->pool, &rctx->free_bufs, &rctx->busy_bufs,
                                 &nl, buf_tag);
 
-        call->state = NGX_HTTP_PROXY_WASM_DISPATCH_READ;
+        call->state = NGX_HTTP_PROXY_WASM_DISPATCH_RECEIVING;
 
         /* fallthrough */
 
-    case NGX_HTTP_PROXY_WASM_DISPATCH_READ:
+    case NGX_HTTP_PROXY_WASM_DISPATCH_RECEIVING:
 
         rc = ngx_wasm_socket_tcp_read(sock, ngx_wasm_socket_read_http_response,
                                       &call->http_reader);
@@ -325,11 +311,11 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 
         call->state = NGX_HTTP_PROXY_WASM_DISPATCH_RECEIVED;
 
-        ngx_wasm_socket_tcp_close(sock);
-
         /* fallthrough */
 
     case NGX_HTTP_PROXY_WASM_DISPATCH_RECEIVED:
+
+        ngx_wasm_socket_tcp_close(sock);
 
         part = &call->http_reader.fake_r.upstream->headers_in.headers.part;
         header = part->elts;
@@ -395,5 +381,5 @@ error:
         fctx->ecode = NGX_PROXY_WASM_ERR_DISPATCH_FAILED;
     }
 
-    ngx_proxy_wasm_resume(fctx);
+    ngx_proxy_wasm_resume_main(fctx);
 }

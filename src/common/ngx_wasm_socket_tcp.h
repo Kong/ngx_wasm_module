@@ -68,6 +68,8 @@ struct ngx_wasm_socket_tcp_s {
     unsigned                               connected:1;
     unsigned                               eof:1;
     unsigned                               closed:1;
+    unsigned                               read_closed:1;
+    unsigned                               write_closed:1;
 };
 
 

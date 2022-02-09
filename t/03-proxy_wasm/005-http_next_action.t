@@ -13,7 +13,6 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm - on_request_headers -> Pause
-should delay pause until access phase (NGX_AGAIN)
 --- timeout_no_valgrind: 10s
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
@@ -22,9 +21,6 @@ should delay pause until access phase (NGX_AGAIN)
     location /t {
         proxy_wasm on_phases 'pause_on=request_headers';
         echo;
-
-        # does not work with return which runs in rewrite
-        #return 200;
     }
 --- error_code:
 --- response_body
@@ -37,7 +33,6 @@ pausing after "RequestHeaders"
 
 
 === TEST 2: proxy_wasm - on_request_body -> Pause
-should pause on content phase (NGX_AGAIN)
 --- timeout_no_valgrind: 10s
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
@@ -60,7 +55,44 @@ pausing after "RequestBody"
 
 
 
-=== TEST 3: proxy_wasm - async subrequests
+=== TEST 3: proxy_wasm - on_response_headers -> Pause
+NYI
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        proxy_wasm on_phases 'pause_on=response_headers';
+        return 200;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+[
+    qr/pausing after "ResponseHeaders"/,
+    qr/\[error\] .*? \[wasm\] proxy_wasm cannot pause in "header_filter" phase/,
+    qr/\[warn\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(not yieldable\)/
+]
+
+
+
+=== TEST 4: proxy_wasm - on_response_body -> Pause
+NYI
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        proxy_wasm on_phases 'pause_on=response_body';
+        return 200;
+    }
+--- response_body
+--- error_log eval
+[
+    qr/pausing after "ResponseBody"/,
+    qr/\[error\] .*? \[wasm\] proxy_wasm cannot pause in "body_filter" phase/,
+    qr/\[warn\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(not yieldable\)/
+]
+
+
+
+=== TEST 5: proxy_wasm - subrequest on_request_headers -> Pause
 --- timeout_no_valgrind: 10s
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
@@ -86,40 +118,109 @@ pausing after "RequestBody"
 --- response_body
 --- error_log
 pausing after "RequestHeaders"
-[wasm] NYI - proxy_wasm cannot pause after "rewrite" phase in subrequests
 --- no_error_log
 [error]
+[emerg]
 
 
 
-=== TEST 4: proxy_wasm - on_response_headers -> Pause
-NYI
+=== TEST 6: proxy_wasm - subrequest on_request_body -> Pause
+--- timeout_no_valgrind: 10s
+--- abort
+--- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
+    location /pause {
+        internal;
+        proxy_wasm on_phases 'pause_on=request_body';
+        echo;
+    }
+
+    location /nop {
+        internal;
+        proxy_wasm on_phases;
+        echo ok;
+    }
+
     location /t {
+        echo_subrequest_async GET /pause;
+        echo_subrequest_async GET /nop;
+    }
+--- request
+POST /t
+Hello world
+--- error_code:
+--- response_body
+--- error_log
+pausing after "RequestBody"
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 7: proxy_wasm - subrequest on_response_headers -> Pause
+NYI
+--- timeout_no_valgrind: 10s
+--- abort
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- config
+    location /pause {
+        internal;
         proxy_wasm on_phases 'pause_on=response_headers';
-        return 200;
+        echo ok;
     }
+
+    location /nop {
+        internal;
+        proxy_wasm on_phases;
+        echo ok;
+    }
+
+    location /t {
+        echo_subrequest_async GET /pause;
+        echo_subrequest_async GET /nop;
+    }
+--- error_code:
 --- response_body
---- error_log
-pausing after "ResponseHeaders"
-[wasm] NYI - proxy_wasm cannot pause after "header_filter" phase
---- no_error_log
-[error]
+--- error_log eval
+[
+    qr/pausing after "ResponseHeaders"/,
+    qr/\[error\] .*? \[wasm\] proxy_wasm cannot pause in "header_filter" phase/,
+    qr/\[warn\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(not yieldable\)/
+]
 
 
 
-=== TEST 5: proxy_wasm - on_response_body -> Pause
+=== TEST 8: proxy_wasm - subrequest on_response_body -> Pause
 NYI
+--- timeout_no_valgrind: 10s
+--- abort
+--- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
-    location /t {
+    location /pause {
+        internal;
         proxy_wasm on_phases 'pause_on=response_body';
-        return 200;
+        echo ok;
     }
+
+    location /nop {
+        internal;
+        proxy_wasm on_phases;
+        echo ok;
+    }
+
+    location /t {
+        echo_subrequest_async GET /pause;
+        echo_subrequest_async GET /nop;
+    }
+--- error_code:
 --- response_body
---- error_log
-pausing after "ResponseBody"
-[wasm] NYI - proxy_wasm cannot pause after "body_filter" phase
---- no_error_log
-[error]
+--- error_log eval
+[
+    qr/pausing after "ResponseBody"/,
+    qr/\[error\] .*? \[wasm\] proxy_wasm cannot pause in "body_filter" phase/,
+    qr/\[warn\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(not yieldable\)/
+]

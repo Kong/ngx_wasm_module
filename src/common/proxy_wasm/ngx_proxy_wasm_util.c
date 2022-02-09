@@ -6,7 +6,6 @@
 #include <ngx_event.h>
 #include <ngx_wavm.h>
 #include <ngx_proxy_wasm.h>
-#include <ngx_wasm_socket_tcp.h>
 
 
 #define NGX_PROXY_WASM_PTR_SIZE  4
@@ -21,6 +20,8 @@ static ngx_str_t  ngx_proxy_wasm_errlist[] = {
     ngx_string("instantiation failed"),
     ngx_string("instance trapped"),
     ngx_string("initialization failed"),
+    ngx_string("dispatch failed"),
+    ngx_string("not yieldable"),
     ngx_string("unknown error")
 };
 
@@ -370,57 +371,64 @@ void
 ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 {
     ngx_int_t                       rc;
-    wasm_val_vec_t                  args;
+    ngx_log_t                      *log = ev->log;
     ngx_proxy_wasm_filter_ctx_t    *fctx = ev->data;
+    ngx_proxy_wasm_filter_t        *filter = fctx->filter;
     ngx_proxy_wasm_instance_ctx_t  *ictx;
-    ngx_wavm_instance_t            *instance;
-    ngx_log_t                      *log;
-
-    instance = ngx_proxy_wasm_fctx2instance(fctx);
-    ictx = (ngx_proxy_wasm_instance_ctx_t *) instance->data;
-    log = ev->log;
-
-    ngx_free(ev);
 
     ngx_wasm_assert(fctx->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
-    if (ngx_exiting) {
+    ngx_free(ev);
+
+    fctx->ev = NULL;
+
+    if (ngx_exiting || !filter->proxy_on_timer_ready) {
         return;
     }
 
-    if (fctx->filter->proxy_on_timer_ready) {
-        ngx_wavm_instance_set_data(instance, ictx, log);
+    ictx = filter->root_ictx;
+    if (ictx == NULL) {
+        ngx_wasm_log_error(NGX_LOG_ERR, log, 0,
+                           "tick_handler: no root instance");
+        return;
+    }
 
-        wasm_val_vec_new_uninitialized(&args, 1);
-        ngx_wasm_vec_set_i32(&args, 0, fctx->id);
+    ngx_wavm_instance_set_data(ictx->instance, ictx, log);
 
-        rc = ngx_wavm_instance_call_funcref_vec(instance,
-                                            fctx->filter->proxy_on_timer_ready,
-                                            NULL, &args);
-        wasm_val_vec_delete(&args);
+    rc = ngx_proxy_wasm_resume(ictx, filter, fctx,
+                               NGX_PROXY_WASM_STEP_ON_TIMER);
 
-        if (!ngx_exiting) {
-            ev = ngx_calloc(sizeof(ngx_event_t), log);
-            if (ev == NULL) {
-                goto nomem;
-            }
-
-            ev->handler = ngx_proxy_wasm_filter_tick_handler;
-            ev->data = fctx;
-            ev->log = log;
-
-            ngx_add_timer(ev, fctx->filter->tick_period);
+    if (fctx->ecode == NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED) {
+        filter->root_ictx = ngx_proxy_wasm_instance_get(filter,
+                                                        ictx->store, ictx->log);
+        if (filter->root_ictx == NULL) {
+            goto nomem;
         }
 
-        if (rc != NGX_OK) {
-            return;
+        ngx_proxy_wasm_instance_release(ictx, 0);
+    }
+
+    if (rc != NGX_OK) {
+        return;
+    }
+
+    if (!ngx_exiting) {
+        fctx->ev = ngx_calloc(sizeof(ngx_event_t), log);
+        if (fctx->ev == NULL) {
+            goto nomem;
         }
+
+        fctx->ev->handler = ngx_proxy_wasm_filter_tick_handler;
+        fctx->ev->data = fctx;
+        fctx->ev->log = log;
+
+        ngx_add_timer(fctx->ev, filter->tick_period);
     }
 
     return;
 
 nomem:
 
-    ngx_wasm_log_error(NGX_LOG_CRIT, fctx->log, 0,
+    ngx_wasm_log_error(NGX_LOG_CRIT, log, 0,
                        "tick_handler: no memory");
 }

@@ -42,7 +42,7 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     u_char              *p = NULL;
     ngx_buf_t           *b = NULL;
     ngx_chain_t         *cl = NULL;
-    ngx_table_elt_t     *elt, **eltp;
+    ngx_table_elt_t     *elt, *elts, *eltp;
     ngx_http_request_t  *r = rctx->r;
 
     if (rctx->resp_content_chosen) {
@@ -88,15 +88,35 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
         goto fail;
     }
 
+    elts = headers->elts;
+
     for (i = 0; i < headers->nelts; i++) {
-        elt = &((ngx_table_elt_t *) headers->elts)[i];
+        elt = &elts[i];
 
         eltp = ngx_array_push(&rctx->local_resp_headers);
         if (eltp == NULL) {
             goto fail;
         }
 
-        *eltp = elt;
+        ngx_memzero(eltp, sizeof(ngx_table_elt_t));
+
+        eltp->value.len = elt->value.len;
+        eltp->key.len = elt->key.len;
+        eltp->value.data = ngx_pnalloc(headers->pool, eltp->value.len + 1);
+        if (eltp->value.data == NULL) {
+            goto fail;
+        }
+
+        eltp->key.data = ngx_pnalloc(headers->pool, eltp->key.len + 1);
+        if (eltp->key.data == NULL) {
+            goto fail;
+        }
+
+        ngx_memcpy(eltp->value.data, elt->value.data, elt->value.len);
+        ngx_memcpy(eltp->key.data, elt->key.data, elt->key.len);
+
+        eltp->value.data[eltp->value.len] = '\0';
+        eltp->key.data[eltp->key.len] = '\0';
     }
 
     /* body */

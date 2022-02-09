@@ -329,8 +329,7 @@ ngx_http_wasm_cleanup(void *data)
                        "r: %p, main: %d)", r->connection->number,
                        r, r->main == r);
 
-        (void) ngx_wasm_ops_resume(opctx, NGX_WASM_DONE_PHASE,
-                                   NGX_WASM_OPS_RUN_ALL);
+        (void) ngx_wasm_ops_resume(opctx, NGX_WASM_DONE_PHASE, 0);
 #if (NGX_HTTP_WASM_DONE_IN_LOG)
     }
 #endif
@@ -390,7 +389,7 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
             r->content_handler = ngx_http_wasm_content_handler;
         }
     }
-#if (NGX_DEBUG)
+#if (NGX_DEBUG && 0)
     else {
         ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "wasm rctx reused: %p (r: %p, main: %d)",
@@ -415,9 +414,10 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
 
     if (rctx->resp_sent_last) {
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm finalizing (rc: %d, resp_finalized: %d)",
+                       "wasm finalize request (rc: %d, resp_finalized: %d)",
                        rc, rctx->resp_finalized);
 
+        //rc = r == r->main ? NGX_DONE : NGX_OK;
         rc = NGX_DONE;
 
         if (!rctx->resp_finalized) {
@@ -515,17 +515,29 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE, 0);
+    if (rc == NGX_DONE) {
+        ngx_wasm_assert(rctx->local_resp_stashed);
+        goto flush;
+    }
+
     rc = ngx_http_wasm_check_finalize(rctx, rc);
-    if (rc == NGX_HTTP_INTERNAL_SERVER_ERROR
-        || rc == NGX_DONE
-        || rc == NGX_AGAIN)
-    {
+    if (rc == NGX_AGAIN) {
+        /* pause */
+        rc = NGX_DONE;
+        goto done;
+
+    } else if (rc == NGX_DONE) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "wasm \"content\" phase: content already produced");
+        goto done;
+
+    } else if (rc == NGX_HTTP_INTERNAL_SERVER_ERROR) {
         goto done;
     }
 
     ngx_wasm_assert(rc == NGX_OK || rc == NGX_DECLINED);
+
+flush:
 
     rc = ngx_http_wasm_flush_local_response(rctx);
 
@@ -536,6 +548,8 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     case NGX_OK:
         /* flushed response */
+        rctx->resp_sent_last = 1;
+
         rc = ngx_http_wasm_check_finalize(rctx, rc);
 
         ngx_wasm_assert(rc == NGX_DONE);
@@ -587,12 +601,10 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
     /* in case response was not produced by us */
     rctx->resp_sent_last = 1;
 
-    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_LOG_PHASE,
-                             NGX_WASM_OPS_RUN_ALL);
+    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_LOG_PHASE, 0);
 
 #if (NGX_HTTP_WASM_DONE_IN_LOG)
-    (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_WASM_DONE_PHASE,
-                               NGX_WASM_OPS_RUN_ALL);
+    (void) ngx_wasm_ops_resume(&rctx->opctx, NGX_WASM_DONE_PHASE, 0);
 #endif
 
     return rc;

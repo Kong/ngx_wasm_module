@@ -278,8 +278,6 @@ qr/\[error\] .*? open\(\) \".*?\" failed/
 
 
 
-
-
 === TEST 13: proxy_wasm - with 'return' (rewrite)
 should produce a response in and of itself, proxy_wasm wraps around
 --- wasm_modules: on_phases
@@ -394,7 +392,8 @@ should not execute a log phase
     location /subrequest {
         internal;
         proxy_wasm on_phases;
-        return 204;
+        echo_status 204;
+        echo_flush;
     }
 
     location /t {

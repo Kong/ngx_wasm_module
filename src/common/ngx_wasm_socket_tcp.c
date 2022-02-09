@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 1
+#define DDEBUG 0
 #endif
 #include "ddebug.h"
 
@@ -12,6 +12,8 @@ static void ngx_wasm_socket_resolve_handler(ngx_resolver_ctx_t *ctx);
 static ngx_int_t ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock);
 static ngx_int_t ngx_wasm_socket_tcp_get_peer(ngx_peer_connection_t *pc,
     void *data);
+static void ngx_wasm_socket_tcp_finalize_read(ngx_wasm_socket_tcp_t *sock);
+static void ngx_wasm_socket_tcp_finalize_write(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_handler(ngx_event_t *ev);
 static void ngx_wasm_socket_tcp_nop_handler(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_connect_handler(ngx_wasm_socket_tcp_t *sock);
@@ -191,11 +193,8 @@ ngx_wasm_socket_resolve_handler(ngx_resolver_ctx_t *ctx)
     socklen_t               socklen;
     struct sockaddr        *sockaddr;
     ngx_wasm_socket_tcp_t  *sock = ctx->data;
-#ifdef NGX_WASM_HTTP
-    ngx_http_request_t     *r = sock->rctx->r;
-#endif
 
-    ngx_log_debug0(NGX_LOG_DEBUG_ALL, r->connection->log, 0,
+    ngx_log_debug0(NGX_LOG_DEBUG_ALL, sock->rctx->connection->log, 0,
                    "wasm tcp socket resolve handler");
 
     if (ctx->state) {
@@ -481,8 +480,7 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
     }
 
     if (sock->bufs_in == NULL) {
-        cl = ngx_wasm_chain_get_free_buf(sock->log, sock->pool,
-                                         &sock->rctx->free_bufs,
+        cl = ngx_wasm_chain_get_free_buf(sock->pool, &sock->rctx->free_bufs,
                                          24, buf_tag); // TODO: move
         if (cl == NULL) {
             return NGX_ERROR;
@@ -543,8 +541,7 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 #endif
 
         if (size == 0) {
-            cl = ngx_wasm_chain_get_free_buf(sock->log, sock->pool,
-                                             &sock->rctx->free_bufs,
+            cl = ngx_wasm_chain_get_free_buf(sock->pool, &sock->rctx->free_bufs,
                                              1024, buf_tag); // TODO: move
             if (cl == NULL) {
                 return NGX_ERROR;
@@ -621,6 +618,9 @@ ngx_wasm_socket_tcp_close(ngx_wasm_socket_tcp_t *sock)
     ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
                    "wasm tcp socket closing");
 
+    ngx_wasm_socket_tcp_finalize_read(sock);
+    ngx_wasm_socket_tcp_finalize_write(sock);
+
     if (c) {
         ngx_close_connection(c);
     }
@@ -651,6 +651,87 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
 }
 
 
+static void
+ngx_wasm_socket_tcp_finalize_read(ngx_wasm_socket_tcp_t *sock)
+{
+    ngx_connection_t  *c;
+
+    if (sock->read_closed) {
+        return;
+    }
+
+    sock->read_closed = 1;
+
+#if 0
+    if (ctx && u->bufs_in) {
+        ll = &u->bufs_in;
+        for (cl = u->bufs_in; cl; cl = cl->next) {
+            dd("bufs_in chain: %p, next %p", cl, cl->next);
+            cl->buf->pos = cl->buf->last;
+            ll = &cl->next;
+        }
+
+        dd("ctx: %p", ctx);
+        dd("free recv bufs: %p", ctx->free_recv_bufs);
+        *ll = ctx->free_recv_bufs;
+        ctx->free_recv_bufs = u->bufs_in;
+        u->bufs_in = NULL;
+        u->buf_in = NULL;
+        ngx_memzero(&u->buffer, sizeof(ngx_buf_t));
+    }
+#endif
+
+    c = sock->peer.connection;
+
+    if (c) {
+        if (c->read->timer_set) {
+            ngx_del_timer(c->read);
+        }
+
+        if (c->read->active || c->read->disabled) {
+            ngx_del_event(c->read, NGX_READ_EVENT, NGX_CLOSE_EVENT);
+        }
+
+        if (c->read->posted) {
+            ngx_delete_posted_event(c->read);
+        }
+
+        c->read->closed = 1;
+    }
+}
+
+
+static void
+ngx_wasm_socket_tcp_finalize_write(ngx_wasm_socket_tcp_t *sock)
+{
+    ngx_connection_t  *c;
+
+    if (sock->write_closed) {
+        return;
+    }
+
+    sock->write_closed = 1;
+
+    c = sock->peer.connection;
+
+    if (c) {
+        if (c->write->timer_set) {
+            ngx_del_timer(c->write);
+        }
+
+        if (c->write->active || c->write->disabled) {
+            ngx_del_event(c->write, NGX_WRITE_EVENT, NGX_CLOSE_EVENT);
+        }
+
+        if (c->write->posted) {
+            ngx_delete_posted_event(c->write);
+        }
+
+        c->write->closed = 1;
+    }
+}
+
+
 /* handlers */
 
 
@@ -660,15 +741,15 @@ ngx_wasm_socket_tcp_handler(ngx_event_t *ev)
     ngx_connection_t       *c = ev->data, *connection;
     ngx_wasm_socket_tcp_t  *sock = c->data;
 
+    ngx_log_debug1(NGX_LOG_DEBUG_ALL, ev->log, 0,
+                   "wasm tcp socket handler (wev: %d)",
+                   (int) ev->write);
+
     if (sock->closed) {
         return;
     }
 
     connection = sock->rctx->connection;
-
-    ngx_log_debug1(NGX_LOG_DEBUG_ALL, sock->log, 0,
-                   "wasm tcp socket handler (wev: %d)",
-                   (int) ev->write);
 
     if (ev->write) {
         sock->write_event_handler(sock);
@@ -778,7 +859,6 @@ ngx_wasm_socket_tcp_connect_handler(ngx_wasm_socket_tcp_t *sock)
     sock->write_event_handler = ngx_wasm_socket_tcp_nop_handler;
 
     rc = ngx_wasm_socket_tcp_test_connect(c);
-    dd("test_connect rc: %ld", rc);
     if (rc != NGX_OK) {
         if (rc > 0) {
             sock->socket_errno = (ngx_err_t) rc;

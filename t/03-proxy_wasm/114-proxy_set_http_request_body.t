@@ -86,11 +86,11 @@ should be reflected in subrequest (/t/echo/body) and in main request ($request_b
 
     location /t {
         echo_subrequest GET '/subrequest';
-        echo $request_body;
+        echo -n $request_body;
     }
 --- request
 GET /t
---- response_body
+--- response_body chomp
 Hello world
 Hello world
 --- no_error_log
@@ -133,7 +133,7 @@ Hello world
 
     location /e {
         # offset larger than buffer
-        proxy_wasm hostcalls 'test=/t/set_request_body value=LAST offset=10';
+        proxy_wasm hostcalls 'test=/t/set_request_body value=LAST offset=12';
         proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
@@ -150,7 +150,7 @@ HelloWorld
 HelloWasm
 Goodbye
 HelloWorld
-          LAST
+            LAST
 --- no_error_log
 [error]
 [crit]

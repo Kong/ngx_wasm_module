@@ -4,6 +4,8 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
+check_accum_error_log();
+
 plan tests => repeat_each() * (blocks() * 4);
 
 run_tests();

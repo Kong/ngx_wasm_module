@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 1
+#define DDEBUG 0
 #endif
 #include "ddebug.h"
 
@@ -9,34 +9,341 @@
 #endif
 
 
-#define ngx_proxy_wasm_n2fctx(n)                                             \
-    (ngx_proxy_wasm_filter_ctx_t *)                                          \
-     ((u_char *) (n) - offsetof(ngx_proxy_wasm_filter_ctx_t, node))
-
-
-static ngx_proxy_wasm_instance_ctx_t *ngx_proxy_wasm_instance_get(
-    ngx_proxy_wasm_filter_t *filter, ngx_proxy_wasm_store_t *store,
-    ngx_log_t *log);
-static void ngx_proxy_wasm_instance_release(
-    ngx_proxy_wasm_instance_ctx_t *ictx);
+static ngx_int_t ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx);
+static void ngx_proxy_wasm_ctx_free(ngx_proxy_wasm_ctx_t *pwctx);
 static void ngx_proxy_wasm_instance_destroy(
     ngx_proxy_wasm_instance_ctx_t *ictx);
-static ngx_proxy_wasm_filter_ctx_t *ngx_proxy_wasm_root_ctx_lookup(
-    ngx_proxy_wasm_instance_ctx_t *ictx, ngx_uint_t id);
 static ngx_inline ngx_wavm_funcref_t *ngx_proxy_wasm_filter_func_lookup(
     ngx_proxy_wasm_filter_t *filter, const char *n);
 static ngx_proxy_wasm_abi_version_e ngx_proxy_wasm_filter_abi_version(
     ngx_proxy_wasm_filter_t *filter);
-static ngx_int_t ngx_proxy_wasm_start(
-    ngx_proxy_wasm_filter_ctx_t *fctx);
-static ngx_proxy_wasm_filter_ctx_t *ngx_proxy_wasm_filter_ctx(
-    ngx_proxy_wasm_filter_t *filter, ngx_proxy_wasm_stream_ctx_t *sctx);
+static ngx_proxy_wasm_filter_ctx_t *ngx_proxy_wasm_root_ctx_lookup(
+    ngx_proxy_wasm_instance_ctx_t *ictx, ngx_uint_t id);
+static ngx_int_t ngx_proxy_wasm_start(ngx_proxy_wasm_filter_ctx_t *fctx);
+static void ngx_proxy_wasm_on_log(ngx_proxy_wasm_filter_ctx_t *fctx);
+static void ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx);
+static ngx_int_t ngx_proxy_wasm_on_timer_tick(ngx_proxy_wasm_filter_ctx_t *fctx);
+
+
+ngx_proxy_wasm_ctx_t *
+ngx_proxy_wasm_ctx(ngx_proxy_wasm_filter_t *filter, void *data)
+{
+    ngx_proxy_wasm_ctx_t  *pwctx;
+
+    pwctx = filter->get_context_(filter, data);
+    if (pwctx == NULL) {
+        return NULL;
+    }
+
+    if (pwctx->data == NULL) {
+        ngx_wasm_assert(pwctx->pool && pwctx->log);
+
+        pwctx->data = data;
+        pwctx->n_filters = *filter->n_filters;
+
+        ngx_array_init(&pwctx->fctxs, pwctx->pool, pwctx->n_filters,
+                       sizeof(ngx_proxy_wasm_filter_ctx_t));
+
+        ngx_proxy_wasm_store_init(&pwctx->store, pwctx->pool);
+    }
+
+    return pwctx;
+}
+
+
+ngx_int_t
+ngx_proxy_wasm_ctx_add(ngx_proxy_wasm_ctx_t *pwctx,
+    ngx_proxy_wasm_filter_t *filter)
+{
+    ngx_proxy_wasm_filter_ctx_t     *fctx;
+    ngx_proxy_wasm_instance_ctx_t   *ictx = NULL;
+
+    if (filter->index < pwctx->fctxs.nelts) {
+#if (NGX_DEBUG)
+        fctx = &((ngx_proxy_wasm_filter_ctx_t *)
+                 pwctx->fctxs.elts)[filter->index];
+
+        ngx_wasm_assert(fctx->filter == filter);
+#endif
+        return NGX_DONE;
+    }
+
+    /* get instance */
+
+    switch (*filter->isolation) {
+    case NGX_PROXY_WASM_ISOLATION_NONE:
+        ictx = ngx_proxy_wasm_instance_get(filter, filter->store, pwctx->log);
+        break;
+    case NGX_PROXY_WASM_ISOLATION_STREAM:
+        ictx = ngx_proxy_wasm_instance_get(filter, &pwctx->store, pwctx->log);
+        break;
+    case NGX_PROXY_WASM_ISOLATION_FILTER:
+        ictx = ngx_proxy_wasm_instance_get(filter, NULL, pwctx->log);
+        break;
+    default:
+        ngx_wasm_assert(0);
+        break;
+    }
+
+    if (ictx == NULL) {
+        return NGX_ERROR;
+    }
+
+    /* add filter ctx */
+
+    fctx = ngx_array_push(&pwctx->fctxs);
+    if (fctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_memzero(fctx, sizeof(ngx_proxy_wasm_filter_ctx_t));
+
+    fctx->id = ++ictx->next_context_id;
+    fctx->root_id = filter->id;
+    fctx->pool = pwctx->pool;
+    fctx->log = pwctx->log;
+    fctx->ictx = ictx;
+    fctx->parent = pwctx;
+    fctx->filter = filter;
+    fctx->node.key = fctx->id;
+
+    ngx_wasm_assert(filter->index == pwctx->fctxs.nelts - 1);
+
+    return pwctx->fctxs.nelts == pwctx->n_filters
+           ? NGX_DONE
+           : NGX_OK;
+}
+
+
+ngx_int_t
+ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
+    ngx_wasm_phase_t *phase, ngx_proxy_wasm_step_e step)
+{
+    size_t                          i;
+    ngx_int_t                       rc;
+    ngx_proxy_wasm_filter_t        *filter;
+    ngx_proxy_wasm_filter_ctx_t    *fctx, *fctxs;
+    ngx_proxy_wasm_instance_ctx_t  *ictx;
+
+    pwctx->phase = phase;
+    pwctx->step = step;
+
+    /* check for yielded state */
+
+    rc = ngx_proxy_wasm_ctx_action(pwctx);
+    if (rc != NGX_OK) {
+        goto ret;
+    }
+
+    /* resume runloop */
+
+    fctxs = (ngx_proxy_wasm_filter_ctx_t *) pwctx->fctxs.elts;
+
+    for (i = pwctx->cur_filter_idx; i < pwctx->fctxs.nelts; i++) {
+        fctx = &fctxs[i];
+        filter = fctx->filter;
+        ictx = fctx->ictx;
+
+        if (filter->ecode) {
+            fctx->ecode = filter->ecode;
+        }
+
+        if (ictx->instance->trapped) {
+            if (step == NGX_PROXY_WASM_STEP_INIT_CTX
+                && *filter->isolation == NGX_PROXY_WASM_ISOLATION_NONE)
+            {
+                /* recycle global instance */
+
+                ngx_proxy_wasm_instance_release(ictx, 0);
+
+                ictx = ngx_proxy_wasm_instance_get(filter, filter->store, pwctx->log);
+                if (ictx == NULL) {
+                    rc = NGX_ERROR;
+                    goto ret;
+                }
+
+                fctx->ictx = ictx;
+
+            } else if (!fctx->ecode) {
+                fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
+            }
+        }
+
+        if (fctx->ecode) {
+            if (!fctx->ecode_logged
+                && pwctx->step != NGX_PROXY_WASM_STEP_DONE)
+            {
+                ngx_proxy_wasm_log_error(NGX_LOG_WARN, pwctx->log, fctx->ecode,
+                                         "proxy_wasm \"%V\" filter (%l/%l)"
+                                         " failed resuming",
+                                         filter->name, i + 1, pwctx->n_filters);
+
+                fctx->ecode_logged = 1;
+            }
+#if (NGX_DEBUG)
+            else {
+                ngx_log_debug4(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                               "proxy_wasm \"%V\" filter (%l/%l)"
+                               " skipped in \"%V\" phase",
+                               filter->name, i + 1, pwctx->n_filters, &phase->name);
+            }
+#endif
+
+            rc = filter->ecode_(fctx->ecode);
+
+            goto ret;
+        }
+
+        ngx_log_debug4(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                       "proxy_wasm \"%V\" filter (%l/%l)"
+                       " resuming in \"%V\" phase",
+                       filter->name, i + 1, pwctx->n_filters, &phase->name);
+
+        rc = ngx_proxy_wasm_resume(ictx, filter, fctx, step);
+        if (rc != NGX_OK) {
+            if (rc == NGX_ABORT) {
+                /* trap */
+                ngx_wasm_assert(ictx->instance->trapped);
+                rc = NGX_ERROR;
+            }
+
+            goto ret;
+        }
+
+        /* check for yield */
+
+        rc = ngx_proxy_wasm_ctx_action(pwctx);
+        if (rc != NGX_OK) {
+            if (rc == NGX_ERROR) {
+                fctx->ecode = NGX_PROXY_WASM_ERR_NOT_YIELDABLE;
+            }
+
+            goto ret;
+        }
+
+        pwctx->cur_filter_idx = i + 1;
+
+        dd("next filter");
+    }
+
+    ngx_wasm_assert(rc == NGX_OK);
+
+    if (pwctx->fctxs.nelts < pwctx->n_filters) {
+        /* incomplete chain */
+        goto ret;
+    }
+
+    /* next step */
+
+    pwctx->cur_filter_idx = 0;
+
+ret:
+
+    if (step == NGX_PROXY_WASM_STEP_DONE) {
+        ngx_proxy_wasm_ctx_free(pwctx);
+    }
+
+    return rc;
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx)
+{
+    ngx_int_t   rc;
+
+    if (pwctx->step == NGX_PROXY_WASM_STEP_DONE) {
+        /* force resume the done step */
+        return NGX_OK;
+    }
+
+    if (pwctx->action == NGX_PROXY_WASM_ACTION_CONTINUE) {
+        pwctx->waiting = 0;
+        return NGX_OK;
+    }
+
+    if (pwctx->waiting) {
+        return NGX_AGAIN;
+    }
+
+    ngx_wasm_assert(pwctx->action == NGX_PROXY_WASM_ACTION_PAUSE);
+
+    switch (pwctx->phase->index) {
+#ifdef NGX_WASM_HTTP
+    case NGX_HTTP_REWRITE_PHASE:
+    case NGX_HTTP_CONTENT_PHASE:
+        /* yield */
+        rc = NGX_AGAIN;
+        break;
+#endif
+    default:
+        ngx_wasm_log_error(NGX_LOG_ERR, pwctx->log, 0,
+                           "proxy_wasm cannot pause in \"%V\" phase",
+                           &pwctx->phase->name);
+        pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
+        return NGX_ERROR;
+    }
+
+    pwctx->waiting = 1;
+
+    ngx_log_debug6(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                   "proxy_wasm pausing in \"%V\" phase"
+                   " (step: %d, filter: %l/%l, action: %d, pwctx: %p)",
+                   &pwctx->phase->name, pwctx->step,
+                   pwctx->cur_filter_idx, pwctx->n_filters,
+                   pwctx->action, pwctx);
+
+    return rc;
+}
+
+
+static void
+ngx_proxy_wasm_ctx_free(ngx_proxy_wasm_ctx_t *pwctx)
+{
+    size_t                          i;
+    ngx_proxy_wasm_filter_ctx_t    *fctx, *fctxs;
+    ngx_proxy_wasm_instance_ctx_t  *ictx;
+    unsigned                        force_destroy;
+
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                   "proxy_wasm freeing stream context #%d (main: %d)",
+                   pwctx->id, pwctx->main);
+
+
+    fctxs = (ngx_proxy_wasm_filter_ctx_t *) pwctx->fctxs.elts;
+
+    for (i = 0; i < pwctx->fctxs.nelts; i++) {
+        fctx = &fctxs[i];
+        ictx = fctx->ictx;
+        force_destroy = *fctx->filter->isolation == NGX_PROXY_WASM_ISOLATION_FILTER;
+
+        ngx_proxy_wasm_instance_release(ictx, force_destroy);
+    }
+
+    ngx_proxy_wasm_store_destroy(&pwctx->store);
+
+    if (pwctx->authority.data) {
+        ngx_pfree(pwctx->pool, pwctx->authority.data);
+    }
+
+    if (pwctx->scheme.data) {
+        ngx_pfree(pwctx->pool, pwctx->scheme.data);
+    }
+
+    if (pwctx->path.data) {
+        ngx_pfree(pwctx->pool, pwctx->path.data);
+    }
+
+    ngx_array_destroy(&pwctx->fctxs);
+
+    ngx_pfree(pwctx->pool, pwctx);
+}
 
 
 /* ngx_proxy_wasm_store_t */
 
 
-static ngx_proxy_wasm_instance_ctx_t *
+ngx_proxy_wasm_instance_ctx_t *
 ngx_proxy_wasm_instance_get(ngx_proxy_wasm_filter_t *filter,
     ngx_proxy_wasm_store_t *store, ngx_log_t *log)
 {
@@ -83,6 +390,12 @@ ngx_proxy_wasm_instance_get(ngx_proxy_wasm_filter_t *filter,
 
 create:
 
+    ngx_log_debug4(NGX_LOG_DEBUG_WASM, log, 0,
+                   "proxy_wasm \"%V\" filter (%l/%l) "
+                   "new instance (ictx: %p)",
+                   filter->name, filter->index + 1,
+                   *filter->n_filters, ictx);
+
     ictx = ngx_pcalloc(pool, sizeof(ngx_proxy_wasm_instance_ctx_t));
     if (ictx == NULL) {
         goto error;
@@ -94,7 +407,7 @@ create:
     ictx->log = log;
     ictx->store = store;
 
-    ngx_rbtree_init(&ictx->tree_roots, &ictx->sentinel_roots,
+    ngx_rbtree_init(&ictx->tree_root_ctxs, &ictx->sentinel_root_ctxs,
                     ngx_rbtree_insert_value);
 
     ictx->instance = ngx_wavm_instance_create(module, ictx->pool, log, ictx);
@@ -111,11 +424,11 @@ error:
 
 reuse:
 
-    ngx_log_debug4(NGX_LOG_DEBUG_WASM, log, 0,
+    ngx_log_debug5(NGX_LOG_DEBUG_WASM, log, 0,
                    "proxy_wasm \"%V\" filter (%l/%l) "
-                   "reusing instance (ictx: %p)",
+                   "reusing instance (ictx: %p, nrefs: %d)",
                    filter->name, filter->index + 1,
-                   *filter->n_filters, ictx);
+                   *filter->n_filters, ictx, ictx->nrefs + 1);
 
 done:
 
@@ -129,21 +442,30 @@ done:
 }
 
 
-static ngx_inline void
-ngx_proxy_wasm_instance_release(ngx_proxy_wasm_instance_ctx_t *ictx)
+void
+ngx_proxy_wasm_instance_release(ngx_proxy_wasm_instance_ctx_t *ictx, unsigned force)
 {
     ictx->nrefs--;
 
-    if (!ictx->nrefs) {
-        if (ictx->store) {
-            ngx_queue_remove(&ictx->q); /* remove from busy */
+    dd("ictx->nrefs: %ld", ictx->nrefs);
 
-            ngx_queue_insert_tail(&ictx->store->free, &ictx->q);
-        }
+    if (ictx->nrefs) {
+        dd("keep");
+        return;
+    }
 
-        if (ictx->instance->trapped) {
-            ngx_proxy_wasm_instance_destroy(ictx);
-        }
+    dd("release");
+
+    /* release */
+
+    if (ictx->store) {
+        ngx_queue_remove(&ictx->q); /* remove from busy */
+
+        ngx_queue_insert_tail(&ictx->store->free, &ictx->q);
+    }
+
+    if (ictx->instance->trapped || force) {
+        ngx_proxy_wasm_instance_destroy(ictx);
     }
 }
 
@@ -151,8 +473,30 @@ ngx_proxy_wasm_instance_release(ngx_proxy_wasm_instance_ctx_t *ictx)
 static ngx_inline void
 ngx_proxy_wasm_instance_destroy(ngx_proxy_wasm_instance_ctx_t *ictx)
 {
+    ngx_rbtree_node_t           **root, **sentinel, *s, *n;
+    ngx_proxy_wasm_filter_ctx_t  *fctx;
+
     if (ictx->store) {
         ngx_queue_remove(&ictx->q);
+    }
+
+    root = &ictx->tree_root_ctxs.root;
+    s = &ictx->sentinel_root_ctxs;
+    sentinel = &s;
+
+    while (*root != *sentinel) {
+        n = ngx_rbtree_min(*root, *sentinel);
+        fctx = ngx_rbtree_data(n, ngx_proxy_wasm_filter_ctx_t, node);
+        ngx_wasm_assert(fctx->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+
+        ngx_rbtree_delete(&ictx->tree_root_ctxs, n);
+
+        if (fctx->ev) {
+            ngx_del_timer(fctx->ev);
+            ngx_free(fctx->ev);
+        }
+
+        ngx_pfree(ictx->pool, fctx);
     }
 
     ngx_wavm_instance_destroy(ictx->instance);
@@ -181,33 +525,6 @@ ngx_proxy_wasm_store_destroy(ngx_proxy_wasm_store_t *store)
 
         ngx_proxy_wasm_instance_destroy(ictx);
     }
-}
-
-
-static ngx_proxy_wasm_filter_ctx_t *
-ngx_proxy_wasm_root_ctx_lookup(ngx_proxy_wasm_instance_ctx_t *ictx, ngx_uint_t id)
-{
-    ngx_rbtree_t                 *rbtree;
-    ngx_rbtree_node_t            *node, *sentinel;
-    ngx_proxy_wasm_filter_ctx_t  *fctx;
-
-    rbtree = &ictx->tree_roots;
-    node = rbtree->root;
-    sentinel = rbtree->sentinel;
-
-    while (node != sentinel) {
-
-        if (id != node->key) {
-            node = (id < node->key) ? node->left : node->right;
-            continue;
-        }
-
-        fctx = ngx_proxy_wasm_n2fctx(node);
-
-        return fctx;
-    }
-
-    return NULL;
 }
 
 
@@ -272,10 +589,9 @@ ngx_proxy_wasm_filter_abi_version(ngx_proxy_wasm_filter_t *filter)
 ngx_int_t
 ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
 {
-    uint32_t                      hash;
-    ngx_int_t                     rc;
-    ngx_str_t                     s;
-    ngx_proxy_wasm_filter_ctx_t  *fctx = NULL;
+    uint32_t    hash;
+    ngx_int_t   rc;
+    ngx_str_t   s;
 
     filter->name = &filter->module->name;
     filter->index = *filter->n_filters;
@@ -525,8 +841,18 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
 
     /* root ctx */
 
-    fctx = ngx_proxy_wasm_filter_ctx(filter, NULL);
-    if (fctx == NULL || fctx->ecode) {
+    filter->root_ictx = ngx_proxy_wasm_instance_get(filter, NULL, filter->log);
+    if (filter->root_ictx == NULL) {
+        goto error;
+    }
+
+    rc = ngx_proxy_wasm_resume(filter->root_ictx, filter, NULL,
+                               NGX_PROXY_WASM_STEP_INIT_CTX);
+    if (rc != NGX_OK) {
+        goto error;
+    }
+
+    if (filter->ecode) {
         goto error;
     }
 
@@ -536,8 +862,7 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
 
 error:
 
-    ngx_proxy_wasm_log_error(NGX_LOG_EMERG, filter->log,
-                             fctx ? fctx->ecode : filter->ecode,
+    ngx_proxy_wasm_log_error(NGX_LOG_EMERG, filter->log, filter->ecode,
                              "proxy_wasm failed initializing \"%V\" filter",
                              filter->name);
 
@@ -549,308 +874,48 @@ done:
 }
 
 
-ngx_int_t
-ngx_proxy_wasm_filter_resume(ngx_proxy_wasm_filter_t *filter,
-    ngx_wasm_phase_t *phase, ngx_log_t *log, void *data)
-{
-    size_t                          i;
-    ngx_int_t                       rc;
-    ngx_proxy_wasm_stream_ctx_t    *sctx;
-    ngx_proxy_wasm_filter_ctx_t    *fctx;
-    ngx_proxy_wasm_instance_ctx_t  *ictx;
-
-    ngx_log_debug4(NGX_LOG_DEBUG_WASM, log, 0,
-                   "proxy_wasm \"%V\" filter (%l/%l) "
-                   "resuming in \"%V\" phase ",
-                   filter->name, filter->index + 1,
-                   *filter->n_filters, &phase->name);
-
-    sctx = filter->get_context_(filter, data);
-    if (sctx == NULL) {
-        return NGX_ERROR;
-    }
-
-    fctx = ngx_proxy_wasm_filter_ctx(filter, sctx);
-    if (fctx == NULL) {
-        return NGX_ERROR;
-    }
-
-    ictx = fctx->ictx;
-    ictx->current_ctx = fctx;
-
-    if (ictx->instance->trapped) {
-        fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
-    }
-
-    ngx_log_debug7(NGX_LOG_DEBUG_WASM, log, 0,
-                   "           \"%V\" filter (%l/%l) "
-                   "fctx->id: %l, fctx->ecode: %d, fctx: %p, ictx: %p",
-                   filter->name, filter->index + 1,
-                   *filter->n_filters, fctx->id, fctx->ecode, fctx, ictx);
-
-    if (fctx->ecode) {
-
-        if (fctx->ecode == NGX_PROXY_WASM_ERR_DISPATCH_FAILED) {
-            /* TODO: state-aware sctx/fctx? */
-            fctx->ecode = NGX_PROXY_WASM_ERR_NONE;
-            rc = NGX_OK;
-            goto skip;
-        }
-
-        if (!fctx->ecode_logged && phase->index != NGX_WASM_DONE_PHASE) {
-            ngx_proxy_wasm_log_error(NGX_LOG_WARN, fctx->log, fctx->ecode,
-                                     "proxy_wasm \"%V\" filter (%l/%l) "
-                                     "failed resuming",
-                                     filter->name, filter->index + 1,
-                                     *filter->n_filters);
-            fctx->ecode_logged = 1;
-        }
-#if (NGX_DEBUG)
-        else {
-            ngx_log_debug4(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                           "proxy_wasm \"%V\" filter (%l/%l) "
-                           "canceled in \"%V\" phase",
-                           filter->name, filter->index + 1,
-                           *filter->n_filters, &phase->name);
-        }
-#endif
-
-        rc = filter->ecode_(fctx->ecode);
-
-        goto skip;
-    }
-
-    rc = filter->resume_(fctx, phase);
-    if (rc == NGX_ABORT) {
-        fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
-        rc = NGX_ERROR;
-
-    } else if (rc == NGX_AGAIN) {
-        ngx_log_debug4(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                       "proxy_wasm \"%V\" filter (%l/%l) "
-                       "yielded in \"%V\" phase",
-                       filter->name, filter->index + 1,
-                       *filter->n_filters, &phase->name);
-    }
-
-skip:
-
-    switch (phase->index) {
-
-    case NGX_WASM_DONE_PHASE:
-
-        ngx_proxy_wasm_instance_release(ictx);
-
-        if (filter->index == sctx->n_filters - 1
-            || rc != NGX_OK) {
-
-            /* destroy stream ctx */
-
-            ngx_log_debug2(NGX_LOG_DEBUG_WASM, sctx->log, 0,
-                           "proxy_wasm freeing stream context #%d (main: %d)",
-                           sctx->id, sctx->main);
-
-            ngx_proxy_wasm_store_destroy(&sctx->store);
-
-            if (sctx->authority.data) {
-                ngx_pfree(sctx->pool, sctx->authority.data);
-            }
-
-            if (sctx->scheme.data) {
-                ngx_pfree(sctx->pool, sctx->scheme.data);
-            }
-
-            if (sctx->path.data) {
-                ngx_pfree(sctx->pool, sctx->path.data);
-            }
-
-            for (i = 0; i < sctx->fctxs.nelts; i++) {
-                fctx = ((ngx_proxy_wasm_filter_ctx_t **) sctx->fctxs.elts)[i];
-                ngx_pfree(sctx->pool, fctx);
-            }
-
-            ngx_array_destroy(&sctx->fctxs);
-
-            ngx_pfree(sctx->pool, sctx);
-        }
-
-    default:
-        break;
-
-    }
-
-    return rc;
-}
-
-
-static ngx_proxy_wasm_filter_ctx_t *
-ngx_proxy_wasm_filter_ctx(ngx_proxy_wasm_filter_t *filter,
-    ngx_proxy_wasm_stream_ctx_t *sctx)
-{
-    ngx_int_t                        rc;
-    ngx_proxy_wasm_instance_ctx_t   *ictx;
-    ngx_proxy_wasm_filter_ctx_t    **pfctx, *fctx = NULL;
-
-    if (sctx == NULL) {
-        ictx = ngx_proxy_wasm_instance_get(filter, NULL, filter->log);
-        if (ictx == NULL) {
-            goto error;
-        }
-
-        goto init;
-
-    } else if (filter->index < sctx->fctxs.nelts) {
-
-        /* filter ctx in stream ctx */
-
-        fctx = ((ngx_proxy_wasm_filter_ctx_t **)
-                sctx->fctxs.elts)[filter->index];
-
-        ngx_wasm_assert(fctx->filter == filter);
-
-        goto done;
-    }
-
-    /* get instance */
-
-    switch (*filter->isolation) {
-
-    case NGX_PROXY_WASM_ISOLATION_NONE:
-        ictx = ngx_proxy_wasm_instance_get(filter, filter->store, sctx->log);
-        if (ictx == NULL) {
-            goto error;
-        }
-
-        break;
-
-    case NGX_PROXY_WASM_ISOLATION_STREAM:
-        ictx = ngx_proxy_wasm_instance_get(filter, &sctx->store, sctx->log);
-        if (ictx == NULL) {
-            goto error;
-        }
-
-        break;
-
-    case NGX_PROXY_WASM_ISOLATION_FILTER:
-        ictx = ngx_proxy_wasm_instance_get(filter, NULL, sctx->log);
-        if (ictx == NULL) {
-            goto error;
-        }
-
-        break;
-
-    default:
-        ngx_wasm_assert(0);
-        goto error;
-
-    }
-
-init:
-
-    /* create filter root ctx */
-
-    fctx = ngx_proxy_wasm_root_ctx_lookup(ictx, filter->id);
-    if (fctx == NULL) {
-        fctx = ngx_pcalloc(ictx->pool, sizeof(ngx_proxy_wasm_filter_ctx_t));
-        if (fctx == NULL) {
-            goto error;
-        }
-
-        fctx->id = filter->id;
-        fctx->root_id = NGX_PROXY_WASM_ROOT_CTX_ID;
-        fctx->pool = filter->pool;
-        fctx->log = filter->log;
-        fctx->ictx = ictx;
-        fctx->sctx = NULL;
-        fctx->filter = filter;
-        fctx->node.key = fctx->id;
-
-        ngx_rbtree_insert(&ictx->tree_roots, &fctx->node);
-
-        if (sctx == NULL) {
-            fctx->root_instance = 1;
-        }
-    }
-
-    ngx_wavm_instance_set_data(fctx->ictx->instance,
-                               fctx->ictx,
-                               sctx ? sctx->log : filter->log);
-
-    /* start root ctx */
-
-    rc = ngx_proxy_wasm_start(fctx);
-    if (rc != NGX_OK) {
-        goto error;
-    }
-
-    if (sctx == NULL) {
-        /* get root ctx */
-        goto done;
-    }
-
-    /* create filter ctx */
-
-    fctx = ngx_pcalloc(sctx->pool, sizeof(ngx_proxy_wasm_filter_ctx_t));
-    if (fctx == NULL) {
-        goto error;
-    }
-
-    fctx->id = ++ictx->next_context_id;
-    fctx->root_id = filter->id;
-    fctx->pool = sctx->pool;
-    fctx->log = sctx->log;
-    fctx->ictx = ictx;
-    fctx->sctx = sctx;
-    fctx->filter = filter;
-    fctx->node.key = fctx->id;
-
-    pfctx = ngx_array_push(&sctx->fctxs);
-    if (pfctx == NULL) {
-        goto error;
-    }
-
-    *pfctx = fctx;
-
-    ngx_wasm_assert(filter->index == sctx->fctxs.nelts - 1);
-
-    /* start ctx */
-
-    rc = ngx_proxy_wasm_start(fctx);
-    if (rc != NGX_OK) {
-        goto error;
-    }
-
-    goto done;
-
-error:
-
-    if (fctx && !fctx->ecode) {
-        fctx->ecode = NGX_PROXY_WASM_ERR_UNKNOWN;
-    }
-
-done:
-
-    if (fctx && fctx->ictx) {
-        ngx_wavm_instance_set_data(fctx->ictx->instance,
-                                   fctx->ictx,
-                                   sctx ? sctx->log : filter->log);
-    }
-
-    return fctx;
-}
-
-
 void
 ngx_proxy_wasm_filter_destroy(ngx_proxy_wasm_filter_t *filter)
 {
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, filter->log, 0,
                    "proxy_wasm freeing \"%V\" filter", filter->name);
 
-    ngx_proxy_wasm_store_destroy(filter->store);
+    if (filter->root_ictx) {
+        ngx_proxy_wasm_instance_release(filter->root_ictx, 1); /* force destroy */
+    }
+
+    /* filter->store points to mcf->store */
 }
 
 
 /* ngx_proxy_wasm_filter_ctx_t */
+
+
+static ngx_proxy_wasm_filter_ctx_t *
+ngx_proxy_wasm_root_ctx_lookup(ngx_proxy_wasm_instance_ctx_t *ictx, ngx_uint_t id)
+{
+    ngx_rbtree_t                 *rbtree;
+    ngx_rbtree_node_t            *node, *sentinel;
+    ngx_proxy_wasm_filter_ctx_t  *fctx;
+
+    rbtree = &ictx->tree_root_ctxs;
+    node = rbtree->root;
+    sentinel = rbtree->sentinel;
+
+    while (node != sentinel) {
+
+        if (id != node->key) {
+            node = (id < node->key) ? node->left : node->right;
+            continue;
+        }
+
+        fctx = ngx_rbtree_data(node, ngx_proxy_wasm_filter_ctx_t, node);
+
+        return fctx;
+    }
+
+    return NULL;
+}
 
 
 static ngx_int_t
@@ -862,16 +927,9 @@ ngx_proxy_wasm_start(ngx_proxy_wasm_filter_ctx_t *fctx)
     ngx_wavm_instance_t            *instance = ictx->instance;
     wasm_val_vec_t                 *rets;
 
-    ictx->current_ctx = fctx;
-
-    if (filter->ecode) {
-        fctx->ecode = filter->ecode;
-        goto done;
-    }
-
     if (!fctx->created) {
-        dd("create filter ctx (root_id: %ld, id: %ld, ictx: %p)",
-           fctx->root_id, fctx->id, ictx);
+        dd("create filter ctx (root_id: %ld, id: %ld, fctx: %p, ictx: %p)",
+           fctx->root_id, fctx->id, fctx, ictx);
 
         rc = ngx_wavm_instance_call_funcref(instance,
                                             filter->proxy_on_context_create,
@@ -886,8 +944,8 @@ ngx_proxy_wasm_start(ngx_proxy_wasm_filter_ctx_t *fctx)
     }
 
     if (fctx->root_id == NGX_PROXY_WASM_ROOT_CTX_ID && !fctx->started) {
-        dd("start filter ctx (root_id: %ld, id: %ld, ictx: %p, root: %d)",
-           fctx->root_id, fctx->id, ictx, fctx->root_instance);
+        dd("start filter ctx (root_id: %ld, id: %ld, fctx: %p, ictx: %p)",
+           fctx->root_id, fctx->id, fctx, ictx);
 
         rc = ngx_wavm_instance_call_funcref(instance,
                                             filter->proxy_on_plugin_start,
@@ -900,7 +958,7 @@ ngx_proxy_wasm_start(ngx_proxy_wasm_filter_ctx_t *fctx)
 
         fctx->started = 1;
 
-        if (fctx->root_instance) {
+        if (fctx->root) {
             rc = ngx_wavm_instance_call_funcref(instance,
                                                 filter->proxy_on_vm_start,
                                                 &rets,
@@ -912,9 +970,184 @@ ngx_proxy_wasm_start(ngx_proxy_wasm_filter_ctx_t *fctx)
         }
     }
 
-done:
-
     return NGX_OK;
+}
+
+
+ngx_int_t
+ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
+    ngx_proxy_wasm_filter_t *filter, ngx_proxy_wasm_filter_ctx_t *fctx,
+    ngx_proxy_wasm_step_e step)
+{
+    ngx_int_t                     rc;
+    ngx_wavm_instance_t          *instance = ictx->instance;
+    ngx_proxy_wasm_filter_ctx_t  *root_fctx;
+
+    root_fctx = ngx_proxy_wasm_root_ctx_lookup(ictx, filter->id);
+    if (root_fctx == NULL) {
+        root_fctx = ngx_pcalloc(ictx->pool, sizeof(ngx_proxy_wasm_filter_ctx_t));
+        if (root_fctx == NULL) {
+            return NGX_ERROR;
+        }
+
+        root_fctx->id = filter->id;
+        root_fctx->root_id = NGX_PROXY_WASM_ROOT_CTX_ID;
+        root_fctx->pool = filter->pool;
+        root_fctx->log = filter->log;
+        root_fctx->ictx = ictx;
+        root_fctx->parent = NULL;
+        root_fctx->filter = filter;
+        root_fctx->node.key = root_fctx->id;
+        root_fctx->root = fctx == NULL;
+
+        ngx_rbtree_insert(&ictx->tree_root_ctxs, &root_fctx->node);
+    }
+
+    ictx->current_ctx = root_fctx;
+
+    ngx_wavm_instance_set_data(instance, ictx,
+                               fctx && fctx->parent ? fctx->parent->log : filter->log);
+
+    /* start root fctx */
+
+    rc = ngx_proxy_wasm_start(root_fctx);
+    if (rc != NGX_OK) {
+        ngx_wasm_assert(root_fctx->ecode);
+        filter->ecode = root_fctx->ecode;
+        return NGX_ERROR;
+    }
+
+    /* start fctx */
+
+    if (fctx == NULL) {
+        ngx_wasm_assert(step == NGX_PROXY_WASM_STEP_INIT_CTX);
+        return NGX_OK;
+    }
+
+    fctx->ictx = ictx;
+
+    ictx->current_ctx = fctx;
+
+    rc = ngx_proxy_wasm_start(fctx);
+    if (rc != NGX_OK) {
+        ngx_wasm_assert(fctx->ecode);
+        return NGX_ERROR;
+    }
+
+    switch (step) {
+    case NGX_PROXY_WASM_STEP_INIT_CTX:
+        /* ngx_proxy_wasm_start */
+        break;
+    case NGX_PROXY_WASM_STEP_REQ_HEADERS:
+    case NGX_PROXY_WASM_STEP_REQ_BODY_READ:
+    case NGX_PROXY_WASM_STEP_REQ_BODY:
+    case NGX_PROXY_WASM_STEP_RESP_HEADERS:
+    case NGX_PROXY_WASM_STEP_RESP_BODY:
+        rc = filter->resume_(fctx, step);
+        break;
+    case NGX_PROXY_WASM_STEP_LOG:
+        ngx_proxy_wasm_on_log(fctx);
+        rc = NGX_OK;
+        break;
+    case NGX_PROXY_WASM_STEP_DONE:
+        ngx_proxy_wasm_on_done(fctx);
+        rc = NGX_OK;
+        break;
+    case NGX_PROXY_WASM_STEP_ON_TIMER:
+        rc = ngx_proxy_wasm_on_timer_tick(fctx);
+        break;
+    default:
+        ngx_wasm_assert(0);
+        return NGX_ERROR;
+    }
+
+    if (rc == NGX_ERROR && !fctx->ecode) {
+        fctx->ecode = NGX_PROXY_WASM_ERR_UNKNOWN;
+
+    } else if (fctx->ecode) {
+        ngx_wasm_assert(0);
+        rc = NGX_ERROR;
+    }
+
+    return rc;
+}
+
+
+void
+ngx_proxy_wasm_resume_main(ngx_proxy_wasm_filter_ctx_t *fctx)
+{
+    ngx_proxy_wasm_ctx_t     *pwctx = fctx->parent;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
+    ngx_http_request_t       *r = rctx->r;
+#endif
+
+    ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
+                   "proxy_wasm \"%V\" filter (%l/%l) "
+                   "resuming main request",
+                   fctx->filter->name, fctx->filter->index + 1,
+                   *fctx->filter->n_filters);
+
+    pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
+
+    r->write_event_handler(r);
+}
+
+
+static void
+ngx_proxy_wasm_on_log(ngx_proxy_wasm_filter_ctx_t *fctx)
+{
+    ngx_proxy_wasm_filter_t  *filter = fctx->filter;
+    ngx_wavm_instance_t      *instance = ngx_proxy_wasm_fctx2instance(fctx);
+
+    if (filter->abi_version < NGX_PROXY_WASM_VNEXT) {
+        /* 0.1.0 - 0.2.1 */
+        (void) ngx_wavm_instance_call_funcref(instance, filter->proxy_on_done,
+                                              NULL, fctx->id);
+    }
+
+    (void) ngx_wavm_instance_call_funcref(instance, filter->proxy_on_log,
+                                          NULL, fctx->id);
+}
+
+
+static void
+ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
+{
+    ngx_wavm_instance_t  *instance = ngx_proxy_wasm_fctx2instance(fctx);
+
+    if (fctx->created) {
+        ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
+                       "proxy_wasm \"%V\" filter (%l/%l)"
+                       " finalizing context",
+                       fctx->filter->name, fctx->filter->index + 1,
+                       fctx->parent->n_filters);
+
+        (void) ngx_wavm_instance_call_funcref(instance,
+                                              fctx->filter->proxy_on_context_finalize,
+                                              NULL, fctx->id);
+    }
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_on_timer_tick(ngx_proxy_wasm_filter_ctx_t *fctx)
+{
+    ngx_int_t                 rc;
+    wasm_val_vec_t            args;
+
+    ngx_wasm_assert(fctx->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+
+    wasm_val_vec_new_uninitialized(&args, 1);
+    ngx_wasm_vec_set_i32(&args, 0, fctx->id);
+
+    rc = ngx_wavm_instance_call_funcref_vec(fctx->ictx->instance,
+                                            fctx->filter->proxy_on_timer_ready,
+                                            NULL, &args);
+
+    wasm_val_vec_delete(&args);
+
+    return rc;
 }
 
 
@@ -973,69 +1206,4 @@ ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx, ngx_list_t *list,
     *out_size = size;
 
     return 1;
-}
-
-
-void
-ngx_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx)
-{
-    ngx_proxy_wasm_filter_t      *filter = fctx->filter;
-    ngx_proxy_wasm_stream_ctx_t  *sctx = fctx->sctx;
-#ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t      *rctx = sctx->data;
-    ngx_http_request_t           *r = rctx->r;
-#endif
-
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                   "proxy_wasm \"%V\" filter (%l/%l) "
-                   "resuming main request",
-                   filter->name, filter->index + 1,
-                   *filter->n_filters);
-
-    sctx->next_action = NGX_PROXY_WASM_ACTION_CONTINUE;
-
-    r->write_event_handler(r);
-}
-
-
-ngx_int_t
-ngx_proxy_wasm_on_log(ngx_proxy_wasm_filter_ctx_t *fctx)
-{
-    ngx_proxy_wasm_filter_t  *filter = fctx->filter;
-    ngx_wavm_instance_t      *instance = ngx_proxy_wasm_fctx2instance(fctx);
-
-    if (filter->abi_version < NGX_PROXY_WASM_VNEXT) {
-        /* 0.1.0 - 0.2.1 */
-        if (ngx_wavm_instance_call_funcref(instance, filter->proxy_on_done,
-                                           NULL, fctx->id) != NGX_OK
-            || ngx_wavm_instance_call_funcref(instance, filter->proxy_on_log,
-                                              NULL, fctx->id) != NGX_OK)
-        {
-            return NGX_ERROR;
-        }
-    }
-
-    return NGX_OK;
-}
-
-
-void
-ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
-{
-    ngx_proxy_wasm_filter_t  *filter = fctx->filter;
-    ngx_wavm_instance_t      *instance;
-
-    if (fctx->created) {
-        ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                       "proxy_wasm \"%V\" filter (%l/%l) "
-                       "finalizing context",
-                       filter->name, filter->index + 1,
-                       *filter->n_filters);
-
-        instance = ngx_proxy_wasm_fctx2instance(fctx);
-
-        (void) ngx_wavm_instance_call_funcref(instance,
-                                              filter->proxy_on_context_finalize,
-                                              NULL, fctx->id);
-    }
 }

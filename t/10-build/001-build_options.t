@@ -55,6 +55,7 @@ ngx_wasm_module [dev
 
 
 === TEST 5: build without http
+--- SKIP
 --- build: NGX_BUILD_CONFIGURE_OPT='--without-http' make
 --- grep_nginxV
 --without-http

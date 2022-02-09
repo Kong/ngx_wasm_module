@@ -62,6 +62,8 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
     ngx_int_t                  rc;
     ngx_http_wasm_req_ctx_t   *rctx = NULL;
 
+    dd("enter");
+
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc == NGX_ERROR) {
         return NGX_ERROR;
@@ -85,7 +87,7 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_HEADER_FILTER_PHASE,
-                             NGX_WASM_OPS_RUN_ALL);
+                             0);
     if (rc == NGX_ERROR) {
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
         goto done;
@@ -141,11 +143,11 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
 
     (void) ngx_wasm_ops_resume(&rctx->opctx,
                                NGX_HTTP_WASM_BODY_FILTER_PHASE,
-                               NGX_WASM_OPS_RUN_ALL);
+                               0);
 
     if (rctx->resp_chunk == NULL) {
         /* chunk discarded */
-        dd("chunk discarded");
+        dd("no chunk");
         return NGX_OK;
     }
 
