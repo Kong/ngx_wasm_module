@@ -80,8 +80,10 @@ ngx_http_wasm_get_shim_headers(ngx_http_wasm_req_ctx_t *rctx)
         ngx_array_destroy(&rctx->resp_shim_headers);
     }
 
+#if 0
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm producing shim headers");
+#endif
 
     if (ngx_array_init(&rctx->resp_shim_headers, r->pool, 4,
                        sizeof(ngx_table_elt_t))
@@ -98,9 +100,11 @@ ngx_http_wasm_get_shim_headers(ngx_http_wasm_req_ctx_t *rctx)
             continue;
         }
 
+#if 0
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "wasm shim header: \"%V: %V\"",
                        &sh->key, value);
+#endif
 
         h = ngx_array_push(&rctx->resp_shim_headers);
         if (h == NULL) {

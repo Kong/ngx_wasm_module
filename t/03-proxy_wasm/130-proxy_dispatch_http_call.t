@@ -25,12 +25,11 @@ __DATA__
     location /dispatched {
         echo -n $echo_client_request_headers;
     }
---- response_body eval
-"GET /dispatched HTTP/1.1\r
-Host: 127.0.0.1:1984\r
-Connection: close\r
-Content-Length: 0
-"
+--- response_body_like
+GET \/dispatched HTTP\/1\.1.*
+Host: 127\.0\.0\.1:\d+.*
+Connection: close.*
+Content-Length: 0.*
 --- no_error_log
 [error]
 
@@ -131,8 +130,8 @@ qr/\[error\] .*? dispatch failed \(no :authority\)/
                               host=127.0.0.10';
         echo ok;
     }
---- response_body
-ok
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
 --- error_log eval
 qr/\[error\] .*? dispatch failed \(Connection refused\)/
 
@@ -147,7 +146,7 @@ qr/\[error\] .*? dispatch failed \(Connection refused\)/
                               host=localhost';
         echo ok;
     }
---- response_body
-ok
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
 --- error_log eval
 qr/\[error\] .*? dispatch failed \(no resolver defined to resolve "localhost"\)/

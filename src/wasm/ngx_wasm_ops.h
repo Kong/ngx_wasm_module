@@ -15,11 +15,26 @@ typedef ngx_int_t (*ngx_wasm_op_handler_pt)(ngx_wasm_op_ctx_t *ctx,
     ngx_wasm_phase_t *phase, ngx_wasm_op_t *op);
 
 
+typedef struct {
+    ngx_wasm_phase_t                        *phase;
+} ngx_wasm_op_proxy_wasm_ctx_t;
+
+
+typedef struct {
+    void                                    *nop;
+} ngx_wasm_op_call_ctx_t;
+
+
 struct ngx_wasm_op_ctx_s {
     ngx_wasm_ops_engine_t                   *ops_engine;
     ngx_pool_t                              *pool;
     ngx_log_t                               *log;
-    void                                    *data;  /* rctx */
+    void                                    *data;
+
+    union {
+        ngx_wasm_op_call_ctx_t               call;
+        ngx_wasm_op_proxy_wasm_ctx_t         proxy_wasm;
+    } ctx;
 };
 
 

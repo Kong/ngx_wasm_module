@@ -304,6 +304,7 @@ resp header "connection: close".*/
 === TEST 10: proxy_wasm - get_http_response_header() get Connection header (keep-alive)
 --- timeout_no_valgrind: 20s
 --- abort
+--- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -311,7 +312,7 @@ resp header "connection: close".*/
                               test=/t/log/response_header \
                               name=connection';
 
-        return 200;
+        echo ok;
 
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/log/response_header \
@@ -326,6 +327,7 @@ Connection: keep-alive
 --- response_headers
 Connection: keep-alive
 --- response_body
+ok
 --- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
 qr/testing in "RequestHeaders".*
@@ -340,6 +342,7 @@ resp header "connection: keep-alive".*/
 
 
 === TEST 11: proxy_wasm - get_http_response_header() get Connection header (upgrade)
+--- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -347,7 +350,8 @@ resp header "connection: keep-alive".*/
                               test=/t/log/response_header \
                               name=connection';
 
-        return 101;
+        echo_status 101;
+        echo_flush;
 
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/log/response_header \
@@ -378,6 +382,7 @@ resp header "connection: upgrade".*/
 === TEST 12: proxy_wasm - get_http_response_header() get Keep-Alive header
 --- timeout_no_valgrind: 20s
 --- abort
+--- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -387,7 +392,7 @@ resp header "connection: upgrade".*/
                               test=/t/log/response_header \
                               name=Keep-Alive';
 
-        return 200;
+        echo ok;
 
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/log/response_header \
@@ -453,6 +458,7 @@ resp header "Transfer-Encoding: chunked".*/
 
 
 === TEST 14: proxy_wasm - get_http_response_header() get Transfer-Encoding header (none)
+--- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {

@@ -182,7 +182,7 @@ ngx_wavm_init(ngx_wavm_t *vm)
          node = ngx_rbtree_next(&vm->modules_tree, node))
     {
         sn = ngx_wasm_sn_n2sn(node);
-        module = ngx_wasm_sn_sn2data(sn, ngx_wavm_module_t, sn);
+        module = ngx_rbtree_data(&sn->node, ngx_wavm_module_t, sn);
 
         rc = ngx_wavm_module_load_bytes(module);
         if (rc != NGX_OK) {
@@ -232,7 +232,7 @@ ngx_wavm_load(ngx_wavm_t *vm)
          node = ngx_rbtree_next(&vm->modules_tree, node))
     {
         sn = ngx_wasm_sn_n2sn(node);
-        module = ngx_wasm_sn_sn2data(sn, ngx_wavm_module_t, sn);
+        module = ngx_rbtree_data(&sn->node, ngx_wavm_module_t, sn);
 
         if (ngx_wavm_module_load(module) != NGX_OK) {
             return NGX_ERROR;
@@ -284,11 +284,9 @@ ngx_wavm_destroy(ngx_wavm_t *vm)
     ngx_str_node_t        *sn;
     ngx_wavm_module_t     *module;
 
-#if 1
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                   "wasm freeing \"%V\" vm (vm: %p)",
                    vm->name, vm);
-#endif
 
     ngx_wavm_destroy_instances(vm);
 
@@ -298,7 +296,7 @@ ngx_wavm_destroy(ngx_wavm_t *vm)
     while (*root != *sentinel) {
         node = ngx_rbtree_min(*root, *sentinel);
         sn = ngx_wasm_sn_n2sn(node);
-        module = ngx_wasm_sn_sn2data(sn, ngx_wavm_module_t, sn);
+        module = ngx_rbtree_data(&sn->node, ngx_wavm_module_t, sn);
 
         ngx_rbtree_delete(&vm->modules_tree, node);
 
@@ -325,7 +323,7 @@ ngx_wavm_module_lookup(ngx_wavm_t *vm, ngx_str_t *name)
         return NULL;
     }
 
-    return ngx_wasm_sn_sn2data(sn, ngx_wavm_module_t, sn);
+    return ngx_rbtree_data(&sn->node, ngx_wavm_module_t, sn);
 }
 
 
@@ -770,7 +768,7 @@ ngx_wavm_module_destroy(ngx_wavm_module_t *module)
     while (*root != *sentinel) {
         node = ngx_rbtree_min(*root, *sentinel);
         sn = ngx_wasm_sn_n2sn(node);
-        funcref = ngx_wasm_sn_sn2data(sn, ngx_wavm_funcref_t, sn);
+        funcref = ngx_rbtree_data(&sn->node, ngx_wavm_funcref_t, sn);
 
         ngx_rbtree_delete(&module->funcs_tree, node);
 
@@ -816,10 +814,11 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
         return NULL;
     }
 
-    return ngx_wasm_sn_sn2data(sn, ngx_wavm_funcref_t, sn);
+    return ngx_rbtree_data(&sn->node, ngx_wavm_funcref_t, sn);
 }
 
 
+#if 0
 static void
 ngx_wavm_instance_cleanup(void *data)
 {
@@ -831,6 +830,7 @@ ngx_wavm_instance_cleanup(void *data)
 
     ngx_wavm_instance_destroy(instance);
 }
+#endif
 
 
 ngx_wavm_instance_t *
@@ -853,7 +853,7 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
     ngx_wrt_err_init(&e);
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, log, 0,
-                   "wasm creating \"%V\" instance in \"%V\" vm ",
+                   "wasm creating \"%V\" instance in \"%V\" vm",
                    &module->name, vm->name);
 
     if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LINKED)) {
@@ -878,6 +878,7 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
     ngx_array_init(&instance->funcs, instance->pool, module->exports.size,
                    sizeof(ngx_wavm_func_t));
 
+#if 0
     instance->cln = ngx_pool_cleanup_add(instance->pool, 0);
     if (instance->cln == NULL) {
         goto error;
@@ -885,6 +886,7 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
 
     instance->cln->handler = ngx_wavm_instance_cleanup;
     instance->cln->data = instance;
+#endif
 
     instance->log = ngx_pcalloc(instance->pool, sizeof(ngx_log_t));
     if (instance->log == NULL) {
@@ -1055,6 +1057,7 @@ ngx_wavm_func_call(ngx_wavm_func_t *f, wasm_val_vec_t *args,
 
     if (rc == NGX_ABORT) {
         f->instance->state |= NGX_WAVM_INSTANCE_TRAPPED;
+        f->instance->trapped = 1;
     }
 
 done:
@@ -1172,6 +1175,7 @@ ngx_wavm_instance_call_func_vec(ngx_wavm_instance_t *instance,
             }
 
         } else {
+            ngx_wasm_assert(0);
             err = "bad args";
             goto error;
         }
@@ -1302,7 +1306,6 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
 
                 wasm_val_vec_delete(&func->args);
                 wasm_val_vec_delete(&func->rets);
-                //wasm_functype_delete((wasm_functype_t *) func->functype);
                 wasm_functype_delete(func->functype);
                 func->functype = NULL;
             }

@@ -277,7 +277,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                 if (in_ctx->rest == 0) {
                     rc = ngx_http_parse_chunked(r, src, &in_ctx->chunked);
                     if (rc == NGX_ERROR) {
-                       return NGX_ERROR;
+                        return NGX_ERROR;
                     }
 
                     buf_in->buf->last = src->pos;

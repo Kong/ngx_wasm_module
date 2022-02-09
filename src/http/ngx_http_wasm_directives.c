@@ -147,7 +147,7 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     filter->isolation = &loc->isolation;
     filter->ecode_ = ngx_http_proxy_wasm_ecode;
     filter->resume_ = ngx_http_proxy_wasm_resume;
-    filter->get_context_ = ngx_http_proxy_wasm_stream_ctx;
+    filter->get_context_ = ngx_http_proxy_wasm_ctx;
     filter->max_pairs = NGX_HTTP_WASM_MAX_REQ_HEADERS;
 
     filter->module = ngx_wavm_module_lookup(loc->ops_engine->vm, module_name);
@@ -168,7 +168,6 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     op->module = filter->module;
     op->host = &ngx_proxy_wasm_host;
     op->on_phases = (1 << NGX_HTTP_REWRITE_PHASE)
-                    | (1 << NGX_HTTP_ACCESS_PHASE)
                     | (1 << NGX_HTTP_CONTENT_PHASE)
                     | (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE)
                     | (1 << NGX_HTTP_WASM_BODY_FILTER_PHASE)

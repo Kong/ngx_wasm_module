@@ -4,6 +4,9 @@
 #include "ddebug.h"
 
 #include <ngx_wasm_ops.h>
+#ifdef NGX_WASM_HTTP
+#include <ngx_http_wasm.h>
+#endif
 
 
 static ngx_int_t ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *ctx,
@@ -119,7 +122,6 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
 
         pipeline->init = 1;
     }
-
 }
 
 
@@ -229,7 +231,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, ctx->log, 0,
                            "ops resume: no phase for index '%ui'",
                            phase);
-        goto rc;
+        return NGX_DECLINED;
     }
 
     pipeline = ctx->ops_engine->pipelines[phase->index];
@@ -244,7 +246,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
 
     if (pipeline == NULL) {
         dd("no pipeline");
-        goto rc;
+        return NGX_DECLINED;
     }
 
     for (i = 0; i < pipeline->ops->nelts; i++) {
@@ -258,34 +260,18 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
         }
 
         if (force_ops) {
-            /* force_ops: run all ops even if rc == NGX_OK */
+            /* force_ops: run all ops even if rc != NGX_OK */
             rc = NGX_OK;
             continue;
         }
 
-        if (rc == NGX_DONE) {
-            /* NGX_DONE: break, skip to next nginx phase with NGX_DECLINED */
-            rc = NGX_DECLINED;
-            goto rc;
-        }
-
-        if (rc == NGX_OK || rc == NGX_AGAIN) {
-            /* NGX_OK: done with ops in this phase */
-            /* NGX_AGAIN: ... */
-            goto rc;
+        if (rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_DONE) {
+            break;
         }
 
         /* NGX_DECLINED: next op */
         ngx_wasm_assert(rc == NGX_DECLINED);
     }
-
-rc:
-
-#if 0
-    ngx_log_debug2(NGX_LOG_DEBUG_WASM, ctx->log, 0,
-                   "wasm ops \"%V\" phase rc: %d",
-                   &phase->name, rc);
-#endif
 
     return rc;
 }
@@ -334,7 +320,10 @@ static ngx_int_t
 ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     ngx_wasm_phase_t *phase, ngx_wasm_op_t *op)
 {
-    ngx_proxy_wasm_filter_t  *filter;
+    ngx_int_t                      rc;
+    ngx_proxy_wasm_ctx_t          *pwctx;
+    ngx_proxy_wasm_filter_t       *filter;
+    //ngx_wasm_op_proxy_wasm_ctx_t  *ctx = &opctx->ctx.proxy_wasm;
 
     ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);
 
@@ -343,6 +332,118 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
         return NGX_ERROR;
     }
 
-    return ngx_proxy_wasm_filter_resume(filter, phase,
-                                        opctx->log, opctx->data);
+    pwctx = ngx_proxy_wasm_ctx(filter, opctx->data);
+    if (pwctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    rc = ngx_proxy_wasm_ctx_add(pwctx, filter);
+    if (rc == NGX_ERROR) {
+        return NGX_ERROR;
+
+    } else if (rc == NGX_OK) {
+        /* again */
+        return NGX_DECLINED;
+    }
+
+    ngx_wasm_assert(rc == NGX_DONE);
+
+    if (phase->index != NGX_HTTP_WASM_BODY_FILTER_PHASE) {
+        if (pwctx->phase
+            && pwctx->phase->index == phase->index)
+        {
+            /* run only one op per phase */
+            return NGX_DECLINED;
+        }
+
+        //ngx_wasm_assert(pwctx->cur_filter_idx == 0);
+    }
+
+    switch (phase->index) {
+
+#ifdef NGX_WASM_HTTP
+    case NGX_HTTP_REWRITE_PHASE:
+        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
+                                       NGX_PROXY_WASM_STEP_INIT_CTX);
+        if (rc != NGX_OK) {
+            break;
+        }
+
+        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
+                                       NGX_PROXY_WASM_STEP_REQ_HEADERS);
+        break;
+
+    case NGX_HTTP_CONTENT_PHASE:
+        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
+                                       NGX_PROXY_WASM_STEP_REQ_BODY_READ);
+        break;
+
+    case NGX_HTTP_WASM_HEADER_FILTER_PHASE:
+        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
+                                       NGX_PROXY_WASM_STEP_RESP_HEADERS);
+        break;
+
+    case NGX_HTTP_WASM_BODY_FILTER_PHASE:
+        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
+                                       NGX_PROXY_WASM_STEP_RESP_BODY);
+        break;
+
+    case NGX_HTTP_LOG_PHASE:
+        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase, NGX_PROXY_WASM_STEP_LOG);
+        break;
+#endif
+
+    case NGX_WASM_DONE_PHASE:
+        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase, NGX_PROXY_WASM_STEP_DONE);
+        break;
+
+    default:
+        return NGX_DECLINED;
+
+    }
+
+    if (rc == NGX_ERROR
+#ifdef NGX_WASM_HTTP
+        || rc >= NGX_HTTP_SPECIAL_RESPONSE
+#endif
+       )
+    {
+        return rc;
+    }
+
+    ngx_wasm_assert(rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_DONE);
+
+    /* override rc */
+
+    switch (phase->index) {
+#ifdef NGX_WASM_HTTP
+    case NGX_HTTP_REWRITE_PHASE:
+        if (rc == NGX_AGAIN) {
+            /* yield */
+            rc = NGX_DONE;
+            break;
+        }
+
+        if (rc == NGX_DONE) {
+            rc = NGX_DECLINED;
+            break;
+        }
+
+        rc = NGX_DECLINED;
+        break;
+    case NGX_HTTP_WASM_BODY_FILTER_PHASE:
+        if (!pwctx->main) {
+            /* subrequest */
+            rc = NGX_OK;
+            break;
+        }
+
+        rc = NGX_DONE;
+        break;
+#endif
+    default:
+        break;
+    }
+
+    return rc;
 }

@@ -6,6 +6,32 @@
 #include <ngx_wasm.h>
 
 
+static ngx_inline void
+ngx_wasm_chain_log_debug(ngx_log_t *log, ngx_chain_t *in, char *fmt)
+{
+#if (NGX_DEBUG)
+    size_t        len;
+    ngx_chain_t  *cl;
+    ngx_buf_t    *buf;
+
+    cl = in;
+
+    while (cl) {
+        buf = cl->buf;
+        len = buf->last - buf->pos;
+
+        ngx_log_debug8(NGX_LOG_DEBUG_WASM, log, 0,
+                       "%s: \"%.*s\" (buf: %p, len: %d, last_buf: %d,"
+                       " last_in_chain: %d, flush: %d)",
+                       fmt, (int) len, buf->pos, buf, len, buf->last_buf,
+                       buf->last_in_chain, buf->flush);
+
+        cl = cl->next;
+    }
+#endif
+}
+
+
 size_t
 ngx_wasm_chain_len(ngx_chain_t *in, unsigned *eof)
 {
@@ -84,7 +110,7 @@ ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
 
 
 ngx_chain_t *
-ngx_wasm_chain_get_free_buf(ngx_log_t *log, ngx_pool_t *p, ngx_chain_t **free,
+ngx_wasm_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free,
     size_t len, ngx_buf_tag_t tag)
 {
     ngx_buf_t    *b;
@@ -100,7 +126,7 @@ ngx_wasm_chain_get_free_buf(ngx_log_t *log, ngx_pool_t *p, ngx_chain_t **free,
         start = b->start;
         end = b->end;
         if (start && (size_t) (end - start) >= len) {
-            ngx_log_debug4(NGX_LOG_DEBUG_WASM, log, 0,
+            ngx_log_debug4(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                            "wasm reuse free buf memory %O >= %uz, cl:%p, p:%p",
                            (off_t) (end - start), len, cl, start);
 
@@ -119,7 +145,7 @@ ngx_wasm_chain_get_free_buf(ngx_log_t *log, ngx_pool_t *p, ngx_chain_t **free,
             return cl;
         }
 
-        ngx_log_debug4(NGX_LOG_DEBUG_WASM, log, 0,
+        ngx_log_debug4(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                        "wasm reuse free buf chain, but reallocate memory "
                        "because %uz >= %O, cl:%p, p:%p", len,
                        (off_t) (b->end - b->start), cl, b->start);
@@ -153,7 +179,7 @@ ngx_wasm_chain_get_free_buf(ngx_log_t *log, ngx_pool_t *p, ngx_chain_t **free,
         return NULL;
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_WASM, log, 0,
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                    "wasm allocate new chainlink and new buf of size %uz, cl:%p",
                    len, cl);
 
@@ -166,6 +192,99 @@ ngx_wasm_chain_get_free_buf(ngx_log_t *log, ngx_pool_t *p, ngx_chain_t **free,
     cl->next = NULL;
 
     return cl;
+}
+
+
+ngx_int_t
+ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
+    ngx_str_t *str, ngx_chain_t **free, ngx_buf_tag_t tag)
+{
+    unsigned      eof = 0, flush = 0;
+    ngx_uint_t    fill, rest;
+    ngx_buf_t    *buf;
+    ngx_chain_t  *cl, *nl, *ll = NULL;
+
+    ngx_wasm_chain_log_debug(pool->log, *in, "input");
+
+    fill = ngx_wasm_chain_clear(*in, at, &eof, &flush);
+    rest = str->len + fill;
+
+    /* get tail */
+
+    cl = *in;
+
+    while (cl) {
+        buf = cl->buf;
+
+        if (ngx_buf_size(buf)) {
+            ll = cl;
+            cl = cl->next;
+            continue;
+        }
+
+        /* zero size buf */
+
+        if (buf->tag != tag) {
+            if (ll) {
+                //ngx_wasm_assert(ll->next == cl);
+                ll->next = cl->next;
+            }
+
+            ngx_free_chain(pool, cl);
+            cl = ll ? ll->next : NULL;
+            continue;
+        }
+
+        buf->pos = buf->start;
+        buf->last = buf->start;
+
+        nl = cl;
+        cl = cl->next;
+        nl->next = *free;
+        if (*free) {
+            *free = nl;
+        }
+    }
+
+    nl = ngx_wasm_chain_get_free_buf(pool, free, rest, tag);
+    if (nl == NULL) {
+        return NGX_ERROR;
+    }
+
+    buf = nl->buf;
+
+    if (fill) {
+        /* spillover fill */
+        ngx_memset(buf->last, ' ', fill);
+        buf->last += fill;
+        rest -= fill;
+    }
+
+    /* write */
+
+    ngx_wasm_assert(rest == str->len);
+
+    buf->last = ngx_cpymem(buf->last, str->data, rest);
+
+    if (flush) {
+        buf->flush = 1;
+    }
+
+    if (eof) {
+        buf->last_buf = 1;
+        buf->last_in_chain = 1;
+    }
+
+    if (ll) {
+        ll->next = nl;
+
+    } else {
+        *in = nl;
+    }
+
+    ngx_wasm_chain_log_debug(pool->log, *in, "output");
+
+    return NGX_OK;
 }
 
 
