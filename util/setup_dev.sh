@@ -45,6 +45,19 @@ pushd $DIR_CPANM
     -daemon $DaemonEnabled;
      master_process $MasterProcessEnabled;
 EOF
+    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Socket.pm <<'EOF'
+    @@ -813,6 +813,10 @@ again:
+
+         test_stap($block, $dry_run);
+
+    +    if ($repeated_req_idx == 0) {
+    +        $repeated_req_idx = $req_idx - 1;
+    +    }
+    +
+         check_error_log($block, $res, $dry_run, $repeated_req_idx, $need_array);
+
+         if (!defined $block->ignore_response) {
+EOF
     set -e
 popd
 
