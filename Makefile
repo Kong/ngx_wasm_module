@@ -56,7 +56,7 @@ act:
 		-t wasmx-build-ubuntu \
 		-f ./util/Dockerfiles/Dockerfile.amd64.ubuntu-20.04 \
 		./util/Dockerfiles
-	@act
+	@act --reuse
 
 .PHONY: clean
 clean:
