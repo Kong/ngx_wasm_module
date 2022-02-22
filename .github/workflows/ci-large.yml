@@ -74,6 +74,7 @@ jobs:
     name: 'Tests - valgrind (large)'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
+    if: ${{ false }} # too slow
     env:
       NGX_BUILD_FORCE: 1
       NGX_BUILD_NOPOOL: 1
