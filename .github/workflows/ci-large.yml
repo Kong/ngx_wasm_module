@@ -2,7 +2,7 @@ name: Large CI
 
 on:
   schedule:
-    - cron: '0 9 * * mon-fri' # 9am UTC, 2am PST
+    - cron: '0 9 * * mon' # 9am UTC, 2am PST
 
 defaults:
   run:
