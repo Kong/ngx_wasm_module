@@ -17,26 +17,31 @@ jobs:
   tests:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       NGX_BUILD_GCOV: 1
-      NGX_BUILD_FORCE: 1
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
         ngx: [1.21.6]
-        #runtime: [wasmtime, wasmer]
         runtime: [wasmer]
-        wasmtime: [0.36.0]
         wasmer: [2.1.1]
-        hup: [1, 0]
+        hup: [0]
         debug: [1, 0]
+        include:
+          - os: ubuntu-latest
+            ngx: 1.21.6
+            runtime: wasmtime
+            wasmtime: 0.36.0
+            hup: 1
+            debug: 1
     steps:
       - run: sudo apt-get update && sudo apt-get install -y gcc-8
+        if: ${{ matrix.cc == 'gcc-8' }}
       - uses: actions/checkout@v2
-      - name: "Set up cache - rustup toolchain"
+      - name: "Setup cache - rustup toolchain"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
         with:
@@ -45,23 +50,22 @@ jobs:
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
-      - name: "Set up cache - ngx_wasm work/ dir"
+      - name: "Setup cache - work/ dir"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
-        id: cache
         with:
           path: |
-            work
-            !work/scans
+            work/downloads
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
-      - name: Set up gcov
+      - name: Setup gcov
+        if: ${{ !env.ACT && env.NGX_BUILD_GCOV }}
         run: sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/$(echo ${{ matrix.cc }} | sed s/gcc/gcov/) 100
-      - name: Set up rust
+      - name: Setup rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           target: wasm32-wasi
-      - name: Set up Wasm runtime
+      - name: Setup Wasm runtime
         uses: ./.github/actions/wasm-runtime
         with:
           runtime: ${{ matrix.runtime }}
@@ -75,6 +79,16 @@ jobs:
       - run: make test
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+      #- run: |
+      #    pkill -9 nginx
+      #    sleep 10
+      #    tar -czf logs.tar.gz `find t/ -type f -name 'error.log'`
+      #  if: ${{ failure() && !env.ACT }}
+      #- uses: actions/upload-artifact@v2
+      #  if: ${{ failure() && !env.ACT }}
+      #  with:
+      #    name: error_logs-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+      #    path: error_logs.tar.gz
       - uses: codecov/codecov-action@v1
         if: ${{ !env.ACT }}
         env:
@@ -88,28 +102,29 @@ jobs:
   valgrind:
     name: 'Tests - valgrind'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 30
+    #if: ${{ false }}
     env:
-      NGX_BUILD_FORCE: 1
       NGX_BUILD_NOPOOL: 1
+      NGX_BUILD_CC_OPT: '-O2'
+      TEST_NGINX_TIMEOUT: 60
       TEST_NGINX_USE_VALGRIND: 1
-      TEST_NGINX_TIMEOUT: 120
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
         ngx: [1.21.6]
-        #runtime: [wasmtime, wasmer]
         runtime: [wasmer]
-        wasmtime: [0.36.0]
         wasmer: [2.1.1]
-        hup: [0]
+        hup: [0, 1]
         debug: [1]
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y valgrind gcc-8
+      - run: sudo apt-get update && sudo apt-get install -y valgrind
+      - run: sudo apt-get install -y gcc-8
+        if: ${{ matrix.cc == 'gcc-8' }}
       - uses: actions/checkout@v2
-      - name: "Set up cache - rustup toolchain"
+      - name: "Setup cache - rustup toolchain"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
         with:
@@ -118,21 +133,19 @@ jobs:
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
-      - name: "Set up cache - ngx_wasm work/ dir"
+      - name: "Setup cache - work/ dir"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
-        id: cache
         with:
           path: |
-            work
-            !work/scans
+            work/downloads
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
-      - name: Set up rust
+      - name: Setup rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           target: wasm32-wasi
-      - name: Set up Wasm runtime
+      - name: Setup Wasm runtime
         uses: ./.github/actions/wasm-runtime
         with:
           runtime: ${{ matrix.runtime }}
@@ -153,7 +166,7 @@ jobs:
             exit 1
           fi
       - uses: actions/upload-artifact@v2
-        if: failure()
+        if: ${{ failure() && !env.ACT }}
         with:
           name: gh-failures-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: valgrind.out
@@ -161,18 +174,17 @@ jobs:
   lint:
     name: 'Lint'
     runs-on: ubuntu-latest
+    #if: ${{ false }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-            components: clippy
+          components: clippy
       - uses: actions/cache@v2
         if: ${{ !env.ACT }}
-        id: cache
         with:
           path: |
-            work
-            !work/scans
+            work/downloads
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
       - run: make setup
       - run: make lint
@@ -190,8 +202,8 @@ jobs:
   analyzer:
     name: 'Clang analyzer'
     runs-on: ubuntu-latest
+    #if: ${{ false }}
     env:
-      NGX_BUILD_FORCE: 1
       NGX_BUILD_CLANG_ANALYZER: 1
     strategy:
       fail-fast: false
@@ -205,16 +217,14 @@ jobs:
           sudo apt-get install -y $(echo ${{ matrix.cc }} | sed s/clang/clang-tools/)
           sudo update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/$(echo ${{ matrix.cc }} | sed s/clang/scan-build/) 100
       - uses: actions/checkout@v2
-      - name: "Set up cache - ngx_wasm work/ dir"
+      - name: "Setup cache - work/ dir"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
-        id: cache
         with:
           path: |
-            work
-            !work/scans
+            work/downloads
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
-      - name: Set up Wasm runtime
+      - name: Setup Wasm runtime
         uses: ./.github/actions/wasm-runtime
         with:
           version: ${{ matrix.wasmtime }}
@@ -224,7 +234,7 @@ jobs:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
       - uses: actions/upload-artifact@v2
-        if: failure()
+        if: ${{ failure() && !env.ACT }}
         with:
           name: gh-failures-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/scans/*
@@ -233,28 +243,26 @@ jobs:
     name: 'Tests - build'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    #if: ${{ false }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         cc: [clang]
         ngx: [1.21.6]
-        #runtime: [wasmtime, wasmer]
-        runtime: [wasmer]
+        runtime: [wasmer, wasmtime]
         wasmtime: [0.36.0]
         wasmer: [2.1.1]
     steps:
       - uses: actions/checkout@v2
-      - name: "Set up cache - ngx_wasm_module work/ dir"
+      - name: "Setup cache - work/ dir"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
-        id: cache
         with:
           path: |
-            work
-            !work/scans
+            work/downloads
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
-      - name: Set up Wasm runtime
+      - name: Setup Wasm runtime
         uses: ./.github/actions/wasm-runtime
         with:
           runtime: ${{ matrix.runtime }}

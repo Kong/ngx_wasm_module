@@ -1,10 +1,8 @@
-# vim:set ft= ts=4 sw=4 et fdm=marker:
+# vim:set ft= ts=4 sts=4 sw=4 et fdm=marker:
 
 use strict;
 use lib '.';
 use t::TestWasm;
-
-check_accum_error_log();
 
 plan tests => repeat_each() * (blocks() * 4);
 

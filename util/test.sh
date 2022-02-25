@@ -78,15 +78,13 @@ if [[ ! -x "$(command -v cargo)" ]]; then
 fi
 
 if [[ "$CI" == 'true' ]]; then
-    export TEST_WASMX_CARGO_BUILD_FORCE=1
-fi
-
-if [[ ! -z "$TEST_WASMX_CARGO_BUILD_FORCE" ]]; then
     cargo clean
+    export NGX_BUILD_FORCE=1
 fi
 
 cargo build \
     --lib \
+    --release \
     --target wasm32-wasi \
     --out-dir $DIR_TESTS_LIB_WASM \
     -Z unstable-options
@@ -95,7 +93,7 @@ if [ $(uname -s) = Linux ]; then
     export TEST_NGINX_EVENT_TYPE=epoll
 fi
 
-if [[ ! -z "$TEST_NGINX_USE_VALGRIND" ]]; then
+if [[ "$TEST_NGINX_USE_VALGRIND" == 1 ]]; then
     export TEST_NGINX_SLEEP=3
     echo "TEST_NGINX_USE_VALGRIND=$TEST_NGINX_USE_VALGRIND"
     echo "TEST_NGINX_SLEEP=$TEST_NGINX_SLEEP"
@@ -108,7 +106,7 @@ if [[ ! -z "$TEST_NGINX_USE_HUP" ]]; then
     echo "TEST_NGINX_USE_HUP=$TEST_NGINX_USE_HUP"
 fi
 
-if [[ ! -z "$TEST_NGINX_RANDOMIZE" ]]; then
+if [[ "$TEST_NGINX_RANDOMIZE" == 1 ]]; then
     prove_opts="-j$(n_jobs)"
     echo "TEST_NGINX_RANDOMIZE=$TEST_NGINX_RANDOMIZE ($prove_opts)"
 fi
