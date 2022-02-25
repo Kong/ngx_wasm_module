@@ -58,6 +58,17 @@ EOF
 
          if (!defined $block->ignore_response) {
 EOF
+    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
+    @@ -2783,7 +2783,7 @@ END {
+
+         check_prev_block_shutdown_error_log();
+
+    -    if ($Randomize) {
+    +    if ($Randomize && !$ENV{TEST_NGINX_NO_CLEAN}) {
+             if (defined $ServRoot && -d $ServRoot && $ServRoot =~ m{/t/servroot_\d+}) {
+                 system("rm -rf $ServRoot");
+             }
+EOF
     set -e
 popd
 

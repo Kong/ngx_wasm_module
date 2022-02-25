@@ -11,29 +11,10 @@ const REPOSITORIES = {
     wasmer: "https://github.com/wasmerio/wasmer",
 }
 
-async function exec_debug(cmd, args, opts = {}) {
-    let out = ''
-
-    opts.listeners = {
-        stdline: (s) => {
-            out += s
-        },
-        errline: (s) => {
-            out += s
-        },
-    }
-
-    await exec.exec(cmd, args, opts).catch()
-
-    core.debug(`$ ${cmd.trim()}`)
-    core.debug(out)
-}
-
 async function main() {
     let runtime = core.getInput("runtime", { required: true })
     let version = core.getInput("version", { required: true })
-    let cache_key = `${runtime}`
-    let dir = tc.find(cache_key, version)
+    let dir = tc.find(runtime, version)
     let repository = REPOSITORIES[runtime]
     let suffix = "tar.gz"
 
@@ -42,33 +23,36 @@ async function main() {
     }
 
     if (!dir) {
-        if (runtime === "wasmtime") {
-            switch (process.platform) {
-                case "linux":
-                    dir = `wasmtime-v${version}-x86_64-linux-c-api`
-                    break
+        let target
 
-                case "darwin":
-                    dir = `wasmtime-v${version}-x86_64-macos-c-api`
-                    break
+        switch (runtime) {
+            case "wasmtime":
+                switch (process.platform) {
+                    case "linux":
+                        target = `wasmtime-v${version}-x86_64-linux-c-api`
+                        break
+                    case "darwin":
+                        target = `wasmtime-v${version}-x86_64-macos-c-api`
+                        break
+                    default:
+                        return core.setFailed(`${os.platform()} not supported with Wasmtime`)
+                }
 
-                default:
-                    core.setFailed(`${os.platform()} not supported`)
-            }
+                dir = path.join(DIR_WORK, target)
+                version = version.replace(/^/, `v`)
+                suffix = "tar.xz"
+                break
 
-            version = version.replace(/^/, `v`)
-            suffix = "tar.xz"
+            case "wasmer":
+                dir = DIR_WORK
+                target = `wasmer-${process.platform}-amd64`
+                break
 
-        } else if (runtime === "wasmer") {
-            dir = `wasmer-${process.platform}-amd64`
-
-        } else {
-            core.setFailed("unreachable")
+            default:
+                return core.setFailed(`Unsupported Wasm runtime: ${runtime}`)
         }
 
-        await io.mkdirP(DIR_WORK)
-
-        let url = `${repository}/releases/download/${version}/${dir}.${suffix}`
+        let url = `${repository}/releases/download/${version}/${target}.${suffix}`
 
         core.info(`Downloading ${runtime} release from ${url}`)
         let tar = await tc.downloadTool(url)
@@ -76,14 +60,7 @@ async function main() {
         core.info(`Extracting ${tar}`)
         let src = await tc.extractTar(tar, DIR_WORK, "xv")
 
-        if (runtime === "wasmer") {
-            dir = DIR_WORK
-
-        } else {
-            dir = path.join(DIR_WORK, dir)
-        }
-
-        dir = await tc.cacheDir(dir, cache_key, version)
+        dir = await tc.cacheDir(dir, runtime, version)
     }
 
     core.exportVariable("NGX_WASM_RUNTIME", runtime)

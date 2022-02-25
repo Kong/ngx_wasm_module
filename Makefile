@@ -50,12 +50,15 @@ reindex:
 todo:
 	@/bin/grep -RIFn -- 'TODO' src/ t/
 
-.PHONY: act
-act:
+.PHONY: act-build
+act-build:
 	@docker build \
 		-t wasmx-build-ubuntu \
 		-f ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-20.04 \
 		./assets/release/Dockerfiles
+
+.PHONY: act
+act: act-build
 	@act --reuse
 
 .PHONY: clean
