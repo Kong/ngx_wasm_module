@@ -3,7 +3,29 @@
 #endif
 #include "ddebug.h"
 
+#include <ngx_wasm_socket_tcp.h>
 #include <ngx_wasm_socket_tcp_readers.h>
+
+
+#if 0
+static void
+ngx_wasm_read_log(ngx_buf_t *src, ngx_chain_t *buf_in, char *fmt)
+{
+    size_t      chunk_len;
+    ngx_buf_t  *buf;
+
+    for (/* void */; buf_in; buf_in = buf_in->next) {
+        buf = buf_in->buf;
+        chunk_len = buf->last - buf->start;
+
+        dd("buf_in %s: %p: %.*s", fmt, buf,
+           (int) chunk_len, buf->start);
+    }
+
+    dd("src %s: %p: %.*s", fmt, src,
+       (int) (src->last - src->pos), src->pos);
+}
+#endif
 
 
 ngx_int_t
@@ -79,11 +101,187 @@ ngx_wasm_read_line(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes)
 
 
 #ifdef NGX_WASM_HTTP
+static ngx_int_t
+ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
+{
+    u_char                          *old, *new;
+    ngx_buf_t                       *b;
+    ngx_chain_t                     *cl;
+    ngx_http_request_t              *r;
+    ngx_http_status_t               *status;
+    ngx_http_core_srv_conf_t        *cscf;
+    ngx_http_upstream_headers_in_t  *headers_in;
+    ngx_wasm_socket_tcp_t           *sock = in_ctx->sock;
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, sock->log, 0,
+                   "wasm alloc large header buffer");
+
+    r = &in_ctx->fake_r;
+    old = in_ctx->status_code ? r->header_name_start : r->request_start;
+    cscf = ngx_http_get_module_srv_conf(in_ctx->r, ngx_http_core_module);
+
+    if (!in_ctx->status_code && r->state == 0) {
+        /* the client fills up the buffer with "\r\n" */
+        r->header_in->pos = r->header_in->start;
+        r->header_in->last = r->header_in->start;
+
+        return NGX_OK;
+    }
+
+    if (r->state != 0
+        && (size_t) (r->header_in->pos - old)
+           >= cscf->large_client_header_buffers.size)
+    {
+        ngx_log_error(NGX_LOG_CRIT, sock->log, 0,
+                      "wasm dispatch upstream "
+                      "sent too large response headers");
+        return NGX_DECLINED;
+    }
+
+    sock = in_ctx->sock;
+
+    if (sock->free) {
+        cl = sock->free;
+        sock->free = cl->next;
+        b = cl->buf;
+
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, sock->log, 0,
+                       "wasm large header free: %p %uz",
+                       b->pos, b->end - b->last);
+
+    } else if (sock->nbusy < cscf->large_client_header_buffers.num) {
+        b = ngx_create_temp_buf(sock->pool,
+                                cscf->large_client_header_buffers.size);
+        if (b == NULL) {
+            return NGX_ERROR;
+        }
+
+        cl = ngx_alloc_chain_link(sock->pool);
+        if (cl == NULL) {
+            return NGX_ERROR;
+        }
+
+        cl->buf = b;
+
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, sock->log, 0,
+                       "wasm large header alloc: %p %uz",
+                       b->pos, b->end - b->last);
+
+    } else {
+        ngx_log_error(NGX_LOG_CRIT, sock->log, 0,
+                      "wasm dispatch upstream "
+                      "sent too large response headers");
+        return NGX_DECLINED;
+    }
+
+    cl->next = sock->busy;
+    sock->busy = cl;
+    sock->nbusy++;
+
+    if (r->state == 0) {
+        /*
+         * r->state == 0 means that a header line was parsed successfully
+         * and we do not need to copy incomplete header line and
+         * to relocate the parser header pointers
+         */
+
+        sock->buffer = *b;
+
+        return NGX_OK;
+    }
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, sock->log, 0,
+                   "wasm large header copy: %uz",
+                   r->header_in->pos - old);
+
+    if (r->header_in->pos - old > b->end - b->start) {
+        ngx_log_error(NGX_LOG_CRIT, sock->log, 0,
+                      "wasm dispatch upstream "
+                      "header too large to copy");
+        return NGX_ERROR;
+    }
+
+    new = b->start;
+
+    ngx_memcpy(new, old, r->header_in->pos - old);
+
+    b->pos = new + (r->header_in->pos - old);
+    b->last = new + (r->header_in->pos - old);
+
+    if (!in_ctx->status_code) {
+        r->request_start = new;
+
+        if (r->request_end) {
+            r->request_end = new + (r->request_end - old);
+        }
+
+        r->method_end = new + (r->method_end - old);
+        r->uri_start = new + (r->uri_start - old);
+        r->uri_end = new + (r->uri_end - old);
+
+        if (r->schema_start) {
+            r->schema_start = new + (r->schema_start - old);
+            r->schema_end = new + (r->schema_end - old);
+        }
+
+        if (r->host_start) {
+            r->host_start = new + (r->host_start - old);
+            if (r->host_end) {
+                r->host_end = new + (r->host_end - old);
+            }
+        }
+
+        if (r->port_start) {
+            r->port_start = new + (r->port_start - old);
+            r->port_end = new + (r->port_end - old);
+        }
+
+        if (r->uri_ext) {
+            r->uri_ext = new + (r->uri_ext - old);
+        }
+
+        if (r->args_start) {
+            r->args_start = new + (r->args_start - old);
+        }
+
+        if (r->http_protocol.data) {
+            r->http_protocol.data = new + (r->http_protocol.data - old);
+        }
+
+        status = &in_ctx->status;
+
+        if (status->start) {
+            status->start = new + (status->start - old);
+            if (status->end) {
+                status->end = new + (status->end - old);
+            }
+        }
+
+        headers_in = &r->upstream->headers_in;
+
+        if (headers_in->status_line.data) {
+            headers_in->status_line.data = new + (headers_in->status_line.data
+                                                  - old);
+        }
+
+    } else {
+        r->header_name_start = new;
+        r->header_name_end = new + (r->header_name_end - old);
+        r->header_start = new + (r->header_start - old);
+        r->header_end = new + (r->header_end - old);
+    }
+
+    sock->buf_in = cl;
+    sock->buffer = *b;
+
+    return NGX_OK;
+}
+
+
 ngx_int_t
 ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
     ngx_wasm_http_reader_ctx_t *in_ctx)
 {
-    u_char                          *pos;
     ngx_int_t                        rc;
     ngx_buf_t                       *b;
     ngx_chain_t                     *cl;
@@ -105,10 +303,11 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
     if (!r->signature) {
         ngx_memzero(r, sizeof(ngx_http_request_t));
 
+        r->signature = NGX_HTTP_MODULE;
         r->connection = in_ctx->r->connection;
         r->pool = in_ctx->pool;
-        r->signature = NGX_HTTP_MODULE;
         r->header_in = src;
+        r->request_start = src->pos;
 
         if (ngx_list_init(&r->headers_out.headers, r->pool, 20,
                           sizeof(ngx_table_elt_t))
@@ -151,16 +350,20 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
 
             rc = ngx_http_parse_status_line(r, src, status);
             if (rc == NGX_ERROR) {
-                return NGX_ERROR;
+                return rc;
             }
 
-            buf_in->buf->last = src->pos;
-
             if (rc == NGX_AGAIN) {
+                if (ngx_wasm_http_alloc_large_buffer(in_ctx) != NGX_OK) {
+                    return NGX_ERROR;
+                }
+
                 return NGX_AGAIN;
             }
 
             ngx_wasm_assert(rc == NGX_OK);
+
+            buf_in->buf->last = src->pos;
 
             headers_in->status_n = status->code;
             headers_in->status_line.len = status->end - status->start;
@@ -181,29 +384,44 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                            "wasm http reader status %ui \"%V\"",
                            headers_in->status_n, &headers_in->status_line);
 
-            in_ctx->headers_len += headers_in->status_line.len;
-
+            in_ctx->status_code = headers_in->status_n;
             return NGX_AGAIN;
         }
 
         /* headers */
 
-        pos = src->pos;
+        for ( ;; ) {
 
-        rc = ngx_http_parse_header_line(r, src, 1);
-        if (rc == NGX_HTTP_PARSE_INVALID_HEADER) {
-            return NGX_ERROR;
-        }
+            rc = ngx_http_parse_header_line(r, src, 1);
+            if (rc == NGX_HTTP_PARSE_INVALID_HEADER) {
+                return NGX_ERROR;
+            }
 
-        buf_in->buf->last = src->pos;
+            if (rc == NGX_AGAIN) {
+                if (ngx_wasm_http_alloc_large_buffer(in_ctx) != NGX_OK) {
+                    return NGX_ERROR;
+                }
 
-        if (rc == NGX_AGAIN) {
-            return NGX_AGAIN;
-        }
+                return NGX_AGAIN;
+            }
 
-        /* header */
+            buf_in->buf->last = src->pos;
 
-        if (rc == NGX_OK) {
+            if (rc == NGX_HTTP_PARSE_HEADER_DONE) {
+                ngx_log_debug2(NGX_LOG_DEBUG_WASM, in_ctx->log, 0,
+                               "wasm http read all headers "
+                               "(content-length: %O, chunked: %d)",
+                               headers_in->content_length_n,
+                               headers_in->chunked);
+
+                in_ctx->header_done = 1;
+                break;
+            }
+
+            ngx_wasm_assert(rc == NGX_OK);
+
+            /* header */
+
             h = ngx_list_push(&headers_in->headers);
             if (h == NULL) {
                 return NGX_ERROR;
@@ -212,8 +430,9 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
             h->hash = r->header_hash;
             h->key.len = r->header_name_end - r->header_name_start;
             h->value.len = r->header_end - r->header_start;
-            h->key.data = ngx_pnalloc(in_ctx->pool,
-                                      h->key.len + 1 + h->value.len + 1 + h->key.len);
+            h->key.data = ngx_pnalloc(in_ctx->pool, h->key.len + 1
+                                      + h->value.len + 1
+                                      + h->key.len);
             if (h->key.data == NULL) {
                 return NGX_ERROR;
             }
@@ -243,30 +462,30 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
             ngx_log_debug2(NGX_LOG_DEBUG_HTTP, in_ctx->log, 0,
                            "wasm http reader header: \"%V: %V\"",
                            &h->key, &h->value);
-
-            in_ctx->headers_len += buf_in->buf->last - pos;;
-
-            return NGX_AGAIN;
         }
-
-        ngx_wasm_assert(rc == NGX_HTTP_PARSE_HEADER_DONE);
-
-        ngx_log_debug2(NGX_LOG_DEBUG_WASM, in_ctx->log, 0,
-                       "wasm http read all headers "
-                       "(content-length: %O, chunked: %d)",
-                       headers_in->content_length_n,
-                       headers_in->chunked);
-
-        in_ctx->headers_len += buf_in->buf->last - pos;;
-        in_ctx->headers_len += sizeof(CRLF) - 1;
-        in_ctx->header_done = 1;
-
-        return NGX_AGAIN;
     }
 
     /* body */
 
     if (!in_ctx->body_done) {
+
+        /* incoming chunk */
+
+        cl = ngx_chain_get_free_buf(in_ctx->pool, &in_ctx->rctx->free_bufs);
+        if (cl == NULL) {
+            return NGX_ERROR;
+        }
+
+        if (in_ctx->body == NULL) {
+            in_ctx->body = cl;
+
+        } else {
+            in_ctx->body->next = cl;
+        }
+
+        b = cl->buf;
+
+        ngx_memzero(b, sizeof(ngx_buf_t));
 
         if (headers_in->chunked) {
 
@@ -287,37 +506,13 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                     }
 
                     if (rc == NGX_DONE) {
-                        break;
+                        return NGX_OK;
                     }
 
                     ngx_wasm_assert(rc == NGX_OK);
 
-                    /* incoming chunk */
-
-                    cl = ngx_chain_get_free_buf(in_ctx->pool, &in_ctx->rctx->free_bufs);
-                    if (cl == NULL) {
-                        return NGX_ERROR;
-                    }
-
-                    b = cl->buf;
-
-                    ngx_memzero(b, sizeof(ngx_buf_t));
-
-                    if (in_ctx->body == NULL) {
-                        in_ctx->body = cl;
-
-                    } else {
-                        in_ctx->cl->next = cl;
-                    }
-
-                    in_ctx->cl = cl;
                     in_ctx->rest = in_ctx->chunked.size;
                 }
-
-                ngx_wasm_assert(in_ctx->cl);
-
-                cl = in_ctx->cl;
-                b = cl->buf;
 
                 b->start = buf_in->buf->start;
                 b->end = buf_in->buf->end;
@@ -356,6 +551,10 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                            "wasm http reading body (rest: %d)",
                            in_ctx->rest);
 
+            b->start = src->pos;
+            b->end = buf_in->buf->end;
+            b->pos = buf_in->buf->last;
+
             rc = ngx_wasm_read_bytes(src, buf_in, bytes, &in_ctx->rest);
             if (rc == NGX_ERROR || rc == NGX_AGAIN) {
                 return rc;
@@ -365,27 +564,14 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
             ngx_wasm_assert(in_ctx->rest == 0);
 
             in_ctx->body_len = headers_in->content_length_n;
+
+            b->last = buf_in->buf->last;
         }
 
         ngx_log_debug0(NGX_LOG_DEBUG_WASM, in_ctx->log, 0,
                        "wasm http read body finished");
 
         in_ctx->body_done = 1;
-#if 0
-        {
-            ngx_buf_t    *buf;
-            ngx_chain_t  *bufs_in = in_ctx->body;
-            size_t        chunk_len;
-
-            for (/* void */; bufs_in; bufs_in = bufs_in->next) {
-                buf = bufs_in->buf;
-                chunk_len = buf->last - buf->pos;
-
-                dd("body: %p: %.*s", buf,
-                   (int) chunk_len, buf->pos);
-            }
-        }
-#endif
     }
 
     return NGX_OK;

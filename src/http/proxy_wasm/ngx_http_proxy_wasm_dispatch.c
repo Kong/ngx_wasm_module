@@ -44,6 +44,7 @@ ngx_http_proxy_wasm_dispatch(ngx_http_proxy_wasm_dispatch_t *call)
     call->http_reader.log = r->connection->log;
     call->http_reader.r = r;
     call->http_reader.rctx = call->rctx;
+    call->http_reader.sock = sock;
 
     /* cleanup */
 

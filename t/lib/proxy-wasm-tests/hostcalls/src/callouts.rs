@@ -31,6 +31,12 @@ pub(crate) fn dispatch_call(ctx: &mut TestHttpHostcalls) {
         ));
     }
 
+    if let Some(hdrs) = ctx.config.get("headers") {
+        for (k, v) in hdrs.split('|').filter_map(|s| s.split_once(':')) {
+            headers.push((k, v));
+        }
+    }
+
     ctx.dispatch_http_call(
         ctx.config.get("host").map(|v| v.as_str()).unwrap_or(""),
         headers,
