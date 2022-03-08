@@ -8,18 +8,21 @@
 #endif
 
 
+typedef struct ngx_wasm_socket_tcp_s  ngx_wasm_socket_tcp_t;
+
+
 #ifdef NGX_WASM_HTTP
 typedef struct {
     ngx_pool_t                       *pool;
     ngx_log_t                        *log;
+    ngx_wasm_socket_tcp_t            *sock;
     ngx_http_request_t               *r;
     ngx_http_wasm_req_ctx_t          *rctx;
     ngx_http_request_t                fake_r;
     ngx_http_status_t                 status;
     ngx_http_chunked_t                chunked;
+    ngx_uint_t                        status_code;
     ngx_chain_t                      *body;
-    ngx_chain_t                      *cl;
-    size_t                            headers_len;
     size_t                            body_len;
     size_t                            rest;
     unsigned                          header_done:1;

@@ -125,6 +125,7 @@ ngx_wasm_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free,
         b = cl->buf;
         start = b->start;
         end = b->end;
+#if 1
         if (start && (size_t) (end - start) >= len) {
             ngx_log_debug4(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                            "wasm reuse free buf memory %O >= %uz, cl:%p, p:%p",
@@ -144,6 +145,7 @@ ngx_wasm_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free,
 
             return cl;
         }
+#endif
 
         ngx_log_debug4(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                        "wasm reuse free buf chain, but reallocate memory "

@@ -51,23 +51,6 @@ ngx_wasm_socket_tcp_err(ngx_wasm_socket_tcp_t *sock,
 }
 
 
-ngx_wasm_socket_tcp_t *
-ngx_wasm_socket_tcp_new(ngx_pool_t *pool, ngx_log_t *log)
-{
-    ngx_wasm_socket_tcp_t  *sock;
-
-    sock = ngx_pcalloc(pool, sizeof(ngx_wasm_socket_tcp_t));
-    if (sock == NULL) {
-        return NULL;
-    }
-
-    sock->pool = pool;
-    sock->log = log;
-
-    return sock;
-}
-
-
 ngx_int_t
 ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock, ngx_str_t *host)
 {
@@ -143,11 +126,10 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock,
         sock->resolved->naddrs = 1;
 
         return ngx_wasm_socket_tcp_connect_peer(sock);
-
-    } else {
-        sock->resolved->host = sock->host;
-        sock->resolved->port = sock->url.default_port;
     }
+
+    sock->resolved->host = sock->host;
+    sock->resolved->port = sock->url.default_port;
 
     /* resolve */
 
@@ -428,6 +410,7 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
 }
 
 
+#if 0
 ngx_int_t
 ngx_wasm_socket_reader_read_all(ngx_wasm_socket_tcp_t *sock, ssize_t bytes)
 {
@@ -446,6 +429,7 @@ ngx_wasm_socket_reader_read_line(ngx_wasm_socket_tcp_t *sock, ssize_t bytes)
 
     return ngx_wasm_read_line(&sock->buffer, sock->buf_in, bytes);
 }
+#endif
 
 
 #ifdef NGX_WASM_HTTP
@@ -481,7 +465,7 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
     if (sock->bufs_in == NULL) {
         cl = ngx_wasm_chain_get_free_buf(sock->pool, &sock->rctx->free_bufs,
-                                         24, buf_tag); // TODO: move
+                                         12, buf_tag); // TODO: move
         if (cl == NULL) {
             return NGX_ERROR;
         }
@@ -503,11 +487,11 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
         size = b->last - b->pos;
 
-#if 0
-        dd("size: %ld (eof: %d)", size, (int) sock->eof);
-#endif
+        dd("b: %p: %.*s (size: %ld, eof: %d)",
+           b, size, b->pos, size, (int) sock->eof);
 
         if (size || sock->eof) {
+
             rc = sock->reader(sock, size);
             if (rc == NGX_ERROR) {
                 return NGX_ERROR;
@@ -525,6 +509,7 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
             }
 
             ngx_wasm_assert(rc == NGX_AGAIN);
+
             continue;
         }
 
@@ -536,13 +521,12 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
         size = b->end - b->last;
 
-#if 0
-        dd("bytes left in buffer: %ld", size);
-#endif
+        dd("bytes left in buffer: %ld (pos: %p, end: %p",
+           size, b->pos, b->end);
 
         if (size == 0) {
             cl = ngx_wasm_chain_get_free_buf(sock->pool, &sock->rctx->free_bufs,
-                                             1024, buf_tag); // TODO: move
+                                             12, buf_tag); // TODO: move
             if (cl == NULL) {
                 return NGX_ERROR;
             }
@@ -633,6 +617,9 @@ ngx_wasm_socket_tcp_close(ngx_wasm_socket_tcp_t *sock)
 void
 ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
 {
+#if 0
+    ngx_chain_t       *cl, *ln;
+#endif
     ngx_connection_t  *c = sock->peer.connection;
 
     ngx_wasm_socket_tcp_close(sock);
@@ -648,6 +635,37 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
     if (c && c->pool) {
         ngx_destroy_pool(c->pool);
     }
+
+#if 0
+    ngx_log_debug1(NGX_LOG_DEBUG_ALL, sock->log, 0,
+                   "sock free: %p", sock->free);
+
+    if (sock->free) {
+        for (cl = sock->free; cl; /* void */) {
+            ln = cl;
+            cl = cl->next;
+            ngx_pfree(sock->pool, ln->buf->start);
+            ngx_free_chain(sock->pool, ln);
+        }
+
+        sock->free = NULL;
+    }
+
+    ngx_log_debug2(NGX_LOG_DEBUG_ALL, sock->log, 0,
+                   "sock busy: %p %i", sock->busy, sock->nbusy);
+
+    if (sock->busy) {
+        for (cl = sock->busy; cl; /* void */) {
+            ln = cl;
+            cl = cl->next;
+            ngx_pfree(sock->pool, ln->buf->start);
+            ngx_free_chain(sock->pool, ln);
+        }
+
+        sock->busy = NULL;
+        sock->nbusy = 0;
+    }
+#endif
 }
 
 

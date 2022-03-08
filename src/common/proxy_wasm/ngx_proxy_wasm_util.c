@@ -352,15 +352,6 @@ ngx_proxy_wasm_pairs_unmarshal(ngx_array_t *dst, ngx_pool_t *pool,
 
 failed:
 
-#if 0
-    for (i = 0; i < a->nelts; i++) {
-        elt = ((ngx_table_elt_t **) a->elts)[i];
-        if (elt) {
-            ngx_pfree(pool, elt);
-        }
-    }
-#endif
-
     ngx_array_destroy(dst);
 
     return NGX_ERROR;
