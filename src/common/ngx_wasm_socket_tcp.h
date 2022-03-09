@@ -29,6 +29,10 @@ struct ngx_wasm_socket_tcp_s {
     ngx_pool_t                            *pool;
     ngx_log_t                             *log;
     void                                  *data;
+
+    size_t                                 buffer_size;
+    ngx_flag_t                             buffer_reuse;
+
     ngx_wasm_socket_tcp_resume_handler_pt  resume;
 
     /* upstream */

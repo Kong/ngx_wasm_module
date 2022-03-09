@@ -109,16 +109,13 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
     ngx_chain_t                     *cl;
     ngx_http_request_t              *r;
     ngx_http_status_t               *status;
-    ngx_http_core_srv_conf_t        *cscf;
+    ngx_http_wasm_loc_conf_t        *loc;
     ngx_http_upstream_headers_in_t  *headers_in;
     ngx_wasm_socket_tcp_t           *sock = in_ctx->sock;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, sock->log, 0,
-                   "wasm alloc large header buffer");
-
     r = &in_ctx->fake_r;
     old = in_ctx->status_code ? r->header_name_start : r->request_start;
-    cscf = ngx_http_get_module_srv_conf(in_ctx->r, ngx_http_core_module);
+    loc = ngx_http_get_module_loc_conf(in_ctx->r, ngx_http_wasm_module);
 
     if (!in_ctx->status_code && r->state == 0) {
         /* the client fills up the buffer with "\r\n" */
@@ -130,11 +127,10 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
 
     if (r->state != 0
         && (size_t) (r->header_in->pos - old)
-           >= cscf->large_client_header_buffers.size)
+            >= loc->socket_large_buffers.size)
     {
-        ngx_log_error(NGX_LOG_CRIT, sock->log, 0,
-                      "wasm dispatch upstream "
-                      "sent too large response headers");
+        ngx_log_error(NGX_LOG_ERR, sock->log, 0,
+                      "wasm socket - upstream response headers too large");
         return NGX_DECLINED;
     }
 
@@ -146,12 +142,11 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
         b = cl->buf;
 
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, sock->log, 0,
-                       "wasm large header free: %p %uz",
+                       "wasm socket large header free: %p %uz",
                        b->pos, b->end - b->last);
 
-    } else if (sock->nbusy < cscf->large_client_header_buffers.num) {
-        b = ngx_create_temp_buf(sock->pool,
-                                cscf->large_client_header_buffers.size);
+    } else if (sock->nbusy < loc->socket_large_buffers.num) {
+        b = ngx_create_temp_buf(sock->pool, loc->socket_large_buffers.size);
         if (b == NULL) {
             return NGX_ERROR;
         }
@@ -164,13 +159,12 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
         cl->buf = b;
 
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, sock->log, 0,
-                       "wasm large header alloc: %p %uz",
+                       "wasm socket large header alloc: %p %uz",
                        b->pos, b->end - b->last);
 
     } else {
-        ngx_log_error(NGX_LOG_CRIT, sock->log, 0,
-                      "wasm dispatch upstream "
-                      "sent too large response headers");
+        ngx_log_error(NGX_LOG_ERR, sock->log, 0,
+                      "wasm socket - upstream response headers too large");
         return NGX_DECLINED;
     }
 
@@ -191,13 +185,12 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, sock->log, 0,
-                   "wasm large header copy: %uz",
+                   "wasm socket large header copy: %uz",
                    r->header_in->pos - old);
 
     if (r->header_in->pos - old > b->end - b->start) {
-        ngx_log_error(NGX_LOG_CRIT, sock->log, 0,
-                      "wasm dispatch upstream "
-                      "header too large to copy");
+        ngx_log_error(NGX_LOG_ERR, sock->log, 0,
+                      "wasm socket - upstream response headers too large");
         return NGX_ERROR;
     }
 

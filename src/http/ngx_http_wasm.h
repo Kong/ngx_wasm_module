@@ -58,6 +58,11 @@ typedef struct {
     ngx_wavm_t                        *vm;
     ngx_wasm_ops_engine_t             *ops_engine;
     ngx_uint_t                         isolation;
+
+    size_t                             socket_buffer_size;    /* wasm_socket_buffer_size */
+    ngx_bufs_t                         socket_large_buffers;  /* wasm_socket_large_buffer_size */
+
+    ngx_flag_t                         socket_buffer_reuse;   /* wasm_socket_buffer_reuse */
 } ngx_http_wasm_loc_conf_t;
 
 

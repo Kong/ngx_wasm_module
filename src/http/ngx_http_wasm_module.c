@@ -90,6 +90,27 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       NGX_HTTP_MODULE,
       NULL },
 
+    { ngx_string("wasm_socket_buffer_size"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_size_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, socket_buffer_size),
+      NULL },
+
+    { ngx_string("wasm_socket_buffer_reuse"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, socket_buffer_reuse),
+      NULL },
+
+    { ngx_string("wasm_socket_large_buffer_size"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
+      ngx_conf_set_bufs_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, socket_large_buffers),
+      NULL },
+
     { ngx_string("proxy_wasm"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
       ngx_http_wasm_proxy_wasm_directive,
@@ -188,6 +209,8 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
     }
 
     loc->isolation = NGX_CONF_UNSET_UINT;
+    loc->socket_buffer_size = NGX_CONF_UNSET_SIZE;
+    loc->socket_buffer_reuse = NGX_CONF_UNSET;
 
     loc->vm = ngx_wasm_main_vm(cf->cycle);
     if (loc->vm) {
@@ -219,6 +242,12 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_uint_value(conf->isolation, prev->isolation,
                               NGX_PROXY_WASM_ISOLATION_NONE);
+    ngx_conf_merge_size_value(conf->socket_buffer_size,
+                              prev->socket_buffer_size, 1024);
+    ngx_conf_merge_bufs_value(conf->socket_large_buffers,
+                              prev->socket_large_buffers, 4, 8192);
+    ngx_conf_merge_value(conf->socket_buffer_reuse,
+                         prev->socket_buffer_reuse, 1);
 
     if (conf->ops_engine) {
         mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);

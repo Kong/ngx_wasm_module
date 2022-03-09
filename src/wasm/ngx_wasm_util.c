@@ -111,13 +111,13 @@ ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
 
 ngx_chain_t *
 ngx_wasm_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free,
-    size_t len, ngx_buf_tag_t tag)
+    size_t len, ngx_buf_tag_t tag, unsigned reuse)
 {
     ngx_buf_t    *b;
     ngx_chain_t  *cl;
     u_char       *start, *end;
 
-    if (*free) {
+    if (reuse && *free) {
         cl = *free;
         *free = cl->next;
         cl->next = NULL;
@@ -125,7 +125,7 @@ ngx_wasm_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free,
         b = cl->buf;
         start = b->start;
         end = b->end;
-#if 1
+
         if (start && (size_t) (end - start) >= len) {
             ngx_log_debug4(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                            "wasm reuse free buf memory %O >= %uz, cl:%p, p:%p",
@@ -145,7 +145,6 @@ ngx_wasm_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free,
 
             return cl;
         }
-#endif
 
         ngx_log_debug4(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                        "wasm reuse free buf chain, but reallocate memory "
@@ -248,7 +247,7 @@ ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
         }
     }
 
-    nl = ngx_wasm_chain_get_free_buf(pool, free, rest, tag);
+    nl = ngx_wasm_chain_get_free_buf(pool, free, rest, tag, 1);
     if (nl == NULL) {
         return NGX_ERROR;
     }

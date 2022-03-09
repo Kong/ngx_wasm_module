@@ -86,7 +86,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
         }
 
         cl = ngx_wasm_chain_get_free_buf(fctx->pool, &rctx->free_bufs,
-                                         in_ctx->body_len, buf_tag);
+                                         in_ctx->body_len, buf_tag, 1);
         if (cl == NULL) {
             return NULL;
         }
