@@ -23,10 +23,13 @@ static char  ngx_http_proxy_wasm_content_length[] = "Content-Length: 0";
 ngx_int_t
 ngx_http_proxy_wasm_dispatch(ngx_http_proxy_wasm_dispatch_t *call)
 {
-    ngx_event_t            *ev;
-    ngx_pool_cleanup_t     *cln;
-    ngx_wasm_socket_tcp_t  *sock = &call->sock;
-    ngx_http_request_t     *r = call->r;
+    ngx_event_t               *ev;
+    ngx_pool_cleanup_t        *cln;
+    ngx_wasm_socket_tcp_t     *sock = &call->sock;
+    ngx_http_wasm_loc_conf_t  *loc;
+    ngx_http_request_t        *r = call->r;
+
+    loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
 
     /* init */
 
@@ -35,6 +38,9 @@ ngx_http_proxy_wasm_dispatch(ngx_http_proxy_wasm_dispatch_t *call)
     sock->read_timeout = call->timeout;
     sock->send_timeout = call->timeout;
     sock->connect_timeout = call->timeout;
+
+    sock->buffer_size = loc->socket_buffer_size;
+    sock->buffer_reuse = loc->socket_buffer_reuse;
 
     if (ngx_wasm_socket_tcp_init(sock, &call->host) != NGX_OK) {
         return NGX_ERROR;
@@ -149,7 +155,8 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
 
     /* get buffer */
 
-    nl = ngx_wasm_chain_get_free_buf(r->pool, &rctx->free_bufs, len, buf_tag);
+    nl = ngx_wasm_chain_get_free_buf(r->pool, &rctx->free_bufs, len,
+                                     buf_tag, 1);
     if (nl == NULL) {
         return NULL;
     }

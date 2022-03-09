@@ -465,7 +465,8 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
     if (sock->bufs_in == NULL) {
         cl = ngx_wasm_chain_get_free_buf(sock->pool, &sock->rctx->free_bufs,
-                                         12, buf_tag); // TODO: move
+                                         sock->buffer_size, buf_tag,
+                                         sock->buffer_reuse);
         if (cl == NULL) {
             return NGX_ERROR;
         }
@@ -487,8 +488,8 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
         size = b->last - b->pos;
 
-        dd("b: %p: %.*s (size: %ld, eof: %d)",
-           b, size, b->pos, size, (int) sock->eof);
+        dd("b: %p: %.*s (size: %lu, eof: %d)",
+           b, (int) size, b->pos, size, (int) sock->eof);
 
         if (size || sock->eof) {
 
@@ -526,7 +527,8 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
         if (size == 0) {
             cl = ngx_wasm_chain_get_free_buf(sock->pool, &sock->rctx->free_bufs,
-                                             12, buf_tag); // TODO: move
+                                             sock->buffer_size, buf_tag,
+                                             sock->buffer_reuse);
             if (cl == NULL) {
                 return NGX_ERROR;
             }
