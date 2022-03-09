@@ -90,6 +90,27 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       NGX_HTTP_MODULE,
       NULL },
 
+    { ngx_string("wasm_socket_connect_timeout"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_msec_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, connect_timeout),
+      NULL },
+
+    { ngx_string("wasm_socket_send_timeout"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_msec_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, send_timeout),
+      NULL },
+
+    { ngx_string("wasm_socket_read_timeout"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_msec_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, recv_timeout),
+      NULL },
+
     { ngx_string("wasm_socket_buffer_size"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_size_slot,
@@ -209,8 +230,15 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
     }
 
     loc->isolation = NGX_CONF_UNSET_UINT;
+    loc->connect_timeout = NGX_CONF_UNSET_MSEC;
+    loc->send_timeout = NGX_CONF_UNSET_MSEC;
+    loc->recv_timeout = NGX_CONF_UNSET_MSEC;
     loc->socket_buffer_size = NGX_CONF_UNSET_SIZE;
+#if (NGX_DEBUG)
     loc->socket_buffer_reuse = NGX_CONF_UNSET;
+#else
+    loc->socket_buffer_reuse = 1;
+#endif
 
     loc->vm = ngx_wasm_main_vm(cf->cycle);
     if (loc->vm) {
@@ -242,6 +270,14 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_uint_value(conf->isolation, prev->isolation,
                               NGX_PROXY_WASM_ISOLATION_NONE);
+
+    ngx_conf_merge_msec_value(conf->connect_timeout,
+                              prev->connect_timeout, 60000);
+    ngx_conf_merge_msec_value(conf->send_timeout,
+                              prev->send_timeout, 60000);
+    ngx_conf_merge_msec_value(conf->recv_timeout,
+                              prev->recv_timeout, 60000);
+
     ngx_conf_merge_size_value(conf->socket_buffer_size,
                               prev->socket_buffer_size, 1024);
     ngx_conf_merge_bufs_value(conf->socket_large_buffers,

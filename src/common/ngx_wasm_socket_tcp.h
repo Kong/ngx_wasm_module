@@ -9,9 +9,6 @@
 #endif
 
 
-#define NGX_WASM_SOCKET_TCP_DEFAULT_TIMEOUT  60000
-
-
 typedef void (*ngx_wasm_socket_tcp_handler_pt)(ngx_wasm_socket_tcp_t *sock);
 typedef ngx_int_t (*ngx_wasm_socket_tcp_reader_pt)(
     ngx_wasm_socket_tcp_t *sock, ssize_t bytes);
@@ -83,7 +80,7 @@ struct ngx_wasm_socket_tcp_s {
 
 
 ngx_int_t ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host);
+    ngx_str_t *host, ngx_pool_t *pool, ngx_log_t *log);
 ngx_int_t ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock,
     ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock,
