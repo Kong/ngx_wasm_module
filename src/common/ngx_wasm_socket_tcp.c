@@ -52,24 +52,16 @@ ngx_wasm_socket_tcp_err(ngx_wasm_socket_tcp_t *sock,
 
 
 ngx_int_t
-ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock, ngx_str_t *host)
+ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock, ngx_str_t *host,
+    ngx_pool_t *pool, ngx_log_t *log)
 {
+    sock->pool = pool;
+    sock->log = log;
+
     sock->host.len = host->len;
     sock->host.data = ngx_pstrdup(sock->pool, host);
     if (sock->host.data == NULL) {
         return NGX_ERROR;
-    }
-
-    if (!sock->read_timeout) {
-        sock->read_timeout = NGX_WASM_SOCKET_TCP_DEFAULT_TIMEOUT;
-    }
-
-    if (!sock->send_timeout) {
-        sock->send_timeout = NGX_WASM_SOCKET_TCP_DEFAULT_TIMEOUT;
-    }
-
-    if (!sock->connect_timeout) {
-        sock->connect_timeout = NGX_WASM_SOCKET_TCP_DEFAULT_TIMEOUT;
     }
 
     ngx_memzero(&sock->url, sizeof(ngx_url_t));
@@ -99,9 +91,10 @@ ngx_int_t
 ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock,
     ngx_http_wasm_req_ctx_t *rctx)
 {
-    ngx_resolver_ctx_t        *rslv_ctx, rslv_tmp;
+    ngx_resolver_ctx_t        *rslv_ctx = NULL, rslv_tmp;
 #ifdef NGX_WASM_HTTP
     ngx_http_core_loc_conf_t  *clcf;
+    ngx_http_wasm_loc_conf_t  *loc;
     ngx_http_request_t        *r = rctx->r;
 #endif
 
@@ -112,6 +105,26 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock,
     if (sock->connected) {
         return NGX_OK;
     }
+
+#ifdef NGX_WASM_HTTP
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+    loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
+
+    sock->buffer_size = loc->socket_buffer_size;
+    sock->buffer_reuse = loc->socket_buffer_reuse;
+
+    if (!sock->connect_timeout) {
+        sock->connect_timeout = loc->connect_timeout;
+    }
+
+    if (!sock->send_timeout) {
+        sock->send_timeout = loc->send_timeout;
+    }
+
+    if (!sock->read_timeout) {
+        sock->read_timeout = loc->recv_timeout;
+    }
+#endif
 
     sock->rctx = rctx;
     sock->resolved = ngx_pcalloc(sock->pool, sizeof(ngx_http_upstream_resolved_t));
@@ -133,12 +146,10 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock,
 
     /* resolve */
 
-#ifdef NGX_WASM_HTTP
-    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-#endif
-
     rslv_tmp.name = sock->url.host;
+#ifdef NGX_WASM_HTTP
     rslv_ctx = ngx_resolve_start(clcf->resolver, &rslv_tmp);
+#endif
     if (rslv_ctx == NULL) {
         ngx_wasm_socket_tcp_err(sock, "failed starting resolver");
         return NGX_ERROR;
@@ -180,9 +191,8 @@ ngx_wasm_socket_resolve_handler(ngx_resolver_ctx_t *ctx)
                    "wasm tcp socket resolve handler");
 
     if (ctx->state) {
-        ngx_wasm_log_error(NGX_LOG_ERR, sock->log, 0,
-                           "tcp socket resolver error: %s",
-                           ngx_resolver_strerror(ctx->state));
+        ngx_wasm_socket_tcp_err(sock, "tcp socket resolver error: %s",
+                                ngx_resolver_strerror(ctx->state));
         goto error;
     }
 
@@ -255,6 +265,8 @@ ngx_wasm_socket_resolve_handler(ngx_resolver_ctx_t *ctx)
 error:
 
     ngx_resolve_name_done(ctx);
+
+    sock->resume(sock);
 }
 
 
@@ -914,7 +926,8 @@ ngx_wasm_socket_tcp_send_handler(ngx_wasm_socket_tcp_t *sock)
                        "wasm tcp socket timed out writing to \"%V:%ud\"",
                        &c->addr_text, ngx_inet_get_port(sock->peer.sockaddr));
 
-        ngx_wasm_socket_tcp_err(sock, "tcp socket write timed out (\"%V:%ud\")",
+        ngx_wasm_socket_tcp_err(sock, "tcp socket timed out "
+                                "writing to \"%V:%ud\"",
                                 &c->addr_text,
                                 ngx_inet_get_port(sock->peer.sockaddr));
 
@@ -938,7 +951,8 @@ ngx_wasm_socket_tcp_receive_handler(ngx_wasm_socket_tcp_t *sock)
                        "wasm tcp socket timed out reading from \"%V:%ud\"",
                        &c->addr_text, ngx_inet_get_port(sock->peer.sockaddr));
 
-        ngx_wasm_socket_tcp_err(sock, "tcp socket read timed out (\"%V:%ud\")",
+        ngx_wasm_socket_tcp_err(sock, "tcp socket timed out "
+                                "reading from \"%V:%ud\"",
                                 &c->addr_text,
                                 ngx_inet_get_port(sock->peer.sockaddr));
 
