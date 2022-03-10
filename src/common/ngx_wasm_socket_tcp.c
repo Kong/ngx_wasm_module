@@ -366,33 +366,36 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
     }
 
     c = sock->peer.connection;
-    b = cl->buf;
 
     for ( ;; ) {
 
+        b = cl->buf;
         n = c->send(c, b->pos, b->last - b->pos);
 
         if (n >= 0) {
             b->pos += n;
 
             if (b->pos == b->last) {
-                ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
-                               "wasm tcp socket sent all the data");
+                cl = cl->next;
 
-                if (c->write->timer_set) {
-                    ngx_del_timer(c->write);
+                if (cl == NULL) {
+                    ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
+                                   "wasm tcp socket sent all the data");
+
+                    if (c->write->timer_set) {
+                        ngx_del_timer(c->write);
+                    }
+
+                    if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
+                        return NGX_ERROR;
+                    }
+
+                    return NGX_OK;
                 }
-
-                if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
-                    return NGX_ERROR;
-                }
-
-                return NGX_OK;
             }
 
             ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
                            "wasm tcp socket more data to send");
-
             continue;
         }
 
@@ -449,8 +452,9 @@ ngx_int_t
 ngx_wasm_socket_read_http_response(ngx_wasm_socket_tcp_t *sock,
     ssize_t bytes)
 {
-    ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
-                   "wasm tcp socket reading http response");
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, sock->log, 0,
+                   "wasm tcp socket resuming http response reading "
+                   "with %d bytes to parse", bytes);
 
     return ngx_wasm_read_http_response(&sock->buffer, sock->buf_in, bytes,
                                        sock->reader_ctx);
@@ -523,7 +527,10 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
             ngx_wasm_assert(rc == NGX_AGAIN);
 
-            continue;
+            if (b->pos < b->last) {
+                dd("more to read, continue");
+                continue;
+            }
         }
 
         if (rev->active && !rev->ready) {
@@ -534,8 +541,8 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
         size = b->end - b->last;
 
-        dd("bytes left in buffer: %ld (pos: %p, end: %p",
-           size, b->pos, b->end);
+        dd("bytes left in buffer: %ld (pos: %p, last: %p, end: %p",
+           size, b->pos, b->last, b->end);
 
         if (size == 0) {
             cl = ngx_wasm_chain_get_free_buf(sock->pool, &sock->rctx->free_bufs,
@@ -575,7 +582,7 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
         if (n == 0) {
             ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
-                           "wasm tcp socket closed");
+                           "wasm tcp socket eof");
             sock->eof = 1;
             continue;
         }
@@ -631,7 +638,7 @@ ngx_wasm_socket_tcp_close(ngx_wasm_socket_tcp_t *sock)
 void
 ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
 {
-#if 0
+#if 1
     ngx_chain_t       *cl, *ln;
 #endif
     ngx_connection_t  *c = sock->peer.connection;
@@ -650,9 +657,9 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
         ngx_destroy_pool(c->pool);
     }
 
-#if 0
+#if 1
     ngx_log_debug1(NGX_LOG_DEBUG_ALL, sock->log, 0,
-                   "sock free: %p", sock->free);
+                   "wasm tcp socket free: %p", sock->free);
 
     if (sock->free) {
         for (cl = sock->free; cl; /* void */) {
@@ -666,7 +673,8 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
     }
 
     ngx_log_debug2(NGX_LOG_DEBUG_ALL, sock->log, 0,
-                   "sock busy: %p %i", sock->busy, sock->nbusy);
+                   "wasm tcp socket busy: %p %i",
+                   sock->busy, sock->nbusy);
 
     if (sock->busy) {
         for (cl = sock->busy; cl; /* void */) {
