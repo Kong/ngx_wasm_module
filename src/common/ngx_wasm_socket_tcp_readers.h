@@ -22,7 +22,9 @@ typedef struct {
     ngx_http_status_t                 status;
     ngx_http_chunked_t                chunked;
     ngx_uint_t                        status_code;
+    ngx_chain_t                      *chunks;
     ngx_chain_t                      *body;
+    size_t                            headers_len;
     size_t                            body_len;
     size_t                            rest;
     unsigned                          header_done:1;

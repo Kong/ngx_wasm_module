@@ -60,9 +60,6 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
 
     case NGX_PROXY_WASM_BUFFER_HTTP_CALL_RESPONSE_BODY:
     {
-        size_t                           chunk_len;
-        ngx_buf_t                       *buf, *b;
-        ngx_chain_t                     *bufs_in;
         ngx_wasm_http_reader_ctx_t      *in_ctx;
         ngx_http_proxy_wasm_dispatch_t  *call;
         ngx_proxy_wasm_filter_ctx_t     *fctx;
@@ -81,29 +78,8 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
             return NULL;
         }
 
-        if (fctx->dispatch_body) {
-            return fctx->dispatch_body;
-        }
-
-        cl = ngx_wasm_chain_get_free_buf(fctx->pool, &rctx->free_bufs,
-                                         in_ctx->body_len, buf_tag, 1);
-        if (cl == NULL) {
-            return NULL;
-        }
-
-        fctx->dispatch_body = cl;
-        bufs_in = call->http_reader.body;
-        b = cl->buf;
-
-        for (/* void */; bufs_in; bufs_in = bufs_in->next) {
-            buf = bufs_in->buf;
-            chunk_len = buf->last - buf->pos;
-
-            b->last = ngx_cpymem(b->last, buf->pos, chunk_len);
-        }
+        return in_ctx->body;
     }
-
-        return cl;
 #endif
 
     default:
@@ -785,11 +761,13 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
     size_t                           i;
-    uint32_t                         hostlen, headerslen,
+    uint32_t                         hostlen, headerslen, bodylen,
                                      trailerslen, timeout,
                                     *callout_id;
     char                            *err = NULL;
-    u_char                          *host_data, *headers_data, *trailers_data;
+    u_char                          *host_data, *headers_data, *body_data,
+                                    *trailers_data;
+    ngx_buf_t                       *buf;
     ngx_table_elt_t                 *elts, *elt;
     ngx_proxy_wasm_filter_ctx_t     *fctx = ngx_proxy_wasm_instance2fctx(instance);
     ngx_http_wasm_req_ctx_t         *rctx = ngx_http_proxy_wasm_get_rctx(instance);
@@ -801,8 +779,8 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
     hostlen = args[1].of.i32;
     headers_data = ngx_wavm_memory_lift(instance->memory, args[2].of.i32);
     headerslen = args[3].of.i32;
-    //body_data = ngx_wavm_memory_lift(instance->memory, args[4].of.i32);
-    //bodylen = args[5].of.i32;
+    body_data = ngx_wavm_memory_lift(instance->memory, args[4].of.i32);
+    bodylen = args[5].of.i32;
     trailers_data = ngx_wavm_memory_lift(instance->memory, args[6].of.i32);
     trailerslen = args[7].of.i32;
     timeout = args[8].of.i32;
@@ -874,6 +852,18 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
     } else if (!call->authority.len) {
         err = "no :authority";
         goto error;
+    }
+
+    if (bodylen) {
+        call->body_len = bodylen;
+        call->body = ngx_wasm_chain_get_free_buf(r->pool, &rctx->free_bufs,
+                                                 bodylen, buf_tag, 1);
+        if (call->body == NULL) {
+            goto error;
+        }
+
+        buf = call->body->buf;
+        buf->last = ngx_copy(buf->last, body_data, call->body_len);
     }
 
     call->host.len = hostlen;

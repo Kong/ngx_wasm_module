@@ -272,7 +272,7 @@ wasm tcp socket trying to receive data (max: 1)
     location /t {
         wasm_socket_buffer_reuse off;
         wasm_socket_buffer_size 1;
-        wasm_socket_large_buffer_size 12 4;
+        wasm_socket_large_buffer_size 4 12;
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
@@ -286,9 +286,9 @@ wasm tcp socket trying to receive data (max: 1)
 --- error_code: 500
 --- ignore_response_body
 --- error_log
-wasm tcp socket trying to receive data (max: 1)
-wasm tcp socket trying to receive data (max: 3)
-wasm socket - upstream response headers too large
+tcp socket trying to receive data (max: 1)
+tcp socket trying to receive data (max: 11)
+tcp socket - upstream response headers too large
 
 
 
@@ -339,7 +339,30 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket timed out connecting to \
 
 
 
-=== TEST 17: proxy_wasm - dispatch_http_call() read timeout
+=== TEST 17: proxy_wasm - dispatch_http_call() connection timeout
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    resolver 1.1.1.1;
+
+    location /t {
+        wasm_socket_connect_timeout 1ms;
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=httpbin.org \
+                              path=/status/200';
+        echo fail;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket timed out connecting to \".*?"\)/
+--- no_error_log
+[crit]
+
+
+
+=== TEST 18: proxy_wasm - dispatch_http_call() read timeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -365,7 +388,7 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket timed out reading from \"
 
 
 
-=== TEST 18: proxy_wasm - dispatch_http_call() write timeout
+=== TEST 19: proxy_wasm - dispatch_http_call() write timeout
 --- SKIP
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -376,7 +399,11 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket timed out reading from \"
         wasm_socket_send_timeout 1ms;
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=httpbin.org';
+                              host=httpbin.org \
+                              method=POST \
+                              path=/anything \
+                              headers=Content-Length:30 \
+                              body=helloworld';
         echo fail;
     }
 

@@ -49,7 +49,7 @@ pub(crate) fn dispatch_call(ctx: &mut TestHttpHostcalls) {
     ctx.dispatch_http_call(
         ctx.config.get("host").map(|v| v.as_str()).unwrap_or(""),
         headers,
-        Some(b"HELLO WORLD"),
+        ctx.config.get("body").map(|v| v.as_bytes()),
         vec![],
         timeout,
     )

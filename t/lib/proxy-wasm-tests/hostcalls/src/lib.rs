@@ -180,12 +180,12 @@ impl Context for TestHttpHostcalls {
         &mut self,
         token_id: u32,
         num_headers: usize,
-        _body_size: usize,
+        body_size: usize,
         _num_trailers: usize,
     ) {
         info!(
-            "[hostcalls] in http_call_response (token_id: {}, n_headers: {})",
-            token_id, num_headers
+            "[hostcalls] in http_call_response (token_id: {}, n_headers: {}, body_len: {})",
+            token_id, num_headers, body_size
         );
 
         if let Some(bytes) = self.get_http_call_response_body(0, 1000) {

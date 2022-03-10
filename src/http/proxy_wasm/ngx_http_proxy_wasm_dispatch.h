@@ -17,19 +17,25 @@ typedef enum {
 
 typedef struct {
     uint32_t                                callout_id;
-    ngx_str_t                               host;
     ngx_msec_t                              timeout;
+    ngx_wasm_socket_tcp_t                   sock;
+    ngx_wasm_http_reader_ctx_t              http_reader;
+    ngx_http_proxy_wasm_dispatch_state_e    state;
+    ngx_http_request_t                      fake_r;
+    ngx_http_request_t                     *r;
+    ngx_http_wasm_req_ctx_t                *rctx;
+    ngx_proxy_wasm_filter_ctx_t            *fctx;
+
+    ngx_str_t                               host;
     ngx_str_t                               method;
     ngx_str_t                               uri;
     ngx_str_t                               authority;
     ngx_array_t                             headers;
     ngx_array_t                             trailers;
-    ngx_wasm_socket_tcp_t                   sock;
-    ngx_wasm_http_reader_ctx_t              http_reader;
-    ngx_http_proxy_wasm_dispatch_state_e    state;
-    ngx_proxy_wasm_filter_ctx_t            *fctx;
-    ngx_http_wasm_req_ctx_t                *rctx;
-    ngx_http_request_t                     *r;
+
+    size_t                                  body_len;
+    ngx_chain_t                            *body;
+
 } ngx_http_proxy_wasm_dispatch_t;
 
 
