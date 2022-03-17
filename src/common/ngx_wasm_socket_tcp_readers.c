@@ -115,13 +115,12 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
 
     r = &in_ctx->fake_r;
     old = in_ctx->status_code ? r->header_name_start : r->request_start;
-    loc = ngx_http_get_module_loc_conf(in_ctx->r, ngx_http_wasm_module);
+    loc = ngx_http_get_module_loc_conf(in_ctx->rctx->r, ngx_http_wasm_module);
 
     if (!in_ctx->status_code && r->state == 0) {
         /* the client fills up the buffer with "\r\n" */
         r->header_in->pos = r->header_in->start;
         r->header_in->last = r->header_in->start;
-
         return NGX_OK;
     }
 
@@ -130,7 +129,9 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
             >= loc->socket_large_buffers.size)
     {
         ngx_wasm_log_error(NGX_LOG_ERR, sock->log, 0,
-                           "tcp socket - upstream response headers too large");
+                           "tcp socket - upstream response headers "
+                           "too large, "
+                           "increase wasm_socket_large_buffer_size directive");
         return NGX_DECLINED;
     }
 
@@ -164,7 +165,8 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
 
     } else {
         ngx_wasm_log_error(NGX_LOG_ERR, sock->log, 0,
-                           "tcp socket - large buffers limit reached");
+                           "tcp socket - large buffers limit reached, "
+                           "increase wasm_socket_large_buffer_size directive");
         return NGX_DECLINED;
     }
 
@@ -179,18 +181,18 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
          * pointers
          */
         sock->buffer = *b;
-
         return NGX_OK;
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, sock->log, 0,
-                   "tcp socket large buffer copy: %uz",
+                   "wasm tcp socket large buffer copy: %uz",
                    r->header_in->pos - old);
 
     if (r->header_in->pos - old > b->end - b->start) {
         ngx_wasm_log_error(NGX_LOG_ERR, sock->log, 0,
                            "tcp socket - upstream response headers "
-                           "too large to copy");
+                           "too large to copy, "
+                           "increase wasm_socket_large_buffer_size directive");
         return NGX_ERROR;
     }
 
@@ -286,20 +288,22 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
     ngx_http_upstream_header_t      *hh;
     ngx_http_upstream_headers_in_t  *headers_in;
     ngx_http_upstream_main_conf_t   *umcf;
+    ngx_http_wasm_req_ctx_t         *rctx;
 
     if (bytes == 0) {
         return NGX_ERROR;
     }
 
     r = &in_ctx->fake_r;
-    umcf = ngx_http_get_module_main_conf(in_ctx->r, ngx_http_upstream_module);
+    rctx = in_ctx->rctx;
+    umcf = ngx_http_get_module_main_conf(rctx->r, ngx_http_upstream_module);
 
     if (!r->signature) {
         ngx_memzero(r, sizeof(ngx_http_request_t));
 
-        r->signature = NGX_HTTP_MODULE;
-        r->connection = in_ctx->r->connection;
         r->pool = in_ctx->pool;
+        r->signature = NGX_HTTP_MODULE;
+        r->connection = rctx->connection;
         r->header_in = src;
         r->request_start = src->pos;
 
@@ -516,7 +520,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
 
             /* buf for incoming chunk */
 
-            cl = ngx_chain_get_free_buf(in_ctx->pool, &in_ctx->rctx->free_bufs);
+            cl = ngx_chain_get_free_buf(in_ctx->pool, &rctx->free_bufs);
             if (cl == NULL) {
                 return NGX_ERROR;
             }
@@ -569,7 +573,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
         /* copy body to close socket */
 
         in_ctx->body = ngx_wasm_chain_get_free_buf(in_ctx->pool,
-                                                   &in_ctx->rctx->free_bufs,
+                                                   &rctx->free_bufs,
                                                    in_ctx->body_len,
                                                    buf_tag, 1);
         if (in_ctx->body == NULL) {

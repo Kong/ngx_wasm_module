@@ -403,24 +403,21 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t                        map_size;
-    ngx_int_t                     rc = NGX_ERROR;
-    ngx_wavm_ptr_t               *map_data;
-    ngx_proxy_wasm_map_type_e     map_type;
-    ngx_array_t                   headers;
-    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_instance2fctx(instance);
-#ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t      *rctx = ngx_http_proxy_wasm_get_rctx(instance);
-#endif
+    ngx_int_t                         rc = NGX_ERROR;
+    ngx_proxy_wasm_map_type_e         map_type;
+    ngx_array_t                       headers;
+    ngx_proxy_wasm_marshalled_map_t   map;
+    ngx_proxy_wasm_filter_ctx_t      *fctx;
+    ngx_http_wasm_req_ctx_t          *rctx;
+
+    fctx = ngx_proxy_wasm_instance2fctx(instance);
+    rctx =  ngx_http_proxy_wasm_get_rctx(instance);
 
     map_type = args[0].of.i32;
-    map_data = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
-    map_size = args[2].of.i32;
+    map.data = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
+    map.len = args[2].of.i32;
 
-    if (ngx_proxy_wasm_pairs_unmarshal(&headers, fctx->pool,
-                                       (u_char *) map_data, map_size)
-        != NGX_OK)
-    {
+    if (ngx_proxy_wasm_pairs_unmarshal(&headers, fctx->pool, &map) != NGX_OK) {
         return ngx_proxy_wasm_result_err(rets);
     }
 
@@ -687,17 +684,17 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    int32_t                       status, reason_len, body_len, headers_len
+    int32_t                          status, reason_len, body_len
 #if (NGX_DEBUG)
-                                  , grpc_status
+                                     , grpc_status
 #endif
-                                  ;
-    u_char                       *reason, *body, *marsh_headers;
-    ngx_int_t                     rc;
-    ngx_array_t                   headers;
-
-    ngx_http_wasm_req_ctx_t      *rctx;
-    ngx_proxy_wasm_filter_ctx_t  *fctx;
+                                     ;
+    u_char                          *reason, *body;
+    ngx_int_t                        rc;
+    ngx_array_t                      headers;
+    ngx_proxy_wasm_marshalled_map_t  map;
+    ngx_proxy_wasm_filter_ctx_t     *fctx;
+    ngx_http_wasm_req_ctx_t         *rctx;
 
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
     fctx = ngx_proxy_wasm_instance2fctx(instance);
@@ -707,18 +704,15 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     reason_len = args[2].of.i32;
     body = ngx_wavm_memory_lift(instance->memory, args[3].of.i32);
     body_len = args[4].of.i32;
-    marsh_headers = ngx_wavm_memory_lift(instance->memory, args[5].of.i32);
-    headers_len = args[6].of.i32;
+    map.data = ngx_wavm_memory_lift(instance->memory, args[5].of.i32);
+    map.len = args[6].of.i32;
 #if (NGX_DEBUG)
     grpc_status = args[7].of.i32;
 
     ngx_wasm_assert(grpc_status == -1);
 #endif
 
-    if (ngx_proxy_wasm_pairs_unmarshal(&headers, fctx->pool,
-                                       marsh_headers, headers_len)
-        != NGX_OK)
-    {
+    if (ngx_proxy_wasm_pairs_unmarshal(&headers, fctx->pool, &map) != NGX_OK) {
         return ngx_proxy_wasm_result_err(rets);
     }
 
@@ -760,150 +754,58 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t                           i;
-    uint32_t                         hostlen, headerslen, bodylen,
-                                     trailerslen, timeout,
-                                    *callout_id;
-    char                            *err = NULL;
-    u_char                          *host_data, *headers_data, *body_data,
-                                    *trailers_data;
-    ngx_buf_t                       *buf;
-    ngx_table_elt_t                 *elts, *elt;
-    ngx_proxy_wasm_filter_ctx_t     *fctx = ngx_proxy_wasm_instance2fctx(instance);
-    ngx_http_wasm_req_ctx_t         *rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    ngx_http_request_t              *r = rctx->r;
-    ngx_http_proxy_wasm_dispatch_t  *call = NULL;
-    static uint32_t                  callout_ids = 0;
+    uint32_t                         *callout_id, timeout;
+    ngx_str_t                         host, body;
+    ngx_proxy_wasm_marshalled_map_t   headers, trailers;
+    ngx_proxy_wasm_filter_ctx_t      *fctx;
+    ngx_http_wasm_req_ctx_t          *rctx;
+    ngx_http_proxy_wasm_dispatch_t   *call = NULL;
 
-    host_data = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
-    hostlen = args[1].of.i32;
-    headers_data = ngx_wavm_memory_lift(instance->memory, args[2].of.i32);
-    headerslen = args[3].of.i32;
-    body_data = ngx_wavm_memory_lift(instance->memory, args[4].of.i32);
-    bodylen = args[5].of.i32;
-    trailers_data = ngx_wavm_memory_lift(instance->memory, args[6].of.i32);
-    trailerslen = args[7].of.i32;
+    fctx = ngx_proxy_wasm_instance2fctx(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
+    host.data = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
+    host.len = args[1].of.i32;
+
+    headers.data = ngx_wavm_memory_lift(instance->memory, args[2].of.i32);
+    headers.len = args[3].of.i32;
+
+    body.data = ngx_wavm_memory_lift(instance->memory, args[4].of.i32);
+    body.len = args[5].of.i32;
+
+    trailers.data = ngx_wavm_memory_lift(instance->memory, args[6].of.i32);
+    trailers.len = args[7].of.i32;
+
     timeout = args[8].of.i32;
     callout_id = ngx_wavm_memory_lift(instance->memory, args[9].of.i32);
 
-    call = ngx_calloc(sizeof(ngx_http_proxy_wasm_dispatch_t),
-                      r->connection->log);
+    call = ngx_http_proxy_wasm_dispatch(rctx, &host,
+                                        &headers, &trailers,
+                                        &body, timeout, fctx);
     if (call == NULL) {
         goto error;
     }
 
-    /* headers/trailers */
-
-    if (ngx_proxy_wasm_pairs_unmarshal(&call->headers, r->pool,
-                                       headers_data, headerslen) != NGX_OK
-        || ngx_proxy_wasm_pairs_unmarshal(&call->trailers, r->pool,
-                                          trailers_data, trailerslen)
-           != NGX_OK)
-    {
-        goto error;
-    }
-
-    elts = call->headers.elts;
-
-    for (i = 0; i < call->headers.nelts; i++) {
-        elt = &elts[i];
-
-#if 0
-        dd("%.*s: %.*s",
-           (int) elt->key.len, elt->key.data,
-           (int) elt->value.len, elt->value.data);
-#endif
-
-        if (elt->key.data[0] == ':') {
-
-            if (ngx_strncmp(elt->key.data, ":method", 7) == 0) {
-                call->method.len = elt->value.len;
-                call->method.data = elt->value.data;
-
-            } else if (ngx_strncmp(elt->key.data, ":path", 5) == 0) {
-                call->uri.len = elt->value.len;
-                call->uri.data = elt->value.data;
-
-            } else if (ngx_strncmp(elt->key.data, ":authority", 10) == 0) {
-                call->authority.len = elt->value.len;
-                call->authority.data = elt->value.data;
-
-            } else {
-                ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
-                                   "NYI - dispatch_http_call header \"%V\"",
-                                   &elt->key);
-            }
-
-            elt->hash = 0;
-            continue;
-        }
-
-        elt->hash = 1;
-    }
-
-    if (!call->method.len) {
-        err = "no :method";
-        goto error;
-
-    } else if (!call->uri.len) {
-        err = "no :path";
-        goto error;
-
-    } else if (!call->authority.len) {
-        err = "no :authority";
-        goto error;
-    }
-
-    if (bodylen) {
-        call->body_len = bodylen;
-        call->body = ngx_wasm_chain_get_free_buf(r->pool, &rctx->free_bufs,
-                                                 bodylen, buf_tag, 1);
-        if (call->body == NULL) {
-            goto error;
-        }
-
-        buf = call->body->buf;
-        buf->last = ngx_copy(buf->last, body_data, call->body_len);
-    }
-
-    call->host.len = hostlen;
-    call->host.data = ngx_pnalloc(r->pool, hostlen + 1);
-    if (call->host.data == NULL) {
-        goto error;
-    }
-
-    ngx_memcpy(call->host.data, host_data, hostlen);
-    call->host.data[call->host.len] = '\0';
-
-    call->r = r;
-    call->rctx = rctx;
-    call->fctx = fctx;
-    call->timeout = timeout;
-    call->callout_id = callout_ids++;;
-
-    *callout_id = call->callout_id;
-
-    if (ngx_http_proxy_wasm_dispatch(call) != NGX_OK) {
-        if (call->sock.errlen) {
-            ngx_wavm_instance_trap_printf(instance, "dispatch failed (%*s)",
-                                          (int) call->sock.errlen,
-                                          call->sock.err);
-        }
-
-        goto error;
-    }
+    *callout_id = call->id;
 
     return ngx_proxy_wasm_result_ok(rets);
 
 error:
 
-    if (err) {
-        ngx_wavm_instance_trap_printf(instance, "dispatch failed (%s)", err);
-    }
-
+#if 0
     if (call) {
-        ngx_free(call);
+        if (call->sock.errlen) {
+            ngx_wavm_instance_trap_printf(instance,
+                                          "dispatch failed (%*s)",
+                                          (int) call->sock.errlen,
+                                          call->sock.err);
+        }
+
+        ngx_http_proxy_wasm_dispatch_destroy(call);
     }
+#endif
+
+    ngx_wavm_instance_trap_printf(instance, "dispatch failed");
 
     return ngx_proxy_wasm_result_err(rets);
 }

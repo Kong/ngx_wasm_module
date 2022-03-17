@@ -92,7 +92,7 @@ should recycle the global instance when trapped
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase
 \*\d+ \[wasm\] trap in proxy_on_request_headers:.*?unreachable.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*
+\*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*
 \*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\)
 \*\d+ wasm freeing "hostcalls" instance in "main" vm.*\Z/,
 qr/\A\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
@@ -198,7 +198,7 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase
 \*\d+ \[wasm\] trap in proxy_on_request_headers:.*?unreachable.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*
+\*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*
 \*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\)
 \*\d+ wasm freeing "hostcalls" instance in "main" vm.*\Z/,
 qr/\A\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*

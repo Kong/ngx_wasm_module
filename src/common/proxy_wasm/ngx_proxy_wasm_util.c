@@ -63,11 +63,11 @@ ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
             p = ngx_slprintf(p, last, " (%V)", errmsg);
         }
 
-        ngx_log_error(level, log, 0, "%*s", p - buf, buf);
+        ngx_wasm_log_error(level, log, 0, "%*s", p - buf, buf);
         return;
 
     } else if (err) {
-        ngx_log_error(level, log, 0, "%V", errmsg);
+        ngx_wasm_log_error(level, log, 0, "%V", errmsg);
         return;
     }
 
@@ -289,13 +289,16 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *extras, u_char *buf,
 
 ngx_int_t
 ngx_proxy_wasm_pairs_unmarshal(ngx_array_t *dst, ngx_pool_t *pool,
-    u_char *buf, size_t len)
+    ngx_proxy_wasm_marshalled_map_t *map)
 {
     size_t            i;
     uint32_t          count;
+    u_char           *buf;
     ngx_table_elt_t  *elt;
 
-    if (len) {
+    buf = map->data;
+
+    if (map->len) {
         count = *((uint32_t *) buf);
         buf += NGX_PROXY_WASM_PTR_SIZE;
 

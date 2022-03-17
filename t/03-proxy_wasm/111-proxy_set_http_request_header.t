@@ -308,7 +308,7 @@ path: /test
 --- grep_error_log eval: qr/(\[error\]|\[.*?failed resuming).*/
 --- grep_error_log_out eval
 qr/\[error\] .*?cannot set request path with querystring.*
-\[warn\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*/
+\[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*/
 --- no_error_log
 [alert]
 [stderr]

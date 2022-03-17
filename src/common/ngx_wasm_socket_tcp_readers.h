@@ -1,5 +1,5 @@
-#ifndef NGX_WASM_SOCKET_TCP_READERS_H_INCLUDED_
-#define NGX_WASM_SOCKET_TCP_READERS_H_INCLUDED_
+#ifndef _NGX_WASM_SOCKET_TCP_READERS_H_INCLUDED_
+#define _NGX_WASM_SOCKET_TCP_READERS_H_INCLUDED_
 
 
 #include <ngx_wasm.h>
@@ -16,7 +16,6 @@ typedef struct {
     ngx_pool_t                       *pool;
     ngx_log_t                        *log;
     ngx_wasm_socket_tcp_t            *sock;
-    ngx_http_request_t               *r;
     ngx_http_wasm_req_ctx_t          *rctx;
     ngx_http_request_t                fake_r;
     ngx_http_status_t                 status;
@@ -45,4 +44,4 @@ ngx_int_t ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in,
 #endif
 
 
-#endif /* NGX_WASM_SOCKET_TCP_READERS_H_INCLUDED_ */
+#endif /* _NGX_WASM_SOCKET_TCP_READERS_H_INCLUDED_ */

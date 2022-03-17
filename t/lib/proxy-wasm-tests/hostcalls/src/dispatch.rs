@@ -40,9 +40,8 @@ pub(crate) fn dispatch_call(ctx: &mut TestHttpHostcalls) {
     }
 
     if let Some(val) = ctx.config.get("timeout") {
-        match parse(val) {
-            Ok(t) => timeout = t,
-            Err(_) => {}
+        if let Ok(t) = parse(val) {
+            timeout = t
         }
     }
 
