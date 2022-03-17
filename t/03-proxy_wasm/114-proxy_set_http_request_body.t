@@ -240,8 +240,8 @@ from_request_body
 --- grep_error_log eval: qr/(\[error\]|\[.*?failed resuming).*/
 --- grep_error_log_out eval
 qr/\[error\] .*?cannot set request body.*
-\[warn\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
-\[warn\] .*? \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? request: "GET \/t HTTP\/1\.1".*
+\[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
+\[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? request: "GET \/t HTTP\/1\.1".*
 \z/
 --- no_error_log
 [alert]

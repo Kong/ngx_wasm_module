@@ -1,8 +1,8 @@
-mod callouts;
+mod dispatch;
 mod echo;
 mod test_cases;
 
-use crate::{callouts::*, echo::*, test_cases::*};
+use crate::{dispatch::*, echo::*, test_cases::*};
 use http::StatusCode;
 use log::*;
 use proxy_wasm::traits::*;

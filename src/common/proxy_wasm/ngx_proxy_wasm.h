@@ -161,6 +161,8 @@ typedef struct ngx_proxy_wasm_filter_s  ngx_proxy_wasm_filter_t;
 typedef struct ngx_proxy_wasm_filter_ctx_s  ngx_proxy_wasm_filter_ctx_t;
 typedef struct ngx_proxy_wasm_instance_ctx_s  ngx_proxy_wasm_instance_ctx_t;
 
+typedef ngx_str_t  ngx_proxy_wasm_marshalled_map_t;
+
 typedef ngx_int_t (*ngx_proxy_wasm_resume_pt)(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_proxy_wasm_step_e step);
 typedef ngx_int_t (*ngx_proxy_wasm_ecode_pt)(ngx_proxy_wasm_err_e ecode);
@@ -382,7 +384,7 @@ size_t ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_array_t *extras,
 void ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *extras,
     u_char *buf, ngx_uint_t max, ngx_uint_t *truncated);
 ngx_int_t ngx_proxy_wasm_pairs_unmarshal(ngx_array_t *dst, ngx_pool_t *pool,
-    u_char *buf, size_t len);
+    ngx_proxy_wasm_marshalled_map_t *map);
 void ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev);
 
 

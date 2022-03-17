@@ -21,7 +21,7 @@ __DATA__
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(no host\)/
+qr/\[error\] .*? dispatch failed: no host/
 --- no_error_log
 [crit]
 
@@ -37,7 +37,7 @@ qr/\[error\] .*? dispatch failed \(no host\)/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(no host\)/
+qr/\[error\] .*? dispatch failed: no host/
 --- no_error_log
 [crit]
 
@@ -53,7 +53,7 @@ qr/\[error\] .*? dispatch failed \(no host\)/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(invalid port\)/
+qr/\[error\] .*? dispatch failed: invalid port/
 --- no_error_log
 [crit]
 
@@ -70,7 +70,7 @@ qr/\[error\] .*? dispatch failed \(invalid port\)/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(no :method\)/
+qr/\[error\] .*? dispatch failed: no :method/
 --- no_error_log
 [crit]
 
@@ -87,7 +87,7 @@ qr/\[error\] .*? dispatch failed \(no :method\)/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(no :path\)/
+qr/\[error\] .*? dispatch failed: no :path/
 --- no_error_log
 [crit]
 
@@ -104,7 +104,7 @@ qr/\[error\] .*? dispatch failed \(no :path\)/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(no :authority\)/
+qr/\[error\] .*? dispatch failed: no :authority/
 --- no_error_log
 [crit]
 
@@ -288,7 +288,7 @@ wasm tcp socket trying to receive data (max: 1)
 --- error_log
 tcp socket trying to receive data (max: 1)
 tcp socket trying to receive data (max: 11)
-tcp socket - upstream response headers too large
+tcp socket - upstream response headers too large, increase wasm_socket_large_buffer_size directive
 
 
 
@@ -307,7 +307,7 @@ tcp socket - upstream response headers too large
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log
-[wasm] dispatch failed (tcp socket resolver error: Host not found)
+[wasm] dispatch failed (tcp socket - resolver error: Host not found)
 --- no_error_log
 [crit]
 
@@ -333,7 +333,7 @@ tcp socket - upstream response headers too large
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket timed out connecting to \"\d+\.\d+\.\d+\.\d+:\d+\"\)/
+qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out connecting to \"\d+\.\d+\.\d+\.\d+:\d+\"\)/
 --- no_error_log
 [crit]
 
@@ -356,7 +356,7 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket timed out connecting to \
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket timed out connecting to \".*?"\)/
+qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out connecting to \".*?"\)/
 --- no_error_log
 [crit]
 
@@ -382,7 +382,7 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket timed out connecting to \
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket timed out reading from \"127\.0\.0\.1:\d+\"\)/
+qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out reading from \"127\.0\.0\.1:\d+\"\)/
 --- no_error_log
 [crit]
 
@@ -413,6 +413,6 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket timed out reading from \"
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket timed out writing to \"\d+\.\d+\.\d+\.\d+:\d+\"\)/
+qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out writing to \"\d+\.\d+\.\d+\.\d+:\d+\"\)/
 --- no_error_log
 [crit]

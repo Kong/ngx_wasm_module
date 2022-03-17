@@ -16,15 +16,15 @@ typedef enum {
 
 
 typedef struct {
-    uint32_t                                callout_id;
+    ngx_pool_t                             *pool;  /* owned */
+    uint32_t                                id;
     ngx_msec_t                              timeout;
     ngx_wasm_socket_tcp_t                   sock;
     ngx_wasm_http_reader_ctx_t              http_reader;
     ngx_http_proxy_wasm_dispatch_state_e    state;
     ngx_http_request_t                      fake_r;
-    ngx_http_request_t                     *r;
     ngx_http_wasm_req_ctx_t                *rctx;
-    ngx_proxy_wasm_filter_ctx_t            *fctx;
+    void                                   *data;
 
     ngx_str_t                               host;
     ngx_str_t                               method;
@@ -39,7 +39,12 @@ typedef struct {
 } ngx_http_proxy_wasm_dispatch_t;
 
 
-ngx_int_t ngx_http_proxy_wasm_dispatch(ngx_http_proxy_wasm_dispatch_t *call);
+ngx_http_proxy_wasm_dispatch_t *ngx_http_proxy_wasm_dispatch(
+    ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
+    ngx_proxy_wasm_marshalled_map_t *headers,
+    ngx_proxy_wasm_marshalled_map_t *trailers,
+    ngx_str_t *body, ngx_msec_t timeout, void *data);
+void ngx_http_proxy_wasm_dispatch_destroy(ngx_http_proxy_wasm_dispatch_t *call);
 
 
 #endif /* _NGX_HTTP_PROXY_WASM_DISPATCH_H_INCLUDED_ */
