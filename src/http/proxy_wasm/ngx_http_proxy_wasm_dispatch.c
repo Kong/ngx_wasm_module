@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 0
+#define DDEBUG 1
 #endif
 #include "ddebug.h"
 
