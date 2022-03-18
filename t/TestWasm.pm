@@ -29,9 +29,9 @@ $ENV{TEST_NGINX_UNIX_SOCKET} = html_dir() . "/nginx.sock";
 
 sub skip_valgrind {
     if ($ENV{TEST_NGINX_USE_VALGRIND}
-        && !defined $ENV{TEST_NGINX_VALGRIND_ALL})
+        && !defined $ENV{TEST_NGINX_USE_VALGRIND_ALL})
     {
-        plan skip_all => 'slow with Valgrind (set TEST_NGINX_VALGRIND_ALL to run)';
+        plan skip_all => 'slow with Valgrind (set TEST_NGINX_USE_VALGRIND_ALL to run)';
     }
 }
 
@@ -130,10 +130,10 @@ add_block_preprocessor(sub {
 
     if (defined $block->skip_valgrind
         && $ENV{TEST_NGINX_USE_VALGRIND}
-        && !defined $ENV{TEST_NGINX_VALGRIND_ALL}
+        && !defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}
         && $block->skip_valgrind =~ m/\s*(\d+)/)
     {
-        $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND} && !defined $ENV{TEST_NGINX_VALGRIND_ALL}', $1);
+        $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND} && !defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}', $1);
     }
 
     # --- timeout_no_valgrind: 1s

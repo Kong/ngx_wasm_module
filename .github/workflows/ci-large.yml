@@ -77,7 +77,7 @@ jobs:
     env:
       NGX_BUILD_NOPOOL: 1
       TEST_NGINX_USE_VALGRIND: 1
-      TEST_NGINX_VALGRIND_ALL: 0
+      TEST_NGINX_USE_VALGRIND_ALL: 0
     strategy:
       fail-fast: false
       matrix:
