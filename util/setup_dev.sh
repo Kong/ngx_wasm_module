@@ -104,6 +104,21 @@ else
     git clone https://github.com/openresty/headers-more-nginx-module.git $DIR_NGX_HEADERS_MORE_MODULE
 fi
 
+if [[ -d "$DIR_MOCKEAGAIN" ]]; then
+    notice "updating the mockeagain repository..."
+    pushd $DIR_MOCKEAGAIN
+        git fetch
+        git reset --hard origin/master
+    popd
+else
+    notice "cloning the mockeagain repository..."
+    git clone https://github.com/openresty/mockeagain.git $DIR_MOCKEAGAIN
+fi
+
+pushd $DIR_MOCKEAGAIN
+    make
+popd
+
 get_no_pool_nginx 1
 
 notice "done"
