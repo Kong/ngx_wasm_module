@@ -56,6 +56,7 @@ export TEST_NGINX_TIMEOUT=${TEST_NGINX_TIMEOUT:=45}
 export TEST_NGINX_RESOLVER=${TEST_NGINX_RESOLVER:=8.8.4.4}
 export ASAN_OPTIONS=detect_odr_violation=0   # see asan.ignore (clang 13)
 export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/asan.suppress"
+export LD_PRELOAD=$DIR_MOCKEAGAIN/mockeagain.so
 #export TEST_NGINX_NO_SHUFFLE=1
 #export TEST_NGINX_RANDOMIZE=1
 #export TEST_NGINX_LOAD_MODULES=
@@ -67,7 +68,6 @@ export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/asan.suppress"
 #export TEST_NGINX_USE_RR=1
 #export TEST_NGINX_NO_CLEAN=1
 #export TEST_NGINX_BENCHMARK='1000 10'
-#export LD_PRELOAD=
 
 if [[ ! -x "$TEST_NGINX_BINARY" ]]; then
     fatal "no nginx binary at $TEST_NGINX_BINARY"
