@@ -93,6 +93,11 @@ if [ $(uname -s) = Linux ]; then
     export TEST_NGINX_EVENT_TYPE=epoll
 fi
 
+if [[ "$TEST_NGINX_USE_VALGRIND_ALL" == 1 ]]; then
+    echo "TEST_NGINX_USE_VALGRIND_ALL=$TEST_NGINX_USE_VALGRIND_ALL"
+    export TEST_NGINX_USE_VALGRIND=1
+fi
+
 if [[ "$TEST_NGINX_USE_VALGRIND" == 1 ]]; then
     export TEST_NGINX_SLEEP=3
     echo "TEST_NGINX_USE_VALGRIND=$TEST_NGINX_USE_VALGRIND"
