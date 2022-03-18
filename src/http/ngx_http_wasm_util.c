@@ -78,7 +78,7 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     if (rc > NGX_OK || r->header_only) {
-        goto sent_last;
+        goto done;
     }
 
     ngx_wasm_assert(r->header_sent);
@@ -94,21 +94,21 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
             rc = NGX_OK;
         }
 
-        goto sent_last;
+        goto done;
     }
 
     rc = ngx_http_output_filter(r, in);
     if (rc == NGX_ERROR) {
-        goto done;
+        return NGX_ERROR;
     }
 
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_DONE);
-
-sent_last:
-
-    rctx->resp_sent_last = 1;
+    //ngx_wasm_assert(rc == NGX_OK || rc == NGX_DONE);
 
 done:
+
+    if (rc != NGX_AGAIN) {
+        rctx->resp_sent_last = 1;
+    }
 
     return rc;
 }
