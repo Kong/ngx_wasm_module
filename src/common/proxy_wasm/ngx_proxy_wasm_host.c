@@ -166,6 +166,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
 
     if (offset > offset + max_len) {
         /* overflow */
+        // TODO: change
         return ngx_proxy_wasm_result_badarg(rets);
     }
 
@@ -182,6 +183,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
                 return ngx_proxy_wasm_result_notfound(rets);
             }
 
+            // TODO: change
             return ngx_proxy_wasm_result_badarg(rets);
         }
 

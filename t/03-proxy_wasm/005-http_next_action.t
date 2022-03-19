@@ -182,8 +182,8 @@ NYI
         echo_subrequest_async GET /pause;
         echo_subrequest_async GET /nop;
     }
---- error_code:
---- response_body
+--- error_code: 200
+--- response_body_like: 500 Internal Server Error
 --- error_log eval
 [
     qr/pausing after "ResponseHeaders"/,
@@ -216,8 +216,10 @@ NYI
         echo_subrequest_async GET /pause;
         echo_subrequest_async GET /nop;
     }
---- error_code:
+--- error_code: 200
 --- response_body
+ok
+ok
 --- error_log eval
 [
     qr/pausing after "ResponseBody"/,

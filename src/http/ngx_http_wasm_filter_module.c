@@ -8,7 +8,8 @@
 
 static ngx_int_t ngx_http_wasm_filter_init(ngx_conf_t *cf);
 static ngx_int_t ngx_http_wasm_header_filter_handler(ngx_http_request_t *r);
-static ngx_int_t ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in);
+static ngx_int_t ngx_http_wasm_body_filter_handler(ngx_http_request_t *r,
+    ngx_chain_t *in);
 
 
 static ngx_http_module_t  ngx_http_wasm_module_ctx = {
@@ -86,8 +87,8 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
-    rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_WASM_HEADER_FILTER_PHASE,
-                             0);
+    rc = ngx_wasm_ops_resume(&rctx->opctx,
+                             NGX_HTTP_WASM_HEADER_FILTER_PHASE, 0);
     if (rc == NGX_ERROR) {
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
         goto done;
@@ -126,14 +127,17 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_int_t                 rc;
     ngx_http_wasm_req_ctx_t  *rctx;
 
-    dd("enter");
+    if (r->header_only) {
+        return ngx_http_next_body_filter(r, in);
+    }
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc == NGX_ERROR) {
         return NGX_ERROR;
+    }
 
-    } else if (rc == NGX_DECLINED ) {
-        goto next_filter;
+    if (rc == NGX_DECLINED) {
+        return ngx_http_next_body_filter(r, in);
     }
 
     ngx_wasm_assert(rc == NGX_OK);
@@ -142,21 +146,18 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
     rctx->resp_chunk_len = ngx_wasm_chain_len(in, &rctx->resp_chunk_eof);
 
     (void) ngx_wasm_ops_resume(&rctx->opctx,
-                               NGX_HTTP_WASM_BODY_FILTER_PHASE,
-                               0);
+                               NGX_HTTP_WASM_BODY_FILTER_PHASE, 0);
 
-    if (rctx->resp_chunk == NULL) {
-        /* chunk discarded */
-        dd("no chunk");
-        return NGX_OK;
+    rc = ngx_http_next_body_filter(r, rctx->resp_chunk);
+    if (rc == NGX_ERROR) {
+        return NGX_ERROR;
     }
 
-    in = rctx->resp_chunk;
     rctx->resp_chunk = NULL;
 
-next_filter:
+    ngx_chain_update_chains(r->connection->pool,
+                            &rctx->free_bufs, &rctx->busy_bufs,
+                            &rctx->resp_chunk, buf_tag);
 
-    dd("next filter");
-
-    return ngx_http_next_body_filter(r, in);
+    return rc;
 }

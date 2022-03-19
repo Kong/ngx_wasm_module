@@ -125,7 +125,7 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       offsetof(ngx_http_wasm_loc_conf_t, socket_buffer_reuse),
       NULL },
 
-    { ngx_string("wasm_socket_large_buffer_size"),
+    { ngx_string("wasm_socket_large_buffers"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
       ngx_conf_set_bufs_slot,
       NGX_HTTP_LOC_CONF_OFFSET,

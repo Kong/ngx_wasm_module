@@ -79,28 +79,6 @@ ngx_int_t ngx_wasm_add_list_elem(ngx_pool_t *pool, ngx_list_t *map,
     u_char *key, size_t key_len, u_char *value, size_t val_len);
 ngx_connection_t *ngx_wasm_connection_create(ngx_pool_t *pool);
 void ngx_wasm_connection_destroy(ngx_connection_t *c);
-
-
-static ngx_inline void
-ngx_wasm_chain_log(ngx_log_t *log, ngx_chain_t *in)
-{
-    size_t        len;
-    ngx_uint_t    n = 0;
-    ngx_chain_t  *cl;
-    ngx_buf_t    *buf;
-
-    ngx_log_debug0(NGX_LOG_DEBUG_WASM, log, 0, "--- CHAIN ---");
-
-    for (cl = in; cl; cl = cl->next) {
-        n++;
-        buf = cl->buf;
-        len = buf->last - buf->pos;
-
-        ngx_log_debug8(NGX_LOG_DEBUG_WASM, log, 0,
-                       "CHAIN %d: \"%*s\" (len: %d, last_buf: %d, last_in_chain: %d, flush: %d, buf: %p)",
-                       n, len, buf->pos, len, buf->last_buf, buf->last_in_chain, buf->flush, buf);
-    }
-}
 #endif
 
 void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,

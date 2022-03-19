@@ -9,7 +9,8 @@
 
 typedef enum {
     NGX_HTTP_PROXY_WASM_DISPATCH_START = 0,
-    NGX_HTTP_PROXY_WASM_DISPATCH_CONNECTED,
+    NGX_HTTP_PROXY_WASM_DISPATCH_CONNECTING,
+    NGX_HTTP_PROXY_WASM_DISPATCH_SENDING,
     NGX_HTTP_PROXY_WASM_DISPATCH_RECEIVING,
     NGX_HTTP_PROXY_WASM_DISPATCH_RECEIVED,
 } ngx_http_proxy_wasm_dispatch_state_e;
@@ -35,7 +36,7 @@ typedef struct {
 
     size_t                                  body_len;
     ngx_chain_t                            *body;
-
+    ngx_chain_t                            *req_out;
 } ngx_http_proxy_wasm_dispatch_t;
 
 
