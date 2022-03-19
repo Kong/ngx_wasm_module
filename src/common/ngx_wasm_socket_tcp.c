@@ -57,10 +57,15 @@ ngx_wasm_socket_tcp_err(ngx_wasm_socket_tcp_t *sock,
 
 ngx_int_t
 ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock, ngx_str_t *host,
-    ngx_pool_t *pool, ngx_log_t *log)
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t *rctx)
+#endif
 {
-    sock->pool = pool;
-    sock->log = log;
+    ngx_wasm_assert(sock->rctx == NULL);
+
+    sock->rctx = rctx;
+    sock->pool = rctx->connection->pool;
+    sock->log = rctx->connection->log;
 
     sock->host.len = host->len;
     sock->host.data = ngx_pstrdup(sock->pool, host);
@@ -131,7 +136,8 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock,
 #endif
 
     sock->rctx = rctx;
-    sock->resolved = ngx_pcalloc(sock->pool, sizeof(ngx_http_upstream_resolved_t));
+    sock->resolved = ngx_pcalloc(sock->pool,
+                                 sizeof(ngx_http_upstream_resolved_t));
     if (sock->resolved == NULL) {
         return NGX_ERROR;
     }
@@ -191,7 +197,7 @@ ngx_wasm_socket_resolve_handler(ngx_resolver_ctx_t *ctx)
     struct sockaddr        *sockaddr;
     ngx_wasm_socket_tcp_t  *sock = ctx->data;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->rctx->connection->log, 0,
+    ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
                    "wasm tcp socket resolve handler");
 
     if (ctx->state) {
@@ -321,13 +327,13 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
     c = pc->connection;
 
     if (c->pool == NULL) {
-        c->pool = ngx_create_pool(128, sock->rctx->connection->log);
+        c->pool = ngx_create_pool(128, sock->log);
         if (c->pool == NULL) {
             return NGX_ERROR;
         }
     }
 
-    c->log = sock->rctx->connection->log;
+    c->log = sock->log;
     c->pool->log = c->log;
     c->read->handler = ngx_wasm_socket_tcp_handler;
     c->write->handler = ngx_wasm_socket_tcp_handler;
@@ -373,6 +379,8 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
         b = cl->buf;
         n = c->send(c, b->pos, b->last - b->pos);
 
+        dd("send rc: %d (wev ready: %d)", (int) n, (int) c->write->ready);
+
         if (n >= 0) {
             b->pos += n;
 
@@ -386,6 +394,13 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
                     if (c->write->timer_set) {
                         ngx_del_timer(c->write);
                     }
+
+                    ngx_chain_update_chains(sock->pool,
+                                            &sock->rctx->free_bufs,
+                                            &sock->rctx->busy_bufs,
+                                            &cl, buf_tag);
+
+                    sock->write_event_handler = ngx_wasm_socket_tcp_nop_handler;
 
                     if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
                         return NGX_ERROR;
@@ -401,8 +416,7 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
         }
 
         ngx_wasm_assert(n == NGX_ERROR || n == NGX_AGAIN);
-
-        continue;
+        break;
     }
 
     if (n == NGX_ERROR) {
@@ -428,7 +442,7 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
 
 #if 0
 ngx_int_t
-ngx_wasm_socket_reader_read_all(ngx_wasm_socket_tcp_t *sock, ssize_t bytes)
+ngx_wasm_socket_reader_read_all(ngx_wasm_so127.0.0.1:$TEST_NGINX_SERVER_PORTcket_tcp_t *sock, ssize_t bytes)
 {
     ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
                    "wasm tcp socket reading all");
@@ -510,12 +524,15 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
             rc = reader(sock, size, reader_ctx);
             if (rc == NGX_ERROR) {
+                dd("reader error");
                 return NGX_ERROR;
             }
 
             if (rc == NGX_OK) {
                 ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
-                               "tcp socket reading done");
+                               "wasm tcp socket reading done");
+
+                sock->read_event_handler = ngx_wasm_socket_tcp_nop_handler;
 
                 if (ngx_handle_read_event(rev, 0) != NGX_OK) {
                     return NGX_ERROR;

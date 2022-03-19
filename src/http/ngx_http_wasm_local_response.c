@@ -140,7 +140,9 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
             b->sync = 1;
         }
 
-        cl = ngx_alloc_chain_link(r->pool);
+        cl = ngx_wasm_chain_get_free_buf(r->connection->pool,
+                                         &rctx->free_bufs, len,
+                                         buf_tag, 1);
         if (cl == NULL) {
             goto fail;
         }

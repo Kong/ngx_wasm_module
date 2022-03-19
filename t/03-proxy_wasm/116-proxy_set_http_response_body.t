@@ -250,7 +250,7 @@ on_response_body, 0 bytes, end_of_stream true.*/
         echo -n 'hello';
         proxy_wasm hostcalls 'on=response_body \
                               test=/t/set_response_body \
-                              value=LAST offset=0 max=20';
+                              value=LAST offset=10 max=20';
         proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
 
@@ -265,7 +265,7 @@ Transfer-Encoding: chunked
 Content-Length:
 --- response_body
 hello was
-LAST
+hello     LAST
 --- grep_error_log eval: qr/(on_response_body,|(overriding\s)?response body chunk).*/
 --- grep_error_log_out eval
 qr/on_response_body, 12 bytes, end_of_stream false.*
@@ -280,8 +280,8 @@ on_response_body, 0 bytes, end_of_stream true.*
 on_response_body, 0 bytes, end_of_stream true.*
 on_response_body, 5 bytes, end_of_stream false.*
 overriding response body chunk while Content-Length header already sent.*
-on_response_body, 5 bytes, end_of_stream false.*
-response body chunk: "LAST\\n".*
+on_response_body, 15 bytes, end_of_stream false.*
+response body chunk: "hello     LAST\\n".*
 on_response_body, 0 bytes, end_of_stream true.*
 on_response_body, 0 bytes, end_of_stream true.*/
 --- no_error_log

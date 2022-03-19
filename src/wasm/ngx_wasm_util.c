@@ -6,13 +6,15 @@
 #include <ngx_wasm.h>
 
 
-static ngx_inline void
+#if 0
+static void
 ngx_wasm_chain_log_debug(ngx_log_t *log, ngx_chain_t *in, char *fmt)
 {
 #if (NGX_DEBUG)
     size_t        len;
     ngx_chain_t  *cl;
     ngx_buf_t    *buf;
+    ngx_str_t     s;
 
     cl = in;
 
@@ -20,16 +22,20 @@ ngx_wasm_chain_log_debug(ngx_log_t *log, ngx_chain_t *in, char *fmt)
         buf = cl->buf;
         len = buf->last - buf->pos;
 
-        ngx_log_debug8(NGX_LOG_DEBUG_WASM, log, 0,
-                       "%s: \"%.*s\" (buf: %p, len: %d, last_buf: %d,"
+        s.len = len;
+        s.data = buf->pos;
+
+        ngx_log_debug7(NGX_LOG_DEBUG_WASM, log, 0,
+                       "%s: \"%V\" (buf: %p, len: %d, last_buf: %d,"
                        " last_in_chain: %d, flush: %d)",
-                       fmt, (int) len, buf->pos, buf, len, buf->last_buf,
+                       fmt, &s, buf, len, buf->last_buf,
                        buf->last_in_chain, buf->flush);
 
         cl = cl->next;
     }
 #endif
 }
+#endif
 
 
 size_t
@@ -205,8 +211,6 @@ ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
     ngx_buf_t    *buf;
     ngx_chain_t  *cl, *nl, *ll = NULL;
 
-    ngx_wasm_chain_log_debug(pool->log, *in, "input");
-
     fill = ngx_wasm_chain_clear(*in, at, &eof, &flush);
     rest = str->len + fill;
 
@@ -282,8 +286,6 @@ ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
     } else {
         *in = nl;
     }
-
-    ngx_wasm_chain_log_debug(pool->log, *in, "output");
 
     return NGX_OK;
 }

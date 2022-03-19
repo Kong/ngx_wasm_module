@@ -74,7 +74,7 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
 
     rc = ngx_http_send_header(r);
     if (rc == NGX_ERROR) {
-        goto done;
+        return NGX_ERROR;
     }
 
     if (rc > NGX_OK || r->header_only) {
@@ -87,7 +87,7 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
     if (in == NULL) {
         rc = ngx_http_send_special(r, NGX_HTTP_LAST);
         if (rc == NGX_ERROR) {
-            goto done;
+            return NGX_ERROR;
 
         } else if (rc < NGX_HTTP_SPECIAL_RESPONSE) {
             /* special response >= 300 */
@@ -102,7 +102,7 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
-    //ngx_wasm_assert(rc == NGX_OK || rc == NGX_DONE);
+    ngx_wasm_assert(rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_DONE);
 
 done:
 
@@ -237,7 +237,7 @@ ngx_http_wasm_set_req_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
         r->request_body = rb;
     }
 
-    if (ngx_wasm_chain_append(r->pool, &rb->bufs, at, body,
+    if (ngx_wasm_chain_append(r->connection->pool, &rb->bufs, at, body,
                               &rctx->free_bufs, buf_tag)
         != NGX_OK)
     {
@@ -268,7 +268,7 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
 
     body->len = ngx_min(body->len, max);
 
-    if (ngx_wasm_chain_append(r->pool, &rctx->resp_chunk, at, body,
+    if (ngx_wasm_chain_append(r->connection->pool, &rctx->resp_chunk, at, body,
                               &rctx->free_bufs, buf_tag)
         != NGX_OK)
     {
@@ -278,10 +278,12 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
     rctx->resp_chunk_len = ngx_wasm_chain_len(rctx->resp_chunk,
                                               &rctx->resp_chunk_eof);
 
+#if 0
     if (!rctx->resp_chunk_len) {
         /* discard chunk */
         rctx->resp_chunk = NULL;
     }
+#endif
 
     return NGX_OK;
 }

@@ -70,8 +70,10 @@ struct ngx_wasm_socket_tcp_s {
 };
 
 
-ngx_int_t ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host, ngx_pool_t *pool, ngx_log_t *log);
+ngx_int_t ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock, ngx_str_t *host,
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t *rctx);
+#endif
 ngx_int_t ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock,
     ngx_http_wasm_req_ctx_t *rctx); // TODO: stream subsys
 ngx_int_t ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock,

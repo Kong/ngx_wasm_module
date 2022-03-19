@@ -264,7 +264,7 @@ wasm tcp socket trying to receive data (max: 1)
 
 
 
-=== TEST 14: proxy_wasm - dispatch_http_call() small wasm_socket_large_buffer_size
+=== TEST 14: proxy_wasm - dispatch_http_call() small wasm_socket_large_buffers
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -272,7 +272,7 @@ wasm tcp socket trying to receive data (max: 1)
     location /t {
         wasm_socket_buffer_reuse off;
         wasm_socket_buffer_size 1;
-        wasm_socket_large_buffer_size 4 12;
+        wasm_socket_large_buffers 4 12;
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
@@ -288,7 +288,7 @@ wasm tcp socket trying to receive data (max: 1)
 --- error_log
 tcp socket trying to receive data (max: 1)
 tcp socket trying to receive data (max: 11)
-tcp socket - upstream response headers too large, increase wasm_socket_large_buffer_size directive
+tcp socket - upstream response headers too large, increase wasm_socket_large_buffers size
 
 
 
@@ -308,80 +308,5 @@ tcp socket - upstream response headers too large, increase wasm_socket_large_buf
 --- response_body_like: 500 Internal Server Error
 --- error_log
 [wasm] dispatch failed (tcp socket - resolver error: Host not found)
---- no_error_log
-[crit]
-
-
-
-=== TEST 16: proxy_wasm - dispatch_http_call() connection timeout
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
---- config
-    resolver 1.1.1.1;
-
-    location /t {
-        wasm_socket_connect_timeout 1ms;
-
-        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=httpbin.org';
-        echo fail;
-    }
-
-    location /dispatched {
-        return 200 "Hello world";
-    }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
---- error_log eval
-qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out connecting to \"\d+\.\d+\.\d+\.\d+:\d+\"\)/
---- no_error_log
-[crit]
-
-
-
-=== TEST 17: proxy_wasm - dispatch_http_call() connection timeout
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
---- config
-    resolver 1.1.1.1;
-
-    location /t {
-        wasm_socket_connect_timeout 1ms;
-
-        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=httpbin.org \
-                              path=/status/200';
-        echo fail;
-    }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
---- error_log eval
-qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out connecting to \".*?"\)/
---- no_error_log
-[crit]
-
-
-
-=== TEST 18: proxy_wasm - dispatch_http_call() read timeout
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
---- config
-    location /t {
-        wasm_socket_read_timeout 1ms;
-
-        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
-                              path=/dispatched';
-        echo fail;
-    }
-
-    location /dispatched {
-        echo_sleep 1;
-        echo ok;
-    }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
---- error_log eval
-qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out reading from \"127\.0\.0\.1:\d+\"\)/
 --- no_error_log
 [crit]

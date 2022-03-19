@@ -29,7 +29,7 @@ typedef struct {
     ngx_array_t                        resp_shim_headers;
     ngx_chain_t                       *resp_chunk;
     off_t                              resp_chunk_len;
-    unsigned                           resp_chunk_eof;
+    unsigned                           resp_chunk_eof;         /* seen last buf flag */
 
     /* local resp */
 
