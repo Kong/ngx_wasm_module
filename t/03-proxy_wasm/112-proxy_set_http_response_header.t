@@ -199,7 +199,7 @@ resp Connection: upgrade.*/
 
 
 === TEST 8: proxy_wasm - set_http_response_header() sets Connection header (keep-alive)
---- timeout_no_valgrind: 20s
+--- timeout_no_valgrind: 1
 --- abort
 --- wasm_modules: hostcalls
 --- config

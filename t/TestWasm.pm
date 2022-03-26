@@ -136,14 +136,21 @@ add_block_preprocessor(sub {
         $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND} && !defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}', $1);
     }
 
-    # --- timeout_no_valgrind: 1s
+    # --- timeout_no_valgrind: 1
 
     if (defined $block->timeout_no_valgrind
         && !defined $ENV{TEST_NGINX_USE_VALGRIND}
         && !defined $block->timeout
         && $block->timeout_no_valgrind =~ m/\s*(\S+)/)
     {
-        $block->set_value("timeout", $1);
+        my $timeout = $1;
+
+        if ($nginxV =~ m/wasmtime/) {
+            # Wasmtime is much slower to load modules
+            $timeout += 60;
+        }
+
+        $block->set_value("timeout", $timeout);
     }
 });
 
