@@ -13,7 +13,7 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm - on_request_headers -> Pause
---- timeout_no_valgrind: 10s
+--- timeout_no_valgrind: 1
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -33,7 +33,7 @@ pausing after "RequestHeaders"
 
 
 === TEST 2: proxy_wasm - on_request_body -> Pause
---- timeout_no_valgrind: 10s
+--- timeout_no_valgrind: 1
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -93,7 +93,7 @@ NYI
 
 
 === TEST 5: proxy_wasm - subrequest on_request_headers -> Pause
---- timeout_no_valgrind: 10s
+--- timeout_no_valgrind: 1
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -125,7 +125,7 @@ pausing after "RequestHeaders"
 
 
 === TEST 6: proxy_wasm - subrequest on_request_body -> Pause
---- timeout_no_valgrind: 10s
+--- timeout_no_valgrind: 1
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -161,7 +161,7 @@ pausing after "RequestBody"
 
 === TEST 7: proxy_wasm - subrequest on_response_headers -> Pause
 NYI
---- timeout_no_valgrind: 10s
+--- timeout_no_valgrind: 1
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -195,7 +195,7 @@ NYI
 
 === TEST 8: proxy_wasm - subrequest on_response_body -> Pause
 NYI
---- timeout_no_valgrind: 10s
+--- timeout_no_valgrind: 1
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
