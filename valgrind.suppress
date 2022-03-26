@@ -51,18 +51,7 @@
    Memcheck:Leak
    fun:malloc
    fun:ngx_alloc
-   ...
    fun:ngx_event_process_init
-   fun:ngx_worker_process_cycle
-}
-{
-   <nginx: ...>
-   Memcheck:Leak
-   fun:malloc
-   fun:ngx_alloc
-   ...
-   fun:ngx_event_process_init
-   fun:ngx_single_process_cycle
 }
 {
     <nginx 1.19.10: ngx_pass_open_channel has uninitialized bytes>
