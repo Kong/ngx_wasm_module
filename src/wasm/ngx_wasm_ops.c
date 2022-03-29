@@ -348,16 +348,15 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
 
     ngx_wasm_assert(rc == NGX_DONE);
 
-    if (phase->index != NGX_HTTP_WASM_BODY_FILTER_PHASE) {
-        if (pwctx->phase
-            && pwctx->phase->index == phase->index)
-        {
-            /* run only one op per phase */
-            return NGX_DECLINED;
-        }
-
-        //ngx_wasm_assert(pwctx->cur_filter_idx == 0);
+#ifdef NGX_WASM_HTTP
+    if (phase->index != NGX_HTTP_WASM_BODY_FILTER_PHASE
+        && pwctx->phase
+        && pwctx->phase->index == phase->index)
+    {
+        /* run only one op per phase */
+        return NGX_DECLINED;
     }
+#endif
 
     switch (phase->index) {
 

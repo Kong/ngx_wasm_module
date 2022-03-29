@@ -31,6 +31,7 @@ ngx_http_proxy_wasm_dispatch(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
     ngx_event_t                     *ev;
     ngx_table_elt_t                 *elts, *elt;
     ngx_wasm_socket_tcp_t           *sock;
+    ngx_wasm_socket_tcp_env_t        sock_env;
     ngx_http_request_t              *r;
     ngx_http_proxy_wasm_dispatch_t  *call;
 
@@ -147,9 +148,12 @@ ngx_http_proxy_wasm_dispatch(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
 
     sock = &call->sock;
 
-    if (ngx_wasm_socket_tcp_init(sock, &call->host, rctx)
-        != NGX_OK)
-    {
+    sock_env.connection = r->connection;
+    sock_env.buf_tag = buf_tag;
+    sock_env.kind = NGX_WASM_SOCKET_TCP_KIND_HTTP;
+    sock_env.ctx.request = rctx;
+
+    if (ngx_wasm_socket_tcp_init(sock, &call->host, &sock_env) != NGX_OK) {
         goto error;
     }
 
@@ -467,7 +471,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 
     case NGX_HTTP_PROXY_WASM_DISPATCH_CONNECTING:
 
-        rc = ngx_wasm_socket_tcp_connect(sock, rctx);
+        rc = ngx_wasm_socket_tcp_connect(sock);
         if (rc == NGX_ERROR) {
             goto error;
         }

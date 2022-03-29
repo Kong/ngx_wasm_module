@@ -1090,7 +1090,9 @@ ngx_proxy_wasm_resume_main(ngx_proxy_wasm_filter_ctx_t *fctx)
 
     pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
 
+#ifdef NGX_WASM_HTTP
     r->write_event_handler(r);
+#endif
 }
 
 
