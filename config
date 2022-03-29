@@ -65,6 +65,8 @@ have=NGX_WASM_RUNTIME value="\"$ngx_wasm_runtime_name\"" . auto/define
 
 ###############################################################################
 
+# core
+
 NGX_WASM_INCS="\
     $ngx_feature_path \
     $ngx_addon_dir/src/wasm \
@@ -102,6 +104,8 @@ NGX_WASM_CORE_SRCS="\
     $ngx_addon_dir/src/wasm/ngx_wasm_core_module.c \
     $ngx_addon_dir/src/wasm/ngx_wasm_core_host.c"
 
+# http
+
 NGX_HTTP_WASM_INCS="\
     $ngx_addon_dir/src/http \
     $ngx_addon_dir/src/http/proxy_wasm"
@@ -129,6 +133,19 @@ NGX_HTTP_WASM_SRCS="\
 
 NGX_HTTP_WASM_FILTER_SRCS="\
     $ngx_addon_dir/src/http/ngx_http_wasm_filter_module.c"
+
+# stream
+
+NGX_STREAM_WASM_INCS="\
+    $ngx_addon_dir/src/stream \
+    $ngx_addon_dir/src/stream/proxy_wasm"
+
+NGX_STREAM_WASM_DEPS="\
+    $ngx_addon_dir/src/stream/ngx_stream_wasm.h \
+    $ngx_addon_dir/src/stream/proxy_wasm/ngx_stream_proxy_wasm.h"
+
+NGX_STREAM_WASM_SRCS="\
+    $ngx_addon_dir/src/stream/ngx_stream_wasm_module.c"
 
 ###############################################################################
 
@@ -203,6 +220,30 @@ if [ $HTTP = YES ]; then
     fi
 
     have=NGX_WASM_HTTP value=1 . auto/define
+fi
+
+if [ $STREAM = YES ]; then
+    if [ "$ngx_module_link" = DYNAMIC ]; then
+        ngx_module_incs="$ngx_module_incs \
+                         $NGX_STREAM_WASM_INCS"
+        ngx_module_deps="$ngx_module_deps \
+                         $NGX_STREAM_WASM_DEPS"
+        ngx_module_srcs="$ngx_module_srcs \
+                         $NGX_STREAM_WASM_SRCS"
+
+    else
+        # addon
+        ngx_module_type=STREAM
+        ngx_module_name=ngx_stream_wasm_module
+        ngx_module_incs="$NGX_STREAM_WASM_INCS"
+        ngx_module_deps="$NGX_STREAM_WASM_DEPS"
+        ngx_module_srcs="$NGX_STREAM_WASM_SRCS"
+        ngx_module_libs=
+
+        . auto/module
+    fi
+
+    have=NGX_WASM_STREAM value=1 . auto/define
 fi
 
 ###############################################################################

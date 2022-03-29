@@ -54,8 +54,18 @@ ngx_wasm_module [dev
 
 
 
-=== TEST 5: build without http
---- SKIP
+=== TEST 5: build with ngx_stream_core_module (--with-stream)
+--- build: NGX_BUILD_CONFIGURE_OPT='--with-stream' make
+--- grep_nginxV
+--with-stream
+--- run_cmd eval: qq{nm -g $::buildroot/nginx}
+--- grep_cmd
+ngx_http_wasm
+ngx_stream_wasm_module
+
+
+
+=== TEST 6: build without ngx_http_core_module nor ngx_stream_core_module (--without-http)
 --- build: NGX_BUILD_CONFIGURE_OPT='--without-http' make
 --- grep_nginxV
 --without-http
@@ -64,3 +74,15 @@ ngx_wasm_module [dev
 ngx_http_wasm
 --- grep_cmd
 ngx_wavm
+
+
+
+=== TEST 7: build without ngx_http_core_module (--without-http --with-stream)
+--- build: NGX_BUILD_CONFIGURE_OPT='--without-http --with-stream' make
+--- grep_nginxV
+--with-stream
+--- run_cmd eval: qq{nm -g $::buildroot/nginx}
+--- no_grep_cmd
+ngx_http_wasm
+--- grep_cmd
+ngx_stream_wasm_module
