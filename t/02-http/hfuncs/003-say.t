@@ -76,6 +76,6 @@ TODO: test backtrace
 --- ignore_response_body
 --- grep_error_log eval: qr/\[error\] .*?$/
 --- grep_error_log_out eval
-qr/bad host usage: response already sent/
+qr/bad host usage: headers already sent/
 --- no_error_log
 [crit]

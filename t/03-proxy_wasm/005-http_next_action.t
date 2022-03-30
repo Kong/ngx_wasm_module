@@ -133,13 +133,13 @@ pausing after "RequestHeaders"
     location /pause {
         internal;
         proxy_wasm on_phases 'pause_on=request_body';
-        echo;
+        echo pause;
     }
 
     location /nop {
         internal;
         proxy_wasm on_phases;
-        echo ok;
+        echo nop;
     }
 
     location /t {
@@ -213,8 +213,8 @@ NYI
     }
 
     location /t {
-        echo_subrequest_async GET /pause;
-        echo_subrequest_async GET /nop;
+        echo_subrequest GET /pause;
+        echo_subrequest GET /nop;
     }
 --- error_code: 200
 --- response_body

@@ -11,7 +11,7 @@ ngx_int_t ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_err_e ecode);
 ngx_proxy_wasm_ctx_t *ngx_http_proxy_wasm_ctx(
     ngx_proxy_wasm_filter_t *filter, void *data);
 ngx_int_t ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
-    ngx_proxy_wasm_step_e step);
+    ngx_proxy_wasm_step_e step, ngx_uint_t *ret);
 
 
 static ngx_inline ngx_http_wasm_req_ctx_t *

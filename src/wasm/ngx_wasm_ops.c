@@ -215,10 +215,8 @@ ngx_wasm_ops_add(ngx_wasm_ops_engine_t *ops_engine, ngx_wasm_op_t *op)
 
 
 ngx_int_t
-ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
-    ngx_uint_t modes)
+ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
 {
-    unsigned                  force_ops = (modes & NGX_WASM_OPS_RUN_ALL);
     size_t                    i;
     ngx_wasm_phase_t         *phase;
     ngx_wasm_ops_engine_t    *ops_engine = ctx->ops_engine;
@@ -229,49 +227,48 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
     phase = ngx_wasm_ops_engine_phase_lookup(ops_engine, phaseidx);
     if (phase == NULL) {
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, ctx->log, 0,
-                           "ops resume: no phase for index '%ui'",
-                           phase);
+                           "ops resume: no phase for index '%ui'", phase);
         return NGX_DECLINED;
     }
 
     pipeline = ctx->ops_engine->pipelines[phase->index];
-
-#if 0
-    ngx_log_debug4(NGX_LOG_DEBUG_WASM, ctx->log, 0,
-                   "wasm ops resuming \"%V\" phase (idx: %ui, "
-                   "nops: %ui, force_ops: %d)",
-                   &phase->name, phaseidx, pipeline ? pipeline->ops->nelts : 0,
-                   force_ops);
-#endif
 
     if (pipeline == NULL) {
         dd("no pipeline");
         return NGX_DECLINED;
     }
 
+#if 0
+    ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
+                   "wasm ops resuming \"%V\" phase (idx: %ui, "
+                   "nops: %ui)",
+                   &phase->name, phaseidx,
+                   pipeline ? pipeline->ops->nelts : 0);
+#endif
+
     for (i = 0; i < pipeline->ops->nelts; i++) {
         op = ((ngx_wasm_op_t **) pipeline->ops->elts)[i];
 
         rc = op->handler(ctx, phase, op);
-
         if (rc == NGX_ERROR || rc > NGX_OK) {
             /* NGX_ERROR, NGX_HTTP_* */
-            break;
+            return rc;
         }
 
-        if (force_ops) {
-            /* force_ops: run all ops even if rc != NGX_OK */
-            rc = NGX_OK;
+        if (rc == NGX_DECLINED) {
+            dd("next op");
             continue;
         }
 
-        if (rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_DONE) {
-            break;
-        }
-
-        /* NGX_DECLINED: next op */
-        ngx_wasm_assert(rc == NGX_DECLINED);
+        break;
     }
+
+    ngx_wasm_assert(rc == NGX_OK
+                    || rc == NGX_DECLINED
+                    || rc == NGX_AGAIN
+                    || rc == NGX_DONE);
+
+    dd("ops resume rc: %ld", rc);
 
     return rc;
 }
@@ -312,6 +309,8 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
 
     ngx_wasm_assert(rc == NGX_OK);
 
+    /* next call op */
+
     return NGX_DECLINED;
 }
 
@@ -320,41 +319,55 @@ static ngx_int_t
 ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     ngx_wasm_phase_t *phase, ngx_wasm_op_t *op)
 {
-    ngx_int_t                      rc;
-    ngx_proxy_wasm_ctx_t          *pwctx;
-    ngx_proxy_wasm_filter_t       *filter;
-    //ngx_wasm_op_proxy_wasm_ctx_t  *ctx = &opctx->ctx.proxy_wasm;
+    ngx_int_t                 rc = NGX_ERROR;
+#ifdef NGX_WASM_HTTP
+    ngx_uint_t                idx;
+#endif
+    ngx_proxy_wasm_ctx_t     *pwctx;
+    ngx_proxy_wasm_filter_t  *filter;
 
     ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);
 
     filter = op->conf.proxy_wasm.filter;
     if (filter == NULL) {
-        return NGX_ERROR;
+        goto done;
     }
 
     pwctx = ngx_proxy_wasm_ctx(filter, opctx->data);
     if (pwctx == NULL) {
-        return NGX_ERROR;
+        goto done;
     }
 
     rc = ngx_proxy_wasm_ctx_add(pwctx, filter);
     if (rc == NGX_ERROR) {
-        return NGX_ERROR;
+        goto done;
 
     } else if (rc == NGX_OK) {
         /* again */
-        return NGX_DECLINED;
+        rc = NGX_DECLINED;
+        goto done;
     }
 
     ngx_wasm_assert(rc == NGX_DONE);
 
 #ifdef NGX_WASM_HTTP
     if (phase->index != NGX_HTTP_WASM_BODY_FILTER_PHASE
-        && pwctx->phase
-        && pwctx->phase->index == phase->index)
+        && phase->index != NGX_HTTP_CONTENT_PHASE
+        && pwctx->phase)
     {
-        /* run only one op per phase */
-        return NGX_DECLINED;
+        idx = pwctx->phase->index;
+        if (idx == NGX_HTTP_WASM_HEADER_FILTER_PHASE
+            || idx == NGX_HTTP_WASM_BODY_FILTER_PHASE)
+        {
+            /* fake sub-phases of content phase */
+            idx = NGX_HTTP_CONTENT_PHASE;
+        }
+
+        if (idx >= phase->index) {
+            /* run only one op per phase */
+            rc = NGX_DECLINED;
+            goto done;
+        }
     }
 #endif
 
@@ -397,52 +410,38 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
         break;
 
     default:
-        return NGX_DECLINED;
+        rc = NGX_DECLINED;
+        goto done;
 
     }
 
-    if (rc == NGX_ERROR
-#ifdef NGX_WASM_HTTP
-        || rc >= NGX_HTTP_SPECIAL_RESPONSE
-#endif
-       )
-    {
-        return rc;
+    if (rc == NGX_ERROR || rc > NGX_OK) {
+        /* NGX_ERROR, NGX_HTTP_* */
+        goto done;
     }
-
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_DONE);
 
     /* override rc */
 
     switch (phase->index) {
+
 #ifdef NGX_WASM_HTTP
-    case NGX_HTTP_REWRITE_PHASE:
-        if (rc == NGX_AGAIN) {
-            /* yield */
-            rc = NGX_DONE;
-            break;
-        }
-
-        if (rc == NGX_DONE) {
-            rc = NGX_DECLINED;
-            break;
-        }
-
-        rc = NGX_DECLINED;
-        break;
     case NGX_HTTP_WASM_BODY_FILTER_PHASE:
-        if (!pwctx->main) {
-            /* subrequest */
-            rc = NGX_OK;
-            break;
-        }
-
-        rc = NGX_DONE;
+        /* main/subrequest */
+        //rc = pwctx->main ? NGX_DONE : NGX_OK;
         break;
 #endif
+
     default:
         break;
     }
+
+done:
+
+    ngx_wasm_assert(rc >= NGX_OK           /* step completed */
+                    || rc == NGX_ERROR
+                    || rc == NGX_AGAIN     /* step yielded */
+                    || rc == NGX_DECLINED  /* handled by caller */
+                    || rc == NGX_DONE);    /* all steps finished */
 
     return rc;
 }

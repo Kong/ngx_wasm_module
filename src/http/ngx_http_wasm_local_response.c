@@ -45,8 +45,12 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     ngx_table_elt_t     *elt, *elts, *eltp;
     ngx_http_request_t  *r = rctx->r;
 
-    if (rctx->resp_content_chosen) {
-        /* response already sent, content produced */
+    dd("enter");
+    dd("rctx: %p (resp_content_produced: %d, local_resp_stashed: %d)",
+       rctx, rctx->resp_content_produced, rctx->local_resp_stashed);
+
+    if (rctx->resp_content_produced) {
+        /* content already produced */
         return NGX_ABORT;
     }
 
@@ -133,9 +137,11 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
         *b->last++ = LF;
 
         if (r == r->main) {
+            dd("main request setting last");
             b->last_buf = 1;
 
         } else {
+            dd("subrequest setting last");
             b->last_in_chain = 1;
             b->sync = 1;
         }
@@ -174,15 +180,14 @@ ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx)
     ngx_table_elt_t     *elt;
     ngx_http_request_t  *r = rctx->r;
 
-    if (!rctx->local_resp_stashed
-        || rctx->resp_content_chosen
-        || r->header_sent)
-    {
+    if (!rctx->local_resp_stashed || r->header_sent) {
         return NGX_DECLINED;
     }
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm flushing local_response");
+
+    rctx->local_resp_stashed = 0;
 
     rc = ngx_http_discard_request_body(r);
     if (rc != NGX_OK) {
@@ -225,8 +230,6 @@ ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx)
     }
 
     rc = ngx_http_wasm_send_chain_link(r, rctx->local_resp_body);
-
-    rctx->local_resp_stashed = 0;
 
     return rc;
 }

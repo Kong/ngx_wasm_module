@@ -390,7 +390,7 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
     ngx_wavm_instance_set_data(ictx->instance, ictx, log);
 
     rc = ngx_proxy_wasm_resume(ictx, filter, fctx,
-                               NGX_PROXY_WASM_STEP_ON_TIMER);
+                               NGX_PROXY_WASM_STEP_ON_TIMER, NULL);
 
     if (fctx->ecode == NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED) {
         filter->root_ictx = ngx_proxy_wasm_instance_get(filter,

@@ -100,8 +100,7 @@ void ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine);
 ngx_int_t ngx_wasm_ops_add(ngx_wasm_ops_engine_t *ops_engine,
     ngx_wasm_op_t *op);
 
-ngx_int_t ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx,
-    ngx_uint_t modes);
+ngx_int_t ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx);
 
 
 #endif /* _NGX_WASM_OPS_H_INCLUDED_ */

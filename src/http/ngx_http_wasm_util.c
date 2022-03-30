@@ -70,8 +70,6 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
         r->headers_out.status = NGX_HTTP_OK;
     }
 
-    rctx->resp_content_chosen = 1;
-
     rc = ngx_http_send_header(r);
     if (rc == NGX_ERROR) {
         return NGX_ERROR;
@@ -82,7 +80,10 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     ngx_wasm_assert(r->header_sent);
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_DONE);
+    ngx_wasm_assert(rc == NGX_OK
+                    || rc == NGX_AGAIN
+                    || rc == NGX_DONE
+                    || rc == NGX_DECLINED);
 
     if (in == NULL) {
         rc = ngx_http_send_special(r, NGX_HTTP_LAST);
@@ -102,13 +103,11 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_DONE);
-
 done:
 
-    if (rc != NGX_AGAIN) {
-        rctx->resp_sent_last = 1;
-    }
+    ngx_wasm_assert(rc == NGX_OK || rc == NGX_DONE);
+
+    rctx->resp_content_sent = 1;
 
     return rc;
 }
@@ -207,7 +206,7 @@ ngx_http_wasm_set_req_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
 
     r = rctx->r;
 
-    if (r->header_sent || rctx->resp_content_chosen) {
+    if (r->header_sent || rctx->resp_content_produced) {
         return NGX_DECLINED;
     }
 
@@ -256,9 +255,11 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
 {
     ngx_http_request_t  *r = rctx->r;
 
+#if 1
     if (rctx->resp_chunk == NULL) {
         return NGX_DECLINED;
     }
+#endif
 
     if (r->header_sent && !r->chunked) {
         ngx_wasm_log_error(NGX_LOG_WARN, r->connection->log, 0,
@@ -278,7 +279,7 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
     rctx->resp_chunk_len = ngx_wasm_chain_len(rctx->resp_chunk,
                                               &rctx->resp_chunk_eof);
 
-#if 0
+#if 1
     if (!rctx->resp_chunk_len) {
         /* discard chunk */
         rctx->resp_chunk = NULL;

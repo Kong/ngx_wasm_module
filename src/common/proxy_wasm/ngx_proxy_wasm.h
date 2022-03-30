@@ -75,8 +75,8 @@ typedef enum {
 typedef enum {
     NGX_PROXY_WASM_STEP_INIT_CTX = 0,
     NGX_PROXY_WASM_STEP_REQ_HEADERS,
-    NGX_PROXY_WASM_STEP_REQ_BODY,
     NGX_PROXY_WASM_STEP_REQ_BODY_READ,
+    NGX_PROXY_WASM_STEP_REQ_BODY,
     NGX_PROXY_WASM_STEP_REQ_TRAILERS,
     NGX_PROXY_WASM_STEP_RESP_HEADERS,
     NGX_PROXY_WASM_STEP_RESP_BODY,
@@ -164,7 +164,7 @@ typedef struct ngx_proxy_wasm_instance_ctx_s  ngx_proxy_wasm_instance_ctx_t;
 typedef ngx_str_t  ngx_proxy_wasm_marshalled_map_t;
 
 typedef ngx_int_t (*ngx_proxy_wasm_resume_pt)(ngx_proxy_wasm_filter_ctx_t *fctx,
-    ngx_proxy_wasm_step_e step);
+    ngx_proxy_wasm_step_e step, ngx_uint_t *ret);
 typedef ngx_int_t (*ngx_proxy_wasm_ecode_pt)(ngx_proxy_wasm_err_e ecode);
 typedef ngx_proxy_wasm_ctx_t *(*ngx_proxy_wasm_get_context_pt)(
     ngx_proxy_wasm_filter_t *filter, void *data);
@@ -206,7 +206,6 @@ struct ngx_proxy_wasm_ctx_s {
     /* flags */
 
     unsigned                           main:1;
-    unsigned                           waiting:1;
 };
 
 
@@ -221,7 +220,7 @@ struct ngx_proxy_wasm_filter_ctx_s {
     ngx_proxy_wasm_instance_ctx_t     *ictx;
     ngx_proxy_wasm_filter_t           *filter;
     void                              *data;
-    ngx_chain_t                       *dispatch_body; // move to pwctx
+    ngx_chain_t                       *dispatch_body; // TODO: move to pwctx
     ngx_event_t                       *ev;
 
     /* flags */
@@ -367,8 +366,9 @@ void ngx_proxy_wasm_filter_destroy(ngx_proxy_wasm_filter_t *filter);
 /* ngx_proxy_wasm_filter_ctx_t */
 ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
     ngx_proxy_wasm_filter_t *filter, ngx_proxy_wasm_filter_ctx_t *fctx,
-    ngx_proxy_wasm_step_e step);
-void ngx_proxy_wasm_resume_main(ngx_proxy_wasm_filter_ctx_t *fctx);
+    ngx_proxy_wasm_step_e step, ngx_uint_t *ret);
+void ngx_proxy_wasm_resume_main(ngx_proxy_wasm_filter_ctx_t *fctx,
+    unsigned wev);
 ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_filter_ctx_t *fctx,
     size_t size);
 unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx,
