@@ -278,6 +278,8 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
     fake_r->connection = rctx->connection;
     fake_r->pool = r->pool;
 
+    ngx_wasm_assert(r->pool); /* not log phase... */
+
     if (ngx_list_init(&fake_r->headers_in.headers, fake_r->pool, 10,
                       sizeof(ngx_table_elt_t))
         != NGX_OK)

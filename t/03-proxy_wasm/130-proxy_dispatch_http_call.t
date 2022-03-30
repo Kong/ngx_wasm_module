@@ -169,7 +169,27 @@ qr/\[error\] .*? dispatch failed \(no resolver defined to resolve "localhost"\)/
 
 
 
-=== TEST 10: proxy_wasm - dispatch_http_call() no response body
+=== TEST 10: proxy_wasm - dispatch_http_call() resolver error (host not found)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    resolver 1.1.1.1;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=foo';
+        echo fail;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log
+[wasm] dispatch failed (tcp socket - resolver error: Host not found)
+--- no_error_log
+[crit]
+
+
+
+=== TEST 11: proxy_wasm - dispatch_http_call() no response body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -191,7 +211,7 @@ ok
 
 
 
-=== TEST 11: proxy_wasm - dispatch_http_call() "Content-Length" response body
+=== TEST 12: proxy_wasm - dispatch_http_call() "Content-Length" response body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -213,7 +233,7 @@ Hello world
 
 
 
-=== TEST 12: proxy_wasm - dispatch_http_call() "Transfer-Encoding: chunked" response body
+=== TEST 13: proxy_wasm - dispatch_http_call() "Transfer-Encoding: chunked" response body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -237,7 +257,33 @@ Content-Length: 0.*
 
 
 
-=== TEST 13: proxy_wasm - dispatch_http_call() small wasm_socket_buffer_size
+=== TEST 14: proxy_wasm - dispatch_http_call() large response
+--- skip_no_debug: 4
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        wasm_socket_buffer_reuse off;
+        wasm_socket_buffer_size 256;
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/bytes';
+        echo fail;
+    }
+
+    location /bytes {
+        echo_duplicate 512 "a";
+    }
+--- response_body_like
+[a]{512}
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 15: proxy_wasm - dispatch_http_call() small wasm_socket_buffer_size
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -264,7 +310,33 @@ wasm tcp socket trying to receive data (max: 1)
 
 
 
-=== TEST 14: proxy_wasm - dispatch_http_call() small wasm_socket_large_buffers
+=== TEST 16: proxy_wasm - dispatch_http_call() small wasm_socket_large_buffers
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        wasm_socket_buffer_reuse off;
+        wasm_socket_buffer_size 1;
+        wasm_socket_large_buffers 4 1024;
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched';
+        echo fail;
+    }
+
+    location /dispatched {
+        return 200 "Hello world";
+    }
+--- response_body
+Hello world
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 17: proxy_wasm - dispatch_http_call() too small wasm_socket_large_buffers
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -292,21 +364,152 @@ tcp socket - upstream response headers too large, increase wasm_socket_large_buf
 
 
 
-=== TEST 15: proxy_wasm - dispatch_http_call() resolver error (host not found)
+=== TEST 18: proxy_wasm - dispatch_http_call() few wasm_socket_large_buffers
+--- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
-    resolver 1.1.1.1;
-    resolver_timeout 1s;
-
     location /t {
+        wasm_socket_buffer_reuse off;
+        wasm_socket_buffer_size 1;
+        wasm_socket_large_buffers 1 1024;
+
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=zzzzzzz.zz';
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched';
         echo fail;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+
+    location /dispatched {
+        return 200 "Hello world";
+    }
+--- response_body
+Hello world
 --- error_log
-[wasm] dispatch failed (tcp socket - resolver error: Host not found)
+tcp socket trying to receive data (max: 1)
+tcp socket trying to receive data (max: 1023)
+
+
+
+=== TEST 19: proxy_wasm - dispatch_http_call() in log phase
+--- SKIP
+--- skip_no_debug: 4
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        wasm_socket_buffer_reuse on;
+        wasm_socket_buffer_size 24;
+        wasm_socket_large_buffers 32 128;
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched';
+
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched';
+
+        echo fail;
+    }
+
+    location /dispatched {
+        return 200 "Hello world";
+    }
+--- response_body
+Hello world
+--- error_log
+tcp socket trying to receive data (max: 1)
+tcp socket trying to receive data (max: 1023)
+
+
+
+=== TEST 20: proxy_wasm - dispatch_http_call() FAILING
+--- SKIP
+--- skip_no_debug: 4
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        echo_subrequest_async GET /proxy_wasm;
+        echo_subrequest_async GET /proxy_wasm;
+        echo_flush;
+    }
+
+    location /proxy_wasm {
+        internal;
+
+        wasm_socket_buffer_reuse on;
+        wasm_socket_buffer_size 24;
+        wasm_socket_large_buffers 32 128;
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched';
+        echo fail;
+    }
+
+    location /dispatched {
+        echo_duplicate 256 "a";
+    }
+--- response_body
+[a]+
 --- no_error_log
+[error]
 [crit]
+
+
+
+=== TEST 21: proxy_wasm - dispatch_http_call() re-entrant after status line
+--- skip_no_debug: 4
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        wasm_socket_buffer_reuse off;
+        wasm_socket_buffer_size 24;  # enough to fit status line
+        wasm_socket_large_buffers 4 1k;
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched';
+        echo fail;
+    }
+
+    location /dispatched {
+        return 200 "Hello world";
+    }
+--- response_body
+Hello world
+--- error_log
+tcp socket trying to receive data (max: 24)
+tcp socket trying to receive data (max: 1017)
+
+
+
+=== TEST 22: proxy_wasm - dispatch_http_call() too small wasm_socket_large_buffers after status line
+--- skip_no_debug: 4
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        wasm_socket_buffer_reuse off;
+        wasm_socket_buffer_size 24;  # enough to fit status line
+        wasm_socket_large_buffers 4 12;
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched';
+        echo fail;
+    }
+
+    location /dispatched {
+        return 200 "Hello world";
+    }
+--- error_code: 500
+--- ignore_response_body
+--- error_log
+tcp socket trying to receive data (max: 24)
+tcp socket trying to receive data (max: 5)
+tcp socket - upstream response headers too large, increase wasm_socket_large_buffers size

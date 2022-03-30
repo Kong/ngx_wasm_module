@@ -140,8 +140,7 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
     }
 
 #if (NGX_WASM_HTTP)
-    switch (sock->kind) {
-    case NGX_WASM_SOCKET_TCP_KIND_HTTP:
+    if (sock->kind == NGX_WASM_SOCKET_TCP_KIND_HTTP) {
         r = sock->env.ctx.request->r;
         loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
 
@@ -159,10 +158,6 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
         if (!sock->read_timeout) {
             sock->read_timeout = loc->recv_timeout;
         }
-
-        break;
-    default:
-        break;
     }
 #endif
 
@@ -424,7 +419,7 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
     for ( ;; ) {
 
         b = cl->buf;
-        n = c->send(c, b->pos, b->last - b->pos);
+        n = c->send(c, b->pos, ngx_buf_size(b));
 
         dd("send rc: %d (wev ready: %d)", (int) n, (int) c->write->ready);
 
@@ -527,7 +522,7 @@ ngx_int_t
 ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
     ngx_wasm_socket_tcp_reader_pt reader, void *reader_ctx)
 {
-    off_t              size;
+    off_t              size, avail;
     ssize_t            n;
     ngx_int_t          rc;
     ngx_buf_t         *b;
@@ -561,10 +556,13 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
     for ( ;; ) {
 
-        size = b->last - b->pos;
+        size = ngx_buf_size(b);
+#if (DDEBUG)
+        avail = b->end - b->last;
+#endif
 
-        dd("b: %p: %.*s (size: %lu, eof: %d)",
-           b, (int) size, b->pos, size, (int) sock->eof);
+        dd("pre-reader buf: \"%.*s\" (size: %lu, avail: %lu, eof: %d)",
+           (int) size, b->pos, size, avail, (int) sock->eof);
 
         if (size || sock->eof) {
 
@@ -601,12 +599,15 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
             break;
         }
 
-        size = b->end - b->last;
+#if (DDEBUG)
+        size = ngx_buf_size(b);
+#endif
+        avail = b->end - b->last;
 
-        dd("bytes left in buffer: %ld (pos: %p, last: %p, end: %p",
-           size, b->pos, b->last, b->end);
+        dd("post-reader buf: \"%.*s\" (size: %lu, avail: %lu, eof: %d)",
+           (int) size, b->pos, size, avail, (int) sock->eof);
 
-        if (size == 0) {
+        if (avail == 0) {
             cl = ngx_wasm_chain_get_free_buf(sock->pool,
                                              &sock->free_bufs,
                                              sock->buffer_size,
@@ -622,14 +623,14 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
             b = &sock->buffer;
 
-            size = b->end - b->last;
+            avail = b->end - b->last;
         }
 
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, sock->log, 0,
                        "wasm tcp socket trying to receive data (max: %O)",
-                       size);
+                       avail);
 
-        n = c->recv(c, b->last, size);
+        n = c->recv(c, b->last, avail);
 
         dd("recv rc: %d (rev ready: %d)", (int) n, (int) c->read->ready);
 
