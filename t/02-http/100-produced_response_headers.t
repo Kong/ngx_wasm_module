@@ -23,7 +23,7 @@ __DATA__
 
 === TEST 1: produce default response headers
 should produce some of the default headers otherwise
-injected (too late) by ngx_http_header_filter
+injected too late by ngx_http_header_filter
 --- skip_no_debug: 7
 --- wasm_modules: ngx_rust_tests
 --- config

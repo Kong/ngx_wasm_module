@@ -42,14 +42,16 @@ typedef struct {
 
     /* flags */
 
-    unsigned                           reset_resp_shims:1;
+    unsigned                           yield:1;
 
     unsigned                           req_keepalive:1;        /* r->keepalive copy */
 
-    unsigned                           resp_content_chosen:1;
-    unsigned                           resp_headers_filter:1;
-    unsigned                           resp_headers_sent:1;    /* r->header_sent copy */
-    unsigned                           resp_sent_last:1;       /* sent last byte (ourselves) */
+    unsigned                           reset_resp_shims:1;
+
+    unsigned                           resp_content_produced:1;
+    unsigned                           resp_content_sent:1;    /* sent response (ourselves) */
+    unsigned                           resp_content_started:1;
+    unsigned                           resp_header_filter_started:1;
     unsigned                           resp_finalized:1;       /* finalized connection (ourselves) */
 } ngx_http_wasm_req_ctx_t;
 
@@ -84,6 +86,8 @@ ngx_int_t ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx,
     ngx_int_t rc);
+void ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned wev);
+void ngx_http_wasm_content_wev_handler(ngx_http_request_t *r);
 
 
 /* directives */

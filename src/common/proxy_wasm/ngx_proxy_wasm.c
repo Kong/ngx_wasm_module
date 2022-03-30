@@ -9,7 +9,8 @@
 #endif
 
 
-static ngx_int_t ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx);
+static ngx_int_t ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx,
+    ngx_proxy_wasm_filter_ctx_t *fctx, ngx_uint_t *ret);
 static void ngx_proxy_wasm_ctx_free(ngx_proxy_wasm_ctx_t *pwctx);
 static void ngx_proxy_wasm_instance_destroy(
     ngx_proxy_wasm_instance_ctx_t *ictx);
@@ -120,7 +121,8 @@ ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_wasm_phase_t *phase, ngx_proxy_wasm_step_e step)
 {
     size_t                          i;
-    ngx_int_t                       rc;
+    ngx_int_t                       rc = NGX_OK;
+    ngx_uint_t                      next_action;
     ngx_proxy_wasm_filter_t        *filter;
     ngx_proxy_wasm_filter_ctx_t    *fctx, *fctxs;
     ngx_proxy_wasm_instance_ctx_t  *ictx;
@@ -128,14 +130,9 @@ ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
     pwctx->phase = phase;
     pwctx->step = step;
 
-    /* check for yielded state */
+    next_action = NGX_PROXY_WASM_ACTION_CONTINUE;
 
-    rc = ngx_proxy_wasm_ctx_action(pwctx);
-    if (rc != NGX_OK) {
-        goto ret;
-    }
-
-    /* resume runloop */
+    /* resume filters chain */
 
     fctxs = (ngx_proxy_wasm_filter_ctx_t *) pwctx->fctxs.elts;
 
@@ -144,9 +141,13 @@ ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
         filter = fctx->filter;
         ictx = fctx->ictx;
 
+        /* bubble-down filter error */
+
         if (filter->ecode) {
             fctx->ecode = filter->ecode;
         }
+
+        /* check for trap */
 
         if (ictx->instance->trapped) {
             if (step == NGX_PROXY_WASM_STEP_INIT_CTX
@@ -169,55 +170,37 @@ ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
             }
         }
 
-        if (fctx->ecode) {
-            if (!fctx->ecode_logged
-                && pwctx->step != NGX_PROXY_WASM_STEP_DONE)
-            {
-                ngx_proxy_wasm_log_error(NGX_LOG_WARN, pwctx->log, fctx->ecode,
-                                         "proxy_wasm \"%V\" filter (%l/%l)"
-                                         " failed resuming",
-                                         filter->name, i + 1, pwctx->n_filters);
+        /* check for yielded state */
 
-                fctx->ecode_logged = 1;
-            }
-#if (NGX_DEBUG)
-            else {
-                ngx_log_debug4(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
-                               "proxy_wasm \"%V\" filter (%l/%l)"
-                               " skipped in \"%V\" phase",
-                               filter->name, i + 1, pwctx->n_filters, &phase->name);
-            }
-#endif
-
-            rc = filter->ecode_(fctx->ecode);
-
+        rc = ngx_proxy_wasm_ctx_action(pwctx, fctx, &next_action);
+        if (rc != NGX_OK) {
             goto ret;
         }
 
-        ngx_log_debug4(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+        ngx_log_debug5(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
                        "proxy_wasm \"%V\" filter (%l/%l)"
-                       " resuming in \"%V\" phase",
-                       filter->name, i + 1, pwctx->n_filters, &phase->name);
+                       " resuming in \"%V\" phase (step: %l)",
+                       filter->name, i + 1, pwctx->n_filters, &phase->name,
+                       step);
 
-        rc = ngx_proxy_wasm_resume(ictx, filter, fctx, step);
-        if (rc != NGX_OK) {
-            if (rc == NGX_ABORT) {
-                /* trap */
-                ngx_wasm_assert(ictx->instance->trapped);
-                rc = NGX_ERROR;
-            }
-
+        rc = ngx_proxy_wasm_resume(ictx, filter, fctx, step, &next_action);
+        if (rc == NGX_ERROR) {
+            rc = filter->ecode_(fctx->ecode);
             goto ret;
         }
 
-        /* check for yield */
+        if (rc == NGX_DONE) {
+            ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                           "proxy_wasm filter chain stopped");
+            goto ret;
+        }
 
-        rc = ngx_proxy_wasm_ctx_action(pwctx);
+        ngx_wasm_assert(rc == NGX_OK);
+
+        /* check for yield/done */
+
+        rc = ngx_proxy_wasm_ctx_action(pwctx, fctx, &next_action);
         if (rc != NGX_OK) {
-            if (rc == NGX_ERROR) {
-                fctx->ecode = NGX_PROXY_WASM_ERR_NOT_YIELDABLE;
-            }
-
             goto ret;
         }
 
@@ -226,7 +209,7 @@ ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
         dd("next filter");
     }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    //ngx_wasm_assert(rc == NGX_OK);
 
     if (pwctx->fctxs.nelts < pwctx->n_filters) {
         /* incomplete chain */
@@ -248,50 +231,150 @@ ret:
 
 
 static ngx_int_t
-ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx)
+ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx,
+    ngx_proxy_wasm_filter_ctx_t *fctx, ngx_uint_t *ret)
 {
-    ngx_int_t   rc;
+    ngx_int_t                     rc = NGX_ERROR;
+    ngx_proxy_wasm_filter_t      *filter;
+    ngx_proxy_wasm_filter_ctx_t  *yfctx, *fctxs;
 
-    if (pwctx->step == NGX_PROXY_WASM_STEP_DONE) {
-        /* force resume the done step */
-        return NGX_OK;
-    }
 
-    if (pwctx->action == NGX_PROXY_WASM_ACTION_CONTINUE) {
-        pwctx->waiting = 0;
-        return NGX_OK;
-    }
+    if (fctx->ecode) {
+        filter = fctx->filter;
 
-    if (pwctx->waiting) {
-        return NGX_AGAIN;
-    }
+        if (!fctx->ecode_logged
+            && pwctx->step != NGX_PROXY_WASM_STEP_DONE)
+        {
+            ngx_proxy_wasm_log_error(NGX_LOG_WARN, pwctx->log, fctx->ecode,
+                                     "proxy_wasm \"%V\" filter (%l/%l)"
+                                     " failed resuming",
+                                     filter->name, filter->index + 1,
+                                     pwctx->n_filters);
 
-    ngx_wasm_assert(pwctx->action == NGX_PROXY_WASM_ACTION_PAUSE);
-
-    switch (pwctx->phase->index) {
-#ifdef NGX_WASM_HTTP
-    case NGX_HTTP_REWRITE_PHASE:
-    case NGX_HTTP_CONTENT_PHASE:
-        /* yield */
-        rc = NGX_AGAIN;
-        break;
-#endif
-    default:
-        ngx_wasm_log_error(NGX_LOG_ERR, pwctx->log, 0,
-                           "proxy_wasm cannot pause in \"%V\" phase",
+            fctx->ecode_logged = 1;
+        }
+#if (NGX_DEBUG)
+        else {
+            ngx_log_debug4(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                           "proxy_wasm \"%V\" filter (%l/%l)"
+                           " skipped in \"%V\" phase",
+                           filter->name, filter->index + 1, pwctx->n_filters,
                            &pwctx->phase->name);
-        pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
-        return NGX_ERROR;
+        }
+#endif
+
+        rc = filter->ecode_(fctx->ecode);
+        goto error;
     }
 
-    pwctx->waiting = 1;
+    /* check for flags set by host */
 
-    ngx_log_debug6(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
-                   "proxy_wasm pausing in \"%V\" phase"
-                   " (step: %d, filter: %l/%l, action: %d, pwctx: %p)",
-                   &pwctx->phase->name, pwctx->step,
-                   pwctx->cur_filter_idx, pwctx->n_filters,
-                   pwctx->action, pwctx);
+    switch (pwctx->action) {
+    case NGX_PROXY_WASM_ACTION_PAUSE:
+        goto yield;
+    case NGX_PROXY_WASM_ACTION_DONE:
+        /* resume later phases */
+        pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
+        rc = NGX_DONE;
+        goto done;
+    default:
+        break;
+    }
+
+    /* check for next action return value */
+
+    if (ret) {
+
+        /* set next action */
+
+        switch (*ret) {
+        case NGX_PROXY_WASM_ACTION_PAUSE:
+            dd("next action: yield");
+            break;
+        case NGX_PROXY_WASM_ACTION_CONTINUE:
+            dd("next action: continue");
+            break;
+        default:
+            ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwctx->log, 0,
+                                     "NYI - action: %l", ret);
+            goto error;
+        }
+
+        pwctx->action = *ret;
+    }
+
+    /* exceptional steps */
+
+    switch (pwctx->step) {
+    case NGX_PROXY_WASM_STEP_DONE:
+        /* force-resume the done step */
+        goto cont;
+    default:
+        break;
+    }
+
+    /* determine current action rc */
+
+    switch (pwctx->action) {
+
+    case NGX_PROXY_WASM_ACTION_CONTINUE:
+        goto cont;
+
+    case NGX_PROXY_WASM_ACTION_PAUSE:
+        switch (pwctx->phase->index) {
+#ifdef NGX_WASM_HTTP
+        case NGX_HTTP_REWRITE_PHASE:
+        case NGX_HTTP_CONTENT_PHASE:
+            ngx_log_debug6(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                           "proxy_wasm pausing in \"%V\" phase"
+                           " (step: %d, filter: %l/%l, action: %d, pwctx: %p)",
+                           &pwctx->phase->name, pwctx->step,
+                           pwctx->cur_filter_idx + 1, pwctx->n_filters,
+                           pwctx->action, pwctx);
+            goto yield;
+#endif
+        default:
+            ngx_wasm_log_error(NGX_LOG_ERR, pwctx->log, 0,
+                               "proxy_wasm cannot pause in \"%V\" phase",
+                               &pwctx->phase->name);
+
+            fctxs = (ngx_proxy_wasm_filter_ctx_t *) pwctx->fctxs.elts;
+            yfctx = &fctxs[pwctx->cur_filter_idx];
+            yfctx->ecode = NGX_PROXY_WASM_ERR_NOT_YIELDABLE;
+        }
+
+        break;
+
+    default:
+        ngx_wasm_assert(0);
+        break;
+
+    }
+
+error:
+
+    ngx_wasm_assert(rc == NGX_ERROR
+#ifdef NGX_WASM_HTTP
+                    || rc >= NGX_HTTP_SPECIAL_RESPONSE
+#endif
+                    );
+
+    if (rc == NGX_ERROR) {
+        fctx->ecode = NGX_PROXY_WASM_ERR_NOT_YIELDABLE;
+    }
+
+    goto done;
+
+yield:
+
+    rc = NGX_AGAIN;
+    goto done;
+
+cont:
+
+    rc = NGX_OK;
+
+done:
 
     return rc;
 }
@@ -308,7 +391,6 @@ ngx_proxy_wasm_ctx_free(ngx_proxy_wasm_ctx_t *pwctx)
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
                    "proxy_wasm freeing stream context #%d (main: %d)",
                    pwctx->id, pwctx->main);
-
 
     fctxs = (ngx_proxy_wasm_filter_ctx_t *) pwctx->fctxs.elts;
 
@@ -450,11 +532,8 @@ ngx_proxy_wasm_instance_release(ngx_proxy_wasm_instance_ctx_t *ictx, unsigned fo
     dd("ictx->nrefs: %ld", ictx->nrefs);
 
     if (ictx->nrefs) {
-        dd("keep");
         return;
     }
-
-    dd("release");
 
     /* release */
 
@@ -847,7 +926,7 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
     }
 
     rc = ngx_proxy_wasm_resume(filter->root_ictx, filter, NULL,
-                               NGX_PROXY_WASM_STEP_INIT_CTX);
+                               NGX_PROXY_WASM_STEP_INIT_CTX, NULL);
     if (rc != NGX_OK) {
         goto error;
     }
@@ -977,7 +1056,7 @@ ngx_proxy_wasm_start(ngx_proxy_wasm_filter_ctx_t *fctx)
 ngx_int_t
 ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
     ngx_proxy_wasm_filter_t *filter, ngx_proxy_wasm_filter_ctx_t *fctx,
-    ngx_proxy_wasm_step_e step)
+    ngx_proxy_wasm_step_e step, ngx_uint_t *ret)
 {
     ngx_int_t                     rc;
     ngx_wavm_instance_t          *instance = ictx->instance;
@@ -1043,7 +1122,8 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
     case NGX_PROXY_WASM_STEP_REQ_BODY:
     case NGX_PROXY_WASM_STEP_RESP_HEADERS:
     case NGX_PROXY_WASM_STEP_RESP_BODY:
-        rc = filter->resume_(fctx, step);
+        ngx_wasm_assert(ret);
+        rc = filter->resume_(fctx, step, ret);
         break;
     case NGX_PROXY_WASM_STEP_LOG:
         ngx_proxy_wasm_on_log(fctx);
@@ -1061,11 +1141,7 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
         return NGX_ERROR;
     }
 
-    if (rc == NGX_ERROR && !fctx->ecode) {
-        fctx->ecode = NGX_PROXY_WASM_ERR_UNKNOWN;
-
-    } else if (fctx->ecode) {
-        ngx_wasm_assert(0);
+    if (rc == NGX_ABORT || fctx->ecode) {
         rc = NGX_ERROR;
     }
 
@@ -1074,24 +1150,21 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
 
 
 void
-ngx_proxy_wasm_resume_main(ngx_proxy_wasm_filter_ctx_t *fctx)
+ngx_proxy_wasm_resume_main(ngx_proxy_wasm_filter_ctx_t *fctx, unsigned wev)
 {
-    ngx_proxy_wasm_ctx_t     *pwctx = fctx->parent;
-#ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
-    ngx_http_request_t       *r = rctx->r;
+#if (NGX_DEBUG)
+    ngx_proxy_wasm_filter_t  *filter = fctx->filter;
 #endif
+    ngx_proxy_wasm_ctx_t     *pwctx = fctx->parent;
 
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                   "proxy_wasm \"%V\" filter (%l/%l) "
-                   "resuming main request",
-                   fctx->filter->name, fctx->filter->index + 1,
-                   *fctx->filter->n_filters);
+    ngx_log_debug4(NGX_LOG_DEBUG_WASM, fctx->log, 0,
+                   "proxy_wasm \"%V\" filter (%l/%l) resuming main request (wev: %d)",
+                   filter->name, filter->index + 1, *filter->n_filters, wev);
 
     pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
 
 #ifdef NGX_WASM_HTTP
-    r->write_event_handler(r);
+    ngx_http_wasm_resume((ngx_http_wasm_req_ctx_t *) pwctx->data, wev);
 #endif
 }
 

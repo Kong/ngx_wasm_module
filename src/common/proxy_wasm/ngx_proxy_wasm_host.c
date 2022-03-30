@@ -60,7 +60,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
 
     case NGX_PROXY_WASM_BUFFER_HTTP_CALL_RESPONSE_BODY:
     {
-        ngx_wasm_http_reader_ctx_t      *in_ctx;
+        ngx_wasm_http_reader_ctx_t      *reader;
         ngx_http_proxy_wasm_dispatch_t  *call;
         ngx_proxy_wasm_filter_ctx_t     *fctx;
 
@@ -70,17 +70,17 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
             return NULL;
         }
 
-        in_ctx = &call->http_reader;
+        reader = &call->http_reader;
 
-        if (!in_ctx->body_len) {
+        if (!reader->body_len) {
             /* no body */
             *none = 1;
             return NULL;
         }
 
-        ngx_wasm_assert(in_ctx->body);
+        ngx_wasm_assert(reader->body);
 
-        return in_ctx->body;
+        return reader->body;
     }
 #endif
 
@@ -425,7 +425,7 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
-        if (rctx->resp_content_chosen) {
+        if (rctx->resp_content_produced) {
             ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                                "cannot set request headers: response produced");
 
@@ -496,7 +496,7 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
-        && rctx->resp_content_chosen)
+        && rctx->resp_content_produced)
     {
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                            "cannot add request header: response produced");
@@ -550,7 +550,7 @@ ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
-        && rctx->resp_content_chosen)
+        && rctx->resp_content_produced)
     {
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                            "cannot set request header: response produced");
@@ -724,6 +724,7 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     switch (rc) {
 
     case NGX_OK:
+        fctx->parent->action = NGX_PROXY_WASM_ACTION_DONE;
         break;
 
     case NGX_ERROR:
@@ -793,34 +794,25 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
 }
 
 
-static void
-ngx_proxy_wasm_hfuncs_resume(ngx_event_t *ev)
-{
-    ngx_proxy_wasm_filter_ctx_t  *fctx = ev->data;
-
-    ngx_free(ev);
-
-    ngx_proxy_wasm_resume_main(fctx);
-}
-
-
 static ngx_int_t
 ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_instance2fctx(instance);
-    ngx_event_t                  *ev;
+    ngx_proxy_wasm_filter_ctx_t  *fctx;
+    ngx_proxy_wasm_ctx_t         *pwctx;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t      *rctx;
+#endif
 
-    ev = ngx_calloc(sizeof(ngx_event_t), instance->log);
-    if (ev == NULL) {
-        return ngx_proxy_wasm_result_err(rets);
-    }
+    fctx = ngx_proxy_wasm_instance2fctx(instance);
+    pwctx = fctx->parent;
 
-    ev->handler = ngx_proxy_wasm_hfuncs_resume;
-    ev->data = fctx;
-    ev->log = instance->log;
+    pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
 
-    ngx_post_event(ev, &ngx_posted_events);
+#ifdef NGX_WASM_HTTP
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    rctx->yield = 0;
+#endif
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -830,9 +822,13 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_resume_http_response(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_instance2fctx(instance);
+    ngx_proxy_wasm_filter_ctx_t  *fctx;
 
-    ngx_proxy_wasm_resume_main(fctx);
+    ngx_wasm_assert(0);
+
+    fctx = ngx_proxy_wasm_instance2fctx(instance);
+
+    ngx_proxy_wasm_resume_main(fctx, 1);
 
     return ngx_proxy_wasm_result_ok(rets);
 }

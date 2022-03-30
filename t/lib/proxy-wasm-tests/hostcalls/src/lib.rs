@@ -192,7 +192,18 @@ impl Context for TestHttpHostcalls {
             let body = String::from_utf8(bytes).unwrap();
             let response = body.trim().to_string();
             info!("[hostcalls] http_call_response: {:?}", response);
-            self.send_plain_response(StatusCode::OK, Some(response));
+
+            match self
+                .config
+                .get("echo_response")
+                .unwrap_or(&String::new())
+                .as_str()
+            {
+                "off" | "false" | "F" => {}
+                _ => self.send_plain_response(StatusCode::OK, Some(response)),
+            }
+
+            //self.set_http_response_body(0, response.len(), response.as_bytes());
         }
 
         self.resume_http_request()

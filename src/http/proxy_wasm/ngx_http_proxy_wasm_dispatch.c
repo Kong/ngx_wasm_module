@@ -132,15 +132,15 @@ ngx_http_proxy_wasm_dispatch(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
     /* body */
 
     if (body && body->len) {
-        call->body_len = body->len;
-        call->body = ngx_wasm_chain_get_free_buf(r->connection->pool,
-                                                 &rctx->free_bufs,
-                                                 body->len, buf_tag, 1);
-        if (call->body == NULL) {
+        call->req_body_len = body->len;
+        call->req_body = ngx_wasm_chain_get_free_buf(r->connection->pool,
+                                                     &rctx->free_bufs,
+                                                     body->len, buf_tag, 1);
+        if (call->req_body == NULL) {
             goto error;
         }
 
-        buf = call->body->buf;
+        buf = call->req_body->buf;
         buf->last = ngx_copy(buf->last, body->data, body->len);
     }
 
@@ -215,13 +215,13 @@ ngx_http_proxy_wasm_dispatch_destroy(ngx_http_proxy_wasm_dispatch_t *call)
         ngx_pfree(call->pool, call->host.data);
     }
 
-    if (call->body) {
-        for (cl = call->body; cl; cl = cl->next) {
+    if (call->req_body) {
+        for (cl = call->req_body; cl; cl = cl->next) {
             dd("body chain: %p, next %p", cl, cl->next);
             cl->buf->pos = cl->buf->last;
         }
 
-        rctx->free_bufs = call->body;
+        rctx->free_bufs = call->req_body;
     }
 
     ngx_destroy_pool(call->pool);  /* reader->pool */
@@ -278,7 +278,7 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
     fake_r->connection = rctx->connection;
     fake_r->pool = r->pool;
 
-    ngx_wasm_assert(r->pool); /* not log phase... */
+    ngx_wasm_assert(r->pool);  /* NYI: log phase after ngx_pool_cleanup */
 
     if (ngx_list_init(&fake_r->headers_in.headers, fake_r->pool, 10,
                       sizeof(ngx_table_elt_t))
@@ -327,7 +327,7 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
                + sizeof(CRLF) - 1;
     }
 
-    fake_r->headers_in.content_length_n = call->body_len;
+    fake_r->headers_in.content_length_n = call->req_body_len;
 
     /**
      * GET /dispatched HTTP/1.1
@@ -428,8 +428,8 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
 
     /* body */
 
-    if (call->body_len) {
-        nl->next = call->body;
+    if (call->req_body_len) {
+        nl->next = call->req_body;
     }
 
     call->req_out = nl;
@@ -446,13 +446,14 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
     ngx_uint_t                       n_headers;
     ngx_chain_t                     *nl;
     ngx_list_part_t                 *part;
-    ngx_table_elt_t                 *header;
     ngx_wavm_instance_t             *instance;
     ngx_http_proxy_wasm_dispatch_t  *call = sock->data;
     ngx_http_wasm_req_ctx_t         *rctx = call->rctx;
     ngx_http_request_t              *r = rctx->r;
     ngx_proxy_wasm_filter_ctx_t     *fctx = call->data;
     ngx_proxy_wasm_filter_t         *filter = fctx->filter;
+
+    dd("enter");
 
     ngx_wasm_assert(&call->sock == sock);
 
@@ -542,7 +543,6 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         ngx_wasm_socket_tcp_close(sock);
 
         part = &call->http_reader.fake_r.upstream->headers_in.headers.part;
-        header = part->elts;
 
         for (i = 0, n_headers = 0; /* void */; i++, n_headers++) {
             if (i >= part->nelts) {
@@ -551,14 +551,18 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
                 }
 
                 part = part->next;
-                header = part->elts;
                 i = 0;
             }
 
-            if (header[i].hash == 0) {
-                continue;
-            }
+            /* void */
         }
+
+        /**
+         * TODO: move to reuse proxy_wasm_resume logic
+         *   - new phase: dispatch_cb
+         *   - yieldable/non-yieldable phases + checks
+         *   - delay and execute proxy_wasm_resume_main outside of hostcalls
+         */
 
         ngx_log_debug3(NGX_LOG_DEBUG_ALL, sock->log, 0,
                        "proxy_wasm http dispatch response received "
@@ -567,33 +571,57 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 
         instance = ngx_proxy_wasm_fctx2instance(fctx);
 
+        if (instance->trapped) {
+            fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
+
+            ngx_proxy_wasm_log_error(NGX_LOG_ERR, fctx->log, fctx->ecode,
+                                     "proxy_wasm \"%V\" filter (%l/%l) "
+                                     "failed resuming after dispatch",
+                                     filter->name, filter->index + 1,
+                                     *filter->n_filters);
+
+            rc = NGX_ABORT;
+            goto error;
+        }
+
+        fctx->ictx->current_ctx = fctx;
         fctx->data = call;
 
         rc = ngx_wavm_instance_call_funcref(instance,
                                             filter->proxy_on_http_call_response,
                                             NULL, fctx->id, call->id,
-                                            n_headers, 0, 0);
+                                            n_headers,
+                                            call->http_reader.body_len, 0);
 
         fctx->data = NULL;
 
         if (rc == NGX_ABORT) {
             fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
+            goto error;
         }
 
         ngx_http_proxy_wasm_dispatch_destroy(call);
+        /* resume main handled by wasm callback */
         break;
 
     default:
         ngx_wasm_assert(0);
-        break;
+        rc = NGX_ERROR;
+        goto error;
 
     }
 
-    return;
+    ngx_wasm_assert(rc == NGX_AGAIN || rc == NGX_OK);
+
+    goto done;
 
 error:
 
-    if (rc != NGX_ABORT) {
+    if (rc == NGX_ABORT) {
+        /* catch trap for tcp socket resume retval */
+        rc = NGX_ERROR;
+
+    } else {
         /* background error */
         fctx->ecode = NGX_PROXY_WASM_ERR_DISPATCH_FAILED;
     }
@@ -606,5 +634,9 @@ error:
 
     ngx_http_proxy_wasm_dispatch_destroy(call);
 
-    ngx_proxy_wasm_resume_main(fctx);
+    ngx_wasm_assert(rc == NGX_ERROR);
+
+done:
+
+    ngx_proxy_wasm_resume_main(fctx, rc != NGX_AGAIN);
 }

@@ -13,9 +13,10 @@
 #endif
 
 
-typedef void (*ngx_wasm_socket_tcp_handler_pt)(ngx_wasm_socket_tcp_t *sock);
-typedef ngx_int_t (*ngx_wasm_socket_tcp_reader_pt)(ngx_wasm_socket_tcp_t *sock,
-    ssize_t bytes, void *ctx);
+typedef void (*ngx_wasm_socket_tcp_handler_pt)(
+    ngx_wasm_socket_tcp_t *sock);
+typedef ngx_int_t (*ngx_wasm_socket_tcp_reader_pt)(
+    ngx_wasm_socket_tcp_t *sock, ssize_t bytes, void *ctx);
 typedef void (*ngx_wasm_socket_tcp_resume_handler_pt)(
     ngx_wasm_socket_tcp_t *sock);
 
@@ -23,7 +24,6 @@ typedef void (*ngx_wasm_socket_tcp_resume_handler_pt)(
 typedef struct {
     ngx_str_t                                host;
     in_port_t                                port;
-    ngx_uint_t                               no_port; /* unsigned no_port:1 */
 
     ngx_uint_t                               naddrs;
     ngx_resolver_addr_t                     *addrs;

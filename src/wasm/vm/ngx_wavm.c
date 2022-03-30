@@ -1212,11 +1212,13 @@ ngx_wavm_instance_call_funcref(ngx_wavm_instance_t *instance,
     ngx_int_t         rc;
     ngx_wavm_func_t  *func;
 
+#if 0
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, instance->log, 0,
                    "wasm calling \"%V.%V\" function "
                    "(instance: %p, store: %p)",
                    &instance->module->name, &funcref->name,
                    instance, instance->wrt_store.store);
+#endif
 
     ngx_wasm_assert(funcref->module == instance->module);
 
