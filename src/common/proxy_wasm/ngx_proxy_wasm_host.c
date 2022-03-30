@@ -78,6 +78,8 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
             return NULL;
         }
 
+        ngx_wasm_assert(in_ctx->body);
+
         return in_ctx->body;
     }
 #endif
@@ -166,8 +168,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
 
     if (offset > offset + max_len) {
         /* overflow */
-        // TODO: change
-        return ngx_proxy_wasm_result_badarg(rets);
+        return ngx_proxy_wasm_result_err(rets);
     }
 
     switch (buf_type) {
@@ -178,13 +179,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     default:
         cl = ngx_proxy_wasm_get_buffer_helper(instance, buf_type, &none);
         if (cl == NULL) {
-            if (none) {
-                /* no body or buffered to file */
-                return ngx_proxy_wasm_result_notfound(rets);
-            }
-
-            // TODO: change
-            return ngx_proxy_wasm_result_badarg(rets);
+            return ngx_proxy_wasm_result_notfound(rets);
         }
 
         len = ngx_wasm_chain_len(cl, NULL);

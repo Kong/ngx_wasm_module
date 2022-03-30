@@ -186,10 +186,6 @@ ngx_wasm_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free,
         return NULL;
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
-                   "wasm allocate new chainlink and new buf of size %uz, cl:%p",
-                   len, cl);
-
     cl->buf = len ? ngx_create_temp_buf(p, len) : ngx_calloc_buf(p);
     if (cl->buf == NULL) {
         return NULL;
@@ -197,6 +193,11 @@ ngx_wasm_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free,
 
     cl->buf->tag = tag;
     cl->next = NULL;
+
+    ngx_log_debug3(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
+                   "wasm allocate new chainlink and new buf of size %uz, cl: %p"
+                   ", buf: %p",
+                   len, cl, cl->buf);
 
     return cl;
 }

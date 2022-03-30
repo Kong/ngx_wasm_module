@@ -66,7 +66,7 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     /* reason */
 
     if (reason_len) {
-        reason_len += 5; /* "ddd <reason>\0" */
+        reason_len += 5;  /* "ddd <reason>\0" */
         p = ngx_pnalloc(r->pool, reason_len);
         if (p == NULL) {
             goto fail;

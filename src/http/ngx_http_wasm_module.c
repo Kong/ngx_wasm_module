@@ -234,11 +234,7 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
     loc->send_timeout = NGX_CONF_UNSET_MSEC;
     loc->recv_timeout = NGX_CONF_UNSET_MSEC;
     loc->socket_buffer_size = NGX_CONF_UNSET_SIZE;
-#if (NGX_DEBUG)
     loc->socket_buffer_reuse = NGX_CONF_UNSET;
-#else
-    loc->socket_buffer_reuse = 1;
-#endif
 
     loc->vm = ngx_wasm_main_vm(cf->cycle);
     if (loc->vm) {
@@ -282,8 +278,13 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               prev->socket_buffer_size, 1024);
     ngx_conf_merge_bufs_value(conf->socket_large_buffers,
                               prev->socket_large_buffers, 4, 8192);
+#if (NGX_DEBUG)
     ngx_conf_merge_value(conf->socket_buffer_reuse,
                          prev->socket_buffer_reuse, 1);
+#else
+    prev->socket_buffer_reuse = 1;
+    conf->socket_buffer_reuse = 1;
+#endif
 
     if (conf->ops_engine) {
         mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);

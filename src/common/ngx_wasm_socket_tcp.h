@@ -37,6 +37,7 @@ typedef struct {
 
 
 typedef enum {
+    NGX_WASM_SOCKET_TCP_KIND_NONE = 0,
     NGX_WASM_SOCKET_TCP_KIND_HTTP,
     NGX_WASM_SOCKET_TCP_KIND_STREAM,
 } ngx_wasm_socket_tcp_env_e;
@@ -69,8 +70,8 @@ struct ngx_wasm_socket_tcp_s {
     void                                    *data;
 
     ngx_str_t                                host;
-    in_port_t                                port;
     ngx_wasm_upstream_resolved_t             resolved;
+    in_port_t                                port;
     ngx_msec_t                               read_timeout;
     ngx_msec_t                               send_timeout;
     ngx_msec_t                               connect_timeout;

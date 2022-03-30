@@ -25,6 +25,7 @@ typedef struct {
     ngx_chain_t                      *body;
     size_t                            headers_len;
     size_t                            body_len;
+    size_t                            rest;
     unsigned                          header_done:1;
 } ngx_wasm_http_reader_ctx_t;
 #endif

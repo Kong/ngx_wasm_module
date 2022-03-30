@@ -191,7 +191,7 @@ impl Context for TestHttpHostcalls {
         if let Some(bytes) = self.get_http_call_response_body(0, 1000) {
             let body = String::from_utf8(bytes).unwrap();
             let response = body.trim().to_string();
-            info!("{:?}", response);
+            info!("[hostcalls] http_call_response: {:?}", response);
             self.send_plain_response(StatusCode::OK, Some(response));
         }
 
