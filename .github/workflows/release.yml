@@ -110,25 +110,25 @@ jobs:
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
 
-  build-centos7:
-    name: "Build Centos 7 binary"
-    needs: build-images
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/kong/wasmx-build-centos:7
-      credentials:
-        username: ${{ github.repository_owner }}
-        password: ${{ secrets.TOKEN_GITHUB }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Build binary
-        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
-      - name: Upload binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: release-artifacts
-          path: dist
-          retention-days: ${{ env.RETENTION_DAYS }}
+  #build-centos7:
+  #  name: "Build Centos 7 binary"
+  #  needs: build-images
+  #  runs-on: ubuntu-latest
+  #  container:
+  #    image: ghcr.io/kong/wasmx-build-centos:7
+  #    credentials:
+  #      username: ${{ github.repository_owner }}
+  #      password: ${{ secrets.TOKEN_GITHUB }}
+  #  steps:
+  #    - uses: actions/checkout@v2
+  #    - name: Build binary
+  #      run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
+  #    - name: Upload binary
+  #      uses: actions/upload-artifact@v2
+  #      with:
+  #        name: release-artifacts
+  #        path: dist
+  #        retention-days: ${{ env.RETENTION_DAYS }}
 
   build-arch:
     name: Build ArchLinux binary
