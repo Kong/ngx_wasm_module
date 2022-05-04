@@ -255,7 +255,7 @@ release_bin() {
         download_wasmtime $WASMTIME_VER
 
         CC_FLAGS="-I$(pwd)/wasmtime-$WASMTIME_VER/include"
-        LD_FLAGS="$(pwd)/wasmtime-$WASMTIME_VER/lib/libwasmtime.a -ldl -lpthread"
+        LD_FLAGS="$(pwd)/wasmtime-$WASMTIME_VER/lib/libwasmtime.a -ldl -lpthread $LD_FLAGS"
 
         build_static_binary $arch wasmtime $WASMTIME_VER
     fi
@@ -264,7 +264,7 @@ release_bin() {
         download_wasmer $WASMER_VER $arch
 
         CC_FLAGS="-I$(pwd)/wasmer-$WASMER_VER/include"
-        LD_FLAGS="$(pwd)/wasmer-$WASMER_VER/lib/libwasmer.a -ldl -lpthread"
+        LD_FLAGS="$(pwd)/wasmer-$WASMER_VER/lib/libwasmer.a -ldl -lpthread $LD_FLAGS"
 
         build_static_binary $arch wasmer $WASMER_VER
     fi
