@@ -41,25 +41,25 @@ jobs:
       - name: "Ubuntu 18.04 build image"
         uses: docker/build-push-action@v2
         with:
-          file: ./util/Dockerfiles/Dockerfile.amd64.ubuntu-18.04
+          file: ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-18.04
           tags: ghcr.io/kong/wasmx-build-ubuntu:18.04
           push: true
       - name: "Ubuntu 20.04 build image"
         uses: docker/build-push-action@v2
         with:
-          file: ./util/Dockerfiles/Dockerfile.amd64.ubuntu-20.04
+          file: ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-20.04
           tags: ghcr.io/kong/wasmx-build-ubuntu:20.04
           push: true
       #- name: "Centos 7 build image"
       #  uses: docker/build-push-action@v2
       #  with:
-      #    file: ./util/Dockerfiles/Dockerfile.amd64.centos7
+      #    file: ./assets/release/Dockerfiles/Dockerfile.amd64.centos7
       #    tags: ghcr.io/kong/wasmx-build-centos:7
       #    push: true
       - name: ArchLinux build image
         uses: docker/build-push-action@v2
         with:
-          file: ./util/Dockerfiles/Dockerfile.amd64.archlinux
+          file: ./assets/release/Dockerfiles/Dockerfile.amd64.archlinux
           tags: ghcr.io/kong/wasmx-build-arch:latest
           push: true
       - id: assign-name
