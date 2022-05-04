@@ -50,12 +50,18 @@ jobs:
           file: ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-20.04
           tags: ghcr.io/kong/wasmx-build-ubuntu:20.04
           push: true
-      #- name: "Centos 7 build image"
-      #  uses: docker/build-push-action@v2
-      #  with:
-      #    file: ./assets/release/Dockerfiles/Dockerfile.amd64.centos7
-      #    tags: ghcr.io/kong/wasmx-build-centos:7
-      #    push: true
+      - name: "Centos 7 build image"
+        uses: docker/build-push-action@v2
+        with:
+          file: ./assets/release/Dockerfiles/Dockerfile.amd64.centos7
+          tags: ghcr.io/kong/wasmx-build-centos:7
+          push: true
+      - name: "Centos 8 build image"
+        uses: docker/build-push-action@v2
+        with:
+          file: ./assets/release/Dockerfiles/Dockerfile.amd64.centos8
+          tags: ghcr.io/kong/wasmx-build-centos:8
+          push: true
       - name: ArchLinux build image
         uses: docker/build-push-action@v2
         with:
@@ -110,25 +116,45 @@ jobs:
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
 
-  #build-centos7:
-  #  name: "Build Centos 7 binary"
-  #  needs: build-images
-  #  runs-on: ubuntu-latest
-  #  container:
-  #    image: ghcr.io/kong/wasmx-build-centos:7
-  #    credentials:
-  #      username: ${{ github.repository_owner }}
-  #      password: ${{ secrets.TOKEN_GITHUB }}
-  #  steps:
-  #    - uses: actions/checkout@v2
-  #    - name: Build binary
-  #      run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
-  #    - name: Upload binary
-  #      uses: actions/upload-artifact@v2
-  #      with:
-  #        name: release-artifacts
-  #        path: dist
-  #        retention-days: ${{ env.RETENTION_DAYS }}
+  build-centos7:
+    name: "Build Centos 7 binary"
+    needs: build-images
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/kong/wasmx-build-centos:7
+      credentials:
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.TOKEN_GITHUB }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build binary
+        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-artifacts
+          path: dist
+          retention-days: ${{ env.RETENTION_DAYS }}
+
+  build-centos8:
+    name: "Build Centos 8 binary"
+    needs: build-images
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/kong/wasmx-build-centos:8
+      credentials:
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.TOKEN_GITHUB }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build binary
+        run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-artifacts
+          path: dist
+          retention-days: ${{ env.RETENTION_DAYS }}
 
   build-arch:
     name: Build ArchLinux binary
@@ -167,7 +193,7 @@ jobs:
 
   upload-artifacts:
     name: Upload release artifacts
-    needs: [build-images, build-ubuntu-bionic, build-ubuntu-focal, build-arch, build-macos]
+    needs: [build-images, build-ubuntu-bionic, build-ubuntu-focal, build-centos7, build-centos8, build-arch, build-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Retrieve sibling release artifacts
