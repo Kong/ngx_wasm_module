@@ -15,7 +15,7 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
 PCRE_VER=8.45
-OPENSSL_VER=1.1.1n
+OPENSSL_VER=1.1.1o
 ZLIB_VER=1.2.12
 
 while (( "$#" )); do
