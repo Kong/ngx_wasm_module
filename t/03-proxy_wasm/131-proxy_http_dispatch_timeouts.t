@@ -43,7 +43,30 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out connecting to
 
 
 
-=== TEST 2: proxy_wasm - dispatch_http_call() read timeout
+=== TEST 2: proxy_wasm - dispatch_http_call() resolver timeout
+--- timeout_no_valgrind: 1
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    resolver          1.1.1.1;
+    resolver_timeout  1ms;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=httpbin.org \
+                              path=/status/200';
+        echo fail;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - resolver error: Operation timed out\)/
+--- no_error_log
+[crit]
+
+
+
+=== TEST 3: proxy_wasm - dispatch_http_call() read timeout
 --- timeout_no_valgrind: 1
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -69,7 +92,7 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out reading from 
 
 
 
-=== TEST 3: proxy_wasm - dispatch_http_call() write timeout
+=== TEST 4: proxy_wasm - dispatch_http_call() write timeout
 --- timeout_no_valgrind: 1
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls

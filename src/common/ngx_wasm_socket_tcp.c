@@ -225,6 +225,7 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
         break;
 #endif
     default:
+        ngx_wasm_assert(0);
         break;
     }
 
@@ -538,12 +539,19 @@ ngx_int_t
 ngx_wasm_socket_read_http_response(ngx_wasm_socket_tcp_t *sock,
     ssize_t bytes, void *ctx)
 {
-    ngx_log_debug1(NGX_LOG_DEBUG_WASM, sock->log, 0,
-                   "wasm tcp socket resuming http response reading "
-                   "with %d bytes to parse", bytes);
+    if (bytes) {
+        ngx_log_debug1(NGX_LOG_DEBUG_WASM, sock->log, 0,
+                       "wasm tcp socket resuming http response reading "
+                       "with %d bytes to parse", bytes);
 
-    return ngx_wasm_read_http_response(&sock->buffer, sock->buf_in, bytes,
-                                       (ngx_wasm_http_reader_ctx_t *) ctx);
+        return ngx_wasm_read_http_response(&sock->buffer, sock->buf_in, bytes,
+                                           (ngx_wasm_http_reader_ctx_t *) ctx);
+    }
+
+    ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
+                   "wasm tcp socket no bytes to parse");
+
+    return NGX_OK;
 }
 #endif
 
