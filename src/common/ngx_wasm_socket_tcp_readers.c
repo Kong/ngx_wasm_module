@@ -295,10 +295,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
     ngx_http_upstream_main_conf_t   *umcf;
     ngx_http_wasm_req_ctx_t         *rctx;
 
-    if (bytes == 0) {
-        ngx_wasm_assert(0);
-        return NGX_ERROR;
-    }
+    ngx_wasm_assert(bytes);
 
     r = &in_ctx->fake_r;
     rctx = in_ctx->rctx;
@@ -330,6 +327,8 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
         if (ngx_http_upstream_create(r) != NGX_OK) {
             return NGX_ERROR;
         }
+
+        r->upstream->conf = &in_ctx->uconf;
 
         if (ngx_list_init(&r->upstream->headers_in.headers, r->pool, 4,
                           sizeof(ngx_table_elt_t))

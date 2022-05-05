@@ -476,6 +476,10 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
     size_t               n;
     ngx_http_request_t  *r = rctx->r;
 
+    if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+        return rc;
+    }
+
     if (rc == NGX_AGAIN) {
         r->main->count++;
         rctx->yield = 1;
@@ -484,14 +488,10 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
     }
 
     if (rctx->resp_content_sent) {
+
         rctx->resp_content_produced = 1;
 
-        if (r->main == r) {
-            rc = NGX_DONE;
-
-        } else {
-            rc = NGX_OK;
-        }
+        rc = r->main == r ? NGX_DONE : NGX_OK;
 
         if (!rctx->resp_finalized) {
             r->main->count++;
@@ -665,14 +665,9 @@ resume:
         break;
 
     case NGX_DONE:
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm \"content\": done");
         break;
 
     case NGX_OK:
-        rc = NGX_DECLINED;
-        /* fallthrough */
-
     case NGX_DECLINED:
         if (rctx->r_content_handler && !rctx->resp_content_produced) {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -681,14 +676,21 @@ resume:
             rctx->resp_content_produced = 1;
 
             rc = rctx->r_content_handler(r);
+
+        } else if (rctx->resp_content_produced) {
+            rc = NGX_OK;
+
+        } else {
+            rc = NGX_DECLINED;
         }
 
         break;
 
     default:
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm \"content\" phase bad rc: %l", rc);
-
+#if (NGX_DEBUG)
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, r->connection->log, 0,
+                           "NYI \"content\" phase rc: %l", rc);
+#endif
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
         break;
 

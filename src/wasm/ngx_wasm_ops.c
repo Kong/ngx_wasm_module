@@ -365,6 +365,7 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
 
         if (idx >= phase->index) {
             /* run only one op per phase */
+            dd("already ran in this phase */");
             rc = NGX_DECLINED;
             goto done;
         }

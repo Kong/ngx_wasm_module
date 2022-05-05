@@ -20,6 +20,7 @@ typedef struct {
     ngx_http_request_t                fake_r;
     ngx_http_status_t                 status;
     ngx_http_chunked_t                chunked;
+    ngx_http_upstream_conf_t          uconf;
     ngx_uint_t                        status_code;
     ngx_chain_t                      *chunks;
     ngx_chain_t                      *body;
