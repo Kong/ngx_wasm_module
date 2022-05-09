@@ -58,6 +58,14 @@ http {
             proxy_pass  ...;
         }
     }
+
+    # other directives
+    wasm_socket_connect_timeout 60s;
+    wasm_socket_send_timeout    60s;
+    wasm_socket_read_timeout    60s;
+
+    wasm_socket_buffer_size     8k;
+    wasm_socket_large_buffers   32 16k;
 }
 ```
 
