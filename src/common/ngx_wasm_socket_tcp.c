@@ -39,7 +39,7 @@ ngx_wasm_socket_tcp_set_resume_handler(ngx_wasm_socket_tcp_t *sock)
         rctx = sock->env.ctx.request;
         r = rctx->r;
 
-        if (rctx->resp_content_started) {
+        if (rctx->entered_content_phase) {
             r->write_event_handler = ngx_http_wasm_content_wev_handler;
 
         } else {
@@ -105,7 +105,8 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
         break;
 #endif
     default:
-        ngx_wasm_assert(0);
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, sock->log, 0,
+                           "NYI - socket kind: %d", sock->kind);
         return NGX_ERROR;
     }
 
@@ -225,8 +226,9 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
         break;
 #endif
     default:
-        ngx_wasm_assert(0);
-        break;
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, sock->log, 0,
+                           "NYI - socket kind: %d", sock->kind);
+        return NGX_ERROR;
     }
 
     if (rslv_ctx == NULL) {
@@ -758,7 +760,6 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
         ngx_destroy_pool(c->pool);
     }
 
-#if 1
     if (sock->free) {
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, ngx_wasm_socket_log(sock), 0,
                        "wasm tcp socket free: %p", sock->free);
@@ -776,9 +777,7 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
 
         sock->free = NULL;
     }
-#endif
 
-#if 1
     if (sock->busy) {
         ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_wasm_socket_log(sock), 0,
                        "wasm tcp socket busy: %p %i",
@@ -794,7 +793,6 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
 
         sock->busy = NULL;
         sock->nbusy = 0;
-#endif
     }
 }
 
@@ -1088,7 +1086,7 @@ ngx_wasm_socket_tcp_init_addr_text(ngx_peer_connection_t *pc)
         break;
 #endif
 
-#if (NGX_HAVE_UNIX_DOMAIN)
+#if (NGX_HAVE_UNIX_DOMAIN && 0)
     case AF_UNIX:
         addr_text_max_len = NGX_UNIX_ADDRSTRLEN;
         break;

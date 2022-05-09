@@ -208,8 +208,6 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "header_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "content" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "content" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "log" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "log" phase.*
 \*\d+ now: .*? while logging request.*

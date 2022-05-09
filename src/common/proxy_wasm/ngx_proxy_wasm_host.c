@@ -818,22 +818,6 @@ ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
 }
 
 
-static ngx_int_t
-ngx_proxy_wasm_hfuncs_resume_http_response(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    ngx_proxy_wasm_filter_ctx_t  *fctx;
-
-    ngx_wasm_assert(0);
-
-    fctx = ngx_proxy_wasm_instance2fctx(instance);
-
-    ngx_proxy_wasm_resume_main(fctx, 1);
-
-    return ngx_proxy_wasm_result_ok(rets);
-}
-
-
 #else
 static ngx_int_t
 ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
@@ -970,7 +954,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
      ngx_wavm_arity_i32 },
    /* legacy: 0.1.0 - 0.2.1 */
    { ngx_string("proxy_continue_response"),
-     &ngx_proxy_wasm_hfuncs_resume_http_response,
+     &ngx_proxy_wasm_hfuncs_nop,
      NULL,
      ngx_wavm_arity_i32 },
 

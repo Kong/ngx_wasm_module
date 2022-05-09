@@ -82,8 +82,10 @@ ngx_proxy_wasm_ctx_add(ngx_proxy_wasm_ctx_t *pwctx,
         ictx = ngx_proxy_wasm_instance_get(filter, NULL, pwctx->log);
         break;
     default:
-        ngx_wasm_assert(0);
-        break;
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, pwctx->log, 0,
+                           "NYI - instance isolation: %d",
+                           *filter->isolation);
+        return NGX_ERROR;
     }
 
     if (ictx == NULL) {
@@ -149,6 +151,7 @@ ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
 
         /* check for trap */
 
+#if 0
         if (ictx->instance->trapped) {
             if (step == NGX_PROXY_WASM_STEP_INIT_CTX
                 && *filter->isolation == NGX_PROXY_WASM_ISOLATION_NONE)
@@ -169,6 +172,11 @@ ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
                 fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
             }
         }
+#else
+        if (ictx->instance->trapped && !fctx->ecode) {
+            fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
+        }
+#endif
 
         /* check for yielded state */
 
@@ -189,11 +197,13 @@ ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
             goto ret;
         }
 
+#if 0
         if (rc == NGX_DONE) {
             ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
                            "proxy_wasm filter chain stopped");
             goto ret;
         }
+#endif
 
         ngx_wasm_assert(rc == NGX_OK);
 
@@ -296,7 +306,7 @@ ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx,
             break;
         default:
             ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwctx->log, 0,
-                                     "NYI - action: %l", ret);
+                                     "NYI - proxy_wasm next action: %d", ret);
             goto error;
         }
 
@@ -346,8 +356,9 @@ ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx,
         break;
 
     default:
-        ngx_wasm_assert(0);
-        break;
+        ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwctx->log, 0,
+                                 "NYI - proxy_wasm action: %d", pwctx->action);
+        goto error;
 
     }
 
@@ -1137,7 +1148,8 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
         rc = ngx_proxy_wasm_on_timer_tick(fctx);
         break;
     default:
-        ngx_wasm_assert(0);
+        ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, fctx->log, 0,
+                                 "NYI - proxy_wasm step: %d", step);
         return NGX_ERROR;
     }
 
@@ -1152,14 +1164,14 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
 void
 ngx_proxy_wasm_resume_main(ngx_proxy_wasm_filter_ctx_t *fctx, unsigned wev)
 {
+    ngx_proxy_wasm_ctx_t     *pwctx = fctx->parent;
 #if (NGX_DEBUG)
     ngx_proxy_wasm_filter_t  *filter = fctx->filter;
-#endif
-    ngx_proxy_wasm_ctx_t     *pwctx = fctx->parent;
 
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, fctx->log, 0,
                    "proxy_wasm \"%V\" filter (%l/%l) resuming main request (wev: %d)",
                    filter->name, filter->index + 1, *filter->n_filters, wev);
+#endif
 
     pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
 

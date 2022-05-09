@@ -292,7 +292,7 @@ ngx_proxy_wasm_pairs_unmarshal(ngx_array_t *dst, ngx_pool_t *pool,
     ngx_proxy_wasm_marshalled_map_t *map)
 {
     size_t            i;
-    uint32_t          count;
+    uint32_t          count = 0;
     u_char           *buf;
     ngx_table_elt_t  *elt;
 
@@ -301,9 +301,6 @@ ngx_proxy_wasm_pairs_unmarshal(ngx_array_t *dst, ngx_pool_t *pool,
     if (map->len) {
         count = *((uint32_t *) buf);
         buf += NGX_PROXY_WASM_PTR_SIZE;
-
-    } else {
-        count = 0;
     }
 
     if (ngx_array_init(dst, pool, count, sizeof(ngx_table_elt_t)) != NGX_OK) {
@@ -391,18 +388,17 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 
     rc = ngx_proxy_wasm_resume(ictx, filter, fctx,
                                NGX_PROXY_WASM_STEP_ON_TIMER, NULL);
+    if (rc != NGX_OK) {
+        if (fctx->ecode == NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED) {
+            filter->root_ictx = ngx_proxy_wasm_instance_get(filter,
+                                                            ictx->store, ictx->log);
+            if (filter->root_ictx == NULL) {
+                goto nomem;
+            }
 
-    if (fctx->ecode == NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED) {
-        filter->root_ictx = ngx_proxy_wasm_instance_get(filter,
-                                                        ictx->store, ictx->log);
-        if (filter->root_ictx == NULL) {
-            goto nomem;
+            ngx_proxy_wasm_instance_release(ictx, 0);
         }
 
-        ngx_proxy_wasm_instance_release(ictx, 0);
-    }
-
-    if (rc != NGX_OK) {
         return;
     }
 

@@ -64,7 +64,7 @@ ngx_int_t
 ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_proxy_wasm_step_e step, ngx_uint_t *ret)
 {
-    ngx_int_t                 rc;
+    ngx_int_t                 rc = NGX_ERROR;
     ngx_http_request_t       *r;
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_proxy_wasm_ctx_t     *pwctx;
@@ -106,15 +106,13 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
         break;
 
     default:
-        ngx_wasm_assert(0);
-        rc = NGX_ERROR;
+        ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, fctx->log, 0,
+                                 "NYI - http_proxy_wasm step: %d", step);
         break;
 
     }
 
     ngx_wasm_assert(rc == NGX_OK
-                    //|| rc == NGX_AGAIN
-                    || rc == NGX_DONE
                     || rc == NGX_ABORT
                     || rc == NGX_ERROR);
 

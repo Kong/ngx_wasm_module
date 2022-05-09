@@ -64,6 +64,7 @@ ngx_wasm_read_line(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes)
         switch (c) {
         case LF:
             buf_in->buf->last = dst;
+
             return NGX_OK;
 
         case CR:
@@ -94,6 +95,7 @@ ngx_wasm_read_bytes(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
         buf_in->buf->last += *rest;
         src->pos += *rest;
         *rest = 0;
+
         return NGX_OK;
     }
 
@@ -123,9 +125,10 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
     loc = ngx_http_get_module_loc_conf(in_ctx->rctx->r, ngx_http_wasm_module);
 
     if (!in_ctx->status_code && r->state == 0) {
-        /* the client fills up the buffer with "\r\n" */
+        /* buffer filled with "\r\n" */
         r->header_in->pos = r->header_in->start;
         r->header_in->last = r->header_in->start;
+
         return NGX_OK;
     }
 
@@ -137,6 +140,7 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
                            "tcp socket - upstream response headers "
                            "too large, "
                            "increase wasm_socket_large_buffers size");
+
         return NGX_DECLINED;
     }
 
@@ -172,6 +176,7 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
         ngx_wasm_log_error(NGX_LOG_ERR, sock->log, 0,
                            "tcp socket - not enough large buffers available, "
                            "increase wasm_socket_large_buffers number");
+
         return NGX_DECLINED;
     }
 
@@ -181,11 +186,12 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
 
     if (r->state == 0) {
         /**
-         * r->state == 0 means that a header line was parsed successfully not
-         * need to copy an incomplete header line or relocate the parser header
+         * r->state == 0, a header line was parsed successfully
+         * no need to copy an incomplete header line or relocate the parser header
          * pointers
          */
         sock->buffer = *b;
+
         return NGX_OK;
     }
 
@@ -198,6 +204,7 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
                            "tcp socket - upstream response headers "
                            "too large to copy, "
                            "increase wasm_socket_large_buffer_size size");
+
         return NGX_ERROR;
     }
 
