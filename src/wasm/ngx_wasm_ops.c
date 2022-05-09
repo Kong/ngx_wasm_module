@@ -320,9 +320,6 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     ngx_wasm_phase_t *phase, ngx_wasm_op_t *op)
 {
     ngx_int_t                 rc = NGX_ERROR;
-#ifdef NGX_WASM_HTTP
-    ngx_uint_t                idx;
-#endif
     ngx_proxy_wasm_ctx_t     *pwctx;
     ngx_proxy_wasm_filter_t  *filter;
 
@@ -349,28 +346,6 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     }
 
     ngx_wasm_assert(rc == NGX_DONE);
-
-#ifdef NGX_WASM_HTTP
-    if (phase->index != NGX_HTTP_WASM_BODY_FILTER_PHASE
-        && phase->index != NGX_HTTP_CONTENT_PHASE
-        && pwctx->phase)
-    {
-        idx = pwctx->phase->index;
-        if (idx == NGX_HTTP_WASM_HEADER_FILTER_PHASE
-            || idx == NGX_HTTP_WASM_BODY_FILTER_PHASE)
-        {
-            /* fake sub-phases of content phase */
-            idx = NGX_HTTP_CONTENT_PHASE;
-        }
-
-        if (idx >= phase->index) {
-            /* run only one op per phase */
-            dd("already ran in this phase */");
-            rc = NGX_DECLINED;
-            goto done;
-        }
-    }
-#endif
 
     switch (phase->index) {
 
@@ -411,29 +386,13 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
         break;
 
     default:
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, opctx->log, 0,
+                           "NYI - ngx_wasm_op_proxy_wasm_handler "
+                           "phase index %d", phase->index);
+
         rc = NGX_DECLINED;
-        goto done;
-
-    }
-
-    if (rc == NGX_ERROR || rc > NGX_OK) {
-        /* NGX_ERROR, NGX_HTTP_* */
-        goto done;
-    }
-
-    /* override rc */
-
-    switch (phase->index) {
-
-#ifdef NGX_WASM_HTTP
-    case NGX_HTTP_WASM_BODY_FILTER_PHASE:
-        /* main/subrequest */
-        //rc = pwctx->main ? NGX_DONE : NGX_OK;
         break;
-#endif
 
-    default:
-        break;
     }
 
 done:

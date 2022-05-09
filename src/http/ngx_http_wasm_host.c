@@ -67,9 +67,6 @@ ngx_http_wasm_hfuncs_resp_set_status(ngx_wavm_instance_t *instance,
         r->err_status = 0;
     }
 
-    //rctx->resp_content_chosen = 1;
-    //rctx->resp_content_sent = 1;
-
     return NGX_WAVM_OK;
 }
 
@@ -127,9 +124,6 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
         cl->buf = b;
         cl->next = NULL;
     }
-
-    //rctx->resp_content_chosen = 1;
-    //rctx->resp_content_sent = 1;
 
     if (ngx_http_wasm_set_resp_content_length(r, content_len) != NGX_OK) {
         return NGX_WAVM_ERROR;

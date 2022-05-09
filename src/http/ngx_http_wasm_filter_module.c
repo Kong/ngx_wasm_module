@@ -75,12 +75,12 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 
     ngx_wasm_assert(rc == NGX_OK);
 
-    if (rctx->resp_header_filter_started) {
+    if (rctx->entered_header_filter) {
         goto next_filter;
     }
 
-    rctx->resp_header_filter_started = 1;
     rctx->resp_content_produced = 1;  /* if not already set */
+    rctx->entered_header_filter = 1;
 
     rc = ngx_http_wasm_produce_resp_headers(rctx);
     if (rc != NGX_OK) {
@@ -89,15 +89,13 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 
     rc = ngx_wasm_ops_resume(&rctx->opctx,
                              NGX_HTTP_WASM_HEADER_FILTER_PHASE);
-    dd("header ops resume rc: %ld", rc);
     if (rc == NGX_ERROR || rc > NGX_OK) {
         if (rc == NGX_ERROR) {
             rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
             goto done;
         }
 
-        if (rctx->resp_content_started) {
-            dd("resp content started, goto done");
+        if (rctx->entered_content_phase) {
             goto done;
         }
 
@@ -105,13 +103,11 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 
     } else if (rc == NGX_OK) {
         rc = ngx_http_wasm_check_finalize(rctx, rc);
-        if (rc == NGX_DONE) {
-            ngx_wasm_assert(0);
-            goto done;
-        }
     }
 
 next_filter:
+
+    dd("next filter");
 
     (void) ngx_http_next_header_filter(r);
 
@@ -131,10 +127,6 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_http_wasm_req_ctx_t  *rctx;
 
     dd("enter");
-
-    if (r->header_only) {
-        return ngx_http_next_body_filter(r, in);
-    }
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc == NGX_ERROR) {

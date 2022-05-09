@@ -13,7 +13,6 @@ ngx_http_wasm_discard_local_response(ngx_http_wasm_req_ctx_t *rctx)
 
     r = rctx->r;
 
-    rctx->local_resp_stashed = 0;
     rctx->local_resp_status = 0;
     rctx->local_resp_reason.len = 0;
     rctx->local_resp_body_len = -1;
@@ -46,15 +45,13 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     ngx_http_request_t  *r = rctx->r;
 
     dd("enter");
-    dd("rctx: %p (resp_content_produced: %d, local_resp_stashed: %d)",
-       rctx, rctx->resp_content_produced, rctx->local_resp_stashed);
 
     if (rctx->resp_content_produced) {
         /* content already produced */
         return NGX_ABORT;
     }
 
-    if (rctx->local_resp_stashed) {
+    if (rctx->local_resp_status) {
         /* local response already stashed */
         return NGX_BUSY;
     }
@@ -160,8 +157,6 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
         rctx->local_resp_body_len = len;
     }
 
-    rctx->local_resp_stashed = 1;
-
     return NGX_OK;
 
 fail:
@@ -180,14 +175,12 @@ ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx)
     ngx_table_elt_t     *elt;
     ngx_http_request_t  *r = rctx->r;
 
-    if (!rctx->local_resp_stashed || r->header_sent) {
+    if (!rctx->local_resp_status || r->header_sent) {
         return NGX_DECLINED;
     }
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm flushing local_response");
-
-    rctx->local_resp_stashed = 0;
 
     rc = ngx_http_discard_request_body(r);
     if (rc != NGX_OK) {
@@ -229,7 +222,7 @@ ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx)
         return NGX_ERROR;
     }
 
-    rc = ngx_http_wasm_send_chain_link(r, rctx->local_resp_body);
+    rctx->local_resp_status = 0;
 
-    return rc;
+    return ngx_http_wasm_send_chain_link(r, rctx->local_resp_body);
 }

@@ -31,6 +31,8 @@ typedef struct {
     off_t                              resp_chunk_len;
     unsigned                           resp_chunk_eof;         /* seen last buf flag */
 
+    ngx_uint_t                         nyields;  /* keep track of r->main->count increments */
+
     /* local resp */
 
     ngx_int_t                          local_resp_status;
@@ -38,20 +40,17 @@ typedef struct {
     ngx_array_t                        local_resp_headers;
     ngx_chain_t                       *local_resp_body;
     off_t                              local_resp_body_len;
-    unsigned                           local_resp_stashed:1;
 
     /* flags */
 
     unsigned                           yield:1;
-
     unsigned                           req_keepalive:1;        /* r->keepalive copy */
-
     unsigned                           reset_resp_shims:1;
+    unsigned                           entered_content_phase:1;
+    unsigned                           entered_header_filter:1;
 
     unsigned                           resp_content_produced:1;
     unsigned                           resp_content_sent:1;    /* sent response (ourselves) */
-    unsigned                           resp_content_started:1;
-    unsigned                           resp_header_filter_started:1;
     unsigned                           resp_finalized:1;       /* finalized connection (ourselves) */
 } ngx_http_wasm_req_ctx_t;
 

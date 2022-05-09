@@ -188,6 +188,10 @@ impl Context for TestHttpHostcalls {
             token_id, num_headers, body_size
         );
 
+        if let Some(_) = self.config.get("trap") {
+            panic!("trap!");
+        }
+
         if let Some(bytes) = self.get_http_call_response_body(0, 1000) {
             let body = String::from_utf8(bytes).unwrap();
             let response = body.trim().to_string();

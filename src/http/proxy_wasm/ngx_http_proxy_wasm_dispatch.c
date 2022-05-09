@@ -572,6 +572,8 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         instance = ngx_proxy_wasm_fctx2instance(fctx);
 
         if (instance->trapped) {
+            ngx_wasm_assert(0);
+
             fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
 
             ngx_proxy_wasm_log_error(NGX_LOG_ERR, fctx->log, fctx->ecode,

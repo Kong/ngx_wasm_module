@@ -212,6 +212,7 @@ qr/\[error\] .*? dispatch failed \(no resolver defined to resolve "localhost"\)/
 
 
 === TEST 12: proxy_wasm - dispatch_http_call() empty response body
+--- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -501,7 +502,30 @@ tcp socket trying to receive data (max: 1017)
 
 
 
-=== TEST 23: proxy_wasm - dispatch_http_call() buffer reuse
+=== TEST 23: proxy_wasm - dispatch_http_call() trap in dispatch handler
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched \
+                              trap=on';
+        echo fail;
+    }
+
+    location /dispatched {
+        return 200 "Hello world";
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log
+panicked at 'trap!'
+trap in proxy_on_http_call_response
+
+
+
+=== TEST 24: proxy_wasm - dispatch_http_call() buffer reuse
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -549,17 +573,13 @@ tcp socket trying to receive data (max: 1017)
 
 
 
-=== TEST 24: proxy_wasm - dispatch_http_call() in log phase
+=== TEST 25: proxy_wasm - dispatch_http_call() in log phase
 --- SKIP
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        wasm_socket_buffer_reuse on;
-        wasm_socket_buffer_size 24;
-        wasm_socket_large_buffers 32 128;
-
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched';
