@@ -120,20 +120,14 @@ ngx_wasmtime_init_module(ngx_wrt_module_t *module, ngx_wrt_engine_t *engine,
     wasm_byte_vec_t *bytes, wasm_importtype_vec_t *imports,
     wasm_exporttype_vec_t *exports, ngx_wrt_err_t *err)
 {
-    wasmtime_moduletype_t  *module_type;
-
     err->res = wasmtime_module_new(engine->engine, (u_char *) bytes->data,
                                    bytes->size, &module->module);
     if (err->res) {
         return NGX_ERROR;
     }
 
-    module_type = wasmtime_module_type(module->module);
-
-    wasmtime_moduletype_imports(module_type, imports);
-    wasmtime_moduletype_exports(module_type, exports);
-
-    wasmtime_moduletype_delete(module_type);
+    wasmtime_module_imports(module->module, imports);
+    wasmtime_module_exports(module->module, exports);
 
     module->import_types = imports;
     module->export_types = exports;
