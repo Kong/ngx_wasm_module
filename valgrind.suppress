@@ -75,14 +75,14 @@
     fun:main
 }
 {
-   <wasmtime 0.33.0: wasmtime_module_validate>
+   <wasmtime 0.36.0: wasmtime_module_validate>
    Memcheck:Cond
-   fun:_ZN10wasmparser9validator9Validator3end17h04e7ca83579e59d7E
+   fun:_ZN10wasmparser6parser6Parser5parse17he11b41bf5df16e39E
 }
 {
-   <wasmtime 0.33.0: wasm_module_validate>
+   <wasmtime 0.36.0: wasmtime_module_validate>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17h7dd19cf53dd0398dE
+   fun:_ZN10wasmparser9validator9Validator3end17h178d7aad94d00d64E
 }
 {
    <wasmer 2.1.1: wasm_module_validate>
