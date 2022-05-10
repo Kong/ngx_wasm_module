@@ -325,6 +325,8 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
 
     ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);
 
+    opctx->ctx.proxy_wasm.phase = phase;
+
     filter = op->conf.proxy_wasm.filter;
     if (filter == NULL) {
         goto done;

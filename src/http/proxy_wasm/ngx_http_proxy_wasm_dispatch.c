@@ -6,6 +6,10 @@
 #include <ngx_http_proxy_wasm_dispatch.h>
 
 
+static ngx_str_t *ngx_http_proxy_wasm_dispatch_strerror(
+    ngx_http_proxy_wasm_dispatch_err_e err);
+static void ngx_http_proxy_wasm_dispatch_err(
+    ngx_http_proxy_wasm_dispatch_t *call);
 static void ngx_http_proxy_wasm_dispatch_handler(ngx_event_t *ev);
 static ngx_chain_t *ngx_http_proxy_wasm_dispatch_request(
     ngx_http_proxy_wasm_dispatch_t *call);
@@ -18,22 +22,105 @@ static char  ngx_http_proxy_wasm_connection[] = "Connection: close" CRLF;
 static char  ngx_http_proxy_wasm_host[] = "Host: ";
 
 
+static ngx_str_t  ngx_http_proxy_wasm_dispatch_errlist[] = {
+    ngx_null_string,
+    ngx_string("no :method"),
+    ngx_string("no :path"),
+    ngx_string("no :authority"),
+    ngx_string("bad step"),
+    ngx_string("no memory"),
+    ngx_string("marshalling error"),
+    ngx_string("unknown"),
+};
+
+
+static ngx_str_t *
+ngx_http_proxy_wasm_dispatch_strerror(ngx_http_proxy_wasm_dispatch_err_e err)
+{
+    ngx_str_t  *msg;
+
+    msg = ((ngx_uint_t) err < NGX_HTTP_PROXY_WASM_DISPATCH_ERR_UNKNOWN)
+              ? &ngx_http_proxy_wasm_dispatch_errlist[err]
+              : &ngx_http_proxy_wasm_dispatch_errlist[NGX_HTTP_PROXY_WASM_DISPATCH_ERR_UNKNOWN];
+
+    return msg;
+}
+
+
+static void
+ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
+{
+#if 0
+    const char *fmt, ...)
+{
+    va_list                       args;
+#endif
+    u_char                       *p, *last;
+    ngx_str_t                    *errmsg;
+    ngx_wasm_socket_tcp_t        *sock;
+    ngx_proxy_wasm_filter_ctx_t  *fctx;
+    ngx_http_wasm_req_ctx_t      *rctx;
+    u_char                        errbuf[NGX_MAX_ERROR_STR];
+
+    sock = &call->sock;
+    fctx = call->fctx;
+    rctx = call->rctx;
+
+    p = errbuf;
+    last = p + NGX_MAX_ERROR_STR;
+
+    p = ngx_slprintf(p, last, "dispatch failed");
+
+    if (sock->errlen) {
+        p = ngx_slprintf(p, last, " (%*.s)",
+                         (int) sock->errlen, sock->err);
+    }
+
+    if (call->error) {
+        errmsg = ngx_http_proxy_wasm_dispatch_strerror(call->error);
+        p = ngx_slprintf(p, last, ": %V", errmsg);
+    }
+
+#if 0
+    if (fmt)  {
+        va_start(args, fmt);
+        p = ngx_vslprintf(p, last, fmt, args);
+        va_end(args);
+    }
+#endif
+
+    fctx->ecode = NGX_PROXY_WASM_ERR_DISPATCH_FAILED;
+
+    if (rctx->yield) {
+        ngx_wasm_log_error(NGX_LOG_ERR, fctx->log, 0,
+                           "%*s", p - (u_char *) &errbuf, &errbuf);
+
+    } else {
+        /* running */
+        ngx_wavm_instance_trap_printf(fctx->ictx->instance, "%*s",
+                                      p - (u_char *) &errbuf, &errbuf);
+    }
+
+    ngx_http_proxy_wasm_dispatch_destroy(call);
+}
+
+
 ngx_http_proxy_wasm_dispatch_t *
-ngx_http_proxy_wasm_dispatch(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
+ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
+    ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
     ngx_proxy_wasm_marshalled_map_t *headers,
     ngx_proxy_wasm_marshalled_map_t *trailers,
-    ngx_str_t *body, ngx_msec_t timeout, void *data)
+    ngx_str_t *body, ngx_msec_t timeout)
 {
     static uint32_t                  callout_ids = 0;
     size_t                           i;
-    char                            *err = NULL;
     ngx_buf_t                       *buf;
     ngx_event_t                     *ev;
     ngx_table_elt_t                 *elts, *elt;
     ngx_wasm_socket_tcp_t           *sock;
     ngx_wasm_socket_tcp_env_t        sock_env;
     ngx_http_request_t              *r;
-    ngx_http_proxy_wasm_dispatch_t  *call;
+    ngx_http_proxy_wasm_dispatch_t  *call = NULL;
 
     r = rctx->r;
     sock = NULL;
@@ -46,22 +133,34 @@ ngx_http_proxy_wasm_dispatch(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
         return NULL;
     }
 
+    call->rctx = rctx;
+    call->fctx = fctx;
+
+    switch (fctx->parent->step) {
+        case NGX_PROXY_WASM_STEP_LOG:
+        case NGX_PROXY_WASM_STEP_DONE:
+            /* r->pool was released */
+            call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_STEP;
+            goto error;
+        default:
+            break;
+    }
+
     call->pool = ngx_create_pool(512, r->connection->log);
     if (call->pool == NULL) {
-        ngx_free(call);
-        return NULL;
+        call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_NOMEM;
+        goto error;
     }
 
     call->id = callout_ids++,
     call->timeout = timeout;
-    call->rctx = rctx;
-    call->data = data;
 
     /* host */
 
     call->host.len = host->len;
     call->host.data = ngx_pnalloc(call->pool, host->len + 1);
     if (call->host.data == NULL) {
+        call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_NOMEM;
         goto error;
     }
 
@@ -75,6 +174,7 @@ ngx_http_proxy_wasm_dispatch(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
         || ngx_proxy_wasm_pairs_unmarshal(&call->trailers, call->pool,
                                           trailers) != NGX_OK)
     {
+        call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_MARSHALLING;
         goto error;
     }
 
@@ -117,15 +217,15 @@ ngx_http_proxy_wasm_dispatch(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
     }
 
     if (!call->method.len) {
-        err = "no :method";
+        call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_METHOD;
         goto error;
 
     } else if (!call->uri.len) {
-        err = "no :path";
+        call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_PATH;
         goto error;
 
     } else if (!call->authority.len) {
-        err = "no :authority";
+        call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_AUTHORITY;
         goto error;
     }
 
@@ -183,17 +283,9 @@ ngx_http_proxy_wasm_dispatch(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
 
 error:
 
-    if (err) {
-        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                           "dispatch failed: %s", err);
-
-    } else if (sock && sock->errlen) {
-        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                           "dispatch failed: %*s",
-                           (int) sock->errlen, sock->err);
+    if (call) {
+        ngx_http_proxy_wasm_dispatch_err(call);
     }
-
-    ngx_http_proxy_wasm_dispatch_destroy(call);
 
     return NULL;
 }
@@ -224,7 +316,9 @@ ngx_http_proxy_wasm_dispatch_destroy(ngx_http_proxy_wasm_dispatch_t *call)
         rctx->free_bufs = call->req_body;
     }
 
-    ngx_destroy_pool(call->pool);  /* reader->pool */
+    if (call->pool) {
+        ngx_destroy_pool(call->pool);  /* reader->pool */
+    }
 
     ngx_free(call);
 }
@@ -277,8 +371,6 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
     fake_r->signature = NGX_WASM_MODULE;
     fake_r->connection = rctx->connection;
     fake_r->pool = r->pool;
-
-    ngx_wasm_assert(r->pool);  /* NYI: log phase after ngx_pool_cleanup */
 
     if (ngx_list_init(&fake_r->headers_in.headers, fake_r->pool, 10,
                       sizeof(ngx_table_elt_t))
@@ -450,7 +542,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
     ngx_http_proxy_wasm_dispatch_t  *call = sock->data;
     ngx_http_wasm_req_ctx_t         *rctx = call->rctx;
     ngx_http_request_t              *r = rctx->r;
-    ngx_proxy_wasm_filter_ctx_t     *fctx = call->data;
+    ngx_proxy_wasm_filter_ctx_t     *fctx = call->fctx;
     ngx_proxy_wasm_filter_t         *filter = fctx->filter;
 
     dd("enter");
@@ -622,19 +714,9 @@ error:
     if (rc == NGX_ABORT) {
         /* catch trap for tcp socket resume retval */
         rc = NGX_ERROR;
-
-    } else {
-        /* background error */
-        fctx->ecode = NGX_PROXY_WASM_ERR_DISPATCH_FAILED;
     }
 
-    if (sock->errlen) {
-        ngx_wasm_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                           "dispatch failed (%*s)",
-                           (int) sock->errlen, sock->err);
-    }
-
-    ngx_http_proxy_wasm_dispatch_destroy(call);
+    ngx_http_proxy_wasm_dispatch_err(call);
 
     ngx_wasm_assert(rc == NGX_ERROR);
 

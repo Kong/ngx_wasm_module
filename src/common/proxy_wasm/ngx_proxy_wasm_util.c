@@ -65,13 +65,11 @@ ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
 
         ngx_wasm_log_error(level, log, 0, "%*s", p - buf, buf);
         return;
-
-    } else if (err) {
-        ngx_wasm_log_error(level, log, 0, "%V", errmsg);
-        return;
     }
 
-    ngx_wasm_assert(0);
+    if (err) {
+        ngx_wasm_log_error(level, log, 0, "%V", errmsg);
+    }
 }
 
 

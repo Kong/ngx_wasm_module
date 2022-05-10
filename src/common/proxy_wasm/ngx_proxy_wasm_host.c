@@ -780,11 +780,10 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
     timeout = args[8].of.i32;
     callout_id = ngx_wavm_memory_lift(instance->memory, args[9].of.i32);
 
-    call = ngx_http_proxy_wasm_dispatch(rctx, &host,
+    call = ngx_http_proxy_wasm_dispatch(fctx, rctx, &host,
                                         &headers, &trailers,
-                                        &body, timeout, fctx);
+                                        &body, timeout);
     if (call == NULL) {
-        ngx_wavm_instance_trap_printf(instance, "dispatch failed");
         return ngx_proxy_wasm_result_err(rets);
     }
 

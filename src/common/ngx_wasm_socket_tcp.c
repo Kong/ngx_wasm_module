@@ -376,7 +376,6 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
     pc->name = &sock->resolved.host;
 
     rc = ngx_event_connect_peer(pc);
-
     if (rc == NGX_ERROR) {
         return NGX_ERROR;
 
@@ -384,7 +383,7 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
         ngx_wasm_socket_tcp_err(sock, "no live connection");
         return NGX_BUSY;
 
-    } if (rc == NGX_DECLINED) {
+    } else if (rc == NGX_DECLINED) {
         sock->socket_errno = ngx_socket_errno;
         ngx_wasm_socket_tcp_err(sock, NULL);
         return NGX_ERROR;

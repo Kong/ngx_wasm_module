@@ -486,11 +486,6 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
         rctx->nyields++;
         rctx->yield = 1;
 
-        ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm yielding "
-                       "(main: %d, count: %l, uri: \"%V\", rctx: %p, nyields: %ld)",
-                       r->main == r, r->main->count, &r->uri, rctx);
-
         return NGX_DONE;
     }
 
@@ -510,7 +505,6 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
 
             } else if (rctx->resp_content_sent) {
                 n++;
-
             }
 
             if (!rctx->entered_content_phase) {
