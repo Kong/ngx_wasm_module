@@ -16,13 +16,26 @@ typedef enum {
 } ngx_http_proxy_wasm_dispatch_state_e;
 
 
+typedef enum {
+    NGX_HTTP_PROXY_WASM_DISPATCH_ERR_NONE = 0,
+    NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_METHOD,
+    NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_PATH,
+    NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_AUTHORITY,
+    NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_STEP,
+    NGX_HTTP_PROXY_WASM_DISPATCH_ERR_NOMEM,
+    NGX_HTTP_PROXY_WASM_DISPATCH_ERR_MARSHALLING,
+    NGX_HTTP_PROXY_WASM_DISPATCH_ERR_UNKNOWN,
+} ngx_http_proxy_wasm_dispatch_err_e;
+
+
 typedef struct {
     ngx_pool_t                             *pool;  /* owned */
     uint32_t                                id;
     ngx_msec_t                              timeout;
     ngx_wasm_socket_tcp_t                   sock;
     ngx_http_wasm_req_ctx_t                *rctx;
-    void                                   *data;
+    ngx_proxy_wasm_filter_ctx_t            *fctx;
+    ngx_http_proxy_wasm_dispatch_err_e      error;
 
     ngx_str_t                               host;
     ngx_str_t                               method;
@@ -42,10 +55,11 @@ typedef struct {
 
 
 ngx_http_proxy_wasm_dispatch_t *ngx_http_proxy_wasm_dispatch(
+    ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
     ngx_proxy_wasm_marshalled_map_t *headers,
     ngx_proxy_wasm_marshalled_map_t *trailers,
-    ngx_str_t *body, ngx_msec_t timeout, void *data);
+    ngx_str_t *body, ngx_msec_t timeout);
 void ngx_http_proxy_wasm_dispatch_destroy(ngx_http_proxy_wasm_dispatch_t *call);
 
 

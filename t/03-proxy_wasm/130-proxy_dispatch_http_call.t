@@ -22,13 +22,13 @@ __DATA__
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed: no host/
+qr/\[error\] .*? dispatch failed \(no host\)/
 --- no_error_log
 [crit]
 
 
 
-=== TEST 2: proxy_wasm - dispatch_http_call() invalid host
+=== TEST 2: proxy_wasm - dispatch_http_call() empty host
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -38,7 +38,7 @@ qr/\[error\] .*? dispatch failed: no host/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed: no host/
+qr/\[error\] .*? dispatch failed \(no host\)/
 --- no_error_log
 [crit]
 
@@ -54,7 +54,7 @@ qr/\[error\] .*? dispatch failed: no host/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed: invalid port/
+qr/\[error\] .*? dispatch failed \(invalid port\)/
 --- no_error_log
 [crit]
 
@@ -574,16 +574,10 @@ trap in proxy_on_http_call_response
 
 
 === TEST 25: proxy_wasm - dispatch_http_call() in log phase
---- SKIP
---- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
-                              path=/dispatched';
-
         proxy_wasm hostcalls 'on=log \
                               test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
@@ -596,7 +590,8 @@ trap in proxy_on_http_call_response
         return 200 "Hello world";
     }
 --- response_body
-Hello world
+fail
 --- error_log
-tcp socket trying to receive data (max: 1)
-tcp socket trying to receive data (max: 1023)
+trap in proxy_on_log: dispatch failed: bad step
+--- no_error_log
+[crit]

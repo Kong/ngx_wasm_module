@@ -1273,12 +1273,14 @@ ngx_wavm_instance_trap_vprintf(ngx_wavm_instance_t *instance,
     u_char               *p;
     static const size_t   maxlen = NGX_WAVM_HFUNCS_MAX_TRAP_LEN - 1;
 
-    p = ngx_vsnprintf(instance->trapbuf, maxlen, fmt, args);
+    if (!instance->trapmsg.len) {
+        p = ngx_vsnprintf(instance->trapbuf, maxlen, fmt, args);
 
-    *p++ = '\0';
+        *p++ = '\0';
 
-    instance->trapmsg.len = p - instance->trapbuf;
-    instance->trapmsg.data = (u_char *) instance->trapbuf;
+        instance->trapmsg.len = p - instance->trapbuf;
+        instance->trapmsg.data = (u_char *) instance->trapbuf;
+    }
 }
 
 
