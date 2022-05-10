@@ -142,6 +142,26 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
 }
 
 
+ngx_int_t
+ngx_http_wasm_hfuncs_local_response(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    size_t                    reason_len;
+    u_char                   *reason;
+    ngx_int_t                 status;
+    ngx_http_wasm_req_ctx_t  *rctx = instance->data;
+
+    status = args[0].of.i32;
+    reason = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
+    reason_len = args[2].of.i32;
+
+    (void) ngx_http_wasm_stash_local_response(rctx, status, reason, reason_len,
+                                              NULL, NULL, 0);
+
+    return NGX_WAVM_OK;
+}
+
+
 static ngx_wavm_host_func_def_t  ngx_http_wasm_hfuncs[] = {
 
     { ngx_string("ngx_http_resp_get_status"),
@@ -157,6 +177,11 @@ static ngx_wavm_host_func_def_t  ngx_http_wasm_hfuncs[] = {
     { ngx_string("ngx_http_resp_say"),
       &ngx_http_wasm_hfuncs_resp_say,
       ngx_wavm_arity_i32x2,
+      NULL },
+
+    { ngx_string("ngx_http_local_response"),
+      &ngx_http_wasm_hfuncs_local_response,
+      ngx_wavm_arity_i32x3,
       NULL },
 
    ngx_wavm_hfunc_null

@@ -6,24 +6,12 @@ use t::TestWasm;
 
 plan tests => repeat_each() * (blocks() * 3);
 
-add_block_preprocessor(sub {
-    my $block = shift;
-    my $main_config = <<_EOC_;
-        wasm {
-            module ngx_rust_tests $t::TestWasm::crates/ngx_rust_tests.wasm;
-        }
-_EOC_
-
-    if (!defined $block->main_config) {
-        $block->set_value("main_config", $main_config);
-    }
-});
-
 run_tests();
 
 __DATA__
 
 === TEST 1: say: produce response in 'rewrite' phase
+--- wasm_modules: ngx_rust_tests
 --- config
     location /t {
         wasm_call rewrite ngx_rust_tests say_hello;
@@ -36,6 +24,7 @@ hello say
 
 
 === TEST 2: say: produce response in 'content' phase
+--- wasm_modules: ngx_rust_tests
 --- config
     location /t {
         wasm_call content ngx_rust_tests say_hello;
@@ -49,6 +38,7 @@ hello say
 
 === TEST 3: say: produce response in 'header_filter' phase
 --- load_nginx_modules: ngx_http_echo_module ngx_http_headers_more_filter_module
+--- wasm_modules: ngx_rust_tests
 --- config
     location /t {
         # force the Content-Length header value since say
@@ -68,6 +58,7 @@ hello say
 === TEST 4: say: 'log' phase
 should produce a trap
 TODO: test backtrace
+--- wasm_modules: ngx_rust_tests
 --- config
     location /t {
         return 200;
