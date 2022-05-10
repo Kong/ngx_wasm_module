@@ -561,7 +561,7 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
 
 done:
 
-#if 0
+#if (DDEBUG)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm \"rewrite\" phase rc: %d", rc);
 #endif
