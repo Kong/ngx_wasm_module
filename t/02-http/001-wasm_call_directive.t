@@ -165,10 +165,10 @@ qr/\[emerg\] .*? no "a" module defined/
   (export "nop" (func $nop))
 )
 --- error_log eval
-qr/\[emerg\] .*? no "nonexist" function in "a" module/
+qr/\[error\] .*? no "nonexist" function in "a" module while logging request/
 --- no_error_log
-[error]
 [crit]
+[emerg]
 
 
 
@@ -190,10 +190,10 @@ qr/\[emerg\] .*? no "nonexist" function in "a" module/
 )
 --- error_code: 500
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] no "nonexist" function in "a" module/
+qr/\[error\] .*? no "nonexist" function in "a" module/
 --- no_error_log
-[error]
 [crit]
+[emerg]
 
 
 

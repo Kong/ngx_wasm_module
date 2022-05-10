@@ -92,12 +92,14 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
                 op->conf.call.funcref = ngx_wavm_module_func_lookup(op->module,
                                                  &op->conf.call.func_name);
 
+#if 0
                 if (op->conf.call.funcref == NULL) {
                     ngx_wasm_log_error(NGX_LOG_EMERG, engine->pool->log, 0,
                                        "no \"%V\" function in \"%V\" module",
                                        &op->conf.call.func_name,
                                        &op->module->name);
                 }
+#endif
 
                 break;
 
@@ -286,6 +288,10 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
 
     funcref = op->conf.call.funcref;
     if (funcref == NULL) {
+        ngx_wasm_log_error(NGX_LOG_ERR, opctx->log, 0,
+                           "no \"%V\" function in \"%V\" module",
+                           &op->conf.call.func_name,
+                           &op->module->name);
         return NGX_ERROR;
     }
 
