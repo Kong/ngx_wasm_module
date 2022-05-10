@@ -73,7 +73,8 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
             goto fail;
         }
 
-        ngx_snprintf(p, reason_len, "%03ui %s", status, reason);
+        ngx_snprintf(p, reason_len,
+                     "%03ui %*s", status, reason_len, reason);
 
         rctx->local_resp_reason.data = p;
         rctx->local_resp_reason.len = reason_len;
@@ -82,42 +83,44 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     /* headers */
 
     if (ngx_array_init(&rctx->local_resp_headers,
-                       rctx->pool, headers->nelts,
-                       sizeof(ngx_table_elt_t))
-        != NGX_OK)
+                       rctx->pool, headers ? headers->nelts : 0,
+                       sizeof(ngx_table_elt_t)) != NGX_OK)
     {
         goto fail;
     }
 
-    elts = headers->elts;
+    if (headers)  {
 
-    for (i = 0; i < headers->nelts; i++) {
-        elt = &elts[i];
+        elts = headers->elts;
 
-        eltp = ngx_array_push(&rctx->local_resp_headers);
-        if (eltp == NULL) {
-            goto fail;
+        for (i = 0; i < headers->nelts; i++) {
+            elt = &elts[i];
+
+            eltp = ngx_array_push(&rctx->local_resp_headers);
+            if (eltp == NULL) {
+                goto fail;
+            }
+
+            ngx_memzero(eltp, sizeof(ngx_table_elt_t));
+
+            eltp->value.len = elt->value.len;
+            eltp->key.len = elt->key.len;
+            eltp->value.data = ngx_pnalloc(headers->pool, eltp->value.len + 1);
+            if (eltp->value.data == NULL) {
+                goto fail;
+            }
+
+            eltp->key.data = ngx_pnalloc(headers->pool, eltp->key.len + 1);
+            if (eltp->key.data == NULL) {
+                goto fail;
+            }
+
+            ngx_memcpy(eltp->value.data, elt->value.data, elt->value.len);
+            ngx_memcpy(eltp->key.data, elt->key.data, elt->key.len);
+
+            eltp->value.data[eltp->value.len] = '\0';
+            eltp->key.data[eltp->key.len] = '\0';
         }
-
-        ngx_memzero(eltp, sizeof(ngx_table_elt_t));
-
-        eltp->value.len = elt->value.len;
-        eltp->key.len = elt->key.len;
-        eltp->value.data = ngx_pnalloc(headers->pool, eltp->value.len + 1);
-        if (eltp->value.data == NULL) {
-            goto fail;
-        }
-
-        eltp->key.data = ngx_pnalloc(headers->pool, eltp->key.len + 1);
-        if (eltp->key.data == NULL) {
-            goto fail;
-        }
-
-        ngx_memcpy(eltp->value.data, elt->value.data, elt->value.len);
-        ngx_memcpy(eltp->key.data, elt->key.data, elt->key.len);
-
-        eltp->value.data[eltp->value.len] = '\0';
-        eltp->key.data[eltp->key.len] = '\0';
     }
 
     /* body */
@@ -222,7 +225,9 @@ ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx)
         return NGX_ERROR;
     }
 
+    rc = ngx_http_wasm_send_chain_link(r, rctx->local_resp_body);
+
     rctx->local_resp_status = 0;
 
-    return ngx_http_wasm_send_chain_link(r, rctx->local_resp_body);
+    return rc;
 }

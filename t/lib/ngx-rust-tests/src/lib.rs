@@ -19,6 +19,11 @@ pub fn say_hello() {
 }
 
 #[no_mangle]
+pub fn local_reason() {
+    ngx_resp_local_reason(201, "REASON".into());
+}
+
+#[no_mangle]
 pub fn say_nothing() {
     ngx_resp_say(String::new());
 }

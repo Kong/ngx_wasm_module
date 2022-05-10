@@ -188,7 +188,7 @@ impl Context for TestHttpHostcalls {
             token_id, num_headers, body_size
         );
 
-        if let Some(_) = self.config.get("trap") {
+        if self.config.get("trap").is_some() {
             panic!("trap!");
         }
 
