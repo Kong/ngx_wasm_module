@@ -2,6 +2,7 @@ package t::TestWasm;
 
 use strict;
 use Test::Nginx::Socket::Lua -Base;
+use List::Util qw(max);
 use Cwd qw(cwd);
 
 our $pwd = cwd();
@@ -138,16 +139,17 @@ add_block_preprocessor(sub {
 
     # --- timeout_no_valgrind: 1
 
-    if (defined $block->timeout_no_valgrind
-        && !defined $ENV{TEST_NGINX_USE_VALGRIND}
-        && !defined $block->timeout
-        && $block->timeout_no_valgrind =~ m/\s*(\S+)/)
+    if (!defined $block->timeout
+        && defined $block->timeout_no_valgrind
+        && $block->timeout_no_valgrind =~ m/\s*(\S+)/
+        && !defined $ENV{TEST_NGINX_USE_VALGRIND})
     {
         my $timeout = $1;
 
         if ($nginxV =~ m/wasmtime/) {
             # Wasmtime is much slower to load modules
-            $timeout += 60;
+            $timeout += 30;
+            $timeout = max($timeout, 45);
         }
 
         $block->set_value("timeout", $timeout);
