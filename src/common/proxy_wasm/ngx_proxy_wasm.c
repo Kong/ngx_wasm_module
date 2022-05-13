@@ -1201,14 +1201,34 @@ ngx_proxy_wasm_on_log(ngx_proxy_wasm_filter_ctx_t *fctx)
 static void
 ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
 {
-    ngx_wavm_instance_t  *instance = ngx_proxy_wasm_fctx2instance(fctx);
+    ngx_wavm_instance_t             *instance;
+#ifdef NGX_WASM_HTTP
+    ngx_http_proxy_wasm_dispatch_t  *call;
+#endif
+
+    instance = ngx_proxy_wasm_fctx2instance(fctx);
 
     if (fctx->created) {
         ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                       "proxy_wasm \"%V\" filter (%l/%l)"
-                       " finalizing context",
+                       "proxy_wasm \"%V\" filter (%l/%l) "
+                       "finalizing context",
                        fctx->filter->name, fctx->filter->index + 1,
                        fctx->parent->n_filters);
+
+#ifdef NGX_WASM_HTTP
+        call = fctx->call;
+        if (call) {
+            ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
+                           "proxy_wasm \"%V\" filter (%l/%l) "
+                           "cancelling HTTP dispatch",
+                           fctx->filter->name, fctx->filter->index + 1,
+                           fctx->parent->n_filters);
+
+            ngx_http_proxy_wasm_dispatch_destroy(call);
+
+            fctx->call = NULL;
+        }
+#endif
 
         (void) ngx_wavm_instance_call_funcref(instance,
                                               fctx->filter->proxy_on_context_finalize,

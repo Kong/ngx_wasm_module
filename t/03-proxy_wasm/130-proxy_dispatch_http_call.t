@@ -420,7 +420,7 @@ tcp socket - upstream response headers too large, increase wasm_socket_large_buf
 
 
 
-=== TEST 20: proxy_wasm - dispatch_http_call() too small wasm_socket_large_buffers after status line
+=== TEST 20: proxy_wasm - dispatch_http_call() too small wasm_socket_large_buffers size
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -448,7 +448,36 @@ tcp socket - upstream response headers too large, increase wasm_socket_large_buf
 
 
 
-=== TEST 21: proxy_wasm - dispatch_http_call() few wasm_socket_large_buffers
+=== TEST 21: proxy_wasm - dispatch_http_call() not enough wasm_socket_large_buffers
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- tcp_listen: 12345
+--- tcp_reply eval
+sub {
+    return ["HTTP/1.1 200 OK\r\n",
+            "Connection: close\r\n",
+            "Content-Length: 0\r\n",
+            "\r\n"];
+}
+--- config
+    location /t {
+        wasm_socket_buffer_reuse off;
+        wasm_socket_buffer_size 24;  # enough to fit status line
+        wasm_socket_large_buffers 1 24;
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:12345';
+        echo fail;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log
+tcp socket - not enough large buffers available, increase wasm_socket_large_buffers number
+dispatch failed (tcp socket - parser error)
+
+
+
+=== TEST 22: proxy_wasm - dispatch_http_call() scarce wasm_socket_large_buffers
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -475,7 +504,31 @@ tcp socket trying to receive data (max: 1023)
 
 
 
-=== TEST 22: proxy_wasm - dispatch_http_call() re-entrant after status line
+=== TEST 23: proxy_wasm - dispatch_http_call() TCP reader error
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- tcp_listen: 12345
+--- tcp_reply eval
+sub {
+    my $req = shift;
+    return "hello, $req";
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:12345';
+        echo fail;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log
+dispatch failed (tcp socket - parser error)
+--- no_error_log
+[crit]
+
+
+
+=== TEST 24: proxy_wasm - dispatch_http_call() re-entrant after status line
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -502,7 +555,7 @@ tcp socket trying to receive data (max: 1017)
 
 
 
-=== TEST 23: proxy_wasm - dispatch_http_call() trap in dispatch handler
+=== TEST 25: proxy_wasm - dispatch_http_call() trap in dispatch handler
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -525,7 +578,7 @@ trap in proxy_on_http_call_response
 
 
 
-=== TEST 24: proxy_wasm - dispatch_http_call() buffer reuse
+=== TEST 26: proxy_wasm - dispatch_http_call() async dispatch x2
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -573,7 +626,44 @@ trap in proxy_on_http_call_response
 
 
 
-=== TEST 25: proxy_wasm - dispatch_http_call() in log phase
+=== TEST 27: proxy_wasm - dispatch_http_call() recv() error
+--- abort
+--- timeout_no_valgrind: 1
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- tcp_shutdown: 2
+--- tcp_listen: 12345
+--- tcp_reply eval
+sub {
+    return ["HTTP/1.1 200 OK\r\n",
+            "Connection: close\r\n",
+            "Content-Length: 0\r\n",
+            "\r\n\r\n"];
+}
+--- config
+    location /proxy_wasm {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:12345 \
+                              echo_response=on';
+        echo failed;
+    }
+
+    location /t {
+        echo_subrequest GET /proxy_wasm/A;
+        echo_subrequest GET /proxy_wasm/B;
+    }
+--- error_code:
+--- shutdown_error_log eval
+[
+    qr/recv\(\) failed \(\d+: Connection reset by peer\).*? subrequest: "\/proxy_wasm\/B"/,
+    qr/dispatch failed \(Connection reset by peer\)/
+]
+--- no_error_log
+[crit]
+
+
+
+=== TEST 28: proxy_wasm - dispatch_http_call() on log step
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

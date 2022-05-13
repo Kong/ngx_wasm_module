@@ -346,6 +346,7 @@ ngx_wasm_valvec2wasmtime(wasmtime_val_t *out, wasm_val_vec_t *vec)
             break;
 
         default:
+            /* NYI */
             ngx_wasm_assert(0);
             break;
 
@@ -388,18 +389,22 @@ ngx_wasmtime_valvec2wasm(wasm_val_vec_t *out, wasmtime_val_t *vec, size_t nvals)
             break;
 
         case WASMTIME_V128:
+            /* NYI */
             ngx_wasm_assert(0);
             break;
 
         case WASMTIME_FUNCREF:
+            /* NYI */
             ngx_wasm_assert(0);
             break;
 
         case WASMTIME_EXTERNREF:
+            /* NYI */
             ngx_wasm_assert(0);
             break;
 
         default:
+            /* NYI */
             ngx_wasm_assert(0);
             break;
 

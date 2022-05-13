@@ -28,7 +28,7 @@ typedef enum {
 } ngx_http_proxy_wasm_dispatch_err_e;
 
 
-typedef struct {
+struct ngx_http_proxy_wasm_dispatch_s {
     ngx_pool_t                             *pool;  /* owned */
     uint32_t                                id;
     ngx_msec_t                              timeout;
@@ -51,7 +51,7 @@ typedef struct {
     ngx_wasm_http_reader_ctx_t              http_reader;
     ngx_http_proxy_wasm_dispatch_state_e    state;
     ngx_http_request_t                      fake_r;
-} ngx_http_proxy_wasm_dispatch_t;
+};
 
 
 ngx_http_proxy_wasm_dispatch_t *ngx_http_proxy_wasm_dispatch(

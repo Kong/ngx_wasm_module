@@ -78,7 +78,6 @@ ngx_proxy_wasm_maps_get_map(ngx_wavm_instance_t *instance,
 #endif
 
     default:
-        ngx_wasm_assert(0);
         ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
                            "NYI - get_map: %d", map_type);
         return NULL;
@@ -333,7 +332,7 @@ ngx_proxy_wasm_maps_set(ngx_wavm_instance_t *instance,
 
     default:
         ngx_wasm_assert(0);
-        break;
+        return NGX_ERROR;
 
     }
 
