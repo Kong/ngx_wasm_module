@@ -206,8 +206,6 @@ impl Context for TestHttpHostcalls {
                 "off" | "false" | "F" => {}
                 _ => self.send_plain_response(StatusCode::OK, Some(response)),
             }
-
-            //self.set_http_response_body(0, response.len(), response.as_bytes());
         }
 
         self.resume_http_request()

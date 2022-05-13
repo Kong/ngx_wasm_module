@@ -65,7 +65,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
         ngx_proxy_wasm_filter_ctx_t     *fctx;
 
         fctx = ngx_proxy_wasm_instance2fctx(instance);
-        call = (ngx_http_proxy_wasm_dispatch_t *) fctx->data;
+        call = fctx->call;
         if (call == NULL) {
             return NULL;
         }
@@ -451,9 +451,9 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
 #endif
 
     default:
-        ngx_wasm_assert(0);
-        break;
-
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
+                           "NYI - map type: %d", map_type);
+        return ngx_proxy_wasm_result_err(rets);
     }
 
     if (rc != NGX_OK) {
@@ -810,6 +810,7 @@ ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
     rctx->yield = 0;
 #endif
 

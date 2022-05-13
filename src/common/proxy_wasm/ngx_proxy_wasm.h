@@ -160,6 +160,9 @@ typedef struct ngx_proxy_wasm_ctx_s  ngx_proxy_wasm_ctx_t;
 typedef struct ngx_proxy_wasm_filter_s  ngx_proxy_wasm_filter_t;
 typedef struct ngx_proxy_wasm_filter_ctx_s  ngx_proxy_wasm_filter_ctx_t;
 typedef struct ngx_proxy_wasm_instance_ctx_s  ngx_proxy_wasm_instance_ctx_t;
+#ifdef NGX_WASM_HTTP
+typedef struct ngx_http_proxy_wasm_dispatch_s  ngx_http_proxy_wasm_dispatch_t;
+#endif
 
 typedef ngx_str_t  ngx_proxy_wasm_marshalled_map_t;
 
@@ -219,9 +222,10 @@ struct ngx_proxy_wasm_filter_ctx_s {
     ngx_proxy_wasm_ctx_t              *parent;
     ngx_proxy_wasm_instance_ctx_t     *ictx;
     ngx_proxy_wasm_filter_t           *filter;
-    void                              *data;
-    ngx_chain_t                       *dispatch_body; // TODO: move to pwctx
     ngx_event_t                       *ev;
+#ifdef NGX_WASM_HTTP
+    ngx_http_proxy_wasm_dispatch_t    *call;
+#endif
 
     /* flags */
 

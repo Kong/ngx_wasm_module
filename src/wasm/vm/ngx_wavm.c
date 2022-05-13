@@ -502,7 +502,6 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
     }
 
     if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LOADED_BYTES)) {
-        ngx_wasm_assert(0);
         return NGX_ERROR;
     }
 
@@ -805,7 +804,6 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
     ngx_str_node_t  *sn;
 
     if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LOADED)) {
-        ngx_wasm_assert(0);
         return NULL;
     }
 
@@ -1175,7 +1173,6 @@ ngx_wavm_instance_call_func_vec(ngx_wavm_instance_t *instance,
             }
 
         } else {
-            ngx_wasm_assert(0);
             err = "bad args";
             goto error;
         }

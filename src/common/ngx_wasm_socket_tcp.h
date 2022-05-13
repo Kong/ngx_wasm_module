@@ -97,9 +97,9 @@ struct ngx_wasm_socket_tcp_s {
 
     /* large buffers */
 
-    ngx_int_t                                nbusy;
-    ngx_chain_t                             *busy;
-    ngx_chain_t                             *free;
+    ngx_int_t                                lbusy;    /* large buffers counters in busy */
+    ngx_chain_t                             *busy_large_bufs;
+    ngx_chain_t                             *free_large_bufs;
 
     /* flags */
 

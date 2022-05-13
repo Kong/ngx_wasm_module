@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_http_wasm_util.h>
+#include <ngx_http_proxy_wasm_dispatch.h>
 
 
 ngx_str_t *

@@ -267,7 +267,6 @@ linking:
             }
 
         } else {
-            ngx_wasm_assert(0);
             return NGX_ERROR;
         }
     }
@@ -369,6 +368,7 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
             break;
 
         default:
+            /* NYI */
             ngx_wasm_assert(0);
             return NGX_ABORT;
 

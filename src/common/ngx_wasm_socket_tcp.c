@@ -540,6 +540,53 @@ ngx_int_t
 ngx_wasm_socket_read_http_response(ngx_wasm_socket_tcp_t *sock,
     ssize_t bytes, void *ctx)
 {
+    ngx_wasm_http_reader_ctx_t  *in_ctx = ctx;
+    ngx_http_request_t          *r;
+    ngx_http_wasm_req_ctx_t     *rctx;
+
+    r = &in_ctx->fake_r;
+    rctx = in_ctx->rctx;
+
+    if (!r->signature) {
+        ngx_memzero(r, sizeof(ngx_http_request_t));
+
+        r->pool = in_ctx->pool;
+        r->signature = NGX_HTTP_MODULE;
+        r->connection = rctx->connection;
+        r->request_start = NULL;
+        r->header_in = NULL;
+
+        if (ngx_list_init(&r->headers_out.headers, r->pool, 20,
+                          sizeof(ngx_table_elt_t))
+            != NGX_OK)
+        {
+            return NGX_ERROR;
+        }
+
+        if (ngx_list_init(&r->headers_out.trailers, r->pool, 4,
+                          sizeof(ngx_table_elt_t))
+            != NGX_OK)
+        {
+            return NGX_ERROR;
+        }
+
+        if (ngx_http_upstream_create(r) != NGX_OK) {
+            return NGX_ERROR;
+        }
+
+        r->upstream->conf = &in_ctx->uconf;
+
+        if (ngx_list_init(&r->upstream->headers_in.headers, r->pool, 4,
+                          sizeof(ngx_table_elt_t))
+            != NGX_OK)
+        {
+            return NGX_ERROR;
+        }
+
+        r->headers_out.content_length_n = -1;
+        r->headers_out.last_modified_time = -1;
+    }
+
     if (bytes) {
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, sock->log, 0,
                        "wasm tcp socket resuming http response reading "
@@ -607,7 +654,7 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
             rc = reader(sock, size, reader_ctx);
             if (rc == NGX_ERROR) {
-                dd("reader error");
+                ngx_wasm_socket_tcp_err(sock, "tcp socket - parser error");
                 return NGX_ERROR;
             }
 
@@ -753,20 +800,19 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
 
     if (sock->host.data) {
         ngx_pfree(sock->pool, sock->host.data);
+        sock->host.data = NULL;
     }
 
     if (c && c->pool) {
         ngx_destroy_pool(c->pool);
+        c->pool = NULL;
     }
 
-    if (sock->free) {
+    if (sock->free_large_bufs) {
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, ngx_wasm_socket_log(sock), 0,
-                       "wasm tcp socket free: %p", sock->free);
+                       "wasm tcp socket free: %p", sock->free_large_bufs);
 
-        ngx_wasm_assert(0);
-
-        for (cl = sock->free; cl; /* void */) {
-            ngx_wasm_assert(0);
+        for (cl = sock->free_large_bufs; cl; /* void */) {
             ln = cl;
             cl = cl->next;
 
@@ -774,15 +820,15 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
             ngx_free_chain(sock->pool, ln);
         }
 
-        sock->free = NULL;
+        sock->free_large_bufs = NULL;
     }
 
-    if (sock->busy) {
+    if (sock->busy_large_bufs) {
         ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_wasm_socket_log(sock), 0,
                        "wasm tcp socket busy: %p %i",
-                       sock->busy, sock->nbusy);
+                       sock->busy_large_bufs, sock->lbusy);
 
-        for (cl = sock->busy; cl; /* void */) {
+        for (cl = sock->busy_large_bufs; cl; /* void */) {
             ln = cl;
             cl = cl->next;
 
@@ -790,8 +836,8 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
             ngx_free_chain(sock->pool, ln);
         }
 
-        sock->busy = NULL;
-        sock->nbusy = 0;
+        sock->busy_large_bufs = NULL;
+        sock->lbusy = 0;
     }
 }
 
@@ -896,6 +942,9 @@ ngx_wasm_socket_tcp_handler(ngx_event_t *ev)
     } else {
         sock->read_event_handler(sock);
     }
+
+    ngx_log_debug0(NGX_LOG_DEBUG_WASM, ev->log, 0,
+                   "wasm tcp socket resuming");
 
     sock->resume(sock);
 }

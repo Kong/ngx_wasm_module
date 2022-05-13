@@ -19,7 +19,6 @@ ngx_http_wasm_htype_name(ngx_http_wasm_headers_type_e htype)
         return (char *) "response";
 
     default:
-        ngx_wasm_assert(0);
         return (char *) "[unknown]";
 
     }
