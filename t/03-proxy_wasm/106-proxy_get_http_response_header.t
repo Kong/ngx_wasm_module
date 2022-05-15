@@ -5,7 +5,6 @@ use lib '.';
 use t::TestWasm;
 
 skip_valgrind();
-no_long_string();
 
 plan tests => repeat_each() * (blocks() * 5);
 

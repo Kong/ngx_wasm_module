@@ -46,8 +46,7 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
 
     dd("enter");
 
-    if (rctx->resp_content_produced) {
-        /* content already produced */
+    if (rctx->entered_header_filter) {
         return NGX_ABORT;
     }
 

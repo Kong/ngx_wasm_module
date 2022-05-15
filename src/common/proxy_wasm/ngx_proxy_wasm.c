@@ -219,12 +219,14 @@ ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
         dd("next filter");
     }
 
-    //ngx_wasm_assert(rc == NGX_OK);
+    ngx_wasm_assert(rc == NGX_OK);
 
+#if 0
     if (pwctx->fctxs.nelts < pwctx->n_filters) {
         /* incomplete chain */
         goto ret;
     }
+#endif
 
     /* next step */
 
@@ -247,7 +249,6 @@ ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_int_t                     rc = NGX_ERROR;
     ngx_proxy_wasm_filter_t      *filter;
     ngx_proxy_wasm_filter_ctx_t  *yfctx, *fctxs;
-
 
     if (fctx->ecode) {
         filter = fctx->filter;
@@ -1120,7 +1121,6 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
 
     rc = ngx_proxy_wasm_start(fctx);
     if (rc != NGX_OK) {
-        ngx_wasm_assert(fctx->ecode);
         return NGX_ERROR;
     }
 
@@ -1161,26 +1161,6 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
 }
 
 
-void
-ngx_proxy_wasm_resume_main(ngx_proxy_wasm_filter_ctx_t *fctx, unsigned wev)
-{
-    ngx_proxy_wasm_ctx_t     *pwctx = fctx->parent;
-#if (NGX_DEBUG)
-    ngx_proxy_wasm_filter_t  *filter = fctx->filter;
-
-    ngx_log_debug4(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                   "proxy_wasm \"%V\" filter (%l/%l) resuming main request (wev: %d)",
-                   filter->name, filter->index + 1, *filter->n_filters, wev);
-#endif
-
-    pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
-
-#ifdef NGX_WASM_HTTP
-    ngx_http_wasm_resume((ngx_http_wasm_req_ctx_t *) pwctx->data, wev);
-#endif
-}
-
-
 static void
 ngx_proxy_wasm_on_log(ngx_proxy_wasm_filter_ctx_t *fctx)
 {
@@ -1202,7 +1182,7 @@ static void
 ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
 {
     ngx_wavm_instance_t             *instance;
-#ifdef NGX_WASM_HTTP
+#if (NGX_WASM_HTTP && 0)
     ngx_http_proxy_wasm_dispatch_t  *call;
 #endif
 
@@ -1215,7 +1195,7 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
                        fctx->filter->name, fctx->filter->index + 1,
                        fctx->parent->n_filters);
 
-#ifdef NGX_WASM_HTTP
+#if (NGX_WASM_HTTP && 0)
         call = fctx->call;
         if (call) {
             ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,

@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 15
     env:
       NGX_BUILD_GCOV: 1
+    #if: ${{ false }}
     strategy:
       fail-fast: false
       matrix:
@@ -79,16 +80,6 @@ jobs:
       - run: make test
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
-      #- run: |
-      #    pkill -9 nginx
-      #    sleep 10
-      #    tar -czf logs.tar.gz `find t/ -type f -name 'error.log'`
-      #  if: ${{ failure() && !env.ACT }}
-      #- uses: actions/upload-artifact@v2
-      #  if: ${{ failure() && !env.ACT }}
-      #  with:
-      #    name: error_logs-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
-      #    path: error_logs.tar.gz
       - uses: codecov/codecov-action@v1
         if: ${{ !env.ACT }}
         env:
@@ -119,6 +110,13 @@ jobs:
         wasmer: [2.1.1]
         hup: [0, 1]
         debug: [1]
+        include:
+          - os: ubuntu-latest
+            ngx: 1.21.6
+            runtime: wasmtime
+            wasmtime: 0.36.0
+            hup: 0
+            debug: 1
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
       - run: sudo apt-get install -y gcc-8
@@ -159,12 +157,18 @@ jobs:
       - run: make test 2>&1 | tee valgrind.out
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+          TEST_NGINX_NO_CLEAN: 1
       - run: |
           awk -f ./util/parse-valgrind.awk valgrind.out > valgrind.log
           if [[ -s valgrind.log ]]; then
             cat valgrind.log >&2
             exit 1
           fi
+      - uses: actions/upload-artifact@v2
+        if: ${{ failure() && !env.ACT }}
+        with:
+          name: servroot-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: t/servroot*
       - uses: actions/upload-artifact@v2
         if: ${{ failure() && !env.ACT }}
         with:

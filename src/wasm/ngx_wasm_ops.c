@@ -230,14 +230,14 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
     if (phase == NULL) {
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, ctx->log, 0,
                            "ops resume: no phase for index '%ui'", phase);
-        return NGX_DECLINED;
+        goto done;
     }
 
     pipeline = ctx->ops_engine->pipelines[phase->index];
 
     if (pipeline == NULL) {
         dd("no pipeline");
-        return NGX_DECLINED;
+        goto done;
     }
 
 #if 0
@@ -254,7 +254,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
         rc = op->handler(ctx, phase, op);
         if (rc == NGX_ERROR || rc > NGX_OK) {
             /* NGX_ERROR, NGX_HTTP_* */
-            return rc;
+            goto done;
         }
 
         if (rc == NGX_DECLINED) {
@@ -269,6 +269,8 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
                     || rc == NGX_DECLINED
                     || rc == NGX_AGAIN
                     || rc == NGX_DONE);
+
+done:
 
     dd("ops resume rc: %ld", rc);
 

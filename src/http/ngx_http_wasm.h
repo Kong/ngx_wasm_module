@@ -49,8 +49,8 @@ typedef struct {
     unsigned                           entered_content_phase:1;
     unsigned                           entered_header_filter:1;
 
-    unsigned                           resp_content_produced:1;
-    unsigned                           resp_content_sent:1;    /* sent response (ourselves) */
+    unsigned                           resp_content_chosen:1;
+    unsigned                           resp_content_sent:1;
     unsigned                           resp_finalized:1;       /* finalized connection (ourselves) */
 } ngx_http_wasm_req_ctx_t;
 
@@ -76,6 +76,10 @@ typedef struct {
 } ngx_http_wasm_main_conf_t;
 
 
+typedef void (*ngx_http_wasm_resume_handler_pt)(ngx_http_wasm_req_ctx_t *rctx,
+    unsigned main, unsigned wev);
+
+
 ngx_int_t ngx_http_wasm_rctx(ngx_http_request_t *r,
     ngx_http_wasm_req_ctx_t **out);
 ngx_int_t ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
@@ -85,7 +89,8 @@ ngx_int_t ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx,
     ngx_int_t rc);
-void ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned wev);
+void ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main,
+    unsigned wev);
 void ngx_http_wasm_content_wev_handler(ngx_http_request_t *r);
 
 

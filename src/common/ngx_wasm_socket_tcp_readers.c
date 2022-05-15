@@ -124,8 +124,6 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
     old = in_ctx->status_code ? r->header_name_start : r->request_start;
     loc = ngx_http_get_module_loc_conf(in_ctx->rctx->r, ngx_http_wasm_module);
 
-    dd("r->state: %ld", r->state);
-
     if (!in_ctx->status_code && r->state == 0) {
         /* buffer filled with "\r\n" */
         r->header_in->pos = r->header_in->start;
@@ -148,6 +146,7 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
 
     sock = in_ctx->sock;
 
+#if 0
     if (sock->free_large_bufs) {
         cl = sock->free_large_bufs;
         sock->free_large_bufs = cl->next;
@@ -157,7 +156,10 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
                        "wasm tcp socket large buffer free: %p %uz",
                        b->pos, b->end - b->last);
 
-    } else if (sock->lbusy < loc->socket_large_buffers.num) {
+    } else
+#endif
+    if (sock->lbusy < loc->socket_large_buffers.num) {
+
         b = ngx_create_temp_buf(sock->pool, loc->socket_large_buffers.size);
         if (b == NULL) {
             return NGX_ERROR;
@@ -488,10 +490,12 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
 
             for (/* void */; ll && ll->next; ll = ll->next) { /* void */ }
 
+#if 0
             if (ll && ll->buf->last == NULL) {
                 cl = ll;
 
             } else {
+#endif
                 cl = ngx_chain_get_free_buf(in_ctx->pool, &rctx->free_bufs);
                 if (cl == NULL) {
                     return NGX_ERROR;
@@ -508,7 +512,9 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                 } else {
                     ll->next = cl;
                 }
+#if 0
             }
+#endif
 
             b = cl->buf;
 

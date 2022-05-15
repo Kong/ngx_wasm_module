@@ -60,61 +60,57 @@ ngx_http_wasm_filter_init(ngx_conf_t *cf)
 static ngx_int_t
 ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 {
-    ngx_int_t                  rc;
+    ngx_int_t                  rc = NGX_ERROR;
     ngx_http_wasm_req_ctx_t   *rctx = NULL;
 
     dd("enter");
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc == NGX_ERROR) {
-        return NGX_ERROR;
+        goto done;
+    }
 
-    } else if (rc == NGX_DECLINED) {
-        goto next_filter;
+    if (rc == NGX_DECLINED) {
+        rc = ngx_http_next_header_filter(r);
+        goto done;
     }
 
     ngx_wasm_assert(rc == NGX_OK);
 
     if (rctx->entered_header_filter) {
-        goto next_filter;
+        rc = ngx_http_next_header_filter(r);
+        goto done;
     }
 
-    rctx->resp_content_produced = 1;  /* if not already set */
     rctx->entered_header_filter = 1;
 
-    rc = ngx_http_wasm_produce_resp_headers(rctx);
-    if (rc != NGX_OK) {
-        return NGX_ERROR;
+    if (ngx_http_wasm_produce_resp_headers(rctx) != NGX_OK) {
+        goto done;
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx,
                              NGX_HTTP_WASM_HEADER_FILTER_PHASE);
-    if (rc == NGX_ERROR || rc > NGX_OK) {
+    if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
         if (rc == NGX_ERROR) {
             rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
             goto done;
         }
 
-        if (rctx->entered_content_phase) {
+        if (rctx->resp_content_chosen) {
             goto done;
         }
-
-        goto next_filter;
-
-    } else if (rc == NGX_OK) {
-        rc = ngx_http_wasm_check_finalize(rctx, rc);
     }
 
-next_filter:
+    rc = ngx_http_next_header_filter(r);
 
-    dd("next filter");
-
-    (void) ngx_http_next_header_filter(r);
+    rctx->resp_content_chosen = 1;  /* if not already set */
 
 done:
 
+#if (DDEBUG)
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
                    "wasm \"header_filter\" phase rc: %d", rc);
+#endif
 
     return rc;
 }
@@ -130,11 +126,12 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc == NGX_ERROR) {
-        return NGX_ERROR;
+        goto done;
     }
 
     if (rc == NGX_DECLINED) {
-        return ngx_http_next_body_filter(r, in);
+        rc = ngx_http_next_body_filter(r, in);
+        goto done;
     }
 
     ngx_wasm_assert(rc == NGX_OK);
@@ -147,7 +144,7 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
 
     rc = ngx_http_next_body_filter(r, rctx->resp_chunk);
     if (rc == NGX_ERROR) {
-        return NGX_ERROR;
+        goto done;
     }
 
     rctx->resp_chunk = NULL;
@@ -156,7 +153,12 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
                             &rctx->free_bufs, &rctx->busy_bufs,
                             &rctx->resp_chunk, buf_tag);
 
-    dd("exit rc: %ld", rc);
+done:
+
+#if (DDEBUG)
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
+                   "wasm \"body_filter\" phase rc: %d", rc);
+#endif
 
     return rc;
 }

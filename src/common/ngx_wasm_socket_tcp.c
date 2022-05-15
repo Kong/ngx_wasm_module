@@ -79,6 +79,34 @@ ngx_wasm_socket_tcp_err(ngx_wasm_socket_tcp_t *sock,
 }
 
 
+static void
+ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
+{
+#if (NGX_WASM_HTTP)
+    ngx_int_t                 rc;
+    ngx_http_wasm_req_ctx_t  *rctx;
+#endif
+
+    ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
+                   "wasm tcp socket resuming");
+
+    switch (sock->kind) {
+#if (NGX_WASM_HTTP)
+    case NGX_WASM_SOCKET_TCP_KIND_HTTP:
+        rctx = sock->env.ctx.request;
+        rc = sock->resume(sock);
+
+        ngx_http_wasm_resume(rctx, rc != NGX_AGAIN, 1);
+        break;
+#endif
+    default:
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, sock->log, 0,
+                           "NYI - socket kind: %d", sock->kind);
+        break;
+    }
+}
+
+
 ngx_int_t
 ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
     ngx_str_t *host, ngx_wasm_socket_tcp_env_t *env)
@@ -347,7 +375,7 @@ error:
 
     ngx_resolve_name_done(ctx);
 
-    sock->resume(sock);
+    ngx_wasm_socket_tcp_resume(sock);
 }
 
 
@@ -808,6 +836,7 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
         c->pool = NULL;
     }
 
+#if 0
     if (sock->free_large_bufs) {
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, ngx_wasm_socket_log(sock), 0,
                        "wasm tcp socket free: %p", sock->free_large_bufs);
@@ -822,6 +851,7 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
 
         sock->free_large_bufs = NULL;
     }
+#endif
 
     if (sock->busy_large_bufs) {
         ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_wasm_socket_log(sock), 0,
@@ -943,10 +973,9 @@ ngx_wasm_socket_tcp_handler(ngx_event_t *ev)
         sock->read_event_handler(sock);
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_WASM, ev->log, 0,
-                   "wasm tcp socket resuming");
+    ngx_wasm_socket_tcp_resume(sock);
 
-    sock->resume(sock);
+    dd("exit");
 }
 
 
@@ -1060,6 +1089,14 @@ ngx_wasm_socket_tcp_connect_handler(ngx_wasm_socket_tcp_t *sock)
 
     if (c->write->timer_set) {
         ngx_del_timer(c->write);
+    }
+
+    if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
+        return;
+    }
+
+    if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
+        return;
     }
 
     sock->connected = 1;

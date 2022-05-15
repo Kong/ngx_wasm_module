@@ -14,7 +14,7 @@ static void ngx_http_proxy_wasm_dispatch_err(
 static void ngx_http_proxy_wasm_dispatch_handler(ngx_event_t *ev);
 static ngx_chain_t *ngx_http_proxy_wasm_dispatch_request(
     ngx_http_proxy_wasm_dispatch_t *call);
-static void ngx_http_proxy_wasm_dispatch_resume_handler(
+static ngx_int_t ngx_http_proxy_wasm_dispatch_resume_handler(
     ngx_wasm_socket_tcp_t *sock);
 
 
@@ -335,7 +335,9 @@ ngx_http_proxy_wasm_dispatch_destroy(ngx_http_proxy_wasm_dispatch_t *call)
 static void
 ngx_http_proxy_wasm_dispatch_handler(ngx_event_t *ev)
 {
+    ngx_int_t                        rc;
     ngx_http_proxy_wasm_dispatch_t  *call = ev->data;
+    ngx_http_wasm_req_ctx_t         *rctx = call->rctx;
     ngx_wasm_socket_tcp_t           *sock = &call->sock;
 
     ngx_free(ev);
@@ -343,7 +345,10 @@ ngx_http_proxy_wasm_dispatch_handler(ngx_event_t *ev)
     sock->resume = ngx_http_proxy_wasm_dispatch_resume_handler;
     sock->data = call;
 
-    sock->resume(sock);
+    rc = sock->resume(sock);
+    if (rc == NGX_ERROR) {
+        ngx_http_wasm_resume(rctx, 1, 1);
+    }
 }
 
 
@@ -435,6 +440,7 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
      * Connection:
      * Content-Length:
      */
+
     len += call->method.len + 1 + call->uri.len + 1
            + sizeof(ngx_http_proxy_wasm_dispatch_version_11) - 1;
 
@@ -538,7 +544,7 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
 }
 
 
-static void
+static ngx_int_t
 ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 {
     size_t                           i;
@@ -599,9 +605,8 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         ngx_log_debug0(NGX_LOG_DEBUG_ALL, sock->log, 0,
                        "proxy_wasm http dispatch sending request");
 
-        dd("chain: %p, next: %p", nl, nl->next);
-
         rc = ngx_wasm_socket_tcp_send(sock, nl);
+
         if (rc == NGX_ERROR) {
             goto error;
         }
@@ -610,11 +615,11 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
             break;
         }
 
-        ngx_wasm_assert(rc == NGX_OK);
-
         ngx_chain_update_chains(r->connection->pool,
-                                &rctx->free_bufs, &rctx->busy_bufs,
-                                &nl, buf_tag);
+                               &rctx->free_bufs, &rctx->busy_bufs,
+                               &nl, buf_tag);
+
+        ngx_wasm_assert(rc == NGX_OK);
 
         call->state = NGX_HTTP_PROXY_WASM_DISPATCH_RECEIVING;
 
@@ -727,5 +732,7 @@ error:
 
 done:
 
-    ngx_proxy_wasm_resume_main(fctx, rc != NGX_AGAIN);
+    dd("exit rc: %ld", rc);
+
+    return rc;
 }
