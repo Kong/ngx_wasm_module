@@ -280,7 +280,7 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_BUFFER_HTTP_REQUEST_BODY:
         rc = ngx_http_wasm_set_req_body(rctx, &s, offset, max);
-        if (rc == NGX_DECLINED) {
+        if (rc == NGX_ABORT) {
             ngx_wavm_instance_trap_printf(instance, "cannot set request body");
         }
 
@@ -288,7 +288,7 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 
     case NGX_PROXY_WASM_BUFFER_HTTP_RESPONSE_BODY:
         rc = ngx_http_wasm_set_resp_body(rctx, &s, offset, max);
-        if (rc == NGX_DECLINED) {
+        if (rc == NGX_ABORT) {
             ngx_wavm_instance_trap_printf(instance, "cannot set response body");
         }
 
@@ -425,7 +425,7 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
-        if (rctx->resp_content_produced) {
+        if (rctx->entered_header_filter) {
             ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                                "cannot set request headers: response produced");
 
@@ -496,7 +496,7 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
-        && rctx->resp_content_produced)
+        && rctx->entered_header_filter)
     {
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                            "cannot add request header: response produced");
@@ -550,7 +550,7 @@ ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
-        && rctx->resp_content_produced)
+        && rctx->entered_header_filter)
     {
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                            "cannot set request header: response produced");

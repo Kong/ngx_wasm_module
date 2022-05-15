@@ -50,26 +50,16 @@ ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
     last = buf + NGX_MAX_ERROR_STR;
     p = &buf[0];
 
+    va_start(args, fmt);
+    p = ngx_vslprintf(p, last, fmt, args);
+    va_end(args);
+
     if (err) {
         errmsg = ngx_proxy_wasm_filter_strerror(err);
+        p = ngx_slprintf(p, last, " (%V)", errmsg);
     }
 
-    if (fmt) {
-        va_start(args, fmt);
-        p = ngx_vslprintf(p, last, fmt, args);
-        va_end(args);
-
-        if (err) {
-            p = ngx_slprintf(p, last, " (%V)", errmsg);
-        }
-
-        ngx_wasm_log_error(level, log, 0, "%*s", p - buf, buf);
-        return;
-    }
-
-    if (err) {
-        ngx_wasm_log_error(level, log, 0, "%V", errmsg);
-    }
+    ngx_wasm_log_error(level, log, 0, "%*s", p - buf, buf);
 }
 
 
@@ -387,6 +377,7 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
     rc = ngx_proxy_wasm_resume(ictx, filter, fctx,
                                NGX_PROXY_WASM_STEP_ON_TIMER, NULL);
     if (rc != NGX_OK) {
+#if 0
         if (fctx->ecode == NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED) {
             filter->root_ictx = ngx_proxy_wasm_instance_get(filter,
                                                             ictx->store, ictx->log);
@@ -396,7 +387,7 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 
             ngx_proxy_wasm_instance_release(ictx, 0);
         }
-
+#endif
         return;
     }
 

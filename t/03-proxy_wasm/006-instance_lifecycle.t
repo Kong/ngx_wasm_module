@@ -5,7 +5,7 @@ use lib '.';
 use t::TestWasm;
 
 skip_no_debug();
-no_long_string();
+skip_valgrind('wasmtime');
 
 plan tests => repeat_each() * (blocks() * 8);
 

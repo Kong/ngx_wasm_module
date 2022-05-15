@@ -211,8 +211,8 @@ ngx_http_wasm_set_req_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
 
     r = rctx->r;
 
-    if (r->header_sent || rctx->resp_content_produced) {
-        return NGX_DECLINED;
+    if (rctx->entered_header_filter) {
+        return NGX_ABORT;
     }
 
     rb = r->request_body;
@@ -261,7 +261,7 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
     ngx_http_request_t  *r = rctx->r;
 
     if (rctx->resp_chunk == NULL) {
-        return NGX_DECLINED;
+        return NGX_ABORT;
     }
 
     if (r->header_sent && !r->chunked) {

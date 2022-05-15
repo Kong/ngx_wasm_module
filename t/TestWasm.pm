@@ -28,11 +28,26 @@ $ENV{TEST_NGINX_HTML_DIR} = html_dir();
 $ENV{TEST_NGINX_DATA_DIR} = "$pwd/t/data";
 $ENV{TEST_NGINX_UNIX_SOCKET} = html_dir() . "/nginx.sock";
 
-sub skip_valgrind {
-    if ($ENV{TEST_NGINX_USE_VALGRIND}
-        && !defined $ENV{TEST_NGINX_USE_VALGRIND_ALL})
-    {
+sub skip_valgrind (@) {
+    my ($skip) = @_;
+
+    if (!$ENV{TEST_NGINX_USE_VALGRIND}) {
+        return;
+    }
+
+    if (defined $skip) {
+        my $nver = (split /\n/, $nginxV)[0];
+
+        if ($nver =~ m/$skip/) {
+            plan skip_all => "skipped with Valgrind (nginx -V matches '$skip')";
+        }
+
+        return;
+    }
+
+    if (!defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}) {
         plan skip_all => 'slow with Valgrind (set TEST_NGINX_USE_VALGRIND_ALL to run)';
+
     }
 }
 

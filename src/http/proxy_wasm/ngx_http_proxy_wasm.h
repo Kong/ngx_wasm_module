@@ -18,7 +18,7 @@ static ngx_inline ngx_http_wasm_req_ctx_t *
 ngx_http_proxy_wasm_get_rctx(ngx_wavm_instance_t *instance)
 {
     ngx_proxy_wasm_filter_ctx_t  *fctx;
-    ngx_proxy_wasm_ctx_t  *pwctx;
+    ngx_proxy_wasm_ctx_t         *pwctx;
     ngx_http_wasm_req_ctx_t      *rctx;
 
     fctx = ngx_proxy_wasm_instance2fctx(instance);

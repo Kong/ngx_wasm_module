@@ -4,7 +4,7 @@ use proxy_wasm::types::*;
 use std::collections::HashMap;
 use std::time::Duration;
 
-#[derive(Debug, PartialEq, enum_utils::FromStr)]
+#[derive(Debug, Eq, PartialEq, enum_utils::FromStr)]
 #[enumeration(rename_all = "snake_case")]
 enum Phase {
     RequestHeaders,

@@ -225,10 +225,18 @@ HelloWorld
         echo $request_body;
     }
 
+    location /log {
+        # cannot set request body
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/set_request_body';
+        echo $request_body;
+    }
+
     location /t {
         echo_subrequest POST /request_headers  -b 'orig';
         echo_subrequest POST /request_body     -b 'orig';
         echo_subrequest POST /response_headers -b 'orig';
+        echo_subrequest POST /log              -b 'orig';
 
         # cannot resume
         proxy_wasm hostcalls 'on=response_body test=/t/log/request_body';
@@ -241,6 +249,7 @@ from_request_body
 --- grep_error_log_out eval
 qr/\[error\] .*?cannot set request body.*
 \[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
+\[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? request: "GET \/t HTTP\/1\.1".*
 \[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? request: "GET \/t HTTP\/1\.1".*
 \z/
 --- no_error_log

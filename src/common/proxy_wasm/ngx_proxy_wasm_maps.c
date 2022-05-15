@@ -403,7 +403,7 @@ ngx_proxy_wasm_maps_get_path(ngx_wavm_instance_t *instance)
     size_t                        len;
     u_char                       *p;
     ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_instance2fctx(instance);
-    ngx_proxy_wasm_ctx_t  *pwctx = fctx->parent;
+    ngx_proxy_wasm_ctx_t         *pwctx = fctx->parent;
     ngx_http_wasm_req_ctx_t      *rctx = ngx_http_proxy_wasm_get_rctx(instance);
     ngx_http_request_t           *r = rctx->r;
 

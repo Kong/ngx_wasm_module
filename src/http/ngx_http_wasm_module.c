@@ -491,7 +491,8 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
 
     if (rctx->resp_content_sent) {
 
-        rctx->resp_content_produced = 1;
+        /* if not already set */
+        rctx->resp_content_chosen = 1;
 
         rc = r == r->main ? NGX_DONE : NGX_OK;
 
@@ -505,7 +506,7 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
 
                 rctx->nyields = 0;
 
-            } else if (rctx->resp_content_sent) {
+            } else if (rctx->resp_content_chosen) {
                 n++;
             }
 
@@ -563,7 +564,7 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
 
 done:
 
-#if 0
+#if (DDEBUG)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm \"rewrite\" phase rc: %d", rc);
 #endif
@@ -586,7 +587,7 @@ ngx_http_wasm_preaccess_handler(ngx_http_request_t *r)
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_PREACCESS_PHASE);
     rc = ngx_http_wasm_check_finalize(rctx, rc);
 
-#if 0
+#if (DDEBUG)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm \"preaccess\" phase rc: %d", rc);
 #endif
@@ -608,7 +609,7 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_ACCESS_PHASE);
     rc = ngx_http_wasm_check_finalize(rctx, rc);
 
-#if 0
+#if (DDEBUG)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm \"access\" phase rc: %d", rc);
 #endif
@@ -653,7 +654,10 @@ resume:
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE);
     dd("content ops resume rc: %ld", rc);
     rc = ngx_http_wasm_check_finalize(rctx, rc);
-    if (rc == NGX_ERROR || rc == NGX_DONE) {
+    if (rc == NGX_ERROR
+        || rc == NGX_DONE
+        || rc >= NGX_HTTP_SPECIAL_RESPONSE)
+    {
         goto done;
     }
 
@@ -672,15 +676,15 @@ resume:
         /* fallthrough */
 
     case NGX_DECLINED:
-        if (rctx->r_content_handler && !rctx->resp_content_produced) {
+        if (rctx->r_content_handler && !rctx->resp_content_chosen) {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                            "wasm running orig \"content\" handler");
 
-            rctx->resp_content_produced = 1;
+            rctx->resp_content_chosen = 1;
 
             rc = rctx->r_content_handler(r);
 
-        } else if (rctx->resp_content_produced) {
+        } else if (r->header_sent || rctx->resp_content_sent) {
             rc = NGX_OK;
 
         } else {
@@ -722,7 +726,7 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     rc = ngx_http_wasm_content(rctx);
 
-#if 0
+#if (DDEBUG)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm \"content\" phase rc: %d", rc);
 #endif
@@ -739,12 +743,11 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
     ngx_int_t                  rc;
     ngx_http_wasm_req_ctx_t   *rctx;
 
+    dd("enter");
+
     if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
         return NGX_ERROR;
     }
-
-    /* in case response was not produced by us */
-    //rctx->resp_sent_last = 1;
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_LOG_PHASE);
 
@@ -759,61 +762,94 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
 void
 ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
 {
-    ngx_int_t                 rc;
-    ngx_http_wasm_req_ctx_t  *rctx;
-    ngx_connection_t         *c;
-    unsigned                  subreq;
+    ngx_int_t                  rc;
+    ngx_http_wasm_req_ctx_t   *rctx;
+#if (NGX_DEBUG)
+    ngx_connection_t          *c = r->connection;
+    ngx_event_t               *wev = c->write;
+#endif
 
     if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
         return;
     }
 
-    ngx_log_debug7(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "wasm wev handler \"%V?%V\" (main: %d, count: %d, "
-                   "resp_finalized: %d, yield: %d, nyields: %l)",
-                   &r->uri, &r->args, r == r->main, r->main->count,
-                   rctx->resp_finalized, rctx->yield, rctx->nyields);
+    ngx_log_debug8(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "wasm wev handler \"%V?%V\": timeout:%ud, ready:%ud "
+                   "(main: %d, count: %d, resp_finalized: %d, yield: %d)",
+                   &r->uri, &r->args, wev->timedout, wev->ready, r == r->main,
+                   r->main->count, rctx->resp_finalized, rctx->yield);
 
-    c = r->connection;
-    subreq = r != r->main;
+#if 0
+    {
+        ngx_http_core_loc_conf_t  *clcf;
 
-    if (rctx->yield) {
-        dd("still yielding");
-        goto skip;
+        clcf = ngx_http_get_module_loc_conf(r->main, ngx_http_core_module);
+
+        if (wev->timedout) {
+            if (!wev->delayed) {
+                ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT,
+                              "client timed out");
+                c->timedout = 1;
+                return;
+            }
+
+            wev->timedout = 0;
+            wev->delayed = 0;
+
+            if (!wev->ready) {
+                ngx_add_timer(wev, clcf->send_timeout);
+
+                if (ngx_handle_write_event(wev, clcf->send_lowat) != NGX_OK) {
+                    if (rctx->entered_content_phase) {
+                        ngx_http_finalize_request(r, NGX_ERROR);
+                    }
+
+                    return;
+                }
+            }
+        }
     }
+#endif
+
+    ngx_wasm_assert(!rctx->yield);
 
     rc = ngx_http_wasm_content(rctx);
-    if (rc == NGX_HTTP_INTERNAL_SERVER_ERROR) {
-        ngx_http_finalize_request(r, rc);
+    if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+        ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
 
+    dd("last finalize ");
+
     ngx_http_finalize_request(r, r == r->main ? NGX_DONE : NGX_OK);
-
-skip:
-
-    if (subreq) {
-        dd("run posted requests...");
-
-        ngx_http_run_posted_requests(c);
-
-        dd("...ran posted requests");
-    }
-
-    dd("exit");
 }
 
 
 void
-ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned wev)
+ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main, unsigned wev)
 {
     ngx_http_request_t  *r = rctx->r;
+    ngx_connection_t    *c = r->connection;
 
-    if (wev) {
-        dd("resuming request...");
+    ngx_wasm_assert(wev);
 
-        r->write_event_handler(r);
+    if (main) {
+        if (wev) {
+            dd("resuming request wev...");
+            r->write_event_handler(r);
+            dd("...done resuming request");
 
-        dd("...done resuming request");
+        }
+#if 0
+        else {
+            dd("resuming request rev...");
+            r->read_event_handler(r);
+            dd("...done resuming request");
+        }
+#endif
     }
+
+    dd("running posted requests...");
+    ngx_http_run_posted_requests(c);
+    dd("...done running posted requests");
 }

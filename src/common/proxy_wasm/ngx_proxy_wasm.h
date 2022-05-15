@@ -371,8 +371,6 @@ void ngx_proxy_wasm_filter_destroy(ngx_proxy_wasm_filter_t *filter);
 ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
     ngx_proxy_wasm_filter_t *filter, ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_proxy_wasm_step_e step, ngx_uint_t *ret);
-void ngx_proxy_wasm_resume_main(ngx_proxy_wasm_filter_ctx_t *fctx,
-    unsigned wev);
 ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_filter_ctx_t *fctx,
     size_t size);
 unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx,
