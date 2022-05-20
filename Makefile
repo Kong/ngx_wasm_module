@@ -54,8 +54,8 @@ todo:
 act:
 	@docker build \
 		-t wasmx-build-ubuntu \
-		-f ./util/Dockerfiles/Dockerfile.amd64.ubuntu-20.04 \
-		./util/Dockerfiles
+		-f ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-20.04 \
+		./assets/release/Dockerfiles
 	@act --reuse
 
 .PHONY: clean
