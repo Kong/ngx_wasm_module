@@ -19,10 +19,14 @@ filters identical to those running on
 ## Table of Contents
 
 - [Synopsys](#synopsys)
+- [What is WasmX?](#what-is-wasmx)
 - [Examples](#examples)
 - [Install](#install)
 - [Documentation](#documentation)
-- [What is WasmX?](#what-is-wasmx)
+    - [Development](#development)
+    - [proxy-wasm SDK](#proxy-wasm-sdk)
+    - [WebAssembly](#webassembly)
+    - [WebAssembly runtimes](#webassembly-runtimes)
 - [Roadmap](#roadmap)
 - [Getting involved](#getting-involved)
 - [License](#license)
@@ -71,6 +75,20 @@ http {
 
 [Back to TOC](#table-of-contents)
 
+## What is WasmX?
+
+WasmX aims at extending Nginx for the modern Web infrastructure. This includes -
+but is not limited to - supporting [CNCF](https://www.cncf.io/) projects &
+standards, supporting WebAssembly runtimes (by way of ngx_wasm_module), easing
+the contribution learning curve, etc...
+
+While WasmX offers obvious benefits to Kong Inc. today (i.e. embedding
+WebAssembly filters inside of Kong Gateway), it could become its own proxy
+runtime should it prove itself valuable alongside Envoy, that is: unique in its
+own proposition value in terms of performance & footprint compromises.
+
+[Back to TOC](#table-of-contents)
+
 ## Examples
 
 The
@@ -102,26 +120,37 @@ filters, some of which may not yet be compatible with ngx_wasm_module.
 
 ## Install
 
-A release is produced from the `main` branch everyday at 6am UTC, referred to as
-a "nightly" release; see the [Nightly release
+A release is produced from the `main` branch every Monday, referred to as the
+"nightly" release channel. The nightly releases are considered unstable. The
+release interval may change in the future. See the [Nightly release
 tag](https://github.com/Kong/ngx_wasm_module/releases/tag/nightly) to download
-the latest nightly release assets.
+released artifacts.
 
 Every release produces the following artifacts, for different installation
 methods and usage purposes:
 
+- `wasmx-$release-$runtime-$arch-$os.tar.gz`: a pre-compiled `nginx` executable
+  built with ngx_wasm_module (i.e. **WasmX**) for the specified
+  runtime/architecture/OS.
 - `ngx_wasm_module-$release.tar.gz`: a tarball of the ngx_wasm_module release.
-  To be built alongside Nginx at compilation time with `--add-module=` or
+  To be compiled alongside Nginx with `--add-module=` or
   `--add-dynamic-module=`. See [INSTALL.md](INSTALL.md) for instructions and
-  examples on how to do so.
-- `wasmx-$release-$runtime-$arch-$os.tar.gz`: a pre-compiled binary of Nginx
-  built with ngx_wasm_module (i.e. "WasmX") for the specified
-  runtime/architecture/OS. Invoke the self-contained `nginx` binary
-  appropriately.
+  examples.
 
 [Back to TOC](#table-of-contents)
 
 ## Documentation
+
+### Development
+
+See [DEVELOPER.md](DEVELOPER.md) for developer resources on building this module
+from source and other general development processes.
+
+See a term you are unfamiliar with? Consult the [code
+lexicon](DEVELOPER.md#code-lexicon).
+
+For a primer on the code's layout and architecture, see the [code
+layout](DEVELOPER.md#code-layout) section.
 
 ### proxy-wasm SDK
 
@@ -133,25 +162,17 @@ Also consult the source of the language of your choice in the [proxy-wasm SDKs
 list](https://github.com/proxy-wasm/spec#sdks) as this ABI specification is
 still evolving and unstable.
 
-### Wasm runtimes
+### WebAssembly
+
+- WebAssembly Specification (Wasm): https://webassembly.github.io/spec/core/index.html
+- WebAssembly System Interface (WASI): https://github.com/WebAssembly/WASI
+- WebAssembly text format (`.wat`): https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format
+
+### WebAssembly runtimes
 
 - Wasm C API: https://github.com/WebAssembly/wasm-c-api
 - Wasmer C API: https://docs.rs/wasmer-c-api/
 - Wasmtime C API: https://docs.wasmtime.dev/c-api/
-
-[Back to TOC](#table-of-contents)
-
-## What is WasmX?
-
-WasmX aims at extending Nginx for the modern Web infrastructure. This includes -
-but is not limited to - supporting [CNCF](https://www.cncf.io/) projects &
-standards, supporting WebAssembly runtimes (by way of ngx_wasm_module), easing
-the contribution learning curve, etc...
-
-While WasmX offers obvious benefits to Kong Inc. today (i.e. embedding
-WebAssembly filters inside of Kong Gateway), it could become its own proxy
-runtime should it prove itself valuable alongside Envoy, that is: unique in its
-own proposition value in terms of performance & footprint compromises.
 
 [Back to TOC](#table-of-contents)
 
