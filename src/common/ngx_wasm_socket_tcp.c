@@ -982,8 +982,10 @@ ngx_wasm_socket_tcp_handler(ngx_event_t *ev)
 static void
 ngx_wasm_socket_tcp_nop_handler(ngx_wasm_socket_tcp_t *sock)
 {
+#if (DDEBUG)
     ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
                    "wasm tcp socket nop handler");
+#endif
 }
 
 
