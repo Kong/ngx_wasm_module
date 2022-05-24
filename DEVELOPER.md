@@ -36,9 +36,10 @@ compile ngx_wasm_module or to produce Wasm bytecode, having Rust installed on
 the system will quickly become necessary for development:
 
 - [rustup.rs](https://rustup.rs/) is the easiest way to install Rust.
-    - Then add the Wasm target to your toolchain: `rustup target add wasm32-unknown-unknown`.
-    - If you wish to target WASI (e.g. proxy-wasm-go-sdk filters), add the `wasm32-wasi`
-      target: `rustup target add wasm32-wasi`.
+    - Then add the Wasm target to your toolchain: `rustup target add
+      wasm32-unknown-unknown`.
+    - If you wish to target WASI (e.g. proxy-wasm-go-sdk filters), add the
+      `wasm32-wasi` target: `rustup target add wasm32-wasi`.
 
 [Back to TOC](#table-of-contents)
 
@@ -443,19 +444,19 @@ The ngx_wasm_module sources are organized in an effort to respect the following
 principles:
 
 1. Implementing a reusable *Nginx Wasm VM* (`ngx_wavm`).
-    a. Supporting multiple WebAssembly runtimes (`ngx_wrt`).
-    b. Allowing for linking Wasm modules to Nginx host interfaces
+    - Supporting multiple WebAssembly runtimes (`ngx_wrt`).
+    - Allowing for linking Wasm modules to Nginx host interfaces
       (`ngx_wavm_host`).
-2. Sharing code common to all Nginx's subsystems (e.g. common to both `ngx_http_*` &
-  `ngx_stream_*`).
+2. Sharing code common to all Nginx's subsystems (e.g. common to both
+   `ngx_http_*` & `ngx_stream_*`).
 3. Providing low-level, feature-complete C utilities for Nginx-related tasks and
    routines.
 
 These principles enable the `ngx_http_wasm_module` use-case which uses
 `ngx_wavm` the following way:
 
-- First, implementing the host interface (`ngx_wavm_host`) of a given
-  SDK (reusing the aforementioned low-level Nginx utilities),
+- First, implementing the host interface (`ngx_wavm_host`) of a given SDK
+  (reusing the aforementioned low-level Nginx utilities),
 - Then, invoking instances (`.wasm` bytecode linked to their Nginx host
   interface) as deemed appropriate in desired Nginx event handlers.
 
@@ -523,8 +524,8 @@ filter chain".
 
 #### Terms
 
-- **Crate** — *"Rust compilation units"*, or in this context also the equivalent of
-  "packages" for the Rust ecosystem. The compilation units are compiled to
+- **Crate** — *"Rust compilation units"*, or in this context also the equivalent
+  of "packages" for the Rust ecosystem. The compilation units are compiled to
   libraries targeting `.wasm`, loaded and executed by this module. See
   [crates.io](https://crates.io/).
 
@@ -533,9 +534,9 @@ filter chain".
   Nginx. See
   [Embedding](https://webassembly.github.io/spec/core/appendix/embedding.html?highlight=embed).
 
-- **Host Interface** — *"Wasm host interface"*. An interface of values and functions
-  allowing manipulation of the *host environment*'s state. These interfaces are
-  imported by loaded Wasm modules, see
+- **Host Interface** — *"Wasm host interface"*. An interface of values and
+  functions allowing manipulation of the *host environment*'s state. These
+  interfaces are imported by loaded Wasm modules, see
   [Imports](https://webassembly.github.io/spec/core/syntax/modules.html#imports).
 
 - **Subsystem** — *"Nginx subsystem"*, or protocol-agnostic Nginx modules
