@@ -11,7 +11,7 @@ on:
 
 env:
   CC: clang
-  NGX_VER: 1.21.6
+  NGX_VER: 1.22.0
   WASMTIME_VER: 0.36.0
   WASMER_VER: 2.1.1
   RETENTION_DAYS: 2
