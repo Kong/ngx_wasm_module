@@ -5,6 +5,7 @@ authors = ["Thibault Charbonnier <thibaultcha@me.com>"]
 edition = "2018"
 
 [lib]
+path = "src/filter.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
