@@ -53,6 +53,13 @@ while (( "$#" )); do
             fi
             shift 2
             ;;
+        --v8)
+            V8_VER="$2"
+            if [ -z "$V8_VER" ]; then
+                fatal "--v8 argument missing version"
+            fi
+            shift 2
+            ;;
         *)
             PARAMS="$PARAMS $1"
             shift
@@ -270,8 +277,19 @@ release_bin() {
         build_static_binary $arch wasmer $WASMER_VER
     fi
 
-    if [[ -z "$WASMTIME_VER" && -z "$WASMER_VER" ]]; then
-        fatal "missing wasm vm, specify --wasmer or --wasmtime"
+    if [ -n "$V8_VER" ]; then
+        local v8_dir="$DIR_WORK"
+
+        $NGX_WASM_DIR/util/runtimes/v8.sh "$v8_dir"
+
+        CC_FLAGS="-I$v8_dir/include"
+        LD_FLAGS="$v8_dir/lib/libwee8.a $v8_dir/lib/libcwabt.a -lstdc++ -lm -ldl -lpthread $LD_FLAGS"
+
+        build_static_binary $arch v8 $V8_VER
+    fi
+
+    if [[ -z "$WASMTIME_VER" && -z "$WASMER_VER" && -z "$V8_VER" ]]; then
+        fatal "missing wasm vm, specify --wasmer, --wasmtime, or --v8"
     fi
 }
 
@@ -297,6 +315,7 @@ release_all_bin_docker() {
             -e NGX_VER=$NGX_VER \
             -e WASMTIME_VER=$WASMTIME_VER \
             -e WASMER_VER=$WASMER_VER \
+            -e V8_VER=$V8_VER \
             -e RELEASE_NAME=$name \
             $imgtag \
             -c "./ngx_wasm_module/util/release.sh --bin"
