@@ -72,6 +72,7 @@ NGX_WASM_INCS="\
     $ngx_addon_dir/src/wasm \
     $ngx_addon_dir/src/wasm/wrt \
     $ngx_addon_dir/src/wasm/vm \
+    $ngx_addon_dir/src/wasm/wasi \
     $ngx_addon_dir/src/common \
     $ngx_addon_dir/src/common/proxy_wasm"
 
@@ -81,6 +82,7 @@ NGX_WASM_DEPS="\
     $ngx_addon_dir/src/wasm/vm/ngx_wavm.h \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.h \
     $ngx_addon_dir/src/wasm/ngx_wasm_ops.h \
+    $ngx_addon_dir/src/wasm/wasi/ngx_wasi.h \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp.h \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp_readers.h \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.h \
@@ -92,6 +94,7 @@ NGX_WASM_SRCS="\
     $ngx_addon_dir/src/wasm/ngx_wasm_util.c \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm.c \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.c \
+    $ngx_addon_dir/src/wasm/wasi/ngx_wasi_host.c \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp.c \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp_readers.c \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.c \
