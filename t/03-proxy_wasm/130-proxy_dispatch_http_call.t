@@ -736,7 +736,7 @@ dispatch failed (tcp socket - parser error)
     }
 --- response_body
 fail
---- error_log
-trap in proxy_on_log: dispatch failed: bad step
+--- error_log eval
+qr/trap in proxy_on_log:.*? dispatch failed: bad step/
 --- no_error_log
 [crit]

@@ -125,6 +125,89 @@ typedef struct {
     wasm_extern_t                 *ext;
     ngx_wrt_extern_kind_e          kind;
 } ngx_wrt_extern_t;
+
+#elif NGX_WASM_HAVE_V8
+#include <wasm.h>
+
+
+/* The copy of wasm.h that ships with V8 does not include these definitions: */
+
+#ifndef WASM_I32_VAL
+#define WASM_I32_VAL(i) {.kind = WASM_I32, .of = {.i32 = i}}
+#endif
+
+#ifndef WASM_I64_VAL
+#define WASM_I64_VAL(i) {.kind = WASM_I64, .of = {.i64 = i}}
+#endif
+
+#ifndef WASM_F32_VAL
+#define WASM_F32_VAL(z) {.kind = WASM_F32, .of = {.f32 = z}}
+#endif
+
+#ifndef WASM_F64_VAL
+#define WASM_F64_VAL(z) {.kind = WASM_F64, .of = {.f64 = z}}
+#endif
+
+#ifndef WASM_REF_VAL
+#define WASM_REF_VAL(r) {.kind = WASM_ANYREF, .of = {.ref = r}}
+#endif
+
+#ifndef WASM_INIT_VAL
+#define WASM_INIT_VAL {.kind = WASM_ANYREF, .of = {.ref = NULL}}
+#endif
+
+
+typedef wasm_byte_vec_t  ngx_wrt_res_t;
+
+typedef enum {
+    NGX_WRT_IMPORT_HFUNC,
+    NGX_WRT_IMPORT_WASI,
+} ngx_wrt_import_kind_e;
+
+typedef struct {
+    ngx_pool_t                    *pool;
+    wasm_engine_t                 *engine;
+    wasm_store_t                  *store;
+    unsigned                       exiting:1;
+} ngx_wrt_engine_t;
+
+typedef struct {
+    ngx_wrt_engine_t              *engine;
+    wasm_module_t                 *module;
+    wasm_importtype_vec_t         *import_types;
+    wasm_exporttype_vec_t         *export_types;
+    ngx_wavm_hfunc_t             **imports;
+    ngx_wrt_import_kind_e         *import_kinds;
+    ngx_uint_t                     nimports;
+} ngx_wrt_module_t;
+
+typedef struct {
+    wasm_store_t                  *store;
+    void                          *data;
+} ngx_wrt_store_t;
+
+typedef struct {
+    ngx_wavm_hfunc_t              *hfunc;
+    ngx_wavm_instance_t           *instance;
+} ngx_v8_hfunc_ctx_t;
+
+typedef struct {
+    ngx_pool_t                    *pool;
+    ngx_wrt_store_t               *store;
+    ngx_wrt_module_t              *module;
+    wasm_memory_t                 *memory;
+    wasm_instance_t               *instance;
+    ngx_v8_hfunc_ctx_t            *ctxs;
+    wasm_extern_t                **imports;
+    wasm_extern_vec_t              externs;
+} ngx_wrt_instance_t;
+
+typedef struct {
+    ngx_wrt_instance_t            *instance;
+    wasm_name_t                   *name;
+    wasm_extern_t                 *ext;
+    ngx_wrt_extern_kind_e          kind;
+} ngx_wrt_extern_t;
 #endif  /* NGX_WASM_HAVE_* */
 
 
