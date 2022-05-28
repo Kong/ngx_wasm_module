@@ -173,6 +173,7 @@ still evolving and unstable.
 - Wasm C API: https://github.com/WebAssembly/wasm-c-api
 - Wasmer C API: https://docs.rs/wasmer-c-api/
 - Wasmtime C API: https://docs.wasmtime.dev/c-api/
+- V8 embedding: https://v8.dev/docs/embed
 
 [Back to TOC](#table-of-contents)
 

@@ -6,7 +6,7 @@ Nginx version:
     $ cd nginx-*
 
 Ensure one of the supported WebAssembly runtime libraries is available in your
-system (libwasmtime, libwasmer).
+system (libwasmtime, libwasmer, or libwee8 for V8).
 
 When configuring Nginx, add this module and specify the Wasm runtime headers
 and library with:
@@ -16,7 +16,8 @@ and library with:
         --with-ld-opt='-L/path/to/wasmtime/lib -lwasmtime'
 
     Note: when linking against libwasmer, set the 'NGX_WASM_RUNTIME=wasmer'
-    environment variable as well.
+    environment variable as well. When linking against libwee8 for V8 support,
+    set it to 'NGX_WASM_RUNTIME=v8'.
 
 Build/install Nginx with:
 
