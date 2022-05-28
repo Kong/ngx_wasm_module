@@ -88,6 +88,10 @@ Several runtimes are supported, and at least one of them must be specified:
 - [Wasmer](https://github.com/wasmerio/wasmer) (see
   [Releases](https://github.com/wasmerio/wasmer/releases), download and extract
   the asset matching your architecture).
+- [V8](https://v8.dev) (to use our scripts for building the necessary
+  libraries for embedding V8, set the `NGX_WASM_RUNTIME` environment variable
+  to `"v8"` and run `make setup` *without* setting `NGX_WASM_RUNTIME_LIB` or
+  `NGX_WASM_RUNTIME_INC`).
 
 [Back to TOC](#table-of-contents)
 
