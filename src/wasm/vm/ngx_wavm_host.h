@@ -69,9 +69,12 @@ wasm_trap_t * ngx_wavm_hfunc_trampoline(void *env,
     wasmtime_caller_t *caller,
     const wasmtime_val_t *args, size_t nargs,
     wasmtime_val_t *rets, size_t nret);
-#else
+#elif NGX_WASM_HAVE_WASMER
     const wasm_val_vec_t* args,
     wasm_val_vec_t* rets);
+#elif NGX_WASM_HAVE_V8
+    const wasm_val_t args[],
+    wasm_val_t rets[]);
 #endif
 
 
