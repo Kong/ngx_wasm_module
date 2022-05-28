@@ -218,7 +218,7 @@ qr/\[error\] .*? no "nonexist" function in "a" module/
 )
 --- error_code: 500
 --- error_log eval
-qr/\[error\] .*? integer divide by zero/
+qr/\[error\] .*? divide by zero/
 --- no_error_log
 [crit]
 [alert]

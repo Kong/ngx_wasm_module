@@ -13,6 +13,7 @@ run_tests();
 __DATA__
 
 === TEST 1: build as a dynamic module, with dynamically linked runtime
+--- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} eq 'v8'
 --- build: NGX_BUILD_DYNAMIC_MODULE=1 make
 --- run_cmd eval: qq{find $::buildroot -name 'ngx_wasm_module.*' | xargs -I{} nm -g {}}
 --- grep_cmd eval

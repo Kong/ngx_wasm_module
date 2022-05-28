@@ -4,6 +4,8 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
+our $nginxV = $t::TestWasm::nginxV;
+
 plan tests => repeat_each() * (blocks() * 4);
 
 run_tests();
@@ -136,7 +138,8 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 9: module directive - no .wat bytes
+=== TEST 9: module directive - no .wat bytes - wasmtime, wasmer
+--- skip_eval: 4: !( $::nginxV =~ m/wasmtime/ || $::nginxV =~ m/wasmer/ )
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -154,7 +157,26 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 10: module directive - no .wasm bytes
+=== TEST 10: module directive - no .wat bytes - v8
+--- skip_eval: 4: $::nginxV !~ m/v8/
+--- main_config
+    wasm {
+        module a $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- user_files
+>>> a.wat
+--- error_log eval
+[
+    qr/\[info\] .*? \[wasm\] initializing "main" wasm VM/,
+    qr/\[emerg\] .*? \[wasm\] failed loading "a" module bytes: unexpected token "EOF", expected a module field or a module/
+]
+--- no_error_log
+[error]
+--- must_die
+
+
+
+=== TEST 11: module directive - no .wasm bytes
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wasm;
@@ -172,7 +194,8 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 11: module directive - invalid .wat module
+=== TEST 12: module directive - invalid .wat module - wasmtime, wasmer
+--- skip_eval: 4: !( $::nginxV =~ m/wasmtime/ || $::nginxV =~ m/wasmer/ )
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -194,7 +217,30 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 12: module directive - invalid module (NYI import types)
+=== TEST 13: module directive - invalid .wat module - v8
+--- skip_eval: 4: $::nginxV !~ m/v8/
+--- main_config
+    wasm {
+        module a $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- user_files
+>>> a.wat
+(module
+   (import "env" "ngx_log" (func))
+   (import "env" "ngx_log" (func)))
+)
+--- error_log eval
+[
+    qr/\[info\] .*? \[wasm\] initializing "main" wasm VM/,
+    qr/\[emerg\] .*? \[wasm\] failed loading "a" module bytes: unexpected token \), expected EOF/
+]
+--- no_error_log
+[error]
+--- must_die
+
+
+
+=== TEST 14: module directive - invalid module (NYI import types)
 --- SKIP
 --- main_config
     wasm {
@@ -214,7 +260,7 @@ qr/\[alert\] .*? \[wasm\] NYI: module import type not supported <vm: "main", run
 
 
 
-=== TEST 13: module directive - invalid module (missing host function)
+=== TEST 15: module directive - invalid module (missing host function)
 --- SKIP
 --- main_config
     wasm {
