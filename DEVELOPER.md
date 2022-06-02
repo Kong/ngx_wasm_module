@@ -546,17 +546,17 @@ filter chain".
 
 #### Symbols
 
-| Symbol                   | Description                                            |
-| ------------------------:| -------------------------------------------------------|
-| `ngx_wrt_*`              | *"Nginx Wasm runtime"*: Wasm bytecode execution engine (Wasmer, Wasmtime...).
-| `ngx_wavm_*`             | *"Nginx Wasm VM"*: Wasm instances operations for Nginx.
-| `ngx_wavm_host_*`        | *"Nginx Wasm VM host interface"*: host-side (i.e. Nginx) code imported by Wasm modules.
-| `ngx_*_host`             | Implementations of various host interfaces.
-| `ngx_wasm_*`             | Wasm subsystem code, loading and configuring ngx_wavm.
-| `ngx_stream_wasm_*`      | Stream subsystem code, executing ngx_wavm appropriately.
-| `ngx_http_wasm_*`        | HTTP subsystem code, executing ngx_wavm appropriately.
-| `ngx_proxy_wasm_*`       | Subsystem-agnostic proxy-wasm-sdk code.
-| `ngx_http_proxy_wasm_*`  | HTTP subsystem proxy-wasm-sdk code.
-| `ngx_http_proxy_wasm_*`  | Stream subsystem proxy-wasm-sdk code.
+| Symbol                     | Description                                            |
+| --------------------------:| -------------------------------------------------------|
+| `ngx_wrt_*`                | *"Nginx Wasm runtime"*: Wasm bytecode execution engine (Wasmer, Wasmtime...).
+| `ngx_wavm_*`               | *"Nginx Wasm VM"*: Wasm instances operations for Nginx.
+| `ngx_wavm_host_*`          | *"Nginx Wasm VM host interface"*: host-side (i.e. Nginx) code imported by Wasm modules.
+| `ngx_*_host`               | Implementations of various host interfaces.
+| `ngx_wasm_*`               | Wasm subsystem code, loading and configuring ngx_wavm.
+| `ngx_stream_wasm_*`        | Stream subsystem code, executing ngx_wavm appropriately.
+| `ngx_http_wasm_*`          | HTTP subsystem code, executing ngx_wavm appropriately.
+| `ngx_proxy_wasm_*`         | Subsystem-agnostic proxy-wasm-sdk code.
+| `ngx_http_proxy_wasm_*`    | HTTP subsystem proxy-wasm-sdk code.
+| `ngx_stream_proxy_wasm_*`  | Stream subsystem proxy-wasm-sdk code.
 
 [Back to TOC](#table-of-contents)
