@@ -56,8 +56,9 @@ ngx_int_t
 ngx_proxy_wasm_ctx_add(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_proxy_wasm_filter_t *filter)
 {
-    ngx_proxy_wasm_filter_ctx_t     *fctx;
-    ngx_proxy_wasm_instance_ctx_t   *ictx = NULL;
+    ngx_proxy_wasm_filter_ctx_t    *fctx;
+    ngx_proxy_wasm_instance_ctx_t  *ictx = NULL;
+    ngx_proxy_wasm_store_t         *pwstore = NULL;
 
     if (filter->index < pwctx->fctxs.nelts) {
 #if (NGX_DEBUG)
@@ -73,13 +74,12 @@ ngx_proxy_wasm_ctx_add(ngx_proxy_wasm_ctx_t *pwctx,
 
     switch (*filter->isolation) {
     case NGX_PROXY_WASM_ISOLATION_NONE:
-        ictx = ngx_proxy_wasm_instance_get(filter, filter->store, pwctx->log);
+        pwstore = filter->store;
         break;
     case NGX_PROXY_WASM_ISOLATION_STREAM:
-        ictx = ngx_proxy_wasm_instance_get(filter, &pwctx->store, pwctx->log);
+        pwstore = &pwctx->store;
         break;
     case NGX_PROXY_WASM_ISOLATION_FILTER:
-        ictx = ngx_proxy_wasm_instance_get(filter, NULL, pwctx->log);
         break;
     default:
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, pwctx->log, 0,
@@ -88,6 +88,7 @@ ngx_proxy_wasm_ctx_add(ngx_proxy_wasm_ctx_t *pwctx,
         return NGX_ERROR;
     }
 
+    ictx = ngx_proxy_wasm_instance_get(filter, pwstore, pwctx->log);
     if (ictx == NULL) {
         return NGX_ERROR;
     }

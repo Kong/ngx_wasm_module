@@ -580,12 +580,15 @@ ngx_http_wasm_preaccess_handler(ngx_http_request_t *r)
     ngx_int_t                 rc;
     ngx_http_wasm_req_ctx_t  *rctx;
 
-    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_http_wasm_rctx(r, &rctx);
+    if (rc != NGX_OK) {
+        goto done;
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_PREACCESS_PHASE);
     rc = ngx_http_wasm_check_finalize(rctx, rc);
+
+done:
 
 #if (DDEBUG)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -602,12 +605,15 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
     ngx_int_t                 rc;
     ngx_http_wasm_req_ctx_t  *rctx;
 
-    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_http_wasm_rctx(r, &rctx);
+    if (rc != NGX_OK) {
+        goto done;
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_ACCESS_PHASE);
     rc = ngx_http_wasm_check_finalize(rctx, rc);
+
+done:
 
 #if (DDEBUG)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
