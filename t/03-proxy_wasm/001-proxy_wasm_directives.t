@@ -240,3 +240,34 @@ should create two instances of the same module
 ]
 --- no_error_log
 [error]
+
+
+
+=== TEST 10: proxy_wasm_isolation directive - no wasm{} configuration block
+--- main_config
+--- config
+    proxy_wasm_isolation none;
+--- error_log eval
+qr/\[emerg\] .*? "proxy_wasm_isolation" directive is specified but config has no "wasm" section/
+--- no_error_log
+[warn]
+[error]
+[alert]
+[crit]
+--- must_die
+
+
+
+=== TEST 11: proxy_wasm_isolation directive - invalid number of arguments
+--- config
+    location /t {
+        proxy_wasm_isolation none none;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid number of arguments in "proxy_wasm_isolation" directive/
+--- no_error_log
+[warn]
+[error]
+[alert]
+[crit]
+--- must_die
