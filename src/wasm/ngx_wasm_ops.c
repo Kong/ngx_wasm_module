@@ -387,12 +387,14 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
         break;
 
     case NGX_HTTP_LOG_PHASE:
-        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase, NGX_PROXY_WASM_STEP_LOG);
+        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
+                                       NGX_PROXY_WASM_STEP_LOG);
         break;
 #endif
 
     case NGX_WASM_DONE_PHASE:
-        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase, NGX_PROXY_WASM_STEP_DONE);
+        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
+                                       NGX_PROXY_WASM_STEP_DONE);
         break;
 
     default:
