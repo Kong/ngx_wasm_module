@@ -30,6 +30,11 @@ if [ -z "$ngx_feature_libs" -a -n "$ngx_wasm_runtime_lib_name" ]; then
     ngx_feature_libs="-l$ngx_wasm_runtime_lib_name"
 fi
 
+if [ -n "$ngx_wasm_runtime_extra_libs" ]; then
+    ngx_feature="$ngx_feature $ngx_wasm_runtime_extra_libs"
+    ngx_feature_libs="$ngx_feature_libs $ngx_wasm_runtime_extra_libs"
+fi
+
 ngx_feature_run=yes
 ngx_feature_test="wasm_engine_t *e = wasm_engine_new();
                   assert(e);
