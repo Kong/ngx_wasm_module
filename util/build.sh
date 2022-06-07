@@ -48,19 +48,42 @@ done
 
 eval set -- "$PARAMS"
 
-NGX=$1
+if [[ -n "$NGX_BUILD_OPENRESTY" ]]; then
+    OPR_VER=$NGX_BUILD_OPENRESTY
 
-if [[ -z "$NGX" ]]; then
+elif [[ -z "$1" ]]; then
     invalid_usage
-fi
 
-if [[ -d "$NGX" ]]; then
+elif [[ -d "$1" ]]; then
     NGX_DIR=$NGX
-    NGX_VER=$(awk 'match($0, /NGINX_VERSION\s+"(.*?)"/, m) {print m[1]}' $NGX_DIR/src/core/nginx.h)
 
 else
-    NGX_VER=$NGX
+    NGX_VER=$1
+fi
 
+if [[ -n "$NGX_DIR" ]]; then
+    # Nginx source
+    NGX_VER=$(awk 'match($0, /NGINX_VERSION\s+"(.*?)"/, m) {print m[1]}' $NGX_DIR/src/core/nginx.h)
+
+elif [[ -n "$OPR_VER" ]]; then
+    # OpenResty version
+    if [[ ! "$OPR_VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]$ ]]; then
+        invalid_usage "NGX_BUILD_OPENRESTY value must be of form 'X.Y.Z.x' (e.g. 1.17.8.2)"
+    fi
+
+    download $DIR_DOWNLOAD/openresty-$OPR_VER.tar.gz \
+             "https://openresty.org/download/openresty-$OPR_VER.tar.gz"
+
+    if [[ ! -d "$DIR_DOWNLOAD/openresty-$OPR_VER" ]]; then
+        tar -xf $DIR_DOWNLOAD/openresty-$OPR_VER.tar.gz -C $DIR_DOWNLOAD
+    fi
+
+    # point to source
+    NGX_VER=$OPR_VER
+    NGX_DIR=$DIR_DOWNLOAD/openresty-$OPR_VER
+
+elif [[ -n "$NGX_VER" ]]; then
+    # Nginx version
     if [[ ! "$NGX_VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         invalid_usage "version must be of form 'X.Y.Z' (e.g. 1.17.9)"
     fi
@@ -73,6 +96,9 @@ else
     fi
 
     NGX_DIR=$DIR_DOWNLOAD/nginx-$NGX_VER
+
+else
+    invalid_usage
 fi
 
 build_nginx $NGX_DIR $NGX_VER

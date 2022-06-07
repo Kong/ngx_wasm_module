@@ -7,9 +7,10 @@ DIR_NGX_ECHO_MODULE=$DIR_DOWNLOAD/echo-nginx-module
 DIR_NGX_HEADERS_MORE_MODULE=$DIR_DOWNLOAD/headers-more-nginx-module
 DIR_MOCKEAGAIN=$DIR_DOWNLOAD/mockeagain
 DIR_BUILDROOT=$DIR_WORK/buildroot
-DIR_SRCROOT=$DIR_WORK/nginx-patched
+DIR_SRCROOT=$DIR_WORK/patched
 DIR_TESTS_LIB_WASM=$DIR_WORK/lib/wasm
 DIR_PREFIX=$NGX_WASM_DIR/t/servroot
+DIR_OPR_PREFIX=$DIR_BUILDROOT/prefix
 DIR_DIST_OUT=$NGX_WASM_DIR/dist
 
 build_nginx() {
@@ -74,6 +75,13 @@ build_nginx() {
         build_opts+="--add-module=$NGX_WASM_DIR "
     fi
 
+    if [[ -n "$NGX_BUILD_OPENRESTY" ]]; then
+        # switch prefix with Lua components since t/servroot is cleaned by Test::Nginx
+        NGX_BUILD_DIR_PREFIX=$DIR_OPR_PREFIX
+        # ./configure -j for LuaJIT build
+        build_opts+="-j`n_jobs` "
+    fi
+
     local name="${build_name[@]}"
 
     # Build options hash to determine rebuild
@@ -98,25 +106,33 @@ build_nginx() {
         # Apply patches
 
         if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
-            get_no_pool_nginx
+            if [[ -n "$NGX_BUILD_OPENRESTY" ]]; then
+                build_opts+="--with-no-pool-patch "
 
-            set +e
-            apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $NGX_BUILD_DIR_SRCROOT
-            if ! [ $? -eq 0 ]; then
-                notice "failed applying the no-pool patch, trying again"
-                get_no_pool_nginx 1
+            else
+                get_no_pool_nginx
+
+                set +e
                 apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $NGX_BUILD_DIR_SRCROOT
                 if ! [ $? -eq 0 ]; then
-                    fatal "failed applying the no-pool patch"
+                    notice "failed applying the no-pool patch, trying again"
+                    get_no_pool_nginx 1
+                    apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $NGX_BUILD_DIR_SRCROOT
+                    if ! [ $? -eq 0 ]; then
+                        fatal "failed applying the no-pool patch"
+                    fi
                 fi
+                set -e
             fi
-            set -e
         fi
     fi
 
     # ngx_echo_module, ngx_headers_more_module do not support --without-http
+    # no need to add them when compiling OpenResty
 
-    if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http" ]]; then
+    if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http"
+            || -n "$NGX_BUILD_OPENRESTY" ]];
+    then
         build_opts+="--add-dynamic-module=$DIR_NGX_ECHO_MODULE "
         build_opts+="--add-dynamic-module=$DIR_NGX_HEADERS_MORE_MODULE "
     fi
@@ -149,9 +165,16 @@ build_nginx() {
                 "$NGX_BUILD_CONFIGURE_OPT" \
 
             echo $hash > "$NGX_BUILD_DIR_SRCROOT/.hash"
+
+            NGX_BUILD_FRESH=1
         fi
 
         eval "$NGX_BUILD_CMD make -j${n_jobs}"
+
+        if [[ -n "$NGX_BUILD_OPENRESTY" && "$NGX_BUILD_FRESH" == 1 ]]; then
+            # install the prefix to preserve Lua components
+            make install
+        fi
     popd
 }
 
