@@ -38,6 +38,10 @@ jobs:
             wasmtime: 0.36.0
             hup: 1
             debug: 1
+          - os: ubuntu-latest
+            openresty: 1.21.4.1
+            runtime: wasmtime
+            wasmtime: 0.36.0
     steps:
       - run: sudo apt-get update && sudo apt-get install -y gcc-8
         if: ${{ matrix.cc == 'gcc-8' }}
@@ -77,7 +81,13 @@ jobs:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
           NGX_BUILD_DEBUG: ${{ matrix.debug }}
+          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
       - run: make test
+        if: ${{ !matrix.openresty }}
+        env:
+          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+      - run: ./util/test.sh t/11-openresty
+        if: ${{ matrix.openresty }}
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
       - uses: codecov/codecov-action@v1

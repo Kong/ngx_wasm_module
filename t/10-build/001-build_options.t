@@ -86,3 +86,12 @@ ngx_wavm
 ngx_http_wasm
 --- grep_cmd
 ngx_stream_wasm_module
+
+
+
+=== TEST 8: build with OpenResty
+--- build: NGX_BUILD_OPENRESTY=1.21.4.1 make
+--- grep_nginxV
+openresty/1.21.4.1 (ngx_wasm_module [dev debug
+--with-debug
+-O0 -ggdb3 -gdwarf

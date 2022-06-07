@@ -247,6 +247,13 @@ To build with [Gcov](https://gcc.gnu.org/onlinedocs/gcc/Gcov.html):
 $ CC=gcc NGX_BUILD_GCOV=1 make
 ```
 
+To build with [OpenResty](https://openresty.org) instead of Nginx, set
+`NGX_BUILD_OPENRESTY` to the desired OpenResty version:
+
+```
+$ NGX_BUILD_OPENRESTY=1.21.4.1 make
+```
+
 All build options can be mixed together:
 
 ```
