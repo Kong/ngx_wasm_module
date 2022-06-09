@@ -557,6 +557,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     case NGX_PROXY_WASM_STEP_REQ_BODY:
     case NGX_PROXY_WASM_STEP_RESP_HEADERS:
     case NGX_PROXY_WASM_STEP_RESP_BODY:
+    case NGX_PROXY_WASM_STEP_RESP_TRAILERS:
         ecode = ngx_proxy_wasm_on_start(ictx, filter, 0);
         if (ecode != NGX_PROXY_WASM_ERR_NONE) {
             pwexec->ecode = ecode;

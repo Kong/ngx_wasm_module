@@ -10,6 +10,7 @@ pub enum TestPhase {
     RequestBody,
     ResponseHeaders,
     ResponseBody,
+    ResponseTrailers,
     Log,
 }
 

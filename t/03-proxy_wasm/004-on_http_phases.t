@@ -231,7 +231,51 @@ Hello
 
 
 
-=== TEST 11: proxy_wasm - on_log
+=== TEST 11: proxy_wasm - on_response_trailers gets number of response trailers (echo)
+Has trailers in response
+--- http2
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        add_header   Trailer X-Trailer-Foo;
+        add_trailer  X-Trailer-Foo bar;
+        proxy_wasm   on_phases;
+        echo ok;
+    }
+--- response_body eval
+qr/ok
+x-trailer-foo: bar/
+--- error_log eval
+qr/\[info\] .*? on_response_trailers, 1 trailers/
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 12: proxy_wasm - on_response_trailers gets number of response trailers (return)
+No trailers in response
+--- http2
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        add_header   Trailer 'foo1 foo2';
+        add_trailer  foo1 bar1;
+        add_trailer  foo2 bar2;
+        proxy_wasm   on_phases;
+        return 200;
+    }
+--- response_body
+--- error_log eval
+qr/\[info\] .*? on_response_trailers, 2 trailers/
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 13: proxy_wasm - on_log
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -249,7 +293,7 @@ qr/\[info\] .*? on_log/
 
 
 
-=== TEST 12: proxy_wasm - missing default content handler
+=== TEST 14: proxy_wasm - missing default content handler
 should cause HTTP 404 from static module (default content handler)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -266,6 +310,7 @@ qr/404 Not Found/
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, \d+ bytes.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- error_log eval
 qr/\[error\] .*? open\(\) \".*?\" failed/
@@ -274,7 +319,7 @@ qr/\[error\] .*? open\(\) \".*?\" failed/
 
 
 
-=== TEST 13: proxy_wasm - with 'return' (rewrite)
+=== TEST 15: proxy_wasm - with 'return' (rewrite)
 should produce a response in and of itself, proxy_wasm wraps around
 --- wasm_modules: on_phases
 --- config
@@ -288,6 +333,7 @@ should produce a response in and of itself, proxy_wasm wraps around
 --- grep_error_log_out eval
 qr/#\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 0 bytes.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -295,7 +341,7 @@ qr/#\d+ on_response_headers, 5 headers.*
 
 
 
-=== TEST 14: proxy_wasm - before content producer 'echo'
+=== TEST 16: proxy_wasm - before content producer 'echo'
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -311,7 +357,9 @@ ok
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -319,7 +367,7 @@ qr/#\d+ on_request_headers, 2 headers.*
 
 
 
-=== TEST 15: proxy_wasm - after content producer 'echo'
+=== TEST 17: proxy_wasm - after content producer 'echo'
 should produce a response from echo, even if proxy_wasm was added
 below it, it should wrap around echo
 --- load_nginx_modules: ngx_http_echo_module
@@ -336,7 +384,9 @@ ok
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -344,7 +394,7 @@ qr/#\d+ on_request_headers, 2 headers.*
 
 
 
-=== TEST 16: proxy_wasm - before content producer 'proxy_pass'
+=== TEST 18: proxy_wasm - before content producer 'proxy_pass'
 should produce a response from proxy_pass, proxy_wasm wraps around
 --- wasm_modules: on_phases
 --- http_config eval
@@ -373,6 +423,7 @@ qq{
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -380,7 +431,7 @@ qr/#\d+ on_request_headers, 2 headers.*
 
 
 
-=== TEST 17: proxy_wasm - as a subrequest with return in rewrite
+=== TEST 19: proxy_wasm - as a subrequest with return in rewrite
 should not execute a log phase
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -400,13 +451,15 @@ should not execute a log phase
 --- grep_error_log_out eval
 qr/#\d+ on_request_headers, 2 headers.*? subrequest: "\/subrequest".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*/
+#\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_trailers, 0 trailers.*
 --- no_error_log
 [error]
 on_log
 
 
 
-=== TEST 18: proxy_wasm - as a subrequest with a main request body
+=== TEST 20: proxy_wasm - as a subrequest with a main request body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -432,13 +485,14 @@ qr/#\d+ on_request_headers, 3 headers.*? subrequest: "\/subrequest".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*
 #\d+ on_response_body, 3 bytes, eof: false.*? subrequest: "\/subrequest".*
 #\d+ on_response_body, 0 bytes, eof: true.*? subrequest: "\/subrequest".*/
+#\d+ on_response_trailers, 0 trailers.*
 --- no_error_log
 [error]
 on_log
 
 
 
-=== TEST 19: proxy_wasm - as a subrequest with a body
+=== TEST 21: proxy_wasm - as a subrequest with a body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -460,13 +514,14 @@ qr/#\d+ on_request_headers, 3 headers.*? subrequest: "\/subrequest".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*
 #\d+ on_response_body, 3 bytes, eof: false.*? subrequest: "\/subrequest".*
 #\d+ on_response_body, 0 bytes, eof: true.*? subrequest: "\/subrequest".*/
+#\d+ on_response_trailers, 0 trailers.*
 --- no_error_log
 [error]
 on_log
 
 
 
-=== TEST 20: proxy_wasm - as a chained subrequest
+=== TEST 22: proxy_wasm - as a chained subrequest
 should invoke wasm ops "done" phase to destroy proxy-wasm ctxid in "content" phase
 --- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
@@ -500,7 +555,7 @@ on_log
 
 
 
-=== TEST 21: proxy_wasm - as a chained subrequest (logged)
+=== TEST 23: proxy_wasm - as a chained subrequest (logged)
 --- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -540,7 +595,7 @@ proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
 
 
 
-=== TEST 22: proxy_wasm - same module in multiple location{} blocks
+=== TEST 24: proxy_wasm - same module in multiple location{} blocks
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -572,13 +627,14 @@ qr/#\d+ on_request_headers, 2 headers.*? subrequest: "\/subrequest\/a".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest\/b".*
 #\d+ on_response_body, 2 bytes, eof: false.*? subrequest: "\/subrequest\/b".*
 #\d+ on_response_body, 0 bytes, eof: true.*? subrequest: "\/subrequest\/b".*/
+#\d+ on_response_trailers, 0 trailers.*
 --- no_error_log
 [error]
 on_log
 
 
 
-=== TEST 23: proxy_wasm - chained filters in same location{} block
+=== TEST 25: proxy_wasm - chained filters in same location{} block
 should run each filter after the other within each phase
 --- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
@@ -604,8 +660,12 @@ qr/#\d+ on_request_headers, 3 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_trailers, 0 trailers.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_trailers, 0 trailers.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*
 #\d+ on_log.*/
 --- no_error_log
@@ -614,7 +674,7 @@ qr/#\d+ on_request_headers, 3 headers.*
 
 
 
-=== TEST 24: proxy_wasm - chained filters in server{} block
+=== TEST 26: proxy_wasm - chained filters in server{} block
 should run each filter after the other within each phase
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -635,8 +695,12 @@ qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_trailers, 0 trailers.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_trailers, 0 trailers.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log .*
 #\d+ on_log .*/
 --- no_error_log
@@ -645,7 +709,7 @@ qr/#\d+ on_request_headers, 2 headers.*
 
 
 
-=== TEST 25: proxy_wasm - chained filters in http{} block
+=== TEST 27: proxy_wasm - chained filters in http{} block
 should run each filter after the other within each phase
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -666,8 +730,12 @@ qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_trailers, 0 trailers.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_trailers, 0 trailers.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log .*
 #\d+ on_log .*/
 --- no_error_log
@@ -676,7 +744,7 @@ qr/#\d+ on_request_headers, 2 headers.*
 
 
 
-=== TEST 26: proxy_wasm - mixed filters in server{} and http{} blocks
+=== TEST 28: proxy_wasm - mixed filters in server{} and http{} blocks
 should run root context of both filters
 should not chain in request; instead, server{} overrides http{}
 --- load_nginx_modules: ngx_http_echo_module
@@ -694,7 +762,9 @@ should not chain in request; instead, server{} overrides http{}
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- error_log eval
 qr/log_msg: server .*? request: "GET \/t\s+/
@@ -706,7 +776,7 @@ qr/log_msg: server .*? request: "GET \/t\s+/
 
 
 
-=== TEST 27: proxy_wasm - mixed filters in server{} and location{} blocks (return in rewrite)
+=== TEST 29: proxy_wasm - mixed filters in server{} and location{} blocks (return in rewrite)
 should not chain; instead, location{} overrides server{}
 --- wasm_modules: on_phases
 --- config
@@ -720,6 +790,7 @@ should not chain; instead, location{} overrides server{}
 --- grep_error_log_out eval
 qr/#\d+ on_response_headers, \d+ headers.*
 #\d+ on_response_body, \d+ bytes.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- error_log eval
 qr/log_msg: location .*? request: "GET \/t\s+/
@@ -731,7 +802,7 @@ qr/log_msg: location .*? request: "GET \/t\s+/
 
 
 
-=== TEST 28: proxy_wasm - mixed filters in http{}, server{}, and location{} blocks
+=== TEST 30: proxy_wasm - mixed filters in http{}, server{}, and location{} blocks
 should not chain; instead, location{} overrides server{}, server{} overrides http{}
 --- wasm_modules: on_phases
 --- http_config
@@ -747,6 +818,7 @@ should not chain; instead, location{} overrides server{}, server{} overrides htt
 --- grep_error_log_out eval
 qr/#\d+ on_response_headers, \d+ headers.*
 #\d+ on_response_body, \d+ bytes.*
+#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- error_log eval
 qr/log_msg: location .*? request: "GET \/t\s+/
