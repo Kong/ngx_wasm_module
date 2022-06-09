@@ -139,6 +139,15 @@ impl HttpContext for OnPhases {
         self.next_action(Phase::ResponseBody)
     }
 
+    fn on_http_response_trailers(&mut self, ntrailers: usize) -> Action {
+        info!(
+            "#{} on_response_trailers, {} trailers",
+            self.context_id, ntrailers
+        );
+
+        self.next_action(Phase::ResponseTrailers)
+    }
+
     fn on_log(&mut self) {
         info!("#{} on_log", self.context_id);
 

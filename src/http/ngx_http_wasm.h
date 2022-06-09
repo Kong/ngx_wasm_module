@@ -5,6 +5,7 @@
 #include <ngx_http.h>
 #include <ngx_http_wasm_util.h>
 #include <ngx_http_wasm_headers.h>
+#include <ngx_http_wasm_trailers.h>
 #include <ngx_wasm_ops.h>
 #include <ngx_proxy_wasm.h>
 
