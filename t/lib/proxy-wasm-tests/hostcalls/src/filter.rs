@@ -66,6 +66,12 @@ impl HttpContext for TestHttp {
         self.exec_tests(TestPhase::ResponseBody)
     }
 
+    fn on_http_response_trailers(&mut self, ntrailers: usize) -> Action {
+        info!("[hostcalls] on_response_trailers, {} trailers", ntrailers);
+
+        self.exec_tests(TestPhase::ResponseTrailers)
+    }
+
     fn on_log(&mut self) {
         info!("[hostcalls] on_log");
         self.exec_tests(TestPhase::Log);

@@ -146,6 +146,7 @@ build_nginx() {
     # no need to add them when compiling OpenResty
 
     if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http" ]]; then
+        build_opts+="--with-http_v2_module "
         build_opts+="--add-dynamic-module=$DIR_NGX_ECHO_MODULE "
         build_opts+="--add-dynamic-module=$DIR_NGX_HEADERS_MORE_MODULE "
     fi

@@ -5,6 +5,7 @@
 #include <ngx_http.h>
 #include <ngx_http_wasm_util.h>
 #include <ngx_http_wasm_headers.h>
+#include <ngx_http_wasm_trailers.h>
 #include <ngx_wasm_ops.h>
 #include <ngx_proxy_wasm.h>
 
@@ -13,6 +14,7 @@
 
 #define NGX_HTTP_WASM_HEADER_FILTER_PHASE  (NGX_HTTP_LOG_PHASE + 1)
 #define NGX_HTTP_WASM_BODY_FILTER_PHASE    (NGX_HTTP_LOG_PHASE + 2)
+#define NGX_HTTP_WASM_TRAILER_FILTER_PHASE (NGX_HTTP_LOG_PHASE + 3)
 
 
 typedef struct {
