@@ -362,14 +362,14 @@ ngx_http_proxy_wasm_on_response_trailers(ngx_proxy_wasm_filter_ctx_t *fctx,
     if (filter->abi_version == NGX_PROXY_WASM_0_1_0) {
         /* 0.1.0 */
         rc = ngx_wavm_instance_call_funcref(instance,
-                                            filter->proxy_on_http_request_trailers,
+                                            filter->proxy_on_http_response_trailers,
                                             &rets, fctx->id,
                                             ntrailers);
 
     } else {
         /* 0.2.0+ */
         rc = ngx_wavm_instance_call_funcref(instance,
-                                            filter->proxy_on_http_request_trailers,
+                                            filter->proxy_on_http_response_trailers,
                                             &rets, fctx->id,
                                             ntrailers, NGX_HTTP_PROXY_WASM_EOF);
     }

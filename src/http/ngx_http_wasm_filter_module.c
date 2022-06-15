@@ -142,6 +142,9 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
     (void) ngx_wasm_ops_resume(&rctx->opctx,
                                NGX_HTTP_WASM_BODY_FILTER_PHASE);
 
+    (void) ngx_wasm_ops_resume(&rctx->opctx,
+                               NGX_HTTP_WASM_TRAILER_FILTER_PHASE);
+
     rc = ngx_http_next_body_filter(r, rctx->resp_chunk);
     if (rc == NGX_ERROR) {
         goto done;

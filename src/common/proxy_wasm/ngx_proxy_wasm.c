@@ -1133,6 +1133,7 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
     case NGX_PROXY_WASM_STEP_REQ_BODY:
     case NGX_PROXY_WASM_STEP_RESP_HEADERS:
     case NGX_PROXY_WASM_STEP_RESP_BODY:
+    case NGX_PROXY_WASM_STEP_RESP_TRAILERS:
         ngx_wasm_assert(ret);
         rc = filter->resume_(fctx, step, ret);
         break;

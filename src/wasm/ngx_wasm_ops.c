@@ -386,6 +386,11 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
                                        NGX_PROXY_WASM_STEP_RESP_BODY);
         break;
 
+    case NGX_HTTP_WASM_TRAILER_FILTER_PHASE:
+        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
+                                       NGX_PROXY_WASM_STEP_RESP_TRAILERS);
+        break;
+
     case NGX_HTTP_LOG_PHASE:
         rc = ngx_proxy_wasm_ctx_resume(pwctx, phase, NGX_PROXY_WASM_STEP_LOG);
         break;

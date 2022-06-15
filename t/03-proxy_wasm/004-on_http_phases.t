@@ -756,3 +756,20 @@ qr/log_msg: location .*? request: "GET \/t\s+/
     qr/log_msg: server .*? request: "GET \/t\s+/,
     qr/log_msg: http .*? request: "GET \/t\s+/
 ]
+
+
+
+=== TEST 29: proxy_wasm - on_response_trailers gets number of response trailers (default echo)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        proxy_wasm on_phases;
+        return 200;
+    }
+--- ignore_response_body
+--- error_log eval
+qr/\[info\] .*? on_response_trailers, 0 trailers/
+--- no_error_log
+[error]
+[crit]

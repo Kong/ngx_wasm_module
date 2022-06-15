@@ -64,6 +64,10 @@ static ngx_wasm_phase_t  ngx_http_wasm_phases[] = {
       NGX_HTTP_WASM_BODY_FILTER_PHASE,
       (1 << NGX_HTTP_WASM_BODY_FILTER_PHASE) },
 
+    { ngx_string("trailer_filter"),
+      NGX_HTTP_WASM_TRAILER_FILTER_PHASE,
+      (1 << NGX_HTTP_WASM_TRAILER_FILTER_PHASE) },
+
     { ngx_string("log"),
       NGX_HTTP_LOG_PHASE,
       (1 << NGX_HTTP_LOG_PHASE) },
