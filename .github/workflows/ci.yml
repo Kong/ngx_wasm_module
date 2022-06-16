@@ -33,12 +33,14 @@ jobs:
         debug: [1, 0]
         include:
           - os: ubuntu-latest
+            cc: gcc-8
             ngx: 1.21.6
             runtime: wasmtime
             wasmtime: 0.36.0
             hup: 1
             debug: 1
           - os: ubuntu-latest
+            cc: gcc-8
             openresty: 1.21.4.1
             runtime: wasmtime
             wasmtime: 0.36.0
@@ -91,7 +93,7 @@ jobs:
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
       - uses: codecov/codecov-action@v1
-        if: ${{ !env.ACT }}
+        if: ${{ !env.ACT && matrix.cc == 'gcc-8' }}
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
         with:
