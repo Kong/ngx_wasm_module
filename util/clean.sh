@@ -19,6 +19,7 @@ set +e
 if [[ -f "$DIR_SRCROOT/Makefile" ]]; then
     pushd $DIR_SRCROOT
         make clean
+        rm -f Makefile
     popd
 fi
 
