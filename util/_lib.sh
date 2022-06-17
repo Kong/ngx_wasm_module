@@ -76,10 +76,16 @@ build_nginx() {
     fi
 
     if [[ -n "$NGX_BUILD_OPENRESTY" ]]; then
-        # switch prefix with Lua components since t/servroot is cleaned by Test::Nginx
+        # switch prefix with Lua components since t/servroot
+        # is cleaned by Test::Nginx
         NGX_BUILD_DIR_PREFIX=$DIR_OPR_PREFIX
+
         # ./configure -j for LuaJIT build
         build_opts+="-j`n_jobs` "
+
+        # built as dynamic modules below for Test::Wasm
+        build_opts+="--without-http_echo_module "
+        build_opts+="--without-http_headers_more_module "
     fi
 
     local name="${build_name[@]}"
@@ -130,9 +136,7 @@ build_nginx() {
     # ngx_echo_module, ngx_headers_more_module do not support --without-http
     # no need to add them when compiling OpenResty
 
-    if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http"
-            || -n "$NGX_BUILD_OPENRESTY" ]];
-    then
+    if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http" ]]; then
         build_opts+="--add-dynamic-module=$DIR_NGX_ECHO_MODULE "
         build_opts+="--add-dynamic-module=$DIR_NGX_HEADERS_MORE_MODULE "
     fi
