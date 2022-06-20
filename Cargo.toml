@@ -7,3 +7,6 @@ members = [
     "t/lib/proxy-wasm-tests/hostcalls",
     "t/lib/proxy-wasm-tests/rust-sdk-ver-zero-one",
 ]
+exclude = [
+    "lib/cwabt",
+]
