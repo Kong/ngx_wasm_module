@@ -23,9 +23,25 @@ case $ngx_wasm_runtime_name in
         ngx_feature_name="NGX_WASM_HAVE_WASMER"
         ngx_feature_incs="#include <wasmer.h>"
         ;;
+    v8)
+        ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_v8.c"
+        ngx_wasm_runtime_lib_name="wee8"
+        ngx_wasm_runtime_extra_libs="-lcwabt -lm -lstdc++ -ldl -lpthread"
+
+        if [ -n "$NGX_WASM_CWABT_INC" ]; then
+            NGX_WASM_RUNTIME_INC="$NGX_WASM_RUNTIME_INC -I $NGX_WASM_CWABT_INC"
+        fi
+
+        if [ -n "$NGX_WASM_CWABT_LIB" ]; then
+            NGX_WASM_RUNTIME_LIB="$NGX_WASM_RUNTIME_LIB -L$NGX_WASM_CWABT_LIB"
+        fi
+
+        ngx_feature_name="NGX_WASM_HAVE_V8"
+        ngx_feature_incs="#include <wasm.h>"
+        ;;
     *)
         echo "$0: error: $ngx_addon_name does not support the \"$ngx_wasm_runtime_name\" runtime."
-        echo "Supported runtimes: wasmtime, wasmer, WAVM."
+        echo "Supported runtimes: wasmtime, wasmer, WAVM, v8."
         echo
         exit 1
 esac
@@ -50,6 +66,12 @@ ngx_wasm_runtime_opt=
 
 ngx_wasm_runtime_inc="-I /usr/local/include"
 ngx_wasm_runtime_lib="-L/usr/local/lib"
+ngx_wasm_runtime_opt=
+
+. $ngx_addon_dir/auto/runtime
+
+ngx_wasm_runtime_inc="-I $ngx_addon_dir/work/include"
+ngx_wasm_runtime_lib="-L$ngx_addon_dir/work/lib"
 ngx_wasm_runtime_opt=
 
 . $ngx_addon_dir/auto/runtime

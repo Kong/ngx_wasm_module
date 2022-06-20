@@ -121,6 +121,11 @@ popd
 
 get_no_pool_nginx 1
 
+if [[ -n "$NGX_WASM_RUNTIME" ]] && ! [[ -n "$NGX_WASM_RUNTIME_LIB" ]]; then
+    notice "building \"$NGX_WASM_RUNTIME\" runtime..."
+    $NGX_WASM_DIR/util/runtime.sh "$NGX_WASM_RUNTIME" "$DIR_WORK"
+fi
+
 notice "done"
 
 # vim: ft=sh st=4 sts=4 sw=4:
