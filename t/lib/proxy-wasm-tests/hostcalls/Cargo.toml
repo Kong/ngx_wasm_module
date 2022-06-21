@@ -9,7 +9,7 @@ path = "src/filter.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-proxy-wasm = "0.1"
+proxy-wasm = "0.2"
 url = "2.2"
 log = "0.4"
 http = "0.2"

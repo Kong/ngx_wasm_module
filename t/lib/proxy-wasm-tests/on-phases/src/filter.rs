@@ -32,7 +32,7 @@ impl RootContext for HttpHeadersRoot {
     fn on_configure(&mut self, config_size: usize) -> bool {
         info!("#{} on_configure, config_size: {}", ROOT_ID, config_size);
 
-        if let Some(config_bytes) = self.get_configuration() {
+        if let Some(config_bytes) = self.get_plugin_configuration() {
             assert!(config_bytes.len() == config_size);
 
             let config_str = String::from_utf8(config_bytes).unwrap();
@@ -103,7 +103,7 @@ impl OnPhases {
 
 impl Context for OnPhases {}
 impl HttpContext for OnPhases {
-    fn on_http_request_headers(&mut self, nheaders: usize) -> Action {
+    fn on_http_request_headers(&mut self, nheaders: usize, _eof: bool) -> Action {
         info!(
             "#{} on_request_headers, {} headers",
             self.context_id, nheaders
@@ -121,7 +121,7 @@ impl HttpContext for OnPhases {
         self.next_action(Phase::RequestBody)
     }
 
-    fn on_http_response_headers(&mut self, nheaders: usize) -> Action {
+    fn on_http_response_headers(&mut self, nheaders: usize, _eof: bool) -> Action {
         info!(
             "#{} on_response_headers, {} headers",
             self.context_id, nheaders

@@ -5,4 +5,5 @@ members = [
     "t/lib/proxy-wasm-tests/on-tick",
     "t/lib/proxy-wasm-tests/on-phases",
     "t/lib/proxy-wasm-tests/hostcalls",
+    "t/lib/proxy-wasm-tests/rust-sdk-ver-zero-one",
 ]

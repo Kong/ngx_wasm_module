@@ -1,5 +1,5 @@
 [package]
-name = "on-phases"
+name = "rust-sdk-ver-zero-one"
 version = "0.1.0"
 authors = ["Thibault Charbonnier <thibaultcha@me.com>"]
 edition = "2018"
@@ -9,6 +9,9 @@ path = "src/filter.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-proxy-wasm = "0.2"
+proxy-wasm = "0.1"
+url = "2.2"
 log = "0.4"
-enum-utils = "0.1.2"
+http = "0.2"
+chrono = "0.4"
+parse_duration = "2.1"

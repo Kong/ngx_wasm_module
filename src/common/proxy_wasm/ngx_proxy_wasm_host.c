@@ -793,31 +793,6 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
 }
 
 
-static ngx_int_t
-ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    ngx_proxy_wasm_filter_ctx_t  *fctx;
-    ngx_proxy_wasm_ctx_t         *pwctx;
-#ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t      *rctx;
-#endif
-
-    fctx = ngx_proxy_wasm_instance2fctx(instance);
-    pwctx = fctx->parent;
-
-    pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
-
-#ifdef NGX_WASM_HTTP
-    rctx = ngx_http_proxy_wasm_get_rctx(instance);
-
-    rctx->yield = 0;
-#endif
-
-    return ngx_proxy_wasm_result_ok(rets);
-}
-
-
 #else
 static ngx_int_t
 ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
@@ -880,6 +855,53 @@ ngx_proxy_wasm_hfuncs_get_configuration(ngx_wavm_instance_t *instance,
 
 
 static ngx_int_t
+ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_proxy_wasm_filter_ctx_t  *fctx;
+    ngx_proxy_wasm_ctx_t         *pwctx;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t      *rctx;
+#endif
+
+    fctx = ngx_proxy_wasm_instance2fctx(instance);
+    pwctx = fctx->parent;
+
+    pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
+
+#ifdef NGX_WASM_HTTP
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
+    rctx->yield = 0;
+#endif
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_continue(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_uint_t   type;
+
+    type = args[0].of.i32;
+
+    switch (type) {
+    case NGX_PROXY_WASM_STREAM_TYPE_HTTP_REQUEST:
+    case NGX_PROXY_WASM_STREAM_TYPE_HTTP_RESPONSE:
+        return ngx_proxy_wasm_hfuncs_resume_http_request(instance, args, rets);
+    default:
+        ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
+                           "NYI - continue stream type: %ld", type);
+        break;
+    }
+
+    return ngx_proxy_wasm_result_err(rets);
+}
+
+
+static ngx_int_t
 ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -920,8 +942,15 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
 
    /* stream */
 
+   /* rust-sdk < 0.2.0 */
    { ngx_string("proxy_resume_stream"),
      &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32,
+     ngx_wavm_arity_i32 },
+
+   /* rust-sdk >= 0.2.0 */
+   { ngx_string("proxy_continue_stream"),
+     &ngx_proxy_wasm_hfuncs_continue,
      ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 
@@ -956,11 +985,6 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
    { ngx_string("proxy_continue_response"),
      &ngx_proxy_wasm_hfuncs_nop,
      NULL,
-     ngx_wavm_arity_i32 },
-
-   { ngx_string("proxy_close_http_stream"),
-     &ngx_proxy_wasm_hfuncs_nop,
-     ngx_wavm_arity_i32,
      ngx_wavm_arity_i32 },
 #endif
 
@@ -1225,9 +1249,16 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
 
    /* custom extension points */
 
+   /* rust-sdk < 0.2.0 */
    { ngx_string("proxy_call_custom_function"),
      &ngx_proxy_wasm_hfuncs_nop,
      ngx_wavm_arity_i32x5,
+     ngx_wavm_arity_i32 },
+
+   /* rust-sdk >= 0.2.0 */
+   { ngx_string("proxy_call_foreign_function"),
+     &ngx_proxy_wasm_hfuncs_nop,
+     ngx_wavm_arity_i32x6,
      ngx_wavm_arity_i32 },
 
    /* legacy: 0.2.1 */
