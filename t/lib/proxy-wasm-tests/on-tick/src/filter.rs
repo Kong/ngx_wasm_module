@@ -38,7 +38,7 @@ struct OnTickHttp {
 
 impl Context for OnTickHttp {}
 impl HttpContext for OnTickHttp {
-    fn on_http_request_headers(&mut self, _: usize) -> Action {
+    fn on_http_request_headers(&mut self, _: usize, _eof: bool) -> Action {
         info!("from request_headers");
         Action::Continue
     }

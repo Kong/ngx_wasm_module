@@ -165,6 +165,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db0d4cf898abf0081f964436dc980e96670a0f36863e4b83aaacdb65c9d7ccc3"
+dependencies = [
+ "ahash",
+]
+
+[[package]]
 name = "hostcalls"
 version = "0.1.0"
 dependencies = [
@@ -173,7 +182,7 @@ dependencies = [
  "http",
  "log",
  "parse_duration",
- "proxy-wasm",
+ "proxy-wasm 0.2.0",
  "url",
 ]
 
@@ -350,7 +359,7 @@ version = "0.1.0"
 dependencies = [
  "enum-utils",
  "log",
- "proxy-wasm",
+ "proxy-wasm 0.2.0",
 ]
 
 [[package]]
@@ -358,7 +367,7 @@ name = "on-tick"
 version = "0.1.0"
 dependencies = [
  "log",
- "proxy-wasm",
+ "proxy-wasm 0.2.0",
 ]
 
 [[package]]
@@ -399,7 +408,17 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5b944c570b7e30d8b6725753360c5f92311d0888d0e86089e1c651f0d3c2ef3"
 dependencies = [
- "hashbrown",
+ "hashbrown 0.11.2",
+ "log",
+]
+
+[[package]]
+name = "proxy-wasm"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3927081c2674366adadef4d5c5d34c4d849ab764a17bfe4ff2bd04436efb593d"
+dependencies = [
+ "hashbrown 0.12.1",
  "log",
 ]
 
@@ -428,6 +447,18 @@ name = "regex-syntax"
 version = "0.6.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49b3de9ec5dc0a3417da371aab17d729997c15010e7fd24ff707773a33bddb64"
+
+[[package]]
+name = "rust-sdk-ver-zero-one"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "http",
+ "log",
+ "parse_duration",
+ "proxy-wasm 0.1.4",
+ "url",
+]
 
 [[package]]
 name = "rustc-demangle"

@@ -27,7 +27,7 @@ struct TestRoot {
 impl Context for TestRoot {}
 impl RootContext for TestRoot {
     fn on_configure(&mut self, _: usize) -> bool {
-        if let Some(config_bytes) = self.get_configuration() {
+        if let Some(config_bytes) = self.get_plugin_configuration() {
             let config_str = String::from_utf8(config_bytes).unwrap();
             self.config = config_str
                 .split_whitespace()
@@ -213,7 +213,7 @@ impl Context for TestHttpHostcalls {
 }
 
 impl HttpContext for TestHttpHostcalls {
-    fn on_http_request_headers(&mut self, nheaders: usize) -> Action {
+    fn on_http_request_headers(&mut self, nheaders: usize, _eof: bool) -> Action {
         info!("[hostcalls] on_request_headers, {} headers", nheaders);
         self.exec_tests(TestPhase::RequestHeaders)
     }
@@ -227,7 +227,7 @@ impl HttpContext for TestHttpHostcalls {
         self.exec_tests(TestPhase::RequestBody)
     }
 
-    fn on_http_response_headers(&mut self, nheaders: usize) -> Action {
+    fn on_http_response_headers(&mut self, nheaders: usize, _eof: bool) -> Action {
         info!("[hostcalls] on_response_headers, {} headers", nheaders);
         self.exec_tests(TestPhase::ResponseHeaders)
     }
