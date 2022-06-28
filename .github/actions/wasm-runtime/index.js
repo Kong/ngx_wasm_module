@@ -15,12 +15,7 @@ async function main() {
     let runtime = core.getInput("runtime", { required: true })
     let version = core.getInput("version", { required: true })
     let dir = tc.find(runtime, version)
-    let repository = REPOSITORIES[runtime]
     let suffix = "tar.gz"
-
-    if (repository === undefined) {
-        return core.setFailed(`${runtime} is not a supported Wasm runtime`)
-    }
 
     if (!dir) {
         let target
@@ -48,17 +43,30 @@ async function main() {
                 target = `wasmer-${process.platform}-amd64`
                 break
 
+            case "v8":
+                dir = path.join(DIR_WORK, `v8-${version}`)
+                break
+
             default:
                 return core.setFailed(`Unsupported Wasm runtime: ${runtime}`)
         }
 
-        let url = `${repository}/releases/download/${version}/${target}.${suffix}`
+        if (runtime === "v8") {
+            await exec.exec("util/runtimes/v8.sh", [ dir ])
+        } else {
+            let repository = REPOSITORIES[runtime]
+            if (repository === undefined) {
+                return core.setFailed(`${runtime} is not a supported Wasm runtime`)
+            }
 
-        core.info(`Downloading ${runtime} release from ${url}`)
-        let tar = await tc.downloadTool(url)
+            let url = `${repository}/releases/download/${version}/${target}.${suffix}`
 
-        core.info(`Extracting ${tar}`)
-        let src = await tc.extractTar(tar, DIR_WORK, "xv")
+            core.info(`Downloading ${runtime} release from ${url}`)
+            let tar = await tc.downloadTool(url)
+
+            core.info(`Extracting ${tar}`)
+            let src = await tc.extractTar(tar, DIR_WORK, "xv")
+        }
 
         dir = await tc.cacheDir(dir, runtime, version)
     }
