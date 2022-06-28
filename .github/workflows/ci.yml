@@ -17,7 +17,7 @@ jobs:
   tests:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: ${{ matrix.runtime == 'v8' && 120 || 15 }}
     env:
       NGX_BUILD_GCOV: 1
     #if: ${{ false }}
@@ -44,9 +44,17 @@ jobs:
             openresty: 1.21.4.1
             runtime: wasmtime
             wasmtime: 0.38.1
+          - os: ubuntu-latest
+            cc: gcc-8
+            ngx: 1.21.6
+            runtime: v8
+            v8: 10.5.18
+            hup: 0
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y gcc-8
+      - run: sudo apt-get update && sudo apt-get install -y gcc-8 libstdc++-8-dev
         if: ${{ matrix.cc == 'gcc-8' }}
+      - run: sudo apt-get install -y ninja-build cmake pkg-config python-is-python3
+        if: ${{ matrix.runtime == 'v8' }}
       - uses: actions/checkout@v2
       - name: "Setup cache - rustup toolchain"
         uses: actions/cache@v2
@@ -105,7 +113,7 @@ jobs:
   valgrind:
     name: 'Tests - valgrind'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.runtime == 'v8' && 90 || 30 }}
     #if: ${{ false }}
     env:
       NGX_BUILD_NOPOOL: 1
@@ -129,10 +137,19 @@ jobs:
             wasmtime: 0.38.1
             hup: 0
             debug: 1
+          - os: ubuntu-latest
+            cc: gcc-8
+            ngx: 1.21.6
+            runtime: v8
+            v8: 10.5.18
+            hup: 0
+            debug: 1
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
-      - run: sudo apt-get install -y gcc-8
+      - run: sudo apt-get install -y gcc-8 libstdc++-8-dev
         if: ${{ matrix.cc == 'gcc-8' }}
+      - run: sudo apt-get install -y ninja-build cmake pkg-config python-is-python3
+        if: ${{ matrix.runtime == 'v8' }}
       - uses: actions/checkout@v2
       - name: "Setup cache - rustup toolchain"
         uses: actions/cache@v2
@@ -258,7 +275,7 @@ jobs:
   build:
     name: 'Tests - build'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: ${{ matrix.runtime == 'v8' && 90 || 10 }}
     #if: ${{ false }}
     strategy:
       fail-fast: false
@@ -266,10 +283,15 @@ jobs:
         os: [ubuntu-latest]
         cc: [clang]
         ngx: [1.21.6]
-        runtime: [wasmer, wasmtime]
+        runtime: [wasmer, wasmtime, v8]
         wasmtime: [0.38.1]
         wasmer: [2.3.0]
+        v8: [10.5.18]
     steps:
+      - run: sudo apt-get install -y gcc-8 libstdc++-8-dev
+        if: ${{ matrix.cc == 'gcc-8' }}
+      - run: sudo apt-get install -y ninja-build cmake pkg-config python-is-python3
+        if: ${{ matrix.runtime == 'v8' }}
       - uses: actions/checkout@v2
       - name: "Setup cache - work/ dir"
         uses: actions/cache@v2
