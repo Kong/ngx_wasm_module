@@ -265,6 +265,7 @@ name = "ngx-rust-tests"
 version = "0.1.0"
 dependencies = [
  "ngx",
+ "wasi 0.10.0+wasi-snapshot-preview1",
 ]
 
 [[package]]
