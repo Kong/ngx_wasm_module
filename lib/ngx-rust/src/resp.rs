@@ -13,10 +13,10 @@ pub fn ngx_resp_set_status(status: i32) {
     unsafe { ngx_http_resp_set_status(status) }
 }
 
-pub fn ngx_resp_say(body: String) {
+pub fn ngx_resp_say(body: &str) {
     unsafe { ngx_http_resp_say(body.as_ptr(), body.len() as i32) }
 }
 
-pub fn ngx_resp_local_reason(status: i32, reason: String) {
+pub fn ngx_resp_local_reason(status: i32, reason: &str) {
     unsafe { ngx_http_local_response(status, reason.as_ptr(), reason.len() as i32) }
 }
