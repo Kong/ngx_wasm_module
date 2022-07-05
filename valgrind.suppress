@@ -54,55 +54,66 @@
    fun:ngx_event_process_init
 }
 {
-    <nginx 1.19.10: ngx_pass_open_channel has uninitialized bytes>
-    Memcheck:Param
-    sendmsg(msg.msg_iov[0])
-    ...
-    fun:ngx_pass_open_channel
-    fun:ngx_start_worker_processes
-    fun:ngx_master_process_cycle
-    fun:main
+   <nginx 1.19.10: ngx_pass_open_channel has uninitialized bytes>
+   Memcheck:Param
+   sendmsg(msg.msg_iov[0])
+   ...
+   fun:ngx_pass_open_channel
+   fun:ngx_start_worker_processes
+   fun:ngx_master_process_cycle
+   fun:main
 }
 {
-   <wasmtime 0.36.0: wasmtime_module_validate>
-   Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17he11b41bf5df16e39E
-}
-{
-   <wasmtime 0.36.0: wasmtime_module_validate>
-   Memcheck:Cond
-   fun:_ZN10wasmparser9validator9Validator3end17h178d7aad94d00d64E
-}
-{
-   <wasmer 2.1.1: wasm_module_validate>
-   Memcheck:Cond
-   fun:_ZN10wasmparser9validator9Validator3end17h50fce163da0607f3E
-}
-{
-   <wasmer 2.1.1: wasm_module_validate>
-   Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17ha6f66a955d5ddc0fE
-}
-{
-   <wasmer 2.1.1: wasm_functype_new>
+   <wasmer 2.3.0: wasm_functype_new>
    Memcheck:Leak
    match-leak-kinds: definite
    ...
    fun:_ZN12wasmer_c_api10wasm_c_api5types8function16WasmFunctionType3new17hc46bb8fdb96d9089E
 }
 {
-   <wasmer 2.1.1: wasm_func_call>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   ...
-   fun:_ZN12wasmer_c_api10wasm_c_api9externals8function22wasm_func_new_with_env28_$u7b$$u7b$closure$u7d$$u7d$17hf00d5171586eefb4E
-}
-{
-   <wasmer 2.1.1: wasi_get_unordered_imports>
+   <wasmer 2.3.0: wasi_get_unordered_imports>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:realloc
    ...
    fun:wasi_get_unordered_imports
    fun:ngx_wasmer_link_module
+}
+{
+   <wasmer 2.3.0: ...>
+   Memcheck:Cond
+   fun:_ZN10wasmparser9validator9Validator3end17hb17cb0634e8310e3E
+}
+{
+   <wasmer 2.3.0: module from_binary>
+   Memcheck:Param
+   statx(file_name)
+   fun:statx
+   fun:statx
+   ...
+   fun:_ZN6wasmer3sys6module6Module11from_binary17h4353c4833c0f906bE
+}
+{
+   <wasmer 2.3.0: module from_binary>
+   Memcheck:Param
+   statx(buf)
+   fun:statx
+   fun:statx
+   ...
+   fun:_ZN6wasmer3sys6module6Module11from_binary17h4353c4833c0f906bE
+}
+{
+   <...>
+   Memcheck:Cond
+   fun:_ZN10wasmparser6parser6Parser5parse17h3fd5ae3dc7e5eaf0E
+}
+{
+   <...>
+   Memcheck:Cond
+   fun:_ZN10wasmparser6parser6Parser5parse17h7deac18746d02aa9E
+}
+{
+   <...>
+   Memcheck:Cond
+   fun:_ZN10wasmparser6parser6Parser5parse17h9b0b753616971337E
 }
