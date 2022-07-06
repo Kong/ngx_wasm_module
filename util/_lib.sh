@@ -55,8 +55,8 @@ build_nginx() {
 
     if [[ "$NGX_BUILD_GCOV" == 1 ]]; then
         build_name+=" gcov"
-        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT --coverage -fprofile-arcs -ftest-coverage"
-        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fprofile-arcs"
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -fprofile-arcs -ftest-coverage"
+        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT --coverage"
     fi
 
     if [[ "$NGX_BUILD_DEBUG" == 1 ]]; then
