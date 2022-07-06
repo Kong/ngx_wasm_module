@@ -56,14 +56,14 @@ jobs:
             ~/.rustup/settings.toml
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
-          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
       - name: "Setup cache - work/ dir"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup gcov
         if: ${{ !env.ACT && env.NGX_BUILD_GCOV }}
         run: sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/$(echo ${{ matrix.cc }} | sed s/gcc/gcov/) 100
@@ -142,14 +142,14 @@ jobs:
             ~/.rustup/settings.toml
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
-          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
       - name: "Setup cache - work/ dir"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup rust
         uses: actions-rs/toolchain@v1
         with:
@@ -201,7 +201,7 @@ jobs:
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - run: make setup
       - run: make lint
       - uses: actions-rs/clippy-check@v1
@@ -239,7 +239,7 @@ jobs:
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Wasm runtime
         uses: ./.github/actions/wasm-runtime
         with:
@@ -277,7 +277,7 @@ jobs:
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Wasm runtime
         uses: ./.github/actions/wasm-runtime
         with:

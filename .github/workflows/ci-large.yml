@@ -39,7 +39,7 @@ jobs:
             ~/.rustup/settings.toml
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
-          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
       - name: "Set up cache - ngx_wasm_module work/ dir"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
@@ -48,7 +48,7 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
@@ -100,7 +100,7 @@ jobs:
             ~/.rustup/settings.toml
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
-          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.{yml,sh}') }}
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
       - name: "Set up cache - ngx_wasm work/ dir"
         uses: actions/cache@v2
         if: ${{ !env.ACT }}
@@ -109,7 +109,7 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Set up rust
         uses: actions-rs/toolchain@v1
         with:
@@ -165,7 +165,7 @@ jobs:
           path: |
             work
             !work/scans
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.{sh,pl,awk}') }}-${{ hashFiles('.github/**/*.{yml,sh,js}') }}-${{ hashFiles('rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Set up Wasm runtime
         uses: ./.github/actions/wasm-runtime
         with:
