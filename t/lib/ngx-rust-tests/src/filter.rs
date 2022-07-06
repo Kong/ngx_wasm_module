@@ -15,17 +15,17 @@ pub fn log_resp_status() {
 
 #[no_mangle]
 pub fn say_hello() {
-    ngx_resp_say("hello say".into());
+    ngx_resp_say("hello say");
 }
 
 #[no_mangle]
 pub fn local_reason() {
-    ngx_resp_local_reason(201, "REASON".into());
+    ngx_resp_local_reason(201, "REASON");
 }
 
 #[no_mangle]
 pub fn say_nothing() {
-    ngx_resp_say(String::new());
+    ngx_resp_say("");
 }
 
 #[no_mangle]
