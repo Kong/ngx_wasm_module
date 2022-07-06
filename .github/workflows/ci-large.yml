@@ -25,8 +25,8 @@ jobs:
         cc: [clang]
         ngx: [1.21.6]
         runtime: [wasmtime, wasmer]
-        wasmtime: [0.36.0]
-        wasmer: [2.1.1]
+        wasmtime: [0.38.1]
+        wasmer: [2.3.0]
         hup: [1, 0]
         debug: [1, 0]
     steps:
@@ -85,8 +85,8 @@ jobs:
         cc: [gcc-8]
         ngx: [1.21.6]
         runtime: [wasmtime, wasmer]
-        wasmtime: [0.36.0]
-        wasmer: [2.1.1]
+        wasmtime: [0.38.1]
+        wasmer: [2.3.0]
         hup: [0, 1]
         debug: [1]
     steps:
@@ -153,8 +153,8 @@ jobs:
         cc: [clang]
         ngx: [1.21.6]
         runtime: [wasmtime, wasmer]
-        wasmtime: [0.36.0]
-        wasmer: [2.1.1]
+        wasmtime: [0.38.1]
+        wasmer: [2.3.0]
     steps:
       - uses: actions/checkout@v2
       - name: "Set up cache - ngx_wasm_module work/ dir"
