@@ -6,4 +6,3 @@ edition = "2018"
 
 [lib]
 name = "ngx"
-path = "src/filter.rs"

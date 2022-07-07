@@ -37,8 +37,10 @@ ok
     }
 
     location /t {
-        proxy_wasm rust_sdk_ver_zero_one 'host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
-                                          path=/dispatched';
+        proxy_wasm rust_sdk_ver_zero_one 'test=dispatch \
+                                          host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                                          path=/dispatched
+                                          on_http_call_response=echo_response_body';
         echo fail;
     }
 --- response_body

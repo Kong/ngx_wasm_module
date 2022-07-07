@@ -143,7 +143,7 @@ Date: .*? GMT\r
 qr/.*? on_request_headers, 2 headers, .*
 .*? testing in "RequestHeaders", .*
 .*? on_response_headers, 5 headers, .*
-.*? on_response_body, 0 bytes, end_of_stream true, .*
+.*? on_response_body, 0 bytes, eof: true, .*
 .*? on_log.*/
 --- no_error_log
 [error]
@@ -248,7 +248,7 @@ Link: <\/feed>; rel="alternate"\r
 qr/.*? on_request_headers, 2 headers, .*
 .*? testing in "RequestHeaders", .*
 .*? on_response_headers, 16 headers, .*
-.*? on_response_body, 0 bytes, end_of_stream true, .*
+.*? on_response_body, 0 bytes, eof: true, .*
 .*? on_log.*/
 --- no_error_log
 [error]
@@ -414,8 +414,8 @@ qr/.*? on_request_headers, \d+ headers.*
 .*? testing in "RequestHeaders".*
 .*? on_response_headers, \d+ headers.*
 .*? on_response_headers, \d+ headers.*
-.*? on_response_body, \d+ bytes, end_of_stream true.*
-.*? on_response_body, \d+ bytes, end_of_stream true.*
+.*? on_response_body, \d+ bytes, eof: true.*
+.*? on_response_body, \d+ bytes, eof: true.*
 .*? on_log.*
 .*? on_log.*/
 --- no_error_log
@@ -450,8 +450,8 @@ qr/.*? on_request_headers, \d+ headers.*
 .*? testing in "RequestHeaders".*
 .*? on_response_headers, \d+ headers.*
 .*? on_response_headers, \d+ headers.*
-.*? on_response_body, \d+ bytes, end_of_stream true.*
-.*? on_response_body, \d+ bytes, end_of_stream true.*/
+.*? on_response_body, \d+ bytes, eof: true.*
+.*? on_response_body, \d+ bytes, eof: true.*/
 --- no_error_log
 \s+on_log\s+
 [error]

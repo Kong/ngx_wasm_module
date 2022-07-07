@@ -66,7 +66,7 @@ Remove me
 Content-Length: 0
 --- response_body
 --- error_log
-on_response_body, 0 bytes, end_of_stream true
+on_response_body, 0 bytes, eof: true
 --- no_error_log
 [error]
 

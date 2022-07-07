@@ -1,8 +1,16 @@
 use log::info;
-use proxy_wasm::traits::*;
-use proxy_wasm::types::*;
+use proxy_wasm::{traits::*, types::*};
 use std::collections::HashMap;
 use std::time::Duration;
+
+proxy_wasm::main! {{
+    proxy_wasm::set_log_level(LogLevel::Debug);
+    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
+        Box::new(HttpHeadersRoot {
+            config: HashMap::new(),
+        })
+    });
+}}
 
 #[derive(Debug, Eq, PartialEq, enum_utils::FromStr)]
 #[enumeration(rename_all = "snake_case")]
@@ -112,10 +120,10 @@ impl HttpContext for OnPhases {
         self.next_action(Phase::RequestHeaders)
     }
 
-    fn on_http_request_body(&mut self, len: usize, end_of_stream: bool) -> Action {
+    fn on_http_request_body(&mut self, len: usize, eof: bool) -> Action {
         info!(
-            "#{} on_request_body, {} bytes, end_of_stream: {}",
-            self.context_id, len, end_of_stream
+            "#{} on_request_body, {} bytes, eof: {}",
+            self.context_id, len, eof
         );
 
         self.next_action(Phase::RequestBody)
@@ -130,10 +138,10 @@ impl HttpContext for OnPhases {
         self.next_action(Phase::ResponseHeaders)
     }
 
-    fn on_http_response_body(&mut self, len: usize, end_of_stream: bool) -> Action {
+    fn on_http_response_body(&mut self, len: usize, eof: bool) -> Action {
         info!(
-            "#{} on_response_body, {} bytes, end_of_stream: {}",
-            self.context_id, len, end_of_stream
+            "#{} on_response_body, {} bytes, eof: {}",
+            self.context_id, len, eof
         );
 
         self.next_action(Phase::ResponseBody)
@@ -151,14 +159,4 @@ impl HttpContext for OnPhases {
             info!("#{} log_msg: {}", self.context_id, log_msg);
         }
     }
-}
-
-#[no_mangle]
-pub fn _start() {
-    proxy_wasm::set_log_level(LogLevel::Debug);
-    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
-        Box::new(HttpHeadersRoot {
-            config: HashMap::new(),
-        })
-    });
 }

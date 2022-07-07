@@ -156,7 +156,8 @@ qr/\[error\] .*? dispatch failed \(no resolver defined to resolve "localhost"\)/
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=httpbin.org \
                               headers=X-Thing:foo|X-Thing:bar|Hello:world
-                              path=/headers';
+                              path=/headers \
+                              on_http_call_response=echo_response_body';
         echo fail;
     }
 --- response_body_like
@@ -179,7 +180,8 @@ qr/\[error\] .*? dispatch failed \(no resolver defined to resolve "localhost"\)/
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=ipv6.google.com \
-                              path=/';
+                              path=/ \
+                              on_http_call_response=echo_response_body';
         echo fail;
     }
 --- response_body_like
@@ -222,7 +224,8 @@ qr/\[error\] .*? dispatch failed \(no resolver defined to resolve "localhost"\)/
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               headers=A:1|B:2|C:3|D:4|E:5|F:6|G:7|H:8|I:9|J:10|K:11 \
-                              path=/dispatched';
+                              path=/dispatched \
+                              on_http_call_response=echo_response_body';
         echo ok;
     }
 --- response_body_like
@@ -345,7 +348,8 @@ tcp socket closing
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
-                              path=/dispatched';
+                              path=/dispatched \
+                              on_http_call_response=echo_response_body';
         echo fail;
     }
 --- response_body_like
@@ -367,7 +371,8 @@ Hello world
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
-                              path=/dispatched';
+                              path=/dispatched \
+                              on_http_call_response=echo_response_body';
     }
 --- response_body_like
 GET \/dispatched HTTP\/1\.1.*
@@ -390,7 +395,8 @@ Content-Length: 0.*
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
-                              path=/bytes';
+                              path=/bytes \
+                              on_http_call_response=echo_response_body';
         echo fail;
     }
 
@@ -420,7 +426,8 @@ Content-Length: 0.*
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
-                              path=/dispatched';
+                              path=/dispatched \
+                              on_http_call_response=echo_response_body';
         echo fail;
     }
 --- response_body_like
@@ -447,7 +454,8 @@ tcp socket trying to receive data (max: 1)
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
-                              path=/dispatched';
+                              path=/dispatched \
+                              on_http_call_response=echo_response_body';
         echo fail;
     }
 --- response_body
@@ -559,7 +567,8 @@ dispatch failed (tcp socket - parser error)
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
-                              path=/dispatched';
+                              path=/dispatched \
+                              on_http_call_response=echo_response_body';
         echo fail;
     }
 --- response_body
@@ -610,7 +619,8 @@ dispatch failed (tcp socket - parser error)
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
-                              path=/dispatched';
+                              path=/dispatched \
+                              on_http_call_response=echo_response_body';
         echo fail;
     }
 --- response_body
@@ -633,7 +643,7 @@ tcp socket trying to receive data (max: 1017)
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched \
-                              trap=on';
+                              on_http_call_response=trap';
         echo fail;
     }
 --- error_code: 500
@@ -658,7 +668,7 @@ sub {
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:12345 \
-                              echo_response=on';
+                              on_http_call_response=echo_response_body';
         echo failed;
     }
 --- error_code: 500
@@ -692,7 +702,7 @@ dispatch failed (tcp socket - parser error)
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched \
-                              echo_response=on';
+                              on_http_call_response=echo_response_body';
         echo fail;
     }
 
@@ -701,7 +711,7 @@ dispatch failed (tcp socket - parser error)
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched2 \
-                              echo_response=on';
+                              on_http_call_response=echo_response_body';
         echo fail;
     }
 
@@ -731,7 +741,6 @@ dispatch failed (tcp socket - parser error)
                               test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched';
-
         echo fail;
     }
 --- response_body
