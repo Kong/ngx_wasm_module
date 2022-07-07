@@ -1,10 +1,19 @@
+#![allow(clippy::single_match)]
+
 use http::StatusCode;
-use log::*;
-use parse_duration::parse;
-use proxy_wasm::traits::*;
-use proxy_wasm::types::*;
+use proxy_wasm::{traits::*, types::*};
 use std::collections::HashMap;
 use std::time::Duration;
+
+#[no_mangle]
+pub fn _start() {
+    proxy_wasm::set_log_level(LogLevel::Trace);
+    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
+        Box::new(TestRoot {
+            config: HashMap::new(),
+        })
+    });
+}
 
 struct TestRoot {
     config: HashMap<String, String>,
@@ -46,28 +55,28 @@ impl Context for TestHttpHostcalls {
     fn on_http_call_response(
         &mut self,
         _token_id: u32,
-        _num_headers: usize,
-        _body_size: usize,
-        _num_trailers: usize,
+        _nheaders: usize,
+        body_size: usize,
+        _ntrailers: usize,
     ) {
-        if let Some(bytes) = self.get_http_call_response_body(0, 1000) {
-            let body = String::from_utf8(bytes).unwrap();
-            let response = body.trim().to_string();
-            info!("[hostcalls] http_call_response: {:?}", response);
+        let bytes = self.get_http_call_response_body(0, body_size);
+        let op = self
+            .config
+            .get("on_http_call_response")
+            .map_or("", |v| v.as_str());
 
-            match self
-                .config
-                .get("echo_response")
-                .unwrap_or(&String::new())
-                .as_str()
-            {
-                "off" | "false" | "F" => {}
-                _ => self.send_http_response(
-                    StatusCode::OK.as_u16() as u32,
-                    vec![],
-                    Some(response.as_bytes()),
-                ),
+        match op {
+            "echo_response_body" => {
+                if let Some(response) = bytes {
+                    let body = String::from_utf8_lossy(&response);
+                    self.send_http_response(
+                        StatusCode::OK.as_u16() as u32,
+                        vec![],
+                        Some(body.trim().as_bytes()),
+                    );
+                }
             }
+            _ => {}
         }
 
         self.resume_http_request()
@@ -76,11 +85,29 @@ impl Context for TestHttpHostcalls {
 
 impl HttpContext for TestHttpHostcalls {
     fn on_http_request_headers(&mut self, _: usize) -> Action {
-        if self.config.get("host").is_some() {
-            dispatch(self);
-            return Action::Pause;
-        } else if let Some(test) = self.config.get("test") {
+        if let Some(test) = self.config.get("test") {
             match test.as_str() {
+                "dispatch" => {
+                    self.dispatch_http_call(
+                        self.config.get("host").map(|v| v.as_str()).unwrap_or(""),
+                        vec![
+                            (":method", "GET"),
+                            (
+                                ":path",
+                                self.config.get("path").map(|v| v.as_str()).unwrap_or("/"),
+                            ),
+                            (
+                                ":authority",
+                                self.config.get("host").map(|v| v.as_str()).unwrap_or(""),
+                            ),
+                        ],
+                        self.config.get("body").map(|v| v.as_bytes()),
+                        vec![],
+                        Duration::from_secs(3),
+                    )
+                    .unwrap();
+                    return Action::Pause;
+                }
                 "proxy_get_header_map_value" => {
                     let ct = self.get_http_request_header("Connection").unwrap();
                     self.send_http_response(
@@ -95,67 +122,4 @@ impl HttpContext for TestHttpHostcalls {
 
         Action::Continue
     }
-}
-
-#[no_mangle]
-pub fn _start() {
-    proxy_wasm::set_log_level(LogLevel::Trace);
-    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
-        Box::new(TestRoot {
-            config: HashMap::new(),
-        })
-    });
-}
-
-fn dispatch(ctx: &mut TestHttpHostcalls) {
-    let mut timeout = Duration::from_secs(0);
-    let mut headers = Vec::new();
-
-    if ctx.config.get("no_method").is_none() {
-        headers.push((
-            ":method",
-            ctx.config
-                .get("method")
-                .map(|v| v.as_str())
-                .unwrap_or("GET"),
-        ));
-    }
-
-    if ctx.config.get("no_path").is_none() {
-        headers.push((
-            ":path",
-            ctx.config.get("path").map(|v| v.as_str()).unwrap_or("/"),
-        ));
-    }
-
-    if ctx.config.get("no_authority").is_none() {
-        headers.push((
-            ":authority",
-            ctx.config
-                .get("host")
-                .map(|v| v.as_str())
-                .unwrap_or("default"),
-        ));
-    }
-
-    if let Some(vals) = ctx.config.get("headers") {
-        for (k, v) in vals.split('|').filter_map(|s| s.split_once(':')) {
-            headers.push((k, v));
-        }
-    }
-
-    if let Some(val) = ctx.config.get("timeout") {
-        if let Ok(t) = parse(val) {
-            timeout = t
-        }
-    }
-
-    ctx.dispatch_http_call(
-        ctx.config.get("host").map(|v| v.as_str()).unwrap_or(""),
-        headers,
-        ctx.config.get("body").map(|v| v.as_bytes()),
-        vec![],
-        timeout,
-    )
-    .unwrap();
 }

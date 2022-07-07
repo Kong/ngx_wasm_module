@@ -26,10 +26,10 @@ GET /t/log/response_body
 Hello world
 --- grep_error_log eval: qr/(testing in|on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/on_response_body, 12 bytes, end_of_stream false.*
+qr/on_response_body, 12 bytes, eof: false.*
 testing in "ResponseBody".*
 response body chunk: "Hello world\\n".*
-on_response_body, 0 bytes, end_of_stream true.*/
+on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [error]
 [crit]
@@ -52,11 +52,11 @@ Hello
 world
 --- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/on_response_body, 6 bytes, end_of_stream false.*
+qr/on_response_body, 6 bytes, eof: false.*
 response body chunk: "Hello\\n".*
-on_response_body, 6 bytes, end_of_stream false.*
+on_response_body, 6 bytes, eof: false.*
 response body chunk: "world\\n".*
-on_response_body, 0 bytes, end_of_stream true.*/
+on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [error]
 [crit]
@@ -73,7 +73,7 @@ on_response_body, 0 bytes, end_of_stream true.*/
 --- response_body
 --- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/on_response_body, 0 bytes, end_of_stream true.*/
+qr/on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [error]
 [crit]
@@ -92,8 +92,8 @@ qr/on_response_body, 0 bytes, end_of_stream true.*/
 Hello world
 --- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/on_response_body, 12 bytes, end_of_stream false.*
-on_response_body, 0 bytes, end_of_stream true.*
+qr/on_response_body, 12 bytes, eof: false.*
+on_response_body, 0 bytes, eof: true.*
 \z/
 --- no_error_log
 [error]
@@ -117,9 +117,9 @@ on_response_body, 0 bytes, end_of_stream true.*
 aaaaaaaaaaaaaaaaaaaa
 --- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/on_response_body, 21 bytes, end_of_stream false.*
+qr/on_response_body, 21 bytes, eof: false.*
 response body chunk: "aaaaaaaaaa".*
-on_response_body, 0 bytes, end_of_stream true.*/
+on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [crit]
 [alert]
@@ -138,7 +138,7 @@ on_response_body, 0 bytes, end_of_stream true.*/
 Hello world
 --- error_log eval
 [
-    qr/on_response_body, 12 bytes, end_of_stream false/,
+    qr/on_response_body, 12 bytes, eof: false/,
     qr/\[crit\] .*? panicked at 'unexpected status: 10'/
 ]
 --- no_error_log

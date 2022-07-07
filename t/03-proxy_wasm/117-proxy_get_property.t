@@ -186,7 +186,7 @@ on_tick runs on the root context, so it does not have access to ngx_http_* calls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls 'tick_period=10 test=/t/log/property name=ngx.hostname';
+        proxy_wasm hostcalls 'tick_period=10 on_tick=log_property name=ngx.hostname';
         echo_sleep 0.150;
         echo ok;
     }

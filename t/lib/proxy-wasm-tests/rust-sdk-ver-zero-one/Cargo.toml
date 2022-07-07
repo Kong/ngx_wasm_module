@@ -10,8 +10,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 proxy-wasm = "0.1"
-url = "2.2"
-log = "0.4"
 http = "0.2"
-chrono = "0.4"
-parse_duration = "2.1"

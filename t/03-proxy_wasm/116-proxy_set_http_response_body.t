@@ -40,7 +40,7 @@ qr/.*? response body chunk: "Hello world\\n".*
 .*? response body chunk: "updated\\n".*/
 --- error_log eval
 [
-    qr/on_response_body, 12 bytes, end_of_stream true/,
+    qr/on_response_body, 12 bytes, eof: true/,
     qr/\[warn\] .*? overriding response body chunk while Content-Length header already sent/
 ]
 --- no_error_log
@@ -74,14 +74,14 @@ Content-Length:
 updated
 --- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/on_response_body, 6 bytes, end_of_stream false.*
+qr/on_response_body, 6 bytes, eof: false.*
 response body chunk: "Hello\\n".*
-on_response_body, 6 bytes, end_of_stream false.*
-on_response_body, 8 bytes, end_of_stream false.*
+on_response_body, 6 bytes, eof: false.*
+on_response_body, 8 bytes, eof: false.*
 response body chunk: "updated\\n".*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 0 bytes, end_of_stream true.*/
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [warn]
 [error]
@@ -107,9 +107,9 @@ Content-Length:
 --- response_body chomp
 --- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
-qr/on_response_body, 5 bytes, end_of_stream false.*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 0 bytes, end_of_stream true.*/
+qr/on_response_body, 5 bytes, eof: false.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [error]
 [crit]
@@ -143,13 +143,13 @@ Content-Length:
 HelloWorld
 --- grep_error_log eval: qr/(on_response_body,|(overriding\s)?response body chunk).*/
 --- grep_error_log_out eval
-qr/on_response_body, 5 bytes, end_of_stream false.*
+qr/on_response_body, 5 bytes, eof: false.*
 overriding response body chunk while Content-Length header already sent.*
-on_response_body, 11 bytes, end_of_stream false.*
+on_response_body, 11 bytes, eof: false.*
 response body chunk: "HelloWorld\\n".*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 0 bytes, end_of_stream true.*/
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [error]
 [crit]
@@ -200,24 +200,24 @@ Goodbye
 hello     LAST
 --- grep_error_log eval: qr/(on_response_body,|(overriding\s)?response body chunk).*/
 --- grep_error_log_out eval
-qr/on_response_body, 12 bytes, end_of_stream false.*
+qr/on_response_body, 12 bytes, eof: false.*
 overriding response body chunk while Content-Length header already sent.*
-on_response_body, 11 bytes, end_of_stream false.*
+on_response_body, 11 bytes, eof: false.*
 response body chunk: "hello wasm\\n".*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 12 bytes, end_of_stream false.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 12 bytes, eof: false.*
 overriding response body chunk while Content-Length header already sent.*
-on_response_body, 8 bytes, end_of_stream false.*
+on_response_body, 8 bytes, eof: false.*
 response body chunk: "Goodbye\\n".*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 5 bytes, end_of_stream false.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 5 bytes, eof: false.*
 overriding response body chunk while Content-Length header already sent.*
-on_response_body, 15 bytes, end_of_stream false.*
+on_response_body, 15 bytes, eof: false.*
 response body chunk: "hello     LAST\\n".*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 0 bytes, end_of_stream true.*/
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [error]
 [crit]
@@ -268,22 +268,22 @@ hello was
 hello     LAST
 --- grep_error_log eval: qr/(on_response_body,|(overriding\s)?response body chunk).*/
 --- grep_error_log_out eval
-qr/on_response_body, 12 bytes, end_of_stream false.*
+qr/on_response_body, 12 bytes, eof: false.*
 overriding response body chunk while Content-Length header already sent.*
-on_response_body, 9 bytes, end_of_stream false.*
+on_response_body, 9 bytes, eof: false.*
 response body chunk: "hello was".*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 12 bytes, end_of_stream false.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 12 bytes, eof: false.*
 overriding response body chunk while Content-Length header already sent.*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 5 bytes, end_of_stream false.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 5 bytes, eof: false.*
 overriding response body chunk while Content-Length header already sent.*
-on_response_body, 15 bytes, end_of_stream false.*
+on_response_body, 15 bytes, eof: false.*
 response body chunk: "hello     LAST\\n".*
-on_response_body, 0 bytes, end_of_stream true.*
-on_response_body, 0 bytes, end_of_stream true.*/
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [error]
 [crit]

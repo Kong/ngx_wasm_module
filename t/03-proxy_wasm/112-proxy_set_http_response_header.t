@@ -251,7 +251,7 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Connection response header: "un
 --- grep_error_log eval: qr/\[hostcalls\] on_response_[a-z]+.*/
 --- grep_error_log_out eval
 qr/.*? on_response_headers, 5 headers.*
-.*? on_response_body, 0 bytes, end_of_stream true.*/
+.*? on_response_body, 0 bytes, eof: true.*/
 
 
 

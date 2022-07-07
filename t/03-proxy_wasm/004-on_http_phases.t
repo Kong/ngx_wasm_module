@@ -44,7 +44,7 @@ Hello world
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .*? on_request_body, 11 bytes, end_of_stream: true/
+qr/\[info\] .*? on_request_body, 11 bytes, eof: true/
 --- no_error_log
 [error]
 [crit]
@@ -67,7 +67,7 @@ Larger than a buffer
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .*? on_request_body, 20 bytes, end_of_stream: true/
+qr/\[info\] .*? on_request_body, 20 bytes, eof: true/
 --- no_error_log
 [error]
 [crit]
@@ -92,7 +92,7 @@ ok
 --- error_log eval
 [
     qr/\[notice\] .*? a client request body is buffered to a temporary file/,
-    qr/\[info\] .*? on_request_body, 20 bytes, end_of_stream: true/
+    qr/\[info\] .*? on_request_body, 20 bytes, eof: true/
 ]
 --- no_error_log
 [error]
@@ -155,7 +155,7 @@ qr/\[info\] .*? on_response_headers, 5 headers/
     }
 --- response_body
 --- error_log eval
-qr/\[info\] .*? on_response_body, 0 bytes, end_of_stream: true/
+qr/\[info\] .*? on_response_body, 0 bytes, eof: true/
 --- no_error_log
 [error]
 [crit]
@@ -190,8 +190,8 @@ on_response_body,
 hello world
 --- error_log eval
 [
-    qr/\[info\] .*? on_response_body, 12 bytes, end_of_stream: false/,
-    qr/\[info\] .*? on_response_body, 0 bytes, end_of_stream: true/
+    qr/\[info\] .*? on_response_body, 12 bytes, eof: false/,
+    qr/\[info\] .*? on_response_body, 0 bytes, eof: true/
 ]
 --- no_error_log
 [error]
@@ -223,8 +223,8 @@ qq{
 Hello
 --- error_log eval
 [
-    qr/\[info\] .*? on_response_body, 5 bytes, end_of_stream: false/,
-    qr/\[info\] .*? on_response_body, 0 bytes, end_of_stream: true/
+    qr/\[info\] .*? on_response_body, 5 bytes, eof: false/,
+    qr/\[info\] .*? on_response_body, 0 bytes, eof: true/
 ]
 --- no_error_log
 [error]
@@ -310,8 +310,8 @@ ok
 --- grep_error_log_out eval
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
-#\d+ on_response_body, 3 bytes, end_of_stream: false.*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -335,8 +335,8 @@ ok
 --- grep_error_log_out eval
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
-#\d+ on_response_body, 3 bytes, end_of_stream: false.*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -372,7 +372,7 @@ qq{
 --- grep_error_log_out eval
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -428,10 +428,10 @@ ok
 --- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
 qr/#\d+ on_request_headers, 3 headers.*? subrequest: "\/subrequest".*
-#\d+ on_request_body, 28 bytes, end_of_stream: true.*? subrequest: "\/subrequest".*
+#\d+ on_request_body, 28 bytes, eof: true.*? subrequest: "\/subrequest".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*
-#\d+ on_response_body, 3 bytes, end_of_stream: false.*? subrequest: "\/subrequest".*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*? subrequest: "\/subrequest".*/
+#\d+ on_response_body, 3 bytes, eof: false.*? subrequest: "\/subrequest".*
+#\d+ on_response_body, 0 bytes, eof: true.*? subrequest: "\/subrequest".*/
 --- no_error_log
 [error]
 on_log
@@ -456,10 +456,10 @@ ok
 --- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
 qr/#\d+ on_request_headers, 3 headers.*? subrequest: "\/subrequest".*
-#\d+ on_request_body, 21 bytes, end_of_stream: true.*? subrequest: "\/subrequest".*
+#\d+ on_request_body, 21 bytes, eof: true.*? subrequest: "\/subrequest".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*
-#\d+ on_response_body, 3 bytes, end_of_stream: false.*? subrequest: "\/subrequest".*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*? subrequest: "\/subrequest".*/
+#\d+ on_response_body, 3 bytes, eof: false.*? subrequest: "\/subrequest".*
+#\d+ on_response_body, 0 bytes, eof: true.*? subrequest: "\/subrequest".*/
 --- no_error_log
 [error]
 on_log
@@ -567,12 +567,12 @@ B
 --- grep_error_log_out eval
 qr/#\d+ on_request_headers, 2 headers.*? subrequest: "\/subrequest\/a".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest\/a".*
-#\d+ on_response_body, 2 bytes, end_of_stream: false.*? subrequest: "\/subrequest\/a".*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*? subrequest: "\/subrequest\/a".*
+#\d+ on_response_body, 2 bytes, eof: false.*? subrequest: "\/subrequest\/a".*
+#\d+ on_response_body, 0 bytes, eof: true.*? subrequest: "\/subrequest\/a".*
 #\d+ on_request_headers, 2 headers.*? subrequest: "\/subrequest\/b".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest\/b".*
-#\d+ on_response_body, 2 bytes, end_of_stream: false.*? subrequest: "\/subrequest\/b".*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*? subrequest: "\/subrequest\/b".*/
+#\d+ on_response_body, 2 bytes, eof: false.*? subrequest: "\/subrequest\/b".*
+#\d+ on_response_body, 0 bytes, eof: true.*? subrequest: "\/subrequest\/b".*/
 --- no_error_log
 [error]
 on_log
@@ -599,14 +599,14 @@ ok
 --- grep_error_log_out eval
 qr/#\d+ on_request_headers, 3 headers.*
 #\d+ on_request_headers, 3 headers.*
-#\d+ on_request_body, 11 bytes, end_of_stream: true.*
-#\d+ on_request_body, 11 bytes, end_of_stream: true.*
+#\d+ on_request_body, 11 bytes, eof: true.*
+#\d+ on_request_body, 11 bytes, eof: true.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_headers, 5 headers.*
-#\d+ on_response_body, 3 bytes, end_of_stream: false.*
-#\d+ on_response_body, 3 bytes, end_of_stream: false.*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_log.*
 #\d+ on_log.*/
 --- no_error_log
@@ -634,10 +634,10 @@ qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_headers, 5 headers.*
-#\d+ on_response_body, 3 bytes, end_of_stream: false.*
-#\d+ on_response_body, 3 bytes, end_of_stream: false.*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_log .*
 #\d+ on_log .*/
 --- no_error_log
@@ -665,10 +665,10 @@ qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_headers, 5 headers.*
-#\d+ on_response_body, 3 bytes, end_of_stream: false.*
-#\d+ on_response_body, 3 bytes, end_of_stream: false.*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_log .*
 #\d+ on_log .*/
 --- no_error_log
@@ -694,8 +694,8 @@ should not chain in request; instead, server{} overrides http{}
 --- grep_error_log_out eval
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
-#\d+ on_response_body, 3 bytes, end_of_stream: false.*
-#\d+ on_response_body, 0 bytes, end_of_stream: true.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_log.*/
 --- error_log eval
 qr/log_msg: server .*? request: "GET \/t\s+/
