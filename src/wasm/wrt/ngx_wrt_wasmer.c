@@ -550,15 +550,6 @@ ngx_wasmer_trap(ngx_wrt_store_t *store, wasm_byte_vec_t *msg)
 }
 
 
-static void *
-ngx_wasmer_get_ctx(void *data)
-{
-    ngx_wasmer_hfunc_ctx_t  *hctx = data;
-
-    return hctx->instance;
-}
-
-
 static u_char *
 ngx_wasmer_log_handler(ngx_wrt_res_t *res, u_char *buf, size_t len)
 {
@@ -645,6 +636,6 @@ ngx_wrt_t  ngx_wrt = {
     ngx_wasmer_init_extern,
     ngx_wasmer_destroy_extern,
     ngx_wasmer_trap,
-    ngx_wasmer_get_ctx,
+    NULL,                              /* get_ctx */
     ngx_wasmer_log_handler,
 };
