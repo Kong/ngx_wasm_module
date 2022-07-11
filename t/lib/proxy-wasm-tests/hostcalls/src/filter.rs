@@ -8,6 +8,7 @@ use log::*;
 use proxy_wasm::traits::*;
 use proxy_wasm::types::*;
 use std::collections::HashMap;
+use std::time::Duration;
 use url::Url;
 
 #[derive(Debug, Eq, PartialEq, enum_utils::FromStr)]
@@ -20,11 +21,24 @@ enum TestPhase {
     Log,
 }
 
+trait TestContext {
+    fn get_config(&self, name: &str) -> Option<&String>;
+}
+
+impl Context for dyn TestContext {}
+
 struct TestRoot {
     config: HashMap<String, String>,
 }
 
 impl Context for TestRoot {}
+
+impl TestContext for TestRoot {
+    fn get_config(&self, name: &str) -> Option<&String> {
+        self.config.get(name)
+    }
+}
+
 impl RootContext for TestRoot {
     fn on_configure(&mut self, _: usize) -> bool {
         if let Some(config_bytes) = self.get_plugin_configuration() {
@@ -38,11 +52,28 @@ impl RootContext for TestRoot {
             self.config = HashMap::new();
         }
 
+        if let Some(period) = self.config.get("tick_period") {
+            self.set_tick_period(Duration::from_millis(
+                period.parse().expect("bad tick_period"),
+            ));
+        }
+
         true
     }
 
     fn get_type(&self) -> Option<ContextType> {
         Some(ContextType::HttpContext)
+    }
+
+    fn on_tick(&mut self) {
+        if let Some(period) = self.config.get("tick_period") {
+            info!("[hostcalls] on_tick, {}", period);
+
+            match self.config.get("test").unwrap().as_str() {
+                "/t/log/property" => test_log_property(self),
+                _ => (),
+            }
+        }
     }
 
     fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
@@ -124,6 +155,7 @@ impl TestHttpHostcalls {
             "/t/log/response_headers" => test_log_response_headers(self),
             "/t/log/response_body" => test_log_response_body(self),
             "/t/log/current_time" => test_log_current_time(self),
+            "/t/log/property" => test_log_property(self),
 
             /* send_local_response */
             "/t/send_local_response/status/204" => test_send_status(self, 204),
@@ -209,6 +241,12 @@ impl Context for TestHttpHostcalls {
         }
 
         self.resume_http_request()
+    }
+}
+
+impl TestContext for TestHttpHostcalls {
+    fn get_config(&self, name: &str) -> Option<&String> {
+        self.config.get(name)
     }
 }
 

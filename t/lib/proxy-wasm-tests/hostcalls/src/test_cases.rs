@@ -80,6 +80,21 @@ pub(crate) fn test_log_request_path(ctx: &mut TestHttpHostcalls) {
     info!("path: {}", path);
 }
 
+pub(crate) fn test_log_property(ctx: &(dyn TestContext + 'static)) {
+    let name = ctx.get_config("name")
+        .expect("expected a name argument");
+
+    match ctx.get_property(name.split('.').collect()) {
+        Some(p) => {
+            match std::str::from_utf8(&p) {
+                Ok(value) => info!("{}: {}", name, value),
+                Err(_) => panic!("failed converting {} to UTF-8", name),
+            }
+        },
+        None => info!("property not found: {}", name),
+    }
+}
+
 pub(crate) fn test_send_status(ctx: &mut TestHttpHostcalls, status: u32) {
     ctx.send_http_response(status, vec![], None)
 }
