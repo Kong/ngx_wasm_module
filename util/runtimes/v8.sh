@@ -18,6 +18,8 @@ source $NGX_WASM_DIR/util/_lib.sh
 build_cwabt() {
     local target="$1"
 
+    notice "building lib/cwabt..."
+
     cd $NGX_WASM_DIR/lib/cwabt
     make
     make install TARGET="$target"
@@ -28,45 +30,40 @@ check_libwee8_build_dependencies() {
     # extract archives: tar sets file permissions differently when run as root.
     if ! [ -n "$ACT" ]; then
         [ "$UID" = 0 ] && {
-            echo "Build must not run as root."
-            exit 1
+            fatal "must not run as root."
         }
     fi
 
     python3 --help >/dev/null 2>/dev/null || {
-        echo "python3 is required in your path."
-        exit 1
+        fatal "python3 is required in your path."
     }
 
     git --help >/dev/null 2>/dev/null || {
-        echo "git is required in your path."
-        exit 1
+        fatal "git is required in your path."
     }
 
     xz --help >/dev/null 2>/dev/null || {
-        echo "xz (from xz-utils) is required in your path."
-        exit 1
+        fatal "xz (from xz-utils) is required in your path."
     }
 
     pkg-config --help >/dev/null 2>/dev/null || {
-        echo "pkg-config is required in your path."
-        exit 1
+        fatal "pkg-config is required in your path."
     }
 
     curl --help >/dev/null 2>/dev/null || {
-        echo "curl is required in your path."
-        exit 1
+        fatal "curl is required in your path."
     }
 
     ninja --help >/dev/null 2>/dev/null
     [ "$?" = 1 ] || {
-        echo "ninja (from ninja-build) required in your path."
-        exit 1
+        fatal "ninja (from ninja-build) required in your path."
     }
 }
 
 build_libwee8() {
     local target="$1"
+
+    notice "building libwee8..."
 
     check_libwee8_build_dependencies || exit 1
 

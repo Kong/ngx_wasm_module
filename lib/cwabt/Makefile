@@ -1,8 +1,8 @@
 .PHONY: build install clean
 
-TARGET=/usr/local
-LIBDIR=$(TARGET)/lib
-INCDIR=$(TARGET)/include
+TARGET ?= /usr/local
+LIBDIR = $(TARGET)/lib
+INCDIR = $(TARGET)/include
 
 build:
 	cargo build
