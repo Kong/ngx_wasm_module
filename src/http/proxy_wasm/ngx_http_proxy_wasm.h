@@ -23,6 +23,10 @@ ngx_http_proxy_wasm_get_rctx(ngx_wavm_instance_t *instance)
 
     fctx = ngx_proxy_wasm_instance2fctx(instance);
     pwctx = fctx->parent;
+    if (!pwctx) {
+        return NULL;
+    }
+
     rctx = (ngx_http_wasm_req_ctx_t *) pwctx->data;
 
     return rctx;
