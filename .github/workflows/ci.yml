@@ -101,6 +101,13 @@ jobs:
           flags: unit
           env_vars: TEST_NGINX_USE_HUP
           fail_ci_if_error: true
+      - uses: actions/upload-artifact@v2
+        if: ${{ failure() && !env.ACT }}
+        with:
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ matrix.runtime }}
+          path: |
+            work/buildroot/
+            t/servroot*
 
   valgrind:
     name: 'Tests - valgrind'
@@ -179,13 +186,11 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: ${{ failure() && !env.ACT }}
         with:
-          name: servroot-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ matrix.runtime }}
-          path: t/servroot*
-      - uses: actions/upload-artifact@v2
-        if: ${{ failure() && !env.ACT }}
-        with:
-          name: gh-failures-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ matrix.runtime }}
-          path: valgrind.out
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ matrix.runtime }}
+          path: |
+            work/buildroot/
+            t/servroot*
+            valgrind.out
 
   lint:
     name: 'Lint'
@@ -252,7 +257,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: ${{ failure() && !env.ACT }}
         with:
-          name: gh-failures-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/scans/*
 
   build:
