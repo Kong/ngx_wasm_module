@@ -142,6 +142,11 @@ build_nginx() {
         build_opts+="--add-dynamic-module=$DIR_NGX_HEADERS_MORE_MODULE "
     fi
 
+
+    if [[ "$NGX_BUILD_HTTP_SSL" == 1 ]]; then
+        build_opts+="--with-http_ssl_module "
+    fi
+
     # Build
 
     pushd $NGX_BUILD_DIR_SRCROOT

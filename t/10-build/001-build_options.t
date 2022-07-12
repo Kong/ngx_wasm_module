@@ -44,7 +44,7 @@ ngx_wasm_module [dev
 
 
 === TEST 4: build with minimal libraries
---- build: NGX_BUILD_CONFIGURE_OPT='--without-pcre --without-http_rewrite_module --without-http_gzip_module --without-http_auth_basic_module' make
+--- build: NGX_BUILD_CONFIGURE_OPT='--without-pcre --without-http_rewrite_module --without-http_gzip_module --without-http_auth_basic_module' NGX_BUILD_HTTP_SSL=0 make
 --- no_grep_libs eval
 [
     qr/libz/,

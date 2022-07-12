@@ -57,6 +57,9 @@ typedef struct {
 #endif
     } ctx;
 
+#if (NGX_SSL)
+    ngx_wasm_ssl_conf_t                     *ssl_conf;
+#endif
 } ngx_wasm_socket_tcp_env_t;
 
 
@@ -101,6 +104,12 @@ struct ngx_wasm_socket_tcp_s {
     ngx_chain_t                             *busy_large_bufs;
     ngx_chain_t                             *free_large_bufs;
 
+    /* ssl */
+
+#if (NGX_SSL)
+    ngx_wasm_ssl_conf_t                     *ssl_conf;
+#endif
+
     /* flags */
 
     unsigned                                 timedout:1;
@@ -109,6 +118,10 @@ struct ngx_wasm_socket_tcp_s {
     unsigned                                 closed:1;
     unsigned                                 read_closed:1;
     unsigned                                 write_closed:1;
+
+#if (NGX_SSL)
+    unsigned                                 ssl_ready:1;
+#endif
 };
 
 

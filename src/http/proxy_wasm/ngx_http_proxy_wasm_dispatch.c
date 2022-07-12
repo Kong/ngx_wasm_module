@@ -125,6 +125,9 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_socket_tcp_env_t        sock_env;
     ngx_http_request_t              *r;
     ngx_http_proxy_wasm_dispatch_t  *call = NULL;
+#if (NGX_SSL)
+    unsigned                         enable_ssl = 0;
+#endif
 
     r = rctx->r;
     sock = NULL;
@@ -207,6 +210,26 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
                 call->authority.len = elt->value.len;
                 call->authority.data = elt->value.data;
 
+            } else if (ngx_strncmp(elt->key.data, ":scheme", 7) == 0) {
+#if (NGX_SSL)
+                if (ngx_strncmp(elt->value.data, "https", 5) == 0) {
+                    enable_ssl = 1;
+                    dd("tls enabled");
+
+                } else if (ngx_strncmp(elt->value.data, "http", 4) == 0) {
+                    dd("tls disabled");
+
+                } else {
+                    ngx_wasm_log_error(NGX_LOG_WARN, r->connection->log, 0,
+                                       "unknown scheme \"%V\"",
+                                       &elt->key);
+                }
+#else
+                ngx_wasm_log_error(NGX_LOG_WARN, r->connection->log, 0,
+                                   "proxy_wasm dispatch scheme ignored: "
+                                   "not built with NGX_SSL");
+#endif
+
             } else {
                 ngx_wasm_log_error(NGX_LOG_WASM_NYI, r->connection->log, 0,
                                    "NYI - dispatch_http_call header \"%V\"",
@@ -256,6 +279,11 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
     sock_env.buf_tag = buf_tag;
     sock_env.kind = NGX_WASM_SOCKET_TCP_KIND_HTTP;
     sock_env.ctx.request = rctx;
+#if (NGX_SSL)
+    sock_env.ssl_conf = (enable_ssl)
+                        ? ngx_wasm_ssl_conf((ngx_cycle_t *) ngx_cycle)
+                        : NULL;
+#endif
 
     if (ngx_wasm_socket_tcp_init(sock, &call->host, &sock_env) != NGX_OK) {
         goto error;

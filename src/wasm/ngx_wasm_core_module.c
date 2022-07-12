@@ -12,6 +12,12 @@ static char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 static char *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
 static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
 static ngx_int_t ngx_wasm_core_init_process(ngx_cycle_t *cycle);
+#if (NGX_SSL)
+static ngx_int_t ngx_wasm_core_init_ssl(ngx_cycle_t *cycle);
+static ngx_int_t ngx_wasm_core_load_ssl_trusted_certificate(ngx_ssl_t *ssl,
+    ngx_str_t *cert, ngx_int_t depth);
+static int ngx_wasm_core_ssl_verify_callback(int ok, X509_STORE_CTX *x509_store);
+#endif
 
 extern ngx_wavm_host_def_t  ngx_wasm_core_interface;
 
@@ -19,6 +25,10 @@ extern ngx_wavm_host_def_t  ngx_wasm_core_interface;
 typedef struct {
     ngx_wavm_t                        *vm;
     ngx_wavm_conf_t                    vm_conf;
+
+#if (NGX_SSL)
+    ngx_wasm_ssl_conf_t                ssl_conf;
+#endif
 } ngx_wasm_core_conf_t;
 
 
@@ -38,6 +48,32 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       0,
       0,
       NULL },
+
+#if (NGX_SSL)
+    { ngx_string("tls_trusted_certificate"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      0,
+      offsetof(ngx_wasm_core_conf_t, ssl_conf)
+      + offsetof(ngx_wasm_ssl_conf_t, trusted_certificate),
+      NULL },
+
+    { ngx_string("tls_skip_verify"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      0,
+      offsetof(ngx_wasm_core_conf_t, ssl_conf)
+      + offsetof(ngx_wasm_ssl_conf_t, skip_verify),
+      NULL },
+
+    { ngx_string("tls_skip_host_check"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      0,
+      offsetof(ngx_wasm_core_conf_t, ssl_conf)
+      + offsetof(ngx_wasm_ssl_conf_t, skip_host_check),
+      NULL },
+#endif
 
     ngx_null_command
 };
@@ -80,13 +116,36 @@ ngx_wasm_main_vm(ngx_cycle_t *cycle)
 }
 
 
+#if (NGX_SSL)
+ngx_inline ngx_wasm_ssl_conf_t *
+ngx_wasm_ssl_conf(ngx_cycle_t *cycle)
+{
+    ngx_wasm_core_conf_t  *wcf;
+
+    wcf = ngx_wasm_core_cycle_get_conf(cycle);
+    ngx_wasm_assert(wcf);
+
+    return &wcf->ssl_conf;
+}
+#endif
+
+
 static void
 ngx_wasm_core_cleanup_pool(void *data)
 {
     ngx_cycle_t  *cycle = data;
     ngx_wavm_t   *vm = ngx_wasm_main_vm(cycle);
+#if (NGX_SSL)
+    ngx_ssl_t    *ssl = &ngx_wasm_ssl_conf(cycle)->ssl;
+#endif
 
     ngx_wavm_destroy(vm);
+
+#if (NGX_SSL)
+    if (ssl->ctx) {
+        ngx_ssl_cleanup_ctx(ssl);
+    }
+#endif
 }
 
 
@@ -115,6 +174,11 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
 
     cln->handler = ngx_wasm_core_cleanup_pool;
     cln->data = cycle;
+
+#if (NGX_SSL)
+    wcf->ssl_conf.skip_verify = NGX_CONF_UNSET;
+    wcf->ssl_conf.skip_host_check = NGX_CONF_UNSET;
+#endif
 
     return wcf;
 }
@@ -180,6 +244,13 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
+#if (NGX_SSL)
+    if (ngx_wasm_core_init_ssl(cycle) != NGX_OK) {
+        ngx_wavm_destroy(vm);
+        return NGX_ERROR;
+    }
+#endif
+
     return NGX_OK;
 }
 
@@ -198,3 +269,89 @@ ngx_wasm_core_init_process(ngx_cycle_t *cycle)
 
     return NGX_OK;
 }
+
+
+#if (NGX_SSL)
+static ngx_int_t
+ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
+{
+    ngx_wasm_core_conf_t  *wcf;
+    static ngx_str_t       default_crt = ngx_string(
+        "/etc/ssl/certs/ca-certificates.crt");
+
+    wcf = ngx_wasm_core_cycle_get_conf(cycle);
+    ngx_wasm_assert(wcf);
+
+    wcf->ssl_conf.ssl.log = cycle->log;
+
+    if (wcf->ssl_conf.trusted_certificate.data == NULL) {
+        wcf->ssl_conf.trusted_certificate = default_crt;
+    }
+
+    if (ngx_ssl_create(&wcf->ssl_conf.ssl,
+                       NGX_SSL_TLSv1
+                       |NGX_SSL_TLSv1_1
+                       |NGX_SSL_TLSv1_2
+                       |NGX_SSL_TLSv1_3,
+                       NULL)
+        != NGX_OK)
+    {
+        return NGX_ERROR;
+    }
+
+    if (ngx_wasm_core_load_ssl_trusted_certificate(&wcf->ssl_conf.ssl,
+        &wcf->ssl_conf.trusted_certificate, 1)
+        != NGX_OK)
+    {
+        ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
+                           "failed loading tls certificate file at \"%V\"",
+                           &wcf->ssl_conf.trusted_certificate);
+        return NGX_ERROR;
+    }
+
+    ngx_log_debug0(NGX_LOG_DEBUG_WASM, cycle->log, 0, "tls initialized");
+
+    return NGX_OK;
+}
+
+
+/* Modified from `ngx_ssl_trusted_certificate` */
+static ngx_int_t
+ngx_wasm_core_load_ssl_trusted_certificate(ngx_ssl_t *ssl, ngx_str_t *cert,
+    ngx_int_t depth)
+{
+    SSL_CTX_set_verify(ssl->ctx, SSL_CTX_get_verify_mode(ssl->ctx),
+                       ngx_wasm_core_ssl_verify_callback);
+
+    SSL_CTX_set_verify_depth(ssl->ctx, depth);
+
+    if (cert->len == 0) {
+        return NGX_OK;
+    }
+
+    if (SSL_CTX_load_verify_locations(ssl->ctx, (char *) cert->data, NULL)
+        == 0)
+    {
+        ngx_ssl_error(NGX_LOG_EMERG, ssl->log, 0,
+                      "SSL_CTX_load_verify_locations(\"%s\") failed",
+                      cert->data);
+        return NGX_ERROR;
+    }
+
+    /*
+     * SSL_CTX_load_verify_locations() may leave errors in the error queue
+     * while returning success
+     */
+
+    ERR_clear_error();
+
+    return NGX_OK;
+}
+
+
+static int
+ngx_wasm_core_ssl_verify_callback(int ok, X509_STORE_CTX *x509_store)
+{
+    return 1;
+}
+#endif

@@ -4,6 +4,9 @@
 
 #include <ngx_core.h>
 #include <ngx_wrt.h>
+#if (NGX_SSL)
+#include <ngx_wasm_ssl.h>
+#endif
 
 #if (NGX_DEBUG)
 #include <assert.h>
@@ -62,7 +65,6 @@ typedef struct {
 
 
 ngx_wavm_t *ngx_wasm_main_vm(ngx_cycle_t *cycle);
-
 size_t ngx_wasm_chain_len(ngx_chain_t *in, unsigned *eof);
 ngx_uint_t ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
     unsigned *flush);
