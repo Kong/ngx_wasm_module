@@ -200,6 +200,7 @@ build_static_binary() {
         --http-client-body-temp-path='client_body_temp' \
         --add-module="$DIR_DIST_WORK/$DIST_SRC" \
         --with-openssl="$DIR_DIST_WORK/openssl-$OPENSSL_VER" \
+        --with-openssl-opt="no-tests" \
         --with-zlib="$DIR_DIST_WORK/zlib-$ZLIB_VER" \
         --with-pcre="$DIR_DIST_WORK/pcre-$PCRE_VER" \
         --with-pcre-jit \
