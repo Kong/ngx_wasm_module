@@ -95,6 +95,11 @@ jobs:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: buildroot-ubuntu18-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: work/ngx_wasm_module_dist/build/*
 
   build-ubuntu-focal:
     name: "Build Ubuntu 20.04 (focal) binary"
@@ -115,6 +120,11 @@ jobs:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: buildroot-ubuntu20-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: work/ngx_wasm_module_dist/build/*
 
   build-centos7:
     name: "Build Centos 7 binary"
@@ -135,6 +145,11 @@ jobs:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: buildroot-centos7-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: work/ngx_wasm_module_dist/build/*
 
   build-centos8:
     name: "Build Centos 8 binary"
@@ -155,6 +170,11 @@ jobs:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: buildroot-centos8-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: work/ngx_wasm_module_dist/build/*
 
   build-arch:
     name: Build ArchLinux binary
@@ -175,6 +195,11 @@ jobs:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: buildroot-archlinux-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: work/ngx_wasm_module_dist/build/*
 
   build-macos:
     name: Build macOS binary
@@ -190,6 +215,11 @@ jobs:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: buildroot-macos-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: work/ngx_wasm_module_dist/build/*
 
   upload-artifacts:
     name: Upload release artifacts
