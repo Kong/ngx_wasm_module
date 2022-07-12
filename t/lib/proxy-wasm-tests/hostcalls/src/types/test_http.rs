@@ -146,6 +146,13 @@ impl TestHttp {
             ));
         }
 
+        if self.get_config("use_https") == Some("yes") {
+            headers.push((
+                ":scheme",
+                "https",
+            ));
+        }
+
         if let Some(vals) = self.get_config("headers") {
             for (k, v) in vals.split('|').filter_map(|s| s.split_once(':')) {
                 headers.push((k, v));

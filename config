@@ -247,6 +247,7 @@ if [ $HTTP = YES ]; then
     fi
 
     have=NGX_WASM_HTTP value=1 . auto/define
+    have=NGX_WASM_HTTP_SSL value=1 . auto/define
 fi
 
 if [ $STREAM = YES ]; then

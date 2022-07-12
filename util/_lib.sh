@@ -166,6 +166,7 @@ build_nginx() {
                 "--with-cc-opt='$NGX_BUILD_CC_OPT'" \
                 "--with-ld-opt='$NGX_BUILD_LD_OPT'" \
                 "--with-poll_module" \
+                "--with-http_ssl_module" \
                 "${build_opts[@]}" \
                 "$NGX_BUILD_CONFIGURE_OPT" \
 

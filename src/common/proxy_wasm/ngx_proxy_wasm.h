@@ -5,6 +5,9 @@
 #include <ngx_event.h>
 #include <ngx_wavm.h>
 
+#if (NGX_WASM_HTTP_SSL)
+#include <ngx_event_openssl.h>
+#endif
 
 #define NGX_PROXY_WASM_ROOT_CTX_ID  0
 
@@ -248,6 +251,10 @@ struct ngx_proxy_wasm_instance_ctx_s {
     ngx_proxy_wasm_store_t            *store;
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
+
+#if(NGX_WASM_HTTP_SSL)
+    ngx_ssl_t                         *ssl;
+#endif
 
     /* swap */
 

@@ -5,6 +5,9 @@
 
 #include <ngx_wasm_socket_tcp.h>
 
+#if (NGX_WASM_HTTP)
+#include <ngx_http_proxy_wasm_dispatch.h>
+#endif
 
 #define ngx_wasm_socket_log(s)                                               \
     ((s) && (s)->log) ? (s)->log : ngx_cycle->log
@@ -26,7 +29,9 @@ static void ngx_wasm_socket_tcp_connect_handler(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_send_handler(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_receive_handler(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_init_addr_text(ngx_peer_connection_t *pc);
-
+#if (NGX_WASM_HTTP_SSL)
+static void ngx_wasm_socket_ssl_handshake_handler(ngx_connection_t *c);
+#endif
 
 static ngx_inline void
 ngx_wasm_socket_tcp_set_resume_handler(ngx_wasm_socket_tcp_t *sock)
@@ -109,7 +114,7 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
 
 ngx_int_t
 ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host, ngx_wasm_socket_tcp_env_t *env)
+    ngx_str_t *host, ngx_wasm_socket_tcp_env_t *env, int https)
 {
     ngx_memzero(sock, sizeof(ngx_wasm_socket_tcp_t));
 
@@ -150,7 +155,7 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
     ngx_memzero(&sock->url, sizeof(ngx_url_t));
 
     sock->url.url = sock->host;
-    sock->url.default_port = 80;
+    sock->url.default_port = https ? 443 : 80;
     sock->url.no_resolve = 1;
 
     if (ngx_parse_url(sock->pool, &sock->url) != NGX_OK) {
@@ -449,9 +454,83 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
         ngx_add_timer(c->write, sock->connect_timeout);
     }
 
+#if (NGX_WASM_HTTP_SSL)
+    if(sock->enable_ssl) {
+        ngx_http_proxy_wasm_dispatch_t  *call = sock->data;
+        ngx_proxy_wasm_instance_ctx_t *ictx = call->fctx->ictx;
+        sock->ssl = ictx->ssl;
+
+        if (ngx_ssl_create_connection(sock->ssl, c,
+                                    NGX_SSL_BUFFER|NGX_SSL_CLIENT)
+            != NGX_OK)
+        {
+            ngx_wasm_socket_tcp_err(sock, "ssl connection failed");
+            return NGX_ERROR;
+        }
+
+        dd("ssl connection created");
+
+        rc = ngx_ssl_handshake(c);
+
+        if(rc == NGX_OK) {
+            sock->connected = 1;
+        } else if (rc == NGX_AGAIN) {
+            ngx_add_timer(c->write, sock->connect_timeout);
+
+            c->ssl->handler = ngx_wasm_socket_ssl_handshake_handler;
+        }
+    }
+#endif
+
     return rc;
 }
 
+#if (NGX_WASM_HTTP_SSL)
+static void
+ngx_wasm_socket_ssl_handshake_handler(ngx_connection_t *c) {
+    ngx_wasm_socket_tcp_t *sock;
+    long rc;
+
+    sock = c->data;
+
+    if(c->ssl->handshaked) {
+        // Verify certificate.
+        // TODO: Make this configurable
+        {
+            rc = SSL_get_verify_result(c->ssl->connection);
+
+            if (rc != X509_V_OK) {
+                ngx_wasm_socket_tcp_err(sock, "SSL certificate verify error: (%l:%s)",
+                              rc, X509_verify_cert_error_string(rc));
+                goto resume;
+            }
+
+            if (ngx_ssl_check_host(c, &sock->host) != NGX_OK) {
+                ngx_wasm_socket_tcp_err(sock, "SSL certificate does not match \"%V\"",
+                              &sock->host);
+                goto resume;
+            }
+        }
+
+        dd("ssl handshake completed");
+
+        sock->connected = 1;
+        c->read->handler = ngx_wasm_socket_tcp_handler;
+        c->write->handler = ngx_wasm_socket_tcp_handler;
+        goto resume;
+    }
+
+    if(c->write->timedout) {
+        ngx_wasm_socket_tcp_err(sock, "ssl handshaked timed out");
+        goto resume;
+    }
+
+    ngx_wasm_socket_tcp_err(sock, "ssl handshaked failed");
+
+resume:
+    ngx_wasm_socket_tcp_resume(sock);
+}
+#endif
 
 static ngx_int_t
 ngx_wasm_socket_tcp_get_peer(ngx_peer_connection_t *pc, void *data)
@@ -810,6 +889,13 @@ ngx_wasm_socket_tcp_close(ngx_wasm_socket_tcp_t *sock)
     ngx_wasm_socket_tcp_finalize_write(sock);
 
     if (c) {
+#if (NGX_WASM_HTTP_SSL)
+        if(c->ssl) {
+            c->ssl->no_wait_shutdown = 1;
+            (void) ngx_ssl_shutdown(c);
+        }
+#endif
+
         ngx_close_connection(c);
     }
 

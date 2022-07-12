@@ -4,10 +4,12 @@
 #include "ddebug.h"
 
 #include <ngx_proxy_wasm.h>
-#ifdef NGX_WASM_HTTP
+#if (NGX_WASM_HTTP)
 #include <ngx_http_proxy_wasm.h>
 #endif
-
+#if (NGX_WASM_HTTP_SSL)
+#include <ngx_event_openssl.h>
+#endif
 
 static ngx_int_t ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_proxy_wasm_filter_ctx_t *fctx, ngx_uint_t *ret);
@@ -25,6 +27,10 @@ static void ngx_proxy_wasm_on_log(ngx_proxy_wasm_filter_ctx_t *fctx);
 static void ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx);
 static ngx_int_t ngx_proxy_wasm_on_timer_tick(ngx_proxy_wasm_filter_ctx_t *fctx);
 
+#if (NGX_WASM_HTTP_SSL)
+static int ngx_ssl_verify_callback(int ok, X509_STORE_CTX *x509_store);
+static ngx_int_t ngx_proxy_wasm_load_ssl_trusted_certificate(ngx_ssl_t *ssl, ngx_str_t *cert, ngx_int_t depth);
+#endif
 
 ngx_proxy_wasm_ctx_t *
 ngx_proxy_wasm_ctx(ngx_proxy_wasm_filter_t *filter, void *data)
@@ -510,6 +516,40 @@ create:
         ngx_pfree(ictx->pool, ictx);
         goto error;
     }
+
+#if(NGX_WASM_HTTP_SSL)
+    {
+        // TODO: Load CA cert path from config
+        ngx_str_t ca_cert_path = ngx_string("/etc/ssl/certs/ca-certificates.crt");
+
+        ictx->ssl = ngx_pcalloc(pool, sizeof(ngx_ssl_t));
+        if(ictx->ssl == NULL) {
+            ngx_pfree(ictx->pool, ictx);
+            goto error;
+        }
+        ictx->ssl->log = log;
+
+        if (ngx_ssl_create(ictx->ssl, NGX_SSL_TLSv1 | NGX_SSL_TLSv1_1 | NGX_SSL_TLSv1_2 | NGX_SSL_TLSv1_3, NULL)
+            != NGX_OK)
+        {
+            ngx_proxy_wasm_log_error(NGX_LOG_EMERG, log, 0,
+                            "ssl create failed");
+            ngx_pfree(ictx->pool, ictx);
+            goto error;
+        }
+
+        if(ngx_proxy_wasm_load_ssl_trusted_certificate(ictx->ssl, &ca_cert_path, 1) == NGX_ERROR) {
+            ngx_proxy_wasm_log_error(NGX_LOG_EMERG, log, 0,
+                            "failed to load ssl certificates from %V", ca_cert_path);
+            ngx_pfree(ictx->pool, ictx);
+            goto error;
+        }
+
+        ngx_log_debug0(NGX_LOG_DEBUG_WASM, log, 0,
+                    "ssl initialized");
+    }
+
+#endif
 
     goto done;
 
@@ -1295,3 +1335,44 @@ ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx, ngx_list_t *list,
 
     return 1;
 }
+
+#if (NGX_WASM_HTTP_SSL)
+// From: ngx_ssl_trusted_certificate
+static ngx_int_t
+ngx_proxy_wasm_load_ssl_trusted_certificate(ngx_ssl_t *ssl, ngx_str_t *cert,
+    ngx_int_t depth)
+{
+    SSL_CTX_set_verify(ssl->ctx, SSL_CTX_get_verify_mode(ssl->ctx),
+                       ngx_ssl_verify_callback);
+
+    SSL_CTX_set_verify_depth(ssl->ctx, depth);
+
+    if (cert->len == 0) {
+        return NGX_OK;
+    }
+
+    if (SSL_CTX_load_verify_locations(ssl->ctx, (char *) cert->data, NULL)
+        == 0)
+    {
+        ngx_ssl_error(NGX_LOG_EMERG, ssl->log, 0,
+                      "SSL_CTX_load_verify_locations(\"%s\") failed",
+                      cert->data);
+        return NGX_ERROR;
+    }
+
+    /*
+     * SSL_CTX_load_verify_locations() may leave errors in the error queue
+     * while returning success
+     */
+
+    ERR_clear_error();
+
+    return NGX_OK;
+}
+
+static int
+ngx_ssl_verify_callback(int ok, X509_STORE_CTX *x509_store)
+{
+    return 1;
+}
+#endif
