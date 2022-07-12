@@ -23,6 +23,13 @@ pub(crate) fn dispatch_call(ctx: &mut TestHttpHostcalls) {
         ));
     }
 
+    if ctx.config.get("use_https").map(|x| x.as_str() == "yes") == Some(true) {
+        headers.push((
+            ":scheme",
+            "https",
+        ));
+    }
+
     if ctx.config.get("no_authority").is_none() {
         headers.push((
             ":authority",
