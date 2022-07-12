@@ -98,7 +98,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
-          name: buildroot-ubuntu18-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/ngx_wasm_module_dist/build/*
 
   build-ubuntu-focal:
@@ -123,7 +123,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
-          name: buildroot-ubuntu20-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/ngx_wasm_module_dist/build/*
 
   build-centos7:
@@ -148,7 +148,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
-          name: buildroot-centos7-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/ngx_wasm_module_dist/build/*
 
   build-centos8:
@@ -173,7 +173,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
-          name: buildroot-centos8-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/ngx_wasm_module_dist/build/*
 
   build-arch:
@@ -198,13 +198,13 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
-          name: buildroot-archlinux-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/ngx_wasm_module_dist/build/*
 
   build-macos:
     name: Build macOS binary
     needs: build-images
-    runs-on: [macos-latest]
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - name: Build binary
@@ -218,7 +218,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
-          name: buildroot-macos-${{ github.workflow }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/ngx_wasm_module_dist/build/*
 
   upload-artifacts:
