@@ -5,15 +5,15 @@ ngx_wasm_module as an addon. ngx_wasm_module source releases are available as
 `ngx_wasm_module-*.tar.gz` assets at:
 https://github.com/Kong/ngx_wasm_module/releases.
 
-> Note: the `wasmx-*.tar.gz` releases are pre-compiled, self-contained
-> binaries of Nginx built with this module and as such, do not necessitate any
-> particular installation steps. Download these releases and use the `nginx`
-> binary appropriately.
+**Note:** the `wasmx-*.tar.gz` releases are pre-compiled, self-contained
+binaries of Nginx built with this module and as such, do not necessitate any
+particular installation steps. Download these releases and use the `nginx`
+binary appropriately.
 
-If you wish however to use other compilation flags (e.g. add/disable other
-modules, configure default options, build for a non-default
-platform/architecture...) you will need to compile Nginx yourself, following the
-steps provided here.
+If you wish however to use other Nginx compilation flags (e.g. add/disable other
+modules, configure default options, non-default platform/architecture
+support...) you will then need to compile Nginx yourself, following the steps
+provided below.
 
 ## Table of Contents
 
@@ -47,7 +47,13 @@ Several runtimes are supported, and at least one of them must be specified:
 - [Wasmtime](https://docs.wasmtime.dev/c-api/) (see
   [Releases](https://github.com/bytecodealliance/wasmtime/releases), download
   and extract the `*-c-api.tar.xz` asset matching your OS and architecture).
-- [Wasmer](https://github.com/wasmerio/wasmer) (see [Releases](https://github.com/wasmerio/wasmer/releases), download and extract the asset matching your architecture).
+- [Wasmer](https://github.com/wasmerio/wasmer) (see
+  [Releases](https://github.com/wasmerio/wasmer/releases), download and extract
+  the asset matching your architecture).
+- [V8](https://v8.dev) (not pre-built for embedding; but can be compiled locally
+  by this module's build environment: run `NGX_WASM_RUNTIME=v8 make setup`
+  *without* having set `NGX_WASM_RUNTIME_LIB` or `NGX_WASM_RUNTIME_INC`. See
+  [DEVELOPER.md](#developer.md) for more details).
 
 [Back to TOC](#table-of-contents)
 
