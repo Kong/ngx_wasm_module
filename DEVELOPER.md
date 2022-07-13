@@ -88,10 +88,9 @@ Several runtimes are supported, and at least one of them must be specified:
 - [Wasmer](https://github.com/wasmerio/wasmer) (see
   [Releases](https://github.com/wasmerio/wasmer/releases), download and extract
   the asset matching your architecture).
-- [V8](https://v8.dev) (to use our scripts for building the necessary
-  libraries for embedding V8, set the `NGX_WASM_RUNTIME` environment variable
-  to `"v8"` and run `make setup` *without* setting `NGX_WASM_RUNTIME_LIB` or
-  `NGX_WASM_RUNTIME_INC`).
+- [V8](https://v8.dev) (not pre-built for embedding; but can be compiled locally
+  by this module's build environment: run `NGX_WASM_RUNTIME=v8 make setup`
+  *without* having set `NGX_WASM_RUNTIME_LIB` or `NGX_WASM_RUNTIME_INC`).
 
 [Back to TOC](#table-of-contents)
 
@@ -104,8 +103,8 @@ testing dependencies:
 $ make setup
 ```
 
-This makes the building process of ngx_wasm_module entirely self-contained. The
-build environment may be destroyed at anytime with:
+This makes the building process of ngx_wasm_module entirely idempotent and
+self-contained. The build environment may be destroyed at anytime with:
 
 ```
 $ make cleanup
@@ -141,8 +140,10 @@ The build process will try to find a Wasm runtime in the following locations
 1. Specified by `$NGX_WASM_RUNTIME_*` environment variables.
 2. `/usr/local/opt/include` and `/usr/local/opt/lib`.
 3. `/usr/local/include` and `/usr/local/lib`.
+4. `./work/include` and `./work/lib` (runtimes that are locally compiled by the
+   build system).
 
-You may either export the following environment variables:
+You may thus: either export the following environment variables:
 
 ```
 $ export NGX_WASM_RUNTIME={wasmtime,wasmer,v8} # defaults to wasmtime if unspecified
