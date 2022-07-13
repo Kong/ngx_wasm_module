@@ -3,7 +3,7 @@
 
 
 #include <ngx_event_connect.h>
-#if (NGX_WASM_HTTP_SSL)
+#if (NGX_SSL)
 #include <ngx_event_openssl.h>
 #endif
 #include <ngx_wasm.h>
@@ -106,7 +106,7 @@ struct ngx_wasm_socket_tcp_s {
 
     /* ssl */
 
-#if(NGX_WASM_HTTP_SSL)
+#if (NGX_SSL)
     ngx_ssl_t                               *ssl;
 #endif
 
@@ -118,16 +118,15 @@ struct ngx_wasm_socket_tcp_s {
     unsigned                                 closed:1;
     unsigned                                 read_closed:1;
     unsigned                                 write_closed:1;
-
-#if(NGX_WASM_HTTP_SSL)
-    unsigned                                 enable_ssl:1;
-#endif
+    unsigned                                 ssl_ready:1;
 };
 
 
 ngx_int_t ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host, ngx_wasm_socket_tcp_env_t *env, int https);
+    ngx_str_t *host, ngx_wasm_socket_tcp_env_t *env,
+    in_port_t default_port);
 ngx_int_t ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock);
+ngx_int_t ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock);
 ngx_int_t ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock,
     ngx_chain_t *cl);
 ngx_int_t ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,

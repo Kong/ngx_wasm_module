@@ -125,9 +125,6 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_socket_tcp_env_t        sock_env;
     ngx_http_request_t              *r;
     ngx_http_proxy_wasm_dispatch_t  *call = NULL;
-#if(NGX_WASM_HTTP_SSL)
-    unsigned                         enable_ssl = 0;
-#endif
 
     r = rctx->r;
     sock = NULL;
@@ -212,21 +209,23 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
 
             } 
             else if (ngx_strncmp(elt->key.data, ":scheme", 7) == 0) {
-#if(NGX_WASM_HTTP_SSL)
-                if(ngx_strncmp(elt->value.data, "https", 5) == 0) {
-                    enable_ssl = 1;
+#if (NGX_SSL)
+                if (ngx_strncmp(elt->value.data, "https", 5) == 0) {
+                    call->enable_ssl = 1;
                     dd("ssl enabled");
-                } else if(ngx_strncmp(elt->value.data, "http", 4) == 0) {
-                    enable_ssl = 0;
+
+                } else if (ngx_strncmp(elt->value.data, "http", 4) == 0) {
+                    call->enable_ssl = 0;
                     dd("ssl disabled");
+
                 } else {
                     ngx_wasm_log_error(NGX_LOG_WARN, r->connection->log, 0,
-                                   "unknown scheme \"%V\"",
-                                   &elt->key);
+                                       "unknown scheme \"%V\"",
+                                       &elt->key);
                 }
 #else
                 ngx_wasm_log_error(NGX_LOG_WARN, r->connection->log, 0,
-                            "scheme ignored - NGX_WASM_HTTP_SSL not enabled");
+                                   "scheme ignored - NGX_SSL not enabled");
 #endif
             }
             else {
@@ -280,10 +279,10 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
     sock_env.ctx.request = rctx;
 
     if (ngx_wasm_socket_tcp_init(sock, &call->host, &sock_env,
-#if(NGX_WASM_HTTP_SSL)
-                                 enable_ssl
+#if (NGX_SSL)
+                                 call->enable_ssl ? 443 : 80
 #else
-                                 0
+                                 80
 #endif
     ) != NGX_OK) {
         goto error;
@@ -292,9 +291,6 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
     sock->read_timeout = call->timeout;
     sock->send_timeout = call->timeout;
     sock->connect_timeout = call->timeout;
-#if(NGX_WASM_HTTP_SSL)
-    sock->enable_ssl = enable_ssl;
-#endif
 
     call->http_reader.pool = r->connection->pool;  /* longer lifetime than call */
     call->http_reader.log = r->connection->log;
@@ -621,6 +617,27 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         }
 
         ngx_wasm_assert(rc == NGX_OK);
+
+        call->state = NGX_HTTP_PROXY_WASM_DISPATCH_SSL_HANDSHAKING;
+
+        /* fallthrough */
+
+    case NGX_HTTP_PROXY_WASM_DISPATCH_SSL_HANDSHAKING:
+
+#if (NGX_SSL)
+        if (call->enable_ssl) {
+            rc = ngx_wasm_socket_tcp_ssl_handshake(sock);
+            if (rc == NGX_ERROR) {
+                goto error;
+            }
+
+            if (rc == NGX_AGAIN) {
+                break;
+            }
+
+            ngx_wasm_assert(rc == NGX_OK);
+        }
+#endif
 
         call->state = NGX_HTTP_PROXY_WASM_DISPATCH_SENDING;
 

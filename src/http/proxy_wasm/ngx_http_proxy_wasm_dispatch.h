@@ -10,6 +10,7 @@
 typedef enum {
     NGX_HTTP_PROXY_WASM_DISPATCH_START = 0,
     NGX_HTTP_PROXY_WASM_DISPATCH_CONNECTING,
+    NGX_HTTP_PROXY_WASM_DISPATCH_SSL_HANDSHAKING,
     NGX_HTTP_PROXY_WASM_DISPATCH_SENDING,
     NGX_HTTP_PROXY_WASM_DISPATCH_RECEIVING,
     NGX_HTTP_PROXY_WASM_DISPATCH_RECEIVED,
@@ -51,6 +52,10 @@ struct ngx_http_proxy_wasm_dispatch_s {
     ngx_wasm_http_reader_ctx_t              http_reader;
     ngx_http_proxy_wasm_dispatch_state_e    state;
     ngx_http_request_t                      fake_r;
+
+#if (NGX_SSL)
+    unsigned                                enable_ssl:1;
+#endif
 };
 
 
