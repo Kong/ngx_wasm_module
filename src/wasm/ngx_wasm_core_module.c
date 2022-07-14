@@ -146,7 +146,9 @@ ngx_wasm_core_cleanup_pool(void *data)
     ngx_wavm_destroy(vm);
 
 #if (NGX_SSL)
-    ngx_ssl_cleanup_ctx(ssl);
+    if(ssl->ctx) {
+        ngx_ssl_cleanup_ctx(ssl);
+    }
 #endif
 }
 
