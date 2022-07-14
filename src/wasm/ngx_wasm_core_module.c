@@ -52,7 +52,7 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       NULL },
 
 #if (NGX_SSL)
-    { ngx_string("ssl_trusted_certificate"),
+    { ngx_string("tls_trusted_certificate"),
       NGX_WASM_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
       0,
@@ -60,7 +60,7 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       + offsetof(ngx_wasm_ssl_conf_t, trusted_certificate),
       NULL },
 
-    { ngx_string("ssl_skip_verify"),
+    { ngx_string("tls_skip_verify"),
       NGX_WASM_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_flag_slot,
       0,
@@ -68,7 +68,7 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       + offsetof(ngx_wasm_ssl_conf_t, skip_verify),
       NULL },
 
-    { ngx_string("ssl_skip_host_check"),
+    { ngx_string("tls_skip_host_check"),
       NGX_WASM_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_flag_slot,
       0,
@@ -297,7 +297,7 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
         != NGX_OK)
     {
         ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                           "ssl create failed");
+                           "tls create failed");
         return NGX_ERROR;
     }
 
@@ -305,12 +305,12 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
         == NGX_ERROR)
     {
         ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                           "failed to load ssl certificates from %V",
+                           "failed to load tls certificates from %V",
                            wcf->ssl_conf.trusted_certificate);
         return NGX_ERROR;
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_WASM, cycle->log, 0, "ssl initialized");
+    ngx_log_debug0(NGX_LOG_DEBUG_WASM, cycle->log, 0, "tls initialized");
 
     return NGX_OK;
 }
