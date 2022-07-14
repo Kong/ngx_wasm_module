@@ -212,11 +212,11 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
 #if (NGX_SSL)
                 if (ngx_strncmp(elt->value.data, "https", 5) == 0) {
                     call->enable_ssl = 1;
-                    dd("ssl enabled");
+                    dd("tls enabled");
 
                 } else if (ngx_strncmp(elt->value.data, "http", 4) == 0) {
                     call->enable_ssl = 0;
-                    dd("ssl disabled");
+                    dd("tls disabled");
 
                 } else {
                     ngx_wasm_log_error(NGX_LOG_WARN, r->connection->log, 0,
