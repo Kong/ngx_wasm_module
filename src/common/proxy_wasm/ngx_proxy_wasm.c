@@ -3,12 +3,12 @@
 #endif
 #include "ddebug.h"
 
+#if (NGX_SSL)
+#include <ngx_event_openssl.h>
+#endif
 #include <ngx_proxy_wasm.h>
 #if (NGX_WASM_HTTP)
 #include <ngx_http_proxy_wasm.h>
-#endif
-#if (NGX_SSL)
-#include <ngx_event_openssl.h>
 #endif
 
 static ngx_int_t ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx,
@@ -26,6 +26,7 @@ static ngx_int_t ngx_proxy_wasm_start(ngx_proxy_wasm_filter_ctx_t *fctx);
 static void ngx_proxy_wasm_on_log(ngx_proxy_wasm_filter_ctx_t *fctx);
 static void ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx);
 static ngx_int_t ngx_proxy_wasm_on_timer_tick(ngx_proxy_wasm_filter_ctx_t *fctx);
+
 
 ngx_proxy_wasm_ctx_t *
 ngx_proxy_wasm_ctx(ngx_proxy_wasm_filter_t *filter, void *data)

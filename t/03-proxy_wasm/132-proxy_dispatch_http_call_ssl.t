@@ -55,3 +55,25 @@ __DATA__
 qr/\[error\] .*? dispatch failed \(SSL certificate verify error: \(10:certificate has expired\)\)/
 --- no_error_log
 [crit]
+
+
+
+=== TEST 3: proxy_wasm - dispatch_http_call() https resolver + hostname (expired certificate, skip verify)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- ssl_skip_verify: on
+--- ssl_skip_host_check: on
+--- config
+    resolver 1.1.1.1 ipv6=off;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=expired.badssl.com \
+                              use_https=yes \
+                              path=/';
+        echo fail;
+    }
+--- response_body_like: expired.<br>badssl.com
+--- no_error_log
+[error]
+[crit]

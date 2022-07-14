@@ -4,7 +4,9 @@
 #include "ddebug.h"
 
 #include <ngx_wavm.h>
-
+#if (NGX_SSL)
+#include <ngx_wasm_ssl.h>
+#endif
 
 static void *ngx_wasm_core_create_conf(ngx_cycle_t *cycle);
 static char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
@@ -27,8 +29,7 @@ typedef struct {
     ngx_wavm_conf_t                    vm_conf;
 
 #if (NGX_SSL)
-    ngx_str_t                          ssl_trusted_certificate;
-    ngx_ssl_t                         *ssl;
+    ngx_wasm_ssl_conf_t                ssl_conf;
 #endif
 } ngx_wasm_core_conf_t;
 
@@ -55,7 +56,24 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       NGX_WASM_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
       0,
-      offsetof(ngx_wasm_core_conf_t, ssl_trusted_certificate),
+      offsetof(ngx_wasm_core_conf_t, ssl_conf)
+      + offsetof(ngx_wasm_ssl_conf_t, trusted_certificate),
+      NULL },
+
+    { ngx_string("ssl_skip_verify"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      0,
+      offsetof(ngx_wasm_core_conf_t, ssl_conf)
+      + offsetof(ngx_wasm_ssl_conf_t, skip_verify),
+      NULL },
+
+    { ngx_string("ssl_skip_host_check"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      0,
+      offsetof(ngx_wasm_core_conf_t, ssl_conf)
+      + offsetof(ngx_wasm_ssl_conf_t, skip_host_check),
       NULL },
 #endif
 
@@ -101,8 +119,8 @@ ngx_wasm_main_vm(ngx_cycle_t *cycle)
 
 
 #if (NGX_SSL)
-ngx_inline ngx_ssl_t *
-ngx_wasm_ssl(ngx_cycle_t *cycle)
+ngx_inline ngx_wasm_ssl_conf_t *
+ngx_wasm_ssl_conf(ngx_cycle_t *cycle)
 {
     ngx_wasm_core_conf_t  *wcf;
 
@@ -111,7 +129,7 @@ ngx_wasm_ssl(ngx_cycle_t *cycle)
         return NULL;
     }
 
-    return wcf->ssl;
+    return &wcf->ssl_conf;
 }
 #endif
 
@@ -121,8 +139,15 @@ ngx_wasm_core_cleanup_pool(void *data)
 {
     ngx_cycle_t  *cycle = data;
     ngx_wavm_t   *vm = ngx_wasm_main_vm(cycle);
+#if (NGX_SSL)
+    ngx_ssl_t    *ssl = &ngx_wasm_ssl_conf(cycle)->ssl;
+#endif
 
     ngx_wavm_destroy(vm);
+
+#if (NGX_SSL)
+    ngx_ssl_cleanup_ctx(ssl);
+#endif
 }
 
 
@@ -132,7 +157,6 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
     static const ngx_str_t vm_name = ngx_string("main");
     ngx_wasm_core_conf_t  *wcf;
     ngx_pool_cleanup_t    *cln;
-    ngx_str_t              default_trusted_certificate = ngx_string("/etc/ssl/certs/ca-certificates.crt");
 
     wcf = ngx_pcalloc(cycle->pool, sizeof(ngx_wasm_core_conf_t));
     if (wcf == NULL) {
@@ -153,7 +177,10 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
     cln->handler = ngx_wasm_core_cleanup_pool;
     cln->data = cycle;
 
-    wcf->ssl_trusted_certificate = default_trusted_certificate;
+#if (NGX_SSL)
+    wcf->ssl_conf.skip_verify = NGX_CONF_UNSET;
+    wcf->ssl_conf.skip_host_check = NGX_CONF_UNSET;
+#endif
 
     return wcf;
 }
@@ -251,19 +278,20 @@ static ngx_int_t
 ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
 {
     ngx_wasm_core_conf_t  *wcf;
+    ngx_str_t              default_trusted_certificate = ngx_string("/etc/ssl/certs/ca-certificates.crt");
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
     if (wcf == NULL) {
         return NGX_OK;
     }
 
-    wcf->ssl = ngx_pcalloc(cycle->pool, sizeof(ngx_ssl_t));
-    if (wcf->ssl == NULL) {
-        return NGX_ERROR;
-    }
-    wcf->ssl->log = cycle->log;
+    wcf->ssl_conf.ssl.log = cycle->log;
 
-    if (ngx_ssl_create(wcf->ssl,
+    if(wcf->ssl_conf.trusted_certificate.data == NULL ) {
+        wcf->ssl_conf.trusted_certificate = default_trusted_certificate;
+    }
+
+    if (ngx_ssl_create(&wcf->ssl_conf.ssl,
                        NGX_SSL_TLSv1 | NGX_SSL_TLSv1_1 | NGX_SSL_TLSv1_2 | NGX_SSL_TLSv1_3,
                        NULL)
         != NGX_OK)
@@ -273,15 +301,14 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
-    if (ngx_wasm_core_load_ssl_trusted_certificate(wcf->ssl, &wcf->ssl_trusted_certificate, 1)
-       == NGX_ERROR)
+    if (ngx_wasm_core_load_ssl_trusted_certificate(&wcf->ssl_conf.ssl, &wcf->ssl_conf.trusted_certificate, 1)
+        == NGX_ERROR)
     {
         ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
                            "failed to load ssl certificates from %V",
-                           wcf->ssl_trusted_certificate);
+                           wcf->ssl_conf.trusted_certificate);
         return NGX_ERROR;
     }
-
 
     ngx_log_debug0(NGX_LOG_DEBUG_WASM, cycle->log, 0, "ssl initialized");
 
