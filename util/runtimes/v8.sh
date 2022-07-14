@@ -127,7 +127,7 @@ build_libwee8() {
 
 check_cached_v8() {
     local target="$1"
-    local cachedir="$DIR_DOWNLOAD/v8-$V8_VER"
+    local cachedir="$2"
 
     if [[ -e "$cachedir/wasm.h" ]]; then
         notice "cache exists in $cachedir - using it..."
@@ -145,7 +145,7 @@ check_cached_v8() {
 
 cache_v8() {
     local target="$1"
-    local cachedir="$DIR_DOWNLOAD/v8-$V8_VER"
+    local cachedir="$2"
 
     notice "caching built assets in $cachedir..."
     mkdir -p "$cachedir"
@@ -157,8 +157,9 @@ cache_v8() {
 
 build_v8() {
     local target="$1"
+    local cachedir="$2"
 
-    if check_cached_v8 "$target" "$V8_VER"; then
+    if check_cached_v8 "$target" "$cachedir"; then
         return 0
     fi
 
@@ -180,5 +181,6 @@ get_from_release() {
 V8_PLATFORM="${V8_PLATFORM:-x64}"
 V8_VER="${V8_VER:-$(get_from_release V8_VER)}"
 target="${1:-$DIR_WORK}"
+cachedir="${2:-$DIR_DOWNLOAD/v8-$V8_VER}"
 
-build_v8 "$target"
+build_v8 "$target" "$cachedir"
