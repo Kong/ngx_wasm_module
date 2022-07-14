@@ -120,7 +120,7 @@ jobs:
   valgrind:
     name: 'Tests - valgrind'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ matrix.runtime == 'v8' && 90 || 30 }}
+    timeout-minutes: ${{ matrix.runtime == 'v8' && 90 || 45 }}
     #if: ${{ false }}
     env:
       NGX_BUILD_NOPOOL: 1
