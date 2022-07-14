@@ -52,7 +52,7 @@ async function main() {
         }
 
         if (runtime === "v8") {
-            await exec.exec("util/runtimes/v8.sh", [ dir ])
+            await exec.exec("util/runtimes/v8.sh", [ dir, path.join(DIR_WORK, "downloads") ])
         } else {
             let repository = REPOSITORIES[runtime]
             if (repository === undefined) {
