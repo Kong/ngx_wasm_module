@@ -28,6 +28,7 @@ static void ngx_wasm_socket_tcp_receive_handler(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_init_addr_text(ngx_peer_connection_t *pc);
 #if (NGX_SSL)
 static void ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c);
+static ngx_int_t ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t name);
 #endif
 
 
@@ -474,7 +475,7 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
 
     sock->ssl_conf = ngx_wasm_ssl_conf((ngx_cycle_t *) ngx_cycle);
     if (sock->ssl_conf == NULL) {
-        ngx_wasm_socket_tcp_err(sock, "failed to get ssl conf");
+        ngx_wasm_socket_tcp_err(sock, "failed to get tls conf");
         return NGX_ERROR;
     }
 
@@ -485,11 +486,16 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
                                   NGX_SSL_BUFFER|NGX_SSL_CLIENT)
         != NGX_OK)
     {
-        ngx_wasm_socket_tcp_err(sock, "ssl connection failed");
+        ngx_wasm_socket_tcp_err(sock, "tls connection failed");
         return NGX_ERROR;
     }
 
-    dd("ssl connection created");
+    dd("tls connection created");
+
+    rc = ngx_wasm_socket_tcp_ssl_set_server_name(c, sock->host);
+    if(rc == NGX_ERROR) {
+        return NGX_ERROR;
+    }
 
     rc = ngx_ssl_handshake(c);
 
@@ -519,7 +525,7 @@ ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c) {
             rc = SSL_get_verify_result(c->ssl->connection);
 
             if (rc != X509_V_OK) {
-                ngx_wasm_socket_tcp_err(sock, "SSL certificate verify error: (%l:%s)",
+                ngx_wasm_socket_tcp_err(sock, "TLS certificate verify error: (%l:%s)",
                                         rc, X509_verify_cert_error_string(rc));
                 goto resume;
             }
@@ -527,13 +533,13 @@ ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c) {
 
         if(sock->ssl_conf->skip_host_check != 1) {
             if (ngx_ssl_check_host(c, &sock->host) != NGX_OK) {
-                ngx_wasm_socket_tcp_err(sock, "SSL certificate does not match \"%V\"",
+                ngx_wasm_socket_tcp_err(sock, "TLS certificate does not match \"%V\"",
                                         &sock->host);
                 goto resume;
             }
         }
 
-        dd("ssl handshake completed");
+        dd("tls handshake completed");
 
         c->read->handler = ngx_wasm_socket_tcp_handler;
         c->write->handler = ngx_wasm_socket_tcp_handler;
@@ -542,14 +548,86 @@ ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c) {
     }
 
     if (c->write->timedout) {
-        ngx_wasm_socket_tcp_err(sock, "ssl handshaked timed out");
+        ngx_wasm_socket_tcp_err(sock, "tls handshaked timed out");
         goto resume;
     }
 
-    ngx_wasm_socket_tcp_err(sock, "ssl handshaked failed");
+    ngx_wasm_socket_tcp_err(sock, "tls handshaked failed");
 
 resume:
     ngx_wasm_socket_tcp_resume(sock);
+}
+
+
+// Modified from ngx_http_upstream_ssl_name.
+static ngx_int_t
+ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t name) {
+    u_char  *p, *last;
+
+    if (name.len == 0) {
+        goto done;
+    }
+
+    /*
+     * ssl name here may contain port, notably if derived from $proxy_host
+     * or $http_host; we have to strip it
+     */
+
+    p = name.data;
+    last = name.data + name.len;
+
+    if (*p == '[') {
+        p = ngx_strlchr(p, last, ']');
+
+        if (p == NULL) {
+            p = name.data;
+        }
+    }
+
+    p = ngx_strlchr(p, last, ':');
+
+    if (p != NULL) {
+        name.len = p - name.data;
+    }
+
+    /* as per RFC 6066, literal IPv4 and IPv6 addresses are not permitted */
+
+    if (name.len == 0 || *name.data == '[') {
+        goto done;
+    }
+
+    if (ngx_inet_addr(name.data, name.len) != INADDR_NONE) {
+        goto done;
+    }
+
+    /*
+     * SSL_set_tlsext_host_name() needs a null-terminated string,
+     * hence we explicitly null-terminate name here
+     */
+
+    p = ngx_pnalloc(c->pool, name.len + 1);
+    if (p == NULL) {
+        return NGX_ERROR;
+    }
+
+    (void) ngx_cpystrn(p, name.data, name.len + 1);
+
+    name.data = p;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "upstream SSL server name: \"%s\"", name.data);
+
+    if (SSL_set_tlsext_host_name(c->ssl->connection,
+                                 (char *) name.data)
+        == 0)
+    {
+        ngx_ssl_error(NGX_LOG_ERR, c->log, 0,
+                      "SSL_set_tlsext_host_name(\"%s\") failed", name.data);
+        return NGX_ERROR;
+    }
+
+done:
+    return NGX_OK;
 }
 #endif
 
