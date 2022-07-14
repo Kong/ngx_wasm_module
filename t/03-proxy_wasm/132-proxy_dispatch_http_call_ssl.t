@@ -52,7 +52,7 @@ __DATA__
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(SSL certificate verify error: \(10:certificate has expired\)\)/
+qr/\[error\] .*certificate has expired/
 --- no_error_log
 [crit]
 
@@ -61,8 +61,7 @@ qr/\[error\] .*? dispatch failed \(SSL certificate verify error: \(10:certificat
 === TEST 3: proxy_wasm - dispatch_http_call() https resolver + hostname (expired certificate, skip verify)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
---- ssl_skip_verify: on
---- ssl_skip_host_check: on
+--- tls_skip_verify: on
 --- config
     resolver 1.1.1.1 ipv6=off;
 
@@ -76,4 +75,69 @@ qr/\[error\] .*? dispatch failed \(SSL certificate verify error: \(10:certificat
 --- response_body_like: expired.<br>badssl.com
 --- no_error_log
 [error]
+[crit]
+
+
+
+=== TEST 4: proxy_wasm - dispatch_http_call() https resolver + hostname (wrong hostname)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    resolver 1.1.1.1 ipv6=off;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=wrong.host.badssl.com \
+                              use_https=yes \
+                              path=/';
+        echo fail;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+qr/\[error\] .*TLS certificate does not match/
+--- no_error_log
+[crit]
+
+
+
+=== TEST 5: proxy_wasm - dispatch_http_call() https resolver + hostname (wrong hostname, skip host check)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- tls_skip_host_check: on
+--- config
+    resolver 1.1.1.1 ipv6=off;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=wrong.host.badssl.com \
+                              use_https=yes \
+                              path=/';
+        echo fail;
+    }
+--- response_body_like: wrong.host.<br>badssl.com
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 6: proxy_wasm - dispatch_http_call() https resolver + hostname (untrusted root)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    resolver 1.1.1.1 ipv6=off;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=untrusted-root.badssl.com \
+                              use_https=yes \
+                              path=/';
+        echo fail;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+qr/\[error\]/
+--- no_error_log
 [crit]
