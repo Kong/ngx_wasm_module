@@ -5,6 +5,7 @@
 
 #include <ngx_wasm_socket_tcp.h>
 
+
 #define ngx_wasm_socket_log(s)                                               \
     ((s) && (s)->log) ? (s)->log : ngx_cycle->log
 
@@ -28,6 +29,7 @@ static void ngx_wasm_socket_tcp_init_addr_text(ngx_peer_connection_t *pc);
 #if (NGX_SSL)
 static void ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c);
 #endif
+
 
 static ngx_inline void
 ngx_wasm_socket_tcp_set_resume_handler(ngx_wasm_socket_tcp_t *sock)
@@ -470,17 +472,17 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
         return NGX_OK;
     }
 
-    sock->ssl = ngx_wasm_ssl((ngx_cycle_t *) ngx_cycle);
-    if (sock->ssl == NULL) {
-        ngx_wasm_socket_tcp_err(sock, "failed to get ssl context");
+    sock->ssl_conf = ngx_wasm_ssl_conf((ngx_cycle_t *) ngx_cycle);
+    if (sock->ssl_conf == NULL) {
+        ngx_wasm_socket_tcp_err(sock, "failed to get ssl conf");
         return NGX_ERROR;
     }
 
     pc = &sock->peer;
     c = pc->connection;
 
-    if (ngx_ssl_create_connection(sock->ssl, c,
-                                NGX_SSL_BUFFER|NGX_SSL_CLIENT)
+    if (ngx_ssl_create_connection(&sock->ssl_conf->ssl, c,
+                                  NGX_SSL_BUFFER|NGX_SSL_CLIENT)
         != NGX_OK)
     {
         ngx_wasm_socket_tcp_err(sock, "ssl connection failed");
@@ -512,19 +514,23 @@ ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c) {
 
     if (c->ssl->handshaked) {
         // Verify certificate.
-        // TODO: Make this configurable
-        rc = SSL_get_verify_result(c->ssl->connection);
 
-        if (rc != X509_V_OK) {
-            ngx_wasm_socket_tcp_err(sock, "SSL certificate verify error: (%l:%s)",
-                            rc, X509_verify_cert_error_string(rc));
-            goto resume;
+        if(sock->ssl_conf->skip_verify != 1) {
+            rc = SSL_get_verify_result(c->ssl->connection);
+
+            if (rc != X509_V_OK) {
+                ngx_wasm_socket_tcp_err(sock, "SSL certificate verify error: (%l:%s)",
+                                        rc, X509_verify_cert_error_string(rc));
+                goto resume;
+            }
         }
 
-        if (ngx_ssl_check_host(c, &sock->host) != NGX_OK) {
-            ngx_wasm_socket_tcp_err(sock, "SSL certificate does not match \"%V\"",
-                            &sock->host);
-            goto resume;
+        if(sock->ssl_conf->skip_host_check != 1) {
+            if (ngx_ssl_check_host(c, &sock->host) != NGX_OK) {
+                ngx_wasm_socket_tcp_err(sock, "SSL certificate does not match \"%V\"",
+                                        &sock->host);
+                goto resume;
+            }
         }
 
         dd("ssl handshake completed");

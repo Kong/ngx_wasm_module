@@ -107,7 +107,7 @@ struct ngx_wasm_socket_tcp_s {
     /* ssl */
 
 #if (NGX_SSL)
-    ngx_ssl_t                               *ssl;
+    ngx_wasm_ssl_conf_t                     *ssl_conf;
 #endif
 
     /* flags */
@@ -118,7 +118,10 @@ struct ngx_wasm_socket_tcp_s {
     unsigned                                 closed:1;
     unsigned                                 read_closed:1;
     unsigned                                 write_closed:1;
+
+#if (NGX_SSL)
     unsigned                                 ssl_ready:1;
+#endif
 };
 
 
