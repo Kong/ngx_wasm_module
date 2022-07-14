@@ -127,17 +127,17 @@ add_block_preprocessor(sub {
                                "    compiler " . $compiler . ";\n";
             }
 
-            my $ssl_skip_verify = $block->ssl_skip_verify;
-            my $ssl_skip_host_check = $block->ssl_skip_host_check;
+            my $tls_skip_verify = $block->tls_skip_verify;
+            my $tls_skip_host_check = $block->tls_skip_host_check;
 
-            if (defined $ssl_skip_verify) {
+            if (defined $tls_skip_verify) {
                 $wasm_config = $wasm_config .
-                               "    ssl_skip_verify " . $ssl_skip_verify . ";\n";
+                               "    tls_skip_verify " . $tls_skip_verify . ";\n";
             }
 
-            if (defined $ssl_skip_host_check) {
+            if (defined $tls_skip_host_check) {
                 $wasm_config = $wasm_config .
-                               "    ssl_skip_host_check " . $ssl_skip_host_check . ";\n";
+                               "    tls_skip_host_check " . $tls_skip_host_check . ";\n";
             }
 
             $wasm_config = $wasm_config . "}\n";
