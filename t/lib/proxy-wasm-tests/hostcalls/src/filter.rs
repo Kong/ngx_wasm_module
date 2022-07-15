@@ -11,6 +11,15 @@ use std::collections::HashMap;
 use std::time::Duration;
 use url::Url;
 
+proxy_wasm::main! {{
+    proxy_wasm::set_log_level(LogLevel::Trace);
+    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
+        Box::new(TestRoot {
+            config: HashMap::new(),
+        })
+    });
+}}
+
 #[derive(Debug, Eq, PartialEq, enum_utils::FromStr)]
 #[enumeration(rename_all = "snake_case")]
 enum TestPhase {
@@ -282,14 +291,4 @@ impl HttpContext for TestHttpHostcalls {
         info!("[hostcalls] on_log");
         self.exec_tests(TestPhase::Log);
     }
-}
-
-#[no_mangle]
-pub fn _start() {
-    proxy_wasm::set_log_level(LogLevel::Trace);
-    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
-        Box::new(TestRoot {
-            config: HashMap::new(),
-        })
-    });
 }
