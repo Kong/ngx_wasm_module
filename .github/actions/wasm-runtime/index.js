@@ -5,7 +5,7 @@ const exec = require("@actions/exec")
 const io = require("@actions/io")
 const tc = require("@actions/tool-cache")
 
-const DIR_WORK = path.join(process.env.HOME, "work")
+const DIR_WORK = path.join(process.env.GITHUB_WORKSPACE, "work")
 const REPOSITORIES = {
     wasmtime: "https://github.com/bytecodealliance/wasmtime",
     wasmer: "https://github.com/wasmerio/wasmer",
@@ -52,7 +52,8 @@ async function main() {
         }
 
         if (runtime === "v8") {
-            await exec.exec("util/runtimes/v8.sh", [ dir, path.join(DIR_WORK, "downloads") ])
+            let cacheDir = path.join(DIR_WORK, "downloads", `v8-${version}`)
+            await exec.exec("util/runtimes/v8.sh", [ dir, cacheDir ])
         } else {
             let repository = REPOSITORIES[runtime]
             if (repository === undefined) {
