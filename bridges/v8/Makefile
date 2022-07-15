@@ -1,6 +1,6 @@
 TARGET ?= ../../work
 CXX := $(TARGET)/libwee8/repos/v8/third_party/llvm-build/Release+Asserts/bin/clang
-CXXFLAGS += -I $(TARGET)/libwee8/repos/v8/include -std=c++17
+CXXFLAGS += -I $(TARGET)/libwee8/repos/v8/include -std=c++17 -O3
 
 build: libv8bridge.a
 
