@@ -577,7 +577,10 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
             ngx_wasm_sn_init(&funcref->sn, &funcref->name);
             ngx_wasm_sn_rbtree_insert(&module->funcs_tree, &funcref->sn);
 
-            if (ngx_strncmp(exportname->data, "_start", 6) == 0) {
+            if (module->f_start == NULL
+                && (ngx_strncmp(exportname->data, "_start", 6) == 0
+                    || ngx_strncmp(exportname->data, "_initialize", 11) == 0))
+            {
                 module->f_start = funcref;
             }
 
