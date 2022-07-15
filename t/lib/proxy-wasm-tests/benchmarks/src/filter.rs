@@ -1,3 +1,5 @@
+mod fannkuch_redux;
+
 use log::info;
 use proxy_wasm::traits::*;
 use proxy_wasm::types::*;
@@ -50,6 +52,11 @@ impl HttpContext for OnPhases {
                         break;
                     }
                 }
+            }
+            "/t/fannkuch_redux" => {
+                let n = self.get_http_request_header("x-n").expect("missing x-n").parse::<usize>().unwrap();
+                let output = fannkuch_redux::run(n);
+                self.send_http_response(200, vec![], Some(output.as_bytes()));
             }
             _ => {}
         }
