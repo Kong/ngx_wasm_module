@@ -6,6 +6,7 @@ members = [
     "t/lib/proxy-wasm-tests/on-phases",
     "t/lib/proxy-wasm-tests/hostcalls",
     "t/lib/proxy-wasm-tests/rust-sdk-ver-zero-one",
+    "t/lib/proxy-wasm-tests/benchmarks",
 ]
 exclude = [
     "lib/cwabt",
