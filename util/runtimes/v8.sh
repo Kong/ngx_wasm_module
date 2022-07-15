@@ -166,7 +166,7 @@ build_v8() {
     build_cwabt "$target"
     build_libwee8 "$target" "$V8_VER"
 
-    cache_v8 "$target" "$V8_VER"
+    cache_v8 "$target" "$cachedir"
 }
 
 ###############################################################################
