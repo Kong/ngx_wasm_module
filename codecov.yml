@@ -1,4 +1,9 @@
 # https://docs.codecov.io/docs/codecovyml-reference
+codecov:
+  require_ci_to_pass: yes
+  notify:
+    wait_for_ci: yes
+
 coverage:
   precision: 4
   round: down
@@ -31,4 +36,3 @@ comment:
   require_changes: true
   require_base: no
   require_head: yes
-
