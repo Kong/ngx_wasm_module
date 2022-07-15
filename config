@@ -26,7 +26,7 @@ case $ngx_wasm_runtime_name in
     v8)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_v8.c"
         ngx_wasm_runtime_lib_name="wee8"
-        ngx_wasm_runtime_extra_libs="-lcwabt -lm -lstdc++ -ldl -lpthread"
+        ngx_wasm_runtime_extra_libs="-lcwabt -lm -lstdc++ -ldl -lpthread -lv8bridge"
 
         if [ -n "$NGX_WASM_CWABT_INC" ]; then
             NGX_WASM_RUNTIME_INC="$NGX_WASM_RUNTIME_INC -I $NGX_WASM_CWABT_INC"
@@ -38,6 +38,8 @@ case $ngx_wasm_runtime_name in
 
         ngx_feature_name="NGX_WASM_HAVE_V8"
         ngx_feature_incs="#include <wasm.h>"
+
+        have=NGX_WASM_V8_TRAP_HANDLER value=1 . auto/define
         ;;
     *)
         echo "$0: error: $ngx_addon_name does not support the \"$ngx_wasm_runtime_name\" runtime."

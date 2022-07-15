@@ -184,3 +184,4 @@ target="${1:-$DIR_WORK}"
 cachedir="${2:-$DIR_DOWNLOAD/v8-$V8_VER}"
 
 build_v8 "$target" "$cachedir"
+make -C "$NGX_WASM_DIR/bridges/v8" TARGET="$target"

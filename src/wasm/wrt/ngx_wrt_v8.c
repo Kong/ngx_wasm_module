@@ -7,7 +7,7 @@
 #include <ngx_wavm_host.h>
 #include <ngx_wasi.h>
 #include <cwabt.h>
-
+#include "../../../bridges/v8/bridge.h"
 
 static void ngx_v8_destroy_instance(ngx_wrt_instance_t *instance);
 
@@ -46,6 +46,17 @@ ngx_v8_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
         /* only the main process starts an engine;
            further invocations reuse the existing engine */
         if (!v8_engine) {
+#if (NGX_WASM_V8_TRAP_HANDLER)
+            if(ngx_v8_enable_wasm_trap_handler(1)) {
+                ngx_wavm_log_error(NGX_LOG_INFO, pool->log, NULL,
+                                   "enabled v8 trap handler");
+
+            } else {
+                ngx_wavm_log_error(NGX_LOG_ERR, pool->log, NULL,
+                                   "failed to enable v8 trap handler");
+            }
+#endif
+
             v8_engine = wasm_engine_new();
             if (v8_engine == NULL) {
                 return NGX_ERROR;
