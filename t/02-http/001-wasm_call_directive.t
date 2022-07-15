@@ -443,7 +443,7 @@ qr/\[wasm\] calling "module[A|B]\.nocall" in "log" phase/
 
 
 
-=== TEST 20: wasm_call directive - out of bounds memory read
+=== TEST 20: wasm_call directive - oob memory read
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -464,14 +464,14 @@ qr/\[wasm\] calling "module[A|B]\.nocall" in "log" phase/
 )
 --- error_code: 500
 --- error_log eval
-qr/\[error\] .*? memory access out of bounds/
+qr/\[error\] .*? out of bounds/
 --- no_error_log
 [crit]
 [alert]
 
 
 
-=== TEST 21: wasm_call directive - out of bounds memory write
+=== TEST 21: wasm_call directive - oob memory write
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -492,7 +492,7 @@ qr/\[error\] .*? memory access out of bounds/
 )
 --- error_code: 500
 --- error_log eval
-qr/\[error\] .*? memory access out of bounds/
+qr/\[error\] .*? out of bounds/
 --- no_error_log
 [crit]
 [alert]
