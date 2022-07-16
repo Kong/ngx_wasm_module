@@ -1047,30 +1047,35 @@ static ngx_inline ngx_int_t
 ngx_wavm_func_call(ngx_wavm_func_t *f, wasm_val_vec_t *args,
     wasm_val_vec_t *rets, ngx_wrt_err_t *e)
 {
-    ngx_int_t   rc;
+    ngx_int_t             rc;
+    ngx_wavm_instance_t  *instance;
 
     ngx_wasm_assert(args);
     ngx_wasm_assert(rets);
 
-    if (ngx_wavm_state(f->instance, NGX_WAVM_INSTANCE_TRAPPED)) {
+    instance = f->instance;
+
+    if (ngx_wavm_state(instance, NGX_WAVM_INSTANCE_TRAPPED)) {
         rc = NGX_ABORT;
         goto done;
     }
 
     ngx_wrt_err_init(e);
 
-    rc = ngx_wrt.call(&f->instance->wrt_instance,
+    rc = ngx_wrt.call(&instance->wrt_instance,
                       &f->name, f->idx,
                       args, rets, e);
 
     if (rc == NGX_ABORT) {
-        f->instance->state |= NGX_WAVM_INSTANCE_TRAPPED;
-        f->instance->trapped = 1;
+        instance->state |= NGX_WAVM_INSTANCE_TRAPPED;
+        instance->trapped = 1;
     }
 
 done:
 
-    dd("\"%.*s\" rc: %ld", (int) f->name.len, f->name.data, rc);
+    dd("\"%.*s.%.*s\" rc: %ld",
+       (int) instance->module->name.len, instance->module->name.data,
+       (int) f->name.len, f->name.data, rc);
 
     return rc;
 }
@@ -1236,10 +1241,6 @@ ngx_wavm_instance_call_funcref(ngx_wavm_instance_t *instance,
     va_start(args, rets);
     rc = ngx_wavm_instance_call_func_va(instance, func, rets, args);
     va_end(args);
-
-    dd("\"%.*s.%.*s\" rc: %ld",
-       (int) instance->module->name.len, instance->module->name.data,
-       (int) funcref->name.len, funcref->name.data, rc);
 
     return rc;
 }
