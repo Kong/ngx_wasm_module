@@ -105,6 +105,11 @@ release_source() {
        $NGX_WASM_DIR/assets/release/INSTALL \
        $DIST_SRC
 
+    mkdir -p $DIST_SRC/lib
+    cp -R \
+       $NGX_WASM_DIR/lib/resty \
+       $DIST_SRC/lib
+
     tar czf $DIST_SRC.tar.gz $DIST_SRC
     cp $DIST_SRC.tar.gz $DIR_DIST_OUT
     notice "Created $DIR_DIST_OUT/$DIST_SRC.tar.gz"
