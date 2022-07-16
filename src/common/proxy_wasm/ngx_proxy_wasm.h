@@ -364,6 +364,8 @@ void ngx_proxy_wasm_instance_release(ngx_proxy_wasm_instance_ctx_t *ictx, unsign
 void ngx_proxy_wasm_store_destroy(ngx_proxy_wasm_store_t *store);
 
 /* ngx_proxy_wasm_filter_t */
+ngx_uint_t ngx_proxy_wasm_filter_id(ngx_str_t *name, ngx_str_t *config,
+    ngx_uint_t idx);
 ngx_int_t ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter);
 void ngx_proxy_wasm_filter_destroy(ngx_proxy_wasm_filter_t *filter);
 
