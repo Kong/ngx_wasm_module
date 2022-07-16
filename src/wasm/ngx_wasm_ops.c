@@ -58,10 +58,11 @@ ngx_wasm_ops_engine_new(ngx_pool_t *pool, ngx_wavm_t *vm,
 }
 
 
-void
+ngx_int_t
 ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
 {
     size_t                    i, j;
+    ngx_int_t                 rc;
     ngx_wasm_op_t            *op;
     ngx_wasm_ops_pipeline_t  *pipeline;
 
@@ -83,7 +84,10 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
                 continue;
             }
 
-            (void) ngx_wavm_module_link(op->module, op->host);
+            rc = ngx_wavm_module_link(op->module, op->host);
+            if (rc != NGX_OK) {
+                return NGX_ERROR;
+            }
 
             switch (op->code) {
 
@@ -107,7 +111,10 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
                 op->handler = &ngx_wasm_op_proxy_wasm_handler;
                 op->conf.proxy_wasm.filter->n_filters = &pipeline->nproxy_wasm;
 
-                (void) ngx_proxy_wasm_filter_init(op->conf.proxy_wasm.filter);
+                rc = ngx_proxy_wasm_filter_init(op->conf.proxy_wasm.filter);
+                if (rc != NGX_OK) {
+                    return NGX_ERROR;
+                }
 
                 pipeline->nproxy_wasm++;
                 break;
@@ -115,7 +122,7 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
             default:
                 ngx_wasm_log_error(NGX_LOG_WASM_NYI, engine->pool->log, 0,
                                    "unknown wasm op code: %d", op->code);
-                return;
+                return NGX_ERROR;
 
             }
 
@@ -124,6 +131,8 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
 
         pipeline->init = 1;
     }
+
+    return NGX_OK;
 }
 
 

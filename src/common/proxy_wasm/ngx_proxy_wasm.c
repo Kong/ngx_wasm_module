@@ -159,9 +159,16 @@ ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
             {
                 /* recycle global instance */
 
+                ngx_log_debug3(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                               "proxy_wasm \"%V\" filter (%l/%l) "
+                               "recycling trapped global instance",
+                               filter->name, filter->index + 1,
+                               pwctx->n_filters);
+
                 ngx_proxy_wasm_instance_release(ictx, 0);
 
-                ictx = ngx_proxy_wasm_instance_get(filter, filter->store, pwctx->log);
+                ictx = ngx_proxy_wasm_instance_get(filter, filter->store,
+                                                   pwctx->log);
                 if (ictx == NULL) {
                     rc = NGX_ERROR;
                     goto ret;
@@ -678,32 +685,52 @@ ngx_proxy_wasm_filter_abi_version(ngx_proxy_wasm_filter_t *filter)
 }
 
 
+ngx_uint_t
+ngx_proxy_wasm_filter_id(ngx_str_t *name, ngx_str_t *config, ngx_uint_t idx)
+{
+#define NGX_PROXY_WASM_FILTER_ID_SPRINTF  0
+    uint32_t    hash;
+#if (NGX_PROXY_WASM_FILTER_ID_SPRINTF)
+    ngx_str_t   str;
+
+    str.data = ngx_alloc(NGX_INT64_LEN);
+    if (str.data == NULL) {
+        return 0;
+    }
+
+    str.len = ngx_sprintf(str.data, "%d", filter->index) - str.data;
+#endif
+
+    ngx_crc32_init(hash);
+    ngx_crc32_update(&hash, name->data, name->len);
+    ngx_crc32_update(&hash, config->data, config->len);
+#if (NGX_PROXY_WASM_FILTER_ID_SPRINTF)
+    ngx_crc32_update(&hash, str.data, str.len);
+    ngx_crc32_final(hash);
+#else
+    ngx_crc32_final(hash);
+
+    hash += idx;
+#endif
+
+#if (NGX_PROXY_WASM_FILTER_ID_SPRINTF)
+    ngx_free(str.data);
+#endif
+
+    return hash;
+}
+
+
 ngx_int_t
 ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
 {
-    uint32_t    hash;
     ngx_int_t   rc;
-    ngx_str_t   s;
 
     filter->name = &filter->module->name;
-    filter->index = *filter->n_filters;
-
-    s.data = ngx_pnalloc(filter->pool, NGX_INT64_LEN);
-    if (s.data == NULL) {
-        goto error;
-    }
-
-    s.len = ngx_sprintf(s.data, "%d", filter->index) - s.data;
-
-    ngx_crc32_init(hash);
-    ngx_crc32_update(&hash, filter->name->data, filter->name->len);
-    ngx_crc32_update(&hash, filter->config.data, filter->config.len);
-    ngx_crc32_update(&hash, s.data, s.len);
-    ngx_crc32_final(hash);
-
-    filter->id = hash;
-
-    ngx_pfree(filter->pool, s.data);
+    filter->index = *filter->n_filters - 1;
+    filter->id = ngx_proxy_wasm_filter_id(filter->name,
+                                          &filter->config,
+                                          filter->index);
 
     ngx_log_debug5(NGX_LOG_DEBUG_WASM, filter->log, 0,
                    "proxy_wasm initializing \"%V\" filter "
@@ -933,7 +960,7 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
 
     /* root ctx */
 
-    filter->root_ictx = ngx_proxy_wasm_instance_get(filter, NULL, filter->log);
+    filter->root_ictx = ngx_proxy_wasm_instance_get(filter, filter->store, filter->log);
     if (filter->root_ictx == NULL) {
         goto error;
     }
