@@ -27,7 +27,6 @@ Content-Length: 0
 Content-Type: application/text
 X-Forwarded-For: 10.0.0.1, 10.0.0.2
 --- response_body
-Connection: close
 Hello: world
 Welcome: wasm
 --- no_error_log
@@ -94,7 +93,6 @@ qr/\[error\] .*? \[wasm\] cannot set read-only ":scheme" header/
 --- more_headers eval
 CORE::join "\n", map { "Header$_: value-$_" } 1..20
 --- response_body
-Connection: close
 Hello: world
 Welcome: wasm
 --- no_error_log
@@ -121,7 +119,6 @@ should log an error (but no trap) when response is produced
 --- more_headers eval
 CORE::join "\n", map { "Header$_: value-$_" } 1..20
 --- response_body
-Connection: close
 Hello: world
 Welcome: wasm
 --- grep_error_log eval: qr/\[(error|hostcalls)\] [^on_].*/
