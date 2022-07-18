@@ -130,7 +130,11 @@ static ngx_http_wasm_header_handler_t  ngx_http_wasm_req_headers_handlers[] = {
 #endif
 
     { ngx_string("Cookie"),
+#if (nginx_version >= 1023000)
+                 offsetof(ngx_http_headers_in_t, cookie),
+#else
                  offsetof(ngx_http_headers_in_t, cookies),
+#endif
                  ngx_http_wasm_set_builtin_multi_header_handler },
 
     { ngx_null_string, 0, ngx_http_wasm_set_header_handler }
@@ -185,53 +189,29 @@ ngx_http_wasm_set_host_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 static ngx_int_t
 ngx_http_wasm_set_connection_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
+#if (nginx_version < 1023000)
     size_t                    i;
+    ngx_str_t                *key;
     ngx_table_elt_t          *h;
     ngx_list_part_t          *part;
-    ngx_str_t                *key, *value;
+#endif
     ngx_int_t                 rc;
+    ngx_str_t                *value;
     ngx_http_request_t       *r;
     ngx_http_wasm_req_ctx_t  *rctx;
 
-    rc = ngx_http_wasm_set_builtin_header_handler(hv);
-    if (rc != NGX_OK) {
-        return rc;
-    }
-
     r = hv->r;
-    key = hv->key;
-    value = hv->value;
 
-    r->headers_in.connection_type = 0;
-
-    if (value->len) {
-        if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
-            return NGX_ERROR;
-        }
-
-        if (ngx_strcasestrn(value->data, "close", 5 - 1)) {
-            r->headers_in.connection_type = NGX_HTTP_CONNECTION_CLOSE;
-            r->headers_in.keep_alive_n = -1;
-            r->keepalive = 0;
-            rctx->req_keepalive = 0;
-
-        } else if (ngx_strcasestrn(value->data, "keep-alive", 10 - 1)) {
-            r->headers_in.connection_type = NGX_HTTP_CONNECTION_KEEP_ALIVE;
-            r->keepalive = 1;
-            rctx->req_keepalive = 1;
-        }
-    }
-
+#if (nginx_version < 1023000)
     /*
-     * NOTE: nginx does not set r->headers_in.connection
+     * NOTE: nginx before 1.23 does not set r->headers_in.connection
      * so we do so here for ngx_http_wasm_set_builtin_header_handler
      * to update the existing value.
      */
-
     if (r->headers_in.connection == NULL) {
-
         part = &r->headers_in.headers.part;
         h = part->elts;
+        key = hv->key;
 
         for (i = 0; /* void */; i++) {
 
@@ -252,6 +232,32 @@ ngx_http_wasm_set_connection_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
                 r->headers_in.connection = &h[i];
                 break;
             }
+        }
+    }
+#endif
+
+    rc = ngx_http_wasm_set_builtin_header_handler(hv);
+    if (rc != NGX_OK) {
+        return rc;
+    }
+
+    value = hv->value;
+
+    if (value->len) {
+        if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
+            return NGX_ERROR;
+        }
+
+        if (ngx_strcasestrn(value->data, "close", 5 - 1)) {
+            r->headers_in.connection_type = NGX_HTTP_CONNECTION_CLOSE;
+            r->headers_in.keep_alive_n = -1;
+            r->keepalive = 0;
+            rctx->req_keepalive = 0;
+
+        } else if (ngx_strcasestrn(value->data, "keep-alive", 10 - 1)) {
+            r->headers_in.connection_type = NGX_HTTP_CONNECTION_KEEP_ALIVE;
+            r->keepalive = 1;
+            rctx->req_keepalive = 1;
         }
     }
 
@@ -397,6 +403,40 @@ error:
 static ngx_int_t
 ngx_http_wasm_set_builtin_multi_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
+#if (nginx_version >= 1023000)
+    ngx_table_elt_t     **headers, **ph, *h;
+    ngx_http_request_t   *r = hv->r;
+
+    headers = (ngx_table_elt_t **) (
+               (char *) &r->headers_in + hv->handler->offset);
+
+    if (*headers
+        && (hv->mode == NGX_HTTP_WASM_HEADERS_SET
+            || hv->mode == NGX_HTTP_WASM_HEADERS_REMOVE))
+    {
+        /* clear */
+        *headers = NULL;
+    }
+
+    if (ngx_http_wasm_set_header_helper(hv, &h) == NGX_ERROR) {
+        return NGX_ERROR;
+    }
+
+    if (*headers) {
+        for (ph = headers; *ph; ph = &(*ph)->next) { /* void */ }
+        *ph = h;
+
+    } else {
+        *headers = h;
+    }
+
+    if (h) {
+        h->next = NULL;
+    }
+
+    return NGX_OK;
+
+#else
     ngx_array_t         *headers;
     ngx_table_elt_t     *h, **ph;
     ngx_http_request_t  *r = hv->r;
@@ -442,4 +482,5 @@ ngx_http_wasm_set_builtin_multi_header_handler(ngx_http_wasm_header_set_ctx_t *h
     *ph = h;
 
     return NGX_OK;
+#endif
 }

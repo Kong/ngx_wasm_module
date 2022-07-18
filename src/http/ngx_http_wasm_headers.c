@@ -214,6 +214,9 @@ new_header:
         return NGX_ERROR;
     }
 
+#if (nginx_version >= 1023000)
+    h->next = NULL;
+#endif
     h->hash = hv->hash;
     h->key = *key;
     h->value = *value;
