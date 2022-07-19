@@ -26,7 +26,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
-        ngx: [1.21.6]
+        ngx: [1.23.0]
         runtime: [wasmer]
         wasmer: [2.3.0]
         hup: [0]
@@ -34,10 +34,17 @@ jobs:
         include:
           - os: ubuntu-latest
             cc: gcc-8
-            ngx: 1.21.6
+            ngx: 1.23.0
             runtime: wasmtime
             wasmtime: 0.38.1
             hup: 1
+            debug: 1
+          - os: ubuntu-latest
+            cc: gcc-8
+            ngx: 1.21.6
+            runtime: wasmer
+            wasmer: 2.3.0
+            hup: 0
             debug: 1
           - os: ubuntu-latest
             cc: gcc-8
@@ -46,7 +53,7 @@ jobs:
             wasmtime: 0.38.1
           - os: ubuntu-latest
             cc: gcc-8
-            ngx: 1.21.6
+            ngx: 1.23.0
             runtime: v8
             v8: 10.5.18
             hup: 0
@@ -132,21 +139,21 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
-        ngx: [1.21.6]
+        ngx: [1.23.0]
         runtime: [wasmer]
         wasmer: [2.3.0]
         hup: [0, 1]
         debug: [1]
         include:
           - os: ubuntu-latest
-            ngx: 1.21.6
+            ngx: 1.23.0
             runtime: wasmtime
             wasmtime: 0.38.1
             hup: 0
             debug: 1
           - os: ubuntu-latest
             cc: gcc-8
-            ngx: 1.21.6
+            ngx: 1.23.0
             runtime: v8
             v8: 10.5.18
             hup: 0
@@ -247,7 +254,7 @@ jobs:
       fail-fast: false
       matrix:
         cc: [clang-9]
-        ngx: [1.21.6]
+        ngx: [1.23.0]
         wasmtime: [0.38.1]
     steps:
       - run: |
@@ -287,11 +294,17 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [clang]
-        ngx: [1.21.6]
+        ngx: [1.23.0]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [0.38.1]
         wasmer: [2.3.0]
         v8: [10.5.18]
+        include:
+          - os: ubuntu-latest
+            cc: clang
+            ngx: 1.21.6
+            runtime: wasmtime
+            wasmtime: 0.38.1
     steps:
       - run: sudo apt-get install -y gcc-8 libstdc++-8-dev
         if: ${{ matrix.cc == 'gcc-8' }}

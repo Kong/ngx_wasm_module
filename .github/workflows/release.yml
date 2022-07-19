@@ -11,7 +11,7 @@ on:
 
 env:
   CC: clang
-  NGX_VER: 1.21.6
+  NGX_VER: 1.23.0
   WASMTIME_VER: 0.38.1
   WASMER_VER: 2.3.0
   V8_VER: 10.5.18 # See https://v8.dev/docs/version-numbers#which-v8-version-should-i-use%3F
