@@ -7,7 +7,7 @@ macro_rules! test_wasi_assert {
             resp::ngx_resp_local_reason(500, "assertion failed");
             return;
         }
-    }
+    };
 }
 
 #[no_mangle]
@@ -16,7 +16,7 @@ pub fn test_wasi_random_get() {
 
     test_wasi_assert!(v.iter().sum::<u8>() == 0);
 
-    if let Ok(()) = unsafe { wasi::random_get(v.as_mut_ptr(), 10) } {
+    if let Ok(()) = unsafe { wasi::random_get(v.as_mut_ptr(), v.len()) } {
         // random_get modifies the buffer
         let sum: u32 = v.iter().map(|&b| b as u32).sum();
         test_wasi_assert!(sum != 0);
