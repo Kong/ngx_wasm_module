@@ -3,4 +3,5 @@ FROM amd64/archlinux:latest
 RUN pacman -Syyu --noconfirm \
     gcc \
     clang \
-    make
+    make \
+    && curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable

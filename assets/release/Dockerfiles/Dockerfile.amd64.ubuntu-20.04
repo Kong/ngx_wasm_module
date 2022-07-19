@@ -7,7 +7,8 @@ RUN apt-get update && \
         build-essential \
         clang \
         gcc \
-        curl
+        curl \
+        && curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
 
 # Note: this image is also used for local CI runs
 RUN apt-get install -y --no-install-recommends \
