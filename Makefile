@@ -1,4 +1,4 @@
-NGX ?= 1.23.0
+NGX ?= 1.23.1
 export NGX_BUILD_DIR_SCRROOT ?=
 export NGX_BUILD_DIR_BUILDROOT ?=
 export NGX_BUILD_DIR_PREFIX ?=
