@@ -4,8 +4,13 @@ RUN yum update -y && yum install -y \
     gcc \
     clang \
     perl \
-    make \
-    && curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+    make
+
+ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
+ENV PATH $CARGO_HOME/bin:$PATH
+RUN mkdir -p "$CARGO_HOME" && mkdir -p "$RUSTUP_HOME" && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
+    chmod -R a=rwX $CARGO_HOME
 
 # bypass "multiple definitions of 'assertions'" linker error from wasm.h:
 # https://github.com/WebAssembly/wasm-c-api/blob/master/include/wasm.h#L29
