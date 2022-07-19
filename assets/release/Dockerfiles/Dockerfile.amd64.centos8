@@ -7,4 +7,5 @@ RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-* && \
         gcc \
         clang \
         perl \
-        make
+        make \
+        && curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
