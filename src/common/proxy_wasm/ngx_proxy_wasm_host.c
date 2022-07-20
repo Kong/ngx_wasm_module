@@ -947,6 +947,132 @@ ngx_proxy_wasm_hfuncs_get_property(ngx_wavm_instance_t *instance,
     return ngx_proxy_wasm_result_ok(rets);
 }
 
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_set_property(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_http_core_main_conf_t    *cmcf;
+
+#ifdef NGX_WASM_HTTP
+    int32_t                       path_size;
+    const char                   *path_data;
+    int32_t                       value_size;
+    const char                   *value_data;
+    ngx_uint_t                    hash;
+    ngx_str_t                     name;
+    ngx_http_variable_t          *v;
+    ngx_http_variable_value_t    *vv;
+    ngx_http_wasm_req_ctx_t      *rctx;
+    u_char                       *p = NULL;
+    static const char            *ngx_prefix = "ngx\0";
+    static const ngx_int_t        ngx_prefix_len = 4;
+#endif
+
+#ifdef NGX_WASM_HTTP
+    path_data = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
+    path_size = args[1].of.i32;
+    value_data = ngx_wavm_memory_lift(instance->memory, args[2].of.i32);
+    value_size = args[3].of.i32;
+#endif
+
+#ifdef NGX_WASM_HTTP
+    if (path_size > ngx_prefix_len
+        && ngx_memcmp(path_data, ngx_prefix, ngx_prefix_len) == 0)
+    {
+        name.data = (u_char *)(path_data + ngx_prefix_len);
+        name.len = path_size - ngx_prefix_len;
+
+        hash = hash_str(name.data, name.len);
+
+        rctx = ngx_http_proxy_wasm_get_rctx(instance);
+        if (!rctx) {
+            return ngx_proxy_wasm_result_ok(rets);
+        }
+
+        cmcf = ngx_http_get_module_main_conf(rctx->r, ngx_http_core_module);
+
+        v = ngx_hash_find(&cmcf->variables_hash, hash, name.data, name.len);
+
+        if (v) {
+            if (!(v->flags & NGX_HTTP_VAR_CHANGEABLE)) {
+                dd("http variable \"%.*s\" not changeable", (int) name.len, name.data);
+                return ngx_proxy_wasm_result_ok(rets);
+            }
+
+            if (v->set_handler) {
+                dd("http set variable \"%.*s\" to \"%.*s\" with set_handler", (int) name.len, name.data, (int) value_size, value_data);
+
+                if (value_data != NULL && value_size) {
+                    vv = ngx_palloc(rctx->pool, sizeof(ngx_http_variable_value_t)
+                                    + value_size);
+                    if (vv == NULL) {
+                        return ngx_proxy_wasm_result_err(rets);
+                    }
+
+                    p = (u_char *) vv + sizeof(ngx_http_variable_value_t);
+                    ngx_memcpy(p, value_data, value_size);
+
+                } else {
+                    vv = ngx_palloc(rctx->pool, sizeof(ngx_http_variable_value_t));
+                    if (vv == NULL) {
+                        return ngx_proxy_wasm_result_err(rets);
+                    }
+                }
+
+                if (value_data == NULL) {
+                    vv->valid = 0;
+                    vv->not_found = 1;
+                    vv->no_cacheable = 0;
+                    vv->data = NULL;
+                    vv->len = 0;
+
+                } else {
+                    vv->valid = 1;
+                    vv->not_found = 0;
+                    vv->no_cacheable = 0;
+
+                    vv->data = p;
+                    vv->len = value_size;
+                }
+
+                v->set_handler(rctx->r, vv, v->data);
+            }
+
+            if (v->flags & NGX_HTTP_VAR_INDEXED) {
+                vv = &rctx->r->variables[v->index];
+                dd("http set index variable \"%.*s\" to \"%.*s\"", (int) name.len, name.data, (int) value_size, value_data);
+
+                if (value_data == NULL) {
+                    vv->valid = 0;
+                    vv->not_found = 1;
+                    vv->no_cacheable = 0;
+
+                    vv->data = NULL;
+                    vv->len = 0;
+
+                } else {
+                    p = ngx_palloc(rctx->pool, value_size);
+                    if (p == NULL) {
+                        return ngx_proxy_wasm_result_err(rets);
+                    }
+
+                    ngx_memcpy(p, value_data, value_size);
+
+                    vv->valid = 1;
+                    vv->not_found = 0;
+                    vv->no_cacheable = 0;
+
+                    vv->data = p;
+                    vv->len = value_size;
+                }
+            }
+        }
+    }
+#endif
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
 
 static ngx_int_t
 ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
@@ -1395,7 +1521,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_set_property"),
-     &ngx_proxy_wasm_hfuncs_nop,
+     &ngx_proxy_wasm_hfuncs_set_property,
      ngx_wavm_arity_i32x4,
      ngx_wavm_arity_i32 },
 

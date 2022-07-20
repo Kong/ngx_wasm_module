@@ -52,6 +52,7 @@ impl RootContext for TestRoot {
 
         match self.get_config("on_tick").unwrap_or(&"".into()).as_str() {
             "log_property" => test_log_property(self),
+            "log_set_property" => test_log_set_property(self),
             _ => (),
         }
     }

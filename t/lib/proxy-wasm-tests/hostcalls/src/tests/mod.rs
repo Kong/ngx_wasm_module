@@ -94,6 +94,43 @@ pub(crate) fn test_log_property(ctx: &(dyn TestContext + 'static)) {
     }
 }
 
+pub(crate) fn test_log_set_property(ctx: &(dyn TestContext + 'static)) {
+    let name = ctx.get_config("name").expect("expected a name argument");
+
+    let origin_var = match ctx.get_property(name.split('.').collect()) {
+        Some(p) => match std::str::from_utf8(&p) {
+            Ok(value) => value.to_string(),
+            Err(_) => panic!("failed converting {} to UTF-8", name),
+        },
+        None => {
+            info!("property not found: {}", name);
+            "".to_string()
+        }
+    };
+
+    ctx.set_property(name.split('.').collect(), None);
+
+    let new_var = match ctx.get_property(name.split('.').collect()) {
+        Some(p) => match std::str::from_utf8(&p) {
+            Ok(value) => value.to_string(),
+            Err(_) => panic!("failed converting {} to UTF-8", name),
+        },
+        None => {
+            info!("property not found: {}", name);
+            "".to_string()
+        }
+    };
+
+    if new_var == origin_var {
+        info!("property can not change: {}", name)
+    } else if new_var == "" && origin_var != "" {
+        info!("property change sucess: {}", name)
+    } else {
+        info!("unexpected result: {}", name)
+    }
+
+}
+
 pub(crate) fn test_send_status(ctx: &mut TestHttp, status: u32) {
     ctx.send_http_response(status, vec![], None)
 }

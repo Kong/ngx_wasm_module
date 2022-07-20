@@ -70,6 +70,7 @@ impl TestHttp {
             "/t/log/response_body" => test_log_response_body(self),
             "/t/log/current_time" => test_log_current_time(self),
             "/t/log/property" => test_log_property(self),
+            "/t/log/set_property" => test_log_set_property(self),
 
             /* send_local_response */
             "/t/send_local_response/status/204" => test_send_status(self, 204),
