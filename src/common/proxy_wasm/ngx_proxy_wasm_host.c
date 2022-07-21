@@ -901,6 +901,32 @@ ngx_proxy_wasm_hfuncs_get_property(ngx_wavm_instance_t *instance,
 
 
 static ngx_int_t
+ngx_proxy_wasm_hfuncs_set_property(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_str_t  path, value;
+    ngx_int_t  rc;
+
+    path.data = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
+    path.len = args[1].of.i32;
+    value.data = ngx_wavm_memory_lift(instance->memory, args[2].of.i32);
+    value.len = args[3].of.i32;
+
+    rc = ngx_proxy_wasm_properties_set(instance, &path, &value);
+
+    switch (rc) {
+    case NGX_DECLINED:
+        return ngx_proxy_wasm_result_notfound(rets);
+    case NGX_ERROR:
+        return ngx_proxy_wasm_result_err(rets);
+    default:
+        ngx_wasm_assert(rc == NGX_OK);
+        return ngx_proxy_wasm_result_ok(rets);
+    }
+}
+
+
+static ngx_int_t
 ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -1347,7 +1373,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
      ngx_wavm_arity_i32 },
 
    { ngx_string("proxy_set_property"),
-     &ngx_proxy_wasm_hfuncs_nop,
+     &ngx_proxy_wasm_hfuncs_set_property,
      ngx_wavm_arity_i32x4,
      ngx_wavm_arity_i32 },
 
