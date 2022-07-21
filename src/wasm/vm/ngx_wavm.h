@@ -158,6 +158,10 @@ ngx_wavm_memory_lift(ngx_wrt_extern_t *mem, ngx_wavm_ptr_t p)
 {
     ngx_wasm_assert(mem->kind == NGX_WRT_EXTERN_MEMORY);
 
+    if (p == 0) {
+        return NULL;
+    }
+
 #ifdef NGX_WASM_HAVE_WASMTIME
     return wasmtime_memory_data(mem->context, &mem->ext.of.memory)
            + p;
