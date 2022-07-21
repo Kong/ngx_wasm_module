@@ -10,3 +10,5 @@ t/servroot*
 *.gcov
 *.wasm
 vgcore.*
+*.o
+*.a
