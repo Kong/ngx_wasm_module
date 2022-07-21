@@ -94,6 +94,30 @@ pub(crate) fn test_log_property(ctx: &(dyn TestContext + 'static)) {
     }
 }
 
+fn show_property(ctx: &(dyn TestContext + 'static), path: &[&str]) -> String {
+    if let Some(p) = ctx.get_property(path.to_vec()) {
+        if let Ok(value) = std::str::from_utf8(&p) {
+            return format!("\"{}\"", value);
+        }
+    }
+
+    "unset".to_string()
+}
+
+pub(crate) fn test_set_property(ctx: &(dyn TestContext + 'static)) {
+    let name = ctx.get_config("name").expect("expected a name argument");
+    let path: Vec<&str> = name.split('.').collect();
+
+    info!("old: {}", show_property(ctx, &path));
+
+    let value = ctx.get_config("set").map(|value| value.as_bytes());
+
+    // proxy-wasm-rust-sdk returns Ok(()) or panics
+    ctx.set_property(path.clone(), value);
+
+    info!("new: {}", show_property(ctx, &path));
+}
+
 pub(crate) fn test_send_status(ctx: &mut TestHttp, status: u32) {
     ctx.send_http_response(status, vec![], None)
 }

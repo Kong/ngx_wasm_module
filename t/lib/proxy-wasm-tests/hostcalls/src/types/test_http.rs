@@ -95,6 +95,9 @@ impl TestHttp {
             "/t/set_request_body" => test_set_http_request_body(self),
             "/t/set_response_body" => test_set_response_body(self),
 
+            /* set property */
+            "/t/set_property" => test_set_property(self),
+
             /* http dispatch */
             "/t/dispatch_http_call" => {
                 self.send_http_dispatch();
