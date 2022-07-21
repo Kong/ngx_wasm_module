@@ -444,6 +444,7 @@ qr/\[wasm\] calling "module[A|B]\.nocall" in "log" phase/
 
 
 === TEST 20: wasm_call directive - oob memory read
+--- skip_eval: 4: $::nginxV =~ m/wasmer/ || $::nginxV =~ m/v8/
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -472,6 +473,7 @@ qr/\[error\] .*? out of bounds/
 
 
 === TEST 21: wasm_call directive - oob memory write
+--- skip_eval: 4: $::nginxV =~ m/wasmer/ || $::nginxV =~ m/v8/
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;

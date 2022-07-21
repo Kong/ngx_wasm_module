@@ -157,6 +157,5 @@ pub fn run(n: usize) -> String {
             |(cs1, mf1), (cs2, mf2)| (cs1 + cs2, mf1.max(mf2)),
         );
 
-    // Output the results to stdout.
     format!("{}\nPfannkuchen({}) = {}", checksum, n, max_flip_count)
 }

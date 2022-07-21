@@ -125,6 +125,19 @@ build_libwee8() {
     cp ./third_party/wasm-api/wasm.h "$target/include"
 }
 
+build_v8bridge() {
+    local target="$1"
+
+    notice "building v8bridge..."
+
+    # Use the same V8 clang toolchain to build v8bridge - C++ ABI compatibility
+    make -C "$NGX_WASM_DIR/lib/v8bridge" \
+        CXX="$DIR_WORK/libwee8/repos/v8/third_party/llvm-build/Release+Asserts/bin/clang" \
+        V8_INCDIR="$DIR_WORK/libwee8/repos/v8/include" \
+        build
+    make -C "$NGX_WASM_DIR/lib/v8bridge" TARGET="$target" install
+}
+
 check_cached_v8() {
     local target="$1"
     local cachedir="$2"
@@ -137,6 +150,8 @@ check_cached_v8() {
         cp -av "$cachedir/libwee8.a" "$target/lib"
         cp -av "$cachedir/cwabt.h" "$target/include"
         cp -av "$cachedir/libcwabt.a" "$target/lib"
+        cp -av "$cachedir/v8bridge.h" "$target/include"
+        cp -av "$cachedir/libv8bridge.a" "$target/lib"
         return 0
     fi
 
@@ -153,6 +168,8 @@ cache_v8() {
     cp -av "$target/lib/libwee8.a" "$cachedir"
     cp -av "$target/include/cwabt.h" "$cachedir"
     cp -av "$target/lib/libcwabt.a" "$cachedir"
+    cp -av "$target/include/v8bridge.h" "$cachedir"
+    cp -av "$target/lib/libv8bridge.a" "$cachedir"
 }
 
 build_v8() {
@@ -165,6 +182,7 @@ build_v8() {
 
     build_cwabt "$target"
     build_libwee8 "$target" "$V8_VER"
+    build_v8bridge "$target"
 
     cache_v8 "$target" "$cachedir"
 }
@@ -184,4 +202,3 @@ target="${1:-$DIR_WORK}"
 cachedir="${2:-$DIR_DOWNLOAD/v8-$V8_VER}"
 
 build_v8 "$target" "$cachedir"
-make -C "$NGX_WASM_DIR/bridges/v8" TARGET="$target" WORKDIR="$DIR_WORK"

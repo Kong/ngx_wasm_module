@@ -12,7 +12,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - bench - fannkuch_redux
+=== TEST 1: bench - fannkuch_redux
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: benchmarks
 --- config
