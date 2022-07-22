@@ -68,6 +68,7 @@ export LD_PRELOAD=$DIR_MOCKEAGAIN/mockeagain.so
 #export TEST_NGINX_USE_RR=1
 #export TEST_NGINX_NO_CLEAN=1
 #export TEST_NGINX_BENCHMARK='1000 10'
+export TEST_NGINX_CLEAN_LOG=${TEST_NGINX_CLEAN_LOG:=0}
 
 if [[ ! -x "$TEST_NGINX_BINARY" ]]; then
     fatal "no nginx binary at $TEST_NGINX_BINARY"
@@ -75,6 +76,11 @@ fi
 
 if [[ ! -x "$(command -v cargo)" ]]; then
     fatal "missing 'cargo', is the rust toolchain installed?"
+fi
+
+if [[ "$TEST_NGINX_CLEAN_LOG" == 1 ]]; then
+    echo "" > $TEST_NGINX_SERVROOT/logs/error.log || true
+    echo "" > $TEST_NGINX_SERVROOT/logs/access.log || true
 fi
 
 if [[ "$CI" == 'true' ]]; then
