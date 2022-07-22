@@ -79,7 +79,7 @@ struct ngx_wasm_op_s {
 typedef struct {
     ngx_wasm_phase_t                        *phase;
     ngx_array_t                             *ops;
-    ngx_uint_t                               nproxy_wasm;
+    ngx_uint_t                               nfilters;
     unsigned                                 init:1;
 } ngx_wasm_ops_pipeline_t;
 

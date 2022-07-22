@@ -27,7 +27,7 @@ should use a global instance reused across streams
 --- ignore_response_body
 --- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing|finalizing|freeing).*/
 --- grep_error_log_out eval
-[qr/.*?\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
+[qr/.*?\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
@@ -86,16 +86,16 @@ should recycle the global instance when trapped
 --- ignore_response_body
 --- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing|finalizing|freeing|now|trap in).*/
 --- grep_error_log_out eval
-[qr/.*?\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
+[qr/.*?\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ \[wasm\] trap in proxy_on_request_headers:.*?unreachable.*
 \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*
-\*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\)
-\*\d+ wasm freeing "hostcalls" instance in "main" vm.*\Z/,
-qr/\A\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
+\*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\).*\Z/,
+qr/\A\*\d+ wasm freeing "hostcalls" instance in "main" vm.*
+\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*

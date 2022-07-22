@@ -49,7 +49,6 @@ ngx_http_proxy_wasm_ctx(ngx_proxy_wasm_filter_t *filter, void *data)
         pwctx->type = NGX_PROXY_WASM_CONTEXT_HTTP;
 
         /* for on_request_body retrieval */
-
         rctx->data = pwctx;
     }
 

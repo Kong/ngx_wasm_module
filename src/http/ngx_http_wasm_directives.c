@@ -125,7 +125,8 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
                                       cf->pool, &cf->cycle->new_log,
                                       name, config,
                                       &loc->isolation,
-                                      &mcf->store);
+                                      &mcf->store,
+                                      NULL);
     if (rc != NGX_OK) {
         if (rc == NGX_ABORT) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
