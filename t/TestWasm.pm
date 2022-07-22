@@ -161,8 +161,8 @@ add_block_preprocessor(sub {
     {
         my $timeout = $1;
 
-        if ($nginxV =~ m/wasmtime/) {
-            # Wasmtime is much slower to load modules
+        if ($nginxV =~ m/wasmtime/ || $nginxV =~ m/v8/) {
+            # Wasmtime and V8 (TurboFan) are much slower to load modules
             $timeout += 30;
             $timeout = max($timeout, 45);
         }

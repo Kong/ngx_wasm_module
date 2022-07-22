@@ -83,6 +83,7 @@ void ngx_wasm_connection_destroy(ngx_connection_t *c);
 
 void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, ...);
+ngx_msec_t ngx_wasm_monotonic_time();
 
 extern ngx_module_t  ngx_wasm_module;
 extern ngx_uint_t  ngx_wasm_max_module;

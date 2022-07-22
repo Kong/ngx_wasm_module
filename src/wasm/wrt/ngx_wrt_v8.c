@@ -9,6 +9,7 @@
 #include <cwabt.h>
 #include <v8bridge.h>
 
+
 static void ngx_v8_destroy_instance(ngx_wrt_instance_t *instance);
 
 
@@ -51,7 +52,7 @@ ngx_v8_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
                is not possible under single-threaded mode and we need TurboFan
                for performance. */
             ngx_v8_set_flags("--no-liftoff --single-threaded");
-#if (NGX_WASM_V8_TRAP_HANDLER)
+
             if (ngx_v8_enable_wasm_trap_handler(1)) {
                 ngx_wavm_log_error(NGX_LOG_INFO, pool->log, NULL,
                                    "enabled v8 trap handler");
@@ -60,7 +61,6 @@ ngx_v8_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
                 ngx_wavm_log_error(NGX_LOG_ERR, pool->log, NULL,
                                    "failed to enable v8 trap handler");
             }
-#endif
 
             v8_engine = wasm_engine_new();
             if (v8_engine == NULL) {
