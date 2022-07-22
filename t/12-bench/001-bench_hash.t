@@ -23,9 +23,9 @@ __DATA__
 --- request
 GET /t/hash
 --- more_headers
-X-Prefix: test-long-long-long-prefix
+X-Prefix: test-prefix-3
 --- response_body
-test-long-long-long-prefix-72923
+test-prefix-3-1873
 --- no_error_log
 [error]
 [crit]

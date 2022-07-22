@@ -23,10 +23,10 @@ __DATA__
 --- request
 GET /t/fannkuch_redux
 --- more_headers
-X-N: 9
+X-N: 8
 --- response_body
-8629
-Pfannkuchen(9) = 30
+1616
+Pfannkuchen(8) = 22
 --- no_error_log
 [error]
 [crit]
