@@ -494,6 +494,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
 #if (DDEBUG)
     const wasm_name_t        *importname, *importmodule;
 #endif
+    ngx_msec_t                start_time, end_time;
 
     vm = module->vm;
 
@@ -509,6 +510,9 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
                        "loading \"%V\" module", &module->name);
 
     ngx_wrt_err_init(&e);
+
+    ngx_time_update();
+    start_time = ngx_current_msec;
 
     rc = ngx_wrt.module_init(&module->wrt_module, &vm->wrt_engine,
                              &module->bytes,
@@ -595,9 +599,12 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
     module->idx = vm->modules_max++;
     module->state |= NGX_WAVM_MODULE_LOADED;
 
+    ngx_time_update();
+    end_time = ngx_current_msec;
+
     ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL,
-                       "successfully loaded \"%V\" module",
-                       &module->name);
+                       "successfully loaded \"%V\" module in %d ms",
+                       &module->name, end_time - start_time);
 
     rc = NGX_OK;
     goto done;
