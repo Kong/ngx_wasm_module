@@ -20,7 +20,7 @@ typedef struct {
     ngx_connection_t                  *connection;
     ngx_pool_t                        *pool;  /* r->pool */
     ngx_wasm_op_ctx_t                  opctx;
-    ngx_wasm_ops_engine_t             *ffi_engine;
+    ngx_wasm_ops_t                    *ffi_engine;
     void                              *data;  /* per-stream extra context */
 
     ngx_chain_t                       *free_bufs;
@@ -58,7 +58,7 @@ typedef struct {
 
 typedef struct {
     ngx_wavm_t                        *vm;
-    ngx_wasm_ops_engine_t             *ops_engine;
+    ngx_wasm_ops_t                    *ops;
     ngx_uint_t                         isolation;
 
     ngx_msec_t                         connect_timeout;
@@ -132,7 +132,7 @@ ngx_int_t ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx,
 
 
 /* proxy-wasm with wasm ops */
-ngx_int_t ngx_http_wasm_ops_add_filter(ngx_wasm_ops_engine_t *e,
+ngx_int_t ngx_http_wasm_ops_add_filter(ngx_wasm_ops_t *e,
     ngx_pool_t *pool, ngx_log_t *log, ngx_str_t *name, ngx_str_t *config,
     ngx_uint_t *isolation, ngx_proxy_wasm_store_t *store,
     ngx_proxy_wasm_filter_t **out);

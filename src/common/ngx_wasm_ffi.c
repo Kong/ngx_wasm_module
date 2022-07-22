@@ -23,21 +23,20 @@ ngx_wasm_ffi_main_vm()
 ngx_int_t
 ngx_http_wasm_ffi_pwm_new(ngx_wavm_t *vm,
     ngx_wasm_ffi_filter_t *filters, size_t n_filters,
-    ngx_wasm_ops_engine_t **out)
+    ngx_wasm_ops_t **out)
 {
     size_t                      i;
     ngx_int_t                   rc;
+    ngx_wasm_ops_t             *ops;
     ngx_proxy_wasm_filter_t    *filter;
-    ngx_wasm_ops_engine_t      *engine;
     ngx_wasm_ffi_filter_t      *ffi_filter;
     ngx_http_wasm_main_conf_t  *mcf;
     static ngx_uint_t           isolation = NGX_PROXY_WASM_ISOLATION_NONE;
 
     mcf = ngx_http_cycle_get_module_main_conf(ngx_cycle, ngx_http_wasm_module);
 
-    engine = ngx_wasm_ops_engine_new(vm->pool, vm,
-                                     &ngx_http_wasm_subsystem);
-    if (engine == NULL) {
+    ops = ngx_wasm_ops_new(vm->pool, vm, &ngx_http_wasm_subsystem);
+    if (ops == NULL) {
         return NGX_ERROR;
     }
 
@@ -48,7 +47,7 @@ ngx_http_wasm_ffi_pwm_new(ngx_wavm_t *vm,
            (int) ffi_filter->name->len, ffi_filter->name->data,
            (int) ffi_filter->config->len, ffi_filter->config->data);
 
-        rc = ngx_http_wasm_ops_add_filter(engine, vm->pool, vm->log,
+        rc = ngx_http_wasm_ops_add_filter(ops, vm->pool, vm->log,
                                           ffi_filter->name,
                                           ffi_filter->config,
                                           &isolation,
@@ -61,7 +60,7 @@ ngx_http_wasm_ffi_pwm_new(ngx_wavm_t *vm,
                                    ffi_filter->name);
             }
 
-            ngx_wasm_ops_engine_destroy(engine);
+            ngx_wasm_ops_destroy(ops);
 
             return NGX_ERROR;
         }
@@ -69,13 +68,13 @@ ngx_http_wasm_ffi_pwm_new(ngx_wavm_t *vm,
         ffi_filter->filter_id = filter->id;
     }
 
-    rc = ngx_wasm_ops_engine_init(engine);
+    rc = ngx_wasm_ops_init(ops);
     if (rc != NGX_OK) {
-        ngx_wasm_ops_engine_destroy(engine);
+        ngx_wasm_ops_destroy(ops);
         return NGX_ERROR;
     }
 
-    *out = engine;
+    *out = ops;
 
     dd("out:%p", *out);
 
@@ -84,7 +83,7 @@ ngx_http_wasm_ffi_pwm_new(ngx_wavm_t *vm,
 
 
 ngx_int_t
-ngx_http_wasm_ffi_pwm_resume(ngx_http_request_t *r, ngx_wasm_ops_engine_t *e,
+ngx_http_wasm_ffi_pwm_resume(ngx_http_request_t *r, ngx_wasm_ops_t *e,
     ngx_uint_t phase)
 {
     ngx_int_t                 rc;
@@ -98,9 +97,9 @@ ngx_http_wasm_ffi_pwm_resume(ngx_http_request_t *r, ngx_wasm_ops_engine_t *e,
 
     opctx = &rctx->opctx;
 
-    if (opctx->ops_engine != e) {
+    if (opctx->ops != e) {
         /* first invocation */
-        opctx->ops_engine = e;
+        opctx->ops = e;
     }
 
     rc = ngx_wasm_ops_resume(opctx, phase);
@@ -119,11 +118,11 @@ done:
 void
 ngx_http_wasm_ffi_pwm_free(void *cdata)
 {
-    ngx_wasm_ops_engine_t  *e = cdata;
+    ngx_wasm_ops_t  *ops = cdata;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_ALL, e->pool->log, 0,
-                   "free engine:%p", e);
+    ngx_log_debug1(NGX_LOG_DEBUG_ALL, ops->pool->log, 0,
+                   "free ops:%p", ops);
 
-    ngx_wasm_ops_engine_destroy(e);
+    ngx_wasm_ops_destroy(ops);
 }
 #endif

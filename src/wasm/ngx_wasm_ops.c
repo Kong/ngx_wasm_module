@@ -16,10 +16,10 @@ static ngx_int_t ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *ctx,
 
 
 static ngx_inline ngx_wasm_phase_t *
-ngx_wasm_ops_engine_phase_lookup(ngx_wasm_ops_engine_t *ops_engine,
+ngx_wasm_ops_phase_lookup(ngx_wasm_ops_t *ops,
     ngx_uint_t phaseidx)
 {
-    ngx_wasm_phase_t  *phase = ops_engine->subsystem->phases;
+    ngx_wasm_phase_t  *phase = ops->subsystem->phases;
 
     while (phase->index != phaseidx) {
         phase++;
@@ -33,33 +33,33 @@ ngx_wasm_ops_engine_phase_lookup(ngx_wasm_ops_engine_t *ops_engine,
 }
 
 
-ngx_wasm_ops_engine_t *
-ngx_wasm_ops_engine_new(ngx_pool_t *pool, ngx_wavm_t *vm,
+ngx_wasm_ops_t *
+ngx_wasm_ops_new(ngx_pool_t *pool, ngx_wavm_t *vm,
     ngx_wasm_subsystem_t *subsystem)
 {
-    ngx_wasm_ops_engine_t   *ops_engine;
+    ngx_wasm_ops_t   *ops;
 
-    ops_engine = ngx_pcalloc(pool, sizeof(ngx_wasm_ops_engine_t));
-    if (ops_engine == NULL) {
+    ops = ngx_pcalloc(pool, sizeof(ngx_wasm_ops_t));
+    if (ops == NULL) {
         return NULL;
     }
 
-    ops_engine->pool = pool;
-    ops_engine->vm = vm;
-    ops_engine->subsystem = subsystem;
-    ops_engine->pipelines = ngx_pcalloc(pool, subsystem->nphases *
-                                        sizeof(ngx_wasm_ops_pipeline_t));
-    if (ops_engine->pipelines == NULL) {
-        ngx_pfree(pool, ops_engine);
+    ops->pool = pool;
+    ops->vm = vm;
+    ops->subsystem = subsystem;
+    ops->pipelines = ngx_pcalloc(pool, subsystem->nphases *
+                                 sizeof(ngx_wasm_ops_pipeline_t));
+    if (ops->pipelines == NULL) {
+        ngx_pfree(pool, ops);
         return NULL;
     }
 
-    return ops_engine;
+    return ops;
 }
 
 
 ngx_int_t
-ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
+ngx_wasm_ops_init(ngx_wasm_ops_t *engine)
 {
     size_t                    i, j;
     ngx_int_t                 rc;
@@ -138,7 +138,7 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
 
 
 void
-ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine)
+ngx_wasm_ops_destroy(ngx_wasm_ops_t *engine)
 {
     size_t                    i, j;
     ngx_wasm_op_t            *op;
@@ -181,9 +181,9 @@ ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine)
 
 
 ngx_int_t
-ngx_wasm_ops_add(ngx_wasm_ops_engine_t *ops_engine, ngx_wasm_op_t *op)
+ngx_wasm_ops_add(ngx_wasm_ops_t *ops, ngx_wasm_op_t *op)
 {
-    ngx_wasm_phase_t          *phase = ops_engine->subsystem->phases;
+    ngx_wasm_phase_t          *phase = ops->subsystem->phases;
     ngx_wasm_ops_pipeline_t   *pipeline;
     ngx_wasm_op_t            **opp;
 
@@ -195,22 +195,22 @@ ngx_wasm_ops_add(ngx_wasm_ops_engine_t *ops_engine, ngx_wasm_op_t *op)
 
         if ((op->on_phases & phase->on)) {
 
-            pipeline = ops_engine->pipelines[phase->index];
+            pipeline = ops->pipelines[phase->index];
             if (pipeline == NULL) {
-                pipeline = ngx_pcalloc(ops_engine->pool,
+                pipeline = ngx_pcalloc(ops->pool,
                                        sizeof(ngx_wasm_ops_pipeline_t));
                 if (pipeline == NULL) {
                     return NGX_ERROR;
                 }
 
                 pipeline->phase = phase;
-                pipeline->ops = ngx_array_create(ops_engine->pool, 2,
+                pipeline->ops = ngx_array_create(ops->pool, 2,
                                                  sizeof(ngx_wasm_op_t *));
                 if (pipeline->ops == NULL) {
                     return NGX_ERROR;
                 }
 
-                ops_engine->pipelines[phase->index] = pipeline;
+                ops->pipelines[phase->index] = pipeline;
             }
 
             opp = ngx_array_push(pipeline->ops);
@@ -231,19 +231,19 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
 {
     size_t                    i;
     ngx_wasm_phase_t         *phase;
-    ngx_wasm_ops_engine_t    *ops_engine = ctx->ops_engine;
+    ngx_wasm_ops_t           *ops = ctx->ops;
     ngx_wasm_ops_pipeline_t  *pipeline;
     ngx_wasm_op_t            *op;
     ngx_int_t                 rc = NGX_DECLINED;
 
-    phase = ngx_wasm_ops_engine_phase_lookup(ops_engine, phaseidx);
+    phase = ngx_wasm_ops_phase_lookup(ops, phaseidx);
     if (phase == NULL) {
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, ctx->log, 0,
                            "ops resume: no phase for index '%ui'", phase);
         goto done;
     }
 
-    pipeline = ctx->ops_engine->pipelines[phase->index];
+    pipeline = ctx->ops->pipelines[phase->index];
 
     if (pipeline == NULL) {
         dd("no pipeline");

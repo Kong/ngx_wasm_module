@@ -293,7 +293,7 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
 
 
 ngx_int_t
-ngx_http_wasm_ops_add_filter(ngx_wasm_ops_engine_t *e, ngx_pool_t *pool,
+ngx_http_wasm_ops_add_filter(ngx_wasm_ops_t *e, ngx_pool_t *pool,
     ngx_log_t *log, ngx_str_t *name, ngx_str_t *config, ngx_uint_t *isolation,
     ngx_proxy_wasm_store_t *store, ngx_proxy_wasm_filter_t **out)
 {
