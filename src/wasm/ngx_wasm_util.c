@@ -486,6 +486,31 @@ ngx_wasm_add_list_elem(ngx_pool_t *pool, ngx_list_t *map, u_char *key,
 #endif
 
 
+ngx_msec_t
+ngx_wasm_monotonic_time()
+{
+#if (NGX_HAVE_CLOCK_MONOTONIC)
+    time_t            sec;
+    ngx_uint_t        msec;
+    struct timespec   ts;
+
+#if defined(CLOCK_MONOTONIC_FAST)
+    clock_gettime(CLOCK_MONOTONIC_FAST, &ts);
+#else
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+#endif
+
+    sec = ts.tv_sec;
+    msec = ts.tv_nsec / 1000000;
+
+    return (ngx_msec_t) sec * 1000 + msec;
+#else
+    ngx_time_update();
+    return ngx_current_msec;
+#endif
+}
+
+
 #if 0
 ngx_connection_t *
 ngx_wasm_connection_create(ngx_pool_t *pool)

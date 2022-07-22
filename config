@@ -38,8 +38,6 @@ case $ngx_wasm_runtime_name in
 
         ngx_feature_name="NGX_WASM_HAVE_V8"
         ngx_feature_incs="#include <wasm.h>"
-
-        have=NGX_WASM_V8_TRAP_HANDLER value=1 . auto/define
         ;;
     *)
         echo "$0: error: $ngx_addon_name does not support the \"$ngx_wasm_runtime_name\" runtime."
