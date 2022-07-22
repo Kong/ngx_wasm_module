@@ -164,9 +164,14 @@ add_block_preprocessor(sub {
         if ($nginxV =~ m/wasmtime/) {
             # Wasmtime is much slower to load modules
             $timeout += 30;
-            $timeout = max($timeout, 45);
         }
 
+        if ($nginxV =~ m/v8/) {
+            # V8 TurboFan is slow to load modules
+            $timeout += 5;
+        }
+
+        $timeout = max($timeout, 45);
         $block->set_value("timeout", $timeout);
     }
 });
