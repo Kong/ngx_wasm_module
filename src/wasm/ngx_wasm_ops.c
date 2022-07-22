@@ -75,7 +75,7 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
 
         /* init pipeline */
 
-        pipeline->nproxy_wasm = 0;
+        pipeline->nfilters = 0;
 
         for (j = 0; j < pipeline->ops->nelts; j++) {
             op = ((ngx_wasm_op_t **) pipeline->ops->elts)[j];
@@ -109,14 +109,15 @@ ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine)
 
             case NGX_WASM_OP_PROXY_WASM:
                 op->handler = &ngx_wasm_op_proxy_wasm_handler;
-                op->conf.proxy_wasm.filter->n_filters = &pipeline->nproxy_wasm;
+                op->conf.proxy_wasm.filter->n_filters = &pipeline->nfilters;
+
+                pipeline->nfilters++;
 
                 rc = ngx_proxy_wasm_filter_init(op->conf.proxy_wasm.filter);
                 if (rc != NGX_OK) {
                     return NGX_ERROR;
                 }
 
-                pipeline->nproxy_wasm++;
                 break;
 
             default:

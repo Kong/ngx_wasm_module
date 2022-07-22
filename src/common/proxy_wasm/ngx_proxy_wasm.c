@@ -60,7 +60,10 @@ ngx_proxy_wasm_ctx_add(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_proxy_wasm_instance_ctx_t  *ictx = NULL;
     ngx_proxy_wasm_store_t         *pwstore = NULL;
 
-    if (filter->index < pwctx->fctxs.nelts) {
+    dd("filter->index: %ld, fctxs.nelts: %ld, pwctx->n_filters: %ld",
+       filter->index, pwctx->fctxs.nelts, pwctx->n_filters);
+
+    if (pwctx->fctxs.nelts == pwctx->n_filters) {
 #if (NGX_DEBUG)
         fctx = &((ngx_proxy_wasm_filter_ctx_t *)
                  pwctx->fctxs.elts)[filter->index];
@@ -111,7 +114,7 @@ ngx_proxy_wasm_ctx_add(ngx_proxy_wasm_ctx_t *pwctx,
     fctx->filter = filter;
     fctx->node.key = fctx->id;
 
-    ngx_wasm_assert(filter->index == pwctx->fctxs.nelts - 1);
+    ngx_wasm_assert(filter->index + 1 == pwctx->fctxs.nelts);
 
     return pwctx->fctxs.nelts == pwctx->n_filters
            ? NGX_DONE
@@ -274,11 +277,10 @@ ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx,
         }
 #if (NGX_DEBUG)
         else {
-            ngx_log_debug4(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
-                           "proxy_wasm \"%V\" filter (%l/%l)"
+            ngx_log_debug2(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                           "proxy_wasm filter chain (%l filters)"
                            " skipped in \"%V\" phase",
-                           filter->name, filter->index + 1, pwctx->n_filters,
-                           &pwctx->phase->name);
+                           pwctx->n_filters, &pwctx->phase->name);
         }
 #endif
 
@@ -455,11 +457,14 @@ ngx_proxy_wasm_instance_get(ngx_proxy_wasm_filter_t *filter,
     ngx_proxy_wasm_instance_ctx_t  *ictx = NULL;
 
     if (store == NULL) {
+        dd("no store, jump to create");
         pool = filter->pool;
         goto create;
     }
 
     /* lookup */
+
+    dd("lookup instance in store: %p", store);
 
     for (q = ngx_queue_head(&store->busy);
          q != ngx_queue_sentinel(&store->busy);
@@ -467,7 +472,15 @@ ngx_proxy_wasm_instance_get(ngx_proxy_wasm_filter_t *filter,
     {
         ictx = ngx_queue_data(q, ngx_proxy_wasm_instance_ctx_t, q);
 
+        if (ictx->instance->trapped) {
+            dd("release trapped instance");
+            q = ngx_queue_next(&ictx->q);
+            ngx_proxy_wasm_instance_release(ictx, 1);
+            continue;
+        }
+
         if (ictx->filter->module == filter->module) {
+            dd("reuse instance");
             ngx_wasm_assert(ictx->nrefs);
             goto reuse;
         }
@@ -480,6 +493,7 @@ ngx_proxy_wasm_instance_get(ngx_proxy_wasm_filter_t *filter,
         ictx = ngx_queue_data(q, ngx_proxy_wasm_instance_ctx_t, q);
 
         if (ictx->filter->module == filter->module) {
+            dd("reuse instance");
             ngx_wasm_assert(ictx->nrefs == 0);
 
             ngx_queue_remove(&ictx->q);
@@ -489,6 +503,8 @@ ngx_proxy_wasm_instance_get(ngx_proxy_wasm_filter_t *filter,
     }
 
     pool = store->pool;
+
+    dd("create instance in store: %p", store);
 
 create:
 
@@ -549,13 +565,17 @@ ngx_proxy_wasm_instance_release(ngx_proxy_wasm_instance_ctx_t *ictx, unsigned fo
 {
     ictx->nrefs--;
 
-    dd("ictx->nrefs: %ld", ictx->nrefs);
+    dd("ictx: %p, ictx->nrefs: %ld", ictx, ictx->nrefs);
+
+    if (force) {
+        goto release;
+    }
 
     if (ictx->nrefs) {
         return;
     }
 
-    /* release */
+release:
 
     if (ictx->store) {
         ngx_queue_remove(&ictx->q); /* remove from busy */
@@ -1104,6 +1124,8 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
 
     root_fctx = ngx_proxy_wasm_root_ctx_lookup(ictx, filter->id);
     if (root_fctx == NULL) {
+        dd("no root_fctx, creating one");
+
         root_fctx = ngx_pcalloc(ictx->pool, sizeof(ngx_proxy_wasm_filter_ctx_t));
         if (root_fctx == NULL) {
             return NGX_ERROR;
@@ -1121,6 +1143,11 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
 
         ngx_rbtree_insert(&ictx->tree_root_ctxs, &root_fctx->node);
     }
+#if (DDEBUG)
+    else {
+        dd("reused root_fctx");
+    }
+#endif
 
     ictx->current_ctx = root_fctx;
 
@@ -1144,7 +1171,6 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
     }
 
     fctx->ictx = ictx;
-
     ictx->current_ctx = fctx;
 
     rc = ngx_proxy_wasm_start(fctx);
