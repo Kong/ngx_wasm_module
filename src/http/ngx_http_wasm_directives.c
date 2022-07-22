@@ -72,7 +72,7 @@ ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    op->module = ngx_wavm_module_lookup(loc->ops_engine->vm, module_name);
+    op->module = ngx_wavm_module_lookup(loc->ops->vm, module_name);
     if (op->module == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "no \"%V\" module defined", module_name);
@@ -83,7 +83,7 @@ ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     op->code = NGX_WASM_OP_CALL;
     op->on_phases = phase->on;
 
-    if (ngx_wasm_ops_add(loc->ops_engine, op) != NGX_OK) {
+    if (ngx_wasm_ops_add(loc->ops, op) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
@@ -121,7 +121,7 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    rc = ngx_http_wasm_ops_add_filter(loc->ops_engine,
+    rc = ngx_http_wasm_ops_add_filter(loc->ops,
                                       cf->pool, &cf->cycle->new_log,
                                       name, config,
                                       &loc->isolation,

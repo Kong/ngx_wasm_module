@@ -20,7 +20,7 @@ ffi.cdef [[
     };
 
     typedef struct ngx_wavm_t             ngx_wasm_vm_t;
-    typedef struct ngx_wasm_ops_engine_t  ngx_wasm_ops_t;
+    typedef struct ngx_wasm_ops_t         ngx_wasm_ops_t;
     typedef struct ngx_wasm_ffi_filter_t  ngx_wasm_filter_t;
 
     ngx_wasm_vm_t *ngx_wasm_ffi_main_vm();

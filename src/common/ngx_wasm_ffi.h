@@ -23,9 +23,9 @@ typedef struct {
 
 ngx_int_t ngx_http_wasm_ffi_pwm_new(ngx_wavm_t *vm,
     ngx_wasm_ffi_filter_t *filters, size_t n_filters,
-    ngx_wasm_ops_engine_t **out);
+    ngx_wasm_ops_t **out);
 ngx_int_t ngx_http_wasm_ffi_pwm_resume(ngx_http_request_t *r,
-  ngx_wasm_ops_engine_t *e, ngx_uint_t phase);
+    ngx_wasm_ops_t *e, ngx_uint_t phase);
 void ngx_http_wasm_ffi_pwm_free(void *cdata);
 #endif
 

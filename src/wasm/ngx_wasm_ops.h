@@ -6,9 +6,9 @@
 #include <ngx_proxy_wasm.h>
 
 
-typedef struct ngx_wasm_op_s  ngx_wasm_op_t;
 typedef struct ngx_wasm_op_ctx_s  ngx_wasm_op_ctx_t;
-typedef struct ngx_wasm_ops_engine_s  ngx_wasm_ops_engine_t;
+typedef struct ngx_wasm_ops_s  ngx_wasm_ops_t;
+typedef struct ngx_wasm_op_s  ngx_wasm_op_t;
 
 
 typedef ngx_int_t (*ngx_wasm_op_handler_pt)(ngx_wasm_op_ctx_t *ctx,
@@ -26,7 +26,7 @@ typedef struct {
 
 
 struct ngx_wasm_op_ctx_s {
-    ngx_wasm_ops_engine_t                   *ops_engine;
+    ngx_wasm_ops_t                          *ops;
     ngx_pool_t                              *pool;
     ngx_log_t                               *log;
     void                                    *data;
@@ -84,7 +84,7 @@ typedef struct {
 } ngx_wasm_ops_pipeline_t;
 
 
-struct ngx_wasm_ops_engine_s {
+struct ngx_wasm_ops_s {
     ngx_queue_t                              q;           /* main_conf_t->ops_engines */
     ngx_pool_t                              *pool;
     ngx_wasm_subsystem_t                    *subsystem;
@@ -93,13 +93,11 @@ struct ngx_wasm_ops_engine_s {
 };
 
 
-ngx_wasm_ops_engine_t *ngx_wasm_ops_engine_new(ngx_pool_t *pool,
-    ngx_wavm_t *vm, ngx_wasm_subsystem_t *subsystem);
-ngx_int_t ngx_wasm_ops_engine_init(ngx_wasm_ops_engine_t *engine);
-void ngx_wasm_ops_engine_destroy(ngx_wasm_ops_engine_t *engine);
-ngx_int_t ngx_wasm_ops_add(ngx_wasm_ops_engine_t *ops_engine,
-    ngx_wasm_op_t *op);
-
+ngx_wasm_ops_t *ngx_wasm_ops_new(ngx_pool_t *pool, ngx_wavm_t *vm,
+    ngx_wasm_subsystem_t *subsystem);
+ngx_int_t ngx_wasm_ops_init(ngx_wasm_ops_t *ops);
+ngx_int_t ngx_wasm_ops_add(ngx_wasm_ops_t *ops, ngx_wasm_op_t *op);
 ngx_int_t ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx);
+void ngx_wasm_ops_destroy(ngx_wasm_ops_t *ops);
 
 #endif /* _NGX_WASM_OPS_H_INCLUDED_ */
