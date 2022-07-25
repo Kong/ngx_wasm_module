@@ -5,7 +5,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
         build-essential \
-        gcc \
+        ninja-build \
+        cmake \
         clang \
         curl
 

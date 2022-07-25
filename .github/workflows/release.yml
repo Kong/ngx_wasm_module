@@ -207,6 +207,8 @@ jobs:
     needs: build-images
     runs-on: macos-latest
     steps:
+      - name: Set up Homebrew dependencies
+        run: brew install ninja
       - uses: actions/checkout@v2
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
