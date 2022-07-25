@@ -5,8 +5,9 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
         build-essential \
+        ninja-build \
+        cmake \
         clang \
-        gcc \
         curl
 
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
