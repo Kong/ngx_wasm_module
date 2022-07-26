@@ -96,6 +96,15 @@ ngx_proxy_wasm_properties_set_ngx(ngx_wavm_instance_t *instance,
     ngx_http_core_main_conf_t  *cmcf;
 
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    if (!rctx) {
+        /* on_tick */
+
+        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
+                           "cannot get request context");
+
+        return NGX_ERROR;
+    }
+
     r = rctx->r;
     cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
