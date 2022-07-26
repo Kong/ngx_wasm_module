@@ -159,7 +159,7 @@ impl TestHttp {
         }
 
         self.dispatch_http_call(
-            self.get_config("host").map(|v| v.as_str()).unwrap_or(""),
+            self.get_config("host").unwrap_or(""),
             headers,
             self.get_config("body").map(|v| v.as_bytes()),
             vec![],
