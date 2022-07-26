@@ -17,7 +17,7 @@ jobs:
   tests:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ matrix.runtime == 'v8' && 120 || 15 }}
+    timeout-minutes: ${{ matrix.runtime == 'v8' && 120 || 20 }}
     env:
       NGX_BUILD_GCOV: 1
     #if: ${{ false }}
