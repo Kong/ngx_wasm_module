@@ -543,7 +543,7 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
 
 #if 0
 ngx_int_t
-ngx_wasm_socket_reader_read_all(ngx_wasm_so127.0.0.1:$TEST_NGINX_SERVER_PORTcket_tcp_t *sock, ssize_t bytes)
+ngx_wasm_socket_reader_read_all(ngx_wasm_socket_tcp_t *sock, ssize_t bytes)
 {
     ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
                    "wasm tcp socket reading all");
