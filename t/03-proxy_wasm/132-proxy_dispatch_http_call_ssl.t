@@ -23,6 +23,7 @@ __DATA__
                               host=httpbin.org \
                               headers=X-Thing:foo|X-Thing:bar|Hello:world \
                               use_https=yes \
+                              on_http_call_response=echo_response_body \
                               path=/headers';
         echo fail;
     }
@@ -45,6 +46,7 @@ __DATA__
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=expired.badssl.com \
+                              on_http_call_response=echo_response_body \
                               use_https=yes \
                               path=/';
         echo fail;
@@ -69,6 +71,7 @@ qr/\[error\] .*certificate has expired/
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=expired.badssl.com \
                               use_https=yes \
+                              on_http_call_response=echo_response_body \
                               path=/';
         echo fail;
     }
@@ -89,6 +92,7 @@ qr/\[error\] .*certificate has expired/
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=wrong.host.badssl.com \
                               use_https=yes \
+                              on_http_call_response=echo_response_body \
                               path=/';
         echo fail;
     }
@@ -112,6 +116,7 @@ qr/\[error\] .*TLS certificate does not match/
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=wrong.host.badssl.com \
                               use_https=yes \
+                              on_http_call_response=echo_response_body \
                               path=/';
         echo fail;
     }
@@ -132,6 +137,7 @@ qr/\[error\] .*TLS certificate does not match/
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=untrusted-root.badssl.com \
                               use_https=yes \
+                              on_http_call_response=echo_response_body \
                               path=/';
         echo fail;
     }
