@@ -28,8 +28,9 @@ static void ngx_wasm_socket_tcp_receive_handler(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_init_addr_text(ngx_peer_connection_t *pc);
 #if (NGX_SSL)
 static void ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c);
-static ngx_int_t ngx_wasm_socket_tcp_ssl_handshake_complete(ngx_connection_t *c);
-static ngx_int_t ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t name);
+static ngx_int_t ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c);
+static ngx_int_t ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c,
+    ngx_str_t name);
 #endif
 
 
@@ -501,7 +502,7 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
     rc = ngx_ssl_handshake(c);
 
     if (rc == NGX_OK) {
-        rc = ngx_wasm_socket_tcp_ssl_handshake_complete(c);
+        rc = ngx_wasm_socket_tcp_ssl_handshake_done(c);
         ngx_wasm_assert(rc != NGX_AGAIN);
     } else if (rc == NGX_AGAIN) {
         ngx_add_timer(c->write, sock->connect_timeout);
@@ -519,7 +520,7 @@ ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c) {
 
     sock = c->data;
 
-    rc = ngx_wasm_socket_tcp_ssl_handshake_complete(c);
+    rc = ngx_wasm_socket_tcp_ssl_handshake_done(c);
     if(rc != NGX_AGAIN) {
         goto resume;
     }
@@ -537,7 +538,7 @@ resume:
 
 
 static ngx_int_t
-ngx_wasm_socket_tcp_ssl_handshake_complete(ngx_connection_t *c) {
+ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c) {
     ngx_int_t               rc;
     ngx_wasm_socket_tcp_t  *sock = c->data;
 
