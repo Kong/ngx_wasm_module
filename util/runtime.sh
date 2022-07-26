@@ -22,4 +22,8 @@ if [[ "$1" == "v8" ]]; then
     $NGX_WASM_DIR/util/runtimes/v8.sh "$2"
 fi
 
+if [[ "$1" == "jsc" ]]; then
+    $NGX_WASM_DIR/util/runtimes/jsc.sh "$2"
+fi
+
 exit 0

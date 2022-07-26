@@ -41,6 +41,22 @@ case $ngx_wasm_runtime_name in
 
         have=NGX_WASM_V8_TRAP_HANDLER value=1 . auto/define
         ;;
+    jsc)
+        ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_jsc.c"
+        ngx_wasm_runtime_lib_name="jscbridge"
+        ngx_wasm_runtime_extra_libs="-lJavaScriptCore -lcwabt -lm -lstdc++ -ldl -lpthread -lWTF -lLowLevelInterpreterLib -lbmalloc -latomic -licuuc -licui18n -licudata"
+
+        if [ -n "$NGX_WASM_CWABT_INC" ]; then
+            NGX_WASM_RUNTIME_INC="$NGX_WASM_RUNTIME_INC -I $NGX_WASM_CWABT_INC"
+        fi
+
+        if [ -n "$NGX_WASM_CWABT_LIB" ]; then
+            NGX_WASM_RUNTIME_LIB="$NGX_WASM_RUNTIME_LIB -L$NGX_WASM_CWABT_LIB"
+        fi
+
+        ngx_feature_name="NGX_WASM_HAVE_JSC"
+        ngx_feature_incs="#include <wasm.h>"
+        ;;
     *)
         echo "$0: error: $ngx_addon_name does not support the \"$ngx_wasm_runtime_name\" runtime."
         echo "Supported runtimes: wasmtime, wasmer, WAVM, v8."
