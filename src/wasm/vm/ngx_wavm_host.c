@@ -167,6 +167,11 @@ ngx_wavm_hfunc_trampoline(void *env,
 #elif NGX_WASM_HAVE_V8
     const wasm_val_t args[],
     wasm_val_t rets[]
+#elif NGX_WASM_HAVE_JSC
+    const wasm_val_vec_t* args,
+    wasm_val_vec_t* rets
+#else
+#error "no wasm runtime"
 #endif
     )
 {
@@ -187,6 +192,9 @@ ngx_wavm_hfunc_trampoline(void *env,
 
 #elif NGX_WASM_HAVE_V8
     ngx_v8_hfunc_ctx_t        *hctx;
+
+#elif NGX_WASM_HAVE_JSC
+    ngx_jsc_hfunc_ctx_t        *hctx;
 
 #else
 #   error NYI: trampoline host context retrieval
@@ -219,6 +227,15 @@ ngx_wavm_hfunc_trampoline(void *env,
 
     hargs = (wasm_val_t *) args;
     hrets = (wasm_val_t *) rets;
+#elif NGX_WASM_HAVE_JSC
+    hctx = (ngx_jsc_hfunc_ctx_t *) env;
+    instance = hctx->instance;
+    hfunc = hctx->hfunc;
+
+    hargs = (wasm_val_t *) args;
+    hrets = (wasm_val_t *) rets;
+#else
+#error "no wasm runtime"
 #endif
 
     dd("wasm hfuncs trampoline (hfunc: \"%*s\", instance: %p)",
@@ -298,7 +315,7 @@ ngx_wavm_hfunc_trampoline(void *env,
 
     } else {
         wasm_name_new(&trapmsg, ngx_strlen(err)
-#if (NGX_WASM_HAVE_WASMTIME || NGX_WASM_HAVE_V8)
+#if (NGX_WASM_HAVE_WASMTIME || NGX_WASM_HAVE_V8 || NGX_WASM_HAVE_JSC)
                       /* wasm_trap_new requires a null-terminated string */
                       + 1
 #endif

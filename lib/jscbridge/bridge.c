@@ -72,3 +72,35 @@ void wasm_store_delete(wasm_store_t *store)
     JSGlobalContextRelease(store->context);
     free(store);
 }
+
+struct wasm_valtype_t
+{
+    wasm_valkind_t kind;
+};
+
+wasm_valtype_t *wasm_valtype_new(wasm_valkind_t kind)
+{
+    wasm_valtype_t *valtype;
+    valtype = malloc(sizeof(wasm_valtype_t));
+    if (!valtype)
+        return NULL;
+    valtype->kind = kind;
+    return valtype;
+}
+
+struct wasm_functype_t
+{
+    wasm_valtype_vec_t *param_types;
+    wasm_valtype_vec_t *result_types;
+};
+
+wasm_functype_t *wasm_functype_new(wasm_valtype_vec_t *params, wasm_valtype_vec_t *results)
+{
+    wasm_functype_t *functype;
+    functype = malloc(sizeof(wasm_functype_t));
+    if (!functype)
+        return NULL;
+    functype->param_types = params;
+    functype->result_types = results;
+    return functype;
+}
