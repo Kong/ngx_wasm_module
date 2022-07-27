@@ -207,7 +207,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
                 call->authority.len = elt->value.len;
                 call->authority.data = elt->value.data;
 
-            } 
+            }
             else if (ngx_strncmp(elt->key.data, ":scheme", 7) == 0) {
 #if (NGX_SSL)
                 if (ngx_strncmp(elt->value.data, "https", 5) == 0) {

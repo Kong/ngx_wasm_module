@@ -485,7 +485,7 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
     c = pc->connection;
 
     if (ngx_ssl_create_connection(&sock->ssl_conf->ssl, c,
-                                  NGX_SSL_BUFFER|NGX_SSL_CLIENT)
+                                  NGX_SSL_BUFFER | NGX_SSL_CLIENT)
         != NGX_OK)
     {
         ngx_wasm_socket_tcp_err(sock, "tls connection failed");
@@ -495,7 +495,7 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
     dd("tls connection created");
 
     rc = ngx_wasm_socket_tcp_ssl_set_server_name(c, sock->host);
-    if(rc == NGX_ERROR) {
+    if (rc == NGX_ERROR) {
         return NGX_ERROR;
     }
 
@@ -504,6 +504,7 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
     if (rc == NGX_OK) {
         rc = ngx_wasm_socket_tcp_ssl_handshake_done(c);
         ngx_wasm_assert(rc != NGX_AGAIN);
+
     } else if (rc == NGX_AGAIN) {
         ngx_add_timer(c->write, sock->connect_timeout);
         c->ssl->handler = ngx_wasm_socket_tcp_ssl_handshake_handler;
@@ -526,11 +527,11 @@ ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c) {
     }
 
     if (c->write->timedout) {
-        ngx_wasm_socket_tcp_err(sock, "tls handshaked timed out");
+        ngx_wasm_socket_tcp_err(sock, "tls handshake timed out");
         goto resume;
     }
 
-    ngx_wasm_socket_tcp_err(sock, "tls handshaked failed");
+    ngx_wasm_socket_tcp_err(sock, "tls handshake failed");
 
 resume:
     ngx_wasm_socket_tcp_resume(sock);
@@ -631,10 +632,7 @@ ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t name) {
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "upstream SSL server name: \"%s\"", name.data);
 
-    if (SSL_set_tlsext_host_name(c->ssl->connection,
-                                 (char *) name.data)
-        == 0)
-    {
+    if (SSL_set_tlsext_host_name(c->ssl->connection, (char *) name.data) == 0) {
         ngx_ssl_error(NGX_LOG_ERR, c->log, 0,
                       "SSL_set_tlsext_host_name(\"%s\") failed", name.data);
         return NGX_ERROR;

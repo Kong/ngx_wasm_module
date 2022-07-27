@@ -280,7 +280,8 @@ static ngx_int_t
 ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
 {
     ngx_wasm_core_conf_t  *wcf;
-    ngx_str_t              default_trusted_certificate = ngx_string("/etc/ssl/certs/ca-certificates.crt");
+    static ngx_str_t       default_crt = ngx_string(
+        "/etc/ssl/certs/ca-certificates.crt");
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
     if (wcf == NULL) {
@@ -289,12 +290,13 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
 
     wcf->ssl_conf.ssl.log = cycle->log;
 
-    if(wcf->ssl_conf.trusted_certificate.data == NULL ) {
-        wcf->ssl_conf.trusted_certificate = default_trusted_certificate;
+    if (wcf->ssl_conf.trusted_certificate.data == NULL) {
+        wcf->ssl_conf.trusted_certificate = default_crt;
     }
 
     if (ngx_ssl_create(&wcf->ssl_conf.ssl,
-                       NGX_SSL_TLSv1 | NGX_SSL_TLSv1_1 | NGX_SSL_TLSv1_2 | NGX_SSL_TLSv1_3,
+                       NGX_SSL_TLSv1 | NGX_SSL_TLSv1_1 |
+                       NGX_SSL_TLSv1_2 | NGX_SSL_TLSv1_3,
                        NULL)
         != NGX_OK)
     {
@@ -303,7 +305,8 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
-    if (ngx_wasm_core_load_ssl_trusted_certificate(&wcf->ssl_conf.ssl, &wcf->ssl_conf.trusted_certificate, 1)
+    if (ngx_wasm_core_load_ssl_trusted_certificate(&wcf->ssl_conf.ssl,
+        &wcf->ssl_conf.trusted_certificate, 1)
         == NGX_ERROR)
     {
         ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
