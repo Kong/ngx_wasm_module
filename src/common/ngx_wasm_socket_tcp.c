@@ -157,8 +157,8 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
     ngx_memzero(&sock->url, sizeof(ngx_url_t));
 
 #if (NGX_SSL)
-    sock->enable_ssl = env->enable_ssl;
-    sock->url.default_port = env->enable_ssl ? 443 : 80;
+    sock->ssl_conf = env->ssl_conf;
+    sock->url.default_port = env->ssl_conf ? 443 : 80;
 #else
     sock->url.default_port = 80;
 #endif
@@ -202,7 +202,7 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
 
     if (sock->connected) {
 #if (NGX_SSL)
-        if (sock->enable_ssl) {
+        if (sock->ssl_conf) {
             return ngx_wasm_socket_tcp_ssl_handshake(sock);
         }
 #endif
@@ -483,12 +483,6 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
 
     if (sock->ssl_ready) {
         return NGX_OK;
-    }
-
-    sock->ssl_conf = ngx_wasm_ssl_conf((ngx_cycle_t *) ngx_cycle);
-    if (sock->ssl_conf == NULL) {
-        ngx_wasm_socket_tcp_err(sock, "failed to get tls conf");
-        return NGX_ERROR;
     }
 
     pc = &sock->peer;

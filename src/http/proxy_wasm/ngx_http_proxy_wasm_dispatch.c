@@ -280,7 +280,16 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
     sock_env.kind = NGX_WASM_SOCKET_TCP_KIND_HTTP;
     sock_env.ctx.request = rctx;
 #if (NGX_SSL)
-    sock_env.enable_ssl = enable_ssl;
+    if (enable_ssl) {
+        sock_env.ssl_conf = ngx_wasm_ssl_conf((ngx_cycle_t *) ngx_cycle);
+        if (sock_env.ssl_conf == NULL) {
+            call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_SSL_CONF;
+            goto error;
+        }
+
+    } else {
+        sock_env.ssl_conf = NULL;
+    }
 #endif
 
     if (ngx_wasm_socket_tcp_init(sock, &call->host, &sock_env) != NGX_OK) {

@@ -61,7 +61,7 @@ typedef struct {
     } ctx;
 
 #if (NGX_SSL)
-    unsigned                                 enable_ssl:1;
+    ngx_wasm_ssl_conf_t                     *ssl_conf;
 #endif
 } ngx_wasm_socket_tcp_env_t;
 
@@ -123,7 +123,6 @@ struct ngx_wasm_socket_tcp_s {
     unsigned                                 write_closed:1;
 
 #if (NGX_SSL)
-    unsigned                                 enable_ssl:1;
     unsigned                                 ssl_ready:1;
 #endif
 };
