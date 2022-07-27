@@ -125,6 +125,9 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_wasm_socket_tcp_env_t        sock_env;
     ngx_http_request_t              *r;
     ngx_http_proxy_wasm_dispatch_t  *call = NULL;
+#if (NGX_SSL)
+    unsigned                         enable_ssl = 0;
+#endif
 
     r = rctx->r;
     sock = NULL;
@@ -211,11 +214,10 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
             else if (ngx_strncmp(elt->key.data, ":scheme", 7) == 0) {
 #if (NGX_SSL)
                 if (ngx_strncmp(elt->value.data, "https", 5) == 0) {
-                    call->enable_ssl = 1;
+                    enable_ssl = 1;
                     dd("tls enabled");
 
                 } else if (ngx_strncmp(elt->value.data, "http", 4) == 0) {
-                    call->enable_ssl = 0;
                     dd("tls disabled");
 
                 } else {
@@ -277,14 +279,11 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
     sock_env.buf_tag = buf_tag;
     sock_env.kind = NGX_WASM_SOCKET_TCP_KIND_HTTP;
     sock_env.ctx.request = rctx;
-
-    if (ngx_wasm_socket_tcp_init(sock, &call->host, &sock_env,
 #if (NGX_SSL)
-                                 call->enable_ssl ? 443 : 80
-#else
-                                 80
+    sock_env.enable_ssl = enable_ssl;
 #endif
-    ) != NGX_OK) {
+
+    if (ngx_wasm_socket_tcp_init(sock, &call->host, &sock_env) != NGX_OK) {
         goto error;
     }
 
@@ -617,27 +616,6 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         }
 
         ngx_wasm_assert(rc == NGX_OK);
-
-        call->state = NGX_HTTP_PROXY_WASM_DISPATCH_SSL_HANDSHAKING;
-
-        /* fallthrough */
-
-    case NGX_HTTP_PROXY_WASM_DISPATCH_SSL_HANDSHAKING:
-
-#if (NGX_SSL)
-        if (call->enable_ssl) {
-            rc = ngx_wasm_socket_tcp_ssl_handshake(sock);
-            if (rc == NGX_ERROR) {
-                goto error;
-            }
-
-            if (rc == NGX_AGAIN) {
-                break;
-            }
-
-            ngx_wasm_assert(rc == NGX_OK);
-        }
-#endif
 
         call->state = NGX_HTTP_PROXY_WASM_DISPATCH_SENDING;
 

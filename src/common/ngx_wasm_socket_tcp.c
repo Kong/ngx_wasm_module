@@ -27,6 +27,7 @@ static void ngx_wasm_socket_tcp_send_handler(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_receive_handler(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_init_addr_text(ngx_peer_connection_t *pc);
 #if (NGX_SSL)
+static ngx_int_t ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c);
 static ngx_int_t ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c);
 static ngx_int_t ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c,
@@ -115,8 +116,7 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
 
 ngx_int_t
 ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host, ngx_wasm_socket_tcp_env_t *env,
-    in_port_t default_port)
+    ngx_str_t *host, ngx_wasm_socket_tcp_env_t *env)
 {
     ngx_memzero(sock, sizeof(ngx_wasm_socket_tcp_t));
 
@@ -156,8 +156,13 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
 
     ngx_memzero(&sock->url, sizeof(ngx_url_t));
 
+#if (NGX_SSL)
+    sock->enable_ssl = env->enable_ssl;
+    sock->url.default_port = env->enable_ssl ? 443 : 80;
+#else
+    sock->url.default_port = 80;
+#endif
     sock->url.url = sock->host;
-    sock->url.default_port = default_port;
     sock->url.no_resolve = 1;
 
     if (ngx_parse_url(sock->pool, &sock->url) != NGX_OK) {
@@ -196,6 +201,11 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
     }
 
     if (sock->connected) {
+#if (NGX_SSL)
+        if (sock->enable_ssl) {
+            return ngx_wasm_socket_tcp_ssl_handshake(sock);
+        }
+#endif
         return NGX_OK;
     }
 
@@ -461,7 +471,7 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
 
 
 #if (NGX_SSL)
-ngx_int_t
+static ngx_int_t
 ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
     ngx_int_t                        rc;
     ngx_connection_t                *c;
