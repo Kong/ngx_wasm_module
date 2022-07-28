@@ -11,35 +11,19 @@ static ngx_int_t
 ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
     ngx_log_t *log)
 {
-    wasm_name_t        msg;
-    wasmtime_error_t  *err = NULL;
-
     if (conf->compiler.len) {
         if (ngx_strncmp(conf->compiler.data, "auto", 4) == 0) {
-            err = wasmtime_config_strategy_set(config,
-                                               WASMTIME_STRATEGY_AUTO);
+            wasmtime_config_strategy_set(config,
+                           WASMTIME_STRATEGY_AUTO);
 
         } else if (ngx_strncmp(conf->compiler.data, "cranelift", 9) == 0) {
-            err = wasmtime_config_strategy_set(config,
-                                               WASMTIME_STRATEGY_CRANELIFT);
+            wasmtime_config_strategy_set(config,
+                           WASMTIME_STRATEGY_CRANELIFT);
 
         } else {
             ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
                                "invalid compiler \"%V\"",
                                &conf->compiler);
-            return NGX_ERROR;
-        }
-
-        if (err) {
-            wasmtime_error_message(err, &msg);
-
-            ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
-                               "failed setting \"%V\" compiler: %.*s",
-                               &conf->compiler, msg.size, msg.data);
-
-            wasmtime_error_delete(err);
-            wasm_name_delete(&msg);
-
             return NGX_ERROR;
         }
 
