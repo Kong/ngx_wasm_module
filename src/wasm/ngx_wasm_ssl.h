@@ -13,4 +13,8 @@ typedef struct ngx_wasm_ssl_conf_s {
     ngx_flag_t      skip_host_check;
 } ngx_wasm_ssl_conf_t;
 
+
+ngx_wasm_ssl_conf_t *ngx_wasm_ssl_conf(ngx_cycle_t *cycle);
+
+
 #endif /* _NGX_WASM_SSL_H_INCLUDED_ */
