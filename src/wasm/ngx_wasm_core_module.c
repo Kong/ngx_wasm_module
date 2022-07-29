@@ -146,7 +146,7 @@ ngx_wasm_core_cleanup_pool(void *data)
     ngx_wavm_destroy(vm);
 
 #if (NGX_SSL)
-    if(ssl->ctx) {
+    if (ssl->ctx) {
         ngx_ssl_cleanup_ctx(ssl);
     }
 #endif
@@ -295,22 +295,22 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
     }
 
     if (ngx_ssl_create(&wcf->ssl_conf.ssl,
-                       NGX_SSL_TLSv1 | NGX_SSL_TLSv1_1 |
-                       NGX_SSL_TLSv1_2 | NGX_SSL_TLSv1_3,
+                       NGX_SSL_TLSv1
+                       |NGX_SSL_TLSv1_1
+                       |NGX_SSL_TLSv1_2
+                       |NGX_SSL_TLSv1_3,
                        NULL)
         != NGX_OK)
     {
-        ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                           "tls create failed");
         return NGX_ERROR;
     }
 
     if (ngx_wasm_core_load_ssl_trusted_certificate(&wcf->ssl_conf.ssl,
         &wcf->ssl_conf.trusted_certificate, 1)
-        == NGX_ERROR)
+        != NGX_OK)
     {
         ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                           "failed to load tls certificates from %V",
+                           "failed loading tls certificate file at \"%V\"",
                            wcf->ssl_conf.trusted_certificate);
         return NGX_ERROR;
     }
@@ -321,7 +321,7 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
 }
 
 
-// Modified from `ngx_ssl_trusted_certificate`
+/* Modified from `ngx_ssl_trusted_certificate` */
 static ngx_int_t
 ngx_wasm_core_load_ssl_trusted_certificate(ngx_ssl_t *ssl, ngx_str_t *cert,
     ngx_int_t depth)

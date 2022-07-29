@@ -210,8 +210,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
                 call->authority.len = elt->value.len;
                 call->authority.data = elt->value.data;
 
-            }
-            else if (ngx_strncmp(elt->key.data, ":scheme", 7) == 0) {
+            } else if (ngx_strncmp(elt->key.data, ":scheme", 7) == 0) {
 #if (NGX_SSL)
                 if (ngx_strncmp(elt->value.data, "https", 5) == 0) {
                     enable_ssl = 1;
@@ -227,10 +226,11 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
                 }
 #else
                 ngx_wasm_log_error(NGX_LOG_WARN, r->connection->log, 0,
-                                   "scheme ignored - NGX_SSL not enabled");
+                                   "proxy_wasm dispatch scheme ignored: "
+                                   "not built with NGX_SSL");
 #endif
-            }
-            else {
+
+            } else {
                 ngx_wasm_log_error(NGX_LOG_WASM_NYI, r->connection->log, 0,
                                    "NYI - dispatch_http_call header \"%V\"",
                                    &elt->key);

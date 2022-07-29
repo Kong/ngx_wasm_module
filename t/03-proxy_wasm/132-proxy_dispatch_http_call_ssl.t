@@ -99,7 +99,7 @@ qr/\[error\] .*certificate has expired/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*TLS certificate does not match/
+qr/\[error\] .*tls certificate does not match/
 --- no_error_log
 [crit]
 

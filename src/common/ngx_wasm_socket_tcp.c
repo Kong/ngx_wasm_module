@@ -472,7 +472,8 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
 
 #if (NGX_SSL)
 static ngx_int_t
-ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
+ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock)
+{
     ngx_int_t                        rc;
     ngx_connection_t                *c;
     ngx_peer_connection_t           *pc;
@@ -489,10 +490,9 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
     c = pc->connection;
 
     if (ngx_ssl_create_connection(&sock->ssl_conf->ssl, c,
-                                  NGX_SSL_BUFFER | NGX_SSL_CLIENT)
+                                  NGX_SSL_BUFFER|NGX_SSL_CLIENT)
         != NGX_OK)
     {
-        ngx_wasm_socket_tcp_err(sock, "tls connection failed");
         return NGX_ERROR;
     }
 
@@ -519,14 +519,15 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock) {
 
 
 static void
-ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c) {
+ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c)
+{
     ngx_wasm_socket_tcp_t  *sock;
     ngx_int_t               rc;
 
     sock = c->data;
 
     rc = ngx_wasm_socket_tcp_ssl_handshake_done(c);
-    if(rc != NGX_AGAIN) {
+    if (rc != NGX_AGAIN) {
         goto resume;
     }
 
@@ -538,12 +539,14 @@ ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c) {
     ngx_wasm_socket_tcp_err(sock, "tls handshake failed");
 
 resume:
+
     ngx_wasm_socket_tcp_resume(sock);
 }
 
 
 static ngx_int_t
-ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c) {
+ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c)
+{
     ngx_int_t               rc;
     ngx_wasm_socket_tcp_t  *sock = c->data;
 
@@ -551,19 +554,19 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c) {
         return NGX_AGAIN;
     }
 
-    if(sock->ssl_conf->skip_verify != 1) {
+    if (sock->ssl_conf->skip_verify != 1) {
         rc = SSL_get_verify_result(c->ssl->connection);
 
         if (rc != X509_V_OK) {
-            ngx_wasm_socket_tcp_err(sock, "TLS certificate verify error: (%l:%s)",
+            ngx_wasm_socket_tcp_err(sock, "tls certificate verify error: (%l:%s)",
                                     rc, X509_verify_cert_error_string(rc));
             return NGX_ERROR;
         }
     }
 
-    if(sock->ssl_conf->skip_host_check != 1) {
+    if (sock->ssl_conf->skip_host_check != 1) {
         if (ngx_ssl_check_host(c, &sock->host) != NGX_OK) {
-            ngx_wasm_socket_tcp_err(sock, "TLS certificate does not match \"%V\"",
+            ngx_wasm_socket_tcp_err(sock, "tls certificate does not match \"%V\"",
                                     &sock->host);
             return NGX_ERROR;
         }
@@ -578,9 +581,10 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c) {
 }
 
 
-// Modified from ngx_http_upstream_ssl_name.
+/* Modified from `ngx_http_upstream_ssl_name` */
 static ngx_int_t
-ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t name) {
+ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t name)
+{
     u_char  *p, *last;
 
     if (name.len == 0) {
@@ -643,6 +647,7 @@ ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t name) {
     }
 
 done:
+
     return NGX_OK;
 }
 #endif
