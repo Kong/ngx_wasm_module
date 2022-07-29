@@ -39,7 +39,7 @@ But WebAssembly is based on a different level of abstraction, on which the primi
 
 ## Proposal
 
-This proposal introduces a design of efficient and ergonomic cross-worker IPC mechanism with WebAssembly called "2D Threads".
+This proposal introduces a design of an efficient and ergonomic process-boundary-crossing mechanism for WebAssembly called "2D Threads". **WebAssembly modules are provided with a single-process multi-threaded view of its environment** when the Nginx instance runs with multiple worker processes, without changes to Nginx's own process model.
 
 - End-user experience of sharing data and sending messages between workers.
 - The proposed threading model.
