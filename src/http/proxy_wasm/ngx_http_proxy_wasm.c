@@ -122,7 +122,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_filter_ctx_t *fctx,
 
 static ngx_int_t
 ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_filter_ctx_t *fctx,
-   ngx_uint_t *ret)
+    ngx_uint_t *ret)
 {
     ngx_int_t                 rc;
     ngx_uint_t                nheaders;

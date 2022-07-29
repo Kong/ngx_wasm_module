@@ -9,7 +9,7 @@
 #endif
 
 
-static const char* ngx_prefix = "ngx\0";
+static const char *ngx_prefix = "ngx\0";
 static size_t ngx_prefix_len = 4;
 
 

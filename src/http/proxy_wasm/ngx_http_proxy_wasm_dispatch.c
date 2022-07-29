@@ -616,8 +616,8 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         }
 
         ngx_chain_update_chains(r->connection->pool,
-                               &rctx->free_bufs, &rctx->busy_bufs,
-                               &nl, buf_tag);
+                                &rctx->free_bufs, &rctx->busy_bufs,
+                                &nl, buf_tag);
 
         ngx_wasm_assert(rc == NGX_OK);
 

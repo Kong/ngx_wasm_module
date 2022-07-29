@@ -38,6 +38,7 @@ typedef struct {
     wasmtime_linker_t             *linker;
 } ngx_wrt_engine_t;
 
+
 typedef struct {
     ngx_wrt_engine_t              *engine;
     wasmtime_module_t             *module;
@@ -45,10 +46,12 @@ typedef struct {
     wasm_exporttype_vec_t         *export_types;
 } ngx_wrt_module_t;
 
+
 typedef struct {
     wasmtime_context_t            *context;
     wasmtime_store_t              *store;
 } ngx_wrt_store_t;
+
 
 typedef struct {
     ngx_pool_t                    *pool;
@@ -59,6 +62,7 @@ typedef struct {
     wasmtime_instance_t            instance;
 } ngx_wrt_instance_t;
 
+
 typedef struct {
     ngx_wrt_instance_t            *instance;
     wasmtime_context_t            *context;
@@ -66,6 +70,7 @@ typedef struct {
     ngx_str_t                      name;
     ngx_wrt_extern_kind_e          kind;
 } ngx_wrt_extern_t;
+
 
 void ngx_wasm_valvec2wasmtime(wasmtime_val_t *out, wasm_val_vec_t *vec);
 void ngx_wasmtime_valvec2wasm(wasm_val_vec_t *out, wasmtime_val_t *vec,
@@ -87,6 +92,7 @@ typedef struct {
     wasm_store_t                  *store;
 } ngx_wrt_engine_t;
 
+
 typedef struct {
     ngx_wrt_engine_t              *engine;
     wasm_module_t                 *module;
@@ -97,15 +103,18 @@ typedef struct {
     unsigned                       wasi:1;
 } ngx_wrt_module_t;
 
+
 typedef struct {
     wasm_store_t                  *store;
     void                          *data;
 } ngx_wrt_store_t;
 
+
 typedef struct {
     ngx_wavm_hfunc_t              *hfunc;
     ngx_wavm_instance_t           *instance;
 } ngx_wasmer_hfunc_ctx_t;
+
 
 typedef struct {
     ngx_pool_t                    *pool;
@@ -118,6 +127,7 @@ typedef struct {
     wasm_extern_vec_t              env;
     wasm_extern_vec_t              externs;
 } ngx_wrt_instance_t;
+
 
 typedef struct {
     ngx_wrt_instance_t            *instance;
@@ -164,12 +174,14 @@ typedef enum {
     NGX_WRT_IMPORT_WASI,
 } ngx_wrt_import_kind_e;
 
+
 typedef struct {
     ngx_pool_t                    *pool;
     wasm_engine_t                 *engine;
     wasm_store_t                  *store;
     unsigned                       exiting:1;
 } ngx_wrt_engine_t;
+
 
 typedef struct {
     ngx_wrt_engine_t              *engine;
@@ -181,15 +193,18 @@ typedef struct {
     ngx_uint_t                     nimports;
 } ngx_wrt_module_t;
 
+
 typedef struct {
     wasm_store_t                  *store;
     void                          *data;
 } ngx_wrt_store_t;
 
+
 typedef struct {
     ngx_wavm_hfunc_t              *hfunc;
     ngx_wavm_instance_t           *instance;
 } ngx_v8_hfunc_ctx_t;
+
 
 typedef struct {
     ngx_pool_t                    *pool;
@@ -201,6 +216,7 @@ typedef struct {
     wasm_extern_t                **imports;
     wasm_extern_vec_t              externs;
 } ngx_wrt_instance_t;
+
 
 typedef struct {
     ngx_wrt_instance_t            *instance;
