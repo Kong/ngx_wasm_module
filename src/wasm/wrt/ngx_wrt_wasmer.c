@@ -84,7 +84,7 @@ static void
 ngx_wasmer_destroy_engine(ngx_wrt_engine_t *engine)
 {
     wasi_env_delete(engine->wasi_env);
-    //wasi_config_delete(engine->wasi_config);
+    /* wasi_config_delete(engine->wasi_config); */
 
     wasm_store_delete(engine->store);
     wasm_engine_delete(engine->engine);

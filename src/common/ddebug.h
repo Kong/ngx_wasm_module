@@ -18,7 +18,8 @@
 #include <stdarg.h>
 
 static ngx_inline void
-dd(const char *fmt, ...) {
+dd(const char *fmt, ...)
+{
 }
 #   endif
 #else
@@ -28,7 +29,8 @@ dd(const char *fmt, ...) {
 #include <stdarg.h>
 
 static ngx_inline void
-dd(const char *fmt, ...) {
+dd(const char *fmt, ...)
+{
 }
 #   endif
 #endif

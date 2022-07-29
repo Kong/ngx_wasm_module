@@ -24,6 +24,9 @@ rc=0
 $DIR_BIN/style "$@" >$FILE_OUT &
 wait
 
+$NGX_WASM_DIR/util/morestyle.pl "$@" >>$FILE_OUT &
+wait
+
 if [[ -s "$FILE_OUT" ]]; then
     cat $FILE_OUT
     rc=1

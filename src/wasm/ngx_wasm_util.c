@@ -232,7 +232,7 @@ ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
 
         if (buf->tag != tag) {
             if (ll) {
-                //ngx_wasm_assert(ll->next == cl);
+                /* ngx_wasm_assert(ll->next == cl); */
                 ll->next = cl->next;
             }
 

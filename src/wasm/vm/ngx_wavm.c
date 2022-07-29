@@ -1020,7 +1020,7 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
         }
     }
 
-    //ngx_queue_insert_tail(&vm->instances, &instance->q);
+    /* ngx_queue_insert_tail(&vm->instances, &instance->q); */
 
     return instance;
 
@@ -1344,7 +1344,7 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
         instance->cln->handler = NULL;
     }
 
-    //ngx_queue_remove(&instance->q);
+    /* ngx_queue_remove(&instance->q); */
 
     ngx_pfree(instance->pool, instance);
 }
