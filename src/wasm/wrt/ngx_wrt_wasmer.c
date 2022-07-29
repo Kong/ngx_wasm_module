@@ -297,7 +297,7 @@ ngx_wasmer_init_store(ngx_wrt_store_t *store, ngx_wrt_engine_t *engine,
 {
     store->store = wasm_store_new(engine->engine);
     if (store->store == NULL) {
-       return NGX_ERROR;
+        return NGX_ERROR;
     }
 
     store->data = data;
@@ -348,9 +348,8 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
 
         case NGX_WRT_IMPORT_WASI:
             instance->env.data[i] = (wasm_extern_t *)
-                wasm_extern_copy(
-                     wasmer_named_extern_unwrap(
-                         instance->wasi_imports.data[import->of.wasi_idx]));
+                wasm_extern_copy(wasmer_named_extern_unwrap(
+                    instance->wasi_imports.data[import->of.wasi_idx]));
             nimports++;
             break;
 
@@ -433,14 +432,14 @@ ngx_wasmer_destroy_instance(ngx_wrt_instance_t *instance)
 
             switch (import->kind) {
             case NGX_WRT_IMPORT_HFUNC:
-               ext = instance->env.data[i];
-               func = wasm_extern_as_func(ext);
+                ext = instance->env.data[i];
+                func = wasm_extern_as_func(ext);
 
-               wasm_func_delete(func);
-               break;
+                wasm_func_delete(func);
+                break;
 
             default:
-               break;
+                break;
             }
         }
 #endif

@@ -17,11 +17,11 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
     if (conf->compiler.len) {
         if (ngx_strncmp(conf->compiler.data, "auto", 4) == 0) {
             err = wasmtime_config_strategy_set(config,
-                           WASMTIME_STRATEGY_AUTO);
+                                               WASMTIME_STRATEGY_AUTO);
 
         } else if (ngx_strncmp(conf->compiler.data, "cranelift", 9) == 0) {
             err = wasmtime_config_strategy_set(config,
-                           WASMTIME_STRATEGY_CRANELIFT);
+                                               WASMTIME_STRATEGY_CRANELIFT);
 
         } else {
             ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
@@ -488,10 +488,10 @@ ngx_wasmtime_trap(ngx_wrt_store_t *store, wasm_byte_vec_t *msg)
 static void *
 ngx_wasmtime_get_ctx(void *data)
 {
-   wasmtime_caller_t   *caller = data;
-   wasmtime_context_t  *context = wasmtime_caller_context(caller);
+    wasmtime_caller_t   *caller = data;
+    wasmtime_context_t  *context = wasmtime_caller_context(caller);
 
-   return wasmtime_context_get_data(context);
+    return wasmtime_context_get_data(context);
 }
 
 

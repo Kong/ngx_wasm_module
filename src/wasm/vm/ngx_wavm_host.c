@@ -15,25 +15,30 @@ const wasm_valkind_t *ngx_wavm_arity_i32[] = {
     NULL
 };
 
+
 const wasm_valkind_t *ngx_wavm_arity_i64[] = {
     &ngx_wavm_i64,
     NULL
 };
+
 
 const wasm_valkind_t *ngx_wavm_arity_i32x2[] = {
     &ngx_wavm_i32, &ngx_wavm_i32,
     NULL
 };
 
+
 const wasm_valkind_t *ngx_wavm_arity_i32x3[] = {
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
     NULL
 };
 
+
 const wasm_valkind_t *ngx_wavm_arity_i32x4[] = {
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
     NULL
 };
+
 
 const wasm_valkind_t *ngx_wavm_arity_i32x5[] = {
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
@@ -41,17 +46,20 @@ const wasm_valkind_t *ngx_wavm_arity_i32x5[] = {
     NULL
 };
 
+
 const wasm_valkind_t *ngx_wavm_arity_i32x6[] = {
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
     &ngx_wavm_i32, &ngx_wavm_i32,
     NULL
 };
 
+
 const wasm_valkind_t *ngx_wavm_arity_i32x8[] = {
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
     NULL
 };
+
 
 const wasm_valkind_t *ngx_wavm_arity_i32x9[] = {
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
@@ -60,6 +68,7 @@ const wasm_valkind_t *ngx_wavm_arity_i32x9[] = {
     NULL
 };
 
+
 const wasm_valkind_t *ngx_wavm_arity_i32x10[] = {
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
@@ -67,12 +76,14 @@ const wasm_valkind_t *ngx_wavm_arity_i32x10[] = {
     NULL
 };
 
+
 const wasm_valkind_t *ngx_wavm_arity_i32x12[] = {
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
     &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32, &ngx_wavm_i32,
     NULL
 };
+
 
 const wasm_valkind_t *ngx_wavm_arity_i32_i64[] = {
     &ngx_wavm_i32, &ngx_wavm_i64,
@@ -120,9 +131,9 @@ ngx_wavm_host_hfunc_create(ngx_pool_t *pool, ngx_wavm_host_def_t *host,
 
 #if 0
         dd("strncmp: \"%.*s\", \"%.*s\", (len: %d)",
-          (int) name->len, name->data,
-          (int) func->name.len, func->name.data,
-          (int) name->len);
+           (int) name->len, name->data,
+           (int) func->name.len, func->name.data,
+           (int) name->len);
 #endif
 
         if (ngx_strncmp(name->data, func->name.data, func->name.len) != 0) {
@@ -162,8 +173,8 @@ ngx_wavm_hfunc_trampoline(void *env,
     const wasmtime_val_t *args, size_t nargs,
     wasmtime_val_t *rets, size_t nrets
 #elif NGX_WASM_HAVE_WASMER
-    const wasm_val_vec_t* args,
-    wasm_val_vec_t* rets
+    const wasm_val_vec_t *args,
+    wasm_val_vec_t *rets
 #elif NGX_WASM_HAVE_V8
     const wasm_val_t args[],
     wasm_val_t rets[]

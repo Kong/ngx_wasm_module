@@ -810,56 +810,56 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
     /* http */
 
     filter->proxy_on_http_request_headers =
-        ngx_proxy_wasm_filter_func_lookup(
-            filter, "proxy_on_http_request_headers");
+        ngx_proxy_wasm_filter_func_lookup(filter,
+                                          "proxy_on_http_request_headers");
     filter->proxy_on_http_request_body =
-        ngx_proxy_wasm_filter_func_lookup(
-            filter, "proxy_on_http_request_body");
+        ngx_proxy_wasm_filter_func_lookup(filter,
+                                          "proxy_on_http_request_body");
     filter->proxy_on_http_request_trailers =
-        ngx_proxy_wasm_filter_func_lookup(
-            filter, "proxy_on_http_request_trailers");
+        ngx_proxy_wasm_filter_func_lookup(filter,
+                                          "proxy_on_http_request_trailers");
     filter->proxy_on_http_request_metadata =
-        ngx_proxy_wasm_filter_func_lookup(
-            filter, "proxy_on_http_request_metadata");
+        ngx_proxy_wasm_filter_func_lookup(filter,
+                                          "proxy_on_http_request_metadata");
     filter->proxy_on_http_response_headers =
-        ngx_proxy_wasm_filter_func_lookup(
-            filter, "proxy_on_http_response_headers");
+        ngx_proxy_wasm_filter_func_lookup(filter,
+                                          "proxy_on_http_response_headers");
     filter->proxy_on_http_response_body =
-        ngx_proxy_wasm_filter_func_lookup(
-            filter, "proxy_on_http_response_body");
+        ngx_proxy_wasm_filter_func_lookup(filter,
+                                          "proxy_on_http_response_body");
     filter->proxy_on_http_response_trailers =
-        ngx_proxy_wasm_filter_func_lookup(
-            filter, "proxy_on_http_response_trailers");
+        ngx_proxy_wasm_filter_func_lookup(filter,
+                                          "proxy_on_http_response_trailers");
     filter->proxy_on_http_response_metadata =
-        ngx_proxy_wasm_filter_func_lookup(
-            filter, "proxy_on_http_response_metadata");
+        ngx_proxy_wasm_filter_func_lookup(filter,
+                                          "proxy_on_http_response_metadata");
 
     if (filter->abi_version < NGX_PROXY_WASM_VNEXT) {
         /* 0.1.0 - 0.2.1 */
         filter->proxy_on_http_request_headers =
-            ngx_proxy_wasm_filter_func_lookup(
-                filter, "proxy_on_request_headers");
+            ngx_proxy_wasm_filter_func_lookup(filter,
+                                              "proxy_on_request_headers");
         filter->proxy_on_http_request_body =
-            ngx_proxy_wasm_filter_func_lookup(
-                filter, "proxy_on_request_body");
+            ngx_proxy_wasm_filter_func_lookup(filter,
+                                              "proxy_on_request_body");
         filter->proxy_on_http_request_trailers =
-            ngx_proxy_wasm_filter_func_lookup(
-                filter, "proxy_on_request_trailers");
+            ngx_proxy_wasm_filter_func_lookup(filter,
+                                              "proxy_on_request_trailers");
         filter->proxy_on_http_request_metadata =
-            ngx_proxy_wasm_filter_func_lookup(
-                filter, "proxy_on_request_metadata");
+            ngx_proxy_wasm_filter_func_lookup(filter,
+                                              "proxy_on_request_metadata");
         filter->proxy_on_http_response_headers =
-            ngx_proxy_wasm_filter_func_lookup(
-                filter, "proxy_on_response_headers");
+            ngx_proxy_wasm_filter_func_lookup(filter,
+                                              "proxy_on_response_headers");
         filter->proxy_on_http_response_body =
-            ngx_proxy_wasm_filter_func_lookup(
-                filter, "proxy_on_response_body");
+            ngx_proxy_wasm_filter_func_lookup(filter,
+                                              "proxy_on_response_body");
         filter->proxy_on_http_response_trailers =
-            ngx_proxy_wasm_filter_func_lookup(
-                filter, "proxy_on_response_trailers");
+            ngx_proxy_wasm_filter_func_lookup(filter,
+                                              "proxy_on_response_trailers");
         filter->proxy_on_http_response_metadata =
-            ngx_proxy_wasm_filter_func_lookup(
-                filter, "proxy_on_response_metadata");
+            ngx_proxy_wasm_filter_func_lookup(filter,
+                                              "proxy_on_response_metadata");
     }
 
     /* shared queue */
@@ -900,14 +900,14 @@ ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter)
         ngx_proxy_wasm_filter_func_lookup(
             filter, "proxy_on_grpc_call_response_trailer_metadata");
     filter->proxy_on_grpc_call_close =
-        ngx_proxy_wasm_filter_func_lookup(
-            filter, "proxy_on_grpc_call_close");
+        ngx_proxy_wasm_filter_func_lookup(filter,
+                                          "proxy_on_grpc_call_close");
 
     /* custom extensions */
 
     filter->proxy_on_custom_callback =
-        ngx_proxy_wasm_filter_func_lookup(
-            filter, "proxy_on_custom_callback");
+        ngx_proxy_wasm_filter_func_lookup(filter,
+                                          "proxy_on_custom_callback");
 
     if (filter->abi_version < NGX_PROXY_WASM_VNEXT) {
         /* 0.2.0 - 0.2.1 */
@@ -1242,27 +1242,27 @@ ngx_proxy_wasm_on_timer_tick(ngx_proxy_wasm_filter_ctx_t *fctx)
 ngx_wavm_ptr_t
 ngx_proxy_wasm_alloc(ngx_proxy_wasm_filter_ctx_t *fctx, size_t size)
 {
-   ngx_wavm_ptr_t        p;
-   ngx_int_t             rc;
-   wasm_val_vec_t       *rets;
-   ngx_wavm_instance_t  *instance = ngx_proxy_wasm_fctx2instance(fctx);
+    ngx_wavm_ptr_t        p;
+    ngx_int_t             rc;
+    wasm_val_vec_t       *rets;
+    ngx_wavm_instance_t  *instance = ngx_proxy_wasm_fctx2instance(fctx);
 
-   rc = ngx_wavm_instance_call_funcref(instance,
-                                       fctx->filter->proxy_on_memory_allocate,
-                                       &rets, size);
-   if (rc != NGX_OK) {
-       ngx_wasm_log_error(NGX_LOG_CRIT, fctx->log, 0,
-                          "proxy_wasm_alloc(%uz) failed", size);
-       return 0;
-   }
+    rc = ngx_wavm_instance_call_funcref(instance,
+                                        fctx->filter->proxy_on_memory_allocate,
+                                        &rets, size);
+    if (rc != NGX_OK) {
+        ngx_wasm_log_error(NGX_LOG_CRIT, fctx->log, 0,
+                           "proxy_wasm_alloc(%uz) failed", size);
+        return 0;
+    }
 
-   p = rets->data[0].of.i32;
+    p = rets->data[0].of.i32;
 
-   ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
-                  "proxy_wasm_alloc: %uz:%uz:%uz",
-                  ngx_wavm_memory_data_size(instance->memory), p, size);
+    ngx_log_debug3(NGX_LOG_DEBUG_WASM, fctx->log, 0,
+                   "proxy_wasm_alloc: %uz:%uz:%uz",
+                   ngx_wavm_memory_data_size(instance->memory), p, size);
 
-   return p;
+    return p;
 }
 
 
@@ -1286,9 +1286,9 @@ ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx, ngx_list_t *list,
     }
 
     ngx_proxy_wasm_pairs_marshal(list, shims,
-                   ngx_wavm_memory_lift(instance->memory, p),
-                   fctx->filter->max_pairs,
-                   truncated);
+                                 ngx_wavm_memory_lift(instance->memory, p),
+                                 fctx->filter->max_pairs,
+                                 truncated);
 
     *out = p;
     *out_size = size;

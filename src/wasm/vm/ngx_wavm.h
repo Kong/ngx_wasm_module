@@ -187,7 +187,7 @@ ngx_wavm_memory_memcpy(ngx_wrt_extern_t *mem, ngx_wavm_ptr_t p, u_char *buf,
 #endif
     )
     {
-       return 0;
+        return 0;
     }
 
     ngx_memcpy(ngx_wavm_memory_lift(mem, p), buf, len);

@@ -171,10 +171,10 @@ ngx_v8_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
             /* resolve wasi */
 
             name.len = importname->size;
-            name.data = (u_char*) importname->data;
+            name.data = (u_char *) importname->data;
 
             hfunc = ngx_wavm_host_hfunc_create(module->engine->pool,
-                &ngx_wasi_host, &name);
+                                               &ngx_wasi_host, &name);
 
             if (hfunc) {
                 dd("   -> wasi resolved: \"%.*s\"",

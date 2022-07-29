@@ -39,11 +39,11 @@ ngx_wasi_hfuncs_environ_get(ngx_wavm_instance_t *instance,
     uint8_t           *envp;
     ngx_wrt_extern_t  *mem = instance->memory;
 
-    addrs = (uint32_t*) ngx_wavm_memory_lift(mem, environ);
-    envp = (uint8_t*) ngx_wavm_memory_lift(mem, environ_buf);
+    addrs = (uint32_t *) ngx_wavm_memory_lift(mem, environ);
+    envp = (uint8_t *) ngx_wavm_memory_lift(mem, environ_buf);
 
-    snprintf((char*) envp, 6, "A=aaa");
-    snprintf((char*) envp + 6, 8, "BB=bbbb");
+    snprintf((char *) envp, 6, "A=aaa");
+    snprintf((char *) envp + 6, 8, "BB=bbbb");
 
     addrs[0] = environ_buf;
     addrs[1] = environ_buf + 6;
@@ -94,32 +94,32 @@ ngx_wasi_hfuncs_nop(ngx_wavm_instance_t *instance,
 
 static ngx_wavm_host_func_def_t  ngx_wasi_hfuncs[] = {
 
-   { ngx_string("environ_get"),
-     &ngx_wasi_hfuncs_environ_get,
-     ngx_wavm_arity_i32x2,
-     ngx_wavm_arity_i32 },
+    { ngx_string("environ_get"),
+      &ngx_wasi_hfuncs_environ_get,
+      ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
 
-   { ngx_string("environ_sizes_get"),
-     &ngx_wasi_hfuncs_environ_sizes_get,
-     ngx_wavm_arity_i32x2,
-     ngx_wavm_arity_i32 },
+    { ngx_string("environ_sizes_get"),
+      &ngx_wasi_hfuncs_environ_sizes_get,
+      ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
 
-   { ngx_string("fd_write"),
-     &ngx_wasi_hfuncs_nop,
-     ngx_wavm_arity_i32x4,
-     ngx_wavm_arity_i32 },
+    { ngx_string("fd_write"),
+      &ngx_wasi_hfuncs_nop,
+      ngx_wavm_arity_i32x4,
+      ngx_wavm_arity_i32 },
 
-   { ngx_string("proc_exit"),
-     &ngx_wasi_hfuncs_nop,
-     ngx_wavm_arity_i32,
-     NULL },
+    { ngx_string("proc_exit"),
+      &ngx_wasi_hfuncs_nop,
+      ngx_wavm_arity_i32,
+      NULL },
 
-   { ngx_string("random_get"),
-     &ngx_wasi_hfuncs_random_get,
-     ngx_wavm_arity_i32x2,
-     ngx_wavm_arity_i32 },
+    { ngx_string("random_get"),
+      &ngx_wasi_hfuncs_random_get,
+      ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
 
-   ngx_wavm_hfunc_null
+    ngx_wavm_hfunc_null
 };
 
 

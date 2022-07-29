@@ -14,6 +14,7 @@ typedef enum {
     NGX_WAVM_READY = (1 << 1),
 } ngx_wavm_state;
 
+
 typedef enum {
     NGX_WAVM_MODULE_ISWAT = (1 << 0),
     NGX_WAVM_MODULE_LOADED_BYTES = (1 << 1),
@@ -21,6 +22,7 @@ typedef enum {
     NGX_WAVM_MODULE_LINKED = (1 << 3),
     NGX_WAVM_MODULE_INVALID = (1 << 4),
 } ngx_wavm_module_state;
+
 
 typedef enum {
     NGX_WAVM_INSTANCE_INIT = (1 << 0),
@@ -94,8 +96,8 @@ ngx_wavm_create(ngx_cycle_t *cycle, const ngx_str_t *name,
 error:
 
     ngx_wasm_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0,
-                      "failed creating \"%V\" vm: %s",
-                      name, NGX_WAVM_NOMEM_CHAR);
+                       "failed creating \"%V\" vm: %s",
+                       name, NGX_WAVM_NOMEM_CHAR);
 
     if (vm) {
         ngx_wavm_destroy(vm);
@@ -212,7 +214,7 @@ ngx_wavm_load(ngx_wavm_t *vm)
     ngx_str_node_t     *sn;
     ngx_rbtree_node_t  *root, *sentinel, *node;
     ngx_wavm_module_t  *module;
-    ngx_wrt_err_t      e;
+    ngx_wrt_err_t       e;
 
     ngx_wrt_err_init(&e);
 
@@ -285,7 +287,7 @@ ngx_wavm_destroy(ngx_wavm_t *vm)
     ngx_wavm_module_t     *module;
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
-                  "wasm freeing \"%V\" vm (vm: %p)",
+                   "wasm freeing \"%V\" vm (vm: %p)",
                    vm->name, vm);
 
     ngx_wavm_destroy_instances(vm);
@@ -411,7 +413,7 @@ ngx_wavm_module_load_bytes(ngx_wavm_module_t *module)
     const char       *err = NGX_WAVM_EMPTY_CHAR;
     ngx_int_t         rc;
     ngx_wavm_t       *vm;
-    ngx_wrt_err_t    e;
+    ngx_wrt_err_t     e;
     wasm_byte_vec_t   file_bytes;
 
     vm = module->vm;
@@ -632,7 +634,7 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
     ngx_str_t                 s;
     ngx_wavm_t               *vm = module->vm;
     ngx_wavm_hfunc_t         *hfunc, **hfuncp;
-    ngx_wrt_err_t            e;
+    ngx_wrt_err_t             e;
     const wasm_importtype_t  *importtype;
     const wasm_name_t        *importmodule, *importname;
 

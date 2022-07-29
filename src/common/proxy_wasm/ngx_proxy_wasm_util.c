@@ -260,7 +260,7 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *extras, u_char *buf,
         }
 
         if (elt[i].hash == 0) {
-           continue;
+            continue;
         }
 
         buf = ngx_cpymem(buf, elt[i].key.data, elt[i].key.len);
