@@ -36,7 +36,7 @@ test-build:
 
 .PHONY: lint
 lint:
-	@util/style.sh src/**/*.{h,c}
+	@util/style.sh $$(find src \( -name '*.h' -o -name '*.c' \))
 	@!(grep -rIEn -- '#define\s+DDEBUG\s+1' src && echo "DDEBUG detected in sources") >&2
 	@!(grep -rIEn -- '---\s+ONLY' t/**/*.t && echo "--- ONLY detected in tests") >&2
 
