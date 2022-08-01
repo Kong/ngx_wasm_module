@@ -11,6 +11,19 @@ my $space_with = 4;
 
 my ($infile, $lineno, $line);
 
+##################################################################
+# begin new rules - var tracking
+##################################################################
+
+sub save_var();
+sub var_output($);
+
+my ($var_lineno, $var_line);
+
+##################################################################
+# end new rules - var tracking
+##################################################################
+
 for my $file (@ARGV) {
     $infile = $file;
     #print "$infile\n";
@@ -36,6 +49,9 @@ for my $file (@ARGV) {
 
     # preprocessor directives
     my ($hash_comment, $prev_hash_comment) = (0);
+
+    # variable declaration spacing
+    my ($after_function, $max_var_type, $min_var_space, $n_vars, $diff_types) = (0, 0, 0, 0, 0);
 
     ##################################################################
     # end new rules - flags
@@ -142,6 +158,41 @@ for my $file (@ARGV) {
             ##################################################################
             # begin new rules - excluding comment lines
             ##################################################################
+
+            # detect function start */
+            if ($line =~ /^{$/) {
+                $after_function = 1;
+                $min_var_space = 99999;
+                $max_var_type = 0;
+                $n_vars = 0;
+                $diff_types = 0;
+
+            } elsif ($after_function == 1) {
+                if ($line =~ /^\s+(([\w\(\)]+(\s\w+)?(\s\w+)?)\s+)\**\w+(\[|,|;| =)/) {
+                    $n_vars++;
+                    if ($min_var_space > length($1)) {
+                        $min_var_space = length($1);
+                    }
+                    if ($max_var_type > 0 && $max_var_type != length($2)) {
+                        $diff_types = 1;
+                    }
+                    if ($max_var_type < length($2)) {
+                        $max_var_type = length($2);
+                    }
+                    $var_lineno = $lineno;
+                    $var_line = $line;
+                    save_var();
+
+                } elsif (!$cur_line_is_empty) {
+                    if ($n_vars > 0 && $min_var_space - $max_var_type > 3) {
+                        var_output "excessive spacing in variable alignment: needs 2 spaces from longest type to first name/pointer.";
+                    }
+                    if ($diff_types == 1 && $min_var_space - $max_var_type < 2) {
+                        var_output "too little spacing in variable alignment: needs 2 spaces from longest type to first name/pointer.";
+                    }
+                    $after_function = 0;
+                }
+            }
 
             # comment // */
             if ($line =~ /^\s*\/\//) {
@@ -260,3 +311,26 @@ sub output ($) {
     print "\033[31;1m$str\033[0m\n";
     print "$lineno: $line";
 }
+
+##################################################################
+# begin new rules - var tracking
+##################################################################
+
+sub save_var () {
+    $var_line = $line;
+    $var_lineno = $lineno;
+}
+
+sub var_output ($) {
+    my ($msg) = @_;
+    my ($save_line, $save_lineno) = ($line, $lineno);
+    $line = $var_line;
+    $lineno = $var_lineno;
+    output($msg);
+    $line = $save_line;
+    $lineno = $save_lineno;
+}
+
+##################################################################
+# end new rules - var tracking
+##################################################################
