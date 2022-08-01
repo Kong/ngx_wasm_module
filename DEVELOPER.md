@@ -315,6 +315,13 @@ To run the test suite by restarting workers with a HUP signal:
 $ TEST_NGINX_USE_HUP=1 make test
 ```
 
+To run the test suite and see a coverage report locally (requires
+[Gcov](https://gcc.gnu.org/onlinedocs/gcc/Gcov.html)):
+
+```
+$ make coverage
+```
+
 See [util/test.sh](util/test.sh) and the
 [Test::Nginx](https://metacpan.org/pod/Test::Nginx::Socket) documentation for
 a complete list of these options.

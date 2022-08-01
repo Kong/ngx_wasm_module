@@ -61,6 +61,17 @@ act-build:
 act: act-build
 	@act --reuse
 
+.PHONY: coverage
+coverage:
+	make clean
+	NGX_BUILD_GCOV=1 make
+	TEST_NGINX_RANDOMIZE=1 make test
+	rm -rf work/coverage_data
+	mkdir work/coverage_data
+	find work/buildroot -name '*.gcda' | xargs -I '{}' cp '{}' work/coverage_data
+	find work/buildroot -name '*.gcno' | xargs -I '{}' cp '{}' work/coverage_data
+	gcov -t -k -o work/coverage_data $$(find src/ -name '*.[ch]') | less -R
+
 .PHONY: clean
 clean:
 	@util/clean.sh
