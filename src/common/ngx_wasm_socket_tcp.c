@@ -474,9 +474,9 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
 static ngx_int_t
 ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock)
 {
-    ngx_int_t                        rc;
-    ngx_connection_t                *c;
-    ngx_peer_connection_t           *pc;
+    ngx_int_t               rc;
+    ngx_connection_t       *c;
+    ngx_peer_connection_t  *pc;
 
     if (sock->errlen) {
         return NGX_ERROR;
