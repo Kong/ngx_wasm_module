@@ -151,6 +151,11 @@ impl TestHttp {
                 ":scheme",
                 "https",
             ));
+        } else {
+            headers.push((
+                ":scheme",
+                "http",
+            ));
         }
 
         if let Some(vals) = self.get_config("headers") {

@@ -173,3 +173,80 @@ qr/\[error\]/
     qr/\[crit\] .*? SSL_do_handshake\(\) failed/,
     qr/\[error\] .*? \[wasm\] dispatch failed \(tls handshake failed\)/,
 ]
+
+
+
+=== TEST 8: proxy_wasm - dispatch_http_call() configured with invalid trusted certificate
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- tls_trusted_certificate: /tmp/invalid_filename.txt
+--- config
+    resolver 1.1.1.1 ipv6=off;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=wrong.host.badssl.com \
+                              use_https=yes \
+                              on_http_call_response=echo_response_body \
+                              path=/';
+        echo fail;
+    }
+--- error_log eval
+qr/\[emerg\] .*? failed loading tls certificate file/
+--- no_error_log
+[error]
+[crit]
+--- must_die
+
+
+
+=== TEST 9: proxy_wasm - dispatch_http_call() configured with no trusted certificate
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- tls_trusted_certificate: ""
+--- config
+    resolver 1.1.1.1 ipv6=off;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=httpbin.org \
+                              headers=X-Thing:foo|X-Thing:bar|Hello:world \
+                              use_https=yes \
+                              on_http_call_response=echo_response_body \
+                              path=/headers';
+        echo fail;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+qr/\[error\] .*?tls certificate verify error/
+--- no_error_log
+[crit]
+
+
+
+=== TEST 10: proxy_wasm - dispatch_http_call() https with literal IPv6 address does not set SNI
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    listen               [::]:$TEST_NGINX_SERVER_PORT ssl;
+    ssl_certificate      $TEST_NGINX_DATA_DIR/cert.pem;
+    ssl_certificate_key  $TEST_NGINX_DATA_DIR/key.pem;
+
+    resolver 1.1.1.1 ipv6=off;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=[0:0:0:0:0:0:0:1]:$TEST_NGINX_SERVER_PORT \
+                              headers=X-Thing:foo|X-Thing:bar|Hello:world \
+                              use_https=yes \
+                              on_http_call_response=echo_response_body \
+                              path=/headers';
+        echo fail;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+qr/\[error\] .*?tls certificate verify error/
+--- no_error_log
+[crit]

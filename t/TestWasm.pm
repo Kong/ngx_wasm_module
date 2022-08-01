@@ -129,6 +129,7 @@ add_block_preprocessor(sub {
 
             my $tls_skip_verify = $block->tls_skip_verify;
             my $tls_skip_host_check = $block->tls_skip_host_check;
+            my $tls_trusted_certificate = $block->tls_trusted_certificate;
 
             if (defined $tls_skip_verify) {
                 $wasm_config = $wasm_config .
@@ -138,6 +139,11 @@ add_block_preprocessor(sub {
             if (defined $tls_skip_host_check) {
                 $wasm_config = $wasm_config .
                                "    tls_skip_host_check " . $tls_skip_host_check . ";\n";
+            }
+
+            if (defined $tls_trusted_certificate) {
+                $wasm_config = $wasm_config .
+                               "    tls_trusted_certificate " . $tls_trusted_certificate . ";\n";
             }
 
             $wasm_config = $wasm_config . "}\n";
