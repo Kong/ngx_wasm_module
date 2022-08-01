@@ -181,23 +181,23 @@ ngx_wavm_hfunc_trampoline(void *env,
 #endif
     )
 {
-    size_t                     errlen = 0, len;
-    const char                *err = NULL;
-    u_char                    *p, *buf, trapbuf[NGX_WAVM_HFUNCS_MAX_TRAP_LEN];
-    ngx_int_t                  rc;
-    ngx_wavm_instance_t       *instance;
-    wasm_val_t                *hargs, *hrets;
-    wasm_byte_vec_t            trapmsg;
-    wasm_trap_t               *trap = NULL;
-    ngx_wavm_hfunc_t          *hfunc;
+    size_t                   errlen = 0, len;
+    const char              *err = NULL;
+    u_char                  *p, *buf, trapbuf[NGX_WAVM_HFUNCS_MAX_TRAP_LEN];
+    ngx_int_t                rc;
+    ngx_wavm_instance_t     *instance;
+    wasm_val_t              *hargs, *hrets;
+    wasm_byte_vec_t          trapmsg;
+    wasm_trap_t             *trap = NULL;
+    ngx_wavm_hfunc_t        *hfunc;
 #ifdef NGX_WASM_HAVE_WASMTIME
-    wasm_val_vec_t             vargs, vrets;
+    wasm_val_vec_t           vargs, vrets;
 
 #elif NGX_WASM_HAVE_WASMER
-    ngx_wasmer_hfunc_ctx_t    *hctx;
+    ngx_wasmer_hfunc_ctx_t  *hctx;
 
 #elif NGX_WASM_HAVE_V8
-    ngx_v8_hfunc_ctx_t        *hctx;
+    ngx_v8_hfunc_ctx_t      *hctx;
 
 #else
 #   error NYI: trampoline host context retrieval

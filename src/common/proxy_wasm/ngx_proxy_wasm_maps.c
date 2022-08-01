@@ -90,14 +90,14 @@ ngx_list_t *
 ngx_proxy_wasm_maps_get_all(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_map_type_e map_type, ngx_array_t *extras)
 {
-    size_t                        i;
-    ngx_list_t                   *list;
-    ngx_str_t                    *value;
-    ngx_table_elt_t              *elt;
-    ngx_proxy_wasm_maps_key_t    *mkey;
+    size_t                      i;
+    ngx_list_t                 *list;
+    ngx_str_t                  *value;
+    ngx_table_elt_t            *elt;
+    ngx_proxy_wasm_maps_key_t  *mkey;
 #ifdef NGX_WASM_HTTP
-    ngx_table_elt_t              *shim;
-    ngx_array_t                  *shims;
+    ngx_table_elt_t            *shim;
+    ngx_array_t                *shims;
 #endif
 
     list = ngx_proxy_wasm_maps_get_map(instance, map_type);
@@ -186,8 +186,8 @@ ngx_str_t *
 ngx_proxy_wasm_maps_get(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_map_type_e map_type, ngx_str_t *key)
 {
-    ngx_str_t         *value;
-    ngx_list_t        *list;
+    ngx_str_t   *value;
+    ngx_list_t  *list;
 
     /* special keys lookup */
 

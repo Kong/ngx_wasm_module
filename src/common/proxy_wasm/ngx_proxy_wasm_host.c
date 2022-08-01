@@ -685,17 +685,16 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    int32_t                          status, reason_len, body_len
+    int32_t                           status, reason_len, body_len;
 #if (NGX_DEBUG)
-                                     , grpc_status
+    int32_t                           grpc_status;
 #endif
-                                     ;
-    u_char                          *reason, *body;
-    ngx_int_t                        rc;
-    ngx_array_t                      headers;
-    ngx_proxy_wasm_marshalled_map_t  map;
-    ngx_proxy_wasm_filter_ctx_t     *fctx;
-    ngx_http_wasm_req_ctx_t         *rctx;
+    u_char                           *reason, *body;
+    ngx_int_t                         rc;
+    ngx_array_t                       headers;
+    ngx_proxy_wasm_marshalled_map_t   map;
+    ngx_proxy_wasm_filter_ctx_t      *fctx;
+    ngx_http_wasm_req_ctx_t          *rctx;
 
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
     fctx = ngx_proxy_wasm_instance2fctx(instance);

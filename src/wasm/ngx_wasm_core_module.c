@@ -93,9 +93,9 @@ ngx_wasm_core_cleanup_pool(void *data)
 static void *
 ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
 {
-    static const ngx_str_t vm_name = ngx_string("main");
-    ngx_wasm_core_conf_t  *wcf;
-    ngx_pool_cleanup_t    *cln;
+    static const ngx_str_t   vm_name = ngx_string("main");
+    ngx_wasm_core_conf_t    *wcf;
+    ngx_pool_cleanup_t      *cln;
 
     wcf = ngx_pcalloc(cycle->pool, sizeof(ngx_wasm_core_conf_t));
     if (wcf == NULL) {
@@ -123,9 +123,9 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
 static char *
 ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_int_t                rc;
-    ngx_str_t               *value, *name, *path;
-    ngx_wasm_core_conf_t    *wcf = conf;
+    ngx_int_t              rc;
+    ngx_str_t             *value, *name, *path;
+    ngx_wasm_core_conf_t  *wcf = conf;
 
     value = cf->args->elts;
     name = &value[1];
