@@ -69,9 +69,7 @@ This proposal introduces a "two-dimensional" threading model, as illustrated in 
 
 ![](https://img.planet.ink/zhy/2022-07-29-16e3e9ffcfe8-f51be55e5314a597914bcebb09c56301.png)
 
-Despite Nginx being a multi-process single-threaded application, WebAssembly modules see themselves as running in a single-process multi-threaded environment with a fixed number of threads that is equal to the number of worker processes.
-
-Details TBD
+Despite Nginx being a multi-process single-threaded application, WebAssembly modules see themselves as running in a single-process multi-threaded environment with a fixed number of threads that is equal to the number of worker processes. This is implemented with shared WebAsssembly memory and private shadow stacks, as described in the next section.
 
 ### Memory mapping
 
@@ -88,8 +86,6 @@ In a multi-threaded environment, each thread needs its own shadow stack. Unfortu
 But we control the host environment, and we can make each thread see its own shadow stack at the same address in the linear memory by mapping a distinct memory region as the stack for each instance of the WebAssembly virtual machine. As illustrated below:
 
 ![](https://img.planet.ink/zhy/2022-07-29-1804fe8c47e8-b1b8b62a9edb52e7d0fe31f57801c099.png)
-
-Details TBD
 
 ### Non-blocking notification: `spawn`
 
@@ -114,6 +110,7 @@ impl HttpContext for Example {
   }
 }
 
+// `then` is called after an HTTP request reaches any of the workers
 fn wait_for_http_request(then: impl FnOnce()) {
   let current_thread = wasmx::thread::id();
   INFLIGHT_REQUESTS.lock().unwrap().push(Box::new(move || {
@@ -122,25 +119,30 @@ fn wait_for_http_request(then: impl FnOnce()) {
 }
 ```
 
-Details TBD
+`spawn_on` sends a notification to the worker process corresponding to `current_thread`, and triggers WASM execution on its event loop. This
+primitive is enough to construct asynchronous code patterns, including fitting into the Rust `async` ecosystem.
 
 ### Compatibility with proxy-wasm ABI
 
 *Are there any proxy-wasm binaries that use kv/queues in the wild?*
 
-Details TBD
-
 ### Fault recovery
 
-TBD
+In the event that a worker process crashes, it is possible to recover the execution state of all WebAssembly instances
+in this process in a newly-spawned worker, if the crash happens outside a WebAssembly call stack.
+
+The states that need to be fixed up are:
+
+- **WASM globals**: This can be recovered by copying out the globals into shared memory after exiting from a WASM call.
+- **Host state**: This can be fixed up by returning errors to asynchronous jobs like timers and HTTP dispatch.
 
 ### Implementation Steps
 
-TBD
 
 ### Known Limitations
 
-TBD
+Cross-module shared memory is not *directly* supported, due to ABI incompatibilities in high-level language constructs like `HashMap`.
+But this can be worked around by supporting calling functions from other modules and letting the callee do its own cross-thread operations.
 
 [Back to TOC](#table-of-contents)
 
