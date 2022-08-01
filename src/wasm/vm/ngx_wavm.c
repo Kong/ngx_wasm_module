@@ -282,9 +282,9 @@ ngx_wavm_destroy_instances(ngx_wavm_t *vm)
 void
 ngx_wavm_destroy(ngx_wavm_t *vm)
 {
-    ngx_rbtree_node_t    **root, **sentinel, *node;
-    ngx_str_node_t        *sn;
-    ngx_wavm_module_t     *module;
+    ngx_rbtree_node_t  **root, **sentinel, *node;
+    ngx_str_node_t      *sn;
+    ngx_wavm_module_t   *module;
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                    "wasm freeing \"%V\" vm (vm: %p)",

@@ -565,8 +565,8 @@ ngx_proxy_wasm_instance_release(ngx_proxy_wasm_instance_ctx_t *ictx, unsigned fo
 static ngx_inline void
 ngx_proxy_wasm_instance_destroy(ngx_proxy_wasm_instance_ctx_t *ictx)
 {
-    ngx_rbtree_node_t           **root, **sentinel, *s, *n;
-    ngx_proxy_wasm_filter_ctx_t  *fctx;
+    ngx_rbtree_node_t            **root, **sentinel, *s, *n;
+    ngx_proxy_wasm_filter_ctx_t   *fctx;
 
     if (ictx->store) {
         ngx_queue_remove(&ictx->q);
@@ -1221,8 +1221,8 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_filter_ctx_t *fctx)
 static ngx_int_t
 ngx_proxy_wasm_on_timer_tick(ngx_proxy_wasm_filter_ctx_t *fctx)
 {
-    ngx_int_t                 rc;
-    wasm_val_vec_t            args;
+    ngx_int_t       rc;
+    wasm_val_vec_t  args;
 
     ngx_wasm_assert(fctx->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
