@@ -282,9 +282,7 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
         "/etc/ssl/certs/ca-certificates.crt");
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    if (wcf == NULL) {
-        return NGX_OK;
-    }
+    ngx_wasm_assert(wcf);
 
     wcf->ssl_conf.ssl.log = cycle->log;
 
@@ -309,7 +307,7 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
     {
         ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
                            "failed loading tls certificate file at \"%V\"",
-                           wcf->ssl_conf.trusted_certificate);
+                           &wcf->ssl_conf.trusted_certificate);
         return NGX_ERROR;
     }
 
