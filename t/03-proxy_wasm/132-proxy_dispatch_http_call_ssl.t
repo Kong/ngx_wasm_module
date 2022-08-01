@@ -147,3 +147,29 @@ qr/\[error\] .*tls certificate does not match/
 qr/\[error\]/
 --- no_error_log
 [crit]
+
+
+
+=== TEST 7: proxy_wasm - dispatch_http_call() attempt https at non-https host
+--- timeout_no_valgrind: 1
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              use_https=yes \
+                              path=/dispatched';
+        echo fail;
+    }
+
+    location /dispatched {
+        echo -n fail;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+[
+    qr/\[crit\] .*? SSL_do_handshake\(\) failed/,
+    qr/\[error\] .*? \[wasm\] dispatch failed \(tls handshake failed\)/,
+]
