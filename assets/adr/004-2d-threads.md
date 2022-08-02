@@ -194,8 +194,8 @@ The states that need to be fixed up are:
 
 ### Known Limitations
 
-Sharing memory across different `.wasm` modules is not *directly* supported, due to ABI incompatibilities in high-level language constructs like `HashMap`.
-But this can be worked around by supporting to call functions from other modules and letting the callee do its own cross-thread operations.
+- Sharing memory across different `.wasm` modules is not *directly* supported, due to ABI incompatibilities in high-level language constructs like `HashMap`. But this can be worked around by supporting to call functions from other modules and letting the callee do its own cross-thread operations.
+- This design is based on a set of low-level Linux mechanisms. Since WASM runtimes (wasmtime, wasmer, v8) aren't aware of what we are doing, we need to "hack" into them - after initializing a WASM instance, we parse `/proc/self/maps`, unmap the region mapped by the runtime, and map our own memory. If in the future we want to get WasmX working on macOS and Windows, there may be extra work.
 
 [Back to TOC](#table-of-contents)
 
