@@ -9,24 +9,20 @@
 - [Table of Contents](#table-of-contents)
 - [Problem Statement](#problem-statement)
 - [Decision Drivers](#decision-drivers)
+- [Considered Options](#considered-options)
 - [Proposal](#proposal)
-  - [User Flow](#user-flow)
+  - [User experience](#user-experience)
   - [Threading model](#threading-model)
   - [Memory mapping](#memory-mapping)
   - [Non-blocking notification: `spawn`](#non-blocking-notification-spawn)
   - [Compatibility with proxy-wasm ABI](#compatibility-with-proxy-wasm-abi)
   - [Fault recovery](#fault-recovery)
-  - [Implementation Steps](#implementation-steps)
   - [Known Limitations](#known-limitations)
 - [Decision Outcomes](#decision-outcomes)
 
 ## Problem Statement
 
 Nginx is a multi-process system where there is one *master* process and multiple *worker* processes. There is a need to share data and communicate between WebAssembly plugin instances in different worker processes, but it is not currently possible to pass data across the process boundary in WasmX.
-
-`proxy-wasm` solves the problem by following [the OpenResty Lua API approach](https://github.com/openresty/lua-nginx-module#ngxshareddict) and providing a key-value style API, plus a message queue API where instances can send messages into the queue and get notified of new messages.
-
-But WebAssembly is based on a different level of abstraction, on which the primitive unit of data is no longer richly-typed *values*, but just *machine words* stored in a plain, flat array of bytes. High-level languages such as Rust have built well-designed and optimized data structures for both ephemeral storage and multi-thread synchronization, and we should allow the user to reuse the existing language constructs, instead of fitting the Lua model into WebAssembly.
 
 [Back to TOC](#table-of-contents)
 
@@ -37,13 +33,50 @@ But WebAssembly is based on a different level of abstraction, on which the primi
 
 [Back to TOC](#table-of-contents)
 
+## Considered Options
+
+Another option is to do what the `proxy-wasm` spec defines: provide specialized functions that give access to key-value stores and queues shared across all worker processes.
+
+For the key-value store, there are two functions defined: `proxy_get_shared_data` and `proxy_set_shared_data`. The API exposed in `proxy-wasm`'s Rust SDK looks like:
+
+```rust
+pub fn set_shared_data(key: &str, value: Option<&[u8]>, cas: Option<u32>) -> Result<(), Status> { /* ... */ }
+pub fn get_shared_data(key: &str) -> Result<(Option<Bytes>, Option<u32>), Status> { /* ... */ }
+```
+
+This is a rough translation of the OpenResty Lua shdict API. But this poses several problems in comparison to a fully-fledged, "real" key-value store:
+
+1. How can a user list the key-value pairs by prefix?
+2. What kind of ordering behavior does this API expose? If it is an ordered tree-map, what if the user needs to preserve insertion order?
+3. How can a user do multi-key transactions?
+4. How can a user set TTL on keys?
+5. How can a user implement single-key locked updates so they can prevent the thundering herd problem when using the kv store as a in-memory cache?
+6. Values are plain `Bytes`. To store richly-typed data, the user needs to serialize into and deserialize from bytes. This is slow, does not work with all types, and performs at lease two extra memory copies.
+
+Obviously it is impossible to bake all these functionalities into WasmX itself. However, at the end of the day, all these problems are **elegantly solvable in high-level languages**, provided with the required multi-thread synchronization primitives. Taking Rust as an example, there are `BTreeMap` and `HashMap` in the standard library exposing well-defined behavior, and widely-used libraries in the ecosystem - for example, [indexmap](https://crates.io/crates/indexmap), [lru](https://crates.io/crates/lru), and [moka](https://crates.io/crates/moka).
+
+The problem with `proxy-wasm`'s queues is similar. A subset of the API exposed in `proxy-wasm`'s Rust SDK looks like:
+
+```rust
+pub fn enqueue_shared_queue(queue_id: u32, value: Option<&[u8]>) -> Result<(), Status> { /* ... */ }
+pub fn dequeue_shared_queue(queue_id: u32) -> Result<Option<Bytes>, Status> { /* ... */ }
+```
+
+We can easily ask a lot of similar questions. Like:
+
+1. How can a user apply backpressure to a queue?
+2. How to choose between broadcast and single-consumer semantics?
+3. The same serialization problem, as above.
+
+Again, obviously it is impossible to bake all these functionalities into WasmX itself, but there are abundant solutions in high-level languages, provided with the required primitives.
+
 ## Proposal
 
 This proposal introduces a design of an efficient and ergonomic process-boundary-crossing mechanism for WebAssembly called "2D Threads". **WebAssembly modules are provided with a single-process multi-threaded view of its environment** when the Nginx instance runs with multiple worker processes, without changes to Nginx's own process model.
 
-This document introduces the following aspects of the design:
+This section introduces the following aspects of the design:
 
-- End-user experience of sharing data and sending messages between workers.
+- End-user experience.
 - The proposed threading model.
 - Design of the memory mapping mechanism.
 - Non-blocking notification.
@@ -52,7 +85,7 @@ This document introduces the following aspects of the design:
 
 [Back to TOC](#table-of-contents)
 
-### User Flow
+### User experience
 
 The user opts in to the feature by defining a symbol in their WebAssembly module. (name TBD)
 
@@ -61,9 +94,28 @@ The user opts in to the feature by defining a symbol in their WebAssembly module
 pub extern "C" fn wasmx_feature_enable_threading() {}
 ```
 
-Then the user can use the data structures and synchronization primitives provided by the language's standard library.
+Then the user can use the data structures and synchronization primitives provided by the language's standard library and third-party libraries.
 
 - `std::sync::mpsc` and `HashMap` / `BTreeMap` in Rust
+
+Pseudo-code for a simplified, multi-worker HTTP caching plugin would look like:
+
+```rust
+struct HttpCache {
+  cache: moka::Cache<RequestKey, Response>,
+}
+
+#[async_trait]
+impl Plugin for HttpCache {
+  async fn handle(&self, req: Request) -> Result<Response> {
+    let request_key = req.cache_key();
+    let response = self.cache.try_get_with(request_key, async {
+      wasmx::http::send(req).await
+    }).await?;
+    Ok(response)
+  }
+}
+```
 
 ### Threading model
 
@@ -122,11 +174,13 @@ fn wait_for_http_request(then: impl FnOnce()) {
 ```
 
 `spawn_on` sends a notification to the worker process corresponding to `current_thread`, and triggers WASM execution on its event loop. This
-primitive is enough to construct asynchronous code patterns, including fitting into the Rust `async` ecosystem.
+primitive is **enough to construct asynchronous code patterns**, including fitting into the Rust `async` ecosystem.
 
 ### Compatibility with proxy-wasm ABI
 
-*Are there any proxy-wasm binaries that use kv/queues in the wild?*
+*Are there any proxy-wasm binaries that use kv/queues in the wild? If this is not widespread, maybe we should just push the proposed API instead?*
+
+Compatibility with the proxy-wasm KV and queue ABI can be implemented with [dynamic linking](https://github.com/WebAssembly/tool-conventions/blob/main/DynamicLinking.md). Before loading a module that uses the proxy-wasm-style ABI functions, a separate "shim" WebAssembly module that implements the proxy-wasm functions is dynamically linked with the main module.
 
 ### Fault recovery
 
@@ -135,16 +189,13 @@ in this process in a newly-spawned worker, if the crash happens outside a WebAss
 
 The states that need to be fixed up are:
 
-- **WASM globals**: This can be recovered by copying out the globals into shared memory after exiting from a WASM call.
-- **Host state**: This can be fixed up by returning errors to asynchronous jobs like timers and HTTP dispatch.
-
-### Implementation Steps
-
+- **WASM globals**: Values of WASM globals can be recovered by copying out the globals into shared memory after exiting from a WASM call.
+- **Host state**: WASM's assumptions about the host state can be fixed up by returning errors to asynchronous jobs like timers and HTTP dispatch.
 
 ### Known Limitations
 
-Cross-module shared memory is not *directly* supported, due to ABI incompatibilities in high-level language constructs like `HashMap`.
-But this can be worked around by supporting calling functions from other modules and letting the callee do its own cross-thread operations.
+Sharing memory across different `.wasm` modules is not *directly* supported, due to ABI incompatibilities in high-level language constructs like `HashMap`.
+But this can be worked around by supporting to call functions from other modules and letting the callee do its own cross-thread operations.
 
 [Back to TOC](#table-of-contents)
 
