@@ -26,14 +26,6 @@ build_cwabt() {
 }
 
 check_libwee8_build_dependencies() {
-    # Running as root causes issues when the V8 build process uses tar to
-    # extract archives: tar sets file permissions differently when run as root.
-    if ! [ -n "$ACT" ]; then
-        [ "$UID" = 0 ] && {
-            fatal "must not run as root."
-        }
-    fi
-
     python3 --help >/dev/null 2>/dev/null || {
         fatal "python3 is required in your path."
     }
@@ -80,12 +72,14 @@ build_libwee8() {
 
     export PATH="$DIR_LIBWEE8/tools/depot_tools:$PATH"
 
-    if [ -n "$ACT" ]; then
+    # Running as root causes issues when the V8 build process uses tar to
+    # extract archives: tar sets file permissions differently when run as root.
+    {
         local tar="$DIR_LIBWEE8/tools/depot_tools/tar"
         echo "#!/bin/sh" > "$tar"
         echo "exec $(which tar)" '"$@"' "--no-same-owner --no-same-permissions" >> "$tar"
         chmod +x "$tar"
-    fi
+    }
 
     ### fetch
 
