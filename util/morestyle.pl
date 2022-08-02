@@ -53,6 +53,9 @@ for my $file (@ARGV) {
     # variable declaration spacing
     my ($after_function, $max_var_type, $min_var_space, $n_vars, $diff_types) = (0, 0, 0, 0, 0);
 
+    # initial section with defines and includes
+    my ($include_section, $prev_consecutive_empty_lines) = (1, 0);
+
     ##################################################################
     # end new rules - flags
     ##################################################################
@@ -159,6 +162,15 @@ for my $file (@ARGV) {
             # begin new rules - excluding comment lines
             ##################################################################
 
+            if ($include_section == 1) {
+                if (!$cur_line_is_empty) {
+                    if ($prev_consecutive_empty_lines != 2) {
+                        output "needs 2 blank lines after #include section.";
+                    }
+                    $include_section = 0;
+                }
+            }
+
             # detect function start */
             if ($line =~ /^{$/) {
                 $after_function = 1;
@@ -260,6 +272,8 @@ for my $file (@ARGV) {
                 output "the | operator takes no space when joining flag constants";
             }
 
+            $prev_consecutive_empty_lines = $consecutive_empty_lines;
+
             ##################################################################
             # end new rules - excluding comment lines
             ##################################################################
@@ -285,6 +299,10 @@ for my $file (@ARGV) {
             $half_line_comment = 0;
         }
 
+    }
+
+    if ($cur_line_is_empty == 1) {
+        output "file should not end with a blank line.";
     }
 }
 
