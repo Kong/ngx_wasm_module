@@ -5,6 +5,7 @@
 #include <ngx_core.h>
 #include <ngx_wrt.h>
 
+
 typedef struct ngx_wasm_ssl_conf_s {
     ngx_str_t       trusted_certificate;
     ngx_ssl_t       ssl;

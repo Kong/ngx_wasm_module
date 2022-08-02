@@ -3,9 +3,6 @@
 
 
 #include <ngx_event_connect.h>
-#if (NGX_SSL)
-#include <ngx_event_openssl.h>
-#endif
 #include <ngx_wasm.h>
 #include <ngx_wasm_socket_tcp_readers.h>
 #if (NGX_WASM_HTTP)

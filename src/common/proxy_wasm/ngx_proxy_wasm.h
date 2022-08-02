@@ -3,10 +3,8 @@
 
 
 #include <ngx_event.h>
-#if (NGX_SSL)
-#include <ngx_event_openssl.h>
-#endif
 #include <ngx_wavm.h>
+
 
 #define NGX_PROXY_WASM_ROOT_CTX_ID  0
 

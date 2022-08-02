@@ -8,6 +8,7 @@
 #include <ngx_wasm_ssl.h>
 #endif
 
+
 static void *ngx_wasm_core_create_conf(ngx_cycle_t *cycle);
 static char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
@@ -357,4 +358,3 @@ ngx_wasm_core_ssl_verify_callback(int ok, X509_STORE_CTX *x509_store)
     return 1;
 }
 #endif
-

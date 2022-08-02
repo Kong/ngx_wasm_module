@@ -3,13 +3,11 @@
 #endif
 #include "ddebug.h"
 
-#if (NGX_SSL)
-#include <ngx_event_openssl.h>
-#endif
 #include <ngx_proxy_wasm.h>
-#if (NGX_WASM_HTTP)
+#ifdef NGX_WASM_HTTP
 #include <ngx_http_proxy_wasm.h>
 #endif
+
 
 static ngx_int_t ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_proxy_wasm_filter_ctx_t *fctx, ngx_uint_t *ret);
