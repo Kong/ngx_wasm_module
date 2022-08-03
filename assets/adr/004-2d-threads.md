@@ -17,6 +17,9 @@
   - [Non-blocking notification: `spawn`](#non-blocking-notification-spawn)
   - [Compatibility with proxy-wasm ABI](#compatibility-with-proxy-wasm-abi)
   - [Fault recovery](#fault-recovery)
+  - [Cross-plugin communication](#cross-plugin-communication)
+    - [Interface Definition Language](#interface-definition-language)
+    - [Synchronous calls](#synchronous-calls)
   - [Known Limitations](#known-limitations)
 - [Decision Outcomes](#decision-outcomes)
 
@@ -192,9 +195,44 @@ The states that need to be fixed up are:
 - **WASM globals**: Values of WASM globals can be recovered by copying out the globals into shared memory after exiting from a WASM call.
 - **Host state**: WASM's assumptions about the host state can be fixed up by returning errors to asynchronous jobs like timers and HTTP dispatch.
 
+### Cross-plugin communication
+
+Shared memory *and its interpretation* is internal to each WebAssembly plugin, so a different approach is needed for passing data between different plugins. Although theoretically it is possible to share memory regions between plugins, only a small fraction of native userspace programs actually use the corresponding native mechanism, "inter-process communication by shared memory". So there isn't a rich ecosystem around that, and we need a more widely-used, well-understood mechanism for cross-plugin communication.
+
+Fortunately, this is a well-researched problem in the OS community. User programs running on microkernels need to deal with the same problem. Fuchsia has [FIDL](https://fuchsia.dev/fuchsia-src/concepts/fidl/overview), seL4 has [CAmkES](https://docs.sel4.systems/projects/camkes/), and there are the language-specific [serde](https://crates.io/crates/serde) framework and the plain old Protobuf.
+
+In this section, cross-plugin communication will be abbreviated as "IPC" (inter-plugin/process communication).
+
+#### Interface Definition Language
+
+The proposal is to base WasmX IPC on Fuchsia's FIDL.
+
+**Pros**
+
+- FIDL bindings are available for most popular languages that compile to WASM: [C++](https://fuchsia.dev/fuchsia-src/reference/fidl/bindings/cpp-bindings), [Rust](https://fuchsia.dev/fuchsia-src/reference/fidl/bindings/rust-bindings) and [Go](https://fuchsia.dev/fuchsia-src/reference/fidl/bindings/go-bindings).
+- Unlike serde or protobuf which are designed for communication over network, FIDL is designed as the foundation for Fuchsia IPC. It has tradeoffs similar to what WasmX needs - for example, encoding and decoding efficiency is important, while it's not required to optimize for message size.
+
+**Cons**
+
+- Fuchsia is relatively new, so FIDL might not have received as much testing and validation as other formats like Protobuf had.
+
+#### Synchronous calls
+
+IPC can be implemented either synchronously or asynchronously. Both models are suitable for WasmX, but only synchronous calls will be implemented in the first stages, due to its simplicity and being suitable for most purposes.
+
+The proposed API would look like:
+
+```rust
+fn write_log(text: &str) -> Result<u64> {
+  // "LoggerService` is generated from FIDL
+  let client: Box<dyn LoggerService> = wasmx::ipc::channel("logger")?;
+  let id = client.write_log(text)?;
+  Ok(u64)
+}
+```
+
 ### Known Limitations
 
-- Sharing memory across different `.wasm` modules is not *directly* supported, due to ABI incompatibilities in high-level language constructs like `HashMap`. But this can be worked around by supporting to call functions from other modules and letting the callee do its own cross-thread operations.
 - This design is based on a set of low-level Linux mechanisms. Since WASM runtimes (wasmtime, wasmer, v8) aren't aware of what we are doing, we need to "hack" into them - after initializing a WASM instance, we parse `/proc/self/maps`, unmap the region mapped by the runtime, and map our own memory. If in the future we want to get WasmX working on macOS and Windows, there may be extra work.
 
 [Back to TOC](#table-of-contents)
