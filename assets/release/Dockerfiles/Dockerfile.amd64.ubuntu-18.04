@@ -6,7 +6,13 @@ RUN apt-get update && \
         ca-certificates \
         build-essential \
         ninja-build \
+        python3 \
         cmake \
+        gcc-8 \
+        libstdc++-8-dev \
+        git \
+        pkg-config \
+        libglib2.0-dev \
         clang \
         curl
 

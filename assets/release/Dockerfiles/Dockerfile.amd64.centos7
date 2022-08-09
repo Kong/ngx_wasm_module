@@ -2,16 +2,23 @@ FROM amd64/centos:7
 
 RUN yum install -y epel-release && \
     yum update -y && \
+    yum install -y centos-release-scl && \
     yum install -y \
+        devtoolset-8 \
+        devtoolset-8-libatomic-devel \
         ninja-build \
         clang \
-        cmake \
+        cmake3 \
         make \
         gcc \
-        perl
+        perl \
+        python3 \
+        git \
+        glib2-devel
 
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
 ENV PATH $CARGO_HOME/bin:$PATH
+RUN ln -nfs $(which cmake3) /usr/bin/cmake
 RUN mkdir -p "$CARGO_HOME" && mkdir -p "$RUSTUP_HOME" && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
     chmod -R a=rwX $CARGO_HOME

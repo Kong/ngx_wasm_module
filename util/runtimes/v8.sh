@@ -17,10 +17,16 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 build_cwabt() {
     local target="$1"
+    local clean="$1"
 
     notice "building lib/cwabt..."
 
     cd $NGX_WASM_DIR/lib/cwabt
+
+    if [ "$clean" = "clean" ]; then
+        make clean
+    fi
+
     make
     make install TARGET="$target"
 }
@@ -54,6 +60,7 @@ check_libwee8_build_dependencies() {
 
 build_libwee8() {
     local target="$1"
+    local clean="$2"
 
     notice "building libwee8..."
 
@@ -76,9 +83,19 @@ build_libwee8() {
     # extract archives: tar sets file permissions differently when run as root.
     {
         local tar="$DIR_LIBWEE8/tools/depot_tools/tar"
+        rm -f "$tar"
         echo "#!/bin/sh" > "$tar"
         echo "exec $(which tar)" '"$@"' "--no-same-owner --no-same-permissions" >> "$tar"
         chmod +x "$tar"
+    }
+
+    # Ensure plain 'python' is Python 3
+    ( python --version | grep -q "Python 3" ) || {
+        local python="$DIR_LIBWEE8/tools/depot_tools/python"
+        rm -f "$python"
+        echo "#!/bin/sh" > "$tar"
+        echo "exec $(which python3)" '"$@"' >> "$python"
+        chmod +x "$python"
     }
 
     ### fetch
@@ -104,8 +121,28 @@ build_libwee8() {
 
     local build_mode="$V8_PLATFORM.release.sample"
 
+    if [ "$clean" = "clean" ]; then
+        rm -rf out.gn/"$build_mode"
+        rm -rf gn
+    fi
+
+    buildtools/*/gn --help &>/dev/null || {
+        if [ ! -e gn ]; then
+            (
+                export CXX=g++
+                notice "building gn for the target system..."
+                git clone https://gn.googlesource.com/gn
+                cd gn
+                python build/gen.py --allow-warning
+                ninja -C out
+                cd ..
+                cp gn/out/gn buildtools/*/gn
+            )
+        fi
+    }
+
     notice "generating V8 build files..."
-    tools/dev/v8gen.py "$build_mode" -vv -- use_custom_libcxx=false
+    tools/dev/v8gen.py "$build_mode" -vv -- use_custom_libcxx=false use_sysroot=false
 
     notice "building V8..."
     ninja -C out.gn/"$build_mode" wee8
@@ -121,8 +158,13 @@ build_libwee8() {
 
 build_v8bridge() {
     local target="$1"
+    local clean="$1"
 
     notice "building v8bridge..."
+
+    if [ "$clean" = "clean" ]; then
+        make -C "$NGX_WASM_DIR/lib/v8bridge" clean
+    fi
 
     # Use the same V8 clang toolchain to build v8bridge - C++ ABI compatibility
     make -C "$NGX_WASM_DIR/lib/v8bridge" \
@@ -169,14 +211,15 @@ cache_v8() {
 build_v8() {
     local target="$1"
     local cachedir="$2"
+    local clean="$3"
 
     if check_cached_v8 "$target" "$cachedir"; then
         return 0
     fi
 
-    build_cwabt "$target"
-    build_libwee8 "$target" "$V8_VER"
-    build_v8bridge "$target"
+    build_cwabt "$target" "$clean"
+    build_libwee8 "$target" "$clean"
+    build_v8bridge "$target" "$clean"
 
     cache_v8 "$target" "$cachedir"
 }
@@ -195,4 +238,4 @@ V8_VER="${V8_VER:-$(get_from_release V8_VER)}"
 target="${1:-$DIR_WORK}"
 cachedir="${2:-$DIR_DOWNLOAD/v8-$V8_VER}"
 
-build_v8 "$target" "$cachedir"
+build_v8 "$target" "$cachedir" "$3"

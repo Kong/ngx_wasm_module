@@ -110,17 +110,8 @@ release_source() {
     notice "Created $DIR_DIST_OUT/$DIST_SRC.tar.gz"
 }
 
-# nginx binary (static)
-
-build_static_binary() {
-    local arch=$1
-    local runtime=$2
-    local runtime_ver=$3
+get_distro() {
     local distro
-
-    if [ ! -d $DIST_SRC ]; then
-        fatal "missing source release at $(pwd)/$DIST_SRC to build binary, run with --src"
-    fi
 
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -143,7 +134,21 @@ build_static_binary() {
             ;;
     esac
 
-    local dist_bin_name=wasmx-$name-$runtime-$arch-$distro
+    echo "$distro"
+}
+
+# nginx binary (static)
+
+build_static_binary() {
+    local arch=$1
+    local runtime=$2
+    local runtime_ver=$3
+
+    if [ ! -d $DIST_SRC ]; then
+        fatal "missing source release at $(pwd)/$DIST_SRC to build binary, run with --src"
+    fi
+
+    local dist_bin_name=wasmx-$name-$runtime-$arch-$(get_distro)
 
     if [ -z "$NGX_VER" ]; then
         fatal "$SCRIPT_NAME missing nginx version for static build, specify --ngx <ver>"
@@ -278,12 +283,20 @@ release_bin() {
     fi
 
     if [ -n "$V8_VER" ]; then
-        local v8_dir="$DIR_WORK"
+        local distro="$(get_distro)"
+        local v8_dir="$DIR_WORK/v8-$V8_VER-$distro"
+        local v8_cache="$DIR_DOWNLOAD/v8-$V8_VER-$distro"
 
-        $NGX_WASM_DIR/util/runtimes/v8.sh "$v8_dir"
+        if [ "$distro" = "centos7" ]; then
+            notice "Enabling devtoolset-8 for CentOS..."
+            source /opt/rh/devtoolset-8/enable
+            gcc --version
+        fi
 
-        CC_FLAGS="-I$v8_dir/include"
-        LD_FLAGS="$v8_dir/lib/libwee8.a $v8_dir/lib/libcwabt.a -lstdc++ -lm -ldl -lpthread $LD_FLAGS"
+        $NGX_WASM_DIR/util/runtimes/v8.sh "$v8_dir" "$v8_cache" clean
+
+        export NGX_WASM_RUNTIME_INC="$v8_dir/include"
+        export NGX_WASM_RUNTIME_LIB="$v8_dir/lib"
 
         build_static_binary $arch v8 $V8_VER
     fi
