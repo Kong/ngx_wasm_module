@@ -5,6 +5,10 @@ RUN pacman -Syyu --noconfirm \
     clang \
     make \
     gcc \
+    python \
+    git \
+    pkg-config \
+    which \
     ninja
 
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo

@@ -10,7 +10,12 @@ RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-* && \
         cmake \
         make \
         gcc \
-        perl
+        libstdc++-devel \
+        libatomic \
+        perl \
+        python3 \
+        git \
+        glib2-devel
 
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
 ENV PATH $CARGO_HOME/bin:$PATH
