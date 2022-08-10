@@ -17,7 +17,7 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 build_cwabt() {
     local target="$1"
-    local clean="$1"
+    local clean="$2"
 
     notice "building lib/cwabt..."
 
