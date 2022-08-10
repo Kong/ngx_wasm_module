@@ -16,6 +16,15 @@ RUN apt-get update && \
         clang \
         curl
 
+# Install CMake >= 3.12 (required by wabt-sys,
+# which is required by cwabt, used by the V8 backend).
+RUN apt-get install -y --no-install-recommends \
+        python3-pip \
+        python3-setuptools && \
+        pip3 install --upgrade pip && \
+        pip3 install scikit-build && \
+        pip3 install cmake
+
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
 ENV PATH $CARGO_HOME/bin:$PATH
 RUN mkdir -p "$CARGO_HOME" && mkdir -p "$RUSTUP_HOME" && \
