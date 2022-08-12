@@ -31,13 +31,13 @@ ngx_wasmer_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
     ngx_log_t *log)
 {
     if (conf->compiler.len) {
-        if (ngx_strncmp(conf->compiler.data, "cranelift", 9) == 0) {
+        if (ngx_str_eq(conf->compiler.data, conf->compiler.len, "cranelift", -1)) {
             wasm_config_set_compiler(config, CRANELIFT);
 
-        } else if (ngx_strncmp(conf->compiler.data, "singlepass", 10) == 0) {
+        } else if (ngx_str_eq(conf->compiler.data, conf->compiler.len, "singlepass", -1)) {
             wasm_config_set_compiler(config, SINGLEPASS);
 
-        } else if (ngx_strncmp(conf->compiler.data, "llvm", 4) == 0) {
+        } else if (ngx_str_eq(conf->compiler.data, conf->compiler.len, "llvm", -1)) {
             wasm_config_set_compiler(config, LLVM);
 
         } else {
@@ -204,9 +204,8 @@ linking:
            i + 1, module->import_types->size);
 
         if (wasi_version_name
-            && ngx_strncmp(wasi_version_name->data,
-                           importmodule->data,
-                           wasi_version_name->len) == 0)
+            && ngx_str_eq(wasi_version_name->data, wasi_version_name->len,
+                          importmodule->data, wasi_version_name->len))
         {
             module->wasi = 1;
 
@@ -226,8 +225,8 @@ linking:
                                  wasi_imports.data)[j];
                 wasiname = wasmer_named_extern_name(wasmer_extern);
 
-                if (ngx_strncmp((u_char *) importname->data,
-                                wasiname->data, wasiname->size) == 0)
+                if (ngx_str_eq(importname->data, importname->size,
+                               wasiname->data, wasiname->size))
                 {
                     dd("   -> wasi resolved: \"%.*s\"",
                        (int) importname->size, importname->data);
@@ -241,16 +240,17 @@ linking:
                 }
             }
 
-        } else if (ngx_strncmp(importmodule->data, "env", 3) == 0) {
+        } else if (ngx_str_eq(importmodule->data, importmodule->size, "env", -1)) {
 
             /* resolve hfunc */
 
             for (j = 0; j < hfuncs->nelts; j++) {
                 hfunc = ((ngx_wavm_hfunc_t **) hfuncs->elts)[j];
 
-                if (ngx_strncmp(importname->data,
-                                hfunc->def->name.data,
-                                hfunc->def->name.len) == 0)
+                if (ngx_str_eq(importname->data,
+                               importname->size,
+                               hfunc->def->name.data,
+                               hfunc->def->name.len))
                 {
                     ngx_wasm_assert(i == hfunc->idx);
 

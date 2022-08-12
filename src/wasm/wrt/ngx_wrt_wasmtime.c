@@ -15,11 +15,11 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
     wasmtime_error_t  *err = NULL;
 
     if (conf->compiler.len) {
-        if (ngx_strncmp(conf->compiler.data, "auto", 4) == 0) {
+        if (ngx_str_eq(conf->compiler.data, conf->compiler.len, "auto", -1)) {
             err = wasmtime_config_strategy_set(config,
                                                WASMTIME_STRATEGY_AUTO);
 
-        } else if (ngx_strncmp(conf->compiler.data, "cranelift", 9) == 0) {
+        } else if (ngx_str_eq(conf->compiler.data, conf->compiler.len, "cranelift", -1)) {
             err = wasmtime_config_strategy_set(config,
                                                WASMTIME_STRATEGY_CRANELIFT);
 
@@ -159,7 +159,7 @@ ngx_wasmtime_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
            (int) importname->size, importname->data,
            hfunc->idx + 1, module->import_types->size);
 
-        if (ngx_strncmp(importmodule->data, "env", 3) != 0) {
+        if (!ngx_str_eq(importmodule->data, importmodule->size, "env", -1)) {
             dd("  skipping");
             continue;
         }

@@ -583,8 +583,8 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
             ngx_wasm_sn_rbtree_insert(&module->funcs_tree, &funcref->sn);
 
             if (module->f_start == NULL
-                && (ngx_strncmp(exportname->data, "_start", 6) == 0
-                    || ngx_strncmp(exportname->data, "_initialize", 11) == 0))
+                && (ngx_str_eq(exportname->data, exportname->size, "_start", -1)
+                    || ngx_str_eq(exportname->data, exportname->size, "_initialize", -1)))
             {
                 module->f_start = funcref;
             }
@@ -681,7 +681,7 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
            (int) importname->size, importname->data,
            i + 1, module->imports.size);
 
-        if (ngx_strncmp(importmodule->data, "env", 3) != 0) {
+        if (!ngx_str_eq(importmodule->data, importmodule->size, "env", -1)) {
             dd("skipping");
             continue;
         }

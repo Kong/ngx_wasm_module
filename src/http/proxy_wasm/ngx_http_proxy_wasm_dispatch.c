@@ -198,25 +198,25 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
 
         if (elt->key.data[0] == ':') {
 
-            if (ngx_strncmp(elt->key.data, ":method", 7) == 0) {
+            if (ngx_str_eq(elt->key.data, elt->key.len, ":method", -1)) {
                 call->method.len = elt->value.len;
                 call->method.data = elt->value.data;
 
-            } else if (ngx_strncmp(elt->key.data, ":path", 5) == 0) {
+            } else if (ngx_str_eq(elt->key.data, elt->key.len, ":path", -1)) {
                 call->uri.len = elt->value.len;
                 call->uri.data = elt->value.data;
 
-            } else if (ngx_strncmp(elt->key.data, ":authority", 10) == 0) {
+            } else if (ngx_str_eq(elt->key.data, elt->key.len, ":authority", -1)) {
                 call->authority.len = elt->value.len;
                 call->authority.data = elt->value.data;
 
-            } else if (ngx_strncmp(elt->key.data, ":scheme", 7) == 0) {
+            } else if (ngx_str_eq(elt->key.data, elt->key.len, ":scheme", -1)) {
 #if (NGX_SSL)
-                if (ngx_strncmp(elt->value.data, "https", 5) == 0) {
+                if (ngx_str_eq(elt->value.data, elt->value.len, "https", -1)) {
                     enable_ssl = 1;
                     dd("tls enabled");
 
-                } else if (ngx_strncmp(elt->value.data, "http", 4) == 0) {
+                } else if (ngx_str_eq(elt->value.data, elt->value.len, "http", -1)) {
                     dd("tls disabled");
 
                 } else {

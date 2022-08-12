@@ -136,7 +136,7 @@ ngx_wavm_host_hfunc_create(ngx_pool_t *pool, ngx_wavm_host_def_t *host,
            (int) name->len);
 #endif
 
-        if (ngx_strncmp(name->data, func->name.data, func->name.len) != 0) {
+        if (!ngx_str_eq(name->data, name->len, func->name.data, func->name.len)) {
             continue;
         }
 

@@ -749,3 +749,21 @@ fail
 qr/trap in proxy_on_log:.*? dispatch failed: bad step/
 --- no_error_log
 [crit]
+
+
+
+=== TEST 31: proxy_wasm - dispatch_http_call() missing :method but has a :method-prefixed header
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1 \
+                              no_method=true \
+                              method_prefixed_header=yes';
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+qr/\[error\] .*? dispatch failed: no :method/
+--- no_error_log
+[crit]
