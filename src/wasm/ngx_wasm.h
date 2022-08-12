@@ -116,6 +116,25 @@ ngx_wasm_sn_rbtree_lookup(ngx_rbtree_t *rbtree, ngx_str_t *str)
 }
 
 
+static ngx_inline unsigned
+ngx_str_eq(const void *s1, ngx_int_t s1_len, const void *s2, ngx_int_t s2_len)
+{
+    if (s1_len < 0) {
+        s1_len = ngx_strlen((const char *) s1);
+    }
+
+    if (s2_len < 0) {
+        s2_len = ngx_strlen((const char *) s2);
+    }
+
+    if (s1_len != s2_len) {
+        return 0;
+    }
+
+    return ngx_memcmp(s1, s2, s2_len) == 0;
+}
+
+
 /* subsystems & phases */
 
 

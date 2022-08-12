@@ -46,8 +46,8 @@ ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     for (/* void */; phase->name.len; phase++) {
-        if (ngx_strncmp(phase_name->data, phase->name.data, phase->name.len)
-            == 0)
+        if (ngx_str_eq(phase_name->data, phase_name->len,
+                       phase->name.data, phase->name.len))
         {
             break;
         }
@@ -206,13 +206,13 @@ ngx_http_wasm_proxy_wasm_isolation_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    if (ngx_strncmp(value->data, "none", 4) == 0) {
+    if (ngx_str_eq(value->data, value->len, "none", -1)) {
         loc->isolation = NGX_PROXY_WASM_ISOLATION_NONE;
 
-    } else if (ngx_strncmp(value->data, "stream", 6) == 0) {
+    } else if (ngx_str_eq(value->data, value->len, "stream", -1)) {
         loc->isolation = NGX_PROXY_WASM_ISOLATION_STREAM;
 
-    } else if (ngx_strncmp(value->data, "filter", 6) == 0) {
+    } else if (ngx_str_eq(value->data, value->len, "filter", -1)) {
         loc->isolation = NGX_PROXY_WASM_ISOLATION_FILTER;
 
     } else {

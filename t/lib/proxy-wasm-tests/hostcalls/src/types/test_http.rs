@@ -129,6 +129,16 @@ impl TestHttp {
             ));
         }
 
+        if self.get_config("method_prefixed_header") == Some("yes") {
+            headers.push((
+                ":methodx",
+                self.config
+                    .get("method")
+                    .map(|v| v.as_str())
+                    .unwrap_or("GET"),
+            ));
+        }
+
         if self.get_config("no_path").is_none() {
             headers.push((
                 ":path",

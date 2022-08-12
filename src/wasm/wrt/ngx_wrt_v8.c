@@ -21,7 +21,7 @@ ngx_v8_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
     ngx_log_t *log)
 {
     if (conf->compiler.len) {
-        if (ngx_strncmp(conf->compiler.data, "auto", 4) != 0) {
+        if (!ngx_str_eq(conf->compiler.data, conf->compiler.len, "auto", -1)) {
             ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
                                "invalid compiler \"%V\"",
                                &conf->compiler);
@@ -180,9 +180,8 @@ ngx_v8_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
            (int) importname->size, importname->data,
            i + 1, module->import_types->size);
 
-        if (ngx_strncmp("wasi_snapshot_preview1",
-                        importmodule->data,
-                        importmodule->size) == 0)
+        if (ngx_str_eq(importmodule->data, importmodule->size,
+                       "wasi_snapshot_preview1", -1))
         {
             /* resolve wasi */
 
@@ -202,9 +201,9 @@ ngx_v8_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
                 module->nimports++;
             }
 
-        } else if (ngx_strncmp("env",
-                               importmodule->data,
-                               importmodule->size) == 0)
+        } else if (ngx_str_eq(importmodule->data,
+                              importmodule->size,
+                              "env", -1))
         {
 
             /* resolve hfunc */
@@ -212,9 +211,8 @@ ngx_v8_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
             for (j = 0; j < hfuncs->nelts; j++) {
                 hfunc = ((ngx_wavm_hfunc_t **) hfuncs->elts)[j];
 
-                if (ngx_strncmp(importname->data,
-                                hfunc->def->name.data,
-                                hfunc->def->name.len) == 0)
+                if (ngx_str_eq(importname->data, importname->size,
+                               hfunc->def->name.data, hfunc->def->name.len))
                 {
                     ngx_wasm_assert(i == hfunc->idx);
 

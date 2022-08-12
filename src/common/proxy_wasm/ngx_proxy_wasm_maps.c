@@ -357,7 +357,7 @@ ngx_proxy_wasm_maps_get_special_key(ngx_wavm_instance_t *instance,
         ngx_wasm_assert(mkey->get_);
 
         if (map_type != mkey->map_type
-            || ngx_strncmp(mkey->key.data, key->data, key->len) != 0)
+            || !ngx_str_eq(mkey->key.data, mkey->key.len, key->data, key->len))
         {
             continue;
         }
@@ -380,7 +380,7 @@ ngx_proxy_wasm_maps_set_special_key(ngx_wavm_instance_t *instance,
         mkey = &ngx_proxy_wasm_maps_special_keys[i];
 
         if (map_type != mkey->map_type
-            || ngx_strncmp(mkey->key.data, key->data, key->len) != 0)
+            || !ngx_str_eq(mkey->key.data, mkey->key.len, key->data, key->len))
         {
             continue;
         }
