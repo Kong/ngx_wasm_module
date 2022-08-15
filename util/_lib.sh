@@ -99,6 +99,7 @@ build_nginx() {
                        conf_opt=$NGX_BUILD_CONFIGURE_OPT.\
                        cc_opt=$NGX_BUILD_CC_OPT.\
                        ld_opt=$NGX_BUILD_LD_OPT.\
+                       ssl=$NGX_BUILD_SSL.\
                        dynamic=$NGX_BUILD_DYNAMIC_MODULE" | shasum | awk '{ print $1 }')
 
     if [[ ! -d "$NGX_BUILD_DIR_SRCROOT" \
@@ -143,8 +144,15 @@ build_nginx() {
     fi
 
 
-    if [[ "$NGX_BUILD_HTTP_SSL" == 1 ]]; then
-        build_opts+="--with-http_ssl_module "
+    if [[ "$NGX_BUILD_SSL" == 1 ]]; then
+        if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http" ]]; then
+            build_opts+="--with-http_ssl_module "
+        fi
+
+        if [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--with-stream" ]]; then
+            build_opts+="--with-stream_ssl_module "
+            build_opts+="--with-stream_ssl_preread_module "
+        fi
     fi
 
     # Build
