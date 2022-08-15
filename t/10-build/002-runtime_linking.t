@@ -4,6 +4,9 @@ use strict;
 use lib '.';
 use t::TestBuild;
 
+$ENV{NGX_WASM_RUNTIME_LIB} ||= '';
+$ENV{NGX_WASM_CWABT_LIB} ||= '';
+
 our $buildroot = $t::TestBuild::buildroot;
 
 my $nyi = $ENV{NGX_WASM_RUNTIME} eq 'v8' ? 2 : 0;
