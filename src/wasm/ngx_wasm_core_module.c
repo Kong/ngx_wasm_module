@@ -303,9 +303,6 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
         &wcf->ssl_conf.trusted_certificate, 1)
         != NGX_OK)
     {
-        ngx_wasm_log_error(NGX_LOG_EMERG, cycle->log, 0,
-                           "failed loading tls certificate file at \"%V\"",
-                           &wcf->ssl_conf.trusted_certificate);
         return NGX_ERROR;
     }
 

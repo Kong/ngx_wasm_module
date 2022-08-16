@@ -192,7 +192,7 @@ qr/\[error\]/
         echo fail;
     }
 --- error_log eval
-qr/\[emerg\] .*? failed loading tls certificate file/
+qr/\[emerg\] .*?no such file/i
 --- no_error_log
 [error]
 [crit]
