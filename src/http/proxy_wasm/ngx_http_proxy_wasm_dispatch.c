@@ -281,7 +281,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
     sock_env.ctx.request = rctx;
 #if (NGX_SSL)
     sock_env.ssl_conf = (enable_ssl)
-                        ? ngx_wasm_ssl_conf((ngx_cycle_t *) ngx_cycle)
+                        ? ngx_wasm_core_ssl_conf((ngx_cycle_t *) ngx_cycle)
                         : NULL;
 #endif
 
