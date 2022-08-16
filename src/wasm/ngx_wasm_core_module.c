@@ -14,9 +14,6 @@ static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
 static ngx_int_t ngx_wasm_core_init_process(ngx_cycle_t *cycle);
 #if (NGX_SSL)
 static ngx_int_t ngx_wasm_core_init_ssl(ngx_cycle_t *cycle);
-static ngx_int_t ngx_wasm_core_load_ssl_trusted_certificate(ngx_ssl_t *ssl,
-    ngx_str_t *cert, ngx_int_t depth);
-static int ngx_wasm_core_ssl_verify_callback(int ok, X509_STORE_CTX *x509_store);
 #endif
 
 extern ngx_wavm_host_def_t  ngx_wasm_core_interface;
@@ -116,27 +113,13 @@ ngx_wasm_main_vm(ngx_cycle_t *cycle)
 }
 
 
-#if (NGX_SSL)
-ngx_inline ngx_wasm_ssl_conf_t *
-ngx_wasm_ssl_conf(ngx_cycle_t *cycle)
-{
-    ngx_wasm_core_conf_t  *wcf;
-
-    wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    ngx_wasm_assert(wcf);
-
-    return &wcf->ssl_conf;
-}
-#endif
-
-
 static void
 ngx_wasm_core_cleanup_pool(void *data)
 {
     ngx_cycle_t  *cycle = data;
     ngx_wavm_t   *vm = ngx_wasm_main_vm(cycle);
 #if (NGX_SSL)
-    ngx_ssl_t    *ssl = &ngx_wasm_ssl_conf(cycle)->ssl;
+    ngx_ssl_t    *ssl = &ngx_wasm_core_ssl_conf(cycle)->ssl;
 #endif
 
     ngx_wavm_destroy(vm);
@@ -272,6 +255,18 @@ ngx_wasm_core_init_process(ngx_cycle_t *cycle)
 
 
 #if (NGX_SSL)
+ngx_inline ngx_wasm_ssl_conf_t *
+ngx_wasm_core_ssl_conf(ngx_cycle_t *cycle)
+{
+    ngx_wasm_core_conf_t  *wcf;
+
+    wcf = ngx_wasm_core_cycle_get_conf(cycle);
+    ngx_wasm_assert(wcf);
+
+    return &wcf->ssl_conf;
+}
+
+
 static ngx_int_t
 ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
 {
@@ -309,46 +304,5 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
     ngx_log_debug0(NGX_LOG_DEBUG_WASM, cycle->log, 0, "tls initialized");
 
     return NGX_OK;
-}
-
-
-/* Modified from `ngx_ssl_trusted_certificate` */
-static ngx_int_t
-ngx_wasm_core_load_ssl_trusted_certificate(ngx_ssl_t *ssl, ngx_str_t *cert,
-    ngx_int_t depth)
-{
-    SSL_CTX_set_verify(ssl->ctx, SSL_CTX_get_verify_mode(ssl->ctx),
-                       ngx_wasm_core_ssl_verify_callback);
-
-    SSL_CTX_set_verify_depth(ssl->ctx, depth);
-
-    if (cert->len == 0) {
-        return NGX_OK;
-    }
-
-    if (SSL_CTX_load_verify_locations(ssl->ctx, (char *) cert->data, NULL)
-        == 0)
-    {
-        ngx_ssl_error(NGX_LOG_EMERG, ssl->log, 0,
-                      "SSL_CTX_load_verify_locations(\"%s\") failed",
-                      cert->data);
-        return NGX_ERROR;
-    }
-
-    /*
-     * SSL_CTX_load_verify_locations() may leave errors in the error queue
-     * while returning success
-     */
-
-    ERR_clear_error();
-
-    return NGX_OK;
-}
-
-
-static int
-ngx_wasm_core_ssl_verify_callback(int ok, X509_STORE_CTX *x509_store)
-{
-    return 1;
 }
 #endif
