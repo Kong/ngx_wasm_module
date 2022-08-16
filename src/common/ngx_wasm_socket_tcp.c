@@ -31,7 +31,7 @@ static ngx_int_t ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c);
 static ngx_int_t ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c);
 static ngx_int_t ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c,
-    ngx_str_t name);
+    ngx_str_t *name);
 #endif
 
 
@@ -498,7 +498,7 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock)
 
     dd("tls connection created");
 
-    rc = ngx_wasm_socket_tcp_ssl_set_server_name(c, sock->host);
+    rc = ngx_wasm_socket_tcp_ssl_set_server_name(c, &sock->host);
     if (rc == NGX_ERROR) {
         return NGX_ERROR;
     }
@@ -584,11 +584,11 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c)
 
 /* Modified from `ngx_http_upstream_ssl_name` */
 static ngx_int_t
-ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t name)
+ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t *name)
 {
     u_char  *p, *last;
 
-    if (name.len == 0) {
+    if (name->len == 0) {
         goto done;
     }
 
@@ -597,30 +597,30 @@ ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t name)
      * or $http_host; we have to strip it
      */
 
-    p = name.data;
-    last = name.data + name.len;
+    p = name->data;
+    last = name->data + name->len;
 
     if (*p == '[') {
         p = ngx_strlchr(p, last, ']');
 
         if (p == NULL) {
-            p = name.data;
+            p = name->data;
         }
     }
 
     p = ngx_strlchr(p, last, ':');
 
     if (p != NULL) {
-        name.len = p - name.data;
+        name->len = p - name->data;
     }
 
     /* as per RFC 6066, literal IPv4 and IPv6 addresses are not permitted */
 
-    if (name.len == 0 || *name.data == '[') {
+    if (name->len == 0 || *name->data == '[') {
         goto done;
     }
 
-    if (ngx_inet_addr(name.data, name.len) != INADDR_NONE) {
+    if (ngx_inet_addr(name->data, name->len) != INADDR_NONE) {
         goto done;
     }
 
@@ -629,25 +629,27 @@ ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t name)
      * hence we explicitly null-terminate name here
      */
 
-    p = ngx_pnalloc(c->pool, name.len + 1);
+    p = ngx_pnalloc(c->pool, name->len + 1);
     if (p == NULL) {
         return NGX_ERROR;
     }
 
-    (void) ngx_cpystrn(p, name.data, name.len + 1);
+    (void) ngx_cpystrn(p, name->data, name->len + 1);
 
-    name.data = p;
+    name->data = p;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "upstream SSL server name: \"%s\"", name.data);
-
-    if (SSL_set_tlsext_host_name(c->ssl->connection, (char *) name.data) == 0) {
+    if (SSL_set_tlsext_host_name(c->ssl->connection, (char *) name->data)
+        == 0)
+    {
         ngx_ssl_error(NGX_LOG_ERR, c->log, 0,
-                      "SSL_set_tlsext_host_name(\"%s\") failed", name.data);
+                      "SSL_set_tlsext_host_name(\"%s\") failed", name->data);
         return NGX_ERROR;
     }
 
 done:
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "upstream tls server name: \"%V\"", name);
 
     return NGX_OK;
 }
