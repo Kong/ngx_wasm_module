@@ -556,7 +556,6 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c)
 
     if (sock->ssl_conf->skip_verify != 1) {
         rc = SSL_get_verify_result(c->ssl->connection);
-
         if (rc != X509_V_OK) {
             ngx_wasm_socket_tcp_err(sock, "tls certificate verify error: (%l:%s)",
                                     rc, X509_verify_cert_error_string(rc));
