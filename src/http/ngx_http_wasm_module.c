@@ -147,6 +147,13 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       NGX_HTTP_MODULE,
       NULL },
 
+    { ngx_string("resolver_add"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
+      ngx_http_wasm_resolver_add_directive,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      NGX_HTTP_MODULE,
+      NULL },
+
       ngx_null_command
 };
 
