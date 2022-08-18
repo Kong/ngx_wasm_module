@@ -82,7 +82,7 @@ build_nginx() {
         NGX_BUILD_DIR_PREFIX=$DIR_OPR_PREFIX
 
         # ./configure -j for LuaJIT build
-        build_opts+="-j`n_jobs` "
+        build_opts+="-j$(n_jobs) "
 
         # built as dynamic modules below for Test::Wasm
         build_opts+="--without-http_echo_module "
@@ -179,7 +179,7 @@ build_nginx() {
             NGX_BUILD_FRESH=1
         fi
 
-        eval "$NGX_BUILD_CMD make -j${n_jobs}"
+        eval "$NGX_BUILD_CMD make -j$(n_jobs)"
 
         if [[ -n "$NGX_BUILD_OPENRESTY" && "$NGX_BUILD_FRESH" == 1 ]]; then
             # install the prefix to preserve Lua components

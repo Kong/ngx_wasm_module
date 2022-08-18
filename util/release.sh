@@ -241,7 +241,7 @@ build_static_binary() {
         --without-http_uwsgi_module \
         --without-http_fastcgi_module || cat $DIR_BUILD/build-$dist_bin_name/autoconf*
 
-    make -j${n_jobs}
+    make -j$(n_jobs)
 
     cd $DIR_DIST_WORK
     cp $DIR_BUILD/build-$dist_bin_name/nginx \
