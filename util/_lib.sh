@@ -179,7 +179,7 @@ build_nginx() {
             NGX_BUILD_FRESH=1
         fi
 
-        eval "$NGX_BUILD_CMD make -j${n_jobs}"
+        eval "$NGX_BUILD_CMD make -j`n_jobs`"
 
         if [[ -n "$NGX_BUILD_OPENRESTY" && "$NGX_BUILD_FRESH" == 1 ]]; then
             # install the prefix to preserve Lua components
