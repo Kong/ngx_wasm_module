@@ -101,6 +101,8 @@ char *ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_http_wasm_proxy_wasm_isolation_directive(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
+char *ngx_http_wasm_resolver_add_directive(ngx_conf_t *cf,
+    ngx_command_t *cmd, void *conf);
 
 
 /* shims */

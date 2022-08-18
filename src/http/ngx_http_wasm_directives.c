@@ -223,3 +223,99 @@ ngx_http_wasm_proxy_wasm_isolation_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 
     return NGX_CONF_OK;
 }
+
+
+char *
+ngx_http_wasm_resolver_add_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
+{
+    in_addr_t                  addr;
+    ngx_str_t                 *values, *host, *address;
+    ngx_resolver_t            *r;
+    ngx_resolver_node_t       *rn;
+    ngx_http_core_loc_conf_t  *clcf;
+
+    clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
+    r = clcf->resolver;
+
+    /* args */
+
+    values = cf->args->elts;
+    address = &values[1];
+    host = &values[2];
+
+    if (address->len == 0) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "invalid address value \"%V\"", address);
+        return NGX_CONF_ERROR;
+    }
+
+    if (host->len == 0) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "invalid host value \"%V\"", host);
+        return NGX_CONF_ERROR;
+    }
+
+    rn = ngx_calloc(sizeof(ngx_resolver_node_t), cf->log);
+    if (rn == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    rn->nlen = host->len;
+
+    rn->name = ngx_alloc(rn->nlen, cf->log);
+    if (rn->name == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    ngx_memcpy(rn->name, host->data, rn->nlen);
+
+    rn->ttl = NGX_MAX_UINT32_VALUE;
+    rn->valid = NGX_MAX_UINT32_VALUE;
+    rn->expire = NGX_MAX_UINT32_VALUE;
+    rn->node.key = ngx_crc32_short(rn->name, rn->nlen);
+
+    if (ngx_strlchr(address->data, address->data + address->len, ':')
+        != NULL)
+    {
+
+#if (NGX_HAVE_INET6)
+        if (!r->ipv6
+            || ngx_inet6_addr(address->data, address->len,
+                              rn->u6.addr6.s6_addr)
+            != NGX_OK)
+        {
+#endif
+
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "invalid address value \"%V\"", address);
+            return NGX_CONF_ERROR;
+
+#if (NGX_HAVE_INET6)
+        }
+
+        rn->naddrs6 = 1;
+#endif
+
+    } else {
+        addr = ngx_inet_addr(address->data, address->len);
+        if (addr == INADDR_NONE) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "invalid address value \"%V\"", address);
+            return NGX_CONF_ERROR;
+        }
+
+        rn->naddrs = 1;
+        rn->u.addr = addr;
+    }
+
+    ngx_log_debug3(NGX_LOG_DEBUG, cf->log, 0,
+                   "\"%*s\" will resolve to \"%V\"",
+                   rn->nlen, rn->name, address);
+
+    ngx_rbtree_insert(&r->name_rbtree, &rn->node);
+
+    ngx_queue_insert_head(&r->name_expire_queue, &rn->queue);
+
+    return NGX_CONF_OK;
+}
