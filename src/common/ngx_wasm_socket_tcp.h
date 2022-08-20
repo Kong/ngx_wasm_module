@@ -74,7 +74,6 @@ struct ngx_wasm_socket_tcp_s {
 
     ngx_str_t                                host;
     ngx_wasm_upstream_resolved_t             resolved;
-    in_port_t                                port;
     ngx_msec_t                               read_timeout;
     ngx_msec_t                               send_timeout;
     ngx_msec_t                               connect_timeout;
@@ -126,7 +125,7 @@ struct ngx_wasm_socket_tcp_s {
 
 
 ngx_int_t ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host, ngx_wasm_socket_tcp_env_t *env);
+    ngx_str_t *host, in_port_t port, ngx_wasm_socket_tcp_env_t *env);
 ngx_int_t ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock);
 ngx_int_t ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock,
     ngx_chain_t *cl);

@@ -118,6 +118,8 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
 {
     static uint32_t                  callout_ids = 0;
     size_t                           i;
+    in_port_t                        port = 0;
+    u_char                          *p, *last;
     ngx_buf_t                       *buf;
     ngx_event_t                     *ev;
     ngx_table_elt_t                 *elts, *elt;
@@ -173,6 +175,25 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
 
     ngx_memcpy(call->host.data, host->data, host->len);
     call->host.data[call->host.len] = '\0';
+
+    /* port */
+
+    p = host->data;
+    last = p + host->len;
+
+    if (*p == '[') {
+        /* IPv6 */
+        p = ngx_strlchr(p, last, ']');
+        if (p == NULL) {
+            p = host->data;
+        }
+    }
+
+    p = ngx_strlchr(p, last, ':');
+
+    if (p != NULL) {
+        port = ngx_atoi(p + 1, last - p);
+    }
 
     /* headers/trailers */
 
@@ -285,7 +306,10 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
                         : NULL;
 #endif
 
-    if (ngx_wasm_socket_tcp_init(sock, &call->host, &sock_env) != NGX_OK) {
+    if (ngx_wasm_socket_tcp_init(sock, &call->host, port, &sock_env)
+        != NGX_OK)
+    {
+        dd("tcp init error");
         goto error;
     }
 
