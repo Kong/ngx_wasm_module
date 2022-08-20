@@ -10,8 +10,9 @@ typedef struct ngx_wasm_ssl_conf_s {
     ngx_str_t       trusted_certificate;
     ngx_ssl_t       ssl;
 
-    ngx_flag_t      skip_verify;
-    ngx_flag_t      skip_host_check;
+    ngx_flag_t      verify_cert;
+    ngx_flag_t      verify_host;
+    ngx_flag_t      no_verify_warn;
 } ngx_wasm_ssl_conf_t;
 
 
