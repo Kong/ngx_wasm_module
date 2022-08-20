@@ -116,7 +116,7 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
 
 ngx_int_t
 ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host, ngx_wasm_socket_tcp_env_t *env)
+    ngx_str_t *host, in_port_t port, ngx_wasm_socket_tcp_env_t *env)
 {
     ngx_memzero(sock, sizeof(ngx_wasm_socket_tcp_t));
 
@@ -163,6 +163,7 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
     sock->url.default_port = 80;
 #endif
     sock->url.url = sock->host;
+    sock->url.port = port;
     sock->url.no_resolve = 1;
 
     if (ngx_parse_url(sock->pool, &sock->url) != NGX_OK) {
@@ -171,9 +172,9 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
     }
 
 #if 0
-    dd("ngx_parse_url done (host: %*s, port: %*s, uri: %*s, url: %*s)",
+    dd("ngx_parse_url done (host: %*s, port: %d, uri: %*s, url: %*s)",
         (int) sock->url.host.len, sock->url.host.data,
-        (int) sock->url.port_text.len, sock->url.port_text.data,
+        sock->url.port,
         (int) sock->url.uri.len, sock->url.uri.data,
         (int) sock->url.url.len, sock->url.url.data);
 #endif
@@ -239,11 +240,17 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
         sock->resolved.host = sock->url.addrs[0].name;
         sock->resolved.naddrs = 1;
 
+        ngx_log_debug1(NGX_LOG_DEBUG_WASM, sock->log, 0,
+                       "no resolve: %V", &sock->resolved.host);
+
         return ngx_wasm_socket_tcp_connect_peer(sock);
     }
 
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, sock->log, 0,
+                   "resolve: %V", &sock->host);
+
     sock->resolved.host = sock->host;
-    sock->resolved.port = sock->url.default_port;
+    sock->resolved.port = sock->url.port;
 
     /* resolve */
 

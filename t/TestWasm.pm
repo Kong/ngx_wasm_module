@@ -2,6 +2,7 @@ package t::TestWasm;
 
 use strict;
 use Test::Nginx::Socket::Lua -Base;
+use Test::Nginx::Util qw(gen_rand_port);
 use List::Util qw(max);
 use Cwd qw(cwd);
 
@@ -27,6 +28,9 @@ $ENV{TEST_NGINX_CRATES_DIR} = $crates;
 $ENV{TEST_NGINX_HTML_DIR} = html_dir();
 $ENV{TEST_NGINX_DATA_DIR} = "$pwd/t/data";
 $ENV{TEST_NGINX_UNIX_SOCKET} = html_dir() . "/nginx.sock";
+# TODO: drop TEST_NGINX_SERVER_PORT2 when tcp_sock supports
+# unix: sockets to avoid port conflicts in randomized tests
+$ENV{TEST_NGINX_SERVER_PORT2} = gen_rand_port(1000);
 
 sub skip_valgrind (@) {
     my ($skip) = @_;
