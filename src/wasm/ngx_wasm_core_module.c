@@ -55,20 +55,28 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       + offsetof(ngx_wasm_ssl_conf_t, trusted_certificate),
       NULL },
 
-    { ngx_string("tls_skip_verify"),
+    { ngx_string("tls_verify_cert"),
       NGX_WASM_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_flag_slot,
       0,
       offsetof(ngx_wasm_core_conf_t, ssl_conf)
-      + offsetof(ngx_wasm_ssl_conf_t, skip_verify),
+      + offsetof(ngx_wasm_ssl_conf_t, verify_cert),
       NULL },
 
-    { ngx_string("tls_skip_host_check"),
+    { ngx_string("tls_verify_host"),
       NGX_WASM_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_flag_slot,
       0,
       offsetof(ngx_wasm_core_conf_t, ssl_conf)
-      + offsetof(ngx_wasm_ssl_conf_t, skip_host_check),
+      + offsetof(ngx_wasm_ssl_conf_t, verify_host),
+      NULL },
+
+    { ngx_string("tls_no_verify_warn"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      0,
+      offsetof(ngx_wasm_core_conf_t, ssl_conf)
+      + offsetof(ngx_wasm_ssl_conf_t, no_verify_warn),
       NULL },
 #endif
 
@@ -159,8 +167,9 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
     cln->data = cycle;
 
 #if (NGX_SSL)
-    wcf->ssl_conf.skip_verify = NGX_CONF_UNSET;
-    wcf->ssl_conf.skip_host_check = NGX_CONF_UNSET;
+    wcf->ssl_conf.verify_cert = NGX_CONF_UNSET;
+    wcf->ssl_conf.verify_host = NGX_CONF_UNSET;
+    wcf->ssl_conf.no_verify_warn = NGX_CONF_UNSET;
 #endif
 
     return wcf;
@@ -209,6 +218,22 @@ ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static char *
 ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 {
+#if (NGX_SSL)
+    ngx_wasm_core_conf_t  *wcf = conf;
+
+    if (wcf->ssl_conf.verify_cert == NGX_CONF_UNSET) {
+        wcf->ssl_conf.verify_cert = 0;
+    }
+
+    if (wcf->ssl_conf.verify_host == NGX_CONF_UNSET) {
+        wcf->ssl_conf.verify_host = 0;
+    }
+
+    if (wcf->ssl_conf.no_verify_warn == NGX_CONF_UNSET) {
+        wcf->ssl_conf.no_verify_warn = 1;
+    }
+#endif
+
     return NGX_CONF_OK;
 }
 
@@ -271,17 +296,12 @@ static ngx_int_t
 ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
 {
     ngx_wasm_core_conf_t  *wcf;
-    static ngx_str_t       default_crt = ngx_string(
-        "/etc/ssl/certs/ca-certificates.crt");
+    ngx_str_t             *trusted_crt;
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
     ngx_wasm_assert(wcf);
 
     wcf->ssl_conf.ssl.log = cycle->log;
-
-    if (wcf->ssl_conf.trusted_certificate.data == NULL) {
-        wcf->ssl_conf.trusted_certificate = default_crt;
-    }
 
     if (ngx_ssl_create(&wcf->ssl_conf.ssl,
                        NGX_SSL_TLSv1
@@ -294,8 +314,11 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
-    if (ngx_wasm_core_load_ssl_trusted_certificate(&wcf->ssl_conf.ssl,
-        &wcf->ssl_conf.trusted_certificate, 1)
+    trusted_crt = &wcf->ssl_conf.trusted_certificate;
+
+    if (trusted_crt->len
+        && ngx_wasm_trusted_certificate(&wcf->ssl_conf.ssl,
+                                        trusted_crt, 1)
         != NGX_OK)
     {
         return NGX_ERROR;

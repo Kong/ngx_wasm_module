@@ -16,10 +16,6 @@ ngx_wasm_trusted_certificate(ngx_ssl_t *ssl, ngx_str_t *cert,
 
     SSL_CTX_set_verify_depth(ssl->ctx, depth);
 
-    if (cert->len == 0) {
-        return NGX_OK;
-    }
-
     if (SSL_CTX_load_verify_locations(ssl->ctx, (char *) cert->data, NULL)
         == 0)
     {

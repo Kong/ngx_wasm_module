@@ -165,7 +165,7 @@ impl TestHttp {
             ));
         }
 
-        if self.get_config("use_https") == Some("yes") {
+        if self.get_config("https") == Some("yes") {
             headers.push((":scheme", "https"));
         } else {
             headers.push((":scheme", "http"));

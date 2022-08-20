@@ -512,6 +512,8 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock)
 
     rc = ngx_ssl_handshake(c);
 
+    dd("ssl handshake rc: %ld", rc);
+
     if (rc == NGX_OK) {
         rc = ngx_wasm_socket_tcp_ssl_handshake_done(c);
         ngx_wasm_assert(rc != NGX_AGAIN);
@@ -561,21 +563,37 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c)
         return NGX_AGAIN;
     }
 
-    if (sock->ssl_conf->skip_verify != 1) {
+    if (sock->ssl_conf->verify_cert) {
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                       "verifying tls certificate for \"%V\"",
+                       &sock->host);
+
         rc = SSL_get_verify_result(c->ssl->connection);
         if (rc != X509_V_OK) {
             ngx_wasm_socket_tcp_err(sock, "tls certificate verify error: (%l:%s)",
                                     rc, X509_verify_cert_error_string(rc));
             return NGX_ERROR;
         }
+
+    } else if (sock->ssl_conf->no_verify_warn) {
+        ngx_wasm_log_error(NGX_LOG_WARN, sock->log, 0,
+                           "tls certificate not verified");
     }
 
-    if (sock->ssl_conf->skip_host_check != 1) {
+    if (sock->ssl_conf->verify_host) {
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                       "checking tls certificate host for \"%V\"",
+                       &sock->host);
+
         if (ngx_ssl_check_host(c, &sock->host) != NGX_OK) {
             ngx_wasm_socket_tcp_err(sock, "tls certificate does not match \"%V\"",
                                     &sock->host);
             return NGX_ERROR;
         }
+
+    } else if (sock->ssl_conf->no_verify_warn) {
+        ngx_wasm_log_error(NGX_LOG_WARN, sock->log, 0,
+                           "tls certificate host not verified");
     }
 
     dd("tls handshake completed");
@@ -653,10 +671,10 @@ ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t *name)
         return NGX_ERROR;
     }
 
-done:
-
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "upstream tls server name: \"%V\"", name);
+
+done:
 
     return NGX_OK;
 }
