@@ -32,6 +32,7 @@ jobs:
         hup: [0]
         debug: [1, 0]
         include:
+          # Wasmtime
           - os: ubuntu-latest
             cc: gcc-8
             ngx: 1.23.1
@@ -39,22 +40,32 @@ jobs:
             wasmtime: 0.38.1
             hup: 1
             debug: 1
+          # V8
           - os: ubuntu-latest
             cc: gcc-8
             ngx: 1.23.1
             runtime: v8
             v8: 10.5.18
+          # OpenResty
           - os: ubuntu-latest
             cc: gcc-8
             openresty: 1.21.4.1
             runtime: wasmtime
             wasmtime: 0.38.1
+          # Old Nginx
           - os: ubuntu-latest
             cc: gcc-8
             ngx: 1.21.6
             runtime: wasmer
             wasmer: 2.3.0
             debug: 1
+          # No SSL
+          - os: ubuntu-latest
+            cc: gcc-8
+            ngx: 1.23.1
+            runtime: wasmer
+            wasmer: 2.3.0
+            no_ssl: 1
     steps:
       - run: sudo apt-get update && sudo apt-get install -y gcc-8 libstdc++-8-dev
         if: ${{ matrix.cc == 'gcc-8' }}
@@ -95,6 +106,7 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
+          NGX_BUILD_SSL: ${{ !matrix.no_ssl && 1 }}
           NGX_BUILD_DEBUG: ${{ matrix.debug }}
           NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
       - run: make test

@@ -19,8 +19,9 @@ our @EXPORT = qw(
     $buildroot
     $nginxbin
     $nginxV
-    skip_no_debug
     load_nginx_modules
+    skip_no_ssl
+    skip_no_debug
     skip_valgrind
 );
 
@@ -58,6 +59,12 @@ sub skip_valgrind (@) {
 sub skip_no_debug {
     if ($nginxV !~ m/--with-debug/) {
         plan(skip_all => "--with-debug required (NGX_BUILD_DEBUG=1)");
+    }
+}
+
+sub skip_no_ssl {
+    if ($nginxV !~ m/built with \S+SSL/) {
+        plan(skip_all => "SSL support required (NGX_BUILD_SSL=1)");
     }
 }
 

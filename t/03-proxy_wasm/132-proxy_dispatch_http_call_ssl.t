@@ -4,6 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
+skip_no_ssl();
 skip_valgrind('wasmtime');
 
 plan tests => repeat_each() * (blocks() * 4);
