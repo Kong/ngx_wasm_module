@@ -154,12 +154,32 @@ ngx_wavm_memory_data_size(ngx_wrt_extern_t *mem)
 
 
 static ngx_inline void *
-ngx_wavm_memory_lift(ngx_wrt_extern_t *mem, ngx_wavm_ptr_t p)
+ngx_wavm_memory_lift(ngx_wrt_extern_t *mem, ngx_wavm_ptr_t p,
+    uint32_t size, uint32_t align, ngx_uint_t *error_count)
 {
     ngx_wasm_assert(mem->kind == NGX_WRT_EXTERN_MEMORY);
 
+    /* NULL pointers are only valid for the empty slice */
     if (p == 0) {
+        if (size != 0) {
+            goto fail;
+        }
+
         return NULL;
+    }
+
+    /* Check bounds */
+
+    if (p + size < p || p + size > ngx_wavm_memory_data_size(mem)) {
+        dd("bound check failed, p=%x, size=%x", p, size);
+        goto fail;
+    }
+
+    /* Check alignment */
+
+    if (align > 1 && (p & (align - 1)) != 0) {
+        dd("alignment check failed, p=%x, size=%x", p, size);
+        goto fail;
     }
 
 #ifdef NGX_WASM_HAVE_WASMTIME
@@ -169,6 +189,14 @@ ngx_wavm_memory_lift(ngx_wrt_extern_t *mem, ngx_wavm_ptr_t p)
 #else
     return wasm_memory_data(wasm_extern_as_memory(mem->ext)) + p;
 #endif
+
+fail:
+
+    if (error_count != NULL) {
+        *error_count += 1;
+    }
+
+    return NULL;
 }
 
 
@@ -176,21 +204,15 @@ static ngx_inline unsigned
 ngx_wavm_memory_memcpy(ngx_wrt_extern_t *mem, ngx_wavm_ptr_t p, u_char *buf,
     size_t len)
 {
-    ngx_wasm_assert(mem->kind == NGX_WRT_EXTERN_MEMORY);
+    ngx_uint_t   error_count = 0;
+    void        *dest;
 
-    if (p + len >
-#ifdef NGX_WASM_HAVE_WASMTIME
-        wasmtime_memory_data_size(mem->context, &mem->ext.of.memory)
-
-#else
-        wasm_memory_data_size(wasm_extern_as_memory(mem->ext))
-#endif
-    )
-    {
+    dest = ngx_wavm_memory_lift(mem, p, len, 1, &error_count);
+    if (error_count != 0) {
         return 0;
     }
 
-    ngx_memcpy(ngx_wavm_memory_lift(mem, p), buf, len);
+    ngx_memcpy(dest, buf, len);
 
     return 1;
 }
@@ -200,21 +222,9 @@ static ngx_inline ngx_wavm_ptr_t
 ngx_wavm_memory_cpymem(ngx_wrt_extern_t *mem, ngx_wavm_ptr_t p, u_char *buf,
     size_t len)
 {
-    ngx_wasm_assert(mem->kind == NGX_WRT_EXTERN_MEMORY);
-
-    if (p + len >
-#ifdef NGX_WASM_HAVE_WASMTIME
-        wasmtime_memory_data_size(mem->context, &mem->ext.of.memory)
-
-#else
-        wasm_memory_data_size(wasm_extern_as_memory(mem->ext))
-#endif
-    )
-    {
+    if (ngx_wavm_memory_memcpy(mem, p, buf, len) == 0) {
         return 0;
     }
-
-    ngx_memcpy(ngx_wavm_memory_lift(mem, p), buf, len);
 
     return p + len;
 }

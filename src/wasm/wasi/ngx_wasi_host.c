@@ -14,8 +14,8 @@ ngx_wasi_hfuncs_random_get(ngx_wavm_instance_t *instance,
     uint8_t   *buf;
     uint32_t   buf_len;
 
-    buf = (uint8_t *) ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
     buf_len = args[1].of.i32;
+    buf = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, buf_len);
 
     for (i = 0; i < buf_len; i++) {
         buf[i] = (uint8_t) ngx_random();
@@ -60,9 +60,8 @@ static ngx_int_t
 ngx_wasi_hfuncs_environ_sizes_get(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    uint32_t          *environ_size;
-    uint32_t          *environ_buf_size;
-    ngx_wrt_extern_t  *mem = instance->memory;
+    uint32_t  *environ_size;
+    uint32_t  *environ_buf_size;
 
     /**
      * environ_size is the number of environment variables to be returned.
@@ -71,8 +70,8 @@ ngx_wasi_hfuncs_environ_sizes_get(ngx_wavm_instance_t *instance,
      * For example, given an environment {"A=aaa", "BB=bbbb"},
      * environ_size would be 2 and environ_buf_size would be 14.
      */
-    environ_size = (uint32_t *) ngx_wavm_memory_lift(mem, args[0].of.i32);
-    environ_buf_size = (uint32_t *) ngx_wavm_memory_lift(mem, args[1].of.i32);
+    environ_size = NGX_WAVM_HOST_LIFT(instance, args[0].of.i32, uint32_t);
+    environ_buf_size = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, uint32_t);
 
     /* TODO: nothing is returned for now */
 

@@ -78,4 +78,36 @@ wasm_trap_t * ngx_wavm_hfunc_trampoline(void *env,
 #endif
 
 
+#define NGX_WAVM_HOST_LIFT(instance, wasm_ptr, type)                         \
+    ({                                                                       \
+        ngx_uint_t   error_count = 0;                                        \
+        void        *ptr = ngx_wavm_memory_lift(                             \
+            instance->memory, wasm_ptr,                                      \
+            sizeof(type), __alignof__(type), &error_count);                  \
+        if (error_count != 0) {                                              \
+            ngx_wavm_instance_trap_printf(                                   \
+                instance,                                                    \
+                "invalid data pointer passed to host function");             \
+            return NGX_WAVM_BAD_USAGE;                                       \
+        }                                                                    \
+        (type *) ptr;                                                        \
+    })
+
+
+#define NGX_WAVM_HOST_LIFT_SLICE(instance, wasm_ptr, len)                    \
+    ({                                                                       \
+        ngx_uint_t   error_count = 0;                                        \
+        void        *ptr = ngx_wavm_memory_lift(                             \
+            instance->memory, wasm_ptr,                                      \
+            len, 1, &error_count);                                           \
+        if (error_count != 0) {                                              \
+            ngx_wavm_instance_trap_printf(                                   \
+                instance,                                                    \
+                "invalid slice pointer passed to host function");            \
+            return NGX_WAVM_BAD_USAGE;                                       \
+        }                                                                    \
+        ptr;                                                                 \
+    })
+
+
 #endif /* _NGX_WAVM_HOST_H_INCLUDED_ */
