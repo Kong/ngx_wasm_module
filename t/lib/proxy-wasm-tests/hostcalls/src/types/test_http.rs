@@ -109,6 +109,15 @@ impl TestHttp {
             "/t/error/get_response_body" => {
                 let _body = self.get_http_response_body(usize::MAX, usize::MAX);
             }
+            "/t/safety/proxy_get_header_map_value_oob_key" => {
+                test_proxy_get_header_map_value_oob_key(self)
+            }
+            "/t/safety/proxy_get_header_map_value_oob_return_data" => {
+                test_proxy_get_header_map_value_oob_return_data(self)
+            }
+            "/t/safety/proxy_get_header_map_value_misaligned_return_data" => {
+                test_proxy_get_header_map_value_misaligned_return_data(self)
+            }
             _ => (),
         }
 
@@ -157,15 +166,9 @@ impl TestHttp {
         }
 
         if self.get_config("use_https") == Some("yes") {
-            headers.push((
-                ":scheme",
-                "https",
-            ));
+            headers.push((":scheme", "https"));
         } else {
-            headers.push((
-                ":scheme",
-                "http",
-            ));
+            headers.push((":scheme", "http"));
         }
 
         if let Some(vals) = self.get_config("headers") {
