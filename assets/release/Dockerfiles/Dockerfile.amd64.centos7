@@ -5,6 +5,7 @@ RUN yum install -y epel-release && \
     yum install -y centos-release-scl && \
     yum install -y \
         devtoolset-8 \
+        devtoolset-8-gcc-c++ \
         devtoolset-8-libatomic-devel \
         ninja-build \
         clang \
@@ -25,4 +26,5 @@ RUN mkdir -p "$CARGO_HOME" && mkdir -p "$RUSTUP_HOME" && \
 
 # bypass "multiple definitions of 'assertions'" linker error from wasm.h:
 # https://github.com/WebAssembly/wasm-c-api/blob/master/include/wasm.h#L29
-ENV LD_FLAGS="-Wl,--allow-multiple-definition"
+# and ensure a more recent libstdc++ is found
+ENV LD_FLAGS="-Wl,--allow-multiple-definition -L/opt/rh/devtoolset-8/root/usr/lib/gcc/x86_64-redhat-linux/8"
