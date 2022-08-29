@@ -14,8 +14,8 @@ ngx_wasm_hfuncs_log(ngx_wavm_instance_t *instance,
     ngx_wavm_ptr_t  *msg;
 
     level = args[0].of.i32;
-    msg = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
     len = args[2].of.i32;
+    msg = NGX_WAVM_HOST_LIFT_SLICE(instance, args[1].of.i32, len);
 
     ngx_log_error((ngx_uint_t) level, instance->log, 0, "%*s", len, msg);
 

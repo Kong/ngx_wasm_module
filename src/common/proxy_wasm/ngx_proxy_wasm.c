@@ -1268,7 +1268,7 @@ ngx_proxy_wasm_alloc(ngx_proxy_wasm_filter_ctx_t *fctx, size_t size)
 
 unsigned
 ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx, ngx_list_t *list,
-    ngx_array_t *shims, ngx_wavm_ptr_t *out, size_t *out_size,
+    ngx_array_t *shims, ngx_wavm_ptr_t *out, uint32_t *out_size,
     ngx_uint_t *truncated)
 {
     size_t                size;
@@ -1286,12 +1286,12 @@ ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx, ngx_list_t *list,
     }
 
     ngx_proxy_wasm_pairs_marshal(list, shims,
-                                 ngx_wavm_memory_lift(instance->memory, p),
+                                 NGX_WAVM_HOST_LIFT_SLICE(instance, p, size),
                                  fctx->filter->max_pairs,
                                  truncated);
 
     *out = p;
-    *out_size = size;
+    *out_size = (uint32_t) size;
 
     return 1;
 }

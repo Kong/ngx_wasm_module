@@ -54,7 +54,7 @@ typedef struct ngx_wavm_store_s  ngx_wavm_store_t;
 typedef struct ngx_wavm_module_s  ngx_wavm_module_t;
 typedef struct ngx_wavm_funcref_s  ngx_wavm_funcref_t;
 typedef struct ngx_wavm_func_s  ngx_wavm_func_t;
-typedef ngx_uint_t  ngx_wavm_ptr_t;
+typedef uint32_t  ngx_wavm_ptr_t;
 
 
 typedef struct {

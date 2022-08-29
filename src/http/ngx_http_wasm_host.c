@@ -83,8 +83,8 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
     ngx_http_wasm_req_ctx_t  *rctx = instance->data;
     ngx_http_request_t       *r = rctx->r;
 
-    body = ngx_wavm_memory_lift(instance->memory, args[0].of.i32);
     body_len = args[1].of.i32;
+    body = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, body_len);
 
     if (r->connection->fd == NGX_WASM_BAD_FD) {
         return NGX_WAVM_BAD_USAGE;
@@ -152,8 +152,8 @@ ngx_http_wasm_hfuncs_local_response(ngx_wavm_instance_t *instance,
     ngx_http_wasm_req_ctx_t  *rctx = instance->data;
 
     status = args[0].of.i32;
-    reason = ngx_wavm_memory_lift(instance->memory, args[1].of.i32);
     reason_len = args[2].of.i32;
+    reason = NGX_WAVM_HOST_LIFT_SLICE(instance, args[1].of.i32, reason_len);
 
     (void) ngx_http_wasm_stash_local_response(rctx, status, reason, reason_len,
                                               NULL, NULL, 0);

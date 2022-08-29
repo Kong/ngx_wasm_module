@@ -375,7 +375,7 @@ ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_filter_ctx_t *fctx,
     size_t size);
 unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx,
     ngx_list_t *list, ngx_array_t *extras, ngx_wavm_ptr_t *out,
-    size_t *out_size, ngx_uint_t *truncated);
+    uint32_t *out_size, ngx_uint_t *truncated);
 
 /* utils */
 void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
