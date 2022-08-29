@@ -119,7 +119,7 @@ build_libwee8() {
 
     ### build
 
-    local build_mode="$V8_PLATFORM.release.sample"
+    local build_mode="$V8_PLATFORM.release"
 
     if [ "$clean" = "clean" ]; then
         rm -rf out.gn/"$build_mode"
@@ -141,8 +141,17 @@ build_libwee8() {
         fi
     }
 
+    export PKG_CONFIG_PATH=/usr/lib/$(gcc -print-multiarch 2>/dev/null)/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH
+
     notice "generating V8 build files..."
-    tools/dev/v8gen.py "$build_mode" -vv -- use_custom_libcxx=false use_sysroot=false
+
+    local is_clang=false
+    if [ "$CC" = "clang" ]; then
+        is_clang=true
+    fi
+
+    notice "generating V8 build files..."
+    buildtools/*/gn gen out.gn/"$build_mode" --args="is_clang=$is_clang use_sysroot=false is_debug=false use_custom_libcxx=false use_dbus=false use_glib=false v8_enable_webassembly=true v8_monolithic=true symbol_level=0 target_cpu=\"$V8_PLATFORM\" v8_target_cpu=\"$V8_PLATFORM\" v8_use_external_startup_data=false"
 
     notice "building V8..."
     ninja -C out.gn/"$build_mode" wee8
