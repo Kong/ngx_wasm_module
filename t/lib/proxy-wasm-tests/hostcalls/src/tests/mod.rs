@@ -6,6 +6,16 @@ use log::*;
 use proxy_wasm::hostcalls::*;
 use proxy_wasm::types::*;
 
+extern "C" {
+    fn proxy_get_header_map_value(
+        map_type: i32,
+        key_data: *const u8,
+        key_size: usize,
+        return_value_data: *mut *mut u8,
+        return_value_size: *mut usize,
+    ) -> i32;
+}
+
 pub(crate) fn test_log_levels(_: &mut TestHttp) {
     trace!("proxy_log trace");
     info!("proxy_log info");
@@ -303,4 +313,47 @@ pub(crate) fn test_set_response_body(ctx: &mut TestHttp) {
     ctx.set_http_response_body(offset, len, body.as_bytes());
 
     ctx.config.insert(key.clone(), key);
+}
+
+pub(crate) fn test_proxy_get_header_map_value_oob_key(_ctx: &mut TestHttp) {
+    let mut return_data: *mut u8 = std::ptr::null_mut();
+    let mut return_size: usize = 0;
+    unsafe {
+        proxy_get_header_map_value(
+            0,
+            0xdeadbeef as *const u8,
+            42,
+            &mut return_data,
+            &mut return_size,
+        );
+    }
+}
+
+pub(crate) fn test_proxy_get_header_map_value_oob_return_data(_ctx: &mut TestHttp) {
+    let mut return_size: usize = 0;
+    let key = b"Connection";
+    unsafe {
+        proxy_get_header_map_value(
+            0,
+            key.as_ptr(),
+            key.len(),
+            0xf0000000 as *mut *mut u8,
+            &mut return_size,
+        );
+    }
+}
+
+pub(crate) fn test_proxy_get_header_map_value_misaligned_return_data(_ctx: &mut TestHttp) {
+    let mut return_data: *mut u8 = std::ptr::null_mut();
+    let mut return_size: usize = 0;
+    let key = b"Connection";
+    unsafe {
+        proxy_get_header_map_value(
+            0,
+            key.as_ptr(),
+            key.len(),
+            ((&mut return_data as *mut *mut u8) as usize + 1) as *mut *mut u8,
+            &mut return_size,
+        );
+    }
 }
