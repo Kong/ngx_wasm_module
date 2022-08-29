@@ -26,7 +26,8 @@ case $ngx_wasm_runtime_name in
     v8)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_v8.c"
         ngx_wasm_runtime_lib_name="wee8"
-        ngx_wasm_runtime_extra_libs="-lcwabt -lm -lstdc++ -ldl -lpthread -lv8bridge"
+        ngx_wasm_runtime_pre_libs="-lcwabt -lv8bridge"
+        ngx_wasm_runtime_post_libs="-ldl -lpthread -lm -lstdc++"
 
         if [ -n "$NGX_WASM_CWABT_INC" ]; then
             NGX_WASM_RUNTIME_INC="$NGX_WASM_RUNTIME_INC -I $NGX_WASM_CWABT_INC"
