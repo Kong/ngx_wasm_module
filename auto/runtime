@@ -30,9 +30,14 @@ if [ -z "$ngx_feature_libs" -a -n "$ngx_wasm_runtime_lib_name" ]; then
     ngx_feature_libs="-l$ngx_wasm_runtime_lib_name"
 fi
 
-if [ -n "$ngx_wasm_runtime_extra_libs" ]; then
-    ngx_feature="$ngx_feature $ngx_wasm_runtime_extra_libs"
-    ngx_feature_libs="$ngx_feature_libs $ngx_wasm_runtime_extra_libs"
+if [ -n "$ngx_wasm_runtime_pre_libs" ]; then
+    ngx_feature="$ngx_wasm_runtime_pre_libs $ngx_feature"
+    ngx_feature_libs="$ngx_wasm_runtime_pre_libs $ngx_feature_libs"
+fi
+
+if [ -n "$ngx_wasm_runtime_post_libs" ]; then
+    ngx_feature="$ngx_feature $ngx_wasm_runtime_post_libs"
+    ngx_feature_libs="$ngx_feature_libs $ngx_wasm_runtime_post_libs"
 fi
 
 ngx_feature_run=yes
