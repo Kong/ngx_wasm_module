@@ -176,8 +176,15 @@ build_v8bridge() {
     fi
 
     # Use the same V8 clang toolchain to build v8bridge - C++ ABI compatibility
+    local v8_cxx="$DIR_LIBWEE8/repos/v8/third_party/llvm-build/Release+Asserts/bin/clang"
+
+    # On macOS builds, use the system-provided clang to avoid header issues
+    if [[ "$(uname -s)" = "Darwin" ]]; then
+        v8_cxx="clang"
+    fi
+
     make -C "$NGX_WASM_DIR/lib/v8bridge" \
-        CXX="$DIR_LIBWEE8/repos/v8/third_party/llvm-build/Release+Asserts/bin/clang" \
+        CXX="$v8_cxx" \
         V8_INCDIR="$DIR_LIBWEE8/repos/v8/include" \
         build
     make -C "$NGX_WASM_DIR/lib/v8bridge" TARGET="$target" install
