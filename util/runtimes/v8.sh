@@ -158,7 +158,7 @@ build_libwee8() {
 
 build_v8bridge() {
     local target="$1"
-    local clean="$1"
+    local clean="$2"
 
     notice "building v8bridge..."
 
