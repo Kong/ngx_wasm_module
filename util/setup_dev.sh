@@ -37,6 +37,16 @@ pushd $DIR_CPANM
 
     set +e
     patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
+    @@ -484,6 +484,7 @@ sub master_process_enabled (@) {
+     }
+
+     our @EXPORT = qw(
+    +    gen_rand_port
+         use_http2
+         use_http3
+         env_to_nginx
+EOF
+    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
     @@ -960,5 +960,5 @@ sub write_config_file ($$$) {
              bail_out "Can't open $ConfFile for writing: $!\n";
     +    print $out "daemon $DaemonEnabled;" if ($DaemonEnabled eq 'off');
@@ -44,6 +54,17 @@ pushd $DIR_CPANM
      worker_processes  $Workers;
     -daemon $DaemonEnabled;
      master_process $MasterProcessEnabled;
+EOF
+    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
+    @@ -2783,7 +2783,7 @@ END {
+
+         check_prev_block_shutdown_error_log();
+
+    -    if ($Randomize) {
+    +    if ($Randomize && !$ENV{TEST_NGINX_NO_CLEAN}) {
+             if (defined $ServRoot && -d $ServRoot && $ServRoot =~ m{/t/servroot_\d+}) {
+                 system("rm -rf $ServRoot");
+             }
 EOF
     patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Socket.pm <<'EOF'
     @@ -813,6 +813,10 @@ again:
@@ -58,17 +79,7 @@ EOF
 
          if (!defined $block->ignore_response) {
 EOF
-    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
-    @@ -2783,7 +2783,7 @@ END {
 
-         check_prev_block_shutdown_error_log();
-
-    -    if ($Randomize) {
-    +    if ($Randomize && !$ENV{TEST_NGINX_NO_CLEAN}) {
-             if (defined $ServRoot && -d $ServRoot && $ServRoot =~ m{/t/servroot_\d+}) {
-                 system("rm -rf $ServRoot");
-             }
-EOF
     set -e
 popd
 
