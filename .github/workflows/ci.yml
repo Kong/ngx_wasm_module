@@ -150,22 +150,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        cc: [gcc-8]
+        os: [ubuntu-22.04]
+        cc: [gcc-11]
         ngx: [1.23.1]
         runtime: [wasmer]
         wasmer: [2.3.0]
         hup: [0, 1]
         debug: [1]
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             ngx: 1.23.1
             runtime: wasmtime
             wasmtime: 0.38.1
             hup: 0
             debug: 1
-          - os: ubuntu-latest
-            cc: gcc-8
+          - os: ubuntu-22.04
+            cc: gcc-11
             ngx: 1.23.1
             runtime: v8
             v8: 10.5.18
@@ -173,8 +173,8 @@ jobs:
             debug: 1
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
-      - run: sudo apt-get install -y gcc-8 libstdc++-8-dev
-        if: ${{ matrix.cc == 'gcc-8' }}
+      - run: sudo apt-get install -y libstdc++-11-dev
+        if: ${{ matrix.cc == 'gcc-11' }}
       - run: sudo apt-get install -y ninja-build cmake pkg-config python-is-python3
         if: ${{ matrix.runtime == 'v8' }}
       - uses: actions/checkout@v2
