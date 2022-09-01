@@ -172,11 +172,18 @@ HelloWorld
     }
 
     location /c {
+        # offset = 0, max = 0, with value: prepend
         proxy_wasm hostcalls 'test=/t/set_request_body value=Goodbye offset=0 max=0';
         proxy_wasm hostcalls 'test=/t/echo/body';
     }
 
     location /d {
+        # offset = 0, max = 0, without value: delete
+        proxy_wasm hostcalls 'test=/t/set_request_body value= offset=0 max=0';
+        proxy_wasm hostcalls 'test=/t/echo/body';
+    }
+
+    location /e {
         proxy_wasm hostcalls 'test=/t/set_request_body value=HelloWorld offset=0 max=20';
         proxy_wasm hostcalls 'test=/t/echo/body';
     }
@@ -186,10 +193,12 @@ HelloWorld
         echo_subrequest GET /b;
         echo_subrequest GET /c;
         echo_subrequest GET /d;
+        echo_subrequest GET /e;
     }
 --- response_body
 HelloWorld
 HelloWas
+GoodbyeHelloWas
 HelloWorld
 --- no_error_log
 [error]

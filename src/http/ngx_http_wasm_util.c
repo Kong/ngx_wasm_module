@@ -203,27 +203,17 @@ ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx)
 }
 
 
-ngx_int_t
-ngx_http_wasm_set_req_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
-    size_t at, size_t max)
+static ngx_inline ngx_http_request_body_t *
+get_request_body(ngx_http_request_t *r)
 {
-    ngx_http_request_t       *r;
     ngx_http_request_body_t  *rb;
 
-    r = rctx->r;
-
-    if (rctx->entered_header_filter) {
-        return NGX_ABORT;
-    }
-
     rb = r->request_body;
-
-    body->len = ngx_min(body->len, max);
 
     if (rb == NULL) {
         rb = ngx_pcalloc(r->pool, sizeof(ngx_http_request_body_t));
         if (rb == NULL) {
-            return NGX_ERROR;
+            return NULL;
         }
 
         /*
@@ -242,8 +232,58 @@ ngx_http_wasm_set_req_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
         r->request_body = rb;
     }
 
+    return rb;
+}
+
+
+ngx_int_t
+ngx_http_wasm_set_req_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
+    size_t at, size_t max)
+{
+    ngx_http_request_t       *r = rctx->r;
+    ngx_http_request_body_t  *rb;
+
+    if (rctx->entered_header_filter) {
+        return NGX_ABORT;
+    }
+
+    rb = get_request_body(r);
+    if (rb == NULL) {
+        return NGX_ERROR;
+    }
+
+    body->len = ngx_min(body->len, max);
+
     if (ngx_wasm_chain_append(r->connection->pool, &rb->bufs, at, body,
                               &rctx->free_bufs, buf_tag)
+        != NGX_OK)
+    {
+        return NGX_ERROR;
+    }
+
+    r->headers_in.content_length_n = ngx_wasm_chain_len(rb->bufs, NULL);
+
+    return NGX_OK;
+}
+
+
+ngx_int_t
+ngx_http_wasm_prepend_req_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body)
+{
+    ngx_http_request_t       *r = rctx->r;
+    ngx_http_request_body_t  *rb;
+
+    if (rctx->entered_header_filter) {
+        return NGX_ABORT;
+    }
+
+    rb = get_request_body(r);
+    if (rb == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (ngx_wasm_chain_prepend(r->connection->pool, &rb->bufs, body,
+                               &rctx->free_bufs, buf_tag)
         != NGX_OK)
     {
         return NGX_ERROR;
@@ -275,6 +315,40 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
 
     if (ngx_wasm_chain_append(r->connection->pool, &rctx->resp_chunk, at, body,
                               &rctx->free_bufs, buf_tag)
+        != NGX_OK)
+    {
+        return NGX_ERROR;
+    }
+
+    rctx->resp_chunk_len = ngx_wasm_chain_len(rctx->resp_chunk,
+                                              &rctx->resp_chunk_eof);
+
+    if (!rctx->resp_chunk_len) {
+        /* discard chunk */
+        rctx->resp_chunk = NULL;
+    }
+
+    return NGX_OK;
+}
+
+
+ngx_int_t
+ngx_http_wasm_prepend_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body)
+{
+    ngx_http_request_t  *r = rctx->r;
+
+    if (rctx->resp_chunk == NULL) {
+        return NGX_ABORT;
+    }
+
+    if (r->header_sent && !r->chunked) {
+        ngx_wasm_log_error(NGX_LOG_WARN, r->connection->log, 0,
+                           "overriding response body chunk while "
+                           "Content-Length header already sent");
+    }
+
+    if (ngx_wasm_chain_prepend(r->connection->pool, &rctx->resp_chunk, body,
+                               &rctx->free_bufs, buf_tag)
         != NGX_OK)
     {
         return NGX_ERROR;

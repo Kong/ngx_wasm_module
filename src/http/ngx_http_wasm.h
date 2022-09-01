@@ -135,6 +135,10 @@ ngx_int_t ngx_http_wasm_set_req_body(ngx_http_wasm_req_ctx_t *rctx,
     ngx_str_t *body, size_t at, size_t max);
 ngx_int_t ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx,
     ngx_str_t *body, size_t at, size_t max);
+ngx_int_t ngx_http_wasm_prepend_req_body(ngx_http_wasm_req_ctx_t *rctx,
+    ngx_str_t *body);
+ngx_int_t ngx_http_wasm_prepend_resp_body(ngx_http_wasm_req_ctx_t *rctx,
+    ngx_str_t *body);
 
 
 /* proxy-wasm with wasm ops */
