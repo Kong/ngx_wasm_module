@@ -84,9 +84,12 @@ if [[ "$TEST_NGINX_CLEAN_LOG" == 1 ]]; then
 fi
 
 if [[ "$CI" == 'true' ]]; then
+    rm -f $DIR_TESTS_LIB_WASM/go_*
     cargo clean
     export NGX_BUILD_FORCE=1
 fi
+
+$NGX_WASM_DIR/util/setup_proxy_wasm_go_sdk.sh
 
 cargo build \
     --lib \
