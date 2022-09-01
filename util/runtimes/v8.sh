@@ -151,7 +151,22 @@ build_libwee8() {
     fi
 
     notice "generating V8 build files..."
-    buildtools/*/gn gen out.gn/"$build_mode" --args="is_clang=$is_clang use_sysroot=false is_debug=false use_custom_libcxx=false use_dbus=false use_glib=false v8_enable_webassembly=true v8_monolithic=true symbol_level=0 target_cpu=\"$V8_PLATFORM\" v8_target_cpu=\"$V8_PLATFORM\" v8_use_external_startup_data=false"
+    local args=(
+        "is_clang=$is_clang"
+        "use_sysroot=false"
+        "is_debug=false"
+        "use_custom_libcxx=false"
+        "use_dbus=false"
+        "use_glib=false"
+        "v8_enable_webassembly=true"
+        "v8_monolithic=true"
+        "symbol_level=0"
+        "target_cpu=\"$V8_PLATFORM\""
+        "v8_target_cpu=\"$V8_PLATFORM\""
+        "v8_use_external_startup_data=false"
+        "treat_warnings_as_errors=false"
+    )
+    buildtools/*/gn gen out.gn/"$build_mode" --args="${args[*]}"
 
     notice "building V8..."
     ninja -C out.gn/"$build_mode" wee8
