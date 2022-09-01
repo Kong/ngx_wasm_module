@@ -866,3 +866,27 @@ qr/trap in proxy_on_log:.*? dispatch failed: bad step/
 qr/\[error\] .*? dispatch failed: no :method/
 --- no_error_log
 [crit]
+
+
+
+=== TEST 36: proxy_wasm - dispatch_http_call() supports get_http_call_response_headers()
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /dispatched {
+        add_header X-Callout-Header callout-header-value;
+        echo ok;
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched \
+                              on_http_call_response=echo_response_headers';
+        echo failed;
+    }
+--- response_body_like
+X-Callout-Header: callout-header-value
+--- no_error_log
+[error]
+[crit]

@@ -63,8 +63,14 @@ ngx_proxy_wasm_maps_get_map(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_map_type_e map_type)
 {
 #ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    ngx_http_request_t       *r = rctx->r;
+    ngx_http_wasm_req_ctx_t         *rctx;
+    ngx_http_request_t              *r;
+    ngx_proxy_wasm_exec_t           *pwexec;
+    ngx_http_proxy_wasm_dispatch_t  *call;
+    ngx_wasm_http_reader_ctx_t      *reader;
+
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    r = rctx->r;
 #endif
 
     switch (map_type) {
@@ -75,6 +81,17 @@ ngx_proxy_wasm_maps_get_map(ngx_wavm_instance_t *instance,
 
     case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
         return &r->headers_out.headers;
+
+    case NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_HEADERS:
+        pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+        call = pwexec->call;
+        if (call == NULL) {
+            return NULL;
+        }
+
+        reader = &call->http_reader;
+
+        return &reader->fake_r.upstream->headers_in.headers;
 #endif
 
     default:

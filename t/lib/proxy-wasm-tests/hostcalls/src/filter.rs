@@ -30,6 +30,17 @@ impl Context for TestHttp {
                     self.send_plain_response(StatusCode::OK, Some(body.trim()));
                 }
             }
+            "echo_response_headers" => {
+                let headers = self.get_http_call_response_headers();
+                let mut s = String::new();
+                for (k, v) in headers {
+                    s.push_str(&k);
+                    s.push_str(": ");
+                    s.push_str(&v);
+                    s.push_str("\n");
+                }
+                self.send_plain_response(StatusCode::OK, Some(&s));
+            }
             _ => {}
         }
 
