@@ -223,11 +223,11 @@ qq{
 Hello
 --- error_log eval
 [
-    qr/\[info\] .*? on_response_body, 5 bytes, eof: false/,
-    qr/\[info\] .*? on_response_body, 0 bytes, eof: true/
+    qr/\[info\] .*? on_response_body, 5 bytes, eof: true/,
 ]
 --- no_error_log
 [error]
+[crit]
 
 
 

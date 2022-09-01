@@ -34,6 +34,9 @@ typedef struct {
     off_t                              resp_chunk_len;
     unsigned                           resp_chunk_eof;         /* seen last buf flag */
 
+    off_t                              req_content_length_n;
+    off_t                              resp_content_length_n;
+
     ngx_uint_t                         nyields;                /* keep track of r->main->count increments */
 
     /* local resp */

@@ -16,6 +16,7 @@ ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_exec_t *pwexec,
     ngx_int_t                 rc;
     ngx_uint_t                nheaders;
     ngx_http_request_t       *r;
+    ngx_http_wasm_req_ctx_t  *rctx;
     ngx_proxy_wasm_filter_t  *filter;
     wasm_val_vec_t           *rets;
     ngx_wavm_instance_t      *instance;
@@ -23,7 +24,10 @@ ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_exec_t *pwexec,
     instance = ngx_proxy_wasm_pwexec2instance(pwexec);
     filter = pwexec->filter;
     r = ngx_http_proxy_wasm_get_req(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
     nheaders = ngx_http_wasm_req_headers_count(r);
+
+    rctx->req_content_length_n = rctx->r->headers_in.content_length_n;
 
     if (filter->abi_version == NGX_PROXY_WASM_0_1_0) {
         /* 0.1.0 */
@@ -166,6 +170,8 @@ ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_exec_t *pwexec, ngx_uint_
     nheaders = ngx_http_wasm_resp_headers_count(r);
     nheaders += ngx_http_wasm_count_shim_headers(rctx);
 
+    rctx->resp_content_length_n = rctx->r->headers_out.content_length_n;
+
     if (pwexec->filter->abi_version == NGX_PROXY_WASM_0_1_0) {
         /* 0.1.0 */
         rc = ngx_wavm_instance_call_funcref(instance,
@@ -204,7 +210,13 @@ ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_exec_t *pwexec,
     instance = ngx_proxy_wasm_pwexec2instance(pwexec);
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
 
+    if (rctx->resp_content_length_n > 0) {
+        rctx->resp_chunk_eof = (rctx->resp_chunk_len
+                                == rctx->resp_content_length_n);
+    }
+
     if (rctx->resp_chunk_len || rctx->resp_chunk_eof) {
+
         rc = ngx_wavm_instance_call_funcref(instance,
                                             pwexec->filter->proxy_on_http_response_body,
                                             &rets, pwexec->id,
@@ -367,6 +379,11 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_exec_t *pwexec,
         break;
     case NGX_PROXY_WASM_STEP_REQ_BODY_READ:
         if (pwctx->exec_index + 1 == pwctx->nfilters) {
+
+            if (rctx->req_content_length_n > 0) {
+                r->headers_in.content_length_n = rctx->req_content_length_n;
+            }
+
             /* last filter */
             rc = ngx_http_wasm_read_client_request_body(r,
                      ngx_http_proxy_wasm_on_request_body_handler);
