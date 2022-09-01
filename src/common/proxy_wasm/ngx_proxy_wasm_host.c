@@ -288,7 +288,13 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_BUFFER_HTTP_REQUEST_BODY:
-        rc = ngx_http_wasm_set_req_body(rctx, &s, offset, max);
+        if (offset == 0 && max == 0 && buf_len > 0) {
+            rc = ngx_http_wasm_prepend_req_body(rctx, &s);
+
+        } else {
+            rc = ngx_http_wasm_set_req_body(rctx, &s, offset, max);
+        }
+
         if (rc == NGX_ABORT) {
             ngx_wavm_instance_trap_printf(instance, "cannot set request body");
         }
@@ -296,7 +302,13 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
         break;
 
     case NGX_PROXY_WASM_BUFFER_HTTP_RESPONSE_BODY:
-        rc = ngx_http_wasm_set_resp_body(rctx, &s, offset, max);
+        if (offset == 0 && max == 0 && buf_len > 0) {
+            rc = ngx_http_wasm_prepend_resp_body(rctx, &s);
+
+        } else{
+            rc = ngx_http_wasm_set_resp_body(rctx, &s, offset, max);
+        }
+
         if (rc == NGX_ABORT) {
             ngx_wavm_instance_trap_printf(instance, "cannot set response body");
         }

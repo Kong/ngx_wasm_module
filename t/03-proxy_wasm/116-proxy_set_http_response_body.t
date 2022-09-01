@@ -237,15 +237,24 @@ on_response_body, 0 bytes, eof: true.*/
     }
 
     location /b {
-        # offset == 0
-        echo 'hello world';
+        # offset == 0, max == 0, no value: delete
+        echo 'will not appear';
         proxy_wasm hostcalls 'on=response_body \
                               test=/t/set_response_body \
-                              value=Goodbye offset=0 max=0';
+                              value= offset=0 max=0';
         proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
     }
 
     location /c {
+        # offset == 0, max == 0, with value: prepend
+        echo 'postfix';
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_response_body \
+                              value=prepend offset=0 max=0';
+        proxy_wasm hostcalls 'on=response_body test=/t/log/response_body';
+    }
+
+    location /d {
         # offset larger than buffer
         echo -n 'hello';
         proxy_wasm hostcalls 'on=response_body \
@@ -259,12 +268,15 @@ on_response_body, 0 bytes, eof: true.*/
         echo;
         echo_subrequest GET /b;
         echo_subrequest GET /c;
+        echo_subrequest GET /d;
     }
 --- response_headers
 Transfer-Encoding: chunked
 Content-Length:
 --- response_body
 hello was
+prepend
+postfix
 hello     LAST
 --- grep_error_log eval: qr/(on_response_body,|(overriding\s)?response body chunk).*/
 --- grep_error_log_out eval
@@ -274,8 +286,14 @@ on_response_body, 9 bytes, eof: false.*
 response body chunk: "hello was".*
 on_response_body, 0 bytes, eof: true.*
 on_response_body, 0 bytes, eof: true.*
-on_response_body, 12 bytes, eof: false.*
+on_response_body, 16 bytes, eof: false.*
 overriding response body chunk while Content-Length header already sent.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 0 bytes, eof: true.*
+on_response_body, 8 bytes, eof: false.*
+overriding response body chunk while Content-Length header already sent.*
+on_response_body, 16 bytes, eof: false.*
+response body chunk: "prepend\\npostfix\\n".*
 on_response_body, 0 bytes, eof: true.*
 on_response_body, 0 bytes, eof: true.*
 on_response_body, 5 bytes, eof: false.*

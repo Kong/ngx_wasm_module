@@ -204,6 +204,29 @@ ngx_wasm_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free,
 
 
 ngx_int_t
+ngx_wasm_chain_prepend(ngx_pool_t *pool, ngx_chain_t **in,
+    ngx_str_t *str, ngx_chain_t **free, ngx_buf_tag_t tag)
+{
+    ngx_chain_t  *first;
+    ngx_buf_t    *buf;
+
+    first = ngx_wasm_chain_get_free_buf(pool, free, str->len, tag, 1);
+    if (first == NULL) {
+        return NGX_ERROR;
+    }
+
+    buf = first->buf;
+
+    buf->last = ngx_cpymem(buf->last, str->data, str->len);
+    first->next = *in;
+
+    *in = first;
+
+    return NGX_OK;
+}
+
+
+ngx_int_t
 ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
     ngx_str_t *str, ngx_chain_t **free, ngx_buf_tag_t tag)
 {
