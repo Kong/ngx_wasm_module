@@ -260,20 +260,51 @@ qr/\[alert\] .*? \[wasm\] NYI: module import type not supported <vm: "main", run
 
 
 
-=== TEST 15: module directive - invalid module (missing host function)
---- SKIP
+=== TEST 15: module directive - invalid module (missing host function in env)
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- config
+    location /t {
+        proxy_wasm a;
     }
 --- user_files
 >>> a.wat
 (module
     (import "env" "ngx_unknown" (func)))
+--- request
+BAD
+--- error_code: 405
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] loading "a" module from ".*?a\.wat" <vm: "main", runtime: ".*?">/,
+    qr/\[info\] .*? \[wasm\] loading "a" module <vm: "main", runtime: ".*?">/,
     qr/\[error\] .*? \[wasm\] failed importing "env.ngx_unknown": missing host function <vm: "main", runtime: ".*?">/,
-    qr/\[emerg\] .*? \[wasm\] failed loading "a" module: incompatible host interface/
+    qr/\[emerg\] .*? \[wasm\] failed linking "a" module with "ngx_proxy_wasm" host interface: incompatible host interface/
 ]
---- must_die
+
+
+
+=== TEST 16: module directive - invalid module (missing WASI function)
+--- skip_eval: 4: $::nginxV =~ m/wasmtime/
+--- main_config
+    wasm {
+        module x $TEST_NGINX_HTML_DIR/x.wat;
+    }
+--- config
+    location /t {
+        proxy_wasm x;
+    }
+--- user_files
+>>> x.wat
+(module
+    (import "wasi_snapshot_preview1" "unknown_function" (func)))
+--- request
+BAD
+--- error_code: 405
+--- error_log eval
+[
+    qr/\[info\] .*? \[wasm\] loading "x" module <vm: "main", runtime: ".*?">/,
+    qr/\[error\] .*? \[wasm\].*? unhandled WASI function "unknown_function"/,
+    qr/\[emerg\] .*? \[wasm\] failed linking "x" module with "ngx_proxy_wasm" host interface/
+]

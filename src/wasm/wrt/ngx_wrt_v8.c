@@ -163,12 +163,16 @@ ngx_v8_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
     ngx_wrt_err_t *err)
 {
     size_t                    i, j;
+    unsigned                  found, fail;
     const wasm_importtype_t  *importtype;
     const wasm_name_t        *importmodule, *importname;
     ngx_wavm_hfunc_t         *hfunc;
     ngx_str_t                 name;
 
     /* linking */
+
+
+    fail = 0;
 
     for (i = 0; i < module->import_types->size; i++) {
         importtype = ((wasm_importtype_t **) module->import_types->data)[i];
@@ -199,6 +203,13 @@ ngx_v8_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
                 module->import_kinds[i] = NGX_WRT_IMPORT_WASI;
 
                 module->nimports++;
+
+            } else {
+                ngx_wavm_log_error(NGX_LOG_ERR, module->engine->pool->log, NULL,
+                                   "NYI - unhandled WASI function \"%V\"",
+                                   importname);
+
+                fail = 1;
             }
 
         } else if (ngx_str_eq(importmodule->data,
@@ -207,6 +218,8 @@ ngx_v8_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
         {
 
             /* resolve hfunc */
+
+            found = 0;
 
             for (j = 0; j < hfuncs->nelts; j++) {
                 hfunc = ((ngx_wavm_hfunc_t **) hfuncs->elts)[j];
@@ -223,14 +236,29 @@ ngx_v8_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
                     module->import_kinds[i] = NGX_WRT_IMPORT_HFUNC;
 
                     module->nimports++;
+                    found = 1;
                     break;
                 }
             }
 
+            if (!found) {
+                ngx_wavm_log_error(NGX_LOG_ERR, module->engine->pool->log, NULL,
+                                   "failed resolving \"%V\" host function",
+                                   importname);
+                fail = 1;
+            }
+
         } else {
-            ngx_wasm_assert(0);
-            return NGX_ERROR;
+            ngx_wavm_log_error(NGX_LOG_ERR, module->engine->pool->log, NULL,
+                               "cannot resolve unknown module \"%V\"",
+                               importmodule);
+
+            fail = 1;
         }
+    }
+
+    if (fail) {
+        return NGX_ERROR;
     }
 
     ngx_wasm_assert(module->nimports == module->import_types->size);
