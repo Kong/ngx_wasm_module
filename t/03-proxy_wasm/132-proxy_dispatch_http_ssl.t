@@ -247,8 +247,8 @@ qq{
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- error_log
-tls certificate verify error: (19:self signed certificate in certificate chain))
+--- error_log eval
+qr/tls certificate verify error: \(19:self.signed certificate in certificate chain\)\)/
 --- no_error_log
 [crit]
 
