@@ -8,6 +8,9 @@
 #include <ngx_proxy_wasm.h>
 #include <ngx_proxy_wasm_maps.h>
 #include <ngx_proxy_wasm_properties.h>
+#include <ngx_wasm_shm_core.h>
+#include <ngx_wasm_shm_kv.h>
+#include <ngx_wasm_shm_queue.h>
 #ifdef NGX_WASM_HTTP
 #include <ngx_http_proxy_wasm.h>
 #endif
@@ -986,6 +989,329 @@ ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
 }
 
 
+struct kv_key_s {
+    ngx_str_t        namespace;
+    ngx_str_t        key;
+    ngx_shm_zone_t  *zone;
+    ngx_wasm_shm_t  *shm;
+};
+
+
+typedef struct kv_key_s  kv_key_t;
+
+
+static ngx_int_t
+resolve_kv_key(ngx_str_t *key, kv_key_t *out)
+{
+    ngx_uint_t       i;
+    ngx_cycle_t     *cycle = (ngx_cycle_t *) ngx_cycle;
+    ngx_int_t        zone_index;
+    ngx_shm_zone_t  *zone;
+
+    ngx_memzero(out, sizeof(kv_key_t));
+
+    for (i = 0; i < key->len; i++) {
+        if (key->data[i] == '/') {
+            out->namespace.data = key->data;
+            out->namespace.len = i;
+            out->key.data = key->data + i + 1;
+            out->key.len = key->len - i - 1;
+            break;
+        }
+    }
+
+    if (out->namespace.len == 0) {
+        out->key = *key;
+    }
+
+    zone_index = ngx_wasm_shm_lookup_index(cycle, &out->namespace);
+    if (zone_index == -1) {
+        return NGX_ERROR;
+    }
+
+    zone = ((ngx_wasm_shm_mapping_t *)
+        ngx_wasm_shm_array(cycle)->elts)[zone_index].zone;
+
+    out->zone = zone;
+    out->shm = zone->data;
+    if (out->shm->type != NGX_WASM_SHM_TYPE_KV) {
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_get_shared_data(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_int_t                     rc;
+    ngx_str_t                     key;
+    ngx_str_t                    *value;
+    uint32_t                     *value_data;
+    uint32_t                     *value_size;
+    uint32_t                     *cas;
+    kv_key_t                      resolved;
+    uint32_t                      wasm_ptr_buf;
+    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_instance2fctx(instance);
+
+    key.len = args[1].of.i32;
+    key.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, key.len);
+    value_data = NGX_WAVM_HOST_LIFT(instance, args[2].of.i32, uint32_t);
+    value_size = NGX_WAVM_HOST_LIFT(instance, args[3].of.i32, uint32_t);
+    cas = NGX_WAVM_HOST_LIFT(instance, args[4].of.i32, uint32_t);
+
+    dd("get shared data '%.*s'",
+       (int) key.len, key.data);
+
+    rc = resolve_kv_key(&key, &resolved);
+    if (rc != NGX_OK) {
+        return ngx_proxy_wasm_result_notfound(rets);
+    }
+
+    ngx_shmtx_lock(&resolved.shm->shpool->mutex);
+    rc = ngx_wasm_shm_kv_get_locked(resolved.shm, &key, &value, cas);
+    if (rc == NGX_OK) {
+        wasm_ptr_buf = ngx_proxy_wasm_alloc(fctx, value->len);
+        if (wasm_ptr_buf == 0) {
+            rc = NGX_ABORT;
+
+        } else {
+            ngx_memcpy(
+                NGX_WAVM_HOST_LIFT_SLICE(instance, wasm_ptr_buf, value->len),
+                value->data, value->len);
+            *value_data = wasm_ptr_buf;
+            *value_size = value->len;
+        }
+    }
+
+    ngx_shmtx_unlock(&resolved.shm->shpool->mutex);
+
+    if (rc == NGX_OK) {
+        return ngx_proxy_wasm_result_ok(rets);
+
+    } else if (rc == NGX_ERROR) {
+        /* not found */
+        return ngx_proxy_wasm_result_notfound(rets);
+
+    } else {
+        ngx_wavm_instance_trap_printf(instance, "internal error");
+        return NGX_WAVM_ERROR;
+    }
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_set_shared_data(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_int_t   rc;
+    ngx_str_t   key;
+    ngx_str_t   value;
+    uint32_t    cas;
+    kv_key_t    resolved;
+    ngx_int_t   written;
+
+    key.len = args[1].of.i32;
+    key.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, key.len);
+    value.len = args[3].of.i32;
+    value.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[2].of.i32, value.len);
+    cas = args[4].of.i32;
+
+    dd("set shared data '%.*s' -> '%.*s'",
+       (int) key.len, key.data, (int) value.len, value.data);
+
+    rc = resolve_kv_key(&key, &resolved);
+    if (rc != NGX_OK) {
+        return ngx_proxy_wasm_result_notfound(rets);
+    }
+
+    ngx_shmtx_lock(&resolved.shm->shpool->mutex);
+
+    /* If the plugin passes a NULL value pointer to us, treat it as a delete
+     * request. It is still possible to distinguish between setting an empty
+     * value (ptr!=NULL, len=0) and deleting a KV pair (ptr=NULL, len=0).
+     */
+    rc = ngx_wasm_shm_kv_set_locked(
+        resolved.shm,
+        &key, value.data ? &value : NULL,
+        cas, &written);
+
+    ngx_shmtx_unlock(&resolved.shm->shpool->mutex);
+
+    if (rc == NGX_OK) {
+        if (written) {
+            return ngx_proxy_wasm_result_ok(rets);
+
+        } else {
+            return ngx_proxy_wasm_result_cas_mismatch(rets);
+        }
+
+    } else {
+        ngx_wavm_instance_trap_printf(instance, "internal error");
+        return NGX_WAVM_ERROR;
+    }
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_register_shared_queue(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_str_t        queue_name;
+    uint32_t        *token;
+    ngx_int_t        zone_index;
+    ngx_shm_zone_t  *zone;
+    ngx_cycle_t     *cycle = (ngx_cycle_t *) ngx_cycle;
+    ngx_wasm_shm_t  *shm;
+
+    queue_name.len = args[1].of.i32;
+    queue_name.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, queue_name.len);
+    token = NGX_WAVM_HOST_LIFT(instance, args[2].of.i32, uint32_t);
+
+    zone_index = ngx_wasm_shm_lookup_index(cycle, &queue_name);
+    if (zone_index == -1) {
+        return ngx_proxy_wasm_result_notfound(rets);
+    }
+
+    zone = ((ngx_wasm_shm_mapping_t *)
+        ngx_wasm_shm_array(cycle)->elts)[zone_index].zone;
+    shm = zone->data;
+    if (shm->type != NGX_WASM_SHM_TYPE_QUEUE) {
+        return ngx_proxy_wasm_result_notfound(rets);
+    }
+
+    *token = (uint32_t) zone_index;
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_shm_zone_t *
+shared_queue_resolve_zone_by_token(uint32_t token)
+{
+    ngx_cycle_t     *cycle = (ngx_cycle_t *) ngx_cycle;
+    ngx_array_t     *zone_array;
+    ngx_shm_zone_t  *zone;
+    ngx_wasm_shm_t  *shm;
+
+    zone_array = ngx_wasm_shm_array(cycle);
+    if (zone_array == NULL) {
+        return NULL;
+    }
+
+    if (token >= zone_array->nelts) {
+        return NULL;
+    }
+
+    zone = ((ngx_wasm_shm_mapping_t *) zone_array->elts)[token].zone;
+    shm = zone->data;
+    if (shm->type != NGX_WASM_SHM_TYPE_QUEUE) {
+        return NULL;
+    }
+
+    return zone;
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_enqueue_shared_queue(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_int_t        rc;
+    ngx_shm_zone_t  *zone;
+    ngx_wasm_shm_t  *shm;
+    ngx_str_t        data;
+    ngx_uint_t       token;
+
+    token = args[0].of.i32;
+    data.len = args[2].of.i32;
+    data.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[1].of.i32, data.len);
+
+    zone = shared_queue_resolve_zone_by_token(token);
+    if (zone == NULL) {
+        return ngx_proxy_wasm_result_notfound(rets);
+    }
+
+    shm = zone->data;
+
+    ngx_shmtx_lock(&shm->shpool->mutex);
+    rc = ngx_wasm_shm_queue_push_locked(shm, &data);
+    ngx_shmtx_unlock(&shm->shpool->mutex);
+
+    if (rc == NGX_OK) {
+        return ngx_proxy_wasm_result_ok(rets);
+
+    } else {
+        return ngx_proxy_wasm_result_internal_failure(rets);
+    }
+}
+
+
+static void *
+shared_queue_alloc(ngx_uint_t n, void *ctx)
+{
+    ngx_wavm_instance_t          *instance = ctx;
+    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_instance2fctx(instance);
+    uint32_t                      wasm_ptr = ngx_proxy_wasm_alloc(fctx, n);
+    if (wasm_ptr == 0) {
+        return NULL;
+
+    } else {
+        return ngx_wavm_memory_lift(instance->memory, wasm_ptr, n, 1, NULL);
+    }
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_dequeue_shared_queue(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_int_t        rc;
+    ngx_shm_zone_t  *zone;
+    ngx_wasm_shm_t  *shm;
+    ngx_str_t        data;
+    ngx_uint_t       token;
+    uint32_t        *wasm_data_ptr;
+    uint32_t        *wasm_data_size;
+
+    token = args[0].of.i32;
+    wasm_data_ptr = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, uint32_t);
+    wasm_data_size = NGX_WAVM_HOST_LIFT(instance, args[2].of.i32, uint32_t);
+
+    zone = shared_queue_resolve_zone_by_token(token);
+    if (zone == NULL) {
+        return ngx_proxy_wasm_result_notfound(rets);
+    }
+
+    shm = zone->data;
+
+    ngx_shmtx_lock(&shm->shpool->mutex);
+    rc = ngx_wasm_shm_queue_pop_locked(shm, &data,
+                                       shared_queue_alloc, instance);
+    ngx_shmtx_unlock(&shm->shpool->mutex);
+
+    if (rc == NGX_OK) {
+        if (data.data) {
+            *wasm_data_ptr = (uint32_t) ((char *) data.data -
+                wasm_memory_data(wasm_extern_as_memory(instance->memory->ext)));
+
+        } else {
+            *wasm_data_ptr = 0;
+        }
+
+        *wasm_data_size = data.len;
+        return ngx_proxy_wasm_result_ok(rets);
+
+    } else if (rc == NGX_AGAIN) {
+        return ngx_proxy_wasm_result_empty(rets);
+
+    } else {
+        return ngx_proxy_wasm_result_internal_failure(rets);
+    }
+}
+
+
 static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
 
     /* integration */
@@ -1133,7 +1459,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
       ngx_wavm_arity_i32x6,
       ngx_wavm_arity_i32 },
     { ngx_string("proxy_get_shared_data"),
-      &ngx_proxy_wasm_hfuncs_nop,
+      &ngx_proxy_wasm_hfuncs_get_shared_data,
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
 
@@ -1142,7 +1468,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
       ngx_wavm_arity_i32x6,
       ngx_wavm_arity_i32 },
     { ngx_string("proxy_set_shared_data"),
-      &ngx_proxy_wasm_hfuncs_nop,
+      &ngx_proxy_wasm_hfuncs_set_shared_data,
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
 
@@ -1168,7 +1494,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
       ngx_wavm_arity_i32x4,
       ngx_wavm_arity_i32 },
     { ngx_string("proxy_register_shared_queue"),
-      &ngx_proxy_wasm_hfuncs_nop,
+      &ngx_proxy_wasm_hfuncs_register_shared_queue,
       ngx_wavm_arity_i32x3,
       ngx_wavm_arity_i32 },
 
@@ -1177,7 +1503,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
       ngx_wavm_arity_i32x3,
       ngx_wavm_arity_i32 },
     { ngx_string("proxy_dequeue_shared_queue"),
-      &ngx_proxy_wasm_hfuncs_nop,
+      &ngx_proxy_wasm_hfuncs_dequeue_shared_queue,
       ngx_wavm_arity_i32x3,
       ngx_wavm_arity_i32 },
 
@@ -1186,7 +1512,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
       ngx_wavm_arity_i32x3,
       ngx_wavm_arity_i32 },
     { ngx_string("proxy_enqueue_shared_queue"),
-      &ngx_proxy_wasm_hfuncs_nop,
+      &ngx_proxy_wasm_hfuncs_enqueue_shared_queue,
       ngx_wavm_arity_i32x3,
       ngx_wavm_arity_i32 },
 
