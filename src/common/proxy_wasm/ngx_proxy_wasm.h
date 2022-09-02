@@ -474,6 +474,33 @@ ngx_proxy_wasm_result_notfound(wasm_val_t rets[])
 }
 
 
+static ngx_inline ngx_int_t
+ngx_proxy_wasm_result_cas_mismatch(wasm_val_t rets[])
+{
+    rets[0] = (wasm_val_t)
+                  WASM_I32_VAL(NGX_PROXY_WASM_RESULT_CAS_MISMATCH);
+    return NGX_WAVM_OK;
+}
+
+
+static ngx_inline ngx_int_t
+ngx_proxy_wasm_result_internal_failure(wasm_val_t rets[])
+{
+    rets[0] = (wasm_val_t)
+                  WASM_I32_VAL(NGX_PROXY_WASM_RESULT_INTERNAL_FAILURE);
+    return NGX_WAVM_OK;
+}
+
+
+static ngx_inline ngx_int_t
+ngx_proxy_wasm_result_empty(wasm_val_t rets[])
+{
+    rets[0] = (wasm_val_t)
+                  WASM_I32_VAL(NGX_PROXY_WASM_RESULT_EMPTY);
+    return NGX_WAVM_OK;
+}
+
+
 extern ngx_wavm_host_def_t  ngx_proxy_wasm_host;
 
 
