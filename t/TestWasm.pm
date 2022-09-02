@@ -142,6 +142,8 @@ add_block_preprocessor(sub {
             my $tls_skip_verify = $block->tls_skip_verify;
             my $tls_skip_host_check = $block->tls_skip_host_check;
             my $tls_trusted_certificate = $block->tls_trusted_certificate;
+            my $shm_kv = $block->shm_kv;
+            my $shm_queue = $block->shm_queue;
 
             if (defined $tls_skip_verify) {
                 $wasm_config = $wasm_config .
@@ -156,6 +158,18 @@ add_block_preprocessor(sub {
             if (defined $tls_trusted_certificate) {
                 $wasm_config = $wasm_config .
                                "    tls_trusted_certificate " . $tls_trusted_certificate . ";\n";
+            }
+
+            if (defined $shm_kv) {
+                @arr = split /\n/, $shm_kv;
+                @arr = map { "    shm_kv $_;" } @arr;
+                $wasm_config = $wasm_config . (join "\n", @arr);
+            }
+
+            if (defined $shm_queue) {
+                @arr = split /\n/, $shm_queue;
+                @arr = map { "    shm_queue $_;" } @arr;
+                $wasm_config = $wasm_config . (join "\n", @arr);
             }
 
             $wasm_config = $wasm_config . "}\n";
