@@ -104,6 +104,12 @@ impl TestHttp {
                 return Action::Pause;
             }
 
+            /* shared memory */
+            "/t/shm/get_shared_data" => test_get_shared_data(self),
+            "/t/shm/set_shared_data" => test_set_shared_data(self),
+            "/t/shm/enqueue" => test_shared_queue_enqueue(self),
+            "/t/shm/dequeue" => test_shared_queue_dequeue(self),
+
             /* errors */
             "/t/trap" => panic!("trap"),
             "/t/error/get_response_body" => {
