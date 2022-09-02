@@ -4,10 +4,15 @@
 #include "ddebug.h"
 
 #include <ngx_wavm.h>
+#include <ngx_wasm_shm.h>
 
 
 static void *ngx_wasm_core_create_conf(ngx_cycle_t *cycle);
 static char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+static char *ngx_wasm_core_shm_kv_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+static char *ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
 static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
@@ -22,6 +27,7 @@ extern ngx_wavm_host_def_t  ngx_wasm_core_interface;
 typedef struct {
     ngx_wavm_t                        *vm;
     ngx_wavm_conf_t                    vm_conf;
+    ngx_array_t                        shms;     /* element: ngx_wasm_shm_mapping_t */
 
 #if (NGX_SSL)
     ngx_wasm_ssl_conf_t                ssl_conf;
@@ -42,6 +48,20 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
     { ngx_string("module"),
       NGX_WASM_CONF|NGX_CONF_TAKE2,
       ngx_wasm_core_module_directive,
+      0,
+      0,
+      NULL },
+
+    { ngx_string("shm_kv"),
+      NGX_WASM_CONF|NGX_CONF_TAKE23,
+      ngx_wasm_core_shm_kv_directive,
+      0,
+      0,
+      NULL },
+
+    { ngx_string("shm_queue"),
+      NGX_WASM_CONF|NGX_CONF_TAKE23,
+      ngx_wasm_core_shm_queue_directive,
       0,
       0,
       NULL },
@@ -121,6 +141,18 @@ ngx_wasm_main_vm(ngx_cycle_t *cycle)
 }
 
 
+ngx_inline ngx_array_t *
+ngx_wasm_core_shms(ngx_cycle_t *cycle)
+{
+    ngx_wasm_core_conf_t  *wcf;
+
+    wcf = ngx_wasm_core_cycle_get_conf(cycle);
+    ngx_wasm_assert(wcf);
+
+    return &wcf->shms;
+}
+
+
 static void
 ngx_wasm_core_cleanup_pool(void *data)
 {
@@ -165,6 +197,18 @@ ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
 
     cln->handler = ngx_wasm_core_cleanup_pool;
     cln->data = cycle;
+
+    /*
+     * Passing zero to ngx_array_init prevents future `ngx_array_push` calls
+     * from allocating memory and causes silent pool memory corruption
+     */
+
+    if (ngx_array_init(&wcf->shms, cycle->pool,
+                       1, sizeof(ngx_wasm_shm_mapping_t))
+        != NGX_OK)
+    {
+        return NULL;
+    }
 
 #if (NGX_SSL)
     wcf->ssl_conf.verify_cert = NGX_CONF_UNSET;
@@ -216,6 +260,105 @@ ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
 static char *
+ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf, ngx_wasm_shm_type_e type)
+{
+    size_t                   i;
+    ssize_t                  size;
+    ngx_str_t               *value, *name;
+    ngx_wasm_core_conf_t    *wcf = conf;
+    ngx_wasm_shm_mapping_t  *mapping;
+    ngx_wasm_shm_t          *shm;
+    const ssize_t            min_size = 3 * ngx_pagesize;
+
+    value = cf->args->elts;
+    name = &value[1];
+    size = ngx_parse_size(&value[2]);
+
+    if (!name->len) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] invalid shm name \"%V\"", name);
+        return NGX_CONF_ERROR;
+    }
+
+    if (size == NGX_ERROR) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] invalid shm size \"%V\"", &value[2]);
+        return NGX_CONF_ERROR;
+    }
+
+    if (size < min_size) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] shm size of %d bytes is too small, "
+                           "minimum required is %d bytes", size, min_size);
+        return NGX_CONF_ERROR;
+    }
+
+    if ((size & (ngx_pagesize - 1)) != 0) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] shm size of %d bytes is not page-aligned, "
+                           "must be a multiple of %d", size, ngx_pagesize);
+        return NGX_CONF_ERROR;
+    }
+
+    shm = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_shm_t));
+    if (shm == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    shm->type = type;
+    shm->name = *name;
+    shm->log = cf->cycle->log;
+
+    mapping = wcf->shms.elts;
+
+    for (i = 0; i < wcf->shms.nelts; i++) {
+        if (ngx_str_eq(mapping[i].name.data, mapping[i].name.len,
+                       name->data, name->len))
+        {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "[wasm] \"%V\" shm already defined", name);
+            return NGX_CONF_ERROR;
+        }
+    }
+
+    mapping = ngx_array_push(&wcf->shms);
+    if (mapping == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    mapping->name = *name;
+    mapping->zone = ngx_shared_memory_add(cf, name, size, &ngx_wasm_module);
+    if (mapping->zone == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    mapping->zone->init = ngx_wasm_shm_init_zone;
+    mapping->zone->data = shm;
+    mapping->zone->noreuse = 1;  /* TODO: enable shm reuse (fix SIGHUP) */
+
+    return NGX_CONF_OK;
+}
+
+
+static char *
+ngx_wasm_core_shm_kv_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    return ngx_wasm_core_shm_generic_directive(cf, cmd,
+                                               conf, NGX_WASM_SHM_TYPE_KV);
+}
+
+
+static char *
+ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
+{
+    return ngx_wasm_core_shm_generic_directive(cf, cmd,
+                                               conf, NGX_WASM_SHM_TYPE_QUEUE);
+}
+
+
+static char *
 ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 {
 #if (NGX_SSL)
@@ -241,14 +384,21 @@ ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
 static ngx_int_t
 ngx_wasm_core_init(ngx_cycle_t *cycle)
 {
-    ngx_wavm_t  *vm;
+    ngx_wavm_t            *vm;
+    ngx_wasm_core_conf_t  *wcf;
 
-    vm = ngx_wasm_main_vm(cycle);
-    if (vm == NULL) {
+    wcf = ngx_wasm_core_cycle_get_conf(cycle);
+    if (wcf == NULL) {
         return NGX_OK;
     }
 
-    if (ngx_wavm_init(vm) != NGX_OK) {
+    vm = wcf->vm;
+
+    if (vm && ngx_wavm_init(vm) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    if (ngx_wasm_shm_init(cycle) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -274,6 +424,10 @@ ngx_wasm_core_init_process(ngx_cycle_t *cycle)
     }
 
     if (ngx_wavm_load(vm) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    if (ngx_wasm_shm_init_process(cycle) != NGX_OK) {
         return NGX_ERROR;
     }
 

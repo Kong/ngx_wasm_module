@@ -158,6 +158,24 @@ add_block_preprocessor(sub {
                                "    tls_trusted_certificate " . $tls_trusted_certificate . ";\n";
             }
 
+            # --- shm_kv
+
+            my $shm_kv = $block->shm_kv;
+            if (defined $shm_kv) {
+                @arr = split /,/, $shm_kv;
+                @arr = map { "    shm_kv $_;" } @arr;
+                $wasm_config = $wasm_config . (join "\n", @arr);
+            }
+
+            # --- shm_queue
+
+            my $shm_queue = $block->shm_queue;
+            if (defined $shm_queue) {
+                @arr = split /,/, $shm_queue;
+                @arr = map { "    shm_queue $_;" } @arr;
+                $wasm_config = $wasm_config . (join "\n", @arr);
+            }
+
             $wasm_config = $wasm_config . "}\n";
 
             $block->set_value("main_config", $main_config . $wasm_config);
