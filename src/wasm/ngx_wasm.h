@@ -65,6 +65,8 @@ typedef struct {
 
 
 ngx_wavm_t *ngx_wasm_main_vm(ngx_cycle_t *cycle);
+ngx_array_t *ngx_wasm_shm_array(ngx_cycle_t *cycle);
+ngx_int_t ngx_wasm_shm_lookup_index(ngx_cycle_t *cycle, ngx_str_t *name);
 size_t ngx_wasm_chain_len(ngx_chain_t *in, unsigned *eof);
 ngx_uint_t ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
     unsigned *flush);
