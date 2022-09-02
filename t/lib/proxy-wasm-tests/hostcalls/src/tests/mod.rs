@@ -315,6 +315,108 @@ pub(crate) fn test_set_response_body(ctx: &mut TestHttp) {
     ctx.config.insert(key.clone(), key);
 }
 
+pub(crate) fn test_get_shared_data(ctx: &mut TestHttp) {
+    let (data, cas) = ctx.get_shared_data(ctx.config.get("key").unwrap());
+    let hdr_cas_key = ctx
+        .config
+        .get("cas_header")
+        .map(|x| x.as_str())
+        .unwrap_or("x-cas");
+    let hdr_cas_value = cas.map(|x| format!("{}", x)).unwrap_or("0".to_string());
+    let hdr_data_key = ctx
+        .config
+        .get("data_header")
+        .map(|x| x.as_str())
+        .unwrap_or("x-data");
+    let hdr_exists_key = ctx
+        .config
+        .get("exists_header")
+        .map(|x| x.as_str())
+        .unwrap_or("x-exists");
+    ctx.add_http_response_header(hdr_cas_key, hdr_cas_value.as_str());
+
+    ctx.add_http_response_header(
+        hdr_data_key,
+        std::str::from_utf8(data.as_ref().map(|x| x.as_slice()).unwrap_or_default()).unwrap(),
+    );
+
+    ctx.add_http_response_header(hdr_exists_key, if data.is_some() { "1" } else { "0" });
+}
+
+pub(crate) fn test_set_shared_data(ctx: &mut TestHttp) {
+    let cas = ctx.config.get("cas").map(|x| x.parse::<u32>().unwrap());
+    let hdr_ok_key = ctx
+        .config
+        .get("ok_header")
+        .map(|x| x.as_str())
+        .unwrap_or("x-ok");
+
+    let ok = ctx
+        .set_shared_data(
+            ctx.config.get("key").unwrap(),
+            ctx.config.get("value").map(|x| x.as_bytes()),
+            cas,
+        )
+        .is_ok();
+
+    ctx.add_http_response_header(hdr_ok_key, if ok { "1" } else { "0" });
+}
+
+pub(crate) fn test_shared_queue_enqueue(ctx: &mut TestHttp) {
+    let queue_id = ctx.register_shared_queue(ctx.config.get("queue").unwrap());
+    let data = ctx.config.get("value").cloned().unwrap_or_else(|| {
+        let len: u32 = ctx.config.get("length").unwrap().parse().unwrap();
+        String::from_utf8(vec![b'a'; len as usize]).unwrap()
+    });
+    let hdr_status_key = ctx
+        .config
+        .get("status_header")
+        .map(|x| x.as_str())
+        .unwrap_or("x-status");
+    let status: u32 = ctx
+        .enqueue_shared_queue(queue_id, Some(data.as_bytes()))
+        .map(|_| 0)
+        .unwrap_or_else(|x| x as u32);
+    let status = format!("{}", status);
+    ctx.add_http_response_header(hdr_status_key, status.as_str());
+}
+
+pub(crate) fn test_shared_queue_dequeue(ctx: &mut TestHttp) {
+    let queue_id = ctx.register_shared_queue(ctx.config.get("queue").unwrap());
+    let res = ctx.dequeue_shared_queue(queue_id);
+    let status: u32 = match &res {
+        Ok(_) => 0,
+        Err(e) => *e as u32,
+    };
+    let hdr_status_key = ctx
+        .config
+        .get("status_header")
+        .map(|x| x.as_str())
+        .unwrap_or("x-status");
+    let hdr_data_key = ctx
+        .config
+        .get("data_header")
+        .map(|x| x.as_str())
+        .unwrap_or("x-data");
+    let hdr_exists_key = ctx
+        .config
+        .get("exists_header")
+        .map(|x| x.as_str())
+        .unwrap_or("x-exists");
+    let status = format!("{}", status);
+    let data = res
+        .as_ref()
+        .map(|x| x.as_ref().map(|x| std::str::from_utf8(x).unwrap()))
+        .unwrap_or_default();
+    ctx.add_http_response_header(hdr_status_key, status.as_str());
+
+    if hdr_data_key != "" {
+        ctx.add_http_response_header(hdr_data_key, data.unwrap_or_default());
+    }
+
+    ctx.add_http_response_header(hdr_exists_key, if data.is_some() { "1" } else { "0" });
+}
+
 pub(crate) fn test_proxy_get_header_map_value_oob_key(_ctx: &mut TestHttp) {
     let mut return_data: *mut u8 = std::ptr::null_mut();
     let mut return_size: usize = 0;
