@@ -57,9 +57,8 @@ typedef struct {
 
 
 typedef struct {
-    ngx_wavm_t                        *vm;
-    ngx_wasm_ops_t                    *ops;
     ngx_uint_t                         isolation;
+    ngx_wasm_ops_plan_t               *plan;
 
     ngx_msec_t                         connect_timeout;
     ngx_msec_t                         send_timeout;
@@ -68,12 +67,16 @@ typedef struct {
     size_t                             socket_buffer_size;    /* wasm_socket_buffer_size */
     ngx_bufs_t                         socket_large_buffers;  /* wasm_socket_large_buffer_size */
     ngx_flag_t                         socket_buffer_reuse;   /* wasm_socket_buffer_reuse */
+
+    ngx_queue_t                        q;                     /* main_conf */
 } ngx_http_wasm_loc_conf_t;
 
 
 typedef struct {
-    ngx_queue_t                        ops_engines;
     ngx_proxy_wasm_store_t             store;
+    ngx_queue_t                        plans;
+    ngx_wasm_ops_t                    *ops;
+    ngx_wavm_t                        *vm;
 } ngx_http_wasm_main_conf_t;
 
 
@@ -132,10 +135,9 @@ ngx_int_t ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx,
 
 
 /* proxy-wasm with wasm ops */
-ngx_int_t ngx_http_wasm_ops_add_filter(ngx_wasm_ops_t *e,
-    ngx_pool_t *pool, ngx_log_t *log, ngx_str_t *name, ngx_str_t *config,
-    ngx_uint_t *isolation, ngx_proxy_wasm_store_t *store,
-    ngx_proxy_wasm_filter_t **out);
+ngx_int_t ngx_http_wasm_ops_add_filter(ngx_wasm_ops_plan_t *plan,
+    ngx_str_t *name, ngx_str_t *config, ngx_uint_t *isolation,
+    ngx_proxy_wasm_store_t *store, ngx_wavm_t *vm);
 
 
 extern ngx_wasm_subsystem_t  ngx_http_wasm_subsystem;

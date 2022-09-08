@@ -35,8 +35,8 @@ qr/\[info\] .*? \[wasm\] loading "ngx-rust-tests" module <vm: "main", runtime: "
 --- user_files
 >>> a.wat
 (module
-   (import "env" "ngx_log" (func))
-   (import "env" "ngx_log" (func))
+  (import "env" "ngx_log" (func))
+  (import "env" "ngx_log" (func))
 )
 --- error_log eval
 qr/\[info\] .*? \[wasm\] loading "a" module <vm: "main", runtime: ".*?">/
@@ -203,9 +203,8 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 --- user_files
 >>> a.wat
 (module
-   (import "env" "ngx_log" (func))
-   (import "env" "ngx_log" (func)))
-)
+  (import "env" "ngx_log" (func))
+  (import "env" "ngx_log" (func))))
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] initializing "main" wasm VM/,
@@ -226,9 +225,8 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 --- user_files
 >>> a.wat
 (module
-   (import "env" "ngx_log" (func))
-   (import "env" "ngx_log" (func)))
-)
+  (import "env" "ngx_log" (func))
+  (import "env" "ngx_log" (func))))
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] initializing "main" wasm VM/,
@@ -249,9 +247,8 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 --- user_files
 >>> a.wat
 (module
-    (import "env" "ngx_log" (func))
-    (import "env" "global" (global f32))
-)
+  (import "env" "ngx_log" (func))
+  (import "env" "global" (global f32)))
 --- error_log eval
 qr/\[alert\] .*? \[wasm\] NYI: module import type not supported <vm: "main", runtime: ".*?">/
 --- no_error_log
@@ -261,50 +258,53 @@ qr/\[alert\] .*? \[wasm\] NYI: module import type not supported <vm: "main", run
 
 
 === TEST 15: module directive - invalid module (missing host function in env)
---- main_config
+'daemon off' must be set to check exit_code is 2
+Valgrind mode already writes 'daemon off'
+HUP mode does not catch the worker exit_code
+--- skip_eval: 4: defined $ENV{TEST_NGINX_USE_HUP}
+--- main_config eval
+qq{
     wasm {
-        module a $TEST_NGINX_HTML_DIR/a.wat;
+        module a $ENV{TEST_NGINX_HTML_DIR}/a.wat;
     }
+}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
-    location /t {
-        proxy_wasm a;
-    }
+    proxy_wasm a;
 --- user_files
 >>> a.wat
 (module
-    (import "env" "ngx_unknown" (func)))
---- request
-BAD
---- error_code: 405
+  (import "env" "ngx_unknown" (func)))
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] loading "a" module <vm: "main", runtime: ".*?">/,
     qr/\[error\] .*? \[wasm\] failed importing "env.ngx_unknown": missing host function <vm: "main", runtime: ".*?">/,
     qr/\[emerg\] .*? \[wasm\] failed linking "a" module with "ngx_proxy_wasm" host interface: incompatible host interface/
 ]
+--- must_die: 2
 
 
 
 === TEST 16: module directive - invalid module (missing WASI function)
---- skip_eval: 4: $::nginxV =~ m/wasmtime/
---- main_config
+'daemon off' must be set to check exit_code is 2
+Valgrind mode already writes 'daemon off'
+HUP mode does not catch the worker exit_code
+--- skip_eval: 4: $::nginxV =~ m/wasmtime/ || defined $ENV{TEST_NGINX_USE_HUP}
+--- main_config eval
+qq{
     wasm {
-        module x $TEST_NGINX_HTML_DIR/x.wat;
+        module x $ENV{TEST_NGINX_HTML_DIR}/x.wat;
     }
+}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
-    location /t {
-        proxy_wasm x;
-    }
+    proxy_wasm x;
 --- user_files
 >>> x.wat
 (module
-    (import "wasi_snapshot_preview1" "unknown_function" (func)))
---- request
-BAD
---- error_code: 405
+  (import "wasi_snapshot_preview1" "unknown_function" (func)))
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] loading "x" module <vm: "main", runtime: ".*?">/,
     qr/\[error\] .*? \[wasm\].*? unhandled WASI function "unknown_function"/,
     qr/\[emerg\] .*? \[wasm\] failed linking "x" module with "ngx_proxy_wasm" host interface/
 ]
+--- must_die: 2

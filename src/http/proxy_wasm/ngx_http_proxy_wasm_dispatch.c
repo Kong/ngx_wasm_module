@@ -56,15 +56,15 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
 {
     va_list                       args;
 #endif
-    u_char                       *p, *last;
-    ngx_str_t                    *errmsg;
-    ngx_wasm_socket_tcp_t        *sock;
-    ngx_proxy_wasm_filter_ctx_t  *fctx;
-    ngx_http_wasm_req_ctx_t      *rctx;
-    u_char                        errbuf[NGX_MAX_ERROR_STR];
+    u_char                   *p, *last;
+    ngx_str_t                *errmsg;
+    ngx_wasm_socket_tcp_t    *sock;
+    ngx_proxy_wasm_exec_t    *pwexec;
+    ngx_http_wasm_req_ctx_t  *rctx;
+    u_char                    errbuf[NGX_MAX_ERROR_STR];
 
     sock = &call->sock;
-    fctx = call->fctx;
+    pwexec = call->pwexec;
     rctx = call->rctx;
 
     p = errbuf;
@@ -90,27 +90,27 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
     }
 #endif
 
-    fctx->ecode = NGX_PROXY_WASM_ERR_DISPATCH_FAILED;
+    pwexec->ecode = NGX_PROXY_WASM_ERR_DISPATCH_FAILED;
 
     if (rctx->yield) {
-        ngx_wasm_log_error(NGX_LOG_ERR, fctx->log, 0,
+        ngx_wasm_log_error(NGX_LOG_ERR, pwexec->log, 0,
                            "%*s", p - (u_char *) &errbuf, &errbuf);
 
     } else {
         /* running */
-        ngx_wavm_instance_trap_printf(fctx->ictx->instance, "%*s",
+        ngx_wavm_instance_trap_printf(pwexec->ictx->instance, "%*s",
                                       p - (u_char *) &errbuf, &errbuf);
     }
 
     ngx_http_proxy_wasm_dispatch_destroy(call);
 
-    fctx->call = NULL;
+    pwexec->call = NULL;
     rctx->yield = 0;
 }
 
 
 ngx_http_proxy_wasm_dispatch_t *
-ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
+ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
     ngx_proxy_wasm_marshalled_map_t *headers,
     ngx_proxy_wasm_marshalled_map_t *trailers,
@@ -143,9 +143,10 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
     }
 
     call->rctx = rctx;
-    call->fctx = fctx;
+    call->pwexec = pwexec;
+    call->ictx = pwexec->ictx;
 
-    switch (fctx->parent->step) {
+    switch (pwexec->parent->step) {
         case NGX_PROXY_WASM_STEP_LOG:
         case NGX_PROXY_WASM_STEP_DONE:
             /* r->pool was released */
@@ -197,10 +198,9 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
 
     /* headers/trailers */
 
-    if (ngx_proxy_wasm_pairs_unmarshal(&call->headers, call->pool,
-                                       headers) != NGX_OK
-        || ngx_proxy_wasm_pairs_unmarshal(&call->trailers, call->pool,
-                                          trailers) != NGX_OK)
+    if (ngx_proxy_wasm_pairs_unmarshal(pwexec, &call->headers, headers) != NGX_OK
+        || ngx_proxy_wasm_pairs_unmarshal(pwexec, &call->trailers, trailers)
+           != NGX_OK)
     {
         call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_MARSHALLING;
         goto error;
@@ -335,7 +335,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_filter_ctx_t *fctx,
 
     ngx_post_event(ev, &ngx_posted_events);
 
-    fctx->call = call;
+    pwexec->call = call;
 
     return call;
 
@@ -599,17 +599,15 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
 static ngx_int_t
 ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 {
-    size_t                           i;
     ngx_int_t                        rc = NGX_ERROR;
-    ngx_uint_t                       n_headers;
     ngx_chain_t                     *nl;
-    ngx_list_part_t                 *part;
     ngx_wavm_instance_t             *instance;
     ngx_http_proxy_wasm_dispatch_t  *call = sock->data;
     ngx_http_wasm_req_ctx_t         *rctx = call->rctx;
     ngx_http_request_t              *r = rctx->r;
-    ngx_proxy_wasm_filter_ctx_t     *fctx = call->fctx;
-    ngx_proxy_wasm_filter_t         *filter = fctx->filter;
+    ngx_proxy_wasm_exec_t           *pwexec = call->pwexec;
+    ngx_proxy_wasm_filter_t         *filter = pwexec->filter;
+    ngx_proxy_wasm_err_e             ecode = NGX_PROXY_WASM_ERR_NONE;
 
     dd("enter");
 
@@ -699,68 +697,38 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 
         ngx_wasm_socket_tcp_close(sock);
 
-        part = &call->http_reader.fake_r.upstream->headers_in.headers.part;
-
-        for (i = 0, n_headers = 0; /* void */; i++, n_headers++) {
-            if (i >= part->nelts) {
-                if (part->next == NULL) {
-                    break;
-                }
-
-                part = part->next;
-                i = 0;
-            }
-
-            /* void */
-        }
-
-        /**
-         * TODO: move to reuse proxy_wasm_resume logic
-         *   - new step: dispatch_cb
-         */
-
-        ngx_log_debug3(NGX_LOG_DEBUG_ALL, sock->log, 0,
-                       "proxy_wasm http dispatch response received "
-                       "(fctx->id: %d, token_id: %d, n_headers: %d)",
-                       fctx->id, call->id, n_headers);
-
-        instance = ngx_proxy_wasm_fctx2instance(fctx);
+        instance = ngx_proxy_wasm_pwexec2instance(pwexec);
 
         if (instance->trapped) {
-            fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
+            pwexec->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
 
-            ngx_proxy_wasm_log_error(NGX_LOG_ERR, fctx->log, fctx->ecode,
+            ngx_proxy_wasm_log_error(NGX_LOG_ERR, pwexec->log, pwexec->ecode,
                                      "proxy_wasm \"%V\" filter (%l/%l) "
                                      "failed resuming after dispatch",
-                                     filter->name, filter->index + 1,
-                                     *filter->n_filters);
+                                     filter->name, pwexec->index + 1,
+                                     pwexec->parent->nfilters);
 
             rc = NGX_ABORT;
             goto error;
         }
 
-        fctx->ictx->current_ctx = fctx;
-
-        rc = ngx_wavm_instance_call_funcref(instance,
-                                            filter->proxy_on_http_call_response,
-                                            NULL, fctx->id, call->id,
-                                            n_headers,
-                                            call->http_reader.body_len, 0);
-        if (rc == NGX_ABORT) {
-            fctx->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
+        ecode = ngx_proxy_wasm_run_step(pwexec, pwexec->ictx,
+                                        NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE,
+                                        NULL);
+        if (ecode != NGX_PROXY_WASM_ERR_NONE) {
             goto error;
         }
 
         ngx_http_proxy_wasm_dispatch_destroy(call);
 
-        fctx->call = NULL;
+        pwexec->call = NULL;
         rctx->yield = 0;
 
         /* resume main handled by wasm callback */
         break;
 
     default:
-        ngx_wasm_log_error(NGX_LOG_WASM_NYI, fctx->log, 0,
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, pwexec->log, 0,
                            "NYI - dispatch state: %d", call->state);
         rc = NGX_ERROR;
         goto error;
@@ -773,7 +741,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 
 error:
 
-    if (rc == NGX_ABORT) {
+    if (ecode != NGX_PROXY_WASM_ERR_NONE) {
         /* catch trap for tcp socket resume retval */
         rc = NGX_ERROR;
     }

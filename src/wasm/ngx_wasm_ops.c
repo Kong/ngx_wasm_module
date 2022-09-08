@@ -6,6 +6,10 @@
 #include <ngx_wasm_ops.h>
 #ifdef NGX_WASM_HTTP
 #include <ngx_http_wasm.h>
+#include <ngx_http_proxy_wasm.h>
+#endif
+#ifdef NGX_WASM_STREAM
+#include <ngx_stream_wasm.h>
 #endif
 
 
@@ -34,10 +38,10 @@ ngx_wasm_ops_phase_lookup(ngx_wasm_ops_t *ops,
 
 
 ngx_wasm_ops_t *
-ngx_wasm_ops_new(ngx_pool_t *pool, ngx_wavm_t *vm,
+ngx_wasm_ops_new(ngx_pool_t *pool, ngx_log_t *log, ngx_wavm_t *vm,
     ngx_wasm_subsystem_t *subsystem)
 {
-    ngx_wasm_ops_t   *ops;
+    ngx_wasm_ops_t  *ops;
 
     ops = ngx_pcalloc(pool, sizeof(ngx_wasm_ops_t));
     if (ops == NULL) {
@@ -45,182 +49,202 @@ ngx_wasm_ops_new(ngx_pool_t *pool, ngx_wavm_t *vm,
     }
 
     ops->pool = pool;
+    ops->log = log;
     ops->vm = vm;
     ops->subsystem = subsystem;
-    ops->pipelines = ngx_pcalloc(pool, subsystem->nphases *
-                                 sizeof(ngx_wasm_ops_pipeline_t));
-    if (ops->pipelines == NULL) {
-        ngx_pfree(pool, ops);
-        return NULL;
-    }
 
     return ops;
 }
 
 
-ngx_int_t
-ngx_wasm_ops_init(ngx_wasm_ops_t *engine)
+void
+ngx_wasm_ops_destroy(ngx_wasm_ops_t *ops)
 {
-    size_t                    i, j;
-    ngx_int_t                 rc;
-    ngx_wasm_op_t            *op;
-    ngx_wasm_ops_pipeline_t  *pipeline;
+    ngx_pfree(ops->pool, ops);
+}
 
-    for (i = 0; i < engine->subsystem->nphases; i++) {
-        pipeline = engine->pipelines[i];
 
-        if (pipeline == NULL || pipeline->init) {
-            continue;
+ngx_wasm_ops_plan_t *
+ngx_wasm_ops_plan_new(ngx_pool_t *pool, ngx_wasm_subsystem_t *subsystem)
+{
+    ngx_wasm_ops_plan_t  *plan;
+
+    plan = ngx_pcalloc(pool, sizeof(ngx_wasm_ops_plan_t));
+    if (plan == NULL) {
+        return NULL;
+    }
+
+    plan->pool = pool;
+    plan->subsystem = subsystem;
+    plan->pipelines = ngx_pcalloc(pool, subsystem->nphases
+                                  * sizeof(ngx_wasm_ops_pipeline_t));
+    if (plan->pipelines == NULL) {
+        ngx_pfree(pool, plan);
+        return NULL;
+    }
+
+    return plan;
+}
+
+
+ngx_int_t
+ngx_wasm_ops_plan_add(ngx_wasm_ops_plan_t *plan,
+    ngx_wasm_op_t **ops_list, size_t nops)
+{
+    size_t                     i;
+    ngx_wasm_phase_t          *phase;
+    ngx_wasm_op_t            **opp, *op;
+    ngx_wasm_ops_pipeline_t   *pipeline;
+
+    /* populate pipelines */
+
+    for (i = 0; i < nops; i++) {
+        op = ops_list[i];
+        phase = plan->subsystem->phases;
+
+        if (op->code == NGX_WASM_OP_PROXY_WASM) {
+            plan->conf.proxy_wasm.nfilters++;
         }
 
-        /* init pipeline */
+        for (/* void */; phase->name.len; phase++) {
+            pipeline = &plan->pipelines[phase->index];
 
-        pipeline->nfilters = 0;
-
-        for (j = 0; j < pipeline->ops->nelts; j++) {
-            op = ((ngx_wasm_op_t **) pipeline->ops->elts)[j];
-
-            if (op->init) {
-                continue;
+            if (pipeline->phase == NULL) {
+                pipeline->phase = phase;
+                ngx_array_init(&pipeline->ops, plan->pool, 2,
+                               sizeof(ngx_wasm_op_t *));
             }
 
-            rc = ngx_wavm_module_link(op->module, op->host);
-            if (rc != NGX_OK) {
-                return NGX_ERROR;
-            }
-
-            switch (op->code) {
-
-            case NGX_WASM_OP_CALL:
-                op->handler = &ngx_wasm_op_call_handler;
-                op->conf.call.funcref = ngx_wavm_module_func_lookup(op->module,
-                                                 &op->conf.call.func_name);
-
-#if 0
-                if (op->conf.call.funcref == NULL) {
-                    ngx_wasm_log_error(NGX_LOG_EMERG, engine->pool->log, 0,
-                                       "no \"%V\" function in \"%V\" module",
-                                       &op->conf.call.func_name,
-                                       &op->module->name);
+            if (op->on_phases & phase->on) {
+                if (op->code == NGX_WASM_OP_PROXY_WASM) {
+                    op->conf.proxy_wasm.filter->data =
+                        (uintptr_t) &op->conf.proxy_wasm.filter;
                 }
-#endif
 
-                break;
-
-            case NGX_WASM_OP_PROXY_WASM:
-                op->handler = &ngx_wasm_op_proxy_wasm_handler;
-                op->conf.proxy_wasm.filter->n_filters = &pipeline->nfilters;
-
-                pipeline->nfilters++;
-
-                rc = ngx_proxy_wasm_filter_init(op->conf.proxy_wasm.filter);
-                if (rc != NGX_OK) {
+                opp = ngx_array_push(&pipeline->ops);
+                if (opp == NULL) {
                     return NGX_ERROR;
                 }
 
-                break;
+                *opp = op;
 
-            default:
-                ngx_wasm_log_error(NGX_LOG_WASM_NYI, engine->pool->log, 0,
-                                   "unknown wasm op code: %d", op->code);
-                return NGX_ERROR;
-
+                plan->populated = 1;
             }
-
-            op->init = 1;
         }
-
-        pipeline->init = 1;
     }
 
     return NGX_OK;
 }
 
 
-void
-ngx_wasm_ops_destroy(ngx_wasm_ops_t *engine)
+ngx_int_t
+ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
 {
     size_t                    i, j;
+    ngx_uint_t               *fid;
+    ngx_array_t              *ids;
     ngx_wasm_op_t            *op;
     ngx_wasm_ops_pipeline_t  *pipeline;
 
-    for (i = 0; i < engine->subsystem->nphases; i++) {
-        pipeline = engine->pipelines[i];
+    if (plan->ready) {
+        return NGX_OK;
+    }
 
-        if (pipeline == NULL) {
-            continue;
-        }
+    /* initialize pipelines */
 
-        for (j = 0; j < pipeline->ops->nelts; j++) {
-            op = ((ngx_wasm_op_t **) pipeline->ops->elts)[j];
+    for (i = 0; i < plan->subsystem->nphases; i++) {
+        pipeline = &plan->pipelines[i];
 
-            if (!op->init) {
-                continue;
+        for (j = 0; j < pipeline->ops.nelts; j++) {
+            op = ((ngx_wasm_op_t **) pipeline->ops.elts)[j];
+
+            if (ngx_wavm_module_link(op->module, op->host) != NGX_OK) {
+                return NGX_ERROR;
             }
 
             switch (op->code) {
-
-            case NGX_WASM_OP_CALL:
-                break;
-
             case NGX_WASM_OP_PROXY_WASM:
-                ngx_proxy_wasm_filter_destroy(op->conf.proxy_wasm.filter);
-                break;
+                op->handler = &ngx_wasm_op_proxy_wasm_handler;
+                if (ngx_proxy_wasm_load(op->conf.proxy_wasm.filter) != NGX_OK) {
+                    return NGX_ERROR;
+                }
 
+                break;
+            case NGX_WASM_OP_CALL:
+                op->handler = &ngx_wasm_op_call_handler;
+                op->conf.call.funcref =
+                    ngx_wavm_module_func_lookup(op->module,
+                                                &op->conf.call.func_name);
+                break;
             default:
-                ngx_wasm_log_error(NGX_LOG_WASM_NYI, engine->pool->log, 0,
+                ngx_wasm_log_error(NGX_LOG_WASM_NYI, log, 0,
                                    "unknown wasm op code: %d", op->code);
-                break;
-
+                return NGX_ERROR;
             }
-
-            op->init = 0;
         }
     }
+
+    /* create filter_ids list */
+
+    ids = &plan->conf.proxy_wasm.filter_ids;
+
+    ngx_array_init(ids, plan->pool, plan->conf.proxy_wasm.nfilters,
+                   sizeof(ngx_uint_t));
+
+#if (NGX_WASM_HTTP)
+    pipeline = &plan->pipelines[NGX_HTTP_REWRITE_PHASE];
+
+#elif (NGX_WASM_STREAM)
+    /* TODO: currently a stub for compilation */
+    pipeline = &plan->pipelines[NGX_STREAM_ACCESS_PHASE];
+#endif
+
+    for (i = 0; i < pipeline->ops.nelts; i++) {
+        op = ((ngx_wasm_op_t **) pipeline->ops.elts)[i];
+
+        switch (op->code) {
+        case NGX_WASM_OP_PROXY_WASM:
+            fid = ngx_array_push(ids);
+            if (fid == NULL) {
+                return NGX_ERROR;
+            }
+
+            *fid = op->conf.proxy_wasm.filter->id;
+            break;
+        default:
+            break;
+        }
+    }
+
+    plan->ready = 1;
+
+    return NGX_OK;
+}
+
+
+void
+ngx_wasm_ops_plan_destroy(ngx_wasm_ops_plan_t *plan)
+{
+    size_t                    i;
+    ngx_wasm_ops_pipeline_t  *pipeline;
+
+    for (i = 0; i < plan->subsystem->nphases; i++) {
+        pipeline = &plan->pipelines[i];
+        ngx_array_destroy(&pipeline->ops);
+    }
+
+    ngx_array_destroy(&plan->conf.proxy_wasm.filter_ids);
+
+    ngx_pfree(plan->pool, plan->pipelines);
 }
 
 
 ngx_int_t
-ngx_wasm_ops_add(ngx_wasm_ops_t *ops, ngx_wasm_op_t *op)
+ngx_wasm_ops_plan_attach(ngx_wasm_ops_plan_t *plan, ngx_wasm_op_ctx_t *ctx)
 {
-    ngx_wasm_phase_t          *phase = ops->subsystem->phases;
-    ngx_wasm_ops_pipeline_t   *pipeline;
-    ngx_wasm_op_t            **opp;
+    ngx_wasm_assert(plan->ready);
 
-    ngx_wasm_assert(op->on_phases);
-    ngx_wasm_assert(op->module);
-    ngx_wasm_assert(op->host);
-
-    for (/* void */; phase->name.len; phase++) {
-
-        if ((op->on_phases & phase->on)) {
-
-            pipeline = ops->pipelines[phase->index];
-            if (pipeline == NULL) {
-                pipeline = ngx_pcalloc(ops->pool,
-                                       sizeof(ngx_wasm_ops_pipeline_t));
-                if (pipeline == NULL) {
-                    return NGX_ERROR;
-                }
-
-                pipeline->phase = phase;
-                pipeline->ops = ngx_array_create(ops->pool, 2,
-                                                 sizeof(ngx_wasm_op_t *));
-                if (pipeline->ops == NULL) {
-                    return NGX_ERROR;
-                }
-
-                ops->pipelines[phase->index] = pipeline;
-            }
-
-            opp = ngx_array_push(pipeline->ops);
-            if (opp == NULL) {
-                return NGX_ERROR;
-            }
-
-            *opp = op;
-        }
-    }
+    ctx->plan = plan;
 
     return NGX_OK;
 }
@@ -230,11 +254,15 @@ ngx_int_t
 ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
 {
     size_t                    i;
-    ngx_wasm_phase_t         *phase;
-    ngx_wasm_ops_t           *ops = ctx->ops;
-    ngx_wasm_ops_pipeline_t  *pipeline;
-    ngx_wasm_op_t            *op;
     ngx_int_t                 rc = NGX_DECLINED;
+    ngx_wasm_phase_t         *phase;
+    ngx_wasm_op_t            *op;
+    ngx_wasm_ops_t           *ops;
+    ngx_wasm_ops_plan_t      *plan;
+    ngx_wasm_ops_pipeline_t  *pipeline;
+
+    ops = ctx->ops;
+    plan = ctx->plan;
 
     phase = ngx_wasm_ops_phase_lookup(ops, phaseidx);
     if (phase == NULL) {
@@ -243,23 +271,10 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
         goto done;
     }
 
-    pipeline = ctx->ops->pipelines[phase->index];
+    pipeline = &plan->pipelines[phase->index];
 
-    if (pipeline == NULL) {
-        dd("no pipeline");
-        goto done;
-    }
-
-#if 0
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, ctx->log, 0,
-                   "wasm ops resuming \"%V\" phase (idx: %ui, "
-                   "nops: %ui)",
-                   &phase->name, phaseidx,
-                   pipeline ? pipeline->ops->nelts : 0);
-#endif
-
-    for (i = 0; i < pipeline->ops->nelts; i++) {
-        op = ((ngx_wasm_op_t **) pipeline->ops->elts)[i];
+    for (i = 0; i < pipeline->ops.nelts; i++) {
+        op = ((ngx_wasm_op_t **) pipeline->ops.elts)[i];
 
         rc = op->handler(ctx, phase, op);
         if (rc == NGX_ERROR || rc > NGX_OK) {
@@ -337,74 +352,58 @@ static ngx_int_t
 ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     ngx_wasm_phase_t *phase, ngx_wasm_op_t *op)
 {
-    ngx_int_t                 rc = NGX_ERROR;
-    ngx_proxy_wasm_ctx_t     *pwctx;
-    ngx_proxy_wasm_filter_t  *filter;
+    ngx_int_t                    rc = NGX_ERROR;
+    ngx_array_t                 *ids;
+    ngx_proxy_wasm_ctx_t        *pwctx;
+    ngx_proxy_wasm_subsystem_t  *subsystem = NULL;
 
     ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);
 
+#ifdef NGX_WASM_HTTP
+    subsystem = &ngx_http_proxy_wasm;
+#endif
+
+    ids = &opctx->plan->conf.proxy_wasm.filter_ids;
     opctx->ctx.proxy_wasm.phase = phase;
 
-    filter = op->conf.proxy_wasm.filter;
-    if (filter == NULL) {
-        goto done;
-    }
-
-    pwctx = ngx_proxy_wasm_ctx(filter, opctx->data);
+    pwctx = ngx_proxy_wasm_ctx((ngx_uint_t *) ids->elts, ids->nelts, subsystem,
+                               opctx->data);
     if (pwctx == NULL) {
         goto done;
     }
-
-    rc = ngx_proxy_wasm_ctx_add(pwctx, filter);
-    if (rc == NGX_ERROR) {
-        goto done;
-
-    } else if (rc == NGX_OK) {
-        /* again */
-        rc = NGX_DECLINED;
-        goto done;
-    }
-
-    ngx_wasm_assert(rc == NGX_DONE);
 
     switch (phase->index) {
 
 #ifdef NGX_WASM_HTTP
     case NGX_HTTP_REWRITE_PHASE:
-        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
-                                       NGX_PROXY_WASM_STEP_INIT_CTX);
-        if (rc != NGX_OK) {
-            break;
-        }
-
-        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
-                                       NGX_PROXY_WASM_STEP_REQ_HEADERS);
+        rc = ngx_proxy_wasm_resume(pwctx, phase,
+                                   NGX_PROXY_WASM_STEP_REQ_HEADERS);
         break;
 
     case NGX_HTTP_CONTENT_PHASE:
-        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
-                                       NGX_PROXY_WASM_STEP_REQ_BODY_READ);
+        rc = ngx_proxy_wasm_resume(pwctx, phase,
+                                   NGX_PROXY_WASM_STEP_REQ_BODY_READ);
         break;
 
     case NGX_HTTP_WASM_HEADER_FILTER_PHASE:
-        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
-                                       NGX_PROXY_WASM_STEP_RESP_HEADERS);
+        rc = ngx_proxy_wasm_resume(pwctx, phase,
+                                   NGX_PROXY_WASM_STEP_RESP_HEADERS);
         break;
 
     case NGX_HTTP_WASM_BODY_FILTER_PHASE:
-        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
-                                       NGX_PROXY_WASM_STEP_RESP_BODY);
+        rc = ngx_proxy_wasm_resume(pwctx, phase,
+                                   NGX_PROXY_WASM_STEP_RESP_BODY);
         break;
 
     case NGX_HTTP_LOG_PHASE:
-        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
-                                       NGX_PROXY_WASM_STEP_LOG);
+        rc = ngx_proxy_wasm_resume(pwctx, phase,
+                                   NGX_PROXY_WASM_STEP_LOG);
         break;
 #endif
 
     case NGX_WASM_DONE_PHASE:
-        rc = ngx_proxy_wasm_ctx_resume(pwctx, phase,
-                                       NGX_PROXY_WASM_STEP_DONE);
+        rc = ngx_proxy_wasm_resume(pwctx, phase,
+                                   NGX_PROXY_WASM_STEP_DONE);
         break;
 
     default:

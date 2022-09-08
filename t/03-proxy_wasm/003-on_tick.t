@@ -11,6 +11,8 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm - on_tick
+Tick is triggered even without hitting the configured location
+since it runs at root level context.
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -19,17 +21,21 @@ __DATA__
 
     timer_resolution 10ms;
 --- config
-    location /t {
+    location /tick {
+        internal;
         proxy_wasm on_tick;
+    }
+
+    location /t {
         echo_sleep 1;
         echo_status 200;
     }
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[info\] \d+#\d+: ticking$/,
-    qr/\[info\] \d+#\d+: ticking$/,
-    qr/\[info\] \d+#\d+: ticking$/,
+    qr/\[info\] \d+#\d+: ticking/,
+    qr/\[info\] \d+#\d+: ticking/,
+    qr/\[info\] \d+#\d+: ticking/,
 ]
 --- no_error_log
 [error]
@@ -56,9 +62,9 @@ __DATA__
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[info\] \d+#\d+: ticking$/,
+    qr/\[info\] \d+#\d+: ticking/,
     qr/\[info\] .*? from request_headers, client: .*?, server: .*?, request:/,
-    qr/\[info\] \d+#\d+: ticking$/,
+    qr/\[info\] \d+#\d+: ticking/,
 ]
 --- no_error_log
 [error]
@@ -111,10 +117,10 @@ on_tick 50000
 ok
 --- error_log eval
 [
-    qr/\[info\] \d+#\d+: on_tick 20$/,
-    qr/\[info\] \d+#\d+: on_tick 30$/,
-    qr/\[info\] \d+#\d+: on_tick 20$/,
-    qr/\[info\] \d+#\d+: on_tick 30$/,
+    qr/\[info\] \d+#\d+: on_tick 20/,
+    qr/\[info\] \d+#\d+: on_tick 30/,
+    qr/\[info\] \d+#\d+: on_tick 20/,
+    qr/\[info\] \d+#\d+: on_tick 30/,
 ]
 --- no_error_log
 [error]

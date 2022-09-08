@@ -400,12 +400,12 @@ ngx_proxy_wasm_maps_set_special_key(ngx_wavm_instance_t *instance,
 static ngx_str_t *
 ngx_proxy_wasm_maps_get_path(ngx_wavm_instance_t *instance)
 {
-    size_t                        len;
-    u_char                       *p;
-    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_instance2fctx(instance);
-    ngx_proxy_wasm_ctx_t         *pwctx = fctx->parent;
-    ngx_http_wasm_req_ctx_t      *rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    ngx_http_request_t           *r = rctx->r;
+    size_t                    len;
+    u_char                   *p;
+    ngx_proxy_wasm_exec_t    *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
+    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    ngx_http_request_t       *r = rctx->r;
 
     if (pwctx->path.len) {
         return &pwctx->path;
@@ -438,13 +438,15 @@ ngx_proxy_wasm_maps_get_path(ngx_wavm_instance_t *instance)
 static ngx_int_t
 ngx_proxy_wasm_maps_set_path(ngx_wavm_instance_t *instance, ngx_str_t *value)
 {
-    ngx_proxy_wasm_filter_ctx_t  *fctx = ngx_proxy_wasm_instance2fctx(instance);
-    ngx_proxy_wasm_ctx_t         *pwctx = fctx->parent;
-    ngx_http_wasm_req_ctx_t      *rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    ngx_http_request_t           *r = rctx->r;
+    ngx_proxy_wasm_exec_t    *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
+    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    ngx_http_request_t       *r = rctx->r;
 
     if (ngx_strchr(value->data, '?')) {
-        ngx_wavm_instance_trap_printf(instance, "NYI - cannot set request path with querystring");
+        ngx_wavm_instance_trap_printf(instance,
+                                      "NYI - cannot set request path "
+                                      "with querystring");
         return NGX_ERROR;
     }
 
@@ -486,18 +488,18 @@ ngx_proxy_wasm_maps_set_method(ngx_wavm_instance_t *instance, ngx_str_t *value)
 static ngx_str_t *
 ngx_proxy_wasm_maps_get_scheme(ngx_wavm_instance_t *instance)
 {
-    u_char                       *p;
-    ngx_uint_t                    hash;
-    ngx_http_variable_value_t    *vv;
-    ngx_proxy_wasm_filter_ctx_t  *fctx;
-    ngx_proxy_wasm_ctx_t         *pwctx;
-    ngx_http_wasm_req_ctx_t      *rctx;
-    ngx_http_request_t           *r;
-    static ngx_str_t              name = ngx_string("scheme");
+    u_char                     *p;
+    ngx_uint_t                  hash;
+    ngx_http_variable_value_t  *vv;
+    ngx_proxy_wasm_exec_t      *pwexec;
+    ngx_proxy_wasm_ctx_t       *pwctx;
+    ngx_http_wasm_req_ctx_t    *rctx;
+    ngx_http_request_t         *r;
+    static ngx_str_t            name = ngx_string("scheme");
 
-    fctx = ngx_proxy_wasm_instance2fctx(instance);
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    pwctx = fctx->parent;
+    pwctx = pwexec->parent;
     r = rctx->r;
 
     if (pwctx->scheme.len) {
@@ -529,18 +531,18 @@ ngx_proxy_wasm_maps_get_scheme(ngx_wavm_instance_t *instance)
 static ngx_str_t *
 ngx_proxy_wasm_maps_get_authority(ngx_wavm_instance_t *instance)
 {
-    u_char                       *p;
-    ngx_uint_t                    port;
-    ngx_str_t                    *server_name;
-    ngx_proxy_wasm_filter_ctx_t  *fctx;
-    ngx_proxy_wasm_ctx_t         *pwctx;
-    ngx_http_core_srv_conf_t     *cscf;
-    ngx_http_wasm_req_ctx_t      *rctx;
-    ngx_http_request_t           *r;
+    u_char                    *p;
+    ngx_uint_t                 port;
+    ngx_str_t                 *server_name;
+    ngx_proxy_wasm_exec_t     *pwexec;
+    ngx_proxy_wasm_ctx_t      *pwctx;
+    ngx_http_core_srv_conf_t  *cscf;
+    ngx_http_wasm_req_ctx_t   *rctx;
+    ngx_http_request_t        *r;
 
-    fctx = ngx_proxy_wasm_instance2fctx(instance);
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    pwctx = fctx->parent;
+    pwctx = pwexec->parent;
     r = rctx->r;
 
     if (pwctx->authority.len) {
