@@ -13,12 +13,19 @@ DIR_TESTS_LIB_WASM=$DIR_WORK/lib/wasm
 DIR_PREFIX=$NGX_WASM_DIR/t/servroot
 DIR_OPR_PREFIX=$DIR_BUILDROOT/prefix
 DIR_DIST_OUT=$NGX_WASM_DIR/dist
+URL_KONG_WASM_RUNTIMES="https://github.com/kong/ngx_wasm_runtimes"
 
 build_nginx() {
     local ngx_src=$1
     local ngx_ver=$2
     local build_name=(dev)
     local build_opts=()
+
+    if [[ -n "$NGX_WASM_RUNTIME" ]] && ! [[ -n "$NGX_WASM_RUNTIME_LIB" ]]; then
+        local runtime_dir="$(get_default_runtime_dir "$NGX_WASM_RUNTIME")"
+        export NGX_WASM_RUNTIME_INC="$runtime_dir/include"
+        export NGX_WASM_RUNTIME_LIB="$runtime_dir/lib"
+    fi
 
     NGX_BUILD_DIR_SRCROOT="${NGX_BUILD_DIR_SRCROOT:-$DIR_SRCROOT}"
     NGX_BUILD_DIR_BUILDROOT="${NGX_BUILD_DIR_BUILDROOT:-$DIR_BUILDROOT}"
@@ -252,39 +259,6 @@ get_no_pool_nginx() {
     fi
 }
 
-download_wasmtime() {
-    local wasmtime_ver=$1
-    local arch=$(uname -m)
-    case $OSTYPE in
-        linux*)  os="linux" ;;
-        darwin*) os="macos" ;;
-        *)       os=$OSTYPE
-    esac
-
-    download wasmtime-$wasmtime_ver.tar.xz \
-        "https://github.com/bytecodealliance/wasmtime/releases/download/v$wasmtime_ver/wasmtime-v$wasmtime_ver-$arch-$os-c-api.tar.xz"
-
-    if [ ! -d "wasmtime-$wasmtime_ver" ]; then
-        tar -xf wasmtime-$wasmtime_ver.tar.xz
-        mv wasmtime-v$wasmtime_ver-$arch-$os-c-api wasmtime-$wasmtime_ver
-    fi
-}
-
-download_wasmer() {
-    local wasmer_ver=$1
-    local arch=$2
-
-    kernel=$(uname -s | tr '[:upper:]' '[:lower:]')
-
-    download wasmer-$WASMER_VER.tar.gz \
-        "https://github.com/wasmerio/wasmer/releases/download/$WASMER_VER/wasmer-$kernel-$arch.tar.gz"
-
-    if [ ! -d "wasmer-$WASMER_VER" ]; then
-        mkdir -p wasmer-${wasmer_ver}
-        tar --directory=wasmer-$wasmer_ver -xf wasmer-$WASMER_VER.tar.gz
-    fi
-}
-
 n_jobs() {
     local os=$(uname -s)
 
@@ -297,6 +271,28 @@ n_jobs() {
     else
         echo "1"
     fi
+}
+
+get_variable_from_release_yml() {
+    local var_name="$1"
+    local release_file="$NGX_WASM_DIR/.github/workflows/release.yml"
+
+    awk '/'$var_name':/ { print $2 }' "$release_file"
+}
+
+get_default_runtime_version() {
+    local runtime="$1"
+
+    local var_name="$(echo "$runtime" | tr '[a-z]' '[A-Z]')_VER"
+
+    get_variable_from_release_yml "$var_name"
+}
+
+get_default_runtime_dir() {
+    local runtime="$1"
+    local version="${2:-$(get_default_runtime_version "$runtime")}"
+
+    echo "$DIR_WORK/$runtime-$version"
 }
 
 invalid_usage() {

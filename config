@@ -71,12 +71,6 @@ ngx_wasm_runtime_opt=
 
 . $ngx_addon_dir/auto/runtime
 
-ngx_wasm_runtime_inc="-I $ngx_addon_dir/work/include"
-ngx_wasm_runtime_lib="-L$ngx_addon_dir/work/lib"
-ngx_wasm_runtime_opt=
-
-. $ngx_addon_dir/auto/runtime
-
 if [ $ngx_found = no ]; then
     echo "$0: error: $ngx_addon_name could not find the \"$ngx_wasm_runtime_name\" library."
     echo "You can set the NGX_WASM_RUNTIME_INC, NGX_WASM_RUNTIME_LIB, and NGX_WASM_RUNTIME_LD_OPT environment variables."
