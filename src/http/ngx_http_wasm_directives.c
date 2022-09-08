@@ -194,6 +194,12 @@ ngx_http_wasm_resolver_add_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
     r = clcf->resolver;
 
+    if (r == NULL) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "no resolver defined");
+        return NGX_CONF_ERROR;
+    }
+
     /* args */
 
     values = cf->args->elts;
