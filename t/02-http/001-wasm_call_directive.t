@@ -1,4 +1,4 @@
-# vim:set ft= ts=4 sts=4 sw=4 et fdm=marker:
+# vim:set ft= ts=4 sts=4 sw=4 et fdm=marker:;
 
 use strict;
 use lib '.';
@@ -436,7 +436,9 @@ wasm ops calling "a.nocall" in "log" phase
   (export "othernop" (func $nop))
 )
 --- error_log
-wasm ops calling "moduleA.nop" in "rewrite" phase
 wasm ops calling "moduleB.othernop" in "log" phase
 --- no_error_log eval
-qr/\[wasm\] calling "module[A|B]\.nocall" in "log" phase/
+[
+    qr/calling "module[A|B]\.nocall" in "log" phase/,
+    qr/calling "moduleA\.nop" in "rewrite" phase/,
+]

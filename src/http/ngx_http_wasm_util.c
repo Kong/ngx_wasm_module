@@ -293,84 +293,78 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
 
 
 ngx_int_t
-ngx_http_wasm_ops_add_filter(ngx_wasm_ops_t *e, ngx_pool_t *pool,
-    ngx_log_t *log, ngx_str_t *name, ngx_str_t *config, ngx_uint_t *isolation,
-    ngx_proxy_wasm_store_t *store, ngx_proxy_wasm_filter_t **out)
+ngx_http_wasm_ops_add_filter(ngx_wasm_ops_plan_t *plan,
+    ngx_str_t *name, ngx_str_t *config, ngx_uint_t *isolation,
+    ngx_proxy_wasm_store_t *store, ngx_wavm_t *vm)
 {
-    ngx_int_t                   rc = NGX_ERROR;
-    ngx_wasm_op_t              *op;
-    ngx_proxy_wasm_filter_t    *filter;
+    ngx_int_t                 rc = NGX_ERROR;
+    ngx_wasm_op_t            *op;
+    ngx_proxy_wasm_filter_t  *filter;
 
-    filter = ngx_pcalloc(pool, sizeof(ngx_proxy_wasm_filter_t));
+    filter = ngx_pcalloc(plan->pool, sizeof(ngx_proxy_wasm_filter_t));
     if (filter == NULL) {
-        goto failed;
+        goto error;
     }
 
-    filter->pool = pool;
-    filter->log = log;
+    filter->pool = plan->pool;
+    filter->log = vm->log;
     filter->store = store;
 
     if (config) {
         filter->config.len = config->len;
         filter->config.data = ngx_pstrdup(filter->pool, config);
         if (filter->config.data == NULL) {
-            goto failed;
+            goto error;
         }
     }
 
     /* filter init */
 
     filter->isolation = isolation;
-    filter->ecode_ = ngx_http_proxy_wasm_ecode;
-    filter->resume_ = ngx_http_proxy_wasm_resume;
-    filter->get_context_ = ngx_http_proxy_wasm_ctx;
     filter->max_pairs = NGX_HTTP_WASM_MAX_REQ_HEADERS;
+    filter->subsystem = &ngx_http_proxy_wasm;
 
-    filter->module = ngx_wavm_module_lookup(e->vm, name);
+    filter->module = ngx_wavm_module_lookup(vm, name);
     if (filter->module == NULL) {
         rc = NGX_ABORT;
-        goto failed;
+        goto error;
     }
 
     /* op */
 
-    op = ngx_pcalloc(pool, sizeof(ngx_wasm_op_t));
+    op = ngx_pcalloc(plan->pool, sizeof(ngx_wasm_op_t));
     if (op == NULL) {
-        goto failed;
+        goto error;
     }
 
     op->code = NGX_WASM_OP_PROXY_WASM;
     op->module = filter->module;
     op->host = &ngx_proxy_wasm_host;
     op->on_phases = (1 << NGX_HTTP_REWRITE_PHASE)
-        | (1 << NGX_HTTP_CONTENT_PHASE)
-        | (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE)
-        | (1 << NGX_HTTP_WASM_BODY_FILTER_PHASE)
-        | (1 << NGX_HTTP_LOG_PHASE)
-        | (1 << NGX_WASM_DONE_PHASE);
-
-    if (ngx_wasm_ops_add(e, op) != NGX_OK) {
-        goto failed;
-    }
+                    | (1 << NGX_HTTP_CONTENT_PHASE)
+                    | (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE)
+                    | (1 << NGX_HTTP_WASM_BODY_FILTER_PHASE)
+                    | (1 << NGX_HTTP_LOG_PHASE)
+                    | (1 << NGX_WASM_DONE_PHASE);
 
     op->conf.proxy_wasm.filter = filter;
 
-    if (out) {
-        *out = filter;
+    if (ngx_wasm_ops_plan_add(plan, &op, 1) != NGX_OK) {
+        goto error;
     }
 
     rc = NGX_OK;
 
     goto done;
 
-failed:
+error:
 
     if (filter) {
         if (filter->config.data) {
             ngx_pfree(filter->pool, filter->config.data);
         }
 
-        ngx_pfree(pool, filter);
+        ngx_pfree(filter->pool, filter);
     }
 
 done:

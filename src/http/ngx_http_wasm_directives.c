@@ -10,12 +10,14 @@
 char *
 ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_str_t                 *values, *phase_name, *module_name, *func_name;
-    ngx_wasm_op_t             *op;
-    ngx_http_wasm_loc_conf_t  *loc = conf;
-    ngx_wasm_phase_t          *phase = ngx_http_wasm_subsystem.phases;
+    ngx_str_t                  *values, *phase_name, *module_name, *func_name;
+    ngx_wasm_op_t              *op;
+    ngx_http_wasm_loc_conf_t   *loc = conf;
+    ngx_wasm_phase_t           *phase = ngx_http_wasm_subsystem.phases;
+    ngx_wavm_t                 *vm;
 
-    if (loc->vm == NULL) {
+    vm = ngx_wasm_main_vm(cf->cycle);
+    if (vm == NULL) {
         return NGX_WASM_CONF_ERR_NO_WASM;
     }
 
@@ -72,7 +74,7 @@ ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    op->module = ngx_wavm_module_lookup(loc->ops->vm, module_name);
+    op->module = ngx_wavm_module_lookup(vm, module_name);
     if (op->module == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "no \"%V\" module defined", module_name);
@@ -83,7 +85,7 @@ ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     op->code = NGX_WASM_OP_CALL;
     op->on_phases = phase->on;
 
-    if (ngx_wasm_ops_add(loc->ops, op) != NGX_OK) {
+    if (ngx_wasm_ops_plan_add(loc->plan, &op, 1) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
@@ -103,8 +105,7 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     ngx_http_wasm_main_conf_t  *mcf;
 
     mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
-
-    if (loc->vm == NULL) {
+    if (mcf->vm == NULL) {
         return NGX_WASM_CONF_ERR_NO_WASM;
     }
 
@@ -121,12 +122,11 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    rc = ngx_http_wasm_ops_add_filter(loc->ops,
-                                      cf->pool, &cf->cycle->new_log,
+    rc = ngx_http_wasm_ops_add_filter(loc->plan,
                                       name, config,
                                       &loc->isolation,
                                       &mcf->store,
-                                      NULL);
+                                      mcf->vm);
     if (rc != NGX_OK) {
         if (rc == NGX_ABORT) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -144,10 +144,12 @@ char *
 ngx_http_wasm_proxy_wasm_isolation_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf)
 {
-    ngx_str_t                 *values, *value;
-    ngx_http_wasm_loc_conf_t  *loc = conf;
+    ngx_str_t                  *values, *value;
+    ngx_http_wasm_loc_conf_t   *loc = conf;
+    ngx_http_wasm_main_conf_t  *mcf;
 
-    if (loc->vm == NULL) {
+    mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
+    if (mcf->vm == NULL) {
         return NGX_WASM_CONF_ERR_NO_WASM;
     }
 

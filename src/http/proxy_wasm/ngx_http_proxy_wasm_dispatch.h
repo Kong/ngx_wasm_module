@@ -34,7 +34,8 @@ struct ngx_http_proxy_wasm_dispatch_s {
     ngx_msec_t                              timeout;
     ngx_wasm_socket_tcp_t                   sock;
     ngx_http_wasm_req_ctx_t                *rctx;
-    ngx_proxy_wasm_filter_ctx_t            *fctx;
+    ngx_proxy_wasm_exec_t                  *pwexec;
+    ngx_proxy_wasm_instance_t              *ictx;
     ngx_http_proxy_wasm_dispatch_err_e      error;
 
     ngx_str_t                               host;
@@ -55,7 +56,7 @@ struct ngx_http_proxy_wasm_dispatch_s {
 
 
 ngx_http_proxy_wasm_dispatch_t *ngx_http_proxy_wasm_dispatch(
-    ngx_proxy_wasm_filter_ctx_t *fctx,
+    ngx_proxy_wasm_exec_t *pwexec,
     ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
     ngx_proxy_wasm_marshalled_map_t *headers,
     ngx_proxy_wasm_marshalled_map_t *trailers,

@@ -50,11 +50,11 @@ jobs:
             runtime: v8
             v8: 10.5.18
           # OpenResty
-          - os: ubuntu-latest
-            cc: gcc-8
-            openresty: 1.21.4.1
-            runtime: wasmtime
-            wasmtime: 0.38.1
+          #- os: ubuntu-latest
+          #  cc: gcc-8
+          #  openresty: 1.21.4.1
+          #  runtime: wasmtime
+          #  wasmtime: 0.38.1
           # Old Nginx
           - os: ubuntu-latest
             cc: gcc-8

@@ -18,11 +18,11 @@ __DATA__
 --- config
     set $my_var 123;
     location /t {
-        proxy_wasm hostcalls 'test=/t/set_property name=ngx.my_var set=456';
+        proxy_wasm hostcalls 'test=/t/set_property \
+                              name=ngx.my_var \
+                              set=456';
         echo ok;
     }
---- request
-GET /t
 --- error_log eval
 [
     qr/\[info\] .*? old: "123"/,
@@ -39,7 +39,9 @@ GET /t
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/set_property name=ngx.args set=456';
+        proxy_wasm hostcalls 'test=/t/set_property \
+                              name=ngx.args \
+                              set=456';
         echo ok;
     }
 --- request
@@ -61,11 +63,11 @@ GET /t?hello=world
 --- config
     set $my_var 123;
     location /t {
-        proxy_wasm hostcalls 'test=/t/set_property name=ngx.my_var unset=1';
+        proxy_wasm hostcalls 'test=/t/set_property \
+                              name=ngx.my_var \
+                              unset=1';
         echo ok;
     }
---- request
-GET /t
 --- error_log eval
 [
     qr/\[info\] .*? old: "123"/,
@@ -84,7 +86,9 @@ should print the $pid as ASCII numbers.
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/set_property name=ngx.args unset=1';
+        proxy_wasm hostcalls 'test=/t/set_property \
+                              name=ngx.args \
+                              unset=1';
         echo ok;
     }
 --- request
@@ -105,11 +109,11 @@ GET /t?hello=world
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/set_property name=ngx.query_string set=123';
+        proxy_wasm hostcalls 'test=/t/set_property \
+                              name=ngx.query_string \
+                              set=123';
         echo ok;
     }
---- request
-GET /t
 --- error_code: 500
 --- response_body eval
 qr/500 Internal Server Error/
@@ -128,11 +132,10 @@ qr/500 Internal Server Error/
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/set_property name=ngx.nonexistent_property';
+        proxy_wasm hostcalls 'test=/t/set_property \
+                              name=ngx.nonexistent_property';
         echo ok;
     }
---- request
-GET /t
 --- error_code: 500
 --- response_body eval
 qr/500 Internal Server Error/
@@ -151,11 +154,10 @@ qr/500 Internal Server Error/
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/set_property name=nonexistent_property';
+        proxy_wasm hostcalls 'test=/t/set_property \
+                              name=nonexistent_property';
         echo ok;
     }
---- request
-GET /t
 --- error_code: 500
 --- response_body eval
 qr/500 Internal Server Error/
@@ -175,11 +177,12 @@ qr/500 Internal Server Error/
 --- config
     set $my_var 123;
     location /t {
-        proxy_wasm hostcalls 'on=request_headers test=/t/set_property name=ngx.my_var set=456';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/set_property \
+                              name=ngx.my_var \
+                              set=456';
         echo ok;
     }
---- request
-GET /t
 --- error_log eval
 [
     qr/\[info\] .*? old: "123"/,
@@ -197,7 +200,10 @@ GET /t
 --- config
     set $my_var 123;
     location /t {
-        proxy_wasm hostcalls 'on=request_body test=/t/set_property name=ngx.my_var set=456';
+        proxy_wasm hostcalls 'on=request_body \
+                              test=/t/set_property \
+                              name=ngx.my_var \
+                              set=456';
         echo ok;
     }
 --- request
@@ -220,11 +226,12 @@ hello world
 --- config
     set $my_var 123;
     location /t {
-        proxy_wasm hostcalls 'on=response_headers test=/t/set_property name=ngx.my_var set=456';
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/set_property \
+                              name=ngx.my_var \
+                              set=456';
         echo ok;
     }
---- request
-GET /t
 --- error_log eval
 [
     qr/\[info\] .*? old: "123"/,
@@ -242,11 +249,12 @@ GET /t
 --- config
     set $my_var 123;
     location /t {
-        proxy_wasm hostcalls 'on=response_body test=/t/set_property name=ngx.my_var set=456';
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_property \
+                              name=ngx.my_var \
+                              set=456';
         echo ok;
     }
---- request
-GET /t
 --- error_log eval
 [
     qr/\[info\] .*? old: "123"/,
@@ -264,11 +272,12 @@ GET /t
 --- config
     set $my_var 123;
     location /t {
-        proxy_wasm hostcalls 'on=log test=/t/set_property name=ngx.my_var set=456';
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/set_property \
+                              name=ngx.my_var \
+                              set=456';
         echo ok;
     }
---- request
-GET /t
 --- error_log eval
 [
     qr/\[info\] .*? old: "123"/,
@@ -280,25 +289,56 @@ GET /t
 
 
 
-=== TEST 13: proxy_wasm - set_property() for ngx.* does not work on_tick
+=== TEST 13: proxy_wasm - set_property() for ngx.* does not work on_tick (isolation: global)
+on_tick runs on the root context, so it does not have access to ngx_http_* calls.
+HTTP 500 since instance recycling happens on next request, and isolation is global (single instance for root/request)
+--- wasm_modules: hostcalls
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    set $my_var 123;
+
+    location /t {
+        proxy_wasm hostcalls 'tick_period=10 \
+                              on_tick=set_property \
+                              name=ngx.my_var \
+                              set=456';
+        echo_sleep 0.150;
+        echo ok;
+    }
+--- error_code: 500
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[info\] .*? \[hostcalls\] on_tick/,
+    qr/\[error\] .*? cannot get request context/,
+    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
+    qr/\[error\] .*? in proxy_on_tick.*?unreachable/,
+]
+
+
+
+=== TEST 14: proxy_wasm - set_property() for ngx.* does not work on_tick (isolation: stream)
 on_tick runs on the root context, so it does not have access to ngx_http_* calls.
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     set $my_var 123;
+
     location /t {
-        proxy_wasm hostcalls 'tick_period=10 on_tick=set_property name=ngx.my_var set=456';
+        proxy_wasm_isolation stream;
+
+        proxy_wasm hostcalls 'tick_period=10 \
+                              on_tick=set_property \
+                              name=ngx.my_var \
+                              set=456';
         echo_sleep 0.150;
         echo ok;
     }
---- request
-GET /t
 --- ignore_response_body
 --- error_log eval
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
+    qr/\[error\] .*? cannot get request context/,
     qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
+    qr/\[error\] .*? in proxy_on_tick.*?unreachable/,
 ]
---- no_error_log
-[alert]
-[emerg]

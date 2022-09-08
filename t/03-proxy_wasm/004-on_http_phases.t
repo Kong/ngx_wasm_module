@@ -501,7 +501,6 @@ on_log
 
 
 === TEST 21: proxy_wasm - as a chained subrequest (logged)
-should not invoke wasm ops "done" phase when subrequests are logged
 --- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases

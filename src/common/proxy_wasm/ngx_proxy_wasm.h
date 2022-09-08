@@ -10,6 +10,7 @@
 
 #define ngx_proxy_wasm_store_init(s, p)                                      \
     (s)->pool = (p);                                                         \
+    ngx_queue_init(&(s)->sweep);                                              \
     ngx_queue_init(&(s)->free);                                              \
     ngx_queue_init(&(s)->busy)
 
@@ -73,7 +74,7 @@ typedef enum {
 
 
 typedef enum {
-    NGX_PROXY_WASM_STEP_INIT_CTX = 0,
+    NGX_PROXY_WASM_STEP_START = 0,
     NGX_PROXY_WASM_STEP_REQ_HEADERS,
     NGX_PROXY_WASM_STEP_REQ_BODY_READ,
     NGX_PROXY_WASM_STEP_REQ_BODY,
@@ -82,10 +83,9 @@ typedef enum {
     NGX_PROXY_WASM_STEP_RESP_BODY,
     NGX_PROXY_WASM_STEP_RESP_TRAILERS,
     NGX_PROXY_WASM_STEP_LOG,
+    NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE,
     NGX_PROXY_WASM_STEP_DONE,
-    NGX_PROXY_WASM_STEP_FREE,
-    NGX_PROXY_WASM_STEP_DISPATCH,
-    NGX_PROXY_WASM_STEP_ON_TIMER,
+    NGX_PROXY_WASM_STEP_TICK,
 } ngx_proxy_wasm_step_e;
 
 
@@ -158,34 +158,51 @@ typedef enum {
 
 typedef struct ngx_proxy_wasm_ctx_s  ngx_proxy_wasm_ctx_t;
 typedef struct ngx_proxy_wasm_filter_s  ngx_proxy_wasm_filter_t;
-typedef struct ngx_proxy_wasm_filter_ctx_s  ngx_proxy_wasm_filter_ctx_t;
-typedef struct ngx_proxy_wasm_instance_ctx_s  ngx_proxy_wasm_instance_ctx_t;
+typedef struct ngx_proxy_wasm_exec_s  ngx_proxy_wasm_exec_t;
+typedef struct ngx_proxy_wasm_instance_s  ngx_proxy_wasm_instance_t;
 #ifdef NGX_WASM_HTTP
 typedef struct ngx_http_proxy_wasm_dispatch_s  ngx_http_proxy_wasm_dispatch_t;
 #endif
 
 typedef ngx_str_t  ngx_proxy_wasm_marshalled_map_t;
 
-typedef ngx_int_t (*ngx_proxy_wasm_resume_pt)(ngx_proxy_wasm_filter_ctx_t *fctx,
-    ngx_proxy_wasm_step_e step, ngx_uint_t *ret);
-typedef ngx_int_t (*ngx_proxy_wasm_ecode_pt)(ngx_proxy_wasm_err_e ecode);
-typedef ngx_proxy_wasm_ctx_t *(*ngx_proxy_wasm_get_context_pt)(
-    ngx_proxy_wasm_filter_t *filter, void *data);
-typedef void (*ngx_proxy_wasm_free_context_pt)(
-    ngx_proxy_wasm_ctx_t *pwctx);
-
 
 typedef struct {
-    ngx_queue_t                        free;
     ngx_queue_t                        busy;
+    ngx_queue_t                        free;
+    ngx_queue_t                        sweep;
     ngx_pool_t                        *pool;
 } ngx_proxy_wasm_store_t;
 
 
-struct ngx_proxy_wasm_ctx_s {
+struct ngx_proxy_wasm_exec_s {
+    ngx_uint_t                         root_id;
     ngx_uint_t                         id;
-    ngx_uint_t                         n_filters;
-    ngx_array_t                        fctxs;
+    ngx_uint_t                         index;
+    ngx_uint_t                         tick_period;
+    ngx_rbtree_node_t                  node;
+    ngx_proxy_wasm_err_e               ecode;
+    ngx_pool_t                        *pool;
+    ngx_log_t                         *log;
+    ngx_proxy_wasm_ctx_t              *parent;
+    ngx_proxy_wasm_filter_t           *filter;
+    ngx_proxy_wasm_instance_t         *ictx;
+    ngx_event_t                       *ev;
+#ifdef NGX_WASM_HTTP
+    ngx_http_proxy_wasm_dispatch_t    *call;
+#endif
+
+    /* flags */
+
+    unsigned                           started:1;
+    unsigned                           ecode_logged:1;
+};
+
+
+struct ngx_proxy_wasm_ctx_s {
+    ngx_uint_t                         id;      /* r->connection->number */
+    ngx_uint_t                         nfilters;
+    ngx_array_t                        pwexecs;
     ngx_proxy_wasm_store_t             store;
     ngx_proxy_wasm_context_type_e      type;
     ngx_log_t                         *log;
@@ -197,84 +214,67 @@ struct ngx_proxy_wasm_ctx_s {
     ngx_wasm_phase_t                  *phase;
     ngx_proxy_wasm_action_e            action;
     ngx_proxy_wasm_step_e              step;
-    ngx_uint_t                         cur_filter_idx;
+    ngx_uint_t                         exec_index;
 
     /* cache */
 
     size_t                             req_body_len;
     ngx_str_t                          authority;
     ngx_str_t                          scheme;
-    ngx_str_t                          path;  /* r->uri + r->args */
+    ngx_str_t                          path;    /* r->uri + r->args */
 
     /* flags */
 
-    unsigned                           main:1;
+    unsigned                           main:1;  /* r->main */
+    unsigned                           ready:1;
 };
 
 
-struct ngx_proxy_wasm_filter_ctx_s {
-    ngx_uint_t                         id;
-    ngx_uint_t                         root_id;
-    ngx_proxy_wasm_err_e               ecode;
-    ngx_rbtree_node_t                  node;
-    ngx_pool_t                        *pool;
-    ngx_log_t                         *log;
-    ngx_proxy_wasm_ctx_t              *parent;
-    ngx_proxy_wasm_instance_ctx_t     *ictx;
-    ngx_proxy_wasm_filter_t           *filter;
-    ngx_event_t                       *ev;
-#ifdef NGX_WASM_HTTP
-    ngx_http_proxy_wasm_dispatch_t    *call;
-#endif
-
-    /* flags */
-
-    unsigned                           root:1;
-    unsigned                           created:1;
-    unsigned                           started:1;
-    unsigned                           ecode_logged:1;
-};
-
-
-struct ngx_proxy_wasm_instance_ctx_s {
-    ngx_uint_t                         filter_id;
-    ngx_uint_t                         next_context_id;
+struct ngx_proxy_wasm_instance_s {
+    ngx_uint_t                         next_id;
     ngx_uint_t                         nrefs;
     ngx_queue_t                        q;
-    ngx_rbtree_t                       tree_root_ctxs;
+    ngx_rbtree_t                       tree_ctxs;
+    ngx_rbtree_t                       root_ctxs;
+    ngx_rbtree_node_t                  sentinel_ctxs;
     ngx_rbtree_node_t                  sentinel_root_ctxs;
+    ngx_wavm_module_t                 *module;
     ngx_wavm_instance_t               *instance;
-    ngx_proxy_wasm_filter_t           *filter;
     ngx_proxy_wasm_store_t            *store;
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
 
     /* swap */
 
-    ngx_proxy_wasm_filter_ctx_t       *current_ctx;
+    ngx_proxy_wasm_exec_t             *pwexec;
 };
+
+
+typedef struct {
+    ngx_proxy_wasm_ctx_t              *(*get_context)(void *data);
+    ngx_int_t                          (*resume)(ngx_proxy_wasm_exec_t *pwexec,
+                                                 ngx_proxy_wasm_step_e step,
+                                                 ngx_uint_t *ret);
+    ngx_int_t                          (*ecode)(ngx_proxy_wasm_err_e ecode);
+} ngx_proxy_wasm_subsystem_t;
 
 
 struct ngx_proxy_wasm_filter_s {
     ngx_str_t                         *name;
-    ngx_str_t                          config;
-    ngx_uint_t                         index;
-    ngx_uint_t                        *n_filters;
     ngx_log_t                         *log;
     ngx_pool_t                        *pool;
+    ngx_str_t                          config;
+    uintptr_t                          data;
+    ngx_rbtree_node_t                  node;
     ngx_wavm_module_t                 *module;
+    ngx_proxy_wasm_subsystem_t        *subsystem;
     ngx_proxy_wasm_store_t            *store;   /* mcf->store */
-    ngx_proxy_wasm_ecode_pt            ecode_;
-    ngx_proxy_wasm_resume_pt           resume_;
-    ngx_proxy_wasm_get_context_pt      get_context_;
     ngx_proxy_wasm_err_e               ecode;
-    ngx_proxy_wasm_instance_ctx_t     *root_ictx;
 
     /* dyn config */
 
     ngx_uint_t                         id;
     ngx_uint_t                         max_pairs;
-    ngx_uint_t                         tick_period;
     ngx_uint_t                        *isolation;
 
     /**
@@ -293,8 +293,8 @@ struct ngx_proxy_wasm_filter_s {
 
     ngx_wavm_funcref_t                *proxy_on_context_create;
     ngx_wavm_funcref_t                *proxy_on_context_finalize;
-    ngx_wavm_funcref_t                *proxy_on_done; /* legacy: 0.1.0 - 0.2.1 */
-    ngx_wavm_funcref_t                *proxy_on_log;  /* legacy: 0.1.0 - 0.2.1 */
+    ngx_wavm_funcref_t                *proxy_on_done;
+    ngx_wavm_funcref_t                *proxy_on_log;
 
     /* configuration */
 
@@ -344,67 +344,64 @@ struct ngx_proxy_wasm_filter_s {
     /* custom extensions */
 
     ngx_wavm_funcref_t                *proxy_on_custom_callback;
+
+    /* flags */
+
+    unsigned                           loaded:1;
 };
 
 
-/* ngx_proxy_wasm_ctx_t */
-ngx_proxy_wasm_ctx_t *ngx_proxy_wasm_ctx(ngx_proxy_wasm_filter_t *filter,
-    void *data);
-ngx_int_t ngx_proxy_wasm_ctx_add(ngx_proxy_wasm_ctx_t *pwctx,
-    ngx_proxy_wasm_filter_t *filter);
-ngx_int_t ngx_proxy_wasm_ctx_resume(ngx_proxy_wasm_ctx_t *pwctx,
-    ngx_wasm_phase_t *phase, ngx_proxy_wasm_step_e step);
+/* root */
+void ngx_proxy_wasm_init();
+void ngx_proxy_wasm_exit();
+ngx_uint_t ngx_proxy_wasm_id(ngx_str_t *name, ngx_str_t *config,
+    uintptr_t data);
+ngx_int_t ngx_proxy_wasm_load(ngx_proxy_wasm_filter_t *filter);
+ngx_int_t ngx_proxy_wasm_start(ngx_cycle_t *cycle);
 
-ngx_proxy_wasm_instance_ctx_t *ngx_proxy_wasm_instance_get(
+
+/* ctx/store */
+ngx_proxy_wasm_ctx_t *ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids,
+    size_t nfilters, ngx_proxy_wasm_subsystem_t *subsys, void *data);
+void ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx);
+ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
+    ngx_wasm_phase_t *phase, ngx_proxy_wasm_step_e step);
+ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_exec_t *pwexec, size_t size);
+void ngx_proxy_wasm_store_destroy(ngx_proxy_wasm_store_t *store);
+ngx_proxy_wasm_instance_t *ngx_proxy_wasm_get_instance(
     ngx_proxy_wasm_filter_t *filter, ngx_proxy_wasm_store_t *store,
     ngx_log_t *log);
-void ngx_proxy_wasm_instance_release(ngx_proxy_wasm_instance_ctx_t *ictx, unsigned force);
+void ngx_proxy_wasm_release_instance(ngx_proxy_wasm_instance_t *ictx,
+    unsigned sweep);
 
-/* ngx_proxy_wasm_store_t */
-void ngx_proxy_wasm_store_destroy(ngx_proxy_wasm_store_t *store);
-
-/* ngx_proxy_wasm_filter_t */
-ngx_uint_t ngx_proxy_wasm_filter_id(ngx_str_t *name, ngx_str_t *config,
-    ngx_uint_t idx);
-ngx_int_t ngx_proxy_wasm_filter_init(ngx_proxy_wasm_filter_t *filter);
-void ngx_proxy_wasm_filter_destroy(ngx_proxy_wasm_filter_t *filter);
-
-/* ngx_proxy_wasm_filter_ctx_t */
-ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_instance_ctx_t *ictx,
-    ngx_proxy_wasm_filter_t *filter, ngx_proxy_wasm_filter_ctx_t *fctx,
-    ngx_proxy_wasm_step_e step, ngx_uint_t *ret);
-ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_filter_ctx_t *fctx,
-    size_t size);
-unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_filter_ctx_t *fctx,
-    ngx_list_t *list, ngx_array_t *extras, ngx_wavm_ptr_t *out,
-    uint32_t *out_size, ngx_uint_t *truncated);
 
 /* utils */
+void ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev);
 void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
     ngx_proxy_wasm_err_e err, const char *fmt, ...);
-ngx_uint_t ngx_proxy_wasm_pairs_count(ngx_list_t *list);
-size_t ngx_proxy_wasm_pairs_size(ngx_list_t *list, ngx_array_t *extras,
-    ngx_uint_t max);
-void ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *extras,
-    u_char *buf, ngx_uint_t max, ngx_uint_t *truncated);
-ngx_int_t ngx_proxy_wasm_pairs_unmarshal(ngx_array_t *dst, ngx_pool_t *pool,
-    ngx_proxy_wasm_marshalled_map_t *map);
-void ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev);
+ngx_int_t ngx_proxy_wasm_pairs_unmarshal(ngx_proxy_wasm_exec_t *pwexec,
+    ngx_array_t *dst, ngx_proxy_wasm_marshalled_map_t *map);
+unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_exec_t *pwexec,
+    ngx_list_t *list, ngx_array_t *extras, ngx_wavm_ptr_t *out,
+    uint32_t *out_size, ngx_uint_t *truncated);
+ngx_proxy_wasm_err_e ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
+    ngx_proxy_wasm_instance_t *ictx, ngx_proxy_wasm_step_e step,
+    ngx_uint_t *ret);
 
 
-static ngx_inline ngx_proxy_wasm_filter_ctx_t *
-ngx_proxy_wasm_instance2fctx(ngx_wavm_instance_t *instance)
+static ngx_inline ngx_proxy_wasm_exec_t *
+ngx_proxy_wasm_instance2pwexec(ngx_wavm_instance_t *instance)
 {
-    ngx_proxy_wasm_instance_ctx_t  *ictx = instance->data;
+    ngx_proxy_wasm_instance_t  *ictx = instance->data;
 
-    return ictx->current_ctx;
+    return ictx->pwexec;
 }
 
 
 static ngx_inline ngx_wavm_instance_t *
-ngx_proxy_wasm_fctx2instance(ngx_proxy_wasm_filter_ctx_t *fctx)
+ngx_proxy_wasm_pwexec2instance(ngx_proxy_wasm_exec_t *pwexec)
 {
-    return fctx->ictx->instance;
+    return pwexec->ictx->instance;
 }
 
 
@@ -425,10 +422,10 @@ ngx_proxy_wasm_result_err(wasm_val_t rets[])
 
 
 static ngx_inline ngx_int_t
-ngx_proxy_wasm_result_trap(ngx_proxy_wasm_filter_ctx_t *fctx, char *trapmsg,
+ngx_proxy_wasm_result_trap(ngx_proxy_wasm_exec_t *pwexec, char *trapmsg,
     wasm_val_t rets[])
 {
-    ngx_wavm_instance_t  *instance = ngx_proxy_wasm_fctx2instance(fctx);
+    ngx_wavm_instance_t  *instance = ngx_proxy_wasm_pwexec2instance(pwexec);
 
     ngx_wavm_instance_trap_printf(instance, trapmsg);
 
@@ -437,10 +434,10 @@ ngx_proxy_wasm_result_trap(ngx_proxy_wasm_filter_ctx_t *fctx, char *trapmsg,
 
 
 static ngx_inline ngx_int_t
-ngx_proxy_wasm_result_trap_printf(ngx_proxy_wasm_filter_ctx_t *fctx, wasm_val_t rets[],
+ngx_proxy_wasm_result_trap_printf(ngx_proxy_wasm_exec_t *pwexec, wasm_val_t rets[],
     const char *fmt, ...)
 {
-    ngx_wavm_instance_t  *instance = ngx_proxy_wasm_fctx2instance(fctx);
+    ngx_wavm_instance_t  *instance = ngx_proxy_wasm_pwexec2instance(pwexec);
     va_list               args;
 
     va_start(args, fmt);

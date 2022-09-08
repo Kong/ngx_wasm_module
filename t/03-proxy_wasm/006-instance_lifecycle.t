@@ -27,10 +27,8 @@ should use a global instance reused across streams
 --- ignore_response_body
 --- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing|finalizing|freeing).*/
 --- grep_error_log_out eval
-[qr/.*?\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
+[qr/.*?\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
+\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "header_filter" phase.*
@@ -44,10 +42,8 @@ should use a global instance reused across streams
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "done" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) finalizing context
 \*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\)\Z/,
-qr/\A\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
+qr/\A\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
+\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "header_filter" phase.*
@@ -86,19 +82,15 @@ should recycle the global instance when trapped
 --- ignore_response_body
 --- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing|finalizing|freeing|now|trap in).*/
 --- grep_error_log_out eval
-[qr/.*?\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
+[qr/.*?\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
+\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ \[wasm\] trap in proxy_on_request_headers:.*?unreachable.*
 \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*
 \*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\).*\Z/,
-qr/\A\*\d+ wasm freeing "hostcalls" instance in "main" vm.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
+qr/\A\*\d+ proxy_wasm freeing trapped "hostcalls" instance.*
+\*\d+ proxy_wasm "hostcalls" filter new instance.*
+\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "header_filter" phase.*
@@ -132,10 +124,8 @@ should use an instance per stream
 --- ignore_response_body
 --- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing|finalizing|freeing).*/
 --- grep_error_log_out eval
-[qr/.*?\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
+[qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
+\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "header_filter" phase.*
@@ -150,10 +140,8 @@ should use an instance per stream
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) finalizing context
 \*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\)
 \*\d+ wasm freeing "hostcalls" instance in "main" vm.*\Z/,
-qr/\A\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
+qr/\A\*\d+ proxy_wasm "hostcalls" filter new instance.*
+\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "header_filter" phase.*
@@ -192,19 +180,15 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
 --- ignore_response_body
 --- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing|finalizing context|freeing|now|trap in).*/
 --- grep_error_log_out eval
-[qr/.*?\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
+[qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
+\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ \[wasm\] trap in proxy_on_request_headers:.*?unreachable.*
 \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*
 \*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\)
 \*\d+ wasm freeing "hostcalls" instance in "main" vm.*\Z/,
-qr/\A\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) new instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
+qr/\A\*\d+ proxy_wasm "hostcalls" filter new instance.*
+\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "header_filter" phase.*

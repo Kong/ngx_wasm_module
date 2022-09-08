@@ -505,6 +505,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
     }
 
     if (!ngx_wavm_state(module, NGX_WAVM_MODULE_LOADED_BYTES)) {
+        dd("NO BYTES");
         return NGX_ERROR;
     }
 
@@ -1238,6 +1239,8 @@ ngx_wavm_instance_call_funcref(ngx_wavm_instance_t *instance,
 
     ngx_wasm_assert(func);
 
+    dd("func: %p (args: %p, args->nelts: %ld)", func, &func->args, func->args.size);
+
     va_start(args, rets);
     rc = ngx_wavm_instance_call_func_va(instance, func, rets, args);
     va_end(args);
@@ -1429,7 +1432,9 @@ ngx_wavm_log_error_handler(ngx_log_t *log, u_char *buf, size_t len)
     len -= p - buf;
     buf = p;
 
-    if (orig_log && orig_log->handler) {
+    if (orig_log && orig_log->handler
+        && orig_log->handler != ngx_wavm_log_error_handler)
+    {
         p = orig_log->handler(orig_log, buf, len);
     }
 

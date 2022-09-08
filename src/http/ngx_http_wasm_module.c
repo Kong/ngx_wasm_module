@@ -10,6 +10,7 @@
 
 
 static void *ngx_http_wasm_create_main_conf(ngx_conf_t *cf);
+static char *ngx_http_wasm_init_main_conf(ngx_conf_t *cf, void *conf);
 static void *ngx_http_wasm_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent,
     void *child);
@@ -162,7 +163,7 @@ static ngx_http_module_t  ngx_http_wasm_module_ctx = {
     NULL,                                /* preconfiguration */
     ngx_http_wasm_postconfig,            /* postconfiguration */
     ngx_http_wasm_create_main_conf,      /* create main configuration */
-    NULL,                                /* init main configuration */
+    ngx_http_wasm_init_main_conf,        /* init main configuration */
     NULL,                                /* create server configuration */
     NULL,                                /* merge server configuration */
     ngx_http_wasm_create_loc_conf,       /* create location configuration */
@@ -219,18 +220,36 @@ ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    ngx_proxy_wasm_store_init(&mcf->store, cf->pool);
+    mcf->vm = ngx_wasm_main_vm(cf->cycle);
 
-    ngx_queue_init(&mcf->ops_engines);
+    ngx_queue_init(&mcf->plans);
 
     return mcf;
+}
+
+
+static char *
+ngx_http_wasm_init_main_conf(ngx_conf_t *cf, void *conf)
+{
+    ngx_http_wasm_main_conf_t  *mcf = conf;
+
+    mcf->ops = ngx_wasm_ops_new(cf->pool, &cf->cycle->new_log, mcf->vm,
+                                &ngx_http_wasm_subsystem);
+    if (mcf->ops == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    ngx_proxy_wasm_init();
+    ngx_proxy_wasm_store_init(&mcf->store, cf->pool);
+
+    return NGX_CONF_OK;
 }
 
 
 static void *
 ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
 {
-    ngx_http_wasm_loc_conf_t   *loc;
+    ngx_http_wasm_loc_conf_t  *loc;
 
     loc = ngx_pcalloc(cf->pool, sizeof(ngx_http_wasm_loc_conf_t));
     if (loc == NULL) {
@@ -244,11 +263,9 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
     loc->socket_buffer_size = NGX_CONF_UNSET_SIZE;
     loc->socket_buffer_reuse = NGX_CONF_UNSET;
 
-    loc->vm = ngx_wasm_main_vm(cf->cycle);
-    if (loc->vm) {
-        loc->ops = ngx_wasm_ops_new(cf->pool, loc->vm,
-                                    &ngx_http_wasm_subsystem);
-        if (loc->ops == NULL) {
+    if (ngx_wasm_main_vm(cf->cycle)) {
+        loc->plan = ngx_wasm_ops_plan_new(cf->pool, &ngx_http_wasm_subsystem);
+        if (loc->plan == NULL) {
             return NULL;
         }
     }
@@ -260,17 +277,13 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
 static char *
 ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-    size_t                      i;
     ngx_http_wasm_main_conf_t  *mcf;
     ngx_http_wasm_loc_conf_t   *prev = parent;
     ngx_http_wasm_loc_conf_t   *conf = child;
 
-    ngx_conf_merge_ptr_value(conf->vm, prev->vm, NULL);
-    ngx_conf_merge_ptr_value(conf->ops, prev->ops, NULL);
+    mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
 
-    if (prev->isolation == NGX_CONF_UNSET_UINT) {
-        prev->isolation = NGX_PROXY_WASM_ISOLATION_NONE;
-    }
+    ngx_conf_merge_ptr_value(conf->plan, prev->plan, NULL);
 
     ngx_conf_merge_uint_value(conf->isolation, prev->isolation,
                               NGX_PROXY_WASM_ISOLATION_NONE);
@@ -294,17 +307,15 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     conf->socket_buffer_reuse = 1;
 #endif
 
-    if (conf->ops) {
-        mcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
-
-        ngx_queue_insert_tail(&mcf->ops_engines, &conf->ops->q);
-
-        for (i = 0; i < conf->ops->subsystem->nphases; i++) {
-            if (conf->ops->pipelines[i] == NULL) {
-                conf->ops->pipelines[i] = prev->ops->pipelines[i];
-            }
-        }
+    if (conf->plan && !conf->plan->populated) {
+        conf->plan = prev->plan;
     }
+
+    if (prev->isolation == NGX_CONF_UNSET_UINT) {
+        prev->isolation = NGX_PROXY_WASM_ISOLATION_NONE;
+    }
+
+    ngx_queue_insert_tail(&mcf->plans, &conf->q);
 
     return NGX_CONF_OK;
 }
@@ -338,18 +349,31 @@ static ngx_int_t
 ngx_http_wasm_init_process(ngx_cycle_t *cycle)
 {
     ngx_queue_t                *q;
-    ngx_wasm_ops_t             *ops;
+    ngx_http_wasm_loc_conf_t   *loc;
     ngx_http_wasm_main_conf_t  *mcf;
 
     mcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_wasm_module);
 
-    for (q = ngx_queue_head(&mcf->ops_engines);
-         q != ngx_queue_sentinel(&mcf->ops_engines);
+    if (!mcf->vm) {
+        return NGX_OK;
+    }
+
+    for (q = ngx_queue_head(&mcf->plans);
+         q != ngx_queue_sentinel(&mcf->plans);
          q = ngx_queue_next(q))
     {
-        ops = ngx_queue_data(q, ngx_wasm_ops_t, q);
+        loc = ngx_queue_data(q, ngx_http_wasm_loc_conf_t, q);
 
-        ngx_wasm_ops_init(ops);
+        if (loc->plan) {
+            /* ignore error to not exit worker process, logged later */
+            if (ngx_wasm_ops_plan_load(loc->plan, &cycle->new_log) != NGX_OK) {
+                return NGX_ERROR;
+            }
+        }
+    }
+
+    if (ngx_proxy_wasm_start(cycle) != NGX_OK) {
+        return NGX_ERROR;
     }
 
     return NGX_OK;
@@ -359,22 +383,14 @@ ngx_http_wasm_init_process(ngx_cycle_t *cycle)
 static void
 ngx_http_wasm_exit_process(ngx_cycle_t *cycle)
 {
-    ngx_queue_t                *q;
-    ngx_wasm_ops_t             *ops;
     ngx_http_wasm_main_conf_t  *mcf;
 
     mcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_wasm_module);
 
-    for (q = ngx_queue_head(&mcf->ops_engines);
-         q != ngx_queue_sentinel(&mcf->ops_engines);
-         q = ngx_queue_next(q))
-    {
-        ops = ngx_queue_data(q, ngx_wasm_ops_t, q);
-
-        ngx_wasm_ops_destroy(ops);
-    }
-
+    ngx_proxy_wasm_exit();
     ngx_proxy_wasm_store_destroy(&mcf->store);
+
+    ngx_wasm_ops_destroy(mcf->ops);
 }
 
 
@@ -385,11 +401,12 @@ static void
 ngx_http_wasm_cleanup(void *data)
 {
     ngx_http_wasm_req_ctx_t   *rctx = data;
-    ngx_wasm_op_ctx_t         *opctx = &rctx->opctx;
 #if (NGX_HTTP_WASM_DONE_IN_LOG)
     ngx_http_core_loc_conf_t  *clcf;
+#else
+    ngx_wasm_op_ctx_t         *opctx = &rctx->opctx;
 #endif
-#if (NGX_DEBUG)
+#if (NGX_HTTP_WASM_DONE_IN_LOG || NGX_DEBUG)
     ngx_http_request_t        *r = rctx->r;
 #endif
 
@@ -403,7 +420,9 @@ ngx_http_wasm_cleanup(void *data)
                        "r: %p, main: %d)", r->connection->number,
                        r, r->main == r);
 
+#if (!NGX_HTTP_WASM_DONE_IN_LOG)
         (void) ngx_wasm_ops_resume(opctx, NGX_WASM_DONE_PHASE);
+#endif
 #if (NGX_HTTP_WASM_DONE_IN_LOG)
     }
 #endif
@@ -413,15 +432,16 @@ ngx_http_wasm_cleanup(void *data)
 ngx_int_t
 ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 {
-    ngx_http_wasm_loc_conf_t  *loc;
-    ngx_http_wasm_req_ctx_t   *rctx;
-    ngx_wasm_op_ctx_t         *opctx;
-    ngx_pool_cleanup_t        *cln;
+    ngx_wasm_op_ctx_t          *opctx;
+    ngx_pool_cleanup_t         *cln;
+    ngx_http_wasm_req_ctx_t    *rctx;
+    ngx_http_wasm_loc_conf_t   *loc;
+    ngx_http_wasm_main_conf_t  *mcf;
 
     rctx = ngx_http_get_module_ctx(r, ngx_http_wasm_module);
     if (rctx == NULL) {
         loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
-        if (loc->vm == NULL) {
+        if (loc->plan == NULL || !loc->plan->populated) {
             return NGX_DECLINED;
         }
 
@@ -429,6 +449,8 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         if (rctx == NULL) {
             return NGX_ERROR;
         }
+
+        mcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
 
         ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "wasm rctx created: %p (r: %p, main: %d)",
@@ -442,7 +464,7 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         ngx_http_set_ctx(r, rctx, ngx_http_wasm_module);
 
         opctx = &rctx->opctx;
-        opctx->ops = loc->ops;
+        opctx->ops = mcf->ops;
         opctx->pool = r->pool;
         opctx->log = r->connection->log;
         opctx->data = rctx;
@@ -454,6 +476,10 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 
         cln->handler = ngx_http_wasm_cleanup;
         cln->data = rctx;
+
+        if (ngx_wasm_ops_plan_attach(loc->plan, opctx) != NGX_OK) {
+            return NGX_ERROR;
+        }
 
         if (r->content_handler != ngx_http_wasm_content_handler) {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,

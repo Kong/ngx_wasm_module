@@ -17,7 +17,6 @@ __DATA__
 --- config
     location /t {
         proxy_wasm a;
-        return 200;
     }
 --- error_log eval
 qr/\[emerg\] .*? "proxy_wasm" directive is specified but config has no "wasm" section/
@@ -34,7 +33,6 @@ qr/\[emerg\] .*? "proxy_wasm" directive is specified but config has no "wasm" se
 --- config
     location /t {
         proxy_wasm a foo bar;
-        return 200;
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid number of arguments in "proxy_wasm" directive/
@@ -53,7 +51,6 @@ qr/\[emerg\] .*? invalid number of arguments in "proxy_wasm" directive/
 --- config
     location /t {
         proxy_wasm '';
-        return 200;
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid module name ""/
@@ -67,6 +64,7 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 === TEST 4: proxy_wasm directive - missing ABI version
+--- SKIP
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -85,59 +83,48 @@ qr/\[emerg\] .*? invalid module name ""/
 )
 --- error_code: 500
 --- error_log eval
-[
-    qr/\[emerg\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/,
-    qr/\[warn\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
-]
+qr/\[emerg\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/
 --- no_error_log
 [error]
 [crit]
+[alert]
 [stderr]
+--- must_die
 
 
 
 === TEST 5: proxy_wasm directive - missing malloc + proxy_on_memory_allocate
---- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
-    location /t {
-        proxy_wasm a;
-        echo ok;
-    }
+    proxy_wasm a;
 --- user_files
 >>> a.wat
 (module
   (func $nop)
   (export "proxy_abi_version_0_2_1" (func $nop))
 )
---- error_code: 500
 --- error_log eval
-[
-    qr/\[emerg\] .*? proxy_wasm "a" filter missing malloc \(incompatible SDK interface\)/,
-    qr/\[warn\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
-]
+qr/\[emerg\] .*? proxy_wasm "a" filter missing malloc \(incompatible SDK interface\)/
 --- no_error_log
 [error]
 [crit]
 [stderr]
+stub
+--- must_die: 0
 
 
 
 === TEST 6: proxy_wasm directive - missing malloc, fallback proxy_on_memory_allocate
 should error since missing on_context_create
---- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
-    location /t {
-        proxy_wasm a;
-        echo ok;
-    }
+    proxy_wasm a;
 --- user_files
 >>> a.wat
 (module
@@ -145,81 +132,88 @@ should error since missing on_context_create
   (export "proxy_abi_version_0_2_1" (func $nop))
   (export "proxy_on_memory_allocate" (func $nop))
 )
---- error_code: 500
 --- error_log eval
-[
-    qr/\[emerg\] .*? proxy_wasm "a" filter missing one of: .*? \(incompatible SDK interface\)/,
-    qr/\[warn\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible SDK interface\)/
-]
+qr/\[emerg\] .*? proxy_wasm "a" filter missing one of: .*? \(incompatible SDK interface\)/,
 --- no_error_log
 [error]
 [crit]
 [stderr]
+stub
+--- must_die: 0
 
 
 
 === TEST 7: proxy_wasm directive - unknown ABI version
---- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
-    location /t {
-        proxy_wasm a;
-        echo ok;
-    }
+    proxy_wasm a;
 --- user_files
 >>> a.wat
 (module
   (func $nop)
   (export "proxy_abi_version_0_0_0" (func $nop))
 )
---- error_code: 500
 --- error_log eval
-[
-    qr/\[emerg\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/,
-    qr/\[warn\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(unknown ABI version\)/
-]
+qr/\[emerg\] .*? proxy_wasm failed loading "a" filter \(unknown ABI version\)/,
 --- no_error_log
 [error]
 [crit]
 [stderr]
+stub
+--- must_die: 0
 
 
 
 === TEST 8: proxy_wasm directive - incompatible ABI version
 --- skip_no_debug: 6
---- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
     }
 --- config
-    location /t {
-        proxy_wasm a;
-        echo fail;
-    }
+    proxy_wasm a;
 --- user_files
 >>> a.wat
 (module
   (func $nop)
   (export "proxy_abi_version_vnext" (func $nop))
 )
---- error_code: 500
 --- error_log eval
-[
-    qr/\[emerg\] .*? proxy_wasm failed initializing "a" filter \(incompatible ABI version\)/,
-    qr/\[warn\] .*? proxy_wasm "a" filter \(1\/1\) failed resuming \(incompatible ABI version\)/
-]
+qr/\[emerg\] .*? proxy_wasm failed loading "a" filter \(incompatible ABI version\)/
 --- no_error_log
 [error]
 [crit]
 [stderr]
+stub
+--- must_die: 0
 
 
 
-=== TEST 9: proxy_wasm directive - duplicate entries in location{} block
+=== TEST 9: proxy_wasm directive - single entry in location{} block
+--- skip_no_debug: 6
+--- skip_valgrind: 6
+--- wasm_modules: on_tick
+--- config
+    location /t {
+        proxy_wasm on_tick;
+        return 200;
+    }
+--- error_log eval
+[
+    qr/\[debug\] .*? wasm creating "on_tick" instance in "main" vm/,
+    qr/\[debug\] .*? proxy_wasm initializing "on_tick" filter/,
+]
+--- no_error_log
+[error]
+[crit]
+[emerg]
+
+
+
+=== TEST 10: proxy_wasm directive - duplicate entries in location{} block
 should be accepted
 should create two instances of the same module
 --- skip_no_debug: 6
@@ -243,7 +237,7 @@ should create two instances of the same module
 
 
 
-=== TEST 10: proxy_wasm_isolation directive - no wasm{} configuration block
+=== TEST 11: proxy_wasm_isolation directive - no wasm{} configuration block
 --- main_config
 --- config
     proxy_wasm_isolation none;
@@ -258,7 +252,7 @@ qr/\[emerg\] .*? "proxy_wasm_isolation" directive is specified but config has no
 
 
 
-=== TEST 11: proxy_wasm_isolation directive - invalid number of arguments
+=== TEST 12: proxy_wasm_isolation directive - invalid number of arguments
 --- config
     location /t {
         proxy_wasm_isolation none none;
