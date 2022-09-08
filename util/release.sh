@@ -254,51 +254,56 @@ build_static_binary() {
     notice "Created $DIR_DIST_OUT/$dist_bin_name.tar.gz"
 }
 
+build_with_runtime() {
+    local runtime="$1"
+    local version="$2"
+    local arch="$3"
+    local libname="$4"
+
+    local distro="$(get_distro)"
+    local runtime_dir="$DIR_WORK/$runtime-$version-$distro"
+
+    $NGX_WASM_DIR/util/runtime.sh \
+        --runtime $runtime \
+        --runtime-version "$version" \
+        --target-dir "$runtime_dir" \
+        --arch "$arch" \
+        --build \
+        --clean
+
+    if [ -n "$libname" ]; then
+        CC_FLAGS="-I$runtime_dir/include"
+        LD_FLAGS="$runtime_dir/lib/$libname -ldl -lpthread $LD_FLAGS"
+    fi
+
+    export NGX_WASM_RUNTIME_INC="$runtime_dir/include"
+    export NGX_WASM_RUNTIME_LIB="$runtime_dir/lib"
+
+    build_static_binary $arch $runtime $version
+}
+
 release_bin() {
     local arch=$(uname -m)
-    case $arch in
-        x86_64)  arch='amd64';;
-        aarch64) arch='arm64';;
-        *)       arch=$arch
-    esac
 
     notice "Building $arch binary..."
 
+    if [ "$(get_distro)" = "centos7" ]; then
+        notice "Enabling devtoolset-8 for CentOS..."
+        source /opt/rh/devtoolset-8/enable
+        gcc --version
+    fi
+
+
     if [ -n "$WASMTIME_VER" ]; then
-        download_wasmtime $WASMTIME_VER
-
-        CC_FLAGS="-I$(pwd)/wasmtime-$WASMTIME_VER/include"
-        LD_FLAGS="$(pwd)/wasmtime-$WASMTIME_VER/lib/libwasmtime.a -ldl -lpthread $LD_FLAGS"
-
-        build_static_binary $arch wasmtime $WASMTIME_VER
+        build_with_runtime wasmtime $WASMTIME_VER $arch "libwasmtime.a"
     fi
 
     if [ -n "$WASMER_VER" ]; then
-        download_wasmer $WASMER_VER $arch
-
-        CC_FLAGS="-I$(pwd)/wasmer-$WASMER_VER/include"
-        LD_FLAGS="$(pwd)/wasmer-$WASMER_VER/lib/libwasmer.a -ldl -lpthread $LD_FLAGS"
-
-        build_static_binary $arch wasmer $WASMER_VER
+        build_with_runtime wasmer $WASMER_VER $arch "libwasmer.a"
     fi
 
     if [ -n "$V8_VER" ]; then
-        local distro="$(get_distro)"
-        local v8_dir="$DIR_WORK/v8-$V8_VER-$distro"
-        local v8_cache="$DIR_DOWNLOAD/v8-$V8_VER-$distro"
-
-        if [ "$distro" = "centos7" ]; then
-            notice "Enabling devtoolset-8 for CentOS..."
-            source /opt/rh/devtoolset-8/enable
-            gcc --version
-        fi
-
-        $NGX_WASM_DIR/util/runtimes/v8.sh "$v8_dir" "$v8_cache" clean
-
-        export NGX_WASM_RUNTIME_INC="$v8_dir/include"
-        export NGX_WASM_RUNTIME_LIB="$v8_dir/lib"
-
-        build_static_binary $arch v8 $V8_VER
+        build_with_runtime v8 $V8_VER $arch ""
     fi
 
     if [[ -z "$WASMTIME_VER" && -z "$WASMER_VER" && -z "$V8_VER" ]]; then

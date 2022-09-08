@@ -90,6 +90,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -115,6 +117,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -140,6 +144,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -165,6 +171,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -190,6 +198,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -212,6 +222,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:

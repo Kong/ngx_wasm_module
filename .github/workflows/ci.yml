@@ -100,10 +100,9 @@ jobs:
           profile: minimal
           target: wasm32-wasi
       - name: Setup Wasm runtime
-        uses: ./.github/actions/wasm-runtime
-        with:
-          runtime: ${{ matrix.runtime }}
-          version: ${{ matrix[matrix.runtime] }}
+        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - run: make setup
       - run: make
         env:
@@ -200,10 +199,9 @@ jobs:
           profile: minimal
           target: wasm32-wasi
       - name: Setup Wasm runtime
-        uses: ./.github/actions/wasm-runtime
-        with:
-          runtime: ${{ matrix.runtime }}
-          version: ${{ matrix[matrix.runtime] }}
+        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - run: make setup
       - run: make
         env:
@@ -268,6 +266,7 @@ jobs:
       matrix:
         cc: [clang-9]
         ngx: [1.23.1]
+        runtime: [wasmtime]
         wasmtime: [0.38.1]
     steps:
       - run: |
@@ -283,9 +282,9 @@ jobs:
             work/downloads
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Wasm runtime
-        uses: ./.github/actions/wasm-runtime
-        with:
-          version: ${{ matrix.wasmtime }}
+        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - run: make setup
       - run: make
         env:
@@ -332,10 +331,9 @@ jobs:
             work/downloads
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Wasm runtime
-        uses: ./.github/actions/wasm-runtime
-        with:
-          runtime: ${{ matrix.runtime }}
-          version: ${{ matrix[matrix.runtime] }}
+        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - run: make setup
       - run: make test-build
         env:

@@ -15,6 +15,69 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
 
+download_v8() {
+    local target="$1"
+    local version="$2"
+    local arch="$3"
+    local clean="$4"
+
+    local os=$(uname -s | tr '[:upper:]' '[:lower:]')
+    local tarball="$DIR_DOWNLOAD/v8-$version.tar.gz"
+
+    if [[ "$clean" = "clean" ]]; then
+        rm -f "$tarball"
+        rm -rfv "$target"
+    fi
+
+    if [[ ! -d "$tarball" ]]; then
+
+        if [[ ! -e "$DIR_WORK/fetch" ]]; then
+            local hostarch=$(uname -m)
+            case $hostarch in
+                x86_64)  hostarch='amd64';;
+                aarch64) hostarch='arm64';;
+            esac
+
+            download $DIR_WORK/fetch \
+                "https://github.com/gruntwork-io/fetch/releases/download/v0.4.5/fetch_${os}_${hostarch}"
+
+            chmod +x $DIR_WORK/fetch
+        fi
+
+        local filename="ngx_wasm_runtime-v8-$version-$os-$arch.tar.gz"
+
+        mkdir -p "$DIR_DOWNLOAD"
+
+        # This requires a Personal Access Token in
+        # the $GITHUB_OAUTH_TOKEN environment variable:
+        $DIR_WORK/fetch \
+            --repo "$URL_KONG_WASM_RUNTIMES" \
+            --tag latest \
+            --release-asset "$filename" \
+            "$DIR_DOWNLOAD"
+
+        mv "$DIR_DOWNLOAD/$filename" "$tarball"
+
+        # TODO: replace all of the above with...
+        #
+        # download $tarball \
+        #   "https://github.com/kong/ngx_wasm_runtimes/releases/download/latest/ngx_wasm_runtime-v8-${version}-${os}-${arch}.tar.gz"
+        #
+        # ...once ngx_wasm_runtimes is open-sourced
+    fi
+
+    if [[ ! -d "$target" ]]; then
+        local parent="$(dirname "$target")"
+        mkdir -p "$parent"
+        pushd "$parent"
+            tar -xf "$tarball"
+            mv v8-$version-$os-$arch "$target"
+        popd
+    fi
+}
+
+###############################################################################
+
 build_cwabt() {
     local target="$1"
     local clean="$2"
@@ -59,8 +122,14 @@ check_libwee8_build_dependencies() {
 }
 
 build_libwee8() {
-    local target="$1"
-    local clean="$2"
+    local v8_ver="$1"
+    local target="$2"
+    local arch="$3"
+    local clean="$4"
+
+    case "$arch" in
+        x86_64) arch="x64" ;;
+    esac
 
     notice "building libwee8..."
 
@@ -112,14 +181,14 @@ build_libwee8() {
     cd repos/v8
 
     git checkout .
-    git checkout "$V8_VER"
+    git checkout "$v8_ver"
 
     notice "synchronizing V8 repository..."
     gclient sync
 
     ### build
 
-    local build_mode="$V8_PLATFORM.release"
+    local build_mode="$arch.release"
 
     if [ "$clean" = "clean" ]; then
         rm -rf out.gn/"$build_mode"
@@ -143,14 +212,12 @@ build_libwee8() {
 
     export PKG_CONFIG_PATH=/usr/lib/$(gcc -print-multiarch 2>/dev/null)/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH
 
-    notice "generating V8 build files..."
-
     local is_clang=false
     if [ "$CC" = "clang" ]; then
         is_clang=true
     fi
 
-    notice "generating V8 build files..."
+    notice "generating V8 build files for $arch..."
     local args=(
         "is_clang=$is_clang"
         "use_sysroot=false"
@@ -161,8 +228,8 @@ build_libwee8() {
         "v8_enable_webassembly=true"
         "v8_monolithic=true"
         "symbol_level=0"
-        "target_cpu=\"$V8_PLATFORM\""
-        "v8_target_cpu=\"$V8_PLATFORM\""
+        "target_cpu=\"$arch\""
+        "v8_target_cpu=\"$arch\""
         "v8_use_external_startup_data=false"
         "treat_warnings_as_errors=false"
     )
@@ -205,68 +272,30 @@ build_v8bridge() {
     make -C "$NGX_WASM_DIR/lib/v8bridge" TARGET="$target" install
 }
 
-check_cached_v8() {
-    local target="$1"
-    local cachedir="$2"
-
-    if [[ -e "$cachedir/wasm.h" ]]; then
-        notice "cache exists in $cachedir - using it..."
-        mkdir -p "$target/include"
-        mkdir -p "$target/lib"
-        cp -av "$cachedir/wasm.h" "$target/include"
-        cp -av "$cachedir/libwee8.a" "$target/lib"
-        cp -av "$cachedir/cwabt.h" "$target/include"
-        cp -av "$cachedir/libcwabt.a" "$target/lib"
-        cp -av "$cachedir/v8bridge.h" "$target/include"
-        cp -av "$cachedir/libv8bridge.a" "$target/lib"
-        return 0
-    fi
-
-    return 1
-}
-
-cache_v8() {
-    local target="$1"
-    local cachedir="$2"
-
-    notice "caching built assets in $cachedir..."
-    mkdir -p "$cachedir"
-    cp -av "$target/include/wasm.h" "$cachedir"
-    cp -av "$target/lib/libwee8.a" "$cachedir"
-    cp -av "$target/include/cwabt.h" "$cachedir"
-    cp -av "$target/lib/libcwabt.a" "$cachedir"
-    cp -av "$target/include/v8bridge.h" "$cachedir"
-    cp -av "$target/lib/libv8bridge.a" "$cachedir"
-}
-
 build_v8() {
     local target="$1"
-    local cachedir="$2"
-    local clean="$3"
-
-    if check_cached_v8 "$target" "$cachedir"; then
-        return 0
-    fi
+    local v8_ver="$2"
+    local arch="$3"
+    local clean="$4"
 
     build_cwabt "$target" "$clean"
-    build_libwee8 "$target" "$clean"
+    build_libwee8 "$v8_ver" "$target" "$arch" "$clean"
     build_v8bridge "$target" "$clean"
-
-    cache_v8 "$target" "$cachedir"
 }
 
 ###############################################################################
 
-get_from_release() {
-    local var_name="$1"
-    local release_file="$NGX_WASM_DIR/.github/workflows/release.yml"
-
-    awk '/'$var_name':/ { print $2 }' "$release_file"
-}
-
-V8_PLATFORM="${V8_PLATFORM:-x64}"
-V8_VER="${V8_VER:-$(get_from_release V8_VER)}"
+# TODO: change argument order to
+# "$mode" "$target" "$v8_ver" "$arch" "$clean"
+# once clients stop using v8.sh directly.
 target="${1:-$DIR_WORK}"
-cachedir="${2:-$DIR_DOWNLOAD/v8-$V8_VER}"
+v8_ver="${2:-$(get_variable_from_release_yml V8_VER)}"
+arch="$3"
+mode="$4"
+clean="$5"
 
-build_v8 "$target" "$cachedir" "$3"
+if [ "$mode" = "download" ]; then
+    download_v8 "$target" "$v8_ver" "$arch" "$clean"
+else
+    build_v8 "$target" "$v8_ver" "$arch" "$clean"
+fi
