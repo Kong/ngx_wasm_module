@@ -116,3 +116,31 @@ qr/\[emerg\] .*? invalid address value "0:0:0:0:0:0"/
 [error]
 [crit]
 --- must_die
+
+
+
+=== TEST 7: resolver_add directive - no resolver
+--- config
+    resolver_add 127.0.0.1 hostname;
+--- error_log eval
+qr/\[emerg\] .*? no resolver defined/
+--- no_error_log
+[error]
+[crit]
+--- must_die
+
+
+
+=== TEST 8: resolver_add directive - no resolver in configuration context
+--- config
+    resolver 1.1.1.1;
+
+    location /t {
+        resolver_add 127.0.0.1 hostname;
+    }
+--- error_log eval
+qr/\[emerg\] .*? no resolver defined/
+--- no_error_log
+[error]
+[crit]
+--- must_die
