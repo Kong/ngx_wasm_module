@@ -17,7 +17,7 @@ jobs:
   tests:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ matrix.runtime == 'v8' && 120 || 20 }}
+    timeout-minutes: 20
     env:
       NGX_BUILD_GCOV: 1
     #if: ${{ false }}
@@ -72,8 +72,6 @@ jobs:
     steps:
       - run: sudo apt-get update && sudo apt-get install -y gcc-8 libstdc++-8-dev
         if: ${{ matrix.cc == 'gcc-8' }}
-      - run: sudo apt-get install -y ninja-build cmake pkg-config python-is-python3
-        if: ${{ matrix.runtime == 'v8' }}
       - uses: actions/checkout@v2
       - name: "Setup cache - rustup toolchain"
         uses: actions/cache@v2
@@ -139,7 +137,7 @@ jobs:
   valgrind:
     name: 'Tests - valgrind'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ matrix.runtime == 'v8' && 120 || 45 }}
+    timeout-minutes: 50
     #if: ${{ false }}
     env:
       NGX_BUILD_NOPOOL: 1
@@ -174,8 +172,6 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
       - run: sudo apt-get install -y libstdc++-11-dev
         if: ${{ matrix.cc == 'gcc-11' }}
-      - run: sudo apt-get install -y ninja-build cmake pkg-config python-is-python3
-        if: ${{ matrix.runtime == 'v8' }}
       - uses: actions/checkout@v2
       - name: "Setup cache - rustup toolchain"
         uses: actions/cache@v2
@@ -299,7 +295,7 @@ jobs:
   build:
     name: 'Tests - build'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ matrix.runtime == 'v8' && 90 || 10 }}
+    timeout-minutes: 10
     #if: ${{ false }}
     strategy:
       fail-fast: false
@@ -320,8 +316,6 @@ jobs:
     steps:
       - run: sudo apt-get install -y gcc-8 libstdc++-8-dev
         if: ${{ matrix.cc == 'gcc-8' }}
-      - run: sudo apt-get install -y ninja-build cmake pkg-config python-is-python3
-        if: ${{ matrix.runtime == 'v8' }}
       - uses: actions/checkout@v2
       - name: "Setup cache - work/ dir"
         uses: actions/cache@v2
