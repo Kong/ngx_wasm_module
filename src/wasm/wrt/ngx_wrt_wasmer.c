@@ -5,11 +5,13 @@
 
 #include <ngx_wrt.h>
 #include <ngx_wavm_host.h>
+#include <ngx_wasi.h>
 
 
 typedef enum {
     NGX_WRT_IMPORT_HFUNC,
     NGX_WRT_IMPORT_WASI,
+    NGX_WRT_IMPORT_HWASI,
 } ngx_wrt_import_kind_e;
 
 
@@ -160,6 +162,7 @@ ngx_wasmer_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
     wasmer_named_extern_vec_t   wasi_imports;
     wasmer_named_extern_t      *wasmer_extern;
     ngx_str_t                  *wasi_version_name = NULL;
+    ngx_str_t                   name;
     static ngx_str_t            wasi_snapshot0 =
                                     ngx_string("wasi_snapshot_preview0");
     static ngx_str_t            wasi_snapshot1 =
@@ -225,26 +228,46 @@ linking:
 
             found = 0;
 
-            for (j = 0; j < wasi_imports.size; j++) {
-                wasmer_extern = ((wasmer_named_extern_t **)
-                                 wasi_imports.data)[j];
-                wasiname = wasmer_named_extern_name(wasmer_extern);
+            name.len = importname->size;
+            name.data = (u_char *) importname->data;
 
-                if (ngx_str_eq(importname->data, importname->size,
-                               wasiname->data, wasiname->size))
-                {
-                    dd("   -> wasi resolved: \"%.*s\"",
-                       (int) importname->size, importname->data);
+            hfunc = ngx_wavm_host_hfunc_create(module->engine->pool,
+                                               &ngx_wasi_host, &name);
 
-                    import = &module->imports[i];
-                    import->kind = NGX_WRT_IMPORT_WASI;
-                    import->of.wasi_idx = j;
+            if (hfunc) {
+                dd("   -> wasi resolved by host function: \"%.*s\"",
+                   (int) importname->size, importname->data);
 
-                    module->nimports++;
+                import = &module->imports[i];
+                import->kind = NGX_WRT_IMPORT_HWASI;
+                import->of.hfunc = hfunc;
 
-                    found = 1;
+                module->nimports++;
 
-                    break;
+                found = 1;
+
+            } else {
+                for (j = 0; j < wasi_imports.size; j++) {
+                    wasmer_extern = ((wasmer_named_extern_t **)
+                                     wasi_imports.data)[j];
+                    wasiname = wasmer_named_extern_name(wasmer_extern);
+
+                    if (ngx_str_eq(importname->data, importname->size,
+                                   wasiname->data, wasiname->size))
+                    {
+                        dd("   -> wasi resolved by runtime: \"%.*s\"",
+                           (int) importname->size, importname->data);
+
+                        import = &module->imports[i];
+                        import->kind = NGX_WRT_IMPORT_WASI;
+                        import->of.wasi_idx = j;
+
+                        module->nimports++;
+
+                        found = 1;
+
+                        break;
+                    }
                 }
             }
 
@@ -320,6 +343,17 @@ linking:
 static void
 ngx_wasmer_destroy_module(ngx_wrt_module_t *module)
 {
+    size_t             i;
+    ngx_wrt_import_t  *import;
+
+    for (i = 0; i < module->nimports; i++) {
+        import = &module->imports[i];
+
+        if (import->kind == NGX_WRT_IMPORT_HWASI) {
+            wasm_functype_delete(import->of.hfunc->functype);
+        }
+    }
+
     ngx_pfree(module->engine->pool, module->imports);
     wasm_module_delete(module->module);
     wasm_importtype_vec_delete(module->import_types);
@@ -389,6 +423,7 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
             nimports++;
             break;
 
+        case NGX_WRT_IMPORT_HWASI:
         case NGX_WRT_IMPORT_HFUNC:
             hctx = &hctxs[i];
             hctx->instance = (ngx_wavm_instance_t *) store->data;

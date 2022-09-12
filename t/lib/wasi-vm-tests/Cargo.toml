@@ -1,0 +1,12 @@
+[package]
+name = "wasi-vm-tests"
+version = "0.1.0"
+authors = ["Hisham Muhammad <hisham@gobolinux.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ngx = { path = "../../../lib/ngx-rust" }
+wasi = "*"

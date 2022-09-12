@@ -5,6 +5,7 @@
 
 #include <ngx_wrt.h>
 #include <ngx_wavm_host.h>
+#include <ngx_wasi.h>
 
 
 static ngx_int_t
@@ -62,6 +63,11 @@ static ngx_int_t
 ngx_wasmtime_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
     ngx_pool_t *pool, ngx_wrt_err_t *err)
 {
+    size_t                     i, nwasi;
+    ngx_wavm_host_func_def_t  *def;
+    ngx_wavm_hfunc_t          *hfunc;
+    static const char         *wasi_module = "wasi_snapshot_preview1";
+
     engine->engine = wasm_engine_new_with_config(config);
     if (engine->engine == NULL) {
         return NGX_ERROR;
@@ -79,6 +85,37 @@ ngx_wasmtime_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
         return NGX_ERROR;
     }
 
+    /* load our own WASI implementations */
+
+    nwasi = 0;
+
+    for (i = 0; ngx_wasi_host.funcs[i].ptr; i++) {
+        nwasi++;
+    }
+
+    engine->pool = pool;
+    engine->wasi_hfuncs = ngx_pcalloc(pool, sizeof(ngx_wavm_hfunc_t *) * nwasi);
+
+    for (i = 0; ngx_wasi_host.funcs[i].ptr; i++) {
+        def = &ngx_wasi_host.funcs[i];
+
+        hfunc = ngx_wavm_host_hfunc_create(pool, &ngx_wasi_host, &def->name);
+
+        err->res = wasmtime_linker_define_func(engine->linker,
+                                               wasi_module,
+                                               ngx_strlen(wasi_module),
+                                               (const char*) def->name.data,
+                                               def->name.len,
+                                               hfunc->functype,
+                                               ngx_wavm_hfunc_trampoline,
+                                               hfunc, NULL);
+        if (err->res) {
+            return NGX_ERROR;
+        }
+
+        engine->wasi_hfuncs[i] = hfunc;
+    }
+
     return NGX_OK;
 }
 
@@ -86,6 +123,14 @@ ngx_wasmtime_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
 static void
 ngx_wasmtime_destroy_engine(ngx_wrt_engine_t *engine)
 {
+    size_t i;
+
+    for (i = 0; ngx_wasi_host.funcs[i].ptr; i++) {
+        wasm_functype_delete(engine->wasi_hfuncs[i]->functype);
+    }
+
+    ngx_pfree(engine->pool, engine->wasi_hfuncs);
+
     wasmtime_linker_delete(engine->linker);
     wasm_engine_delete(engine->engine);
 }

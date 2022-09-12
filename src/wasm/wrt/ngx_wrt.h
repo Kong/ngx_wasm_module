@@ -34,8 +34,10 @@ typedef enum {
 typedef wasmtime_error_t  ngx_wrt_res_t;
 
 typedef struct {
+    ngx_pool_t                    *pool;
     wasm_engine_t                 *engine;
     wasmtime_linker_t             *linker;
+    ngx_wavm_hfunc_t             **wasi_hfuncs;
 } ngx_wrt_engine_t;
 
 
