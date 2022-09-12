@@ -46,6 +46,7 @@ reindex:
 	@util/reindex.sh "t/*.t"
 	@util/reindex.sh "t/**/*.t"
 	@util/reindex.sh "t/**/**/*.t"
+	@util/reindex.sh "t/**/**/**/*.t"
 
 .PHONY: todo
 todo:
