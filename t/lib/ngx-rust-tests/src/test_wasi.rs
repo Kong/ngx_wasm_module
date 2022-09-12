@@ -1,5 +1,6 @@
 use ngx::*;
 use wasi;
+use std::time::{SystemTime, Instant};
 
 macro_rules! test_wasi_assert {
     ($e:expr) => {
@@ -54,5 +55,53 @@ pub fn test_wasi_environ_get() {
         resp::ngx_resp_local_reason(204, "test passed");
     } else {
         resp::ngx_resp_local_reason(500, "test failed");
+    }
+}
+
+#[no_mangle]
+pub fn test_wasi_clock_time_get_via_systemtime() {
+    // Rust standard library call which uses wasi
+    let now = SystemTime::now();
+    match now.duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(n) => {
+            let msg = format!("seconds since Unix epoch: {}", n.as_secs());
+            resp::ngx_resp_local_reason(204, &msg);
+        }
+        Err(_) => {
+            resp::ngx_resp_local_reason(500, "test failed, bad system time");
+        }
+    }
+}
+
+#[no_mangle]
+pub fn test_wasi_clock_time_get_via_instant() {
+    // Rust standard library call which uses wasi
+    let mono1 = Instant::now();
+    let mono2 = Instant::now();
+    if mono2 >= mono1 {
+        resp::ngx_resp_local_reason(204, "test passed");
+    } else {
+        resp::ngx_resp_local_reason(500, "test failed");
+    }
+}
+
+#[no_mangle]
+pub fn test_wasi_clock_time_get() {
+    // direct WASI access
+    if let Ok(timestamp) = unsafe { wasi::clock_time_get(wasi::CLOCKID_REALTIME, 0) } {
+        let msg = format!("test passed with timestamp: {}", timestamp);
+        resp::ngx_resp_local_reason(204, &msg);
+    } else {
+        resp::ngx_resp_local_reason(500, "test failed");
+    }
+}
+
+#[no_mangle]
+pub fn test_wasi_clock_time_get_unsupported() {
+    // test an unsupported clock
+    if unsafe { wasi::clock_time_get(wasi::CLOCKID_PROCESS_CPUTIME_ID, 0).is_ok() } {
+        resp::ngx_resp_local_reason(500, "test failed");
+    } else {
+        resp::ngx_resp_local_reason(204, "test passed, clock is unsupported");
     }
 }

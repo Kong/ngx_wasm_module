@@ -91,6 +91,12 @@ const wasm_valkind_t *ngx_wavm_arity_i32_i64[] = {
 };
 
 
+const wasm_valkind_t *ngx_wavm_arity_i32_i64_i32[] = {
+    &ngx_wavm_i32, &ngx_wavm_i64, &ngx_wavm_i32,
+    NULL
+};
+
+
 static void
 ngx_wavm_host_kindvec2typevec(const wasm_valkind_t **valkinds,
     wasm_valtype_vec_t *out)
