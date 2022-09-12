@@ -28,6 +28,40 @@ ngx_wasi_hfuncs_random_get(ngx_wavm_instance_t *instance,
 
 
 static ngx_int_t
+ngx_wasi_hfuncs_args_get(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    /* TODO: nothing is returned for now.
+       See ngx_wasi_hfuncs_environ_get for a sample implementation. */
+
+    rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
+    return NGX_WAVM_OK;
+}
+
+
+static ngx_int_t
+ngx_wasi_hfuncs_args_sizes_get(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    uint32_t  *args_size;
+    uint32_t  *args_buf_size;
+
+    /* TODO: nothing is returned for now.
+       See ngx_wasi_hfuncs_environ_get for more info on the format
+       of the arguments. */
+
+    args_size = NGX_WAVM_HOST_LIFT(instance, args[0].of.i32, uint32_t);
+    args_buf_size = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, uint32_t);
+
+    *args_size = 0;
+    *args_buf_size = 0;
+
+    rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
+    return NGX_WAVM_OK;
+}
+
+
+static ngx_int_t
 ngx_wasi_hfuncs_clock_time_get(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -69,14 +103,13 @@ ngx_wasi_hfuncs_environ_get(ngx_wavm_instance_t *instance,
 #if 0
     // A sample implementation documenting
     // the behavior of the arguments:
-    uint32_t           environ = args[0].of.i32;
-    uint32_t           environ_buf = args[1].of.i32;
-    uint32_t          *addrs;
-    uint8_t           *envp;
-    ngx_wrt_extern_t  *mem = instance->memory;
+    uint32_t   environ = args[0].of.i32;
+    uint32_t   environ_buf = args[1].of.i32;
+    uint32_t  *addrs;
+    uint8_t   *envp;
 
-    addrs = (uint32_t *) ngx_wavm_memory_lift(mem, environ);
-    envp = (uint8_t *) ngx_wavm_memory_lift(mem, environ_buf);
+    addrs = NGX_WAVM_HOST_LIFT(instance, environ, uint64_t);
+    envp = NGX_WAVM_HOST_LIFT(instance, environ_buf, uint8_t);
 
     snprintf((char *) envp, 6, "A=aaa");
     snprintf((char *) envp + 6, 8, "BB=bbbb");
@@ -128,6 +161,16 @@ ngx_wasi_hfuncs_nop(ngx_wavm_instance_t *instance,
 
 
 static ngx_wavm_host_func_def_t  ngx_wasi_hfuncs[] = {
+
+    { ngx_string("args_get"),
+      &ngx_wasi_hfuncs_args_get,
+      ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
+
+    { ngx_string("args_sizes_get"),
+      &ngx_wasi_hfuncs_args_sizes_get,
+      ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
 
     { ngx_string("clock_time_get"),
       &ngx_wasi_hfuncs_clock_time_get,

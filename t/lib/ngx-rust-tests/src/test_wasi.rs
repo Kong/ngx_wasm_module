@@ -105,3 +105,33 @@ pub fn test_wasi_clock_time_get_unsupported() {
         resp::ngx_resp_local_reason(204, "test passed, clock is unsupported");
     }
 }
+
+#[no_mangle]
+pub fn test_wasi_args_sizes_get() {
+    if let Ok((size, buf_size)) = unsafe { wasi::args_sizes_get() } {
+        // current implementation of args_sizes_get always returns 0
+        test_wasi_assert!(size == 0);
+        test_wasi_assert!(buf_size == 0);
+
+        resp::ngx_resp_local_reason(204, "test passed");
+    } else {
+        resp::ngx_resp_local_reason(500, "test failed");
+    }
+}
+
+#[no_mangle]
+pub fn test_wasi_args_get() {
+    let mut u: u8 = 0;
+    let mut args: [*mut u8; 10] = [&mut u; 10];
+    let mut args_buf: [u8; 10] = [0; 10];
+
+    if let Ok(()) = unsafe { wasi::args_get(args.as_mut_ptr(), args_buf.as_mut_ptr()) } {
+        // current implementation of args_get does not touch the buffers
+        test_wasi_assert!(args.iter().filter(|x| std::ptr::eq(**x, &u)).count() == 10);
+        test_wasi_assert!(args_buf.iter().sum::<u8>() == 0);
+
+        resp::ngx_resp_local_reason(204, "test passed");
+    } else {
+        resp::ngx_resp_local_reason(500, "test failed");
+    }
+}
