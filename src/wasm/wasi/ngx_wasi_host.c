@@ -153,6 +153,108 @@ ngx_wasi_hfuncs_environ_sizes_get(ngx_wavm_instance_t *instance,
 
 
 static ngx_int_t
+ngx_wasi_hfuncs_fd_write(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    uint32_t     fd;
+    uint32_t     iovs;
+    uint32_t     iovs_len;
+    uint32_t    *nwritten;
+
+    uint8_t     *buf;
+    uint32_t     buf_ptr;
+    uint32_t     buf_len;
+    uint32_t     iovs_ptr;
+
+    char        *msg_data;
+    ngx_uint_t   msg_size;
+
+    ngx_uint_t   level;
+    ngx_uint_t   i;
+
+    fd = args[0].of.i32;
+    iovs = args[1].of.i32;
+    iovs_len = args[2].of.i32;
+    nwritten = NGX_WAVM_HOST_LIFT(instance, args[3].of.i32, uint32_t);
+
+    /* translate file descriptors to log levels */
+
+    switch (fd) {
+    case 1:
+        level = NGX_LOG_INFO;
+        break;
+
+    case 2:
+        level = NGX_LOG_ERR;
+        break;
+
+    default:
+        rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_BADF);
+        return NGX_WAVM_OK;
+    }
+
+    /* first pass: determine size of the string to be written */
+
+    msg_size = 0;
+    iovs_ptr = iovs;
+
+    for (i = 0; i < iovs_len; i++) {
+        iovs_ptr += sizeof(uint32_t);
+        buf_len = *NGX_WAVM_HOST_LIFT(instance, iovs_ptr, uint32_t);
+
+        iovs_ptr += sizeof(uint32_t);
+
+        msg_size += buf_len;
+    }
+
+    if (msg_size == 0) {
+        *nwritten = 0;
+
+        rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
+        return NGX_WAVM_OK;
+    }
+
+    /* second pass: build string from iov buffers */
+
+    msg_data = ngx_pcalloc(instance->pool, msg_size);
+    if (msg_data == NULL) {
+        rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_EFAULT);
+        return NGX_WAVM_OK;
+    }
+
+    msg_size = 0;
+    iovs_ptr = iovs;
+
+    for (i = 0; i < iovs_len; i++) {
+        buf_ptr = *NGX_WAVM_HOST_LIFT(instance, iovs_ptr, uint32_t);
+        iovs_ptr += sizeof(uint32_t);
+        buf_len = *NGX_WAVM_HOST_LIFT(instance, iovs_ptr, uint32_t);
+
+        iovs_ptr += sizeof(uint32_t);
+
+        buf = NGX_WAVM_HOST_LIFT_SLICE(instance, buf_ptr, buf_len);
+
+        ngx_memcpy(msg_data + msg_size, buf, buf_len);
+        msg_size += buf_len;
+    }
+
+    *nwritten = msg_size;
+
+    if (msg_size > 0) {
+        if (msg_data[msg_size - 1] == '\n') {
+            msg_size--;
+        }
+
+        ngx_log_error(level, instance->log_ctx.orig_log, 0, "%*s",
+                      msg_size, msg_data);
+    }
+
+    rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
+    return NGX_WAVM_OK;
+}
+
+
+static ngx_int_t
 ngx_wasi_hfuncs_nop(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -188,7 +290,7 @@ static ngx_wavm_host_func_def_t  ngx_wasi_hfuncs[] = {
       ngx_wavm_arity_i32 },
 
     { ngx_string("fd_write"),
-      &ngx_wasi_hfuncs_nop,
+      &ngx_wasi_hfuncs_fd_write,
       ngx_wavm_arity_i32x4,
       ngx_wavm_arity_i32 },
 
