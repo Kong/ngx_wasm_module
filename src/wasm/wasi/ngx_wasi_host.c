@@ -28,6 +28,41 @@ ngx_wasi_hfuncs_random_get(ngx_wavm_instance_t *instance,
 
 
 static ngx_int_t
+ngx_wasi_hfuncs_clock_time_get(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    uint32_t   clock_id;
+    uint64_t   precision;
+    uint64_t  *time;
+
+    clock_id = args[0].of.i32;
+    precision = args[1].of.i64;
+    time = NGX_WAVM_HOST_LIFT(instance, args[2].of.i32, uint64_t);
+
+    /* precision is ignored for now, same as proxy-wasm-cpp-host */
+    (void) precision;
+
+    switch (clock_id) {
+    case WASI_CLOCKID_REALTIME:
+        ngx_time_update();
+        *time = ngx_current_msec;
+        break;
+
+    case WASI_CLOCKID_MONOTONIC:
+        *time = ngx_wasm_monotonic_time();
+        break;
+
+    default:
+        rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_NOTSUP);
+        return NGX_WAVM_OK;
+    }
+
+    rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
+    return NGX_WAVM_OK;
+}
+
+
+static ngx_int_t
 ngx_wasi_hfuncs_environ_get(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -93,6 +128,11 @@ ngx_wasi_hfuncs_nop(ngx_wavm_instance_t *instance,
 
 
 static ngx_wavm_host_func_def_t  ngx_wasi_hfuncs[] = {
+
+    { ngx_string("clock_time_get"),
+      &ngx_wasi_hfuncs_clock_time_get,
+      ngx_wavm_arity_i32_i64_i32,
+      ngx_wavm_arity_i32 },
 
     { ngx_string("environ_get"),
       &ngx_wasi_hfuncs_environ_get,

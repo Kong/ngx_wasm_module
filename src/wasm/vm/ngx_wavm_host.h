@@ -42,6 +42,7 @@ extern const wasm_valkind_t *ngx_wavm_arity_i32x9[];
 extern const wasm_valkind_t *ngx_wavm_arity_i32x10[];
 extern const wasm_valkind_t *ngx_wavm_arity_i32x12[];
 extern const wasm_valkind_t *ngx_wavm_arity_i32_i64[];
+extern const wasm_valkind_t *ngx_wavm_arity_i32_i64_i32[];
 
 
 /* hfuncs */
