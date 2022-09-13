@@ -300,7 +300,7 @@ ngx_http_proxy_wasm_on_dispatch_response(ngx_proxy_wasm_exec_t *pwexec)
 
     rc = ngx_wavm_instance_call_funcref(pwexec->ictx->instance,
                                         filter->proxy_on_http_call_response,
-                                        NULL, pwexec->id, call->id,
+                                        NULL, filter->id, call->id,
                                         n_headers,
                                         call->http_reader.body_len, 0);
 

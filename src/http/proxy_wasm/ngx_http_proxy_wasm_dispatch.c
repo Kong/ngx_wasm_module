@@ -436,6 +436,8 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
     fake_r->signature = NGX_WASM_MODULE;
     fake_r->connection = rctx->connection;
     fake_r->pool = r->pool;
+    fake_r->ctx = r->ctx;
+    fake_r->loc_conf = r->loc_conf;
 
     if (ngx_list_init(&fake_r->headers_in.headers, fake_r->pool, 10,
                       sizeof(ngx_table_elt_t))
