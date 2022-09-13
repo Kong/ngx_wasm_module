@@ -56,6 +56,17 @@ EOF
      master_process $MasterProcessEnabled;
 EOF
     patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
+    @@ -2123,7 +2123,7 @@ RUN_AGAIN:
+                             Test::More::fail("$name - nginx core dumped")
+
+                         } elsif (looks_like_number($must_die)) {
+    -                        Test::More::is($must_die, $exit_code,
+    +                        Test::More::is($exit_code, $must_die,
+                                            "$name - die with the expected exit code")
+
+                         } else {
+EOF
+    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
     @@ -2783,7 +2783,7 @@ END {
 
          check_prev_block_shutdown_error_log();
