@@ -255,7 +255,7 @@ ngx_http_wasm_set_req_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
     body->len = ngx_min(body->len, max);
 
     if (ngx_wasm_chain_append(r->connection->pool, &rb->bufs, at, body,
-                              &rctx->free_bufs, buf_tag)
+                              &rctx->free_bufs, buf_tag, 0)
         != NGX_OK)
     {
         return NGX_ERROR;
@@ -314,7 +314,7 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
     body->len = ngx_min(body->len, max);
 
     if (ngx_wasm_chain_append(r->connection->pool, &rctx->resp_chunk, at, body,
-                              &rctx->free_bufs, buf_tag)
+                              &rctx->free_bufs, buf_tag, 0)
         != NGX_OK)
     {
         return NGX_ERROR;

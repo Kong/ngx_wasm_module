@@ -197,7 +197,7 @@ Content-Length:
 --- response_body
 hello wasm
 Goodbye
-hello     LAST
+helloLAST
 --- grep_error_log eval: qr/(on_response_body,|(overriding\s)?response body chunk).*/
 --- grep_error_log_out eval
 qr/on_response_body, 12 bytes, eof: false.*
@@ -214,8 +214,8 @@ on_response_body, 0 bytes, eof: true.*
 on_response_body, 0 bytes, eof: true.*
 on_response_body, 5 bytes, eof: false.*
 overriding response body chunk while Content-Length header already sent.*
-on_response_body, 15 bytes, eof: false.*
-response body chunk: "hello     LAST\\n".*
+on_response_body, 10 bytes, eof: false.*
+response body chunk: "helloLAST\\n".*
 on_response_body, 0 bytes, eof: true.*
 on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
@@ -277,7 +277,7 @@ Content-Length:
 hello was
 prepend
 postfix
-hello     LAST
+helloLAST
 --- grep_error_log eval: qr/(on_response_body,|(overriding\s)?response body chunk).*/
 --- grep_error_log_out eval
 qr/on_response_body, 12 bytes, eof: false.*
@@ -298,8 +298,8 @@ on_response_body, 0 bytes, eof: true.*
 on_response_body, 0 bytes, eof: true.*
 on_response_body, 5 bytes, eof: false.*
 overriding response body chunk while Content-Length header already sent.*
-on_response_body, 15 bytes, eof: false.*
-response body chunk: "hello     LAST\\n".*
+on_response_body, 10 bytes, eof: false.*
+response body chunk: "helloLAST\\n".*
 on_response_body, 0 bytes, eof: true.*
 on_response_body, 0 bytes, eof: true.*/
 --- no_error_log

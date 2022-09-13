@@ -149,7 +149,7 @@ HelloWorld
 HelloWasm
 Goodbye
 HelloWorld
-            LAST
+LAST
 --- no_error_log
 [error]
 [crit]

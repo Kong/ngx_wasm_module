@@ -228,7 +228,7 @@ ngx_wasm_chain_prepend(ngx_pool_t *pool, ngx_chain_t **in,
 
 ngx_int_t
 ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
-    ngx_str_t *str, ngx_chain_t **free, ngx_buf_tag_t tag)
+    ngx_str_t *str, ngx_chain_t **free, ngx_buf_tag_t tag, unsigned extend)
 {
     unsigned      eof = 0, flush = 0;
     ngx_uint_t    fill, rest;
@@ -236,6 +236,11 @@ ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
     ngx_chain_t  *cl, *nl, *ll = NULL;
 
     fill = ngx_wasm_chain_clear(*in, at, &eof, &flush);
+
+    if (!extend) {
+        fill = 0;
+    }
+
     rest = str->len + fill;
 
     /* get tail */

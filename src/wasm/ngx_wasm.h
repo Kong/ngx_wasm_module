@@ -73,7 +73,7 @@ ngx_chain_t *ngx_wasm_chain_get_free_buf(ngx_pool_t *p,
 ngx_int_t ngx_wasm_chain_prepend(ngx_pool_t *pool, ngx_chain_t **in,
     ngx_str_t *str, ngx_chain_t **free, ngx_buf_tag_t tag);
 ngx_int_t ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
-    ngx_str_t *str, ngx_chain_t **free, ngx_buf_tag_t tag);
+    ngx_str_t *str, ngx_chain_t **free, ngx_buf_tag_t tag, unsigned extend);
 ngx_int_t ngx_wasm_bytes_from_path(wasm_byte_vec_t *out, u_char *path,
     ngx_log_t *log);
 ngx_uint_t ngx_wasm_list_nelts(ngx_list_t *list);

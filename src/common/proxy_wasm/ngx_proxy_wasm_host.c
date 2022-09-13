@@ -284,6 +284,12 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
     s.len = buf_len;
     s.data = (u_char *) buf_data;
 
+#ifdef NGX_WASM_HTTP
+    if (offset > 0 && max == 0 && s.len > 0) {
+        max = s.len;
+    }
+#endif
+
     switch (buf_type) {
 
 #ifdef NGX_WASM_HTTP
