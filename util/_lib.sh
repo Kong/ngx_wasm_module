@@ -263,12 +263,12 @@ download_wasmer() {
 
     kernel=$(uname -s | tr '[:upper:]' '[:lower:]')
 
-    download wasmer-$WASMER_VER.tar.gz \
-        "https://github.com/wasmerio/wasmer/releases/download/$WASMER_VER/wasmer-$kernel-$arch.tar.gz"
+    download wasmer-$wasmer_ver.tar.gz \
+        "https://github.com/wasmerio/wasmer/releases/download/$wasmer_ver/wasmer-$kernel-$arch.tar.gz"
 
-    if [ ! -d "wasmer-$WASMER_VER" ]; then
+    if [ ! -d "wasmer-$wasmer_ver" ]; then
         mkdir -p wasmer-${wasmer_ver}
-        tar --directory=wasmer-$wasmer_ver -xf wasmer-$WASMER_VER.tar.gz
+        tar --directory=wasmer-$wasmer_ver -xf wasmer-$wasmer_ver.tar.gz
     fi
 }
 
