@@ -162,8 +162,7 @@ qr/\[emerg\] .*? no "a" module defined/
 >>> a.wat
 (module
   (func $nop)
-  (export "nop" (func $nop))
-)
+  (export "nop" (func $nop)))
 --- error_log eval
 qr/\[error\] .*? no "nonexist" function in "a" module while logging request/
 --- no_error_log
@@ -186,8 +185,7 @@ qr/\[error\] .*? no "nonexist" function in "a" module while logging request/
 >>> a.wat
 (module
   (func $nop)
-  (export "nop" (func $nop))
-)
+  (export "nop" (func $nop)))
 --- error_code: 500
 --- error_log eval
 qr/\[error\] .*? no "nonexist" function in "a" module/
@@ -214,8 +212,7 @@ qr/\[error\] .*? no "nonexist" function in "a" module/
         i32.const 0
         i32.const 0
         i32.div_u
-        drop)
-)
+        drop))
 --- error_code: 500
 --- error_log eval
 qr/\[error\] .*? divide by zero/
@@ -240,8 +237,7 @@ qr/\[error\] .*? divide by zero/
 >>> a.wat
 (module
   (func $nop)
-  (export "nop" (func $nop))
-)
+  (export "nop" (func $nop)))
 --- error_log
 wasm ops calling "a.nop" in "rewrite" phase
 --- no_error_log
@@ -251,8 +247,8 @@ wasm ops calling "a.nop" in "rewrite" phase
 
 
 === TEST 13: wasm_call directive - sanity 'content' phase in location{} block
---- SKIP
 --- skip_no_debug: 4
+--- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -260,18 +256,18 @@ wasm ops calling "a.nop" in "rewrite" phase
 --- config
     location /t {
         wasm_call content a nop;
+        echo ok;
     }
 --- user_files
 >>> a.wat
 (module
   (func $nop)
-  (export "nop" (func $nop))
-)
---- error_code: 404
+  (export "nop" (func $nop)))
 --- error_log
 wasm ops calling "a.nop" in "content" phase
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -290,8 +286,7 @@ wasm ops calling "a.nop" in "content" phase
 >>> a.wat
 (module
   (func $nop)
-  (export "nop" (func $nop))
-)
+  (export "nop" (func $nop)))
 --- error_log
 wasm ops calling "a.nop" in "log" phase
 --- no_error_log
@@ -316,8 +311,7 @@ wasm ops calling "a.nop" in "log" phase
 >>> a.wat
 (module
   (func $nop)
-  (export "nop" (func $nop))
-)
+  (export "nop" (func $nop)))
 --- error_log
 wasm ops calling "a.nop" in "log" phase
 wasm ops calling "a.nop" in "log" phase
@@ -343,8 +337,7 @@ wasm ops calling "a.nop" in "log" phase
 >>> a.wat
 (module
   (func $nop)
-  (export "nop" (func $nop))
-)
+  (export "nop" (func $nop)))
 --- error_log
 wasm ops calling "a.nop" in "log" phase
 wasm ops calling "a.nop" in "log" phase
@@ -370,8 +363,7 @@ wasm ops calling "a.nop" in "log" phase
 >>> a.wat
 (module
   (func $nop)
-  (export "nop" (func $nop))
-)
+  (export "nop" (func $nop)))
 --- error_log
 wasm ops calling "a.nop" in "log" phase
 wasm ops calling "a.nop" in "log" phase
@@ -398,8 +390,7 @@ wasm ops calling "a.nop" in "log" phase
 (module
   (func $nop)
   (export "nop" (func $nop))
-  (export "nocall" (func $nop))
-)
+  (export "nocall" (func $nop)))
 --- error_log
 wasm ops calling "a.nop" in "log" phase
 --- no_error_log
@@ -433,8 +424,7 @@ wasm ops calling "a.nocall" in "log" phase
   (func $nop)
   (export "nop" (func $nop))
   (export "nocall" (func $nop))
-  (export "othernop" (func $nop))
-)
+  (export "othernop" (func $nop)))
 --- error_log
 wasm ops calling "moduleB.othernop" in "log" phase
 --- no_error_log eval

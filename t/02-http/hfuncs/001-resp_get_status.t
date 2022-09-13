@@ -24,24 +24,27 @@ run_tests();
 __DATA__
 
 === TEST 1: resp_get_status: 'rewrite' phase
---- SKIP
 --- config
     location /t {
         wasm_call rewrite ngx_rust_tests log_resp_status;
         return 200;
     }
+--- error_log
+resp status: 0
 --- no_error_log
 [error]
 
 
 
 === TEST 2: resp_get_status: 'content' phase
---- SKIP
+--- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
         wasm_call content ngx_rust_tests log_resp_status;
-        return 200;
+        echo ok;
     }
+--- error_log
+resp status: 0
 --- no_error_log
 [error]
 

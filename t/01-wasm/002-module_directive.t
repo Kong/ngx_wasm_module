@@ -239,21 +239,27 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 === TEST 14: module directive - invalid module (NYI import types)
---- SKIP
---- main_config
+'daemon off' must be set to check exit_code is 2
+Valgrind mode already writes 'daemon off'
+HUP mode does not catch the worker exit_code
+--- skip_eval: 4: defined $ENV{TEST_NGINX_USE_HUP}
+--- main_config eval
+qq{
     wasm {
-        module a $TEST_NGINX_HTML_DIR/a.wat;
+        module a $ENV{TEST_NGINX_HTML_DIR}/a.wat;
     }
+}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- user_files
 >>> a.wat
 (module
   (import "env" "ngx_log" (func))
   (import "env" "global" (global f32)))
 --- error_log eval
-qr/\[alert\] .*? \[wasm\] NYI: module import type not supported <vm: "main", runtime: ".*?">/
+qr/\[alert\] .*? \[wasm\] NYI: module import type not supported/
 --- no_error_log
 [error]
 [crit]
+--- must_die: 2
 
 
 
