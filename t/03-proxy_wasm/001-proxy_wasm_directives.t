@@ -15,9 +15,7 @@ __DATA__
 === TEST 1: proxy_wasm directive - no wasm{} configuration block
 --- main_config
 --- config
-    location /t {
-        proxy_wasm a;
-    }
+    proxy_wasm a;
 --- error_log eval
 qr/\[emerg\] .*? "proxy_wasm" directive is specified but config has no "wasm" section/
 --- no_error_log
@@ -31,9 +29,7 @@ qr/\[emerg\] .*? "proxy_wasm" directive is specified but config has no "wasm" se
 
 === TEST 2: proxy_wasm directive - invalid number of arguments
 --- config
-    location /t {
-        proxy_wasm a foo bar;
-    }
+    proxy_wasm a foo bar;
 --- error_log eval
 qr/\[emerg\] .*? invalid number of arguments in "proxy_wasm" directive/
 --- no_error_log
@@ -49,9 +45,7 @@ qr/\[emerg\] .*? invalid number of arguments in "proxy_wasm" directive/
 --- main_config
     wasm {}
 --- config
-    location /t {
-        proxy_wasm '';
-    }
+    proxy_wasm '';
 --- error_log eval
 qr/\[emerg\] .*? invalid module name ""/
 --- no_error_log
@@ -64,48 +58,52 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 === TEST 4: proxy_wasm directive - missing ABI version
---- SKIP
---- load_nginx_modules: ngx_http_echo_module
---- main_config
+'daemon off' must be set to check exit_code is 2
+Valgrind mode already writes 'daemon off'
+HUP mode does not catch the worker exit_code
+--- skip_eval: 6: defined $ENV{TEST_NGINX_USE_HUP}
+--- main_config eval
+qq{
     wasm {
-        module a $TEST_NGINX_HTML_DIR/a.wat;
+        module a $ENV{TEST_NGINX_HTML_DIR}/a.wat;
     }
---- config
-    location /t {
-        proxy_wasm a;
-        echo ok;
-    }
---- user_files
->>> a.wat
-(module
-  (func $nop)
-  (export "nop" (func $nop))
-)
---- error_code: 500
---- error_log eval
-qr/\[emerg\] .*? proxy_wasm failed initializing "a" filter \(unknown ABI version\)/
---- no_error_log
-[error]
-[crit]
-[alert]
-[stderr]
---- must_die
-
-
-
-=== TEST 5: proxy_wasm directive - missing malloc + proxy_on_memory_allocate
---- main_config
-    wasm {
-        module a $TEST_NGINX_HTML_DIR/a.wat;
-    }
+}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     proxy_wasm a;
 --- user_files
 >>> a.wat
 (module
   (func $nop)
-  (export "proxy_abi_version_0_2_1" (func $nop))
-)
+  (export "nop" (func $nop)))
+--- error_log eval
+qr/\[emerg\] .*? proxy_wasm failed loading "a" filter \(unknown ABI version\)/
+--- no_error_log
+[error]
+[crit]
+[alert]
+[stderr]
+--- must_die: 2
+
+
+
+=== TEST 5: proxy_wasm directive - missing malloc + proxy_on_memory_allocate
+'daemon off' must be set to check exit_code is 2
+Valgrind mode already writes 'daemon off'
+HUP mode does not catch the worker exit_code
+--- skip_eval: 6: defined $ENV{TEST_NGINX_USE_HUP}
+--- main_config eval
+qq{
+    wasm {
+        module a $ENV{TEST_NGINX_HTML_DIR}/a.wat;
+    }
+}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
+--- config
+    proxy_wasm a;
+--- user_files
+>>> a.wat
+(module
+  (func $nop)
+  (export "proxy_abi_version_0_2_1" (func $nop)))
 --- error_log eval
 qr/\[emerg\] .*? proxy_wasm "a" filter missing malloc \(incompatible SDK interface\)/
 --- no_error_log
@@ -113,16 +111,21 @@ qr/\[emerg\] .*? proxy_wasm "a" filter missing malloc \(incompatible SDK interfa
 [crit]
 [stderr]
 stub
---- must_die: 0
+--- must_die: 2
 
 
 
 === TEST 6: proxy_wasm directive - missing malloc, fallback proxy_on_memory_allocate
-should error since missing on_context_create
---- main_config
+'daemon off' must be set to check exit_code is 2
+Valgrind mode already writes 'daemon off'
+HUP mode does not catch the worker exit_code
+--- skip_eval: 6: defined $ENV{TEST_NGINX_USE_HUP}
+--- main_config eval
+qq{
     wasm {
-        module a $TEST_NGINX_HTML_DIR/a.wat;
+        module a $ENV{TEST_NGINX_HTML_DIR}/a.wat;
     }
+}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     proxy_wasm a;
 --- user_files
@@ -130,8 +133,7 @@ should error since missing on_context_create
 (module
   (func $nop)
   (export "proxy_abi_version_0_2_1" (func $nop))
-  (export "proxy_on_memory_allocate" (func $nop))
-)
+  (export "proxy_on_memory_allocate" (func $nop)))
 --- error_log eval
 qr/\[emerg\] .*? proxy_wasm "a" filter missing one of: .*? \(incompatible SDK interface\)/,
 --- no_error_log
@@ -139,23 +141,28 @@ qr/\[emerg\] .*? proxy_wasm "a" filter missing one of: .*? \(incompatible SDK in
 [crit]
 [stderr]
 stub
---- must_die: 0
+--- must_die: 2
 
 
 
 === TEST 7: proxy_wasm directive - unknown ABI version
---- main_config
+'daemon off' must be set to check exit_code is 2
+Valgrind mode already writes 'daemon off'
+HUP mode does not catch the worker exit_code
+--- skip_eval: 6: defined $ENV{TEST_NGINX_USE_HUP}
+--- main_config eval
+qq{
     wasm {
-        module a $TEST_NGINX_HTML_DIR/a.wat;
+        module a $ENV{TEST_NGINX_HTML_DIR}/a.wat;
     }
+}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     proxy_wasm a;
 --- user_files
 >>> a.wat
 (module
   (func $nop)
-  (export "proxy_abi_version_0_0_0" (func $nop))
-)
+  (export "proxy_abi_version_0_0_0" (func $nop)))
 --- error_log eval
 qr/\[emerg\] .*? proxy_wasm failed loading "a" filter \(unknown ABI version\)/,
 --- no_error_log
@@ -163,24 +170,28 @@ qr/\[emerg\] .*? proxy_wasm failed loading "a" filter \(unknown ABI version\)/,
 [crit]
 [stderr]
 stub
---- must_die: 0
+--- must_die: 2
 
 
 
 === TEST 8: proxy_wasm directive - incompatible ABI version
---- skip_no_debug: 6
---- main_config
+'daemon off' must be set to check exit_code is 2
+Valgrind mode already writes 'daemon off'
+HUP mode does not catch the worker exit_code
+--- skip_eval: 6: defined $ENV{TEST_NGINX_USE_HUP} || $::nginxV !~ m/--with-debug/
+--- main_config eval
+qq{
     wasm {
-        module a $TEST_NGINX_HTML_DIR/a.wat;
+        module a $ENV{TEST_NGINX_HTML_DIR}/a.wat;
     }
+}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     proxy_wasm a;
 --- user_files
 >>> a.wat
 (module
   (func $nop)
-  (export "proxy_abi_version_vnext" (func $nop))
-)
+  (export "proxy_abi_version_vnext" (func $nop)))
 --- error_log eval
 qr/\[emerg\] .*? proxy_wasm failed loading "a" filter \(incompatible ABI version\)/
 --- no_error_log
@@ -188,13 +199,12 @@ qr/\[emerg\] .*? proxy_wasm failed loading "a" filter \(incompatible ABI version
 [crit]
 [stderr]
 stub
---- must_die: 0
+--- must_die: 2
 
 
 
 === TEST 9: proxy_wasm directive - single entry in location{} block
 --- skip_no_debug: 6
---- skip_valgrind: 6
 --- wasm_modules: on_tick
 --- config
     location /t {
@@ -217,7 +227,6 @@ stub
 should be accepted
 should create two instances of the same module
 --- skip_no_debug: 6
---- skip_valgrind: 6
 --- wasm_modules: on_tick
 --- config
     location /t {
