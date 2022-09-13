@@ -785,27 +785,27 @@ ngx_proxy_wasm_abi_version(ngx_proxy_wasm_filter_t *filter)
         exporttype = ((wasm_exporttype_t **) module->exports.data)[i];
         exportname = wasm_exporttype_name(exporttype);
 
-        if (ngx_strncmp(exportname->data, "proxy_abi_version_0_2_1",
-                        exportname->size) == 0)
+        if (ngx_str_eq(exportname->data, exportname->size,
+                       "proxy_abi_version_0_2_1", -1))
         {
             return NGX_PROXY_WASM_0_2_1;
         }
 
-        if (ngx_strncmp(exportname->data, "proxy_abi_version_0_2_0",
-                        exportname->size) == 0)
+        if (ngx_str_eq(exportname->data, exportname->size,
+                       "proxy_abi_version_0_2_0", -1))
         {
             return NGX_PROXY_WASM_0_2_0;
         }
 
-        if (ngx_strncmp(exportname->data, "proxy_abi_version_0_1_0",
-                        exportname->size) == 0)
+        if (ngx_str_eq(exportname->data, exportname->size,
+                       "proxy_abi_version_0_1_0", -1))
         {
             return NGX_PROXY_WASM_0_1_0;
         }
 
 #if (NGX_DEBUG)
-        if (ngx_strncmp(exportname->data, "proxy_abi_version_vnext",
-                        exportname->size) == 0)
+        if (ngx_str_eq(exportname->data, exportname->size,
+                       "proxy_abi_version_vnext", -1))
         {
             return NGX_PROXY_WASM_VNEXT;
         }
