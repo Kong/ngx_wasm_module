@@ -5,6 +5,9 @@
 #include <ngx_wavm.h>
 
 
+#define WASI_ERRNO_SUCCESS 0
+
+
 extern ngx_wavm_host_def_t  ngx_wasi_host;
 
 
