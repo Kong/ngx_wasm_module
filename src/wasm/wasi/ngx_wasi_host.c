@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wavm.h>
+#include <ngx_wasi.h>
 
 
 static ngx_int_t
@@ -21,7 +22,7 @@ ngx_wasi_hfuncs_random_get(ngx_wavm_instance_t *instance,
         buf[i] = (uint8_t) ngx_random();
     }
 
-    rets[0] = (wasm_val_t) WASM_I32_VAL(0); /* Ok */
+    rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
     return NGX_WAVM_OK;
 }
 
@@ -51,7 +52,7 @@ ngx_wasi_hfuncs_environ_get(ngx_wavm_instance_t *instance,
 
     /* TODO: nothing is returned for now */
 
-    rets[0] = (wasm_val_t) WASM_I32_VAL(0); /* Ok */
+    rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
     return NGX_WAVM_OK;
 }
 
@@ -78,7 +79,7 @@ ngx_wasi_hfuncs_environ_sizes_get(ngx_wavm_instance_t *instance,
     *environ_size = 0;
     *environ_buf_size = 0;
 
-    rets[0] = (wasm_val_t) WASM_I32_VAL(0); /* Ok */
+    rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
     return NGX_WAVM_OK;
 }
 
