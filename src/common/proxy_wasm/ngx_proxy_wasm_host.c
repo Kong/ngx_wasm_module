@@ -179,6 +179,12 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
         start = pwexec->filter->config.data;
         len = pwexec->filter->config.len;
         break;
+
+    case NGX_PROXY_WASM_BUFFER_VM_CONFIGURATION:
+        start = instance->vm->config->compiler.data;
+        len = instance->vm->config->compiler.len;
+        break;
+
     default:
         cl = ngx_proxy_wasm_get_buffer_helper(instance, buf_type, &none);
         if (cl == NULL) {
