@@ -31,7 +31,7 @@ __DATA__
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: 4: ($::nginxV !~ m/v8/) || (defined $ENV{TEST_NGINX_USE_HUP})
+--- skip_eval: 4: $::nginxV !~ m/v8/ || $ENV{TEST_NGINX_USE_HUP} == 1
 --- wasm_modules: wasi_vm_tests
 --- main_config eval
 defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;'

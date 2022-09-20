@@ -242,7 +242,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: 4: defined $ENV{TEST_NGINX_USE_HUP}
+--- skip_eval: 4: $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {
@@ -267,7 +267,7 @@ qr/\[alert\] .*? \[wasm\] NYI: module import type not supported/
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: 4: defined $ENV{TEST_NGINX_USE_HUP}
+--- skip_eval: 4: $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {
@@ -294,7 +294,7 @@ qq{
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: 4: $::nginxV =~ m/wasmtime/ || defined $ENV{TEST_NGINX_USE_HUP}
+--- skip_eval: 4: $::nginxV =~ m/wasmtime/ || $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {

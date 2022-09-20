@@ -61,7 +61,7 @@ qr/\[emerg\] .*? invalid module name ""/
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: 6: defined $ENV{TEST_NGINX_USE_HUP}
+--- skip_eval: 6: $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {
@@ -90,7 +90,7 @@ qr/\[emerg\] .*? proxy_wasm failed loading "a" filter \(unknown ABI version\)/
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: 6: defined $ENV{TEST_NGINX_USE_HUP}
+--- skip_eval: 6: $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {
@@ -119,7 +119,7 @@ stub
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: 6: defined $ENV{TEST_NGINX_USE_HUP}
+--- skip_eval: 6: $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {
@@ -149,7 +149,7 @@ stub
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: 6: defined $ENV{TEST_NGINX_USE_HUP}
+--- skip_eval: 6: $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {
@@ -178,7 +178,7 @@ stub
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: 6: defined $ENV{TEST_NGINX_USE_HUP} || $::nginxV !~ m/--with-debug/
+--- skip_eval: 6: $::nginxV !~ m/--with-debug/ || $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {
