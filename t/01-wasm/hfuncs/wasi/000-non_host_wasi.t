@@ -42,3 +42,6 @@ defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;'
 --- must_die: 2
 --- error_log eval
 qr/[emerg].*failed linking "wasi_vm_tests"/
+--- no_error_log
+[crit]
+stub
