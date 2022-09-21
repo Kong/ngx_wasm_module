@@ -67,7 +67,9 @@ ngx_wasm_ops_destroy(ngx_wasm_ops_t *ops)
 ngx_wasm_ops_plan_t *
 ngx_wasm_ops_plan_new(ngx_pool_t *pool, ngx_wasm_subsystem_t *subsystem)
 {
-    ngx_wasm_ops_plan_t  *plan;
+    size_t                    i;
+    ngx_wasm_ops_plan_t      *plan;
+    ngx_wasm_ops_pipeline_t  *pipeline;
 
     plan = ngx_pcalloc(pool, sizeof(ngx_wasm_ops_plan_t));
     if (plan == NULL) {
@@ -81,6 +83,13 @@ ngx_wasm_ops_plan_new(ngx_pool_t *pool, ngx_wasm_subsystem_t *subsystem)
     if (plan->pipelines == NULL) {
         ngx_pfree(pool, plan);
         return NULL;
+    }
+
+    for (i = 0; i < plan->subsystem->nphases; i++) {
+        pipeline = &plan->pipelines[i];
+
+        ngx_array_init(&pipeline->ops, plan->pool, 2,
+                       sizeof(ngx_wasm_op_t *));
     }
 
     return plan;
@@ -108,12 +117,6 @@ ngx_wasm_ops_plan_add(ngx_wasm_ops_plan_t *plan,
 
         for (/* void */; phase->name.len; phase++) {
             pipeline = &plan->pipelines[phase->index];
-
-            if (pipeline->phase == NULL) {
-                pipeline->phase = phase;
-                ngx_array_init(&pipeline->ops, plan->pool, 2,
-                               sizeof(ngx_wasm_op_t *));
-            }
 
             if (op->on_phases & phase->on) {
                 if (op->code == NGX_WASM_OP_PROXY_WASM) {
@@ -146,9 +149,13 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
     ngx_wasm_op_t            *op;
     ngx_wasm_ops_pipeline_t  *pipeline;
 
-    if (plan->ready) {
+    dd("enter");
+
+    if (plan->loaded) {
         return NGX_OK;
     }
+
+    dd("load");
 
     /* initialize pipelines */
 
@@ -165,6 +172,7 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
             switch (op->code) {
             case NGX_WASM_OP_PROXY_WASM:
                 op->handler = &ngx_wasm_op_proxy_wasm_handler;
+
                 if (ngx_proxy_wasm_load(op->conf.proxy_wasm.filter) != NGX_OK) {
                     return NGX_ERROR;
                 }
@@ -216,7 +224,7 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
         }
     }
 
-    plan->ready = 1;
+    plan->loaded = 1;
 
     return NGX_OK;
 }
@@ -233,7 +241,9 @@ ngx_wasm_ops_plan_destroy(ngx_wasm_ops_plan_t *plan)
         ngx_array_destroy(&pipeline->ops);
     }
 
-    ngx_array_destroy(&plan->conf.proxy_wasm.filter_ids);
+    if (plan->loaded) {
+        ngx_array_destroy(&plan->conf.proxy_wasm.filter_ids);
+    }
 
     ngx_pfree(plan->pool, plan->pipelines);
 }
@@ -242,7 +252,7 @@ ngx_wasm_ops_plan_destroy(ngx_wasm_ops_plan_t *plan)
 ngx_int_t
 ngx_wasm_ops_plan_attach(ngx_wasm_ops_plan_t *plan, ngx_wasm_op_ctx_t *ctx)
 {
-    ngx_wasm_assert(plan->ready);
+    ngx_wasm_assert(plan->loaded);
 
     ctx->plan = plan;
 
