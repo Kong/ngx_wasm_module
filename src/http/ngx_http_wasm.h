@@ -55,6 +55,7 @@ typedef struct {
     unsigned                           resp_content_chosen:1;
     unsigned                           resp_content_sent:1;
     unsigned                           resp_finalized:1;       /* finalized connection (ourselves) */
+    unsigned                           ffi_attached:1;
 } ngx_http_wasm_req_ctx_t;
 
 

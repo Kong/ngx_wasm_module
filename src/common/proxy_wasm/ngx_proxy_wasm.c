@@ -207,6 +207,8 @@ ngx_proxy_wasm_start(ngx_cycle_t *cycle)
     ngx_rbtree_node_t        *root, *sentinel, *node;
     ngx_proxy_wasm_filter_t  *filter;
 
+    dd("enter");
+
     root = ngx_proxy_wasm_filters_rbtree.root;
     sentinel = ngx_proxy_wasm_filters_rbtree.sentinel;
 
@@ -1047,6 +1049,10 @@ ngx_proxy_wasm_start_filter(ngx_proxy_wasm_filter_t *filter)
         return NGX_ERROR;
     }
 
+    if (filter->started) {
+        return NGX_OK;
+    }
+
     ictx = ngx_proxy_wasm_get_instance(filter, filter->store, filter->log);
     if (ictx == NULL) {
         return NGX_ERROR;
@@ -1057,6 +1063,8 @@ ngx_proxy_wasm_start_filter(ngx_proxy_wasm_filter_t *filter)
         filter->ecode = ecode;
         return NGX_ERROR;
     }
+
+    filter->started = 1;
 
     return NGX_OK;
 }

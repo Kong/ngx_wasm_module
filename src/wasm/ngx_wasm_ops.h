@@ -62,7 +62,6 @@ struct ngx_wasm_op_s {
 
 
 typedef struct {
-    ngx_wasm_phase_t                        *phase;
     ngx_array_t                              ops;
 } ngx_wasm_ops_pipeline_t;
 
@@ -90,7 +89,7 @@ typedef struct {
     } conf;
 
     unsigned                                 populated:1;
-    unsigned                                 ready:1;
+    unsigned                                 loaded:1;
 } ngx_wasm_ops_plan_t;
 
 

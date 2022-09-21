@@ -348,6 +348,7 @@ struct ngx_proxy_wasm_filter_s {
     /* flags */
 
     unsigned                           loaded:1;
+    unsigned                           started:1;
 };
 
 

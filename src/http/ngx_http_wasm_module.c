@@ -481,6 +481,10 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         cln->handler = ngx_http_wasm_cleanup;
         cln->data = rctx;
 
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm attaching plan to rctx (rctx: %p, plan: %p)",
+                       rctx, loc->plan);
+
         if (ngx_wasm_ops_plan_attach(loc->plan, opctx) != NGX_OK) {
             return NGX_ERROR;
         }
@@ -578,6 +582,8 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
     ngx_int_t                 rc;
     ngx_http_wasm_req_ctx_t  *rctx;
 
+    dd("enter");
+
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc != NGX_OK) {
         goto done;
@@ -641,6 +647,8 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
 {
     ngx_int_t                 rc;
     ngx_http_wasm_req_ctx_t  *rctx;
+
+    dd("enter");
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc != NGX_OK) {
