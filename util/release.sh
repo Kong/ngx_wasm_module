@@ -276,6 +276,9 @@ build_with_runtime() {
         --build \
         --clean
 
+    local save_CC_FLAGS="$CC_FLAGS"
+    local save_LD_FLAGS="$LD_FLAGS"
+
     if [ -n "$libname" ]; then
         CC_FLAGS="-I$runtime_dir/include"
         LD_FLAGS="$runtime_dir/lib/$libname -ldl -lpthread $LD_FLAGS"
@@ -285,6 +288,9 @@ build_with_runtime() {
     export NGX_WASM_RUNTIME_LIB="$runtime_dir/lib"
 
     build_static_binary $arch $runtime $version
+
+    CC_FLAGS="$save_CC_FLAGS"
+    LD_FLAGS="$save_LD_FLAGS"
 }
 
 release_bin() {
@@ -297,7 +303,6 @@ release_bin() {
         source /opt/rh/devtoolset-8/enable
         gcc --version
     fi
-
 
     if [ -n "$WASMTIME_VER" ]; then
         build_with_runtime wasmtime $WASMTIME_VER $arch "libwasmtime.a"
