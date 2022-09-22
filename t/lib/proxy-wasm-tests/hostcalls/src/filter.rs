@@ -18,7 +18,7 @@ impl Context for TestHttp {
             .map_or("", |v| v.as_str());
 
         info!(
-            "[hostcalls] on_http_call_response (id: {}, headers: {}, body_bytes: {}, trailers: {} op: {})",
+            "[hostcalls] on_http_call_response (id: {}, headers: {}, body_bytes: {}, trailers: {}, op: {})",
             token_id, nheaders, body_size, ntrailers, op
         );
 

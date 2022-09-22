@@ -60,15 +60,15 @@ impl TestHttp {
 
         match self.config.get("test").unwrap_or(&path).as_str() {
             /* log */
-            "/t/log/request_body" => test_log_request_body(self),
             "/t/log/levels" => test_log_levels(self),
+            "/t/log/current_time" => test_log_current_time(self),
+            "/t/log/request_path" => test_log_request_path(self),
             "/t/log/request_header" => test_log_request_header(self),
             "/t/log/request_headers" => test_log_request_headers(self),
-            "/t/log/request_path" => test_log_request_path(self),
+            "/t/log/request_body" => test_log_request_body(self),
             "/t/log/response_header" => test_log_response_header(self),
             "/t/log/response_headers" => test_log_response_headers(self),
             "/t/log/response_body" => test_log_response_body(self),
-            "/t/log/current_time" => test_log_current_time(self),
             "/t/log/property" => test_log_property(self),
 
             /* send_local_response */
@@ -86,13 +86,13 @@ impl TestHttp {
             "/t/set_request_headers/special" => test_set_request_headers_special(self),
             "/t/set_request_headers/invalid" => test_set_request_headers_invalid(self),
             "/t/set_response_headers" => test_set_response_headers(self),
-            "/t/set_request_header" => test_set_http_request_header(self),
+            "/t/set_request_header" => test_set_request_header(self),
             "/t/set_response_header" => test_set_response_header(self),
-            "/t/add_request_header" => test_add_http_request_header(self),
-            "/t/add_response_header" => test_add_http_response_header(self),
+            "/t/add_request_header" => test_add_request_header(self),
+            "/t/add_response_header" => test_add_response_header(self),
 
             /* set/add request/response body */
-            "/t/set_request_body" => test_set_http_request_body(self),
+            "/t/set_request_body" => test_set_request_body(self),
             "/t/set_response_body" => test_set_response_body(self),
 
             /* set property */
