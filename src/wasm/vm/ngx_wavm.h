@@ -153,6 +153,20 @@ ngx_wavm_memory_data_size(ngx_wrt_extern_t *mem)
 }
 
 
+static ngx_inline byte_t *
+ngx_wavm_memory_base(ngx_wrt_extern_t *mem)
+{
+    ngx_wasm_assert(mem->kind == NGX_WRT_EXTERN_MEMORY);
+
+#ifdef NGX_WASM_HAVE_WASMTIME
+    return (byte_t *) wasmtime_memory_data(mem->context, &mem->ext.of.memory);
+
+#else
+    return wasm_memory_data(wasm_extern_as_memory(mem->ext));
+#endif
+}
+
+
 static ngx_inline void *
 ngx_wavm_memory_lift(ngx_wrt_extern_t *mem, ngx_wavm_ptr_t p,
     uint32_t size, uint32_t align, unsigned *err_count)
@@ -183,13 +197,7 @@ ngx_wavm_memory_lift(ngx_wrt_extern_t *mem, ngx_wavm_ptr_t p,
         goto fail;
     }
 
-#ifdef NGX_WASM_HAVE_WASMTIME
-    return wasmtime_memory_data(mem->context, &mem->ext.of.memory)
-           + p;
-
-#else
-    return wasm_memory_data(wasm_extern_as_memory(mem->ext)) + p;
-#endif
+    return ngx_wavm_memory_base(mem) + p;
 
 fail:
 
