@@ -209,7 +209,7 @@ pub(crate) fn test_set_request_headers_invalid(ctx: &mut TestHttp) {
     ctx.set_http_request_headers(vec![(":scheme", "https")]);
 }
 
-pub(crate) fn test_set_http_request_header(ctx: &mut TestHttp) {
+pub(crate) fn test_set_request_header(ctx: &mut TestHttp) {
     if let Some(name) = ctx.config.get("name") {
         let value = ctx.config.get("value").expect("missing value");
         ctx.set_http_request_header(name, Some(value));
@@ -223,7 +223,7 @@ pub(crate) fn test_set_http_request_header(ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_add_http_request_header(ctx: &mut TestHttp) {
+pub(crate) fn test_add_request_header(ctx: &mut TestHttp) {
     if let Some(config) = ctx.config.get("value") {
         let (name, value) = config.split_once(':').unwrap();
         ctx.add_http_request_header(name, value);
@@ -233,7 +233,7 @@ pub(crate) fn test_add_http_request_header(ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_add_http_response_header(ctx: &mut TestHttp) {
+pub(crate) fn test_add_response_header(ctx: &mut TestHttp) {
     if let Some(header) = ctx.config.get("value") {
         let (name, value) = header.split_once(':').unwrap();
         ctx.add_http_response_header(name, value);
@@ -264,7 +264,7 @@ pub(crate) fn test_set_response_headers(ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_set_http_request_body(ctx: &mut TestHttp) {
+pub(crate) fn test_set_request_body(ctx: &mut TestHttp) {
     let body = if let Some(value) = ctx.config.get("value") {
         value.to_string()
     } else {
