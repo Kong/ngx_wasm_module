@@ -169,11 +169,6 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     rbuf = NGX_WAVM_HOST_LIFT(instance, args[3].of.i32, ngx_wavm_ptr_t);
     rlen = NGX_WAVM_HOST_LIFT(instance, args[4].of.i32, uint32_t);
 
-    if (offset > offset + max_len) {
-        /* overflow */
-        return ngx_proxy_wasm_result_err(rets);
-    }
-
     switch (buf_type) {
     case NGX_PROXY_WASM_BUFFER_PLUGIN_CONFIGURATION:
         start = pwexec->filter->config.data;
@@ -196,6 +191,11 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     }
 
     len = ngx_min(len, max_len);
+
+    if (offset > offset + len) {
+        /* overflow */
+        return ngx_proxy_wasm_result_err(rets);
+    }
 
     if (!len) {
         /* eof */
