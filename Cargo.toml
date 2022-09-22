@@ -4,6 +4,7 @@ members = [
     "t/lib/ngx-rust-tests",
     "t/lib/wasi-vm-tests",
     "t/lib/proxy-wasm-tests/on-tick",
+    "t/lib/proxy-wasm-tests/on-vm-start",
     "t/lib/proxy-wasm-tests/on-phases",
     "t/lib/proxy-wasm-tests/hostcalls",
     "t/lib/proxy-wasm-tests/rust-sdk-ver-zero-one",

@@ -498,6 +498,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "on-vm-start"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "proxy-wasm 0.2.0",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
