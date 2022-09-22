@@ -1,0 +1,34 @@
+# vim:set ft= ts=4 sts=4 sw=4 et fdm=marker:
+
+use strict;
+use lib '.';
+use t::TestWasm;
+
+skip_valgrind();
+
+plan tests => repeat_each() * (blocks() * 6);
+
+run_tests();
+
+__DATA__
+
+=== TEST 1: proxy_wasm Go SDK - dispatch_call_on_tick example
+--- SKIP: crashes at ngx_http_proxy_wasm_dispatch (ngx_http_proxy_wasm_dispatch.c:132)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: go_dispatch_call_on_tick
+--- config
+    location /t {
+        proxy_wasm go_dispatch_call_on_tick;
+        echo_sleep 1.1;
+        echo ok;
+    }
+--- response_body
+ok
+--- error_log eval
+[
+    qr/\[info\] .*? called 1 for contextID=/,
+    qr/\[info\] .*? :status: 200/,
+]
+--- no_error_log
+[error]
+[crit]
