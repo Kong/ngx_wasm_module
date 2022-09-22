@@ -99,6 +99,10 @@ jobs:
         with:
           profile: minimal
           target: wasm32-wasi
+      - name: Setup TinyGo
+        uses: acifani/setup-tinygo@v1
+        with:
+          tinygo-version: 0.25.0
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
         env:
@@ -139,7 +143,7 @@ jobs:
   valgrind:
     name: 'Tests - valgrind'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 50
+    timeout-minutes: 55
     #if: ${{ false }}
     env:
       NGX_BUILD_NOPOOL: 1
@@ -196,6 +200,10 @@ jobs:
         with:
           profile: minimal
           target: wasm32-wasi
+      - name: Setup TinyGo
+        uses: acifani/setup-tinygo@v1
+        with:
+          tinygo-version: 0.25.0
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
         env:
