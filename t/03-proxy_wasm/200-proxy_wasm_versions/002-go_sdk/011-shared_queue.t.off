@@ -1,0 +1,69 @@
+# vim:set ft= ts=4 sts=4 sw=4 et fdm=marker:
+
+use strict;
+use lib '.';
+use t::TestWasm;
+
+skip_valgrind();
+
+plan tests => repeat_each() * (blocks() * 5);
+
+run_tests();
+
+__DATA__
+
+=== TEST 1: proxy_wasm Go SDK: shared_queue_sender example
+trap in proxy_on_configure
+(this test entry is a stub, it does not implement a proper test case for this filter)
+--- SKIP
+--- wasm_modules: go_shared_queue_sender
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm go_shared_queue_sender;
+        echo 'ok';
+    }
+--- more_headers
+content-type: text/html
+--- request
+POST /t
+
+{ "my_key": "my_value" }
+--- response_body
+ok
+--- error_log eval
+[
+    qr/\[info\] .*? successfully loaded "go_shared_queue_sender"/,
+]
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 2: proxy_wasm Go SDK: shared_queue_receiver example
+trap in proxy_on_configure
+(this test entry is a stub, it does not implement a proper test case for this filter)
+--- SKIP
+--- wasm_modules: go_shared_queue_receiver
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm go_shared_queue_receiver;
+        echo 'ok';
+    }
+--- more_headers
+content-type: text/html
+--- request
+POST /t
+
+{ "my_key": "my_value" }
+--- response_body
+ok
+--- error_log eval
+[
+    qr/\[info\] .*? successfully loaded "go_shared_queue_receiver"/,
+]
+--- no_error_log
+[error]
+[crit]
