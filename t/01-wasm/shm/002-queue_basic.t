@@ -13,10 +13,10 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: kv - minimum size
+=== TEST 1: queue - minimum size
 --- main_config
     wasm {
-        shm_kv my_kv_1 12288;
+        shm_queue my_queue_1 12288;
     }
 --- error_log eval
 qr/\[info\] .*? \[wasm\] shm init/

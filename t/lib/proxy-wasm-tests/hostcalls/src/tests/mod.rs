@@ -322,7 +322,9 @@ pub(crate) fn test_get_shared_data(ctx: &mut TestHttp) {
         .get("cas_header")
         .map(|x| x.as_str())
         .unwrap_or("x-cas");
-    let hdr_cas_value = cas.map(|x| format!("{}", x)).unwrap_or("0".to_string());
+    let hdr_cas_value = cas
+        .map(|x| format!("{}", x))
+        .unwrap_or_else(|| "0".to_string());
     let hdr_data_key = ctx
         .config
         .get("data_header")
@@ -337,7 +339,7 @@ pub(crate) fn test_get_shared_data(ctx: &mut TestHttp) {
 
     ctx.add_http_response_header(
         hdr_data_key,
-        std::str::from_utf8(data.as_ref().map(|x| x.as_slice()).unwrap_or_default()).unwrap(),
+        std::str::from_utf8(data.as_deref().unwrap_or_default()).unwrap(),
     );
 
     ctx.add_http_response_header(hdr_exists_key, if data.is_some() { "1" } else { "0" });
@@ -363,7 +365,11 @@ pub(crate) fn test_set_shared_data(ctx: &mut TestHttp) {
 }
 
 pub(crate) fn test_shared_queue_enqueue(ctx: &mut TestHttp) {
-    let queue_id = ctx.register_shared_queue(ctx.config.get("queue").unwrap());
+    let queue_id: u32 = ctx
+        .config
+        .get("queue_id")
+        .map(|x| x.parse().unwrap())
+        .unwrap_or_else(|| ctx.register_shared_queue(ctx.config.get("queue").unwrap()));
     let data = ctx.config.get("value").cloned().unwrap_or_else(|| {
         let len: u32 = ctx.config.get("length").unwrap().parse().unwrap();
         String::from_utf8(vec![b'a'; len as usize]).unwrap()
@@ -382,7 +388,11 @@ pub(crate) fn test_shared_queue_enqueue(ctx: &mut TestHttp) {
 }
 
 pub(crate) fn test_shared_queue_dequeue(ctx: &mut TestHttp) {
-    let queue_id = ctx.register_shared_queue(ctx.config.get("queue").unwrap());
+    let queue_id: u32 = ctx
+        .config
+        .get("queue_id")
+        .map(|x| x.parse().unwrap())
+        .unwrap_or_else(|| ctx.register_shared_queue(ctx.config.get("queue").unwrap()));
     let res = ctx.dequeue_shared_queue(queue_id);
     let status: u32 = match &res {
         Ok(_) => 0,
@@ -410,7 +420,7 @@ pub(crate) fn test_shared_queue_dequeue(ctx: &mut TestHttp) {
         .unwrap_or_default();
     ctx.add_http_response_header(hdr_status_key, status.as_str());
 
-    if hdr_data_key != "" {
+    if !hdr_data_key.is_empty() {
         ctx.add_http_response_header(hdr_data_key, data.unwrap_or_default());
     }
 
