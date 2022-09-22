@@ -302,6 +302,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *co
     ngx_wasm_core_conf_t    *wcf = conf;
     ngx_wasm_shm_mapping_t  *mapping;
     ngx_wasm_shm_t          *shm;
+    ngx_int_t                min_size = 3 * ngx_pagesize;
 
     value = cf->args->elts;
     name = &value[1];
@@ -316,6 +317,20 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *co
     if (size <= 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "[wasm] invalid shm size \"%V\"", &value[2]);
+        return NGX_CONF_ERROR;
+    }
+
+    if (size < min_size) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] shm size of %d bytes is too small, minimum required is %d bytes",
+                           size, min_size);
+        return NGX_CONF_ERROR;
+    }
+
+    if ((size & (ngx_pagesize - 1)) != 0) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] shm size of %d bytes is not page-aligned, must be a multiple of %d",
+                           size, ngx_pagesize);
         return NGX_CONF_ERROR;
     }
 
@@ -354,7 +369,8 @@ ngx_wasm_core_shm_kv_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
 static char *
-ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
 {
     return ngx_wasm_core_shm_generic_directive(cf, cmd, conf, NGX_WASM_SHM_TYPE_QUEUE);
 }

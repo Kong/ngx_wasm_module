@@ -139,24 +139,12 @@ ngx_wasm_shm_queue_init(ngx_wasm_shm_t *shm)
     }
 
     buffer_size = shm->shpool->end - shm->shpool->start;
-    if (buffer_size <= reserved_size) {
-        ngx_wasm_log_error(NGX_LOG_EMERG, shm->log, 0,
-                           "shm queue \"%V\": slab capacity of %l bytes is not enough (at least %l bytes required)",
-                           &shm->name, buffer_size, reserved_size * 2);
-        return NGX_ERROR;
-    }
-
+    ngx_wasm_assert(buffer_size > reserved_size);
     buffer_size -= reserved_size;
     queue->buffer = ngx_slab_calloc(shm->shpool, buffer_size);
 
     if (queue->buffer == NULL) {
-        /* This error path can trigger if Nginx's allocation algorithm fails,
-         * even though we have reserved a large enough space.
-         */
-
-        ngx_wasm_log_error(NGX_LOG_EMERG, shm->log, 0,
-                          "shm queue \"%V\": failed allocating buffer of %l bytes",
-                          &shm->name, buffer_size);
+        dd("failed to allocate queue buffer");
         return NGX_ERROR;
     }
 
