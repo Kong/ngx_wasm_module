@@ -42,4 +42,18 @@ ngx_int_t ngx_wasm_shm_init_process(ngx_cycle_t *cycle);
 ngx_int_t ngx_wasm_shm_lookup_index(ngx_str_t *name);
 
 
+static ngx_inline void
+ngx_wasm_shm_lock(ngx_wasm_shm_t *shm)
+{
+    ngx_shmtx_lock(&shm->shpool->mutex);
+}
+
+
+static ngx_inline void
+ngx_wasm_shm_unlock(ngx_wasm_shm_t *shm)
+{
+    ngx_shmtx_unlock(&shm->shpool->mutex);
+}
+
+
 #endif

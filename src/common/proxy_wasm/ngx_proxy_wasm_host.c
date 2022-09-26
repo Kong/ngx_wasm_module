@@ -1087,7 +1087,7 @@ ngx_proxy_wasm_hfuncs_get_shared_data(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_notfound(rets);
     }
 
-    ngx_shmtx_lock(&resolved.shm->shpool->mutex);
+    ngx_wasm_shm_lock(resolved.shm);
     rc = ngx_wasm_shm_kv_get_locked(resolved.shm, &key, &value, cas);
     if (rc == NGX_OK) {
         wasm_ptr_buf = ngx_proxy_wasm_alloc(pwexec, value->len);
@@ -1103,7 +1103,7 @@ ngx_proxy_wasm_hfuncs_get_shared_data(ngx_wavm_instance_t *instance,
         }
     }
 
-    ngx_shmtx_unlock(&resolved.shm->shpool->mutex);
+    ngx_wasm_shm_unlock(resolved.shm);
 
     if (rc == NGX_DECLINED) {
         return ngx_proxy_wasm_result_notfound(rets);
@@ -1144,7 +1144,7 @@ ngx_proxy_wasm_hfuncs_set_shared_data(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_notfound(rets);
     }
 
-    ngx_shmtx_lock(&resolved.shm->shpool->mutex);
+    ngx_wasm_shm_lock(resolved.shm);
 
     /* If the plugin passes a NULL value pointer to us, treat it as a delete
      * request. It is still possible to distinguish between setting an empty
@@ -1154,7 +1154,7 @@ ngx_proxy_wasm_hfuncs_set_shared_data(ngx_wavm_instance_t *instance,
                                     &key, value.data ? &value : NULL,
                                     cas, &written);
 
-    ngx_shmtx_unlock(&resolved.shm->shpool->mutex);
+    ngx_wasm_shm_unlock(resolved.shm);
 
     if (rc == NGX_ERROR) {
         ngx_wavm_instance_trap_printf(instance, "internal error");
@@ -1256,9 +1256,9 @@ ngx_proxy_wasm_hfuncs_enqueue_shared_queue(ngx_wavm_instance_t *instance,
 
     shm = zone->data;
 
-    ngx_shmtx_lock(&shm->shpool->mutex);
+    ngx_wasm_shm_lock(shm);
     rc = ngx_wasm_shm_queue_push_locked(shm, &data);
-    ngx_shmtx_unlock(&shm->shpool->mutex);
+    ngx_wasm_shm_unlock(shm);
 
     if (rc == NGX_ERROR) {
         return ngx_proxy_wasm_result_internal_failure(rets);
@@ -1307,10 +1307,10 @@ ngx_proxy_wasm_hfuncs_dequeue_shared_queue(ngx_wavm_instance_t *instance,
 
     shm = zone->data;
 
-    ngx_shmtx_lock(&shm->shpool->mutex);
+    ngx_wasm_shm_lock(shm);
     rc = ngx_wasm_shm_queue_pop_locked(shm, &data,
                                        shared_queue_alloc, instance);
-    ngx_shmtx_unlock(&shm->shpool->mutex);
+    ngx_wasm_shm_unlock(shm);
 
     if (rc == NGX_ERROR) {
         return ngx_proxy_wasm_result_internal_failure(rets);
