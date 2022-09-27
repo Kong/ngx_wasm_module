@@ -65,9 +65,10 @@ jobs:
           # No SSL
           - os: ubuntu-latest
             cc: gcc-8
-            ngx: 1.23.1
+            ngx: 1.21.6
             runtime: wasmer
             wasmer: 2.3.0
+            debug: 0
             no_ssl: 1
     steps:
       - run: sudo apt-get update && sudo apt-get install -y gcc-8 libstdc++-8-dev
