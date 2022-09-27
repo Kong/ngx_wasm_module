@@ -99,6 +99,11 @@ circular_read(ngx_log_t *log, ngx_wasm_shm_queue_t *queue,
     ngx_wasm_assert(data_size <= queue_occupancy(queue));
     ngx_wasm_assert(ptr < cap);
 
+    if (data_out == NULL) {
+        /* `ngx_memcpy` does not accept null pointers, even with zero length */
+        return;
+    }
+
     if (data_size >= forward_capacity) {
         ngx_memcpy(data_out, queue->buffer + ptr, forward_capacity);
         ngx_memcpy((uint8_t *) data_out + forward_capacity, queue->buffer,
