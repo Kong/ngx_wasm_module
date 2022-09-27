@@ -231,8 +231,7 @@ Hello
 
 
 
-=== TEST 11: proxy_wasm - on_response_trailers gets number of response trailers (echo)
-Has trailers in response
+=== TEST 11: proxy_wasm - on_response_trailers gets number of response trailers (with body)
 --- http2
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -246,15 +245,20 @@ Has trailers in response
 --- response_body eval
 qr/ok
 x-trailer-foo: bar/
---- error_log eval
-qr/\[info\] .*? on_response_trailers, 1 trailers/
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/#\d+ on_response_headers, \d+ headers.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_trailers, 1 trailers.*
+#\d+ on_log.*/
 --- no_error_log
 [error]
 [crit]
 
 
 
-=== TEST 12: proxy_wasm - on_response_trailers gets number of response trailers (return)
+=== TEST 12: proxy_wasm - on_response_trailers gets number of response trailers (without body)
 No trailers in response
 --- http2
 --- wasm_modules: on_phases
@@ -357,7 +361,6 @@ ok
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
@@ -384,7 +387,6 @@ ok
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
@@ -660,8 +662,6 @@ qr/#\d+ on_request_headers, 3 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 3 bytes, eof: false.*
-#\d+ on_response_trailers, 0 trailers.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_trailers, 0 trailers.*
@@ -695,8 +695,6 @@ qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 3 bytes, eof: false.*
-#\d+ on_response_trailers, 0 trailers.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_trailers, 0 trailers.*
@@ -730,8 +728,6 @@ qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 3 bytes, eof: false.*
-#\d+ on_response_trailers, 0 trailers.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_trailers, 0 trailers.*
@@ -762,7 +758,6 @@ should not chain in request; instead, server{} overrides http{}
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
