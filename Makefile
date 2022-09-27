@@ -37,9 +37,9 @@ test-build:
 
 .PHONY: lint
 lint:
-	@util/style.sh $$(find src \( -name '*.h' -o -name '*.c' \))
+	@util/style.sh $$(find src/ \( -name '*.h' -o -name '*.c' \))
 	@!(grep -rIEn -- '#define\s+DDEBUG\s+1' src && echo "DDEBUG detected in sources") >&2
-	@!(grep -rIEn -- '---\s+ONLY' t/**/*.t && echo "--- ONLY detected in tests") >&2
+	@!(find t/ -name '*.t' -exec grep -IEn -- '---\s+ONLY' {} + && echo "--- ONLY detected in tests") >&2
 
 .PHONY: reindex
 reindex:
