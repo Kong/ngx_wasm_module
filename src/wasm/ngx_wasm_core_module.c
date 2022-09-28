@@ -7,14 +7,14 @@
 #include <ngx_wasm_shm.h>
 
 
-static void *ngx_wasm_core_create_conf(ngx_cycle_t *cycle);
+static void *ngx_wasm_core_create_conf(ngx_conf_t *cf);
 static char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_wasm_core_shm_kv_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
-static char *ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf);
+static char *ngx_wasm_core_init_conf(ngx_conf_t *cf, void *conf);
 static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
 static ngx_int_t ngx_wasm_core_init_process(ngx_cycle_t *cycle);
 #if (NGX_SSL)
@@ -173,10 +173,11 @@ ngx_wasm_core_cleanup_pool(void *data)
 
 
 static void *
-ngx_wasm_core_create_conf(ngx_cycle_t *cycle)
+ngx_wasm_core_create_conf(ngx_conf_t *cf)
 {
-    ngx_wasm_core_conf_t    *wcf;
+    ngx_cycle_t             *cycle = cf->cycle;
     ngx_pool_cleanup_t      *cln;
+    ngx_wasm_core_conf_t    *wcf;
     static const ngx_str_t   vm_name = ngx_string("main");
 
     wcf = ngx_pcalloc(cycle->pool, sizeof(ngx_wasm_core_conf_t));
@@ -359,7 +360,7 @@ ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 
 
 static char *
-ngx_wasm_core_init_conf(ngx_cycle_t *cycle, void *conf)
+ngx_wasm_core_init_conf(ngx_conf_t *cf, void *conf)
 {
 #if (NGX_SSL)
     ngx_wasm_core_conf_t  *wcf = conf;
