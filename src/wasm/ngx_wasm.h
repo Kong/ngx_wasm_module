@@ -58,8 +58,8 @@ typedef uint32_t  ngx_wavm_ptr_t;
 
 
 typedef struct {
-    void                        *(*create_conf)(ngx_cycle_t *cycle);
-    char                        *(*init_conf)(ngx_cycle_t *cycle, void *conf);
+    void                        *(*create_conf)(ngx_conf_t *cf);
+    char                        *(*init_conf)(ngx_conf_t *cf, void *conf);
     ngx_int_t                    (*init)(ngx_cycle_t *cycle);
 } ngx_wasm_module_t;
 
