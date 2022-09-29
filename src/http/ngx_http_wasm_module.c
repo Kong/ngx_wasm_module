@@ -25,6 +25,8 @@ static ngx_int_t ngx_http_wasm_access_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx);
 static ngx_int_t ngx_http_wasm_content_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_log_handler(ngx_http_request_t *r);
+static ngx_int_t ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx,
+    ngx_int_t rc);
 
 
 static ngx_wasm_phase_t  ngx_http_wasm_phases[] = {
@@ -511,7 +513,7 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 }
 
 
-ngx_int_t
+static ngx_int_t
 ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
 {
     ngx_int_t            n = 0;

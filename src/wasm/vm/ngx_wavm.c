@@ -320,7 +320,7 @@ ngx_wavm_module_lookup(ngx_wavm_t *vm, ngx_str_t *name)
 {
     ngx_str_node_t  *sn;
 
-    sn = ngx_wasm_sn_rbtree_lookup(&vm->modules_tree, name);
+    sn = ngx_wasm_sn_lookup(&vm->modules_tree, name);
     if (sn == NULL) {
         return NULL;
     }
@@ -389,7 +389,7 @@ ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path)
     }
 
     ngx_wasm_sn_init(&module->sn, &module->name);
-    ngx_wasm_sn_rbtree_insert(&vm->modules_tree, &module->sn);
+    ngx_wasm_sn_insert(&vm->modules_tree, &module->sn);
 
     return NGX_OK;
 
@@ -581,7 +581,7 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
             *p = '\0';
 
             ngx_wasm_sn_init(&funcref->sn, &funcref->name);
-            ngx_wasm_sn_rbtree_insert(&module->funcs_tree, &funcref->sn);
+            ngx_wasm_sn_insert(&module->funcs_tree, &funcref->sn);
 
             if (module->f_start == NULL
                 && (ngx_str_eq(exportname->data, exportname->size, "_start", -1)
@@ -818,7 +818,7 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
         return NULL;
     }
 
-    sn = ngx_wasm_sn_rbtree_lookup(&module->funcs_tree, name);
+    sn = ngx_wasm_sn_lookup(&module->funcs_tree, name);
     if (sn == NULL) {
         return NULL;
     }

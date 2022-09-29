@@ -10,7 +10,7 @@
 
 #define ngx_proxy_wasm_store_init(s, p)                                      \
     (s)->pool = (p);                                                         \
-    ngx_queue_init(&(s)->sweep);                                              \
+    ngx_queue_init(&(s)->sweep);                                             \
     ngx_queue_init(&(s)->free);                                              \
     ngx_queue_init(&(s)->busy)
 

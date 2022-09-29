@@ -133,13 +133,6 @@ ngx_int_t ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
     ngx_wasm_socket_tcp_reader_pt reader, void *reader_ctx);
 void ngx_wasm_socket_tcp_close(ngx_wasm_socket_tcp_t *sock);
 void ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock);
-
-#if 0
-ngx_int_t ngx_wasm_socket_reader_read_all(ngx_wasm_socket_tcp_t *sock,
-    ssize_t bytes);
-ngx_int_t ngx_wasm_socket_reader_read_line(ngx_wasm_socket_tcp_t *sock,
-    ssize_t bytes);
-#endif
 #ifdef NGX_WASM_HTTP
 ngx_int_t ngx_wasm_socket_read_http_response(ngx_wasm_socket_tcp_t *sock,
     ssize_t bytes, void *ctx);
