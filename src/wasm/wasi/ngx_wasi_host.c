@@ -31,8 +31,10 @@ static ngx_int_t
 ngx_wasi_hfuncs_args_get(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    /* TODO: nothing is returned for now.
-       See ngx_wasi_hfuncs_environ_get for a sample implementation. */
+    /**
+     * TODO: nothing is returned for now
+     * See ngx_wasi_hfuncs_environ_get for a sample implementation
+     */
 
     rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
     return NGX_WAVM_OK;
@@ -46,9 +48,11 @@ ngx_wasi_hfuncs_args_sizes_get(ngx_wavm_instance_t *instance,
     uint32_t  *args_size;
     uint32_t  *args_buf_size;
 
-    /* TODO: nothing is returned for now.
-       See ngx_wasi_hfuncs_environ_get for more info on the format
-       of the arguments. */
+    /**
+     * TODO: nothing is returned for now
+     * See ngx_wasi_hfuncs_environ_get for more info on the format
+     * of the arguments
+     */
 
     args_size = NGX_WAVM_HOST_LIFT(instance, args[0].of.i32, uint32_t);
     args_buf_size = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, uint32_t);

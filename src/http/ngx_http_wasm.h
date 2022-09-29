@@ -2,12 +2,12 @@
 #define _NGX_HTTP_WASM_H_INCLUDED_
 
 
+#include <ngx_wasm_ops.h>
+#include <ngx_proxy_wasm.h>
 #include <ngx_http.h>
 #include <ngx_http_wasm_util.h>
 #include <ngx_http_wasm_headers.h>
 #include <ngx_http_wasm_trailers.h>
-#include <ngx_wasm_ops.h>
-#include <ngx_proxy_wasm.h>
 
 
 #define NGX_HTTP_WASM_MAX_REQ_HEADERS      100
@@ -20,10 +20,10 @@
 typedef struct {
     ngx_http_request_t                *r;
     ngx_connection_t                  *connection;
-    ngx_pool_t                        *pool;  /* r->pool */
+    ngx_pool_t                        *pool;                   /* r->pool */
     ngx_wasm_op_ctx_t                  opctx;
     ngx_wasm_ops_t                    *ffi_engine;
-    void                              *data;  /* per-stream extra context */
+    void                              *data;                   /* per-stream extra context */
 
     ngx_chain_t                       *free_bufs;
     ngx_chain_t                       *busy_bufs;
@@ -34,7 +34,7 @@ typedef struct {
     off_t                              resp_chunk_len;
     unsigned                           resp_chunk_eof;         /* seen last buf flag */
 
-    ngx_uint_t                         nyields;  /* keep track of r->main->count increments */
+    ngx_uint_t                         nyields;                /* keep track of r->main->count increments */
 
     /* local resp */
 
@@ -83,10 +83,7 @@ typedef struct {
 } ngx_http_wasm_main_conf_t;
 
 
-typedef void (*ngx_http_wasm_resume_handler_pt)(ngx_http_wasm_req_ctx_t *rctx,
-    unsigned main, unsigned wev);
-
-
+/* http */
 ngx_int_t ngx_http_wasm_rctx(ngx_http_request_t *r,
     ngx_http_wasm_req_ctx_t **out);
 ngx_int_t ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
@@ -94,8 +91,6 @@ ngx_int_t ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     u_char *body, size_t body_len);
 ngx_int_t ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx);
-ngx_int_t ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx,
-    ngx_int_t rc);
 void ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main,
     unsigned wev);
 void ngx_http_wasm_content_wev_handler(ngx_http_request_t *r);
@@ -112,16 +107,14 @@ char *ngx_http_wasm_resolver_add_directive(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
 
 
-/* shims */
-typedef struct ngx_http_wasm_shim_header_s  ngx_http_wasm_shim_header_t;
-
+/* shim headers */
 typedef ngx_str_t * (*ngx_http_wasm_shim_header_handler_pt)(
     ngx_http_wasm_req_ctx_t *rctx);
 
-struct ngx_http_wasm_shim_header_s {
+typedef struct {
     ngx_str_t                             key;
     ngx_http_wasm_shim_header_handler_pt  handler;
-};
+} ngx_http_wasm_shim_header_t;
 
 
 ngx_str_t *ngx_http_wasm_get_shim_header(ngx_http_wasm_req_ctx_t *rctx, u_char *key,
@@ -139,12 +132,6 @@ ngx_int_t ngx_http_wasm_prepend_req_body(ngx_http_wasm_req_ctx_t *rctx,
     ngx_str_t *body);
 ngx_int_t ngx_http_wasm_prepend_resp_body(ngx_http_wasm_req_ctx_t *rctx,
     ngx_str_t *body);
-
-
-/* proxy-wasm with wasm ops */
-ngx_int_t ngx_http_wasm_ops_add_filter(ngx_wasm_ops_plan_t *plan,
-    ngx_str_t *name, ngx_str_t *config, ngx_uint_t *isolation,
-    ngx_proxy_wasm_store_t *store, ngx_wavm_t *vm);
 
 
 extern ngx_wasm_subsystem_t  ngx_http_wasm_subsystem;
