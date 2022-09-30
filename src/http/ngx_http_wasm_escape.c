@@ -111,7 +111,7 @@ ngx_http_wasm_escape(u_char *dst, u_char *src, size_t size,
     };
 
     static uint32_t  *map[] =
-        { uri, args, uri_component, header_name, header_value };
+        { uri, uri_component, args, header_name, header_value };
 
     escape = map[kind];
 
