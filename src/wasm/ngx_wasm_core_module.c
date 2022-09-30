@@ -337,6 +337,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 
     mapping->zone->init = ngx_wasm_shm_init_zone;
     mapping->zone->data = shm;
+    mapping->zone->noreuse = 1;
 
     return NGX_CONF_OK;
 }

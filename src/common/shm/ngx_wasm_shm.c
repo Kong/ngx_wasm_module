@@ -11,15 +11,9 @@
 ngx_int_t
 ngx_wasm_shm_init_zone(ngx_shm_zone_t *shm_zone, void *data)
 {
-    ngx_wasm_shm_t  *shm;
-
-    if (data) {
-        dd("shm zone reuse: %p", shm_zone->shm.addr);
-        return NGX_OK;
-    }
+    ngx_wasm_shm_t  *shm = shm_zone->data;
 
     dd("shm zone init: %p", shm_zone->shm.addr);
-    shm = shm_zone->data;
     shm->shpool = (ngx_slab_pool_t *) shm_zone->shm.addr;
 
     return NGX_OK;
