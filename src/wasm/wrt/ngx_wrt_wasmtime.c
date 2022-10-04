@@ -31,6 +31,10 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
             return NGX_ERROR;
         }
 
+        if (!err) {
+            wasmtime_config_wasm_reference_types_set(config, true);
+        }
+
         if (err) {
             wasmtime_error_message(err, &msg);
 
