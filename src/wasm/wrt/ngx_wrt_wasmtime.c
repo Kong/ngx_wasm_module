@@ -49,6 +49,8 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
                            &conf->compiler);
     }
 
+    wasmtime_config_wasm_reference_types_set(config, true);
+
 #ifdef NGX_WASM_NOPOOL
     wasmtime_config_debug_info_set(config, false);
     wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_NONE);
