@@ -34,17 +34,6 @@ impl Context for HttpHeadersRoot {}
 impl RootContext for HttpHeadersRoot {
     fn on_vm_start(&mut self, config_size: usize) -> bool {
         info!("on_vm_start, config_size: {}", config_size);
-
-        if let Some(config) = self.get_vm_configuration() {
-            if let Ok(text) = std::str::from_utf8(&config) {
-                info!("vm_config: {}", text);
-            } else {
-                info!("can't parse vm config");
-            }
-        } else {
-            info!("can't get vm config");
-        }
-
         true
     }
 

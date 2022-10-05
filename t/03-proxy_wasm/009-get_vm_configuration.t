@@ -22,16 +22,16 @@ __DATA__
 qq{
     wasm {
         compiler $::compiler;
-        module   on_phases $ENV{TEST_NGINX_CRATES_DIR}/on_phases.wasm;
+        module   hostcalls $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
     }
 }
 --- config
     location /t {
-        proxy_wasm on_phases;
+        proxy_wasm hostcalls;
         return 200;
     }
 --- ignore_response_body
 --- error_log eval
-qr/\[info\] .*? vm_config: $::compiler/
+qr/\[info\] .*? vm config: $::compiler/
 --- no_error_log
 [error]

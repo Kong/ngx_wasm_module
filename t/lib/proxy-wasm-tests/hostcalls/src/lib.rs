@@ -19,6 +19,20 @@ proxy_wasm::main! {{
 }}
 
 impl RootContext for TestRoot {
+    fn on_vm_start(&mut self, _: usize) -> bool {
+        if let Some(config) = self.get_vm_configuration() {
+            if let Ok(text) = std::str::from_utf8(&config) {
+                info!("vm config: {}", text);
+            } else {
+                info!("cannot parse vm config");
+            }
+        } else {
+            info!("cannot get vm config");
+        }
+
+        true
+    }
+
     fn on_configure(&mut self, _: usize) -> bool {
         if let Some(config_bytes) = self.get_plugin_configuration() {
             let config_str = String::from_utf8(config_bytes).unwrap();
