@@ -7,7 +7,7 @@ use std::time::Duration;
 use url::Url;
 
 pub struct TestHttp {
-    pub on_phase: TestPhase,
+    pub on_phases: Vec<TestPhase>,
     pub config: HashMap<String, String>,
 }
 
@@ -48,11 +48,11 @@ impl TestHttp {
     }
 
     pub fn exec_tests(&mut self, cur_phase: TestPhase) -> Action {
-        if cur_phase != self.on_phase {
+        if !self.on_phases.contains(&cur_phase) {
             return Action::Continue;
         }
 
-        info!("[hostcalls] testing in \"{:?}\"", self.on_phase);
+        info!("[hostcalls] testing in \"{:?}\"", cur_phase);
 
         let path = self.get_http_request_header(":path").unwrap();
 
@@ -70,6 +70,7 @@ impl TestHttp {
             "/t/log/response_headers" => test_log_response_headers(self),
             "/t/log/response_body" => test_log_response_body(self),
             "/t/log/property" => test_log_property(self),
+            "/t/log/properties" => test_log_properties(self, cur_phase),
 
             /* send_local_response */
             "/t/send_local_response/status/204" => test_send_status(self, 204),

@@ -73,16 +73,25 @@ impl RootContext for TestRoot {
 
     fn create_http_context(&self, context_id: u32) -> Option<Box<dyn HttpContext>> {
         info!("create context id #{}", context_id);
+        let mut phases: Vec<TestPhase>;
+
+        match self.config.get("on") {
+            Some(s) => {
+                phases = vec![];
+                for phase_name in s.split(',') {
+                    phases.push(
+                        phase_name
+                            .parse()
+                            .unwrap_or_else(|_| panic!("unknown phase: {:?}", phase_name)),
+                    );
+                }
+            }
+            None => phases = vec![TestPhase::RequestHeaders],
+        }
 
         Some(Box::new(TestHttp {
             config: self.config.clone(),
-            on_phase: self
-                .config
-                .get("on")
-                .map_or(TestPhase::RequestHeaders, |s| {
-                    s.parse()
-                        .unwrap_or_else(|_| panic!("unknown phase: {:?}", s))
-                }),
+            on_phases: phases,
         }))
     }
 }

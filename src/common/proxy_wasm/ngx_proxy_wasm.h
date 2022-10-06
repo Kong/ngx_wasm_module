@@ -221,11 +221,17 @@ struct ngx_proxy_wasm_ctx_s {
     size_t                             req_body_len;
     ngx_str_t                          authority;
     ngx_str_t                          scheme;
-    ngx_str_t                          path;    /* r->uri + r->args */
+    ngx_str_t                          path;              /* r->uri + r->args */
+    ngx_str_t                          start_time;        /* r->start_sec + r->start_msec */
+    ngx_str_t                          upstream_address;  /* 1st part of ngx.upstream_addr */
+    ngx_str_t                          upstream_port;     /* 2nd part of ngx.upstsream_addr */
+    ngx_str_t                          connection_id;     /* r->connection->number */
+    ngx_str_t                          mtls;              /* ngx.https && ngx.ssl_client_verify */
+    ngx_str_t                          root_id;           /* pwexec->root_id */
 
     /* flags */
 
-    unsigned                           main:1;  /* r->main */
+    unsigned                           main:1;            /* r->main */
     unsigned                           ready:1;
 };
 
@@ -353,7 +359,7 @@ struct ngx_proxy_wasm_filter_s {
 
 
 /* root */
-void ngx_proxy_wasm_init();
+void ngx_proxy_wasm_init(ngx_conf_t *cf);
 void ngx_proxy_wasm_exit();
 ngx_uint_t ngx_proxy_wasm_id(ngx_str_t *name, ngx_str_t *config,
     uintptr_t data);

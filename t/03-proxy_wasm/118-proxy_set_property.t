@@ -119,7 +119,7 @@ GET /t?hello=world
 qr/500 Internal Server Error/
 --- error_log eval
 [
-    qr/\[error\] .*? variable 'query_string' is not changeable/,
+    qr/\[error\] .*? variable "query_string" is not changeable/,
     qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
 ]
 --- no_error_log
@@ -141,7 +141,7 @@ qr/500 Internal Server Error/
 qr/500 Internal Server Error/
 --- error_log eval
 [
-    qr/\[error\] .*? nginx variable 'nonexistent_property' not found/,
+    qr/\[error\] .*? nginx variable "nonexistent_property" not found/,
     qr/\[crit\] .*? panicked at 'unexpected status: 1'/,
 ]
 --- no_error_log
@@ -154,8 +154,7 @@ qr/500 Internal Server Error/
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/set_property \
-                              name=nonexistent_property';
+        proxy_wasm hostcalls 'test=/t/set_property name=nonexistent_property';
         echo ok;
     }
 --- error_code: 500
@@ -163,7 +162,7 @@ qr/500 Internal Server Error/
 qr/500 Internal Server Error/
 --- error_log eval
 [
-    qr/\[error\] .*? property 'nonexistent_property' not found/,
+    qr/\[error\] .*? property "nonexistent_property" not found/,
     qr/\[crit\] .*? panicked at 'unexpected status: 1'/,
 ]
 --- no_error_log

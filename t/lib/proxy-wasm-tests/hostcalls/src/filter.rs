@@ -30,6 +30,39 @@ impl Context for TestHttp {
                     self.send_plain_response(StatusCode::OK, Some(body.trim()));
                 }
             }
+            "log_request_properties" => {
+                let properties = vec![
+                    "request.path",
+                    "request.url_path",
+                    "request.host",
+                    "request.scheme",
+                    "request.method",
+                    "request.time",
+                    "request.protocol",
+                    "request.query",
+                    "request.total_size",
+                ];
+
+                for property in properties {
+                    match self.get_property(property.split('.').collect()) {
+                        Some(p) => match std::str::from_utf8(&p) {
+                            Ok(value) => {
+                                info!("{}: {} at OnHttpCallResponse", property, value);
+                            }
+                            Err(_) => panic!(
+                                "failed converting {} to UTF-8 at OnHttpCallResponse",
+                                property
+                            ),
+                        },
+                        None => info!("{}: not-found at OnHttpCallResponse", property),
+                    }
+                }
+
+                if let Some(response) = bytes {
+                    let body = String::from_utf8_lossy(&response);
+                    self.send_plain_response(StatusCode::OK, Some(body.trim()));
+                }
+            }
             "echo_response_headers" => {
                 let headers = self.get_http_call_response_headers();
                 let mut s = String::new();

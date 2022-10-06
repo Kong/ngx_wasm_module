@@ -245,7 +245,7 @@ ngx_http_wasm_init_main_conf(ngx_conf_t *cf, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    ngx_proxy_wasm_init();
+    ngx_proxy_wasm_init(cf);
     ngx_proxy_wasm_store_init(&mcf->store, cf->pool);
 
     return NGX_CONF_OK;

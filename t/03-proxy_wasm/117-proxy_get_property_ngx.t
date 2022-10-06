@@ -73,16 +73,33 @@ qr/\[info\] .*? property not found: ngx.nonexistent_property/
         proxy_wasm hostcalls 'test=/t/log/property name=nonexistent_property';
         echo ok;
     }
---- ignore_response_body
---- error_log eval
-    qr/\[info\] .*? property not found: nonexistent_property/
+--- response_body
+ok
+--- error_log
+[wasm] property "nonexistent_property" not found
 --- no_error_log
-[error]
 [crit]
 
 
 
-=== TEST 5: proxy_wasm - get_property() works on_request_headers
+=== TEST 5: proxy_wasm - get_property() handles non-existent variable shorter than ngx_prefix
+--- wasm_modules: hostcalls
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/log/property name=n';
+        echo ok;
+    }
+--- response_body
+ok
+--- error_log
+[wasm] property "n" not found
+--- no_error_log
+[crit]
+
+
+
+=== TEST 6: proxy_wasm - get_property() works on_request_headers
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -101,7 +118,7 @@ qr/\[info\] .*? property not found: ngx.nonexistent_property/
 
 
 
-=== TEST 6: proxy_wasm - get_property() works on_request_body
+=== TEST 7: proxy_wasm - get_property() works on_request_body
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -123,7 +140,7 @@ hello world
 
 
 
-=== TEST 7: proxy_wasm - get_property() works on_response_headers
+=== TEST 8: proxy_wasm - get_property() works on_response_headers
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -142,7 +159,7 @@ hello world
 
 
 
-=== TEST 8: proxy_wasm - get_property() works on_response_body
+=== TEST 9: proxy_wasm - get_property() works on_response_body
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -161,7 +178,7 @@ hello world
 
 
 
-=== TEST 9: proxy_wasm - get_property() works on_log
+=== TEST 10: proxy_wasm - get_property() works on_log
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -180,7 +197,7 @@ hello world
 
 
 
-=== TEST 10: proxy_wasm - get_property() for ngx.* does not work on_tick
+=== TEST 11: proxy_wasm - get_property() for ngx.* does not work on_tick
 on_tick runs on the root context, so it does not have access to ngx_http_* calls.
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
