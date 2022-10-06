@@ -4,16 +4,60 @@
 #include "ddebug.h"
 
 #include <ngx_proxy_wasm_properties.h>
+#include <ngx_proxy_wasm_maps.h>
 #ifdef NGX_WASM_HTTP
 #include <ngx_http_proxy_wasm.h>
 #endif
 
 
-static const char *ngx_prefix = "ngx\0";
+static ngx_int_t
+ngx_proxy_wasm_properties_get_ngx(
+    ngx_wavm_instance_t *instance, ngx_str_t *path, ngx_str_t *value);
+
+
+static ngx_int_t
+ngx_proxy_wasm_properties_set_ngx(
+    ngx_wavm_instance_t *instance, ngx_str_t *path, ngx_str_t *value);
+
+
+static const char *ngx_prefix = "ngx.";
 static size_t ngx_prefix_len = 4;
 
 
+static ngx_hash_init_t         pwm2ngx_init;
+static ngx_hash_combined_t     pwm2ngx_hash;
+static ngx_hash_keys_arrays_t  pwm2ngx_keys;
+
+
+typedef ngx_int_t (*proxy_wasm_properties_func)(
+    ngx_wavm_instance_t *instance, ngx_str_t *path, ngx_str_t *value);
+
+
+static ngx_int_t
+nyi(ngx_wavm_instance_t *instance, ngx_str_t *path, ngx_str_t *value)
+{
+    ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
+                       "NYI - \"%V\" property", path);
+
+    return NGX_DECLINED;
+}
+
+
+static ngx_int_t
+not_supported(ngx_wavm_instance_t *instance, ngx_str_t *path, ngx_str_t *value)
+{
+    ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
+                       "\"%V\" property not supported", path);
+
+    return NGX_DECLINED;
+}
+
+
 #ifdef NGX_WASM_HTTP
+static size_t request_headers_prefix_len = 16;
+static size_t response_headers_prefix_len = 17;
+
+
 static ngx_uint_t
 hash_str(u_char *src, size_t n)
 {
@@ -28,7 +72,609 @@ hash_str(u_char *src, size_t n)
 
     return key;
 }
+
+
+static ngx_int_t
+get_map_value(ngx_wavm_instance_t *instance, ngx_str_t *name, ngx_str_t *value,
+    ngx_proxy_wasm_map_type_e map_type)
+{
+    ngx_str_t  *r;
+
+    r = ngx_proxy_wasm_maps_get(instance, map_type, name);
+    if (r == NULL) {
+        return NGX_DECLINED;
+    }
+
+    value->data = r->data;
+    value->len = r->len;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+get_referer(ngx_wavm_instance_t *instance, ngx_str_t *path, ngx_str_t *value)
+{
+    static ngx_str_t                  header = ngx_string("referer");
+    static ngx_proxy_wasm_map_type_e  type = \
+        NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS;
+
+    return get_map_value(instance, &header, value, type);
+}
+
+
+static ngx_int_t
+get_request_id(ngx_wavm_instance_t *instance, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    static ngx_str_t                  header = ngx_string("x-request-id");
+    static ngx_proxy_wasm_map_type_e  type = \
+        NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS;
+
+    return get_map_value(instance, &header, value, type);
+}
+
+
+static ngx_int_t
+get_request_time(ngx_wavm_instance_t *instance, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    ngx_proxy_wasm_exec_t    *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
+    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    ngx_http_request_t       *r = rctx->r;
+
+    if (!pwctx->start_time.len) {
+        pwctx->start_time.data = ngx_pnalloc(pwctx->pool, NGX_TIME_T_LEN + 4);
+        if (pwctx->start_time.data == NULL) {
+            return NGX_ERROR;
+        }
+
+        pwctx->start_time.len = ngx_sprintf(pwctx->start_time.data, "%T.%03M",
+                                            r->start_sec, r->start_msec)
+                                - pwctx->start_time.data;
+    }
+
+    value->len = pwctx->start_time.len;
+    value->data = pwctx->start_time.data;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+get_upstream_address(ngx_wavm_instance_t *instance, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    size_t                    len;
+    ngx_proxy_wasm_exec_t    *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
+    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    ngx_http_request_t       *r = rctx->r;
+    ngx_http_upstream_t      *u = r->upstream;
+    u_char                   *p = u->peer.name->data;
+
+    if (!pwctx->upstream_address.len) {
+        len = ((u_char *) strrchr((char *) p, ':')) - p;
+
+        pwctx->upstream_address.len = len;
+        pwctx->upstream_address.data = ngx_pnalloc(pwctx->pool, len);
+        if (pwctx->upstream_address.data == NULL) {
+            return NGX_ERROR;
+        }
+
+        ngx_memcpy(pwctx->upstream_address.data, u->peer.name->data, len);
+    }
+
+    value->data = pwctx->upstream_address.data;
+    value->len = pwctx->upstream_address.len;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+get_upstream_port(ngx_wavm_instance_t *instance, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    size_t                    a_len, p_len;
+    ngx_proxy_wasm_exec_t    *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
+    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    ngx_http_request_t       *r = rctx->r;
+    ngx_http_upstream_t      *u = r->upstream;
+    u_char                   *p = u->peer.name->data;
+
+    if (!pwctx->upstream_port.len) {
+        a_len = (((u_char *) strrchr((char *) p, ':')) - p) + 1;
+        p_len = u->peer.name->len - a_len;
+
+        pwctx->upstream_port.len = p_len;
+        pwctx->upstream_port.data = ngx_pnalloc(pwctx->pool, p_len);
+        if (pwctx->upstream_port.data == NULL) {
+            return NGX_ERROR;
+        }
+
+        ngx_memcpy(pwctx->upstream_port.data, u->peer.name->data + a_len,
+                   p_len);
+    }
+
+    value->data = pwctx->upstream_port.data;
+    value->len = pwctx->upstream_port.len;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+get_request_headers(ngx_wavm_instance_t *instance, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    ngx_proxy_wasm_map_type_e  type = NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS;
+    ngx_str_t                  name;
+
+    name.data = (u_char *)(path->data + request_headers_prefix_len);
+    name.len = path->len - request_headers_prefix_len;
+
+    return get_map_value(instance, &name, value, type);
+}
+
+
+static ngx_int_t
+get_response_headers(ngx_wavm_instance_t *instance, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    ngx_proxy_wasm_map_type_e  type = NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS;
+    ngx_str_t                  name;
+
+    name.data = (u_char *)(path->data + response_headers_prefix_len);
+    name.len = path->len - response_headers_prefix_len;
+
+    return get_map_value(instance, &name, value, type);
+}
+
+
+static ngx_int_t
+get_connection_id(ngx_wavm_instance_t *instance, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    ngx_proxy_wasm_exec_t    *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
+    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    ngx_http_request_t       *r = rctx->r;
+    size_t                    len;
+    u_char                    buf[NGX_OFF_T_LEN] = "";
+
+    if (!pwctx->connection_id.len) {
+        len = ngx_sprintf(buf, "%i", r->connection->number) - buf;
+
+        pwctx->connection_id.data = ngx_pnalloc(pwctx->pool, len);
+        if (pwctx->connection_id.data == NULL) {
+            return NGX_ERROR;
+        }
+
+        ngx_memcpy(pwctx->connection_id.data, buf, len);
+        pwctx->connection_id.len = len;
+    }
+
+    value->len = pwctx->connection_id.len;
+    value->data = pwctx->connection_id.data;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+get_connection_mtls(ngx_wavm_instance_t *instance, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    ngx_proxy_wasm_exec_t  *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_ctx_t   *pwctx = pwexec->parent;
+    ngx_int_t               rc;
+    unsigned                on;
+    ngx_str_t               https_v, verify_v, *result;
+
+    ngx_str_t               https_p = ngx_string("ngx.https");
+    ngx_str_t               https_e = ngx_string("on");
+
+    ngx_str_t               verify_p = ngx_string("ngx.ssl_client_verify");
+    ngx_str_t               verify_e = ngx_string("SUCCESS");
+
+    ngx_str_t               mtls_on  = ngx_string("true");
+    ngx_str_t               mtls_off = ngx_string("false");
+
+    if (!pwctx->mtls.len) {
+        rc = ngx_proxy_wasm_properties_get_ngx(instance, &https_p, &https_v);
+        if (rc != NGX_OK) {
+            return rc;
+        }
+
+        rc = ngx_proxy_wasm_properties_get_ngx(instance, &verify_p, &verify_v);
+        if (rc != NGX_OK) {
+            return rc;
+        }
+
+        on = ngx_str_eq(https_v.data, https_v.len,
+                        https_e.data, https_e.len) == 1
+             && ngx_str_eq(verify_v.data, verify_v.len,
+                           verify_e.data, verify_e.len) == 1;
+
+        result = on ? &mtls_on : &mtls_off;
+
+        pwctx->mtls.data = ngx_pnalloc(pwctx->pool, result->len);
+        if (pwctx->mtls.data == NULL) {
+            return NGX_ERROR;
+        }
+
+        ngx_memcpy(pwctx->mtls.data, result->data, result->len);
+        pwctx->mtls.len = result->len;
+    }
+
+    value->data = pwctx->mtls.data;
+    value->len = pwctx->mtls.len;
+
+    return NGX_OK;
+}
 #endif
+
+
+static ngx_int_t
+get_filter_name(ngx_wavm_instance_t *instance, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    ngx_proxy_wasm_exec_t    *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_filter_t  *filter = pwexec->filter;
+
+    value->len = filter->name->len;
+    value->data = filter->name->data;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+get_filter_root_id(ngx_wavm_instance_t *instance, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    ngx_proxy_wasm_exec_t  *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_ctx_t   *pwctx = pwexec->parent;
+    size_t                  len;
+    u_char                  buf[NGX_OFF_T_LEN] = "";
+
+    if (!pwctx->root_id.len) {
+        len = ngx_sprintf(buf, "%i", pwexec->root_id) - buf;
+
+        pwctx->root_id.data = ngx_pnalloc(pwctx->pool, len);
+        if (pwctx->root_id.data == NULL) {
+            return NGX_ERROR;
+        }
+
+        ngx_memcpy(pwctx->root_id.data, buf, len);
+        pwctx->root_id.len = len;
+    }
+
+    value->len = pwctx->root_id.len;
+    value->data = pwctx->root_id.data;
+
+    return NGX_OK;
+}
+
+
+typedef struct {
+    ngx_str_t                    pw_key;
+    ngx_str_t                    n_key;
+    proxy_wasm_properties_func   ptr;
+    u_char                      *pw_key_writable;
+} pwm2ngx_mapping_t;
+
+
+static pwm2ngx_mapping_t  pw2ngx[] = {
+#ifdef NGX_WASM_HTTP
+    /* Request properties */
+
+    { ngx_string("request.path"),
+      ngx_string("ngx.request_uri"),
+      NULL, NULL },
+    { ngx_string("request.url_path"),
+      ngx_string("ngx.uri"),
+      NULL, NULL },
+    { ngx_string("request.host"),
+      ngx_string("ngx.hostname"),
+      NULL, NULL },
+    { ngx_string("request.scheme"),
+      ngx_string("ngx.scheme"),
+      NULL, NULL },
+    { ngx_string("request.method"),
+      ngx_string("ngx.request_method"),
+      NULL, NULL },
+    { ngx_string("request.useragent"),
+      ngx_string("ngx.http_user_agent"),
+      NULL, NULL },
+    { ngx_string("request.protocol"),
+      ngx_string("ngx.server_protocol"),
+      NULL, NULL },
+    { ngx_string("request.query"),
+      ngx_string("ngx.args"),
+      NULL, NULL },
+    { ngx_string("request.id"),
+      ngx_null_string,
+      &get_request_id, NULL },
+    { ngx_string("request.referer"),
+      ngx_null_string,
+      &get_referer, NULL },
+    { ngx_string("request.time"),
+      ngx_null_string,
+      &get_request_time, NULL },
+    { ngx_string("request.duration"),
+      ngx_string("ngx.request_time"),
+      NULL, NULL },
+    { ngx_string("request.size"),
+      ngx_string("ngx.content_length"),
+      NULL, NULL },
+    { ngx_string("request.total_size"),
+      ngx_string("ngx.request_length"),
+      NULL, NULL },
+    { ngx_string("request.headers.*"),
+      ngx_null_string,
+      &get_request_headers, NULL },
+
+    /* Response properties */
+
+    { ngx_string("response.code"),
+      ngx_string("ngx.status"),
+      NULL, NULL },
+    { ngx_string("response.size"),
+      ngx_string("ngx.body_bytes_sent"),
+      NULL, NULL },
+    { ngx_string("response.total_size"),
+      ngx_string("ngx.bytes_sent"),
+      NULL, NULL },
+    { ngx_string("response.grpc_status"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("response.trailers"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("response.code_details"),
+      ngx_null_string,
+      &not_supported, NULL },
+    { ngx_string("response.flags"),
+      ngx_null_string,
+      &not_supported, NULL },
+    { ngx_string("response.headers.*"),
+      ngx_null_string,
+      &get_response_headers, NULL },
+
+    /* Upstream properties */
+
+    { ngx_string("upstream.address"),
+      ngx_null_string,
+      &get_upstream_address, NULL },
+    { ngx_string("upstream.port"),
+      ngx_null_string,
+      &get_upstream_port, NULL },
+    { ngx_string("upstream.tls_version"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("upstream.subject_local_certificate"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("upstream.subject_peer_certificate"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("upstream.dns_san_local_certificate"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("upstream.dns_san_peer_certificate"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("upstream.uri_san_local_certificate"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("upstream.uri_san_peer_certificate"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("upstream.sha256_peer_certificate_digest"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("upstream.local_address"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("upstream.transport_failure_reason"),
+      ngx_null_string,
+      &nyi, NULL },
+
+    /* Connection properties */
+
+    { ngx_string("destination.address"),
+      ngx_string("ngx.proxy_protocol_addr"),
+      NULL, NULL },
+    { ngx_string("destination.port"),
+      ngx_string("ngx.proxy_protocol_port"),
+      NULL, NULL },
+    { ngx_string("connection.requested_server_name"),
+      ngx_string("ngx.ssl_server_name"),
+      NULL, NULL },
+    { ngx_string("connection.tls_version"),
+      ngx_string("ngx.ssl_protocol"),
+      NULL, NULL },
+    { ngx_string("connection.subject_local_certificate"),
+      ngx_string("ngx.ssl_client_s_dn"),
+      NULL, NULL },
+    { ngx_string("connection.id"),
+      ngx_null_string,
+      &get_connection_id, NULL },
+    { ngx_string("connection.mtls"),
+      ngx_null_string,
+      &get_connection_mtls, NULL },
+    { ngx_string("connection.subject_peer_certificate"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("connection.dns_san_local_certificate"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("connection.dns_san_peer_certificate"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("connection.uri_san_local_certificate"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("connection.uri_san_peer_certificate"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("connection.sha256_peer_certificate_digest"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("connection.termination_details"),
+      ngx_null_string,
+      &not_supported, NULL },
+#endif
+    { ngx_string("source.address"),
+      ngx_string("ngx.remote_addr"),
+      NULL, NULL },
+    { ngx_string("source.port"),
+      ngx_string("ngx.remote_port"),
+      NULL, NULL },
+
+    /* proxy-wasm properties */
+
+    { ngx_string("plugin_name"),
+      ngx_null_string,
+      &get_filter_name, NULL },
+    { ngx_string("plugin_root_id"),
+      ngx_null_string,
+      &get_filter_root_id, NULL },
+    { ngx_string("plugin_vm_id"),
+      ngx_null_string,
+      &nyi, NULL },
+    { ngx_string("node"),
+      ngx_null_string,
+      &not_supported, NULL },
+    { ngx_string("cluster_name"),
+      ngx_null_string,
+      &not_supported, NULL },
+    { ngx_string("cluster_metadata"),
+      ngx_null_string,
+      &not_supported, NULL },
+    { ngx_string("listener_direction"),
+      ngx_null_string,
+      &not_supported, NULL },
+    { ngx_string("listener_metadata"),
+      ngx_null_string,
+      &not_supported, NULL },
+    { ngx_string("route_name"),
+      ngx_null_string,
+      &not_supported, NULL },
+    { ngx_string("route_metadata"),
+      ngx_null_string,
+      &not_supported, NULL },
+    { ngx_string("upstream_host_metadata"),
+      ngx_null_string,
+      &not_supported, NULL },
+
+    { ngx_null_string, ngx_null_string, NULL, NULL }
+};
+
+
+static int ngx_libc_cdecl
+cmp_properties_wildcards(const void *one, const void *two)
+{
+    ngx_hash_key_t  *first, *second;
+
+    first = (ngx_hash_key_t *) one;
+    second = (ngx_hash_key_t *) two;
+
+    return ngx_dns_strcmp(first->key.data, second->key.data);
+}
+
+
+static ngx_int_t
+add_mapping_to_hash(ngx_conf_t *cf, ngx_hash_keys_arrays_t *keys, ngx_str_t *k,
+    pwm2ngx_mapping_t *m)
+{
+    ngx_uint_t  flag;
+    ngx_str_t   aux = { k->len, NULL };
+
+    flag = k->data[k->len - 1] == '*' ? NGX_HASH_WILDCARD_KEY
+                                      : NGX_HASH_READONLY_KEY;
+
+    if (flag & NGX_HASH_WILDCARD_KEY) {
+        m->pw_key_writable = ngx_palloc(cf->pool, k->len);
+        if (!m->pw_key_writable) {
+            ngx_wavm_log_error(NGX_LOG_ERR, cf->log, NULL,
+                               "failed allocating memory for \"%V\" \
+                               wc hash key", k);
+            return NGX_ERROR;
+
+        }
+
+        ngx_memcpy(m->pw_key_writable, k->data, k->len);
+        aux.data = m->pw_key_writable;
+
+        return ngx_hash_add_key(keys, &aux, m, flag);
+
+    }
+
+    return ngx_hash_add_key(keys, k, m, flag);
+}
+
+
+void
+ngx_proxy_wasm_properties_init(ngx_conf_t *cf)
+{
+    size_t              i;
+    pwm2ngx_mapping_t  *m;
+    ngx_int_t           rc = NGX_ERROR;
+
+    pwm2ngx_init.hash = &pwm2ngx_hash.hash;
+    pwm2ngx_init.key = ngx_hash_key;
+    pwm2ngx_init.max_size = 256;
+    pwm2ngx_init.bucket_size = ngx_align(64, ngx_cacheline_size);
+    pwm2ngx_init.name = "pwm2ngx_properties";
+    pwm2ngx_init.pool = cf->pool;
+    pwm2ngx_init.temp_pool = cf->temp_pool;
+
+    pwm2ngx_keys.pool = cf->pool;
+    pwm2ngx_keys.temp_pool = cf->temp_pool;
+
+    rc = ngx_hash_keys_array_init(&pwm2ngx_keys, NGX_HASH_SMALL);
+    if (rc != NGX_OK) {
+        ngx_wavm_log_error(NGX_LOG_ERR, cf->log, NULL,
+                           "failed initializing \"%V\" hash keys",
+                           pwm2ngx_init.name);
+        return;
+    }
+
+    for (i = 0; pw2ngx[i].pw_key.len; i++) {
+        m = &pw2ngx[i];
+        rc = add_mapping_to_hash(cf, &pwm2ngx_keys, &(m->pw_key), m);
+        if (rc != NGX_OK) {
+            ngx_wavm_log_error(NGX_LOG_WARN, cf->log, NULL,
+                               "failed adding key \"%V\"", m->pw_key);
+        }
+    }
+
+    ngx_hash_init(&pwm2ngx_init, pwm2ngx_keys.keys.elts,
+                  pwm2ngx_keys.keys.nelts);
+
+    if (pwm2ngx_keys.dns_wc_tail.nelts) {
+        /* leveraging ngx hash wildcard usually intended for DNS matching */
+        /* useful for matching request.headers.foo with request.headers.* */
+        ngx_qsort(pwm2ngx_keys.dns_wc_tail.elts,
+                  (size_t) pwm2ngx_keys.dns_wc_tail.nelts,
+                  sizeof(ngx_hash_key_t),
+                  cmp_properties_wildcards);
+
+        pwm2ngx_init.hash = NULL;
+        pwm2ngx_init.temp_pool = cf->temp_pool;
+
+        ngx_hash_wildcard_init(&pwm2ngx_init,
+                               pwm2ngx_keys.dns_wc_tail.elts,
+                               pwm2ngx_keys.dns_wc_tail.nelts);
+
+        pwm2ngx_hash.wc_tail = (ngx_hash_wildcard_t *) pwm2ngx_init.hash;
+    }
+}
 
 
 static ngx_int_t
@@ -59,23 +705,6 @@ ngx_proxy_wasm_properties_get_ngx(ngx_wavm_instance_t *instance,
         return NGX_OK;
     }
 #endif
-
-    return NGX_DECLINED;
-}
-
-
-ngx_int_t
-ngx_proxy_wasm_properties_get(ngx_wavm_instance_t *instance,
-    ngx_str_t *path, ngx_str_t *value)
-{
-    value->data = NULL;
-    value->len = 0;
-
-    if (path->len > ngx_prefix_len
-        && ngx_memcmp(path->data, ngx_prefix, ngx_prefix_len) == 0)
-    {
-        return ngx_proxy_wasm_properties_get_ngx(instance, path, value);
-    }
 
     return NGX_DECLINED;
 }
@@ -114,18 +743,17 @@ ngx_proxy_wasm_properties_set_ngx(ngx_wavm_instance_t *instance,
     hash = hash_str(name.data, name.len);
 
     v = ngx_hash_find(&cmcf->variables_hash, hash, name.data, name.len);
+
     if (!v) {
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
-                           "nginx variable '%*s' not found",
-                           (int) name.len, name.data);
+                           "nginx variable \"%V\" not found", &name);
 
         return NGX_DECLINED;
     }
 
     if (!(v->flags & NGX_HTTP_VAR_CHANGEABLE)) {
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
-                           "variable '%*s' is not changeable",
-                           (int) name.len, name.data);
+                           "variable \"%V\" is not changeable", &name);
 
         return NGX_ERROR;
     }
@@ -156,7 +784,8 @@ ngx_proxy_wasm_properties_set_ngx(ngx_wavm_instance_t *instance,
     }
 
     if (v->flags & NGX_HTTP_VAR_INDEXED) {
-        vv = &r->variables[v->index];
+        vv = &r->variables
+       [v->index];
 
         if (value->data == NULL) {
             vv->valid = 0;
@@ -189,42 +818,69 @@ ngx_proxy_wasm_properties_set_ngx(ngx_wavm_instance_t *instance,
 }
 
 
+static u_char *
+replace_nulls_by_dots(ngx_str_t *from, u_char *to)
+{
+    size_t  i;
+
+    for (i = 0; i < from->len; i++) {
+        to[i] = from->data[i] == '\0' ? '.' : from->data[i];
+    }
+
+    return to;
+}
+
+
+ngx_int_t
+ngx_proxy_wasm_properties_get(ngx_wavm_instance_t *instance,
+    ngx_str_t *path, ngx_str_t *value)
+{
+    pwm2ngx_mapping_t  *m;
+    ngx_uint_t          key;
+    u_char              dotted_path_buf[path->len];
+    ngx_str_t           p = { path->len, NULL };
+
+    p.data = replace_nulls_by_dots(path, dotted_path_buf);
+
+    key = ngx_hash_key(p.data, p.len);
+    m = ngx_hash_find_combined(&pwm2ngx_hash, key, p.data, p.len);
+
+    if (m) {
+        if (!m->ptr) {
+            return ngx_proxy_wasm_properties_get_ngx(instance, &(m->n_key),
+                                                     value);
+
+        } else {
+            return m->ptr(instance, &p, value);
+        }
+    }
+
+    if (ngx_str_eq(p.data, p.len, ngx_prefix, ngx_prefix_len) == 0) {
+        return ngx_proxy_wasm_properties_get_ngx(instance, &p, value);
+    }
+
+    ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
+                       "property \"%V\" not found", &p);
+
+    return NGX_DECLINED;
+}
+
+
 ngx_int_t
 ngx_proxy_wasm_properties_set(ngx_wavm_instance_t *instance,
     ngx_str_t *path, ngx_str_t *value)
 {
-    ngx_int_t   rc;
-    u_char     *p;
-    size_t      i;
+    u_char     dotted_path_buf[path->len];
+    ngx_str_t  p = { path->len, NULL };
 
-    rc = NGX_DECLINED;
+    p.data = replace_nulls_by_dots(path, dotted_path_buf);
 
-    if (path->len > ngx_prefix_len
-        && ngx_memcmp(path->data, ngx_prefix, ngx_prefix_len) == 0)
-    {
-        rc = ngx_proxy_wasm_properties_set_ngx(instance, path, value);
+    if (ngx_memcmp(p.data, ngx_prefix, ngx_prefix_len) == 0) {
+        return ngx_proxy_wasm_properties_set_ngx(instance, &p, value);
     }
 
-    if (rc == NGX_DECLINED) {
-        p = ngx_palloc(instance->pool, path->len);
-        if (p == NULL) {
-            return NGX_ERROR;
-        }
+    ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
+                       "property \"%V\" not found", &p);
 
-        ngx_memcpy(p, path->data, path->len);
-
-        for (i = 0; i < path->len; i++) {
-            if (p[i] == '\0') {
-                p[i] = '.';
-            }
-        }
-
-        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
-                           "property '%*s' not found",
-                           (int) path->len, p);
-
-        ngx_pfree(instance->pool, p);
-    }
-
-    return rc;
+    return NGX_ERROR;
 }

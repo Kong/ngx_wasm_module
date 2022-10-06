@@ -7,6 +7,7 @@
 #ifdef NGX_WASM_HTTP
 #include <ngx_http_proxy_wasm.h>
 #endif
+#include <ngx_proxy_wasm_properties.h>
 
 
 static ngx_int_t ngx_proxy_wasm_init_abi(ngx_proxy_wasm_filter_t *filter);
@@ -106,11 +107,13 @@ ngx_proxy_wasm_ctx_lookup(ngx_proxy_wasm_instance_t *ictx, ngx_uint_t id)
 
 
 void
-ngx_proxy_wasm_init()
+ngx_proxy_wasm_init(ngx_conf_t *cf)
 {
     ngx_rbtree_init(&ngx_proxy_wasm_filters_rbtree,
                     &ngx_proxy_wasm_filters_sentinel,
                     ngx_rbtree_insert_value);
+
+    ngx_proxy_wasm_properties_init(cf);
 }
 
 
@@ -363,6 +366,30 @@ ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx)
 
     if (pwctx->path.data) {
         ngx_pfree(pwctx->pool, pwctx->path.data);
+    }
+
+    if (pwctx->start_time.data) {
+        ngx_pfree(pwctx->pool, pwctx->start_time.data);
+    }
+
+    if (pwctx->upstream_address.data) {
+        ngx_pfree(pwctx->pool, pwctx->upstream_address.data);
+    }
+
+    if (pwctx->upstream_port.data) {
+        ngx_pfree(pwctx->pool, pwctx->upstream_port.data);
+    }
+
+    if (pwctx->connection_id.data) {
+        ngx_pfree(pwctx->pool, pwctx->connection_id.data);
+    }
+
+    if (pwctx->mtls.data) {
+        ngx_pfree(pwctx->pool, pwctx->mtls.data);
+    }
+
+    if (pwctx->root_id.data) {
+        ngx_pfree(pwctx->pool, pwctx->root_id.data);
     }
 
     ngx_array_destroy(&pwctx->pwexecs);

@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use log::*;
 use proxy_wasm::hostcalls::*;
 use proxy_wasm::types::*;
+use urlencoding::decode;
 
 extern "C" {
     fn proxy_get_header_map_value(
@@ -101,6 +102,23 @@ pub(crate) fn test_log_property(ctx: &(dyn TestContext + 'static)) {
             Err(_) => panic!("failed converting {} to UTF-8", name),
         },
         None => info!("property not found: {}", name),
+    }
+}
+
+pub(crate) fn test_log_properties(ctx: &(dyn TestContext + 'static), phase: TestPhase) {
+    let name = ctx.get_config("name").expect("expected a name argument");
+
+    for property in name.split(',') {
+        match ctx.get_property(property.split('.').collect()) {
+            Some(p) => match std::str::from_utf8(&p) {
+                Ok(value) => {
+                    let decoded = decode(value).expect("UTF-8");
+                    info!("{}: {} at {:?}", property, decoded, phase);
+                },
+                Err(_) => panic!("failed converting {} to UTF-8", property),
+            },
+            None => info!("property not found: {} at {:?}", property, phase),
+        }
     }
 }
 
