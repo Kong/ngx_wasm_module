@@ -37,7 +37,7 @@ impl Context for TestHttp {
                     s.push_str(&k);
                     s.push_str(": ");
                     s.push_str(&v);
-                    s.push_str("\n");
+                    s.push('\n');
                 }
                 self.send_plain_response(StatusCode::OK, Some(&s));
             }
