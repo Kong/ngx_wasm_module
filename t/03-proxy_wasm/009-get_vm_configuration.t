@@ -11,6 +11,8 @@ if ($::nginxV =~ /wasmer/) {
     $compiler = "auto";
 }
 
+skip_valgrind('wasmtime');
+
 plan tests => repeat_each() * (blocks() * 3);
 
 run_tests();
