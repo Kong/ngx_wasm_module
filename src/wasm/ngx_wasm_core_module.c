@@ -45,6 +45,14 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       + offsetof(ngx_wavm_conf_t, compiler),
       NULL },
 
+    { ngx_string("preempt"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      0,
+      offsetof(ngx_wasm_core_conf_t, vm_conf)
+      + offsetof(ngx_wavm_conf_t, preempt),
+      NULL },
+
     { ngx_string("module"),
       NGX_WASM_CONF|NGX_CONF_TAKE2,
       ngx_wasm_core_module_directive,

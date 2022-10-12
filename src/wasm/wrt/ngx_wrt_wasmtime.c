@@ -579,4 +579,5 @@ ngx_wrt_t  ngx_wrt = {
     ngx_wasmtime_trap,
     ngx_wasmtime_get_ctx,
     ngx_wasmtime_log_handler,
+    NULL,                              /* interrupt_handler */
 };

@@ -13,6 +13,7 @@ typedef struct ngx_wavm_instance_s  ngx_wavm_instance_t;
 
 typedef struct {
     ngx_str_t                      compiler;
+    ngx_flag_t                     preempt;
 } ngx_wavm_conf_t;
 
 
@@ -286,6 +287,7 @@ typedef struct {
     void                        *(*get_ctx)(void *data);
     u_char                      *(*log_handler)(ngx_wrt_res_t *res,
                                                 u_char *buf, size_t len);
+    ngx_int_t                    (*interrupt_handler)();
 } ngx_wrt_t;
 
 

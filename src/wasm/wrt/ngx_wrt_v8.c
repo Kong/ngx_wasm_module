@@ -524,4 +524,5 @@ ngx_wrt_t  ngx_wrt = {
     ngx_v8_trap,
     NULL,                              /* get_ctx */
     ngx_v8_log_handler,
+    NULL,                              /* interrupt_handler TODO */
 };

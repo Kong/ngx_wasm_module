@@ -99,6 +99,7 @@ NGX_WASM_DEPS="\
     $ngx_addon_dir/src/wasm/ngx_wasm.h \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm.h \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.h \
+    $ngx_addon_dir/src/wasm/vm/ngx_wavm_preempt.h \
     $ngx_addon_dir/src/wasm/ngx_wasm_ops.h \
     $ngx_addon_dir/src/wasm/wasi/ngx_wasi.h \
     $ngx_addon_dir/src/common/ngx_wasm_ffi.h \
@@ -117,6 +118,7 @@ NGX_WASM_SRCS="\
     $ngx_addon_dir/src/wasm/ngx_wasm_util.c \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm.c \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.c \
+    $ngx_addon_dir/src/wasm/vm/ngx_wavm_preempt.c \
     $ngx_addon_dir/src/wasm/wasi/ngx_wasi_host.c \
     $ngx_addon_dir/src/common/ngx_wasm_ffi.c \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp.c \

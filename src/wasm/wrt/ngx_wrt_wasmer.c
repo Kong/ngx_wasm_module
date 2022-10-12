@@ -708,4 +708,5 @@ ngx_wrt_t  ngx_wrt = {
     ngx_wasmer_trap,
     NULL,                              /* get_ctx */
     ngx_wasmer_log_handler,
+    NULL,                              /* interrupt_handler */
 };
