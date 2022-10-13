@@ -176,6 +176,14 @@ add_block_preprocessor(sub {
                 $wasm_config = $wasm_config . (join "\n", @arr);
             }
 
+            # --- preempt_timeout
+
+            my $preempt_timeout = $block->preempt_timeout;
+            if (defined $preempt_timeout) {
+                $wasm_config = $wasm_config .
+                               "    preempt_timeout " . $preempt_timeout . ";\n";
+            }
+
             $wasm_config = $wasm_config . "}\n";
 
             $block->set_value("main_config", $main_config . $wasm_config);

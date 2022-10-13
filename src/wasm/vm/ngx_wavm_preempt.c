@@ -67,12 +67,12 @@ ngx_wavm_preempt_enter(ngx_wavm_preempt_enter_callback_pt callback, void *data)
 
     if (preempt_state.preempt_enabled == 0) {
         callback(data);
-        return 0;
+        return NGX_OK;
     }
 
     if (sigsetjmp(preempt_state.env, 1)) {
         /* unwind */
-        rc = 1;
+        rc = NGX_ABORT;
         goto end;
     }
 

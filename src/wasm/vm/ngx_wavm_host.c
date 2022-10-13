@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wavm.h>
+#include <ngx_wavm_preempt.h>
 
 
 static const wasm_valkind_t  ngx_wavm_i32 = WASM_I32;
@@ -209,6 +210,8 @@ ngx_wavm_hfunc_trampoline(void *env,
 #   error NYI: trampoline host context retrieval
 #endif
 
+    ngx_wavm_preempt_lock();
+
 #ifdef NGX_WASM_HAVE_WASMTIME
     hfunc = (ngx_wavm_hfunc_t *) env;
     instance = (ngx_wavm_instance_t *) ngx_wrt.get_ctx(caller);
@@ -326,5 +329,6 @@ ngx_wavm_hfunc_trampoline(void *env,
 
     wasm_byte_vec_delete(&trapmsg);
 
+    ngx_wavm_preempt_unlock();
     return trap;
 }

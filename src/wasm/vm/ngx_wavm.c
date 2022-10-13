@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wavm.h>
+#include <ngx_wavm_preempt.h>
 
 
 #define ngx_wavm_state(m, s)  ((m)->state & (s))
@@ -215,11 +216,25 @@ ngx_wavm_load(ngx_wavm_t *vm)
     ngx_rbtree_node_t  *root, *sentinel, *node;
     ngx_wavm_module_t  *module;
     ngx_wrt_err_t       e;
+    struct timeval      preempt_timeout;
 
     ngx_wrt_err_init(&e);
 
     if (ngx_wavm_engine_init(vm) != NGX_OK) {
         return NGX_ERROR;
+    }
+
+    if(vm->config->preempt_timeout != 0) {
+        preempt_timeout.tv_sec = vm->config->preempt_timeout / 1000;
+        preempt_timeout.tv_usec = (vm->config->preempt_timeout % 1000) * 1000;
+
+        if (ngx_wavm_preempt_init(&preempt_timeout) != NGX_OK) {
+            return NGX_ERROR;
+        }
+
+        ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL,
+                           "async preemption enabled with %dms timeout",
+                           vm->config->preempt_timeout);
     }
 
     root = vm->modules_tree.root;
@@ -1044,12 +1059,31 @@ error:
 }
 
 
+typedef struct {
+    ngx_int_t         rc;
+    ngx_wavm_func_t  *f;
+    wasm_val_vec_t   *args;
+    wasm_val_vec_t   *rets;
+    ngx_wrt_err_t    *e;
+} ngx_wavm_call_ctx_t;
+
+
+static void ngx_wavm_func_call_impl(void *data) {
+    ngx_wavm_call_ctx_t *ctx = data;
+
+    ctx->rc = ngx_wrt.call(&ctx->f->instance->wrt_instance,
+                           &ctx->f->name, ctx->f->idx,
+                           ctx->args, ctx->rets, ctx->e);
+}
+
+
 static ngx_inline ngx_int_t
 ngx_wavm_func_call(ngx_wavm_func_t *f, wasm_val_vec_t *args,
     wasm_val_vec_t *rets, ngx_wrt_err_t *e)
 {
     ngx_int_t             rc;
     ngx_wavm_instance_t  *instance;
+    ngx_wavm_call_ctx_t   call_ctx;
 
     ngx_wasm_assert(args);
     ngx_wasm_assert(rets);
@@ -1063,9 +1097,18 @@ ngx_wavm_func_call(ngx_wavm_func_t *f, wasm_val_vec_t *args,
 
     ngx_wrt_err_init(e);
 
-    rc = ngx_wrt.call(&instance->wrt_instance,
-                      &f->name, f->idx,
-                      args, rets, e);
+    ngx_memzero(&call_ctx, sizeof(call_ctx));
+    call_ctx.rc = NGX_OK;
+    call_ctx.f = f;
+    call_ctx.args = args;
+    call_ctx.rets = rets;
+    call_ctx.e = e;
+
+    rc = ngx_wavm_preempt_enter(ngx_wavm_func_call_impl, &call_ctx);
+
+    if (rc == NGX_OK) {
+        rc = call_ctx.rc;
+    }
 
     if (rc == NGX_ABORT) {
         instance->state |= NGX_WAVM_INSTANCE_TRAPPED;

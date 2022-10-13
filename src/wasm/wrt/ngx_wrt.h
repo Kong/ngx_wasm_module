@@ -13,7 +13,7 @@ typedef struct ngx_wavm_instance_s  ngx_wavm_instance_t;
 
 typedef struct {
     ngx_str_t                      compiler;
-    ngx_flag_t                     preempt;
+    ngx_msec_t                     preempt_timeout;
 } ngx_wavm_conf_t;
 
 

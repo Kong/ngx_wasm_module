@@ -45,12 +45,12 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       + offsetof(ngx_wavm_conf_t, compiler),
       NULL },
 
-    { ngx_string("preempt"),
+    { ngx_string("preempt_timeout"),
       NGX_WASM_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
+      ngx_conf_set_msec_slot,
       0,
       offsetof(ngx_wasm_core_conf_t, vm_conf)
-      + offsetof(ngx_wavm_conf_t, preempt),
+      + offsetof(ngx_wavm_conf_t, preempt_timeout),
       NULL },
 
     { ngx_string("module"),
@@ -224,6 +224,8 @@ ngx_wasm_core_create_conf(ngx_conf_t *cf)
     wcf->ssl_conf.verify_host = NGX_CONF_UNSET;
     wcf->ssl_conf.no_verify_warn = NGX_CONF_UNSET;
 #endif
+
+    wcf->vm_conf.preempt_timeout = NGX_CONF_UNSET_MSEC;
 
     return wcf;
 }
