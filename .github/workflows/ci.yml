@@ -29,7 +29,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-8]
-        ngx: [1.23.1]
+        ngx: [1.23.2]
         runtime: [wasmer]
         wasmer: [2.3.0]
         hup: [0]
@@ -38,7 +38,7 @@ jobs:
           # Wasmtime
           - os: ubuntu-latest
             cc: gcc-8
-            ngx: 1.23.1
+            ngx: 1.23.2
             runtime: wasmtime
             wasmtime: 0.38.1
             hup: 1
@@ -46,7 +46,7 @@ jobs:
           # V8
           - os: ubuntu-latest
             cc: gcc-8
-            ngx: 1.23.1
+            ngx: 1.23.2
             runtime: v8
             v8: 10.5.18
           # OpenResty
@@ -155,21 +155,21 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         cc: [gcc-11]
-        ngx: [1.23.1]
+        ngx: [1.23.2]
         runtime: [wasmer]
         wasmer: [2.3.0]
         hup: [0, 1]
         debug: [1]
         include:
           - os: ubuntu-22.04
-            ngx: 1.23.1
+            ngx: 1.23.2
             runtime: wasmtime
             wasmtime: 0.38.1
             hup: 0
             debug: 1
           - os: ubuntu-22.04
             cc: gcc-11
-            ngx: 1.23.1
+            ngx: 1.23.2
             runtime: v8
             v8: 10.5.18
             hup: 0
@@ -271,7 +271,7 @@ jobs:
       fail-fast: false
       matrix:
         cc: [clang-9]
-        ngx: [1.23.1]
+        ngx: [1.23.2]
         runtime: [wasmtime]
         wasmtime: [0.38.1]
     steps:
@@ -312,7 +312,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [clang]
-        ngx: [1.23.1]
+        ngx: [1.23.2]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [0.38.1]
         wasmer: [2.3.0]
