@@ -1,6 +1,6 @@
 use ngx::*;
+use std::time::{Instant, SystemTime};
 use wasi;
-use std::time::{SystemTime, Instant};
 
 macro_rules! test_wasi_assert {
     ($e:expr) => {
@@ -89,7 +89,7 @@ pub fn test_wasi_clock_time_get_via_instant() {
 pub fn test_wasi_clock_time_get() {
     // direct WASI access
     if let Ok(timestamp) = unsafe { wasi::clock_time_get(wasi::CLOCKID_REALTIME, 0) } {
-        let msg = format!("test passed with timestamp: {}", timestamp);
+        let msg = format!("test passed with timestamp: {timestamp}");
         resp::ngx_resp_local_reason(204, &msg);
     } else {
         resp::ngx_resp_local_reason(500, "test failed");
@@ -145,14 +145,23 @@ pub fn test_wasi_fd_write_via_println() {
 
 fn test_fd_write(fd: wasi::Fd) {
     let iovs = [
-        wasi::Ciovec { buf: "hello".as_ptr(), buf_len: 5 },
-        wasi::Ciovec { buf: ", ".as_ptr(), buf_len: 2 },
-        wasi::Ciovec { buf: "fd_write".as_ptr(), buf_len: 8 },
+        wasi::Ciovec {
+            buf: "hello".as_ptr(),
+            buf_len: 5,
+        },
+        wasi::Ciovec {
+            buf: ", ".as_ptr(),
+            buf_len: 2,
+        },
+        wasi::Ciovec {
+            buf: "fd_write".as_ptr(),
+            buf_len: 8,
+        },
     ];
 
     // direct WASI access
     if let Ok(n) = unsafe { wasi::fd_write(fd, &iovs) } {
-        let msg = format!("test passed, wrote {} bytes", n);
+        let msg = format!("test passed, wrote {n} bytes");
         resp::ngx_resp_local_reason(204, &msg);
     } else {
         resp::ngx_resp_local_reason(500, "test failed");
@@ -172,9 +181,18 @@ pub fn test_wasi_fd_write_stderr() {
 #[no_mangle]
 pub fn test_wasi_fd_write_unsupported_fd() {
     let iovs = [
-        wasi::Ciovec { buf: "hello".as_ptr(), buf_len: 5 },
-        wasi::Ciovec { buf: ", ".as_ptr(), buf_len: 2 },
-        wasi::Ciovec { buf: "fd_write".as_ptr(), buf_len: 8 },
+        wasi::Ciovec {
+            buf: "hello".as_ptr(),
+            buf_len: 5,
+        },
+        wasi::Ciovec {
+            buf: ", ".as_ptr(),
+            buf_len: 2,
+        },
+        wasi::Ciovec {
+            buf: "fd_write".as_ptr(),
+            buf_len: 8,
+        },
     ];
 
     if unsafe { wasi::fd_write(999, &iovs).is_ok() } {
@@ -186,7 +204,7 @@ pub fn test_wasi_fd_write_unsupported_fd() {
 
 #[no_mangle]
 pub fn test_wasi_fd_write_empty_string() {
-    let iovs: [ wasi::Ciovec; 0 ] = [];
+    let iovs: [wasi::Ciovec; 0] = [];
 
     // direct WASI access
     if unsafe { wasi::fd_write(1, &iovs).is_ok() } {

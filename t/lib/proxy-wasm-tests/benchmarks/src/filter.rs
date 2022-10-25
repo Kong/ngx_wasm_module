@@ -30,7 +30,7 @@ impl HttpContext for Benchmarks {
                     .get_http_request_header("x-prefix")
                     .expect("missing x-prefix");
                 for i in 0u64.. {
-                    let s = format!("{}-{}", prefix, i);
+                    let s = format!("{prefix}-{i}");
                     let hash = blake3::hash(s.as_bytes());
                     let bytes = hash.as_bytes();
                     if bytes[0] == 0 && bytes[1] == 0 {
