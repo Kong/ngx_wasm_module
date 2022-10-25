@@ -107,7 +107,7 @@ pub(crate) fn test_log_property(ctx: &(dyn TestContext + 'static)) {
 fn show_property(ctx: &(dyn TestContext + 'static), path: &[&str]) -> String {
     if let Some(p) = ctx.get_property(path.to_vec()) {
         if let Ok(value) = std::str::from_utf8(&p) {
-            return format!("\"{}\"", value);
+            return format!("\"{value}\"");
         }
     }
 
@@ -336,7 +336,7 @@ pub(crate) fn test_get_shared_data(ctx: &mut TestHttp) {
 
     let (data, cas) = ctx.get_shared_data(ctx.config.get("key").unwrap());
     let cas_value = cas
-        .map(|x| format!("{}", x))
+        .map(|x| format!("{x}"))
         .unwrap_or_else(|| "0".to_string());
 
     ctx.add_http_response_header(hcas, cas_value.as_str());
@@ -390,7 +390,7 @@ pub(crate) fn test_shared_queue_enqueue(ctx: &mut TestHttp) {
         .map(|_| 0)
         .unwrap_or_else(|x| x as u32);
 
-    ctx.add_http_response_header(hstatus, format!("{}", status).as_str());
+    ctx.add_http_response_header(hstatus, format!("{status}").as_str());
 }
 
 pub(crate) fn test_shared_queue_dequeue(ctx: &mut TestHttp) {

@@ -9,25 +9,25 @@
 // Bauhaus which in turn was based on code by Dave Fladebo, Eckehard Berns,
 // Heiner Marxen, Hongwei Xi, and The Anh Tran and also the Java program by Oleg
 // Mazurov.
-// 
+//
 // Copyright © 2004-2008 Brent Fulgham, 2005-2022 Isaac Gouy
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
 // Redistributions of source code must retain the above copyright notice, this list of
 // conditions and the following disclaimer.
-// 
+//
 // Redistributions in binary form must reproduce the above copyright notice, this list
 // of conditions and the following disclaimer in the documentation and/or other materials
 // provided with the distribution.
-// 
+//
 // Neither the name "The Computer Language Benchmarks Game" nor the name "The Benchmarks
 // Game" nor the name "The Computer Language Shootout Benchmarks" nor the names of its
 // contributors may be used to endorse or promote products derived from this software
 // without specific prior written permission.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 // OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
@@ -72,8 +72,7 @@ pub fn run(n: usize) -> String {
     // block_size from being set to 0. This also causes smaller values of n to
     // be computed serially which is faster and uses less resources for small
     // values of n.
-    let block_size =
-        1.max(factorial_lookup_table[n] / PREFERRED_NUMBER_OF_BLOCKS_TO_USE);
+    let block_size = 1.max(factorial_lookup_table[n] / PREFERRED_NUMBER_OF_BLOCKS_TO_USE);
     let block_count = factorial_lookup_table[n] / block_size;
 
     // Iterate over each block.
@@ -98,10 +97,8 @@ pub fn run(n: usize) -> String {
 
                     // Rotate the permutation left by d places. This is faster
                     // than using slice::rotate_left.
-                    temp_permutation[0..=i - d]
-                        .copy_from_slice(&current_permutation[d..=i]);
-                    temp_permutation[i - d + 1..=i]
-                        .copy_from_slice(&current_permutation[..d]);
+                    temp_permutation[0..=i - d].copy_from_slice(&current_permutation[d..=i]);
+                    temp_permutation[i - d + 1..=i].copy_from_slice(&current_permutation[..d]);
                     current_permutation = temp_permutation;
 
                     permutation_index %= f;
@@ -113,9 +110,7 @@ pub fn run(n: usize) -> String {
 
             // Iterate over each permutation in the block.
             let last_permutation_index = initial_permutation_index + block_size;
-            for permutation_index in
-                initial_permutation_index..last_permutation_index
-            {
+            for permutation_index in initial_permutation_index..last_permutation_index {
                 // If the first value in the current_permutation is not 1 (0)
                 // then we will need to do at least one flip for the
                 // current_permutation.
@@ -131,10 +126,8 @@ pub fn run(n: usize) -> String {
                     while temp_permutation[first_value] > 0 {
                         // Record the new_first_value and restore the old
                         // first_value at its new flipped position.
-                        let new_first_value = replace(
-                            &mut temp_permutation[first_value],
-                            first_value as u8,
-                        );
+                        let new_first_value =
+                            replace(&mut temp_permutation[first_value], first_value as u8);
 
                         // If first_value is greater than 3 (2) then we are
                         // flipping a series of four or more values so we will
@@ -191,10 +184,7 @@ pub fn run(n: usize) -> String {
             }
             (checksum, max_flip_count)
         })
-        .fold(
-            (0, 0),
-            |(cs1, mf1), (cs2, mf2)| (cs1 + cs2, mf1.max(mf2)),
-        );
+        .fold((0, 0), |(cs1, mf1), (cs2, mf2)| (cs1 + cs2, mf1.max(mf2)));
 
-    format!("{}\nPfannkuchen({}) = {}", checksum, n, max_flip_count)
+    format!("{checksum}\nPfannkuchen({n}) = {max_flip_count}")
 }
