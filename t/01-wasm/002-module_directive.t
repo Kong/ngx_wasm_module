@@ -13,6 +13,8 @@ run_tests();
 __DATA__
 
 === TEST 1: module directive - valid .wasm module
+Too slow for Valgrind
+--- skip_valgrind: 4
 --- main_config eval
 qq{
     wasm {
