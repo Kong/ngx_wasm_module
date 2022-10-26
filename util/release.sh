@@ -16,7 +16,7 @@ source $NGX_WASM_DIR/util/_lib.sh
 ###############################################################################
 PCRE_VER=8.45
 OPENSSL_VER=1.1.1r
-ZLIB_VER=1.2.12
+ZLIB_VER=1.2.13
 
 while (( "$#" )); do
     case "$1" in
