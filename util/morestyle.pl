@@ -56,6 +56,9 @@ for my $file (@ARGV) {
     # initial section with defines and includes
     my ($include_section, $prev_consecutive_empty_lines) = (1, 0);
 
+    # function declaration
+    my $func_decl;
+
     ##################################################################
     # end new rules - flags
     ##################################################################
@@ -274,6 +277,29 @@ for my $file (@ARGV) {
 
             $prev_consecutive_empty_lines = $consecutive_empty_lines;
 
+            # return types are followed by a line break in function declarations
+
+            if ($infile =~ /\.c$/) {
+                if ($line =~ /^((static\s+)?[a-z_]+\s+(\*+\s*)?)[a-z_]+\(/) {
+                    if ($line =~ /\)$/) {
+                        output "function declaration needs line break after return type.";
+
+                    } elsif ($line !~ /;$/) {
+                        $func_decl = $line;
+                        save_var();
+                    }
+
+                } elsif (defined $func_decl) {
+                    # declaration spans multiple lines
+                    if ($line =~ /\)$/) {
+                        var_output "function declaration needs line break after return type.";
+
+                    } elsif ($line =~ /;$/) {
+                        undef $func_decl;
+                    }
+                }
+            }
+
             ##################################################################
             # end new rules - excluding comment lines
             ##################################################################
@@ -306,7 +332,6 @@ for my $file (@ARGV) {
     }
 }
 
-
 sub replace_quotes ($) {
     my ($str) = @_;
     while ($str =~ s/[^z]/z/g) {}
@@ -315,11 +340,6 @@ sub replace_quotes ($) {
 
 sub output ($) {
     my ($str) = @_;
-
-    # skip *_lua_lex.c
-    if ($infile =~ /_lua_lex.c$/) {
-        return;
-    }
 
     if (!exists($files{$infile})) {
         print "\n$infile:\n";
