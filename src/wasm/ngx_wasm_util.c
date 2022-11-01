@@ -408,8 +408,9 @@ ngx_wasm_list_nelts(ngx_list_t *list)
         h = part->elts;
 
         for (i = 0; i < part->nelts; i++) {
-            if (h[i].hash)
+            if (h[i].hash) {
                 c++;
+            }
         }
 
         part = part->next;

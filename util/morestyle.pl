@@ -2,12 +2,15 @@
 
 use strict;
 use warnings;
+use local::lib "work/downloads/cpanm";
+use Regexp::Common;
 
 sub output($);
 sub replace_quotes($);
 
 my %files;
-my $space_with = 4;
+my $space_width = 4;
+my $balanced = $RE{balanced}{-parens => '()'};
 
 my ($infile, $lineno, $line);
 
@@ -57,7 +60,7 @@ for my $file (@ARGV) {
     my ($include_section, $prev_consecutive_empty_lines) = (1, 0);
 
     # function declaration
-    my $func_decl;
+    my ($func_decl_multiline, $in_func_decl);
 
     ##################################################################
     # end new rules - flags
@@ -277,27 +280,75 @@ for my $file (@ARGV) {
 
             $prev_consecutive_empty_lines = $consecutive_empty_lines;
 
-            # return types are followed by a line break in function declarations
+            # function declarations
 
             if ($infile =~ /\.c$/) {
+
+                # return types are followed by a line break
+
                 if ($line =~ /^((static\s+)?[a-z_]+\s+(\*+\s*)?)[a-z_]+\(/) {
                     if ($line =~ /\)$/) {
                         output "function declaration needs line break after return type.";
 
                     } elsif ($line !~ /;$/) {
-                        $func_decl = $line;
+                        $func_decl_multiline = $line;
                         save_var();
                     }
 
-                } elsif (defined $func_decl) {
+                } elsif (defined $func_decl_multiline) {
                     # declaration spans multiple lines
                     if ($line =~ /\)$/) {
                         var_output "function declaration needs line break after return type.";
 
                     } elsif ($line =~ /;$/) {
-                        undef $func_decl;
+                        undef $func_decl_multiline;
                     }
                 }
+
+                # proper identation of multi-line declarations
+
+                if ($in_func_decl) {
+                    if ($line =~ /\(/) {
+                        # func_name(...
+                        if ($line !~ /^\S/) {
+                            output "incorrect front spaces.";
+                        }
+
+                    } else {
+                        # catch case when arguments are double-indented
+                        # (accepted by ngx-style.pl)
+                        my $invalid_width = $space_width * 2;
+
+                        if ($line =~ /^\s{\Q$invalid_width\E}\S/) {
+                            output "incorrect front spaces, bad indentation.";
+                        }
+                    }
+
+                    if ($line =~ /\)$/) {
+                        undef $in_func_decl;
+                    }
+                }
+
+                if ($line =~ /^(static\s+)?[a-z_]+\s+(\*+\s*)?$/) {
+                    # declaration spans multiple lines, check next line
+                    $in_func_decl = 1;
+                }
+            }
+
+            # expressions have their opening brackets on the same line
+
+            if ($line =~ /(?:for|if|switch)\s+(\(.*?\))$/) {
+                my $expr = $1;
+
+                if ($expr =~ /^$balanced$/) {
+                    # parenthesis are balanced, expression is complete in a single line
+
+                    if ($line !~ /({|}|;|\*\/)$/) {
+                        # line does not end with '{'
+                        # (nor '}', ';', '*/' for loops)
+                        output "single-line expression must open bracket on same line.";
+                    }
+                 }
             }
 
             ##################################################################
