@@ -34,6 +34,7 @@ pushd $DIR_CPANM
     notice "downloading Test::Nginx dependencies..."
     HOME=$DIR_CPANM ./cpanm $PERL_ARGS Test::Nginx
     HOME=$DIR_CPANM ./cpanm $PERL_ARGS IPC::Run
+    HOME=$DIR_CPANM ./cpanm $PERL_ARGS Regexp::Common
 
     set +e
     patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'

@@ -214,8 +214,9 @@ ngx_proxy_wasm_properties_set(ngx_wavm_instance_t *instance,
         ngx_memcpy(p, path->data, path->len);
 
         for (i = 0; i < path->len; i++) {
-            if (p[i] == '\0')
+            if (p[i] == '\0') {
                 p[i] = '.';
+            }
         }
 
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
