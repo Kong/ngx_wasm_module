@@ -161,7 +161,9 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     uint32_t                      *rlen;
     ngx_wavm_ptr_t                *rbuf, p;
     ngx_proxy_wasm_buffer_type_e   buf_type;
-    ngx_proxy_wasm_exec_t         *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_exec_t         *pwexec;
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
 
     buf_type = args[0].of.i32;
     offset = args[1].of.i32;
@@ -348,8 +350,10 @@ ngx_proxy_wasm_hfuncs_get_header_map_pairs(ngx_wavm_instance_t *instance,
     ngx_list_t                 *list;
     ngx_array_t                 extras;
     ngx_wavm_ptr_t             *rbuf;
-    ngx_proxy_wasm_exec_t      *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_exec_t      *pwexec;
     ngx_proxy_wasm_map_type_e   map_type;
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
 
     map_type = args[0].of.i32;
     rbuf = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, ngx_wavm_ptr_t);
@@ -697,7 +701,8 @@ ngx_proxy_wasm_hfuncs_get_current_time(ngx_wavm_instance_t *instance,
 
     /* WASM might not align 64-bit integers to 8-byte boundaries. So we
      * need to buffer & copy here. */
-    rtime = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, sizeof(uint64_t));
+    rtime = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32,
+                                     sizeof(uint64_t));
 
     ngx_time_update();
 
@@ -765,11 +770,13 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_badarg(rets);
 
     case NGX_BUSY:
-        return ngx_proxy_wasm_result_trap(pwexec, "local response already stashed",
+        return ngx_proxy_wasm_result_trap(pwexec,
+                                          "local response already stashed",
                                           rets);
 
     case NGX_ABORT:
-        return ngx_proxy_wasm_result_trap(pwexec, "response already sent", rets);
+        return ngx_proxy_wasm_result_trap(pwexec,
+                                          "response already sent", rets);
 
     default:
         /* unreachable */
@@ -800,13 +807,15 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
     host.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, host.len);
 
     headers.len = args[3].of.i32;
-    headers.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[2].of.i32, headers.len);
+    headers.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[2].of.i32,
+                                            headers.len);
 
     body.len = args[5].of.i32;
     body.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[4].of.i32, body.len);
 
     trailers.len = args[7].of.i32;
-    trailers.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[6].of.i32, trailers.len);
+    trailers.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[6].of.i32,
+                                             trailers.len);
 
     timeout = args[8].of.i32;
     callout_id = NGX_WAVM_HOST_LIFT(instance, args[9].of.i32, uint32_t);

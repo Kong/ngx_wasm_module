@@ -358,7 +358,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
             headers_in->status_n = status->code;
             headers_in->status_line.len = status->end - status->start;
             headers_in->status_line.data = ngx_pnalloc(in_ctx->pool,
-                                                       headers_in->status_line.len);
+                                               headers_in->status_line.len);
             if (headers_in->status_line.data == NULL) {
                 return NGX_ERROR;
             }

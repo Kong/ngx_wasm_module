@@ -9,6 +9,7 @@ sub output($);
 sub replace_quotes($);
 
 my %files;
+my $max_width = 80;
 my $space_width = 4;
 my $balanced = $RE{balanced}{-parens => '()'};
 
@@ -212,9 +213,18 @@ for my $file (@ARGV) {
                 }
             }
 
+            # lines over 80 characters
+
+            if ($line =~ /^.{\Q$max_width\E}.*?\S/
+                && $line !~ /\*\/$/)
+            {
+                output "line too long (max $max_width columns).";
+            }
+
             # comment // */
+
             if ($line =~ /^\s*\/\//) {
-                output "avoid C99-style comments ( // ), use C89-style ( /* */ )";
+                output "avoid C99-style comments ( // ), use C89-style ( /* */ ).";
             }
 
             # top level indent

@@ -11,8 +11,8 @@
 
 static ngx_list_t *ngx_proxy_wasm_maps_get_map(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_map_type_e map_type);
-static ngx_str_t *ngx_proxy_wasm_maps_get_special_key(ngx_wavm_instance_t *instance,
-    ngx_uint_t map_type, ngx_str_t *key);
+static ngx_str_t *ngx_proxy_wasm_maps_get_special_key(
+    ngx_wavm_instance_t *instance, ngx_uint_t map_type, ngx_str_t *key);
 static ngx_int_t ngx_proxy_wasm_maps_set_special_key(
     ngx_wavm_instance_t *instance, ngx_uint_t map_type,
     ngx_str_t *key, ngx_str_t *value);
@@ -203,8 +203,13 @@ ngx_str_t *
 ngx_proxy_wasm_maps_get(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_map_type_e map_type, ngx_str_t *key)
 {
-    ngx_str_t   *value;
-    ngx_list_t  *list;
+    ngx_str_t                *value;
+    ngx_list_t               *list;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+#endif
 
     /* special keys lookup */
 
@@ -229,8 +234,7 @@ ngx_proxy_wasm_maps_get(ngx_wavm_instance_t *instance,
     if (map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS) {
         /* shim header lookup */
 
-        value = ngx_http_wasm_get_shim_header(ngx_http_proxy_wasm_get_rctx(instance),
-                                              key->data, key->len);
+        value = ngx_http_wasm_get_shim_header(rctx, key->data, key->len);
         if (value) {
             goto found;
         }

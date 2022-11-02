@@ -47,7 +47,8 @@ ngx_http_wasm_htype_list(ngx_http_request_t *r,
 
 ngx_int_t
 ngx_http_wasm_set_header(ngx_http_request_t *r,
-    ngx_http_wasm_headers_type_e htype, ngx_http_wasm_header_handler_t *handlers,
+    ngx_http_wasm_headers_type_e htype,
+    ngx_http_wasm_header_handler_t *handlers,
     ngx_str_t *key, ngx_str_t *value, ngx_http_wasm_headers_set_mode_e mode)
 {
     size_t                           i;
@@ -237,7 +238,8 @@ new_header:
 
 ngx_int_t
 ngx_http_wasm_clear_headers_helper(ngx_http_request_t *r,
-    ngx_http_wasm_headers_type_e htype, ngx_http_wasm_header_handler_t *handlers)
+    ngx_http_wasm_headers_type_e htype,
+    ngx_http_wasm_header_handler_t *handlers)
 {
     size_t            i;
     ngx_int_t         rc;

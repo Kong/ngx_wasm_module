@@ -12,8 +12,8 @@ static char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_wasm_core_shm_kv_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
-static char *ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
+static char *ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf,
+    ngx_command_t *cmd, void *conf);
 static char *ngx_wasm_core_init_conf(ngx_conf_t *cf, void *conf);
 static ngx_int_t ngx_wasm_core_init(ngx_cycle_t *cycle);
 static ngx_int_t ngx_wasm_core_init_process(ngx_cycle_t *cycle);

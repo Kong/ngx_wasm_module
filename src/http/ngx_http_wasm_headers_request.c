@@ -401,7 +401,8 @@ error:
 
 
 static ngx_int_t
-ngx_http_wasm_set_builtin_multi_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
+ngx_http_wasm_set_builtin_multi_header_handler(
+    ngx_http_wasm_header_set_ctx_t *hv)
 {
 #if (nginx_version >= 1023000)
     ngx_table_elt_t     **headers, **ph, *h;

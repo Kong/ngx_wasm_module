@@ -13,7 +13,8 @@ static ngx_int_t ngx_proxy_wasm_init_abi(ngx_proxy_wasm_filter_t *filter);
 static ngx_int_t ngx_proxy_wasm_start_filter(ngx_proxy_wasm_filter_t *filter);
 static void ngx_proxy_wasm_instance_destroy(ngx_proxy_wasm_instance_t *ictx);
 static ngx_proxy_wasm_err_e ngx_proxy_wasm_on_start(
-    ngx_proxy_wasm_instance_t *ictx, ngx_proxy_wasm_filter_t *filter, unsigned start);
+    ngx_proxy_wasm_instance_t *ictx, ngx_proxy_wasm_filter_t *filter,
+    unsigned start);
 static void ngx_proxy_wasm_on_log(ngx_proxy_wasm_exec_t *pwexec);
 static void ngx_proxy_wasm_on_done(ngx_proxy_wasm_exec_t *pwexec);
 static ngx_int_t ngx_proxy_wasm_on_tick(ngx_proxy_wasm_exec_t *pwexec);
@@ -225,8 +226,8 @@ ngx_proxy_wasm_start(ngx_cycle_t *cycle)
         rc = ngx_proxy_wasm_start_filter(filter);
         if (rc != NGX_OK) {
             ngx_proxy_wasm_log_error(NGX_LOG_EMERG, filter->log, filter->ecode,
-                                     "proxy_wasm failed initializing \"%V\" filter",
-                                     filter->name);
+                                     "proxy_wasm failed initializing "
+                                     "\"%V\" filter", filter->name);
 
         }
     }
@@ -699,13 +700,14 @@ ret:
 ngx_wavm_ptr_t
 ngx_proxy_wasm_alloc(ngx_proxy_wasm_exec_t *pwexec, size_t size)
 {
-    ngx_wavm_ptr_t        p;
-    ngx_int_t             rc;
-    wasm_val_vec_t       *rets;
-    ngx_wavm_instance_t  *instance = ngx_proxy_wasm_pwexec2instance(pwexec);
+    ngx_wavm_ptr_t            p;
+    ngx_int_t                 rc;
+    wasm_val_vec_t           *rets;
+    ngx_proxy_wasm_filter_t  *filter = pwexec->filter;
+    ngx_wavm_instance_t      *instance = ngx_proxy_wasm_pwexec2instance(pwexec);
 
     rc = ngx_wavm_instance_call_funcref(instance,
-                                        pwexec->filter->proxy_on_memory_allocate,
+                                        filter->proxy_on_memory_allocate,
                                         &rets, size);
     if (rc != NGX_OK) {
         ngx_wasm_log_error(NGX_LOG_CRIT, pwexec->log, 0,
@@ -1363,6 +1365,7 @@ static void
 ngx_proxy_wasm_on_done(ngx_proxy_wasm_exec_t *pwexec)
 {
     ngx_wavm_instance_t             *instance;
+    ngx_proxy_wasm_filter_t         *filter = pwexec->filter;
 #if 0
 #ifdef NGX_WASM_HTTP
     ngx_http_proxy_wasm_dispatch_t  *call;
@@ -1395,7 +1398,7 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_exec_t *pwexec)
 #endif
 
     (void) ngx_wavm_instance_call_funcref(instance,
-                                          pwexec->filter->proxy_on_context_finalize,
+                                          filter->proxy_on_context_finalize,
                                           NULL, pwexec->id);
 
     ngx_rbtree_delete(&pwexec->ictx->tree_ctxs, &pwexec->node);
@@ -1405,8 +1408,9 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_exec_t *pwexec)
 static ngx_int_t
 ngx_proxy_wasm_on_tick(ngx_proxy_wasm_exec_t *pwexec)
 {
-    ngx_int_t        rc;
-    wasm_val_vec_t   args;
+    ngx_int_t                 rc;
+    wasm_val_vec_t            args;
+    ngx_proxy_wasm_filter_t  *filter = pwexec->filter;
 
     ngx_wasm_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
@@ -1414,7 +1418,7 @@ ngx_proxy_wasm_on_tick(ngx_proxy_wasm_exec_t *pwexec)
     ngx_wasm_vec_set_i32(&args, 0, pwexec->id);
 
     rc = ngx_wavm_instance_call_funcref_vec(pwexec->ictx->instance,
-                                            pwexec->filter->proxy_on_timer_ready,
+                                            filter->proxy_on_timer_ready,
                                             NULL, &args);
 
     wasm_val_vec_delete(&args);

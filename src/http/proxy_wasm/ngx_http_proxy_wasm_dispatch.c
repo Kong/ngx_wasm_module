@@ -42,7 +42,8 @@ ngx_http_proxy_wasm_dispatch_strerror(ngx_http_proxy_wasm_dispatch_err_e err)
 
     msg = ((ngx_uint_t) err < NGX_HTTP_PROXY_WASM_DISPATCH_ERR_UNKNOWN)
               ? &ngx_http_proxy_wasm_dispatch_errlist[err]
-              : &ngx_http_proxy_wasm_dispatch_errlist[NGX_HTTP_PROXY_WASM_DISPATCH_ERR_UNKNOWN];
+              : &ngx_http_proxy_wasm_dispatch_errlist[
+                     NGX_HTTP_PROXY_WASM_DISPATCH_ERR_UNKNOWN];
 
     return msg;
 }
@@ -198,7 +199,8 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     /* headers/trailers */
 
-    if (ngx_proxy_wasm_pairs_unmarshal(pwexec, &call->headers, headers) != NGX_OK
+    if (ngx_proxy_wasm_pairs_unmarshal(pwexec, &call->headers, headers)
+        != NGX_OK
         || ngx_proxy_wasm_pairs_unmarshal(pwexec, &call->trailers, trailers)
            != NGX_OK)
     {
@@ -227,7 +229,9 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
                 call->uri.len = elt->value.len;
                 call->uri.data = elt->value.data;
 
-            } else if (ngx_str_eq(elt->key.data, elt->key.len, ":authority", -1)) {
+            } else if (ngx_str_eq(elt->key.data, elt->key.len,
+                                  ":authority", -1))
+            {
                 call->authority.len = elt->value.len;
                 call->authority.data = elt->value.data;
 
@@ -237,7 +241,9 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
                     enable_ssl = 1;
                     dd("tls enabled");
 
-                } else if (ngx_str_eq(elt->value.data, elt->value.len, "http", -1)) {
+                } else if (ngx_str_eq(elt->value.data, elt->value.len,
+                                      "http", -1))
+                {
                     dd("tls disabled");
 
                 } else {

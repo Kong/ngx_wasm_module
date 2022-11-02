@@ -6,7 +6,8 @@
 #include <ngx_http_wasm.h>
 
 
-static ngx_str_t *ngx_http_wasm_shim_content_type(ngx_http_wasm_req_ctx_t *rctx);
+static ngx_str_t *ngx_http_wasm_shim_content_type(
+    ngx_http_wasm_req_ctx_t *rctx);
 static ngx_str_t *ngx_http_wasm_shim_content_len(ngx_http_wasm_req_ctx_t *rctx);
 static ngx_str_t *ngx_http_wasm_shim_connection(ngx_http_wasm_req_ctx_t *rctx);
 static ngx_str_t *ngx_http_wasm_shim_keep_alive(ngx_http_wasm_req_ctx_t *rctx);

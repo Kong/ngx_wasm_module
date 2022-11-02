@@ -264,13 +264,15 @@ ngx_http_set_content_type_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 
 
 static ngx_int_t
-ngx_http_wasm_set_builtin_multi_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
+ngx_http_wasm_set_builtin_multi_header_handler(
+    ngx_http_wasm_header_set_ctx_t *hv)
 {
 #if (nginx_version >= 1023000)
     ngx_table_elt_t     **headers, *h, **ph;
     ngx_http_request_t   *r = hv->r;
 
-    headers = (ngx_table_elt_t **) ((char *) &r->headers_out + hv->handler->offset);
+    headers = (ngx_table_elt_t **) (
+                  (char *) &r->headers_out + hv->handler->offset);
 
     if (ngx_http_wasm_set_header_helper(hv, &h) == NGX_ERROR) {
         return NGX_ERROR;
