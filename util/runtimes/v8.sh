@@ -31,17 +31,17 @@ download_v8() {
 
     if [[ ! -d "$tarball" ]]; then
 
-        if [[ ! -e "$DIR_WORK/fetch" ]]; then
+        if [[ ! -e "$DIR_BIN/fetch" ]]; then
             local hostarch=$(uname -m)
             case $hostarch in
                 x86_64)  hostarch='amd64';;
                 aarch64) hostarch='arm64';;
             esac
 
-            download $DIR_WORK/fetch \
+            download $DIR_BIN/fetch \
                 "https://github.com/gruntwork-io/fetch/releases/download/v0.4.5/fetch_${os}_${hostarch}"
 
-            chmod +x $DIR_WORK/fetch
+            chmod +x $DIR_BIN/fetch
         fi
 
         local filename="ngx_wasm_runtime-v8-$version-$os-$arch.tar.gz"
@@ -50,7 +50,7 @@ download_v8() {
 
         # This requires a Personal Access Token in
         # the $GITHUB_OAUTH_TOKEN environment variable:
-        $DIR_WORK/fetch \
+        $DIR_BIN/fetch \
             --repo "$URL_KONG_WASM_RUNTIMES" \
             --tag latest \
             --release-asset "$filename" \
