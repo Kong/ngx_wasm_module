@@ -4,6 +4,9 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
+our $ExtResolver = $t::TestWasm::extresolver;
+our $ExtTimeout = $t::TestWasm::exttimeout;
+
 skip_valgrind('wasmtime');
 
 plan tests => repeat_each() * (blocks() * 4);
@@ -163,10 +166,13 @@ qr/\[error\] .*? dispatch failed \(no resolver defined to resolve "localhost"\)/
 
 
 === TEST 10: proxy_wasm - dispatch_http_call() resolver + hostname (IPv4)
+--- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
---- config
-    resolver 1.1.1.1 ipv6=off;
+--- config eval
+qq{
+    resolver         $::ExtResolver ipv6=off;
+    resolver_timeout $::ExtTimeout;
 
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
@@ -176,6 +182,7 @@ qr/\[error\] .*? dispatch failed \(no resolver defined to resolve "localhost"\)/
                               on_http_call_response=echo_response_body';
         echo fail;
     }
+}
 --- response_body_like
 \s*"Hello": "world",\s*
 .*?
@@ -188,10 +195,13 @@ qr/\[error\] .*? dispatch failed \(no resolver defined to resolve "localhost"\)/
 
 === TEST 11: proxy_wasm - dispatch_http_call() resolver + hostname (IPv6), default port
 --- skip_eval: 4: defined $ENV{GITHUB_ACTIONS}
+--- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
---- config
-    resolver 1.1.1.1 ipv6=on;
+--- config eval
+qq{
+    resolver         $::ExtResolver ipv6=on;
+    resolver_timeout $::ExtTimeout;
 
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
@@ -200,6 +210,7 @@ qr/\[error\] .*? dispatch failed \(no resolver defined to resolve "localhost"\)/
                               on_http_call_response=echo_response_body';
         echo fail;
     }
+}
 --- response_body_like
 \A\<!doctype html\>.*
 --- no_error_log
@@ -221,7 +232,7 @@ server {
     }
 }
 --- config
-    resolver 1.1.1.1 ipv6=off;
+    resolver     1.1.1.1 ipv6=off;
     resolver_add 127.0.0.1 localhost;
 
     location /t {
@@ -244,16 +255,20 @@ server {
 
 
 === TEST 13: proxy_wasm - dispatch_http_call() resolver error (host not found)
+--- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
---- config
-    resolver 1.1.1.1;
+--- config eval
+qq{
+    resolver         $::ExtResolver;
+    resolver_timeout $::ExtTimeout;
 
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=foo';
         echo ok;
     }
+}
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log
