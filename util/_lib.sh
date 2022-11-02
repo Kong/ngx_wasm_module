@@ -9,7 +9,8 @@ DIR_MOCKEAGAIN=$DIR_DOWNLOAD/mockeagain
 DIR_LIBWEE8=$DIR_WORK/libwee8
 DIR_PROXY_WASM_GO_SDK=$DIR_WORK/proxy-wasm-go-sdk
 DIR_BUILDROOT=$DIR_WORK/buildroot
-DIR_SRCROOT=$DIR_WORK/patched
+DIR_SRC_ROOT=$DIR_WORK/nginx-src
+DIR_PATCHED_ROOT=$DIR_WORK/nginx-patched
 DIR_TESTS_LIB_WASM=$DIR_WORK/lib/wasm
 DIR_PREFIX=$NGX_WASM_DIR/t/servroot
 DIR_OPR_PREFIX=$DIR_BUILDROOT/prefix
@@ -28,11 +29,14 @@ build_nginx() {
         export NGX_WASM_RUNTIME_LIB="$runtime_dir/lib"
     fi
 
-    NGX_BUILD_DIR_SRCROOT="${NGX_BUILD_DIR_SRCROOT:-$DIR_SRCROOT}"
+    NGX_BUILD_DIR_SRC="${NGX_BUILD_DIR_SRC:-$DIR_SRC_ROOT}"
+    NGX_BUILD_DIR_PATCHED="${NGX_BUILD_DIR_PATCHED:-$DIR_PATCHED_ROOT}"
     NGX_BUILD_DIR_BUILDROOT="${NGX_BUILD_DIR_BUILDROOT:-$DIR_BUILDROOT}"
     NGX_BUILD_DIR_PREFIX="${NGX_BUILD_DIR_PREFIX:-$DIR_PREFIX}"
 
+    ###############
     # Build options
+    ###############
 
     if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
         build_name+=" nopool"
@@ -41,8 +45,13 @@ build_nginx() {
 
     if [[ -n "$NGX_BUILD_FSANITIZE" ]]; then
         build_name+=" san:$NGX_BUILD_FSANITIZE"
-        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -Wno-unused-command-line-argument -g -fsanitize=$NGX_BUILD_FSANITIZE -fno-omit-frame-pointer"
-        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -fsanitize=$NGX_BUILD_FSANITIZE -ldl -lm -lpthread -lrt"
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -g \
+                          -fsanitize=$NGX_BUILD_FSANITIZE \
+                          -Wno-unused-command-line-argument \
+                          -fno-omit-frame-pointer"
+        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT \
+                          -fsanitize=$NGX_BUILD_FSANITIZE \
+                          -ldl -lm -lpthread -lrt"
         # clang 13: -fsanitize-ignorelist=$NGX_WASM_DIR/asan.ignore
     fi
 
@@ -53,12 +62,12 @@ build_nginx() {
     if [[ "$NGX_BUILD_CLANG_ANALYZER" == 1 ]]; then
         build_name+=" clang-analyzer"
         NGX_BUILD_CMD="scan-build -o $DIR_WORK/scans \
-            --exclude $DIR_WORK \
-            -analyze-headers \
-            --force-analyze-debug-code \
-            --html-title='$NGX - ngx_wasm_module [${build_name[@]}]' \
-            --use-cc=clang \
-            --status-bugs"
+                       --exclude $DIR_WORK\
+                       -analyze-headers \
+                       --force-analyze-debug-code \
+                       --html-title='$NGX - ngx_wasm_module [${build_name[@]}]' \
+                       --use-cc=clang \
+                       --status-bugs"
         NGX_BUILD_DEBUG=1
     fi
 
@@ -97,61 +106,13 @@ build_nginx() {
         build_opts+="--without-http_headers_more_module "
     fi
 
-    local name="${build_name[@]}"
-
-    # Build options hash to determine rebuild
-
-    local hash=$(echo "ngx=$ngx_ver.$ngx_src.\
-                       build_name=$name.\
-                       cc=$CC.\
-                       conf_opt=$NGX_BUILD_CONFIGURE_OPT.\
-                       cc_opt=$NGX_BUILD_CC_OPT.\
-                       ld_opt=$NGX_BUILD_LD_OPT.\
-                       ssl=$NGX_BUILD_SSL.\
-                       dynamic=$NGX_BUILD_DYNAMIC_MODULE" | shasum | awk '{ print $1 }')
-
-    if [[ ! -d "$NGX_BUILD_DIR_SRCROOT" \
-          || ! -f "$NGX_BUILD_DIR_SRCROOT/.hash" \
-          || $(cat "$NGX_BUILD_DIR_SRCROOT/.hash") != $(echo $hash) ]];
-    then
-        NGX_BUILD_FORCE=1
-
-        rm -rf $NGX_BUILD_DIR_SRCROOT
-        cp -R $ngx_src $NGX_BUILD_DIR_SRCROOT
-
-        # Apply patches
-
-        if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
-            if [[ -n "$NGX_BUILD_OPENRESTY" ]]; then
-                build_opts+="--with-no-pool-patch "
-
-            else
-                get_no_pool_nginx
-
-                set +e
-                apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $NGX_BUILD_DIR_SRCROOT
-                if ! [ $? -eq 0 ]; then
-                    notice "failed applying the no-pool patch, trying again"
-                    get_no_pool_nginx 1
-                    apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $NGX_BUILD_DIR_SRCROOT
-                    if ! [ $? -eq 0 ]; then
-                        fatal "failed applying the no-pool patch"
-                    fi
-                fi
-                set -e
-            fi
-        fi
-    fi
-
-    # ngx_echo_module, ngx_headers_more_module do not support --without-http
-    # no need to add them when compiling OpenResty
-
     if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http" ]]; then
+        # ngx_echo_module, ngx_headers_more_module do not support --without-http
+        # no need to add them when compiling OpenResty
         build_opts+="--with-http_v2_module " # tests with '--- http2' block
         build_opts+="--add-dynamic-module=$DIR_NGX_ECHO_MODULE "
         build_opts+="--add-dynamic-module=$DIR_NGX_HEADERS_MORE_MODULE "
     fi
-
 
     if [[ "$NGX_BUILD_SSL" == 1 ]]; then
         if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http" ]]; then
@@ -164,9 +125,77 @@ build_nginx() {
         fi
     fi
 
-    # Build
+    local name="${build_name[@]}"
 
-    pushd $NGX_BUILD_DIR_SRCROOT
+    #########
+    # Patches
+    #########
+
+    # Source contents hash to determine repatch
+    local hash_src=$(find $ngx_src -type f -print0 | sort -z | xargs -0 shasum\
+                     | shasum | awk '{ print $1}')
+
+    if [[ ! -d "$NGX_BUILD_DIR_SRC" \
+          || ! -f "$NGX_BUILD_DIR_SRC/.hash" \
+          || $(cat "$NGX_BUILD_DIR_SRC/.hash") != $(echo $hash_src) ]];
+    then
+        rm -rf $NGX_BUILD_DIR_SRC
+        cp -R $ngx_src $NGX_BUILD_DIR_SRC
+        echo $hash_src > "$NGX_BUILD_DIR_SRC/.hash"
+    fi
+
+    # Build options hash to determine rebuild
+    local hash_opt_txt="ngx=$ngx_ver.$ngx_src.\
+                        build_name=$name.\
+                        cc=$CC.\
+                        conf_opt=$NGX_BUILD_CONFIGURE_OPT.\
+                        cc_opt=$NGX_BUILD_CC_OPT.\
+                        ld_opt=$NGX_BUILD_LD_OPT.\
+                        ssl=$NGX_BUILD_SSL.\
+                        dynamic=$NGX_BUILD_DYNAMIC_MODULE.\
+                        hash_src=$hash_src"
+
+    local hash_opt=$(echo $hash_opt_txt | shasum | awk '{ print $1 }')
+
+    if [[ ! -d "$NGX_BUILD_DIR_PATCHED" \
+          || ! -f "$NGX_BUILD_DIR_PATCHED/.hash" \
+          || $(cat "$NGX_BUILD_DIR_PATCHED/.hash") != $(echo $hash_opt) ]];
+    then
+        rm -rf $NGX_BUILD_DIR_PATCHED
+        cp -R $NGX_BUILD_DIR_SRC $NGX_BUILD_DIR_PATCHED
+        echo $hash_opt > "$NGX_BUILD_DIR_PATCHED/.hash"
+
+        NGX_BUILD_FORCE=1
+
+        # Apply patches
+
+        if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
+            if [[ -n "$NGX_BUILD_OPENRESTY" ]]; then
+                build_opts+="--with-no-pool-patch "
+
+            else
+                get_no_pool_nginx
+
+                set +e
+                apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $NGX_BUILD_DIR_PATCHED
+                if ! [ $? -eq 0 ]; then
+                    notice "failed applying the no-pool patch, trying again"
+                    get_no_pool_nginx 1
+                    apply_patch -p1 "$DIR_NOPOOL/nginx-$ngx_ver-no_pool.patch" $NGX_BUILD_DIR_PATCHED
+                    if ! [ $? -eq 0 ]; then
+                        fatal "failed applying the no-pool patch"
+                    fi
+                fi
+                set -e
+            fi
+        fi
+    fi
+
+    #######
+    # Build
+    #######
+
+    pushd $NGX_BUILD_DIR_PATCHED
         if [[ "$NGX_BUILD_FORCE" == 1 \
               || ! -f "Makefile" \
               || ! -d "$NGX_BUILD_DIR_BUILDROOT" \
@@ -190,8 +219,6 @@ build_nginx() {
                 "--with-poll_module" \
                 "${build_opts[@]}" \
                 "$NGX_BUILD_CONFIGURE_OPT" \
-
-            echo $hash > "$NGX_BUILD_DIR_SRCROOT/.hash"
 
             NGX_BUILD_FRESH=1
         fi
