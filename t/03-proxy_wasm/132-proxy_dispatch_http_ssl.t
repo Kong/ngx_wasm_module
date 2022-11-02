@@ -4,6 +4,9 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
+our $ExtResolver = $t::TestWasm::extresolver;
+our $ExtTimeout = $t::TestWasm::exttimeout;
+
 skip_no_ssl();
 skip_valgrind('wasmtime');
 
@@ -21,9 +24,12 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm - dispatch_https_call() verify off, warn, default port, ok
+--- timeout eval: $::ExtTimeout
 --- wasm_modules: hostcalls
---- config
-    resolver 1.1.1.1 ipv6=off;
+--- config eval
+qq{
+    resolver         $::ExtResolver ipv6=off;
+    resolver_timeout $::ExtTimeout;
 
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
@@ -34,6 +40,7 @@ __DATA__
                               on_http_call_response=echo_response_body';
         echo fail;
     }
+}
 --- response_body_like
 \s*"Hello": "world",\s*
 .*?
@@ -47,6 +54,7 @@ __DATA__
 
 
 === TEST 2: proxy_wasm - dispatch_https_call() verify off, no warn, default port, ok
+--- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
     wasm {
@@ -54,8 +62,10 @@ qq{
         tls_no_verify_warn off;
     }
 }
---- config
-    resolver 1.1.1.1 ipv6=off;
+--- config eval
+qq{
+    resolver         $::ExtResolver ipv6=off;
+    resolver_timeout $::ExtTimeout;
 
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
@@ -66,6 +76,7 @@ qq{
                               on_http_call_response=echo_response_body';
         echo fail;
     }
+}
 --- response_body_like
 \s*"Hello": "world",\s*
 .*?
@@ -121,6 +132,7 @@ verifying tls certificate for "127.0.0.1"
 
 
 === TEST 4: proxy_wasm - dispatch_https_call() verify on, fail (expired)
+--- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
     wasm {
@@ -129,8 +141,10 @@ qq{
         tls_verify_cert         on;
     }
 }
---- config
-    resolver 1.1.1.1 ipv6=off;
+--- config eval
+qq{
+    resolver         $::ExtResolver ipv6=off;
+    resolver_timeout $::ExtTimeout;
 
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
@@ -138,6 +152,7 @@ qq{
                               https=yes';
         echo fail;
     }
+}
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log
@@ -228,6 +243,7 @@ dispatch failed (tls certificate does not match "localhost")
 
 
 === TEST 7: proxy_wasm - dispatch_https_call() untrusted root
+--- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
     wasm {
@@ -236,8 +252,10 @@ qq{
         tls_verify_cert         on;
     }
 }
---- config
-    resolver 1.1.1.1 ipv6=off;
+--- config eval
+qq{
+    resolver         $::ExtResolver ipv6=off;
+    resolver_timeout $::ExtTimeout;
 
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
@@ -245,6 +263,7 @@ qq{
                               https=yes';
         echo fail;
     }
+}
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
@@ -309,6 +328,7 @@ foo
 
 
 === TEST 11: proxy_wasm - dispatch_https_call() no trusted CA
+--- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
     wasm {
@@ -316,8 +336,10 @@ qq{
         tls_verify_cert  on;
     }
 }
---- config
-    resolver 1.1.1.1 ipv6=off;
+--- config eval
+qq{
+    resolver         $::ExtResolver ipv6=off;
+    resolver_timeout $::ExtTimeout;
 
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
@@ -325,6 +347,7 @@ qq{
                               https=yes';
         echo fail;
     }
+}
 --- error_code: 500
 --- error_log
 dispatch failed (tls certificate verify error: (20:unable to get local issuer certificate))
@@ -335,6 +358,7 @@ dispatch failed (tls certificate verify error: (20:unable to get local issuer ce
 
 
 === TEST 12: proxy_wasm - dispatch_https_call() empty trusted CA path
+--- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
     wasm {
@@ -343,8 +367,10 @@ qq{
         tls_verify_cert         on;
     }
 }
---- config
-    resolver 1.1.1.1 ipv6=off;
+--- config eval
+qq{
+    resolver         $::ExtResolver ipv6=off;
+    resolver_timeout $::ExtTimeout;
 
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
@@ -353,6 +379,7 @@ qq{
                               path=/headers';
         echo fail;
     }
+}
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log

@@ -11,6 +11,8 @@ our $crates = "work/lib/wasm";
 our $buildroot = "$pwd/work/buildroot";
 our $nginxbin = $ENV{TEST_NGINX_BINARY} || 'nginx';
 our $nginxV = eval { `$nginxbin -V 2>&1` };
+our $exttimeout = $ENV{TEST_NGINX_EXTERNAL_TIMEOUT} || '60s';
+our $extresolver = $ENV{TEST_NGINX_EXTERNAL_RESOLVER} || '8.8.8.8';
 our @nginx_modules;
 
 our @EXPORT = qw(
@@ -19,6 +21,8 @@ our @EXPORT = qw(
     $buildroot
     $nginxbin
     $nginxV
+    $exttimeout
+    $extresolver
     load_nginx_modules
     skip_no_ssl
     skip_no_debug

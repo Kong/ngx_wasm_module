@@ -11,6 +11,9 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
+our $ExtResolver = $t::TestWasm::extresolver;
+our $ExtTimeout = $t::TestWasm::exttimeout;
+
 skip_valgrind('wasmtime');
 
 plan tests => repeat_each() * (blocks() * 4);
@@ -20,11 +23,13 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm - dispatch_http_call() connection timeout
---- timeout_no_valgrind: 1
+--- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
---- config
-    resolver 1.1.1.1;
+--- config eval
+qq{
+    resolver         $::ExtResolver;
+    resolver_timeout $::ExtTimeout;
 
     location /t {
         wasm_socket_connect_timeout 1ms;
@@ -34,6 +39,7 @@ __DATA__
                               path=/status/200';
         echo fail;
     }
+}
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
@@ -47,8 +53,9 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out connecting to
 --- timeout_no_valgrind: 1
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
---- config
-    resolver          1.1.1.1;
+--- config eval
+qq{
+    resolver          $::ExtResolver;
     resolver_timeout  1ms;
 
     location /t {
@@ -57,6 +64,7 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out connecting to
                               path=/status/200';
         echo fail;
     }
+}
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
