@@ -120,8 +120,8 @@ typedef struct {
 } ngx_http_wasm_shim_header_t;
 
 
-ngx_str_t *ngx_http_wasm_get_shim_header(ngx_http_wasm_req_ctx_t *rctx, u_char *key,
-    size_t key_len);
+ngx_str_t *ngx_http_wasm_get_shim_header(ngx_http_wasm_req_ctx_t *rctx,
+    u_char *key, size_t key_len);
 ngx_array_t *ngx_http_wasm_get_shim_headers(ngx_http_wasm_req_ctx_t *rctx);
 ngx_uint_t ngx_http_wasm_count_shim_headers(ngx_http_wasm_req_ctx_t *rctx);
 

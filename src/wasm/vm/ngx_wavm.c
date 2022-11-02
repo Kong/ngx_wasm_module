@@ -585,7 +585,8 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
 
             if (module->f_start == NULL
                 && (ngx_str_eq(exportname->data, exportname->size, "_start", -1)
-                    || ngx_str_eq(exportname->data, exportname->size, "_initialize", -1)))
+                    || ngx_str_eq(exportname->data, exportname->size,
+                                  "_initialize", -1)))
             {
                 module->f_start = funcref;
             }
@@ -1239,7 +1240,8 @@ ngx_wavm_instance_call_funcref(ngx_wavm_instance_t *instance,
 
     ngx_wasm_assert(func);
 
-    dd("func: %p (args: %p, args->nelts: %ld)", func, &func->args, func->args.size);
+    dd("func: %p (args: %p, args->nelts: %ld)",
+       func, &func->args, func->args.size);
 
     va_start(args, rets);
     rc = ngx_wavm_instance_call_func_va(instance, func, rets, args);

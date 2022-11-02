@@ -347,7 +347,9 @@ ngx_proxy_wasm_pairs_unmarshal(ngx_proxy_wasm_exec_t *pwexec,
         buf += NGX_PROXY_WASM_PTR_SIZE;
     }
 
-    if (ngx_array_init(dst, pwexec->pool, count, sizeof(ngx_table_elt_t)) != NGX_OK) {
+    if (ngx_array_init(dst, pwexec->pool, count, sizeof(ngx_table_elt_t))
+        != NGX_OK)
+    {
         return NGX_ERROR;
     }
 

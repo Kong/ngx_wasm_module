@@ -570,7 +570,8 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c)
 
         rc = SSL_get_verify_result(c->ssl->connection);
         if (rc != X509_V_OK) {
-            ngx_wasm_socket_tcp_err(sock, "tls certificate verify error: (%l:%s)",
+            ngx_wasm_socket_tcp_err(sock,
+                                    "tls certificate verify error: (%l:%s)",
                                     rc, X509_verify_cert_error_string(rc));
             return NGX_ERROR;
         }
@@ -586,7 +587,8 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c)
                        &sock->host);
 
         if (ngx_ssl_check_host(c, &sock->host) != NGX_OK) {
-            ngx_wasm_socket_tcp_err(sock, "tls certificate does not match \"%V\"",
+            ngx_wasm_socket_tcp_err(sock,
+                                    "tls certificate does not match \"%V\"",
                                     &sock->host);
             return NGX_ERROR;
         }
