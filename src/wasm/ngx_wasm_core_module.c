@@ -455,6 +455,9 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
     ngx_wasm_core_conf_t  *wcf;
     ngx_str_t             *trusted_crt;
 
+    ngx_log_debug0(NGX_LOG_DEBUG_WASM, cycle->log, 0,
+                   "wasm initializing tls");
+
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
     ngx_wasm_assert(wcf);
 
@@ -480,8 +483,6 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
     {
         return NGX_ERROR;
     }
-
-    ngx_log_debug0(NGX_LOG_DEBUG_WASM, cycle->log, 0, "tls initialized");
 
     return NGX_OK;
 }
