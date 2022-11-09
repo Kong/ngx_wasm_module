@@ -148,7 +148,7 @@ jobs:
     env:
       NGX_BUILD_NOPOOL: 1
       NGX_BUILD_CC_OPT: '-O2'
-      TEST_NGINX_TIMEOUT: 60
+      TEST_NGINX_TIMEOUT: 120
       TEST_NGINX_USE_VALGRIND: 1
     strategy:
       fail-fast: false
