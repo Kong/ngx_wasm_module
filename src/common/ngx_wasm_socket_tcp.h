@@ -19,6 +19,8 @@ typedef ngx_int_t (*ngx_wasm_socket_tcp_reader_pt)(
     ngx_wasm_socket_tcp_t *sock, ssize_t bytes, void *ctx);
 typedef ngx_int_t (*ngx_wasm_socket_tcp_resume_handler_pt)(
     ngx_wasm_socket_tcp_t *sock);
+typedef ngx_int_t (*ngx_wasm_socket_tcp_dns_resolver_pt)(
+    ngx_resolver_ctx_t *rslv_ctx);
 
 
 typedef struct {
