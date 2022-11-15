@@ -4,6 +4,10 @@
 #include "ddebug.h"
 
 #include <ngx_http_wasm.h>
+#if (NGX_WASM_LUA)
+#include <ngx_wasm_lua.h>
+#include <ngx_http_lua_util.h>
+#endif
 
 
 #define NGX_HTTP_WASM_DONE_IN_LOG 0
@@ -87,6 +91,7 @@ static ngx_wasm_phase_t  ngx_http_wasm_phases[] = {
 
 ngx_wasm_subsystem_t  ngx_http_wasm_subsystem = {
     NGX_WASM_DONE_PHASE + 1,
+    NGX_WASM_SUBSYS_HTTP,
     ngx_http_wasm_phases,
 };
 
@@ -168,6 +173,13 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_wasm_loc_conf_t, pwm_req_headers_in_access),
+      NULL },
+
+    { ngx_string("proxy_wasm_lua_resolver"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_wasm_core_pwm_lua_resolver_directive,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, pwm_lua_resolver),
       NULL },
 
       ngx_null_command
@@ -277,6 +289,7 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
     loc->socket_buffer_size = NGX_CONF_UNSET_SIZE;
     loc->socket_buffer_reuse = NGX_CONF_UNSET;
     loc->pwm_req_headers_in_access = NGX_CONF_UNSET;
+    loc->pwm_lua_resolver = NGX_CONF_UNSET;
 
     if (ngx_wasm_main_vm(cf->cycle)) {
         loc->plan = ngx_wasm_ops_plan_new(cf->pool, &ngx_http_wasm_subsystem);
@@ -330,6 +343,9 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->pwm_req_headers_in_access,
                          prev->pwm_req_headers_in_access, 0);
+
+    ngx_conf_merge_value(conf->pwm_lua_resolver,
+                         prev->pwm_lua_resolver, 0);
 
     if (conf->plan && !conf->plan->populated) {
         conf->plan = prev->plan;
@@ -456,15 +472,20 @@ ngx_http_wasm_cleanup(void *data)
 ngx_int_t
 ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 {
-    ngx_wasm_op_ctx_t          *opctx;
     ngx_pool_cleanup_t         *cln;
+    ngx_wasm_op_ctx_t          *opctx;
+    ngx_wasm_core_conf_t       *wcf;
     ngx_http_wasm_req_ctx_t    *rctx;
     ngx_http_wasm_main_conf_t  *mcf;
-    ngx_http_wasm_loc_conf_t   *loc = NULL;
+    ngx_http_wasm_loc_conf_t   *loc;
+    unsigned                    fake;
 
     rctx = ngx_http_get_module_ctx(r, ngx_http_wasm_module);
     if (rctx == NULL) {
-        if (r->loc_conf) {
+        loc = NULL;
+        fake = r->connection->fd == NGX_WASM_BAD_FD;
+
+        if (!fake) {
             loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
             if (loc->plan == NULL || !loc->plan->populated) {
                 return NGX_DECLINED;
@@ -476,34 +497,41 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
             return NGX_ERROR;
         }
 
+        wcf = ngx_wasm_core_cycle_get_conf(ngx_cycle);
         mcf = ngx_http_cycle_get_module_main_conf(ngx_cycle,
                                                   ngx_http_wasm_module);
-
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm rctx created: %p (r: %p, main: %d)",
-                       rctx, r, r->main == r);
 
         rctx->r = r;
         rctx->pool = r->pool;
         rctx->connection = r->connection;
         rctx->req_keepalive = r->keepalive;
+        rctx->fake_request = fake;
 
-        if (loc) {
-            rctx->sock_buffer_reuse = loc->socket_buffer_reuse;
-        }
+        ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm rctx created: %p (r: %p, main: %d, fake: %d)",
+                       rctx, r, r->main == r, rctx->fake_request);
 
         ngx_http_set_ctx(r, rctx, ngx_http_wasm_module);
 
-        opctx = &rctx->opctx;
-        opctx->ops = mcf->ops;
-        opctx->pool = r->pool;
-        opctx->log = r->connection->log;
-        opctx->data = rctx;
+        if (!fake) {
 
-        if (loc) {
+            /* attach plan */
+
             ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                            "wasm attaching plan to rctx (rctx: %p, plan: %p)",
                            rctx, loc->plan);
+
+            opctx = &rctx->opctx;
+            opctx->ops = mcf->ops;
+            opctx->pool = r->pool;
+            opctx->log = r->connection->log;
+            opctx->data = rctx;
+
+            if (ngx_wasm_ops_plan_attach(loc->plan, opctx) != NGX_OK) {
+                return NGX_ERROR;
+            }
+
+            /* cleanup */
 
             cln = ngx_pool_cleanup_add(r->pool, 0);
             if (cln == NULL) {
@@ -513,9 +541,7 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
             cln->handler = ngx_http_wasm_cleanup;
             cln->data = rctx;
 
-            if (ngx_wasm_ops_plan_attach(loc->plan, opctx) != NGX_OK) {
-                return NGX_ERROR;
-            }
+            /* content handler injection */
 
             if (r->content_handler != ngx_http_wasm_content_handler) {
                 ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -526,10 +552,16 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
                 r->content_handler = ngx_http_wasm_content_handler;
             }
 
+            /* flags */
+
+            rctx->sock_buffer_reuse = loc->socket_buffer_reuse;
+            rctx->pwm_lua_resolver = loc->pwm_lua_resolver != NGX_CONF_UNSET
+                                     ? loc->pwm_lua_resolver
+                                     : wcf->pwm_lua_resolver;
+
         } else {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "wasm rctx for fake request");
-            rctx->fake_request = 1;
+            /* fake request */
+            rctx->pwm_lua_resolver = wcf->pwm_lua_resolver;
         }
     }
 #if (NGX_DEBUG)
@@ -813,6 +845,15 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
+#if (NGX_WASM_LUA)
+    if (rctx->entered_content_phase && rctx->wasm_lua_ctx) {
+        dd("wasm lua forcing content wev handler");
+        ngx_http_wasm_content_wev_handler(r);
+        rc = ngx_http_wasm_check_finalize(rctx, NGX_AGAIN);
+        return rc;
+    }
+#endif
+
     rctx->entered_content_phase = 1;
 
     rc = ngx_http_wasm_content(rctx);
@@ -856,6 +897,8 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
     ngx_event_t               *wev = c->write;
 #endif
 
+    dd("enter");
+
     if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
         return;
     }
@@ -866,49 +909,41 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
                    &r->uri, &r->args, wev->timedout, wev->ready, r == r->main,
                    r->main->count, rctx->resp_finalized, rctx->state);
 
-#if 0
-    {
-        ngx_http_core_loc_conf_t  *clcf;
+#if (NGX_WASM_LUA)
+    if (rctx->wasm_lua_ctx) {
+        rc = ngx_wasm_lua_thread_resume(rctx->wasm_lua_ctx);
 
-        clcf = ngx_http_get_module_loc_conf(r->main, ngx_http_core_module);
+        dd("lua thread resume rc: %ld", rc);
 
-        if (wev->timedout) {
-            if (!wev->delayed) {
-                ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT,
-                              "client timed out");
-                c->timedout = 1;
-                return;
-            }
-
-            wev->timedout = 0;
-            wev->delayed = 0;
-
-            if (!wev->ready) {
-                ngx_add_timer(wev, clcf->send_timeout);
-
-                if (ngx_handle_write_event(wev, clcf->send_lowat) != NGX_OK) {
-                    if (rctx->entered_content_phase) {
-                        ngx_http_finalize_request(r, NGX_ERROR);
-                    }
-
-                    return;
-                }
-            }
+        switch (rc) {
+        case NGX_ERROR:
+            rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
+            goto last_finalize;
+        case NGX_DONE:
+            rctx->wasm_lua_ctx = NULL;
+            break;
+        default:
+            break;
         }
+
+        return;
     }
 #endif
 
     if (rctx->entered_content_phase || rctx->resp_content_chosen) {
         rc = ngx_http_wasm_content(rctx);
         if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-            ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
-            return;
+            rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
+            goto last_finalize;
 
         } else if (rc == NGX_AGAIN) {
-            ngx_http_finalize_request(r, NGX_AGAIN);
-            return;
+            goto last_finalize;
         }
     }
+
+    rc = r == r->main ? NGX_DONE : NGX_OK;
+
+last_finalize:
 
     if (rctx->fake_request) {
         dd("last finalize (fake request)");
@@ -918,8 +953,10 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
     } else {
         dd("last finalize");
         ngx_wasm_assert(r->connection->fd != NGX_WASM_BAD_FD);
-        ngx_http_finalize_request(r, r == r->main ? NGX_DONE : NGX_OK);
+        ngx_http_finalize_request(r, rc);
     }
+
+    dd("exit");
 }
 
 

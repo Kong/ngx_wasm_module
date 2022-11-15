@@ -53,7 +53,7 @@ Connection refused on 127.0.0.1:80 requested by filter.
     }
 --- ignore_response_body
 --- error_log eval
-qr/\[error\] .*? dispatch failed: Connection refused/
+qr/\[error\] .*? dispatch failed: tcp socket - Connection refused/
 --- no_error_log
 [crit]
 [emerg]

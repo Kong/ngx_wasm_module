@@ -21,10 +21,15 @@ our @EXPORT = qw(
 my $dry_run = 0;
 my $pwd = cwd();
 my ($out, $err);
+my $cmd = <<"_CMD_";
+    export NGX_WASM_DIR=$pwd &&
+    . $pwd/util/_lib.sh &&
+    get_default_runtime_dir $ENV{NGX_WASM_RUNTIME}
+_CMD_
 
-run ["sh", "-c", "NGX_WASM_DIR=$pwd . $pwd/util/_lib.sh && get_default_runtime_dir $ENV{NGX_WASM_RUNTIME}"], \undef, \$out, \$err;
+run ["bash", "-c", $cmd], \undef, \$out, \$err;
 if (defined $err && $err ne '') {
-    warn "failed to get default runtime_dir\n$err";
+    warn "failed to get default runtime_dir: $err";
 }
 
 chomp $out;

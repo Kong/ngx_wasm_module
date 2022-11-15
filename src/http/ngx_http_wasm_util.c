@@ -481,6 +481,111 @@ done:
 }
 
 
+static ngx_int_t
+ngx_http_wasm_init_fake_connection(ngx_connection_t *c)
+{
+#if 0
+    size_t                  i;
+    struct sockaddr_in     *sin;
+#endif
+    ngx_http_port_t        *port;
+    ngx_http_in_addr_t     *addr;
+    ngx_http_connection_t  *hc;
+#if (NGX_HAVE_INET6)
+#if 0
+    struct sockaddr_in6    *sin6;
+#endif
+    ngx_http_in6_addr_t    *addr6;
+#endif
+
+    hc = ngx_pcalloc(c->pool, sizeof(ngx_http_connection_t));
+    if (hc == NULL) {
+        return NGX_ERROR;
+    }
+
+    c->data = hc;
+    c->listening = (ngx_listening_t *) ngx_cycle->listening.elts;
+    c->local_sockaddr = c->listening->sockaddr;
+
+    /* find the server configuration for the address:port */
+
+    port = c->listening->servers;
+
+    ngx_wasm_assert(port->naddrs == 1);
+
+#if 0
+    /* disabled: does not seem needed, unable to test it */
+
+    if (port->naddrs > 1) {
+        ngx_wasm_assert(0);
+        /* there are several addresses on this port and one of them
+         * is an "*:port" wildcard so getsockname() in ngx_http_server_addr()
+         * is required to determine a server address */
+
+        if (ngx_connection_local_sockaddr(c, NULL, 0) != NGX_OK) {
+            return NGX_ERROR;
+        }
+
+        switch (c->local_sockaddr->sa_family) {
+#if (NGX_HAVE_INET6)
+        case AF_INET6:
+            sin6 = (struct sockaddr_in6 *) c->local_sockaddr;
+            addr6 = port->addrs;
+
+            /* the last address is "*" */
+
+            for (i = 0; i < port->naddrs - 1; i++) {
+                if (ngx_memcmp(&addr6[i].addr6, &sin6->sin6_addr, 16) == 0) {
+                    break;
+                }
+            }
+
+            hc->addr_conf = &addr6[i].conf;
+            break;
+#endif
+        default: /* AF_INET */
+            sin = (struct sockaddr_in *) c->local_sockaddr;
+            addr = port->addrs;
+
+            /* the last address is "*" */
+
+            for (i = 0; i < port->naddrs - 1; i++) {
+                if (addr[i].addr == sin->sin_addr.s_addr) {
+                    break;
+                }
+            }
+
+            hc->addr_conf = &addr[i].conf;
+            break;
+        }
+
+    } else {
+#endif
+        /* single address */
+
+        switch (c->local_sockaddr->sa_family) {
+#if (NGX_HAVE_INET6)
+        case AF_INET6:
+            addr6 = port->addrs;
+            hc->addr_conf = &addr6[0].conf;
+            break;
+#endif
+        default: /* AF_INET */
+            addr = port->addrs;
+            hc->addr_conf = &addr[0].conf;
+            break;
+        }
+#if 0
+    }
+#endif
+
+    /* the default server configuration for the address:port */
+    hc->conf_ctx = hc->addr_conf->default_server->ctx;
+
+    return NGX_OK;
+}
+
+
 ngx_connection_t *
 ngx_http_wasm_create_fake_connection(ngx_pool_t *pool)
 {
@@ -543,8 +648,12 @@ ngx_http_wasm_create_fake_connection(ngx_pool_t *pool)
 
     c->error = 1;
 
+    if (ngx_http_wasm_init_fake_connection(c) != NGX_OK) {
+        goto failed;
+    }
+
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "wasm new fake connection: %p", c);
+                   "wasm created fake connection: %p", c);
 
     return c;
 
@@ -573,10 +682,13 @@ ngx_http_wasm_cleanup_nop(void *data)
 ngx_http_request_t *
 ngx_http_wasm_create_fake_request(ngx_connection_t *c)
 {
-    ngx_http_request_t  *r;
+    ngx_http_request_t     *r;
+    ngx_http_connection_t  *hc;
 #if (NGX_DEBUG)
-    ngx_pool_cleanup_t  *cln;
+    ngx_pool_cleanup_t     *cln;
 #endif
+
+    hc = c->data;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "wasm creating fake request... (c: %p)", c);
@@ -591,11 +703,6 @@ ngx_http_wasm_create_fake_request(ngx_connection_t *c)
     r->pool = c->pool;
 
 #if 0
-    hc = ngx_pcalloc(c->pool, sizeof(ngx_http_connection_t));
-    if (hc == NULL) {
-        goto failed;
-    }
-
     r->header_in = c->buffer;
     r->header_end = c->buffer->start;
 
@@ -630,13 +737,15 @@ ngx_http_wasm_create_fake_request(ngx_connection_t *c)
 #endif
 
     r->connection = c;
+    r->http_connection = hc;
+
+    r->main_conf = hc->conf_ctx->main_conf;
+    r->srv_conf = hc->conf_ctx->srv_conf;
+    r->loc_conf = hc->conf_ctx->loc_conf;
 
     r->headers_in.content_length_n = 0;
     c->data = r;
-#if 0
-    hc->request = r;
-    r->http_connection = hc;
-#endif
+
     r->signature = NGX_HTTP_MODULE;
     r->main = r;
     r->count = 1;
@@ -734,8 +843,9 @@ ngx_http_wasm_finalize_fake_request(ngx_http_request_t *r, ngx_int_t rc)
 static void
 ngx_http_wasm_close_fake_connection(ngx_connection_t *c)
 {
-    ngx_pool_t        *pool;
-    ngx_connection_t  *saved_c = NULL;
+    ngx_pool_t             *pool;
+    ngx_connection_t       *saved_c = NULL;
+    ngx_http_connection_t  *hc = c->data;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "wasm closing fake connection: %p", c);
@@ -744,7 +854,7 @@ ngx_http_wasm_close_fake_connection(ngx_connection_t *c)
 
     pool = c->pool;
 
-#if 0
+#if 1
     if (c->read->timer_set) {
         ngx_del_timer(c->read);
     }
@@ -774,6 +884,8 @@ ngx_http_wasm_close_fake_connection(ngx_connection_t *c)
     }
 
     if (pool) {
+        ngx_pfree(pool, hc);
+
         ngx_destroy_pool(pool);
     }
 }

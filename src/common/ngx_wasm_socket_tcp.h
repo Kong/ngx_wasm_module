@@ -4,13 +4,8 @@
 
 #include <ngx_event_connect.h>
 #include <ngx_wasm.h>
+#include <ngx_wasm_subsystem.h>
 #include <ngx_wasm_socket_tcp_readers.h>
-#if (NGX_WASM_HTTP)
-#include <ngx_http_wasm.h>
-#endif
-#if (NGX_WASM_STREAM)
-#include <ngx_stream_wasm.h>
-#endif
 
 
 typedef void (*ngx_wasm_socket_tcp_handler_pt)(
@@ -19,6 +14,8 @@ typedef ngx_int_t (*ngx_wasm_socket_tcp_reader_pt)(
     ngx_wasm_socket_tcp_t *sock, ssize_t bytes, void *ctx);
 typedef ngx_int_t (*ngx_wasm_socket_tcp_resume_handler_pt)(
     ngx_wasm_socket_tcp_t *sock);
+typedef ngx_int_t (*ngx_wasm_socket_tcp_dns_resolver_pt)(
+    ngx_resolver_ctx_t *rslv_ctx);
 
 
 typedef struct {
@@ -36,40 +33,12 @@ typedef struct {
 } ngx_wasm_upstream_resolved_t;
 
 
-typedef enum {
-    NGX_WASM_SOCKET_TCP_KIND_NONE = 0,
-    NGX_WASM_SOCKET_TCP_KIND_HTTP,
-    NGX_WASM_SOCKET_TCP_KIND_STREAM,
-} ngx_wasm_socket_tcp_env_e;
-
-
-typedef struct {
-    ngx_connection_t                        *connection;
-    ngx_buf_tag_t                           *buf_tag;
-    ngx_wasm_socket_tcp_env_e                kind;
-
-    union {
-#if (NGX_WASM_HTTP)
-        ngx_http_wasm_req_ctx_t             *request;
-#endif
-#if (NGX_WASM_STREAM)
-        ngx_stream_wasm_ctx_t               *session;
-#endif
-    } ctx;
-
-#if (NGX_SSL)
-    ngx_wasm_ssl_conf_t                     *ssl_conf;
-#endif
-} ngx_wasm_socket_tcp_env_t;
-
-
 struct ngx_wasm_socket_tcp_s {
     ngx_pool_t                              *pool;
     ngx_log_t                               *log;
-    ngx_wasm_socket_tcp_env_t                env;
-    ngx_wasm_socket_tcp_env_e                kind;
+    ngx_wasm_subsys_env_t                    env;
 
-    ngx_wasm_socket_tcp_resume_handler_pt    resume;
+    ngx_wasm_socket_tcp_resume_handler_pt    resume_handler;
     void                                    *data;
 
     ngx_str_t                                host;
@@ -125,7 +94,7 @@ struct ngx_wasm_socket_tcp_s {
 
 
 ngx_int_t ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host, in_port_t port, ngx_wasm_socket_tcp_env_t *env);
+    ngx_str_t *host, in_port_t port, ngx_wasm_subsys_env_t *env);
 ngx_int_t ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock);
 ngx_int_t ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock,
     ngx_chain_t *cl);

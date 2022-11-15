@@ -274,3 +274,37 @@ qr/\[emerg\] .*? invalid number of arguments in "proxy_wasm_isolation" directive
 [alert]
 [crit]
 --- must_die
+
+
+
+=== TEST 13: proxy_wasm_lua_resolver directive - missing Lua support in http{}
+--- skip_eval: 6: $::nginxV =~ m/openresty/
+--- config
+    location /t {
+        proxy_wasm_lua_resolver on;
+    }
+--- error_log eval
+qr/\[emerg\] .*? \[wasm\] proxy_wasm_lua_resolver requires lua support/
+--- no_error_log
+[warn]
+[error]
+[alert]
+[crit]
+--- must_die
+
+
+
+=== TEST 14: proxy_wasm_lua_resolver directive - missing Lua support in wasm{}
+--- skip_eval: 6: $::nginxV =~ m/openresty/
+--- main_config
+    wasm {
+        proxy_wasm_lua_resolver on;
+    }
+--- error_log eval
+qr/\[emerg\] .*? \[wasm\] proxy_wasm_lua_resolver requires lua support/
+--- no_error_log
+[warn]
+[error]
+[alert]
+[crit]
+--- must_die
