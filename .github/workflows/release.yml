@@ -28,7 +28,7 @@ jobs:
     outputs:
       release_name: ${{ steps.assign-name.outputs.release_name }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
@@ -72,9 +72,9 @@ jobs:
       - id: assign-name
         run: |
           if [ "${{ github.event_name }}" = schedule ]; then
-            echo "::set-output name=release_name::nightly-$(date -u +%Y%m%d)"
+            echo "release_name=nightly-$(date -u +%Y%m%d)" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=release_name::${{ github.event.inputs.release_name }}"
+            echo "release_name=${{ github.event.inputs.release_name }}" >> $GITHUB_OUTPUT
           fi
 
   build-ubuntu-bionic:

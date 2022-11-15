@@ -31,9 +31,9 @@ jobs:
         hup: [1, 0]
         debug: [1, 0]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: "Set up cache - rustup toolchain"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
@@ -42,7 +42,7 @@ jobs:
             ~/.rustup/update-hashes/*
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
       - name: "Set up cache - ngx_wasm_module work/ dir"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ !env.ACT }}
         id: cache
         with:
@@ -92,9 +92,9 @@ jobs:
         debug: [1]
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind gcc-8
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: "Set up cache - rustup toolchain"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
@@ -103,7 +103,7 @@ jobs:
             ~/.rustup/update-hashes/*
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
       - name: "Set up cache - ngx_wasm work/ dir"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ !env.ACT }}
         id: cache
         with:
@@ -157,9 +157,9 @@ jobs:
         wasmer: [2.3.0]
         v8: [10.5.18]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: "Set up cache - ngx_wasm_module work/ dir"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ !env.ACT }}
         id: cache
         with:

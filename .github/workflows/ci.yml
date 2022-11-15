@@ -74,9 +74,9 @@ jobs:
     steps:
       - run: sudo apt-get update && sudo apt-get install -y gcc-8 libstdc++-8-dev
         if: ${{ matrix.cc == 'gcc-8' }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: "Setup cache - rustup toolchain"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
@@ -85,7 +85,7 @@ jobs:
             ~/.rustup/update-hashes/*
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
       - name: "Setup cache - work/ dir"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
@@ -178,9 +178,9 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
       - run: sudo apt-get install -y libstdc++-11-dev
         if: ${{ matrix.cc == 'gcc-11' }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: "Setup cache - rustup toolchain"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
@@ -189,7 +189,7 @@ jobs:
             ~/.rustup/update-hashes/*
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
       - name: "Setup cache - work/ dir"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
@@ -238,11 +238,11 @@ jobs:
     runs-on: ubuntu-latest
     #if: ${{ false }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
           components: clippy
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
@@ -279,9 +279,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y $(echo ${{ matrix.cc }} | sed s/clang/clang-tools/)
           sudo update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/$(echo ${{ matrix.cc }} | sed s/clang/scan-build/) 100
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: "Setup cache - work/ dir"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
@@ -326,9 +326,9 @@ jobs:
     steps:
       - run: sudo apt-get install -y gcc-8 libstdc++-8-dev
         if: ${{ matrix.cc == 'gcc-8' }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: "Setup cache - work/ dir"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
