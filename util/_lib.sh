@@ -18,6 +18,61 @@ DIR_PREFIX=$NGX_WASM_DIR/t/servroot
 DIR_OPR_PREFIX=$DIR_BUILDROOT/prefix
 DIR_DIST_OUT=$NGX_WASM_DIR/dist
 URL_KONG_WASM_RUNTIMES="https://github.com/kong/ngx_wasm_runtimes"
+DIR_LUAJIT=$DIR_OPR_PREFIX/luajit
+LUAROCKS_VER=${LUAROCKS_VER:-"3.9.1"}
+
+
+download_luarocks() {
+    notice "downloading Luarocks $LUAROCKS_VER ..."
+    pushd $DIR_DOWNLOAD
+        download luarocks-$LUAROCKS_VER.tar.gz https://luarocks.org/releases/luarocks-$LUAROCKS_VER.tar.gz
+        tar -xf luarocks-$LUAROCKS_VER.tar.gz
+        rm luarocks-$LUAROCKS_VER.tar.gz
+    popd
+}
+
+install_luarocks() {
+    notice "installing Luarocks $LUAROCKS_VER ..."
+    if [[ ! -d $DIR_DOWNLOAD/luarocks-$LUAROCKS_VER ]]; then
+        download_luarocks
+    fi
+
+    pushd $DIR_DOWNLOAD/luarocks-$LUAROCKS_VER
+        ./configure \
+            --with-lua-include=$DIR_LUAJIT/include/luajit-2.1 \
+            --with-lua-bin=$DIR_LUAJIT/bin \
+            --prefix=$DIR_WORK
+        make && make install
+    popd
+
+    pushd $DIR_BIN
+        ./luarocks --tree=$DIR_LUAJIT --lua-version=5.1 install lua-resty-dns-client
+        ./luarocks --tree=$DIR_LUAJIT --lua-version=5.1 install LuaFileSystem
+    popd
+}
+
+remove_luarocks() {
+    notice "removing Luarocks $LUAROCKS_CUR_VER ..."
+    $DIR_BIN/luarocks --tree=$DIR_LUAJIT purge
+    rm -rf $DIR_WORK/share/lua/5.1/luarocks
+    rm -rf $DIR_LUAJIT/lib/luarocks
+    rm $DIR_BIN/luarocks
+}
+
+update_luarocks() {
+    if [[ ! -x "$DIR_BIN/luarocks" ]]; then
+        install_luarocks
+    else
+        LUAROCKS_CUR_VER=$($DIR_BIN/luarocks --version | grep -Po '\d.\d.\d')
+
+        if [[ $LUAROCKS_CUR_VER != $LUAROCKS_VER ]]; then
+            notice "Luarocks current version: $LUAROCKS_CUR_VER ..."
+            notice "updating Luarocks to: $LUAROCKS_VER ..."
+            remove_luarocks
+            install_luarocks
+        fi
+    fi
+}
 
 export PERL5LIB=$DIR_CPANM/lib/perl5
 
@@ -110,6 +165,9 @@ build_nginx() {
         # switch prefix with Lua components since t/servroot
         # is cleaned by Test::Nginx
         NGX_BUILD_DIR_PREFIX=$DIR_OPR_PREFIX
+        # TODO: find a less weird way to add ngx_lua header files to cc args
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -I $DIR_PATCHED_ROOT/build/ngx_lua-0.10.21/src"
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -I $DIR_PATCHED_ROOT/build/ngx_stream_lua-0.0.11/src"
 
         # ./configure -j for LuaJIT build
         build_opts+="-j$(n_jobs) "
@@ -242,6 +300,7 @@ build_nginx() {
         if [[ -n "$NGX_BUILD_OPENRESTY" && "$FRESH_BUILD" == 1 ]]; then
             # install the prefix to preserve Lua components
             make install
+            update_luarocks
         fi
     popd
 }

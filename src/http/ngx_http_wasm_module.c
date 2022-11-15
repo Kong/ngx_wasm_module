@@ -4,6 +4,9 @@
 #include "ddebug.h"
 
 #include <ngx_http_wasm.h>
+#if (NGX_WASM_LUA)
+#include <ngx_http_lua_util.h>
+#endif
 
 
 #define NGX_HTTP_WASM_DONE_IN_LOG 0
@@ -170,6 +173,13 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       offsetof(ngx_http_wasm_loc_conf_t, pwm_req_headers_in_access),
       NULL },
 
+    { ngx_string("proxy_wasm_lua_resolver"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, pwm_lua_resolver),
+      NULL },
+
       ngx_null_command
 };
 
@@ -277,6 +287,7 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
     loc->socket_buffer_size = NGX_CONF_UNSET_SIZE;
     loc->socket_buffer_reuse = NGX_CONF_UNSET;
     loc->pwm_req_headers_in_access = NGX_CONF_UNSET;
+    loc->pwm_lua_resolver = NGX_CONF_UNSET;
 
     if (ngx_wasm_main_vm(cf->cycle)) {
         loc->plan = ngx_wasm_ops_plan_new(cf->pool, &ngx_http_wasm_subsystem);
@@ -330,6 +341,8 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->pwm_req_headers_in_access,
                          prev->pwm_req_headers_in_access, 0);
+
+    ngx_conf_merge_value(conf->pwm_lua_resolver,  prev->pwm_lua_resolver, 0);
 
     if (conf->plan && !conf->plan->populated) {
         conf->plan = prev->plan;
@@ -512,6 +525,8 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 
             cln->handler = ngx_http_wasm_cleanup;
             cln->data = rctx;
+
+            rctx->pwm_lua_resolver = loc->pwm_lua_resolver;
 
             if (ngx_wasm_ops_plan_attach(loc->plan, opctx) != NGX_OK) {
                 return NGX_ERROR;
@@ -851,6 +866,10 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
 {
     ngx_int_t                  rc;
     ngx_http_wasm_req_ctx_t   *rctx;
+#if (NGX_WASM_LUA)
+    ngx_http_lua_ctx_t        *ctx;
+#endif
+
 #if (NGX_DEBUG)
     ngx_connection_t          *c = r->connection;
     ngx_event_t               *wev = c->write;
@@ -894,6 +913,26 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
                     return;
                 }
             }
+        }
+    }
+#endif
+
+#if (NGX_WASM_LUA)
+    ctx = ngx_http_get_module_ctx(r, ngx_http_lua_module);
+
+    if (rctx->wasm_lua_ctx
+        && rctx->wasm_lua_ctx->co_ctx->co_status != NGX_HTTP_LUA_CO_DEAD)
+    {
+        ctx->resume_handler(r);
+
+        if (rctx->wasm_lua_ctx->co_ctx
+            && rctx->wasm_lua_ctx->co_ctx->co_status != NGX_HTTP_LUA_CO_DEAD)
+        {
+            r->write_event_handler = ngx_http_wasm_content_wev_handler;
+            return;
+
+        } else {
+            return;
         }
     }
 #endif

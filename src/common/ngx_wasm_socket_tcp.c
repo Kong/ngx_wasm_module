@@ -5,6 +5,10 @@
 
 #include <ngx_wasm_socket_tcp.h>
 
+#if (NGX_WASM_LUA)
+#include <ngx_wasm_lua_resolver.h>
+#endif
+
 
 #define ngx_wasm_socket_log(s)                                               \
     ((s) && (s)->log) ? (s)->log : ngx_cycle->log
@@ -201,19 +205,23 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
 ngx_int_t
 ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
 {
-    ngx_resolver_ctx_t          *rslv_ctx = NULL, rslv_tmp;
+    ngx_resolver_ctx_t                   *rslv_ctx = NULL, rslv_tmp;
+    ngx_wasm_socket_tcp_dns_resolver_pt   resolver_pt = ngx_resolve_name;
+
 #if (NGX_WASM_HTTP)
-    ngx_msec_t                   conn_timeout, send_timeout, recv_timeout;
-    ngx_resolver_t              *resolver = NULL;
-    ngx_wasm_core_conf_t        *wcf;
-    ngx_http_request_t          *r;
-    ngx_http_wasm_req_ctx_t     *rctx;
-    ngx_http_core_loc_conf_t    *clcf;
-    ngx_http_wasm_loc_conf_t    *loc = NULL;
+    ngx_msec_t                            conn_timeout;
+    ngx_msec_t                            send_timeout, recv_timeout;
+    ngx_resolver_t                       *resolver = NULL;
+    ngx_wasm_core_conf_t                 *wcf;
+    ngx_http_request_t                   *r;
+    ngx_http_wasm_req_ctx_t              *rctx;
+    ngx_http_core_loc_conf_t             *clcf;
+    ngx_http_wasm_loc_conf_t             *loc = NULL;
 #endif
+
 #if (NGX_WASM_STREAM)
-    ngx_stream_core_srv_conf_t  *ssrvcf;
-    ngx_stream_session_t        *s;
+    ngx_stream_core_srv_conf_t           *ssrvcf;
+    ngx_stream_session_t                 *s;
 #endif
 
     if (sock->errlen) {
@@ -267,6 +275,16 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
         if (!sock->read_timeout) {
             sock->read_timeout = recv_timeout;
         }
+    }
+
+    if (rctx->pwm_lua_resolver) {
+#if (NGX_WASM_LUA)
+        resolver_pt = ngx_wasm_lua_resolver_resolve;
+#else
+        ngx_wasm_log_error(NGX_LOG_WARN, sock->log, 0,
+                           "\"proxy_wasm_lua_resolver\" is enabled but build "
+                           "lacks lua support, using default resolver");
+#endif
     }
 #endif
 
@@ -347,7 +365,7 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
     rslv_ctx->handler = ngx_wasm_socket_resolve_handler;
     rslv_ctx->data = sock;
 
-    if (ngx_resolve_name(rslv_ctx) != NGX_OK) {
+    if (resolver_pt(rslv_ctx) == NGX_ERROR) {
         ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
                        "wasm tcp socket failed running resolver immediately");
         return NGX_ERROR;
