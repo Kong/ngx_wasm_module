@@ -18,11 +18,11 @@ jobs:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    #if: ${{ false }}
     outputs:
       coveralls_name: ${{ steps.lcov.outputs.name }}
     env:
       NGX_BUILD_GCOV: 1
-    #if: ${{ false }}
     strategy:
       fail-fast: false
       matrix:
@@ -183,17 +183,29 @@ jobs:
         hup: [0, 1]
         debug: [1]
         include:
+          # Wasmtime
           - os: ubuntu-22.04
+            cc: gcc-10
             ngx: 1.23.3
             runtime: wasmtime
             wasmtime: 5.0.0
             hup: 0
             debug: 1
+          # V8
           - os: ubuntu-22.04
             cc: gcc-10
             ngx: 1.23.3
             runtime: v8
             v8: 10.5.18
+            hup: 0
+            debug: 1
+          # OpenResty
+          - os: ubuntu-22.04
+            cc: gcc-10
+            ngx:
+            openresty: 1.21.4.1
+            runtime: wasmer
+            wasmer: 3.1.1
             hup: 0
             debug: 1
     steps:
@@ -234,6 +246,7 @@ jobs:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
           NGX_BUILD_DEBUG: ${{ matrix.debug }}
+          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
       - run: make test 2>&1 | tee valgrind.out
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}

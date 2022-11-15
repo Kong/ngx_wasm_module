@@ -4,10 +4,9 @@
 
 #include <ngx_stream.h>
 #include <ngx_wasm_ops.h>
-#include <ngx_proxy_wasm.h>
 
 
-typedef struct {
+struct ngx_stream_wasm_ctx_s {
     ngx_stream_session_t              *s;
     ngx_connection_t                  *connection;
     ngx_pool_t                        *pool;  /* r->pool */
@@ -16,7 +15,7 @@ typedef struct {
 
     ngx_chain_t                       *free_bufs;
     ngx_chain_t                       *busy_bufs;
-} ngx_stream_wasm_ctx_t;
+};
 
 
 #endif /* _NGX_STREAM_WASM_H_INCLUDED_ */

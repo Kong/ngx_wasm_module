@@ -3,9 +3,6 @@
 
 
 #include <ngx_wasm.h>
-#ifdef NGX_WASM_HTTP
-#include <ngx_http_wasm.h>
-#endif
 
 
 typedef struct ngx_wasm_socket_tcp_s  ngx_wasm_socket_tcp_t;

@@ -1400,7 +1400,7 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_exec_t *pwexec)
 {
     ngx_wavm_instance_t             *instance;
     ngx_proxy_wasm_filter_t         *filter = pwexec->filter;
-#if 0
+#if 1
 #ifdef NGX_WASM_HTTP
     ngx_http_proxy_wasm_dispatch_t  *call;
 #endif
@@ -1414,7 +1414,7 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_exec_t *pwexec)
                    pwexec->filter->name, pwexec->index + 1,
                    pwexec->parent->nfilters);
 
-#if 0
+#if 1
 #ifdef NGX_WASM_HTTP
     call = pwexec->call;
     if (call) {

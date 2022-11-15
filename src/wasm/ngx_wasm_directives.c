@@ -168,3 +168,17 @@ ngx_wasm_core_resolver_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     return NGX_CONF_OK;
 }
+
+
+char *
+ngx_wasm_core_pwm_lua_resolver_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
+{
+#if (NGX_WASM_LUA)
+    return ngx_conf_set_flag_slot(cf, cmd, conf);
+#else
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                       "[wasm] proxy_wasm_lua_resolver requires lua support");
+    return NGX_CONF_ERROR;
+#endif
+}

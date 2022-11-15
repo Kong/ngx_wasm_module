@@ -156,7 +156,7 @@ qq{
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tls certificate verify error: \(10:certificate has expired\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \(10:certificate has expired\)/
 --- no_error_log
 [crit]
 
@@ -236,7 +236,7 @@ qq{
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tls certificate does not match \"localhost\"/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate does not match \"localhost\"/
 --- no_error_log
 [crit]
 
@@ -293,7 +293,7 @@ qr/tls certificate verify error: \(19:self.signed certificate in certificate cha
 --- error_log eval
 [
     qr/\[crit\] .*? SSL_do_handshake\(\) failed/,
-    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tls handshake failed/
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls handshake failed/
 ]
 
 
@@ -350,7 +350,7 @@ qq{
 }
 --- error_code: 500
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tls certificate verify error: \(20:unable to get local issuer certificate\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \(20:unable to get local issuer certificate\)/
 --- no_error_log
 [crit]
 [emerg]
@@ -383,7 +383,7 @@ qq{
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tls certificate verify error: \(20:unable to get local issuer certificate\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \(20:unable to get local issuer certificate\)/
 --- no_error_log
 [crit]
 
@@ -453,3 +453,86 @@ ok
 upstream tls server name: "hostname"
 --- no_error_log
 [error]
+
+
+
+=== TEST 15: proxy_wasm - dispatch_https_call() on_tick, verify off, warn, default port, ok
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config eval
+qq{
+    wasm {
+        module hostcalls        $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
+        tls_trusted_certificate $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
+    }
+}
+--- config
+    listen              $TEST_NGINX_SERVER_PORT2 ssl;
+    server_name         hostname;
+    ssl_certificate     $TEST_NGINX_DATA_DIR/hostname_cert.pem;
+    ssl_certificate_key $TEST_NGINX_DATA_DIR/hostname_key.pem;
+
+    resolver            1.1.1.1 ipv6=off;
+    resolver_add        127.0.0.1 hostname;
+
+    location /t {
+        proxy_wasm hostcalls 'tick_period=5 \
+                              on_tick=dispatch \
+                              host=hostname:$TEST_NGINX_SERVER_PORT2 \
+                              https=yes \
+                              path=/dispatch';
+        echo ok;
+    }
+
+    location /dispatch {
+        echo ok;
+    }
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[warn\] .*? tls certificate not verified/,
+    qr/\[warn\] .*? tls certificate host not verified/,
+    "on_root_http_call_response (id: 0, headers: 5, body_bytes: 3, trailers: 0)",
+]
+
+
+
+=== TEST 16: proxy_wasm - dispatch_https_call() on_tick, verify on, check_host on, default port, ok
+--- skip_no_debug: 4
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config eval
+qq{
+    wasm {
+        module hostcalls        $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
+        tls_trusted_certificate $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
+        tls_verify_cert         on;
+        tls_verify_host         on;
+    }
+}
+--- config
+    listen              $TEST_NGINX_SERVER_PORT2 ssl;
+    server_name         hostname;
+    ssl_certificate     $TEST_NGINX_DATA_DIR/hostname_cert.pem;
+    ssl_certificate_key $TEST_NGINX_DATA_DIR/hostname_key.pem;
+
+    resolver            1.1.1.1 ipv6=off;
+    resolver_add        127.0.0.1 hostname;
+
+    location /t {
+        proxy_wasm hostcalls 'tick_period=5 \
+                              on_tick=dispatch \
+                              host=hostname:$TEST_NGINX_SERVER_PORT2 \
+                              https=yes \
+                              path=/dispatch';
+        echo ok;
+    }
+
+    location /dispatch {
+        echo ok;
+    }
+--- ignore_response_body
+--- error_log eval
+[
+    qr/verifying tls certificate for "hostname"/,
+    qr/checking tls certificate host for "hostname"/,
+    qr/on_root_http_call_response \(id: 0, headers: 5, body_bytes: 3, trailers: 0\)/,
+]

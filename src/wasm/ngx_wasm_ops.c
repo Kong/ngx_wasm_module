@@ -4,12 +4,9 @@
 #include "ddebug.h"
 
 #include <ngx_wasm_ops.h>
+#include <ngx_wasm_subsystem.h>
 #ifdef NGX_WASM_HTTP
-#include <ngx_http_wasm.h>
 #include <ngx_http_proxy_wasm.h>
-#endif
-#ifdef NGX_WASM_STREAM
-#include <ngx_stream_wasm.h>
 #endif
 
 
@@ -270,6 +267,8 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
 
     ops = ctx->ops;
     plan = ctx->plan;
+
+    dd("enter");
 
     phase = ngx_wasm_ops_phase_lookup(ops, phaseidx);
     if (phase == NULL) {
