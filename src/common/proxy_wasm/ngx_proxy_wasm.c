@@ -8,6 +8,9 @@
 #ifdef NGX_WASM_HTTP
 #include <ngx_http_proxy_wasm.h>
 #endif
+#if (NGX_WASM_LUA)
+#include <ngx_wasm_lua_resolver.h>
+#endif
 
 
 static ngx_int_t ngx_proxy_wasm_init_abi(ngx_proxy_wasm_filter_t *filter);
@@ -114,6 +117,10 @@ ngx_proxy_wasm_init(ngx_conf_t *cf)
                     ngx_rbtree_insert_value);
 
     ngx_proxy_wasm_properties_init(cf);
+
+#if (NGX_WASM_LUA)
+    ngx_wasm_lua_resolver_init(cf);
+#endif
 }
 
 
