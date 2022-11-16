@@ -194,7 +194,8 @@ qq{
 
 
 === TEST 11: proxy_wasm - dispatch_http_call() resolver + hostname (IPv6), default port
---- skip_eval: 4: defined $ENV{GITHUB_ACTIONS}
+Disabled on GitHub Actions due to IPv6 constraint.
+--- skip_eval: 4: system("ping6 -c 1 ::1 >/dev/null 2>&1") ne 0 || defined $ENV{GITHUB_ACTIONS}
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -219,7 +220,7 @@ qq{
 
 
 
-=== TEST 12: proxy_wasm - dispatch_http_call() resolver + hostname (IPv6) + port
+=== TEST 12: proxy_wasm - dispatch_http_call() resolver + hostname (IPv4) + port
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config

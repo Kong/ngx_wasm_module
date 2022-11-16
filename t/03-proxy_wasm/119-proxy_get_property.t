@@ -338,8 +338,7 @@ qr/$checks/
 
 === TEST 8: proxy_wasm - get_property() - upstream properties (IPv6) on: response_headers
 Disabled on GitHub Actions due to IPv6 constraint.
---- SKIP
---- skip_eval: 4: defined $ENV{GITHUB_ACTIONS}
+--- skip_eval: 4: system("ping6 -c 1 ::1 >/dev/null 2>&1") ne 0 || defined $ENV{GITHUB_ACTIONS}
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
