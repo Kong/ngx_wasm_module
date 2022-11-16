@@ -163,7 +163,7 @@ qr/500 Internal Server Error/
 --- error_log eval
 [
     qr/\[error\] .*? property "nonexistent_property" not found/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
+    qr/\[crit\] .*? panicked at 'unexpected status: 1'/,
 ]
 --- no_error_log
 [alert]

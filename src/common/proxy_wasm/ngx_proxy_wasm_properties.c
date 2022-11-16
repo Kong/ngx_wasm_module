@@ -11,12 +11,14 @@
 
 
 static ngx_int_t
-ngx_proxy_wasm_properties_get_ngx(
-    ngx_wavm_instance_t *instance, ngx_str_t *path, ngx_str_t *value);
-
-
+ngx_proxy_wasm_properties_get_ngx(ngx_wavm_instance_t *instance,
+    ngx_str_t *path, ngx_str_t *value);
 static ngx_int_t
-ngx_proxy_wasm_properties_set_ngx(
+ngx_proxy_wasm_properties_set_ngx(ngx_wavm_instance_t *instance,
+    ngx_str_t *path, ngx_str_t *value);
+
+
+typedef ngx_int_t (*ngx_proxy_wasm_properties_getter)(
     ngx_wavm_instance_t *instance, ngx_str_t *path, ngx_str_t *value);
 
 
@@ -27,10 +29,6 @@ static size_t ngx_prefix_len = 4;
 static ngx_hash_init_t         pwm2ngx_init;
 static ngx_hash_combined_t     pwm2ngx_hash;
 static ngx_hash_keys_arrays_t  pwm2ngx_keys;
-
-
-typedef ngx_int_t (*proxy_wasm_properties_func)(
-    ngx_wavm_instance_t *instance, ngx_str_t *path, ngx_str_t *value);
 
 
 static ngx_int_t
@@ -207,7 +205,7 @@ get_upstream_port(ngx_wavm_instance_t *instance, ngx_str_t *path,
 
 
 static ngx_int_t
-get_request_headers(ngx_wavm_instance_t *instance, ngx_str_t *path,
+get_request_header(ngx_wavm_instance_t *instance, ngx_str_t *path,
     ngx_str_t *value)
 {
     ngx_proxy_wasm_map_type_e  type = NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS;
@@ -221,7 +219,7 @@ get_request_headers(ngx_wavm_instance_t *instance, ngx_str_t *path,
 
 
 static ngx_int_t
-get_response_headers(ngx_wavm_instance_t *instance, ngx_str_t *path,
+get_response_header(ngx_wavm_instance_t *instance, ngx_str_t *path,
     ngx_str_t *value)
 {
     ngx_proxy_wasm_map_type_e  type = NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS;
@@ -294,10 +292,9 @@ get_connection_mtls(ngx_wavm_instance_t *instance, ngx_str_t *path,
             return rc;
         }
 
-        on = ngx_str_eq(https_v.data, https_v.len,
-                        https_e.data, https_e.len) == 1
+        on = ngx_str_eq(https_v.data, https_v.len, https_e.data, https_e.len)
              && ngx_str_eq(verify_v.data, verify_v.len,
-                           verify_e.data, verify_e.len) == 1;
+                           verify_e.data, verify_e.len);
 
         result = on ? &mtls_on : &mtls_off;
 
@@ -363,7 +360,7 @@ get_filter_root_id(ngx_wavm_instance_t *instance, ngx_str_t *path,
 typedef struct {
     ngx_str_t                    pw_key;
     ngx_str_t                    n_key;
-    proxy_wasm_properties_func   ptr;
+    ngx_proxy_wasm_properties_getter   ptr;
     u_char                      *pw_key_writable;
 } pwm2ngx_mapping_t;
 
@@ -416,7 +413,7 @@ static pwm2ngx_mapping_t  pw2ngx[] = {
       NULL, NULL },
     { ngx_string("request.headers.*"),
       ngx_null_string,
-      &get_request_headers, NULL },
+      &get_request_header, NULL },
 
     /* Response properties */
 
@@ -443,7 +440,7 @@ static pwm2ngx_mapping_t  pw2ngx[] = {
       &not_supported, NULL },
     { ngx_string("response.headers.*"),
       ngx_null_string,
-      &get_response_headers, NULL },
+      &get_response_header, NULL },
 
     /* Upstream properties */
 
@@ -855,7 +852,9 @@ ngx_proxy_wasm_properties_get(ngx_wavm_instance_t *instance,
         }
     }
 
-    if (ngx_str_eq(p.data, p.len, ngx_prefix, ngx_prefix_len) == 0) {
+    if (p.len > ngx_prefix_len
+        && ngx_memcmp(p.data, ngx_prefix, ngx_prefix_len) == 0)
+    {
         return ngx_proxy_wasm_properties_get_ngx(instance, &p, value);
     }
 
@@ -875,12 +874,14 @@ ngx_proxy_wasm_properties_set(ngx_wavm_instance_t *instance,
 
     p.data = replace_nulls_by_dots(path, dotted_path_buf);
 
-    if (ngx_memcmp(p.data, ngx_prefix, ngx_prefix_len) == 0) {
+    if (p.len > ngx_prefix_len
+        && ngx_memcmp(p.data, ngx_prefix, ngx_prefix_len) == 0)
+    {
         return ngx_proxy_wasm_properties_set_ngx(instance, &p, value);
     }
 
     ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                        "property \"%V\" not found", &p);
 
-    return NGX_ERROR;
+    return NGX_DECLINED;
 }
