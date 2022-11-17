@@ -7,16 +7,13 @@ local wasm = require "resty.wasm"
 local C = ffi.C
 local error = error
 local type = type
-local find = string.find
 local ffi_gc = ffi.gc
 local ffi_new = ffi.new
 local ffi_str = ffi.string
-local ngx_phase = ngx.get_phase
 local get_request = wasm.get_request
 local get_err_ptr = wasm.get_err_ptr
 local FFI_OK = wasm.FFI_OK
 local FFI_ERROR = wasm.FFI_ERROR
-local FFI_DONE = wasm.FFI_DONE
 local FFI_DECLINED = wasm.FFI_DECLINED
 
 
@@ -118,10 +115,6 @@ end
 
 
 function _M.attach(c_plan)
-    if ngx_phase() ~= "rewrite" then
-        error([[must be called from "rewrite" phase]], 2)
-    end
-
     if type(c_plan) ~= "cdata" then
         error("plan should be a cdata object", 2)
     end

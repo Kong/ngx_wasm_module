@@ -12,29 +12,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: attach() - bad phase
---- config
-    location /t {
-        access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
-
-            local pok, perr = pcall(proxy_wasm.attach, c_ops)
-            if not pok then
-                ngx.log(ngx.INFO, perr)
-            end
-
-            ngx.say()
-        }
-    }
---- error_log
-must be called from "rewrite" phase
---- no_error_log
-[error]
-[crit]
-
-
-
-=== TEST 2: attach() - bad plan (bad argument)
+=== TEST 1: attach() - bad plan (bad argument)
 --- wasm_modules: on_phases
 --- config
     location /t {
@@ -57,7 +35,7 @@ plan should be a cdata object
 
 
 
-=== TEST 3: attach() - bad plan (not loaded)
+=== TEST 2: attach() - bad plan (not loaded)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -89,7 +67,7 @@ plan not loaded
 
 
 
-=== TEST 4: attach() - load() + attach() in rewrite
+=== TEST 3: attach() - load() + attach() in rewrite
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -139,7 +117,7 @@ qr/#0 on_configure, config_size: 0.*
 
 
 
-=== TEST 5: attach() - load() in init_worker + attach() in rewrite
+=== TEST 4: attach() - load() in init_worker + attach() in rewrite
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- http_config
@@ -166,6 +144,64 @@ qr/#0 on_configure, config_size: 0.*
 --- config
     location /t {
         rewrite_by_lua_block {
+            local proxy_wasm = require "resty.http.proxy_wasm"
+            local c_plan = _G.c_plan
+
+            local ok, err = proxy_wasm.attach(c_plan)
+            if not ok then
+                return ngx.say(err)
+            end
+        }
+
+        echo ok;
+    }
+--- request
+POST /t
+Hello world
+--- response_body
+ok
+--- grep_error_log eval: qr/#\d+ on_(configure|request|response|log).*/
+--- grep_error_log_out eval
+qr/#0 on_configure, config_size: 0.*
+#\d+ on_request_headers, 3 headers.*
+#\d+ on_request_body, 11 bytes.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_trailers, 0 trailers.*
+#\d+ on_log.*/
+--- no_error_log
+[error]
+
+
+
+=== TEST 5: attach() - load() in init_worker + attach() in access
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- http_config
+    init_worker_by_lua_block {
+        local proxy_wasm = require "resty.http.proxy_wasm"
+        local filters = {
+            { name = "on_phases" },
+        }
+
+        local c_plan, err = proxy_wasm.new(filters)
+        if not c_plan then
+            ngx.log(ngx.ERR, err)
+            return
+        end
+
+        local ok, err = proxy_wasm.load(c_plan)
+        if not ok then
+            ngx.log(ngx.ERR, err)
+            return
+        end
+
+        _G.c_plan = c_plan
+    }
+--- config
+    location /t {
+        access_by_lua_block {
             local proxy_wasm = require "resty.http.proxy_wasm"
             local c_plan = _G.c_plan
 
