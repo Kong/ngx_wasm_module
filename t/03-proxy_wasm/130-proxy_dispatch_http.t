@@ -24,7 +24,7 @@ __DATA__
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(no host\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no host/
 --- no_error_log
 [crit]
 
@@ -40,7 +40,7 @@ qr/\[error\] .*? dispatch failed \(no host\)/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(no host\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no host/
 --- no_error_log
 [crit]
 
@@ -56,7 +56,7 @@ qr/\[error\] .*? dispatch failed \(no host\)/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(invalid port\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: invalid port/
 --- no_error_log
 [crit]
 
@@ -72,7 +72,7 @@ qr/\[error\] .*? dispatch failed \(invalid port\)/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(invalid port\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: invalid port/
 --- no_error_log
 [crit]
 
@@ -89,7 +89,7 @@ qr/\[error\] .*? dispatch failed \(invalid port\)/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed: no :method/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :method/
 --- no_error_log
 [crit]
 
@@ -106,7 +106,7 @@ qr/\[error\] .*? dispatch failed: no :method/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed: no :path/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :path/
 --- no_error_log
 [crit]
 
@@ -123,7 +123,7 @@ qr/\[error\] .*? dispatch failed: no :path/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed: no :authority/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :authority/
 --- no_error_log
 [crit]
 
@@ -141,7 +141,7 @@ qr/\[error\] .*? dispatch failed: no :authority/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(Connection refused\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: Connection refused/
 --- no_error_log
 [crit]
 
@@ -159,7 +159,7 @@ qr/\[error\] .*? dispatch failed \(Connection refused\)/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed \(no resolver defined to resolve "localhost"\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no resolver defined to resolve "localhost"/
 --- no_error_log
 [crit]
 
@@ -272,8 +272,8 @@ qq{
 }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- error_log
-[wasm] dispatch failed (tcp socket - resolver error: Host not found)
+--- error_log eval
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolver error: Host not found/
 --- no_error_log
 [crit]
 
@@ -660,9 +660,11 @@ sub {
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- error_log
-tcp socket - not enough large buffers available, increase wasm_socket_large_buffers number
-dispatch failed (tcp socket - parser error)
+--- error_log eval
+[
+    qr/tcp socket - not enough large buffers available, increase wasm_socket_large_buffers number/,
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser error/
+]
 
 
 
@@ -711,8 +713,8 @@ sub {
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- error_log
-dispatch failed (tcp socket - parser error)
+--- error_log eval
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser error/
 --- no_error_log
 [crit]
 
@@ -763,9 +765,11 @@ tcp socket trying to receive data (max: 1017)
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- error_log
-panicked at 'trap!'
-trap in proxy_on_http_call_response
+--- error_log eval
+[
+    qr/panicked at 'trap!'/,
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?unreachable/
+]
 
 
 
@@ -788,8 +792,8 @@ sub {
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- error_log
-dispatch failed (tcp socket - parser error)
+--- error_log eval
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser error/
 --- no_error_log
 [crit]
 
@@ -861,7 +865,7 @@ dispatch failed (tcp socket - parser error)
 --- response_body
 fail
 --- error_log eval
-qr/trap in proxy_on_log:.*? dispatch failed: bad step/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: bad step/
 --- no_error_log
 [crit]
 
@@ -879,7 +883,7 @@ qr/trap in proxy_on_log:.*? dispatch failed: bad step/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? dispatch failed: no :method/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :method/
 --- no_error_log
 [crit]
 

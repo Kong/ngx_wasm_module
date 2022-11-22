@@ -231,6 +231,7 @@ ngx_proxy_wasm_start(ngx_cycle_t *cycle)
             ngx_proxy_wasm_log_error(NGX_LOG_EMERG, filter->log, filter->ecode,
                                      "proxy_wasm failed initializing "
                                      "\"%V\" filter", filter->name);
+            return NGX_ERROR;
 
         }
     }

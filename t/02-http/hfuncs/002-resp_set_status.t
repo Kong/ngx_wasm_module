@@ -50,14 +50,25 @@ hello say
 
 
 === TEST 3: resp_set_status: bad usage in 'log' phase
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- config
     location /t {
         return 200;
         wasm_call log ngx_rust_tests set_resp_status;
     }
 --- ignore_response_body
---- grep_error_log eval: qr/\[error\] .*?$/
+--- grep_error_log eval: qr/(\[error\] .*?|.*?host trap).*/
 --- grep_error_log_out eval
-qr/bad host usage: headers already sent/
+qr/.*?(\[error\]|Uncaught RuntimeError: |\s+)host trap \(bad usage\): headers already sent.*/
 --- no_error_log
 [alert]

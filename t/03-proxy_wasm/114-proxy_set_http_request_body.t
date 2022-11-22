@@ -208,6 +208,17 @@ HelloWorld
 
 
 === TEST 7: proxy_wasm - set_http_request_body() x on_phases
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -254,9 +265,9 @@ HelloWorld
 qr/from_request_headers
 from_request_body
 [\s\S]+500 Internal Server Error/
---- grep_error_log eval: qr/(\[error\]|\[.*?failed resuming).*/
+--- grep_error_log eval: qr/(.*?cannot set|\[.*?failed resuming).*/
 --- grep_error_log_out eval
-qr/\[error\] .*?cannot set request body.*
+qr/.*?host trap \(bad usage\): cannot set request body.*
 \[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
 \[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*? request: "GET \/t HTTP\/1\.1".*
 \z/

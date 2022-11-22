@@ -270,19 +270,19 @@ ngx_wavm_hfunc_trampoline(void *env,
         break;
 
     case NGX_WAVM_ERROR:
-        err = "host internal error";
+        err = "host trap (internal error)";
         break;
 
     case NGX_WAVM_BAD_USAGE:
-        err = "bad host usage";
+        err = "host trap (bad usage)";
         break;
 
     case NGX_WAVM_BAD_ARG:
-        err = "bad host argument";
+        err = "host trap (bad argument)";
         break;
 
     case NGX_WAVM_NYI:
-        err = "host function not yet implemented";
+        err = "host trap (function not yet implemented)";
 
         ngx_wasm_assert(!instance->trapmsg.len);
 
@@ -290,7 +290,7 @@ ngx_wavm_hfunc_trampoline(void *env,
         break;
 
     default:
-        err = "invalid host function rc";
+        err = "host trap (invalid rc)";
         break;
 
     }

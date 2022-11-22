@@ -503,11 +503,8 @@ ngx_wasmtime_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
                                   wargs, args->size,
                                   wrets, rets->size,
                                   &err->trap);
-    if (err->trap) {
+    if (err->trap || err->res) {
         rc = NGX_ABORT;
-        goto done;
-
-    } else if (err->res) {
         goto done;
     }
 

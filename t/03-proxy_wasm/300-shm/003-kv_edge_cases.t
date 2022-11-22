@@ -13,7 +13,17 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm key/value shm - set value when slab is full
-Throws a trap (kv configured with minimum size)
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: test 12288
@@ -30,10 +40,10 @@ Throws a trap (kv configured with minimum size)
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- grep_error_log eval: qr/\[(error|crit)\] .*/
+--- grep_error_log eval: qr/(\[crit\]|.*?failed setting value to shm).*/
 --- grep_error_log_out eval
 qr/\[crit\] .*? ngx_slab_alloc\(\) failed: no memory
-\[error\] .*? trap in proxy_on_request_headers:.*? failed setting value to shm \(could not write to slab\).*/
+(.*?\[error\]|Uncaught RuntimeError|\s+).*?host trap \(internal error\): failed setting value to shm \(could not write to slab\).*/
 --- no_error_log
 [emerg]
 [alert]

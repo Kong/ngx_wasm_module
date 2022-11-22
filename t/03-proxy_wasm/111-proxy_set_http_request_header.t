@@ -297,6 +297,17 @@ path: /test
 
 
 === TEST 12: proxy_wasm - set_http_request_headers() cannot set ':path' with querystring (NYI)
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -305,9 +316,9 @@ path: /test
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- grep_error_log eval: qr/(\[error\]|\[.*?failed resuming).*/
+--- grep_error_log eval: qr/(NYI|\[.*?failed resuming).*/
 --- grep_error_log_out eval
-qr/\[error\] .*?cannot set request path with querystring.*
+qr/.*?NYI - cannot set request path with querystring.*
 \[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*/
 --- no_error_log
 [alert]

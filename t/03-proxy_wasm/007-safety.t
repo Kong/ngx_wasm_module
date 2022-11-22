@@ -20,7 +20,7 @@ __DATA__
     }
 --- error_code: 500
 --- error_log eval
-qr/bad host usage: invalid slice pointer passed to host function/
+qr/host trap \(bad usage\): invalid slice pointer passed to host function/
 --- no_error_log
 [alert]
 
@@ -34,7 +34,7 @@ qr/bad host usage: invalid slice pointer passed to host function/
     }
 --- error_code: 500
 --- error_log eval
-qr/bad host usage: invalid data pointer passed to host function/
+qr/host trap \(bad usage\): invalid data pointer passed to host function/
 --- no_error_log
 [alert]
 
@@ -48,6 +48,6 @@ qr/bad host usage: invalid data pointer passed to host function/
     }
 --- error_code: 500
 --- error_log eval
-qr/bad host usage: invalid data pointer passed to host function/
+qr/host trap \(bad usage\): invalid data pointer passed to host function/
 --- no_error_log
 [alert]

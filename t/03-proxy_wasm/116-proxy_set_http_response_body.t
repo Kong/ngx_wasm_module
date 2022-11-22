@@ -311,6 +311,18 @@ on_response_body, 0 bytes, eof: true.*/
 === TEST 7: proxy_wasm - set_http_response_body() x on_phases
 should not be usable anywhere else than on_http_response_body
 should not be retrievable after on_http_response_body since buffers are consumed
+
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -344,13 +356,13 @@ Transfer-Encoding: chunked
 Content-Length:
 --- response_body eval
 qr/500 Internal Server Error/
---- grep_error_log eval: qr/(\[error\]|\[.*?failed resuming).*/
+--- grep_error_log eval: qr/(.*?cannot set|\[.*?failed resuming).*/
 --- grep_error_log_out eval
-qr/\[error\] .*?cannot set response body.*
+qr/.*?host trap \(bad usage\): cannot set response body.*
 \[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/request_headers".*
-\[error\] .*?cannot set response body.*
+.*?host trap \(bad usage\): cannot set response body.*
 \[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
-\[error\] .*?cannot set response body.*/
+.*?host trap \(bad usage\): cannot set response body.*/
 --- no_error_log
 [alert]
 [stderr]

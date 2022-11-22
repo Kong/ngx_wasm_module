@@ -43,7 +43,7 @@ qq{
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out connecting to \".*?"\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out connecting to \".*?\"/
 --- no_error_log
 [crit]
 
@@ -68,7 +68,7 @@ qq{
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - resolver error: Operation timed out\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolver error: Operation timed out/
 --- no_error_log
 [crit]
 
@@ -94,7 +94,7 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - resolver error: Operati
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out reading from \"127\.0\.0\.1:\d+\"\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out reading from \"127\.0\.0\.1:\d+\"/
 --- no_error_log
 [crit]
 
@@ -122,6 +122,6 @@ qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out reading from 
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[error\] .*? \[wasm\] dispatch failed \(tcp socket - timed out writing to \".*?"\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out writing to \".*?\"/
 --- no_error_log
 [crit]

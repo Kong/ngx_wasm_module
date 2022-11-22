@@ -155,8 +155,8 @@ qq{
 }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- error_log
-dispatch failed (tls certificate verify error: (10:certificate has expired))
+--- error_log eval
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tls certificate verify error: \(10:certificate has expired\)/
 --- no_error_log
 [crit]
 
@@ -235,8 +235,8 @@ qq{
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- error_log
-dispatch failed (tls certificate does not match "localhost")
+--- error_log eval
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tls certificate does not match \"localhost\"/
 --- no_error_log
 [crit]
 
@@ -267,7 +267,7 @@ qq{
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/tls certificate verify error: \(19:self.signed certificate in certificate chain\)\)/
+qr/tls certificate verify error: \(19:self.signed certificate in certificate chain\)/
 --- no_error_log
 [crit]
 
@@ -293,7 +293,7 @@ qr/tls certificate verify error: \(19:self.signed certificate in certificate cha
 --- error_log eval
 [
     qr/\[crit\] .*? SSL_do_handshake\(\) failed/,
-    qr/\[error\] .*? dispatch failed \(tls handshake failed\)/,
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tls handshake failed/
 ]
 
 
@@ -349,8 +349,8 @@ qq{
     }
 }
 --- error_code: 500
---- error_log
-dispatch failed (tls certificate verify error: (20:unable to get local issuer certificate))
+--- error_log eval
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tls certificate verify error: \(20:unable to get local issuer certificate\)/
 --- no_error_log
 [crit]
 [emerg]
@@ -382,8 +382,8 @@ qq{
 }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- error_log
-dispatch failed (tls certificate verify error: (20:unable to get local issuer certificate))
+--- error_log eval
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tls certificate verify error: \(20:unable to get local issuer certificate\)/
 --- no_error_log
 [crit]
 
