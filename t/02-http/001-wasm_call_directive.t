@@ -196,6 +196,17 @@ qr/\[error\] .*? no "nonexist" function in "a" module/
 
 
 === TEST 11: wasm_call directive - catch runtime error sanity
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -215,7 +226,7 @@ qr/\[error\] .*? no "nonexist" function in "a" module/
         drop))
 --- error_code: 500
 --- error_log eval
-qr/\[error\] .*? divide by zero/
+qr/(\[error\] .*? integer divide by zero|wasm trap: integer divide by zero|Uncaught RuntimeError: divide by zero)/
 --- no_error_log
 [crit]
 [alert]

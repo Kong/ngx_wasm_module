@@ -74,7 +74,7 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
     p = ngx_slprintf(p, last, "dispatch failed");
 
     if (sock->errlen) {
-        p = ngx_slprintf(p, last, " (%*.s)",
+        p = ngx_slprintf(p, last, ": %*s",
                          (int) sock->errlen, sock->err);
     }
 

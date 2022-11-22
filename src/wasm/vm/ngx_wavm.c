@@ -1144,10 +1144,9 @@ ngx_wavm_instance_call_func_va(ngx_wavm_instance_t *instance,
     rc = ngx_wavm_func_call(func, &func->args, &func->rets,
                             &instance->wrt_error);
     if (rc != NGX_OK) {
+        /* no format, only the runtime-produced trap */
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &instance->wrt_error,
-                           "%s in %V:",
-                           rc == NGX_ABORT ? "trap" : "error",
-                           &func->name);
+                           NULL);
     }
 
     if (rets) {
@@ -1198,8 +1197,9 @@ ngx_wavm_instance_call_func_vec(ngx_wavm_instance_t *instance,
     rc = ngx_wavm_func_call(func, &func->args, &func->rets,
                             &instance->wrt_error);
     if (rc != NGX_OK) {
+        /* no format, only the runtime-produced trap */
         ngx_wavm_log_error(NGX_LOG_ERR, instance->log, &instance->wrt_error,
-                           "in %V", &func->name);
+                           NULL);
     }
 
     if (rets) {
@@ -1291,7 +1291,7 @@ ngx_wavm_instance_trap_vprintf(ngx_wavm_instance_t *instance,
 
         *p++ = '\0';
 
-        instance->trapmsg.len = p - instance->trapbuf;
+        instance->trapmsg.len = p - instance->trapbuf - 1;
         instance->trapmsg.data = (u_char *) instance->trapbuf;
     }
 }
@@ -1379,16 +1379,15 @@ ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
     }
 
     if (e && e->trap) {
-        if (fmt) {
-            p = ngx_slprintf(p, last, " ");
-        }
-
         wasm_trap_message(e->trap, &trapmsg);
 
         p = ngx_slprintf(p, last, "%*s",
                          trapmsg.size
-#ifdef NGX_WASM_HAVE_WASMER
-                         /* wasmer appends NULL in wasm_trap_message */
+#if (NGX_WASM_HAVE_WASMER || NGX_WASM_HAVE_WASMTIME)
+                         /**
+                          * wasmer appends NULL
+                          * wasmtime appends a space
+                          */
                          - 1
 #endif
                          , trapmsg.data);

@@ -37,7 +37,17 @@ circular_write: wrapping around
 
 
 === TEST 2: proxy_wasm queue shm - push when data size == buffer_size + 1
-Throws a trap
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: test 262144
@@ -50,9 +60,9 @@ Throws a trap
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- grep_error_log eval: qr/\[error\] .*/
+--- grep_error_log eval: qr/.*?could not enqueue.*/
 --- grep_error_log_out eval
-qr/\[error\] .*? trap in proxy_on_request_headers:.*? could not enqueue \(queue is full\).*/
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(internal error\): could not enqueue \(queue is full\).*~
 --- no_error_log
 [crit]
 [emerg]

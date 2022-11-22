@@ -56,8 +56,19 @@ hello say
 
 
 === TEST 4: say: 'log' phase
-should produce a trap
-TODO: test backtrace
+Should produce a trap.
+
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- wasm_modules: ngx_rust_tests
 --- config
     location /t {
@@ -65,8 +76,8 @@ TODO: test backtrace
         wasm_call log ngx_rust_tests say_hello;
     }
 --- ignore_response_body
---- grep_error_log eval: qr/\[error\] .*?$/
+--- grep_error_log eval: qr/(\[error\] .*?|.*?host trap).*/
 --- grep_error_log_out eval
-qr/bad host usage: headers already sent/
+qr/.*?(\[error\]|Uncaught RuntimeError: |\s+)host trap \(bad usage\): headers already sent.*/
 --- no_error_log
 [crit]

@@ -124,3 +124,43 @@ ok
 ]
 --- no_error_log
 [error]
+
+
+
+=== TEST 5: proxy_wasm - multiple ticks
+'daemon off' must be set to check exit_code is 2
+Valgrind mode already writes 'daemon off'
+HUP mode does not catch the worker exit_code
+
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
+--- skip_eval: 7: $ENV{TEST_NGINX_USE_HUP} == 1
+--- main_config eval
+qq{
+    wasm {
+        module on_tick $ENV{TEST_NGINX_CRATES_DIR}/on_tick.wasm;
+    }
+}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
+--- config
+    proxy_wasm on_tick 'double_tick';
+--- ignore_response_body
+--- grep_error_log eval: qr/.*?(\[emerg\]|tick_period already set).*/
+--- grep_error_log_out eval
+qr/.*?(\[error\]|Uncaught RuntimeError: |\s+)tick_period already set <.*
+.*?\[emerg\] .*? proxy_wasm failed initializing \"on_tick\" filter.*/
+--- no_error_log
+[warn]
+[crit]
+stub
+stub
+stub
+--- must_die

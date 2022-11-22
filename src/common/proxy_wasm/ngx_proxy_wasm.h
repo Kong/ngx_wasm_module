@@ -430,16 +430,19 @@ ngx_proxy_wasm_result_err(wasm_val_t rets[])
 
 static ngx_inline ngx_int_t
 ngx_proxy_wasm_result_trap(ngx_proxy_wasm_exec_t *pwexec, char *trapmsg,
-    wasm_val_t rets[])
+    wasm_val_t rets[], ngx_int_t rc)
 {
     ngx_wavm_instance_t  *instance = ngx_proxy_wasm_pwexec2instance(pwexec);
 
     ngx_wavm_instance_trap_printf(instance, trapmsg);
 
-    return ngx_proxy_wasm_result_ok(rets);
+    rets[0] = (wasm_val_t) WASM_I32_VAL(NGX_PROXY_WASM_RESULT_OK);
+
+    return rc;
 }
 
 
+#if 0
 static ngx_inline ngx_int_t
 ngx_proxy_wasm_result_trap_printf(ngx_proxy_wasm_exec_t *pwexec,
     wasm_val_t rets[], const char *fmt, ...)
@@ -453,6 +456,7 @@ ngx_proxy_wasm_result_trap_printf(ngx_proxy_wasm_exec_t *pwexec,
 
     return ngx_proxy_wasm_result_ok(rets);
 }
+#endif
 
 
 static ngx_inline ngx_int_t

@@ -13,6 +13,17 @@ run_tests();
 __DATA__
 
 === TEST 1: wasm_call directive - oob memory read
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -33,7 +44,7 @@ __DATA__
 )
 --- error_code: 500
 --- error_log eval
-qr/\[error\] .*? out of bounds/
+qr/(\[error\] .*? out of bounds|wasm trap: out of bounds memory access|Uncaught RuntimeError: memory access out of bounds)/
 --- no_error_log
 [crit]
 [alert]
@@ -41,6 +52,17 @@ qr/\[error\] .*? out of bounds/
 
 
 === TEST 2: wasm_call directive - oob memory write
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -61,7 +83,7 @@ qr/\[error\] .*? out of bounds/
 )
 --- error_code: 500
 --- error_log eval
-qr/\[error\] .*? out of bounds/
+qr/(\[error\] .*? out of bounds|wasm trap: out of bounds|Uncaught RuntimeError: memory access out of bounds)/
 --- no_error_log
 [crit]
 [alert]

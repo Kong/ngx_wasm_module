@@ -298,6 +298,17 @@ qr/on_http_call_response \(id: \d+, headers: 5, body_bytes: \d+, trailers: 0/
 
 
 === TEST 7: proxy_wasm FFI - HTTP dispatch alongside Lua VM (trap on response)
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config
@@ -328,7 +339,7 @@ qr/on_http_call_response \(id: \d+, headers: 5, body_bytes: \d+, trailers: 0/
         _G.c_plan = c_plan
     }
 --- config
-    resolver 1.1.1.1 ipv6=off;
+    resolver     1.1.1.1 ipv6=off;
     resolver_add 127.0.0.1 localhost;
 
     location /t {
@@ -347,7 +358,7 @@ qr/on_http_call_response \(id: \d+, headers: 5, body_bytes: \d+, trailers: 0/
 [
     qr/on_http_call_response \(id: \d+, headers: 5, body_bytes: \d+, trailers: 0, op: trap\)/,
     qr/\[crit\] .*? panicked at 'trap!'/,
-    qr/\[error\] .*? trap in proxy_on_http_call_response/,
+    qr/\[error\] .*? (error while executing at wasm backtrace:|(Uncaught RuntimeError)?unreachable)/
 ]
 --- no_error_log
 [emerg]

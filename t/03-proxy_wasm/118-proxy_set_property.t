@@ -291,6 +291,18 @@ hello world
 === TEST 13: proxy_wasm - set_property() for ngx.* does not work on_tick (isolation: global)
 on_tick runs on the root context, so it does not have access to ngx_http_* calls.
 HTTP 500 since instance recycling happens on next request, and isolation is global (single instance for root/request)
+
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -311,13 +323,25 @@ HTTP 500 since instance recycling happens on next request, and isolation is glob
     qr/\[info\] .*? \[hostcalls\] on_tick/,
     qr/\[error\] .*? cannot get request context/,
     qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-    qr/\[error\] .*? in proxy_on_tick.*?unreachable/,
+    qr/(.*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed).*/
 ]
 
 
 
 === TEST 14: proxy_wasm - set_property() for ngx.* does not work on_tick (isolation: stream)
 on_tick runs on the root context, so it does not have access to ngx_http_* calls.
+
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -339,5 +363,6 @@ on_tick runs on the root context, so it does not have access to ngx_http_* calls
     qr/\[info\] .*? \[hostcalls\] on_tick/,
     qr/\[error\] .*? cannot get request context/,
     qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-    qr/\[error\] .*? in proxy_on_tick.*?unreachable/,
+    qr/(.*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed).*/
+
 ]

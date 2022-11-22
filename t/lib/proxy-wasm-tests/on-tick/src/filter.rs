@@ -1,5 +1,6 @@
 use log::info;
 use proxy_wasm::{traits::*, types::*};
+use std::collections::HashMap;
 use std::time::Duration;
 
 proxy_wasm::main! {{
@@ -20,6 +21,22 @@ impl RootContext for OnTick {
 
     fn on_vm_start(&mut self, _: usize) -> bool {
         self.set_tick_period(Duration::from_millis(400));
+        true
+    }
+
+    fn on_configure(&mut self, _: usize) -> bool {
+        if let Some(config_bytes) = self.get_plugin_configuration() {
+            let config_str = String::from_utf8(config_bytes).unwrap();
+            let config: HashMap<String, String> = config_str
+                .split_whitespace()
+                .map(|k| (k.to_string(), "".to_string()))
+                .collect();
+
+            if config.contains_key("double_tick") {
+                self.set_tick_period(Duration::from_millis(400));
+            }
+        }
+
         true
     }
 

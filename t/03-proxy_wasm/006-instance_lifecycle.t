@@ -68,7 +68,19 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 
 
 === TEST 2: proxy_wasm - trap with none isolation mode
-should recycle the global instance when trapped
+Should recycle the global instance when trapped.
+
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -84,12 +96,12 @@ should recycle the global instance when trapped
 --- error_code eval
 [500, 204]
 --- ignore_response_body
---- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing|finalizing|freeing|now|trap in).*/
+--- grep_error_log eval: qr/(\*\d.*?(resuming|new instance|reusing|finalizing|freeing|now)|(.*?unreachable)).*/
 --- grep_error_log_out eval
 [qr/.*?\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ \[wasm\] trap in proxy_on_request_headers:.*?unreachable.*
+(.*?(Uncaught RuntimeError: )?unreachable|\s*wasm trap: wasm `unreachable` instruction executed).*
 \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*
 \*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\).*\Z/,
 qr/\A\*\d+ proxy_wasm freeing trapped "hostcalls" instance.*
@@ -171,6 +183,17 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter new instance.*
 
 
 === TEST 4: proxy_wasm - trap with stream isolation mode
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -186,12 +209,12 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter new instance.*
 --- error_code eval
 [500, 204]
 --- ignore_response_body
---- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing|finalizing context|freeing|now|trap in).*/
+--- grep_error_log eval: qr/(\*\d.*?(resuming|new instance|reusing|finalizing|freeing|now)|(.*?unreachable)).*/
 --- grep_error_log_out eval
 [qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
 \*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ \[wasm\] trap in proxy_on_request_headers:.*?unreachable.*
+(.*?(Uncaught RuntimeError: )?unreachable|\s*wasm trap: wasm `unreachable` instruction executed).*
 \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*
 \*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\)
 \*\d+ wasm freeing "hostcalls" instance in "main" vm.*\Z/,

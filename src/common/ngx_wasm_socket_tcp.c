@@ -288,7 +288,7 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
         return NGX_ERROR;
 
     } else if (rslv_ctx == NGX_NO_RESOLVER) {
-        ngx_wasm_socket_tcp_err(sock, "no resolver defined to resolve \"%*.s\"",
+        ngx_wasm_socket_tcp_err(sock, "no resolver defined to resolve \"%*s\"",
                                 (int) sock->url.host.len, sock->url.host.data);
         return NGX_ERROR;
     }

@@ -58,6 +58,18 @@ stub
 
 === TEST 3: proxy_wasm - send_local_response() set status code (bad argument)
 should produce error page content from a panic, not from echo
+
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -71,7 +83,7 @@ qr/500 Internal Server Error/
 --- error_log eval
 [
     qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
-    qr/\[error\] .*?unreachable.*/
+    qr/(\[error\] .*?unreachable|wasm trap: wasm `unreachable` instruction executed).*/
 ]
 --- no_error_log
 [alert]
@@ -304,6 +316,18 @@ Hello world
 
 === TEST 13: proxy_wasm - send_local_response() from on_http_response_headers (with content)
 should produce a trap
+
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -316,9 +340,9 @@ should produce a trap
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
 qr/testing in "ResponseHeaders"/
---- grep_error_log eval: qr/(\[error\]|\[.*?failed resuming).*/
+--- grep_error_log eval: qr/(\[error\]|host trap|\[.*?failed resuming).*/
 --- grep_error_log_out eval
-qr/\[error\] .*?response already sent.*
+qr/.*?host trap \(bad usage\): response already sent.*
 \[warn\] .*? proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\)/
 --- no_error_log
 [alert]
@@ -328,6 +352,18 @@ stub
 
 === TEST 14: proxy_wasm - send_local_response() from on_log
 should produce a trap in log phase
+
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -340,9 +376,9 @@ should produce a trap in log phase
 ok
 --- error_log eval
 qr/testing in "Log"/
---- grep_error_log eval: qr/\[(error|crit)\] .*/
+--- grep_error_log eval: qr/(\[(error|crit)\]|host trap).*/
 --- grep_error_log_out eval
-qr/\[error\] .*?response already sent.*/
+qr/host trap \(bad usage\): response already sent.*/
 --- no_error_log
 [emerg]
 failed resuming

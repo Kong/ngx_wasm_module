@@ -13,7 +13,17 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm key/value shm - set in non-existing namespace
-Throws a trap
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 64k
@@ -26,15 +36,26 @@ Throws a trap
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- grep_error_log eval: qr/\[error\] .*/
+--- grep_error_log eval: qr/.*?failed setting value to shm.*/
 --- grep_error_log_out eval
-qr~\[error\] .*? trap in proxy_on_request_headers:.*? failed setting value to shm \(could not resolve namespace\).*~
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): failed setting value to shm \(could not resolve namespace\).*/
 --- no_error_log
 [crit]
 
 
 
 === TEST 2: proxy_wasm key/value shm - get from non-existing namespace
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 64k
@@ -46,16 +67,26 @@ qr~\[error\] .*? trap in proxy_on_request_headers:.*? failed setting value to sh
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- grep_error_log eval: qr/\[error\] .*/
+--- grep_error_log eval: qr/.*?failed getting value from shm.*/
 --- grep_error_log_out eval
-qr~\[error\] .*? trap in proxy_on_request_headers:.*? failed getting value from shm \(could not resolve namespace\).*~
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): failed getting value from shm \(could not resolve namespace\).*/
 --- no_error_log
 [crit]
 
 
 
 === TEST 3: proxy_wasm key/value shm - attempt to enqueue
-Throws a trap
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 1m
@@ -68,16 +99,26 @@ Throws a trap
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- grep_error_log eval: qr/\[error\] .*/
+--- grep_error_log eval: qr/.*?attempt to use a.*/
 --- grep_error_log_out eval
-qr~\[error\] .*? trap in proxy_on_request_headers:.*? attempt to use a key/value shm store as a queue.*~
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): attempt to use a key/value shm store as a queue.*~
 --- no_error_log
 [crit]
 
 
 
 === TEST 4: proxy_wasm key/value shm - attempt to dequeue
-Throws a trap
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 1m
@@ -90,8 +131,8 @@ Throws a trap
     }
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
---- grep_error_log eval: qr/\[error\] .*/
+--- grep_error_log eval: qr/.*?attempt to use a.*/
 --- grep_error_log_out eval
-qr~\[error\] .*? trap in proxy_on_request_headers:.*? attempt to use a key/value shm store as a queue.*~
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): attempt to use a key/value shm store as a queue.*~
 --- no_error_log
 [crit]

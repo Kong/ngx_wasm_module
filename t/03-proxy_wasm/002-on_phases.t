@@ -63,7 +63,16 @@ qr/\[info\] .*? on_configure, config_size: 0/
 
 
 === TEST 4: proxy_wasm - on_configure returns false
---- wasm_modules: on_phases
+'daemon off' must be set to check exit_code is 2
+Valgrind mode already writes 'daemon off'
+HUP mode does not catch the worker exit_code
+--- skip_eval: 5: $ENV{TEST_NGINX_USE_HUP} == 1
+--- main_config eval
+qq{
+    wasm {
+        module on_phases $ENV{TEST_NGINX_CRATES_DIR}/on_phases.wasm;
+    }
+}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     location /t {
         proxy_wasm on_phases 'fail_configure=true';
@@ -72,9 +81,9 @@ qr/\[info\] .*? on_configure, config_size: 0/
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-[
-    qr/\[emerg\] .*? proxy_wasm failed initializing "on_phases" filter \(initialization failed\)/,
-    qr/\[warn\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(initialization failed\)/
-]
+qr/\[emerg\] .*? proxy_wasm failed initializing "on_phases" filter \(initialization failed\)/
 --- no_error_log
 [error]
+[crit]
+[alert]
+--- must_die: 2

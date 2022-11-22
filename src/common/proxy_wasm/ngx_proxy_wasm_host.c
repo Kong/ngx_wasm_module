@@ -272,8 +272,10 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 #ifdef NGX_WASM_HTTP
     size_t                         offset, max;
     ngx_http_wasm_req_ctx_t       *rctx;
+    ngx_proxy_wasm_exec_t         *pwexec;
 
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
 
     offset = args[1].of.i32;
     max = args[2].of.i32;
@@ -304,7 +306,9 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
         }
 
         if (rc == NGX_ABORT) {
-            ngx_wavm_instance_trap_printf(instance, "cannot set request body");
+            return ngx_proxy_wasm_result_trap(pwexec,
+                                              "cannot set request body",
+                                              rets, NGX_WAVM_BAD_USAGE);
         }
 
         break;
@@ -318,7 +322,9 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
         }
 
         if (rc == NGX_ABORT) {
-            ngx_wavm_instance_trap_printf(instance, "cannot set response body");
+            return ngx_proxy_wasm_result_trap(pwexec,
+                                              "cannot set response body",
+                                              rets, NGX_WAVM_BAD_USAGE);
         }
 
         break;
@@ -660,13 +666,13 @@ ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
     }
 
     if (ngx_exiting) {
-        ngx_wavm_instance_trap_printf(instance, "process exiting");
-        return NGX_WAVM_ERROR;
+        return ngx_proxy_wasm_result_trap(pwexec, "process exiting", rets,
+                                          NGX_WAVM_OK);
     }
 
     if (pwexec->tick_period) {
-        ngx_wavm_instance_trap_printf(instance, "tick_period already set");
-        return NGX_WAVM_ERROR;
+        return ngx_proxy_wasm_result_trap(pwexec, "tick_period already set",
+                                          rets, NGX_WAVM_OK);
     }
 
     pwexec->tick_period = period;
@@ -686,8 +692,8 @@ ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
 
 nomem:
 
-    ngx_wavm_instance_trap_printf(instance, "no memory");
-    return NGX_WAVM_ERROR;
+    return ngx_proxy_wasm_result_trap(pwexec, "no memory",
+                                      rets, NGX_WAVM_ERROR);
 }
 
 
@@ -772,11 +778,12 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     case NGX_BUSY:
         return ngx_proxy_wasm_result_trap(pwexec,
                                           "local response already stashed",
-                                          rets);
+                                          rets, NGX_WAVM_BAD_USAGE);
 
     case NGX_ABORT:
         return ngx_proxy_wasm_result_trap(pwexec,
-                                          "response already sent", rets);
+                                          "response already sent", rets,
+                                          NGX_WAVM_BAD_USAGE);
 
     default:
         /* unreachable */
@@ -838,10 +845,14 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_wavm_instance_trap_printf(instance,
-             "NYI - not supported without ngx_http_core_module");
+    ngx_proxy_wasm_exec_t  *pwexec;
 
-    return NGX_WAVM_ERROR;
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+
+    return ngx_proxy_wasm_result_trap(pwexec,
+                                      "NYI - not supported without "
+                                      "ngx_http_core_module",
+                                      rets, NGX_WAVM_ERROR);
 }
 #endif
 
@@ -1037,14 +1048,16 @@ ngx_proxy_wasm_hfuncs_get_shared_data(ngx_wavm_instance_t *instance,
     rc = ngx_wasm_shm_kv_resolve_key(&key, &resolved);
     if (rc == NGX_ABORT) {
         return ngx_proxy_wasm_result_trap(pwexec, "attempt to get "
-                                          "key/value from a queue", rets);
+                                          "key/value from a queue", rets,
+                                          NGX_WAVM_BAD_USAGE);
     }
 
     if (rc == NGX_DECLINED) {
         /* TODO: format with key */
         return ngx_proxy_wasm_result_trap(pwexec, "failed getting value "
                                           "from shm (could not resolve "
-                                          "namespace)", rets);
+                                          "namespace)", rets,
+                                          NGX_WAVM_BAD_USAGE);
     }
 
     ngx_wasm_assert(rc == NGX_OK);
@@ -1069,7 +1082,8 @@ ngx_proxy_wasm_hfuncs_get_shared_data(ngx_wavm_instance_t *instance,
     if (wbuf_ptr == 0) {
         /* TODO: format with key */
         return ngx_proxy_wasm_result_trap(pwexec, "failed getting value "
-                                          "from shm (no memory)", rets);
+                                          "from shm (no memory)", rets,
+                                          NGX_WAVM_ERROR);
     }
 
     ngx_memcpy(NGX_WAVM_HOST_LIFT_SLICE(instance, wbuf_ptr, value->len),
@@ -1108,14 +1122,16 @@ ngx_proxy_wasm_hfuncs_set_shared_data(ngx_wavm_instance_t *instance,
     if (rc == NGX_ABORT) {
         /* TODO: format with key */
         return ngx_proxy_wasm_result_trap(pwexec, "attempt to set "
-                                          "key/value in a queue", rets);
+                                          "key/value in a queue", rets,
+                                          NGX_WAVM_BAD_USAGE);
     }
 
     if (rc == NGX_DECLINED) {
         /* TODO: format with key */
         return ngx_proxy_wasm_result_trap(pwexec, "failed setting value "
                                           "to shm (could not resolve "
-                                          "namespace)", rets);
+                                          "namespace)", rets,
+                                          NGX_WAVM_BAD_USAGE);
     }
 
     ngx_wasm_assert(rc == NGX_OK);
@@ -1140,7 +1156,8 @@ ngx_proxy_wasm_hfuncs_set_shared_data(ngx_wavm_instance_t *instance,
         /* TODO: format with key */
         return ngx_proxy_wasm_result_trap(pwexec, "failed setting value "
                                           "to shm (could not write to slab)",
-                                          rets);
+                                          rets,
+                                          NGX_WAVM_ERROR);
     }
 
     ngx_wasm_assert(rc == NGX_OK);
@@ -1173,7 +1190,8 @@ ngx_proxy_wasm_hfuncs_register_shared_queue(ngx_wavm_instance_t *instance,
     zone_idx = ngx_wasm_shm_lookup_index(&queue_name);
     if (zone_idx == NGX_WASM_SHM_INDEX_NOTFOUND) {
         /* TODO: format with queue name */
-        return ngx_proxy_wasm_result_trap(pwexec, "could not find queue", rets);
+        return ngx_proxy_wasm_result_trap(pwexec, "could not find queue", rets,
+                                          NGX_WAVM_BAD_USAGE);
     }
 
     zone = ((ngx_wasm_shm_mapping_t *)
@@ -1184,7 +1202,8 @@ ngx_proxy_wasm_hfuncs_register_shared_queue(ngx_wavm_instance_t *instance,
         /* TODO: format with shm name */
         return ngx_proxy_wasm_result_trap(pwexec, "attempt to use "
                                           "a key/value shm store as a queue",
-                                          rets);
+                                          rets,
+                                          NGX_WAVM_BAD_USAGE);
     }
 
     *token = (uint32_t) zone_idx;
@@ -1213,13 +1232,15 @@ ngx_proxy_wasm_hfuncs_enqueue_shared_queue(ngx_wavm_instance_t *instance,
     rc = ngx_wasm_shm_queue_resolve(instance->log, token, &zone);
     if (rc == NGX_DECLINED) {
         /* TODO: format with token */
-        return ngx_proxy_wasm_result_trap(pwexec, "could not find queue", rets);
+        return ngx_proxy_wasm_result_trap(pwexec, "could not find queue", rets,
+                                          NGX_WAVM_BAD_USAGE);
     }
 
     if (rc == NGX_ABORT) {
         return ngx_proxy_wasm_result_trap(pwexec, "attempt to use "
                                           "a key/value shm store as a queue",
-                                          rets);
+                                          rets,
+                                          NGX_WAVM_BAD_USAGE);
     }
 
     ngx_wasm_assert(rc == NGX_OK);
@@ -1235,7 +1256,8 @@ ngx_proxy_wasm_hfuncs_enqueue_shared_queue(ngx_wavm_instance_t *instance,
     if (rc == NGX_ABORT) {
         /* TODO: format with queue name */
         return ngx_proxy_wasm_result_trap(pwexec, "could not enqueue "
-                                          "(queue is full)", rets);
+                                          "(queue is full)", rets,
+                                          NGX_WAVM_ERROR);
     }
 
     ngx_wasm_assert(rc == NGX_OK);
@@ -1284,13 +1306,15 @@ ngx_proxy_wasm_hfuncs_dequeue_shared_queue(ngx_wavm_instance_t *instance,
     rc = ngx_wasm_shm_queue_resolve(instance->log, token, &zone);
     if (rc == NGX_DECLINED) {
         /* TODO: format with token */
-        return ngx_proxy_wasm_result_trap(pwexec, "could not find queue", rets);
+        return ngx_proxy_wasm_result_trap(pwexec, "could not find queue", rets,
+                                          NGX_WAVM_BAD_USAGE);
     }
 
     if (rc == NGX_ABORT) {
         return ngx_proxy_wasm_result_trap(pwexec, "attempt to use "
                                           "a key/value shm store as a queue",
-                                          rets);
+                                          rets,
+                                          NGX_WAVM_BAD_USAGE);
     }
 
     ngx_wasm_assert(rc == NGX_OK);

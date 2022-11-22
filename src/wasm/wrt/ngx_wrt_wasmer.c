@@ -666,7 +666,9 @@ ngx_wasmer_log_handler(ngx_wrt_res_t *res, u_char *buf, size_t len)
     u_char  *p = buf;
 
     if (res->len) {
-        p = ngx_snprintf(buf, ngx_min(len, res->len), "%V", res);
+        p = ngx_snprintf(buf, ngx_min(len, res->len), "%*s",
+                         res->len - 1, /* without NULL */
+                         res->data);
 
         ngx_free(res->data);
         ngx_free(res);
