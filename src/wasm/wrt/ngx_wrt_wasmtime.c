@@ -12,21 +12,21 @@ static ngx_int_t
 ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
     ngx_log_t *log)
 {
+#if 0
     wasm_name_t        msg;
     wasmtime_error_t  *err = NULL;
+#endif
 
     if (conf->compiler.len) {
         if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
                        "auto", -1))
         {
-            err = wasmtime_config_strategy_set(config,
-                                               WASMTIME_STRATEGY_AUTO);
+            wasmtime_config_strategy_set(config, WASMTIME_STRATEGY_AUTO);
 
         } else if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
                               "cranelift", -1))
         {
-            err = wasmtime_config_strategy_set(config,
-                                               WASMTIME_STRATEGY_CRANELIFT);
+            wasmtime_config_strategy_set(config, WASMTIME_STRATEGY_CRANELIFT);
 
         } else {
             ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
@@ -35,6 +35,7 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
             return NGX_ERROR;
         }
 
+#if 0
         if (err) {
             wasmtime_error_message(err, &msg);
 
@@ -47,6 +48,7 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
 
             return NGX_ERROR;
         }
+#endif
 
         ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
                            "using wasmtime with compiler: \"%V\"",
@@ -54,6 +56,7 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
     }
 
     wasmtime_config_wasm_reference_types_set(config, true);
+    wasmtime_config_parallel_compilation_set(config, false);
 
 #ifdef NGX_WASM_NOPOOL
     wasmtime_config_debug_info_set(config, false);
