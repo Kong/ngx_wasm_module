@@ -40,7 +40,7 @@ jobs:
             cc: gcc-9
             ngx: 1.23.2
             runtime: wasmtime
-            wasmtime: 0.38.1
+            wasmtime: 4.0.0
             hup: 1
             debug: 1
           # V8
@@ -54,7 +54,7 @@ jobs:
             cc: gcc-9
             openresty: 1.21.4.1
             runtime: wasmtime
-            wasmtime: 0.38.1
+            wasmtime: 4.0.0
             debug: 1
           # Old Nginx
           - os: ubuntu-latest
@@ -164,7 +164,7 @@ jobs:
           - os: ubuntu-22.04
             ngx: 1.23.2
             runtime: wasmtime
-            wasmtime: 0.38.1
+            wasmtime: 4.0.0
             hup: 0
             debug: 1
           - os: ubuntu-22.04
@@ -273,7 +273,7 @@ jobs:
         cc: [clang-11]
         ngx: [1.23.2]
         runtime: [wasmtime]
-        wasmtime: [0.38.1]
+        wasmtime: [4.0.0]
     steps:
       - run: |
           sudo apt-get update
@@ -314,7 +314,7 @@ jobs:
         cc: [clang-14, gcc-12]
         ngx: [1.23.2]
         runtime: [wasmer, wasmtime, v8]
-        wasmtime: [0.38.1]
+        wasmtime: [4.0.0]
         wasmer: [3.0.2]
         v8: [10.5.18]
         include:
@@ -322,7 +322,7 @@ jobs:
             cc: clang-14
             ngx: 1.21.6
             runtime: wasmtime
-            wasmtime: 0.38.1
+            wasmtime: 4.0.0
     steps:
       - run: sudo apt-get install -y gcc-12 libstdc++-12-dev
         if: ${{ matrix.cc == 'gcc-12' }}
