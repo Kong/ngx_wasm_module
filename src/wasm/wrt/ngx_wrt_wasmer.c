@@ -20,7 +20,7 @@ struct ngx_wrt_import_s {
 
     union {
         ngx_wavm_hfunc_t          *hfunc;
-        ngx_uint_t                 wasi_idx;
+        ngx_str_t                  wasi_str;
     } of;
 };
 
@@ -82,7 +82,9 @@ ngx_wasmer_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
 
     engine->pool = pool;
     engine->wasi_config = wasi_config_new("ngx_wasm_module");
-    engine->wasi_env = wasi_env_new(engine->wasi_config);
+
+    /* used only for name lookup at module link time */
+    engine->wasi_env = wasi_env_new(engine->store, engine->wasi_config);
 
     return NGX_OK;
 }
@@ -168,6 +170,7 @@ ngx_wasmer_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
     wasmer_named_extern_vec_t   wasi_imports;
     wasmer_named_extern_t      *wasmer_extern;
     ngx_str_t                  *wasi_version_name = NULL;
+    ngx_str_t                  *wasi_str;
     ngx_str_t                   name;
     static ngx_str_t            wasi_snapshot0 =
                                     ngx_string("wasi_snapshot_preview0");
@@ -219,15 +222,16 @@ linking:
             && ngx_str_eq(wasi_version_name->data, wasi_version_name->len,
                           importmodule->data, wasi_version_name->len))
         {
-            module->wasi = 1;
+            if (!module->wasi) {
+                module->wasi = 1;
 
-            if (!wasi_get_unordered_imports(module->engine->store,
-                                            module->module,
-                                            module->engine->wasi_env,
-                                            &wasi_imports))
-            {
-                ngx_wasmer_last_err(&err->res);
-                return NGX_ERROR;
+                if (!wasi_get_unordered_imports(module->engine->wasi_env,
+                                                module->module,
+                                                &wasi_imports))
+                {
+                    ngx_wasmer_last_err(&err->res);
+                    return NGX_ERROR;
+                }
             }
 
             /* resolve wasi */
@@ -266,7 +270,18 @@ linking:
 
                         import = &module->imports[i];
                         import->kind = NGX_WRT_IMPORT_WASI;
-                        import->of.wasi_idx = j;
+
+                        wasi_str = &import->of.wasi_str;
+                        wasi_str->data = ngx_palloc(module->engine->pool,
+                                                    wasiname->size);
+                        if (wasi_str->data == NULL) {
+                            fail = 1;
+                            break;
+                        }
+
+                        ngx_memcpy(wasi_str->data, wasiname->data,
+                                   wasiname->size);
+                        wasi_str->len = wasiname->size;
 
                         module->nimports++;
 
@@ -380,6 +395,9 @@ ngx_wasmer_init_store(ngx_wrt_store_t *store, ngx_wrt_engine_t *engine,
 
     store->data = data;
 
+    /* used as a store for the instance's WASI environment  */
+    store->wasi_env = wasi_env_new(store->store, wasi_config_new("ngx_wasm_module"));
+
     return NGX_OK;
 }
 
@@ -387,6 +405,7 @@ ngx_wasmer_init_store(ngx_wrt_store_t *store, ngx_wrt_engine_t *engine,
 static void
 ngx_wasmer_destroy_store(ngx_wrt_store_t *store)
 {
+    wasi_env_delete(store->wasi_env);
     wasm_store_delete(store->store);
 }
 
@@ -395,16 +414,18 @@ static ngx_int_t
 ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
     ngx_wrt_module_t *module, ngx_pool_t *pool, ngx_wrt_err_t *err)
 {
-    size_t                   i;
+    size_t                   i, j;
     ngx_uint_t               nimports = 0;
     ngx_wrt_import_t        *import;
     ngx_wasmer_hfunc_ctx_t  *hctx, *hctxs = NULL;
     wasm_func_t             *func;
+    wasmer_named_extern_t   *wasmer_extern;
+    const wasm_name_t       *wasiname;
+    ngx_str_t               *wasi_str;
 
     if (module->wasi
-        && !wasi_get_unordered_imports(module->engine->store,
+        && !wasi_get_unordered_imports(store->wasi_env,
                                        module->module,
-                                       module->engine->wasi_env,
                                        &instance->wasi_imports))
     {
         ngx_wasmer_last_err(&err->res);
@@ -425,10 +446,22 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
         switch (import->kind) {
 
         case NGX_WRT_IMPORT_WASI:
-            instance->env.data[i] = (wasm_extern_t *)
-                wasm_extern_copy(wasmer_named_extern_unwrap(
-                    instance->wasi_imports.data[import->of.wasi_idx]));
-            nimports++;
+            for (j = 0; j < instance->wasi_imports.size; j++) {
+                wasmer_extern = ((wasmer_named_extern_t **)
+                                 instance->wasi_imports.data)[j];
+                wasiname = wasmer_named_extern_name(wasmer_extern);
+                wasi_str = &import->of.wasi_str;
+
+                if (ngx_str_eq(wasi_str->data, wasi_str->len,
+                               wasiname->data, wasiname->size))
+                {
+                    instance->env.data[i] = (wasm_extern_t *)
+                        wasmer_named_extern_unwrap(
+                            instance->wasi_imports.data[j]);
+                    nimports++;
+                    break;
+                }
+            }
             break;
 
         case NGX_WRT_IMPORT_HWASI:
@@ -493,35 +526,27 @@ error:
 static void
 ngx_wasmer_destroy_instance(ngx_wrt_instance_t *instance)
 {
-#if 0
     size_t             i;
-    wasm_func_t       *func;
-    wasm_extern_t     *ext;
     ngx_wrt_import_t  *import;
-#endif
 
     if (instance->instance) {
         wasm_instance_delete(instance->instance);
     }
 
+    if (instance->module->wasi) {
+        wasmer_named_extern_vec_delete(&instance->wasi_imports);
+    }
+
     if (instance->ctxs) {
-#if 0
+        /* Remove from instance->env the WASI entries which
+           were already deleted as part of instance->wasi_imports */
         for (i = 0; i < instance->module->nimports; i++) {
             import = &instance->module->imports[i];
 
-            switch (import->kind) {
-            case NGX_WRT_IMPORT_HFUNC:
-                ext = instance->env.data[i];
-                func = wasm_extern_as_func(ext);
-
-                wasm_func_delete(func);
-                break;
-
-            default:
-                break;
+            if (import->kind == NGX_WRT_IMPORT_WASI) {
+                instance->env.data[i] = NULL;
             }
         }
-#endif
 
         ngx_pfree(instance->pool, instance->ctxs);
 
@@ -530,9 +555,6 @@ ngx_wasmer_destroy_instance(ngx_wrt_instance_t *instance)
 
     wasm_extern_vec_delete(&instance->env);
 
-    if (instance->module->wasi) {
-        wasmer_named_extern_vec_delete(&instance->wasi_imports);
-    }
 }
 
 
@@ -566,6 +588,11 @@ ngx_wasmer_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
         ngx_wasm_assert(wasm_extern_kind(ext->ext) == WASM_EXTERN_MEMORY);
         ext->kind = NGX_WRT_EXTERN_MEMORY;
         instance->memory = wasm_extern_as_memory(ext->ext);
+
+        if (module->wasi) {
+            wasi_env_set_memory(instance->store->wasi_env, instance->memory);
+        }
+
         break;
 
     case WASM_EXTERN_GLOBAL:

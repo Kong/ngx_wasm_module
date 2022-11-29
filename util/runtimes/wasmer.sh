@@ -34,8 +34,14 @@ download_wasmer() {
         rm -rfv "$target"
     fi
 
+    local url_version=$version
+    local major_version="${version%%.*}"
+    if [[ "$major_version" -ge 3 ]]; then
+        url_version=v$version
+    fi
+
     download $tarball \
-        "https://github.com/wasmerio/wasmer/releases/download/$version/wasmer-$kernel-$arch.tar.gz"
+        "https://github.com/wasmerio/wasmer/releases/download/$url_version/wasmer-$kernel-$arch.tar.gz"
 
     if [[ ! -d "$target" ]]; then
         mkdir -p "$target"

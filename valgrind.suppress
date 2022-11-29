@@ -1,5 +1,5 @@
 {
-   <nginx 1.23.2: ...>
+   <nginx 1.23.2: ngx_set_environment>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
@@ -7,53 +7,30 @@
    fun:ngx_set_environment
 }
 {
-   <nginx 1.23.2: ...>
+   <nginx 1.23.2: ngx_event_process_init>
    Memcheck:Leak
    fun:malloc
    fun:ngx_alloc
    fun:ngx_event_process_init
 }
 {
-   <wasmer 2.3.0: wasm_functype_new>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   ...
-   fun:_ZN12wasmer_c_api10wasm_c_api5types8function16WasmFunctionType3new17hc46bb8fdb96d9089E
-}
-{
-   <wasmer 2.3.0: wasi_get_unordered_imports>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:realloc
-   ...
-   fun:wasi_get_unordered_imports
-   fun:ngx_wasmer_link_module
-}
-{
-   <wasmer 2.3.0: parse>
+   <wasmer 3.0.2: parse>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17h9b0b753616971337E
-}
-{
-   <wasmer 2.3.0: ...>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:realloc
+   fun:_ZN10wasmparser6parser6Parser5parse17h5c54f0ee5315402aE
    ...
-   fun:wasm_func_call
-   fun:ngx_wasmer_call
+   fun:main
 }
 {
-   <wasmer 2.3.0: ...>
+   <wasmer 3.0.2: wasm_instance_new>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
    ...
-   fun:wasm_func_call
-   fun:ngx_wasmer_call
+   fun:_ZN6wasmer3sys8instance8Instance12new_by_index17h7cf168d389363a21E
+   fun:wasm_instance_new
 }
 {
-   <wasmtime 0.38.1: ...>
+   <wasmtime 0.38.1: parse>
    Memcheck:Cond
    fun:_ZN10wasmparser6parser6Parser5parse17h7deac18746d02aa9E
 }
