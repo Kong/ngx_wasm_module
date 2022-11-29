@@ -311,7 +311,6 @@ get_variable_from_release_yml() {
 
 get_default_runtime_version() {
     local runtime="$1"
-
     local var_name="$(echo "$runtime" | tr '[a-z]' '[A-Z]')_VER"
 
     get_variable_from_release_yml "$var_name"

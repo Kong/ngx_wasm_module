@@ -108,6 +108,7 @@ typedef struct {
 
 typedef struct {
     wasm_store_t                  *store;
+    wasi_env_t                    *wasi_env;
     void                          *data;
 } ngx_wrt_store_t;
 
