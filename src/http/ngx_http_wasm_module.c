@@ -864,8 +864,6 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
     }
 #endif
 
-    ngx_wasm_assert(!rctx->yield);
-
     rc = ngx_http_wasm_content(rctx);
     if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -885,6 +883,10 @@ ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main, unsigned wev)
     ngx_connection_t    *c = r->connection;
 
     ngx_wasm_assert(wev);
+
+    if (rctx->yield) {
+        return;
+    }
 
     if (main) {
         if (wev) {

@@ -9,6 +9,7 @@ use url::Url;
 pub struct TestHttp {
     pub on_phases: Vec<TestPhase>,
     pub config: HashMap<String, String>,
+    pub ncalls: usize,
 }
 
 impl TestHttp {
@@ -134,6 +135,12 @@ impl TestHttp {
     pub fn send_http_dispatch(&mut self) {
         let mut timeout = Duration::from_secs(0);
         let mut headers = Vec::new();
+        let mut path = self
+            .config
+            .get("path")
+            .map(|v| v.as_str())
+            .unwrap_or("/")
+            .to_string();
 
         if self.get_config("no_method").is_none() {
             headers.push((
@@ -156,10 +163,11 @@ impl TestHttp {
         }
 
         if self.get_config("no_path").is_none() {
-            headers.push((
-                ":path",
-                self.config.get("path").map(|v| v.as_str()).unwrap_or("/"),
-            ));
+            if self.ncalls > 0 {
+                path.push_str(format!("{}", self.ncalls).as_str());
+            }
+
+            headers.push((":path", path.as_str()));
         }
 
         if self.get_config("no_authority").is_none() {

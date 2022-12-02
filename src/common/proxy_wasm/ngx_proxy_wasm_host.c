@@ -65,7 +65,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
         {
             ngx_wasm_http_reader_ctx_t      *reader;
             ngx_http_proxy_wasm_dispatch_t  *call;
-            ngx_proxy_wasm_exec_t     *pwexec;
+            ngx_proxy_wasm_exec_t           *pwexec;
 
             pwexec = ngx_proxy_wasm_instance2pwexec(instance);
             call = pwexec->call;

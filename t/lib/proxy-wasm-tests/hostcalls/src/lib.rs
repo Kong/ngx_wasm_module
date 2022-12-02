@@ -92,6 +92,7 @@ impl RootContext for TestRoot {
         Some(Box::new(TestHttp {
             config: self.config.clone(),
             on_phases: phases,
+            ncalls: 0,
         }))
     }
 }
