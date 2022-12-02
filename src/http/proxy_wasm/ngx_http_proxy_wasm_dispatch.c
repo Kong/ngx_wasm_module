@@ -729,8 +729,11 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 
         ngx_http_proxy_wasm_dispatch_destroy(call);
 
-        pwexec->call = NULL;
-        rctx->yield = 0;
+        if (pwexec->call == call) {
+            /* no further call from the callback */
+            pwexec->call = NULL;
+            rctx->yield = 0;
+        }
 
         /* resume main handled by wasm callback */
         break;

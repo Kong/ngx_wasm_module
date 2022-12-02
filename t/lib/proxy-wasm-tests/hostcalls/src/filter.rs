@@ -74,6 +74,31 @@ impl Context for TestHttp {
                 }
                 self.send_plain_response(StatusCode::OK, Some(&s));
             }
+            "call_again" => {
+                if let Some(response) = bytes {
+                    let body = String::from_utf8_lossy(&response);
+                    self.add_http_response_header(
+                        format!("pwm-call-{}", self.ncalls + 1).as_str(),
+                        body.trim(),
+                    );
+                }
+
+                let again = self
+                    .config
+                    .get("call_again")
+                    .map_or(1, |v| v.parse().expect("bad call_again value"));
+
+                if self.ncalls < again {
+                    self.ncalls += 1;
+                    self.send_http_dispatch();
+                    return;
+                }
+
+                self.send_plain_response(
+                    StatusCode::OK,
+                    Some(format!("called {} times", self.ncalls + 1).as_str()),
+                );
+            }
             _ => {}
         }
 
