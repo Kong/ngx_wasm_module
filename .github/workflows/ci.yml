@@ -28,7 +28,7 @@ jobs:
       # matches the number of entries in this matrix.
       matrix:
         os: [ubuntu-latest]
-        cc: [gcc-8]
+        cc: [gcc-9]
         ngx: [1.23.2]
         runtime: [wasmer]
         wasmer: [2.3.0]
@@ -37,7 +37,7 @@ jobs:
         include:
           # Wasmtime
           - os: ubuntu-latest
-            cc: gcc-8
+            cc: gcc-9
             ngx: 1.23.2
             runtime: wasmtime
             wasmtime: 0.38.1
@@ -45,35 +45,35 @@ jobs:
             debug: 1
           # V8
           - os: ubuntu-latest
-            cc: gcc-8
+            cc: gcc-9
             ngx: 1.23.2
             runtime: v8
             v8: 10.5.18
           # OpenResty
           - os: ubuntu-latest
-            cc: gcc-8
+            cc: gcc-9
             openresty: 1.21.4.1
             runtime: wasmtime
             wasmtime: 0.38.1
             debug: 1
           # Old Nginx
           - os: ubuntu-latest
-            cc: gcc-8
+            cc: gcc-9
             ngx: 1.21.6
             runtime: wasmer
             wasmer: 2.3.0
             debug: 1
           # No SSL
           - os: ubuntu-latest
-            cc: gcc-8
+            cc: gcc-9
             ngx: 1.21.6
             runtime: wasmer
             wasmer: 2.3.0
             debug: 0
             no_ssl: 1
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y gcc-8 libstdc++-8-dev
-        if: ${{ matrix.cc == 'gcc-8' }}
+      - run: sudo apt-get update && sudo apt-get install -y gcc-9 libstdc++-9-dev
+        if: ${{ matrix.cc == 'gcc-9' }}
       - uses: actions/checkout@v3
       - name: "Setup cache - rustup toolchain"
         uses: actions/cache@v3
@@ -124,7 +124,7 @@ jobs:
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
       - uses: codecov/codecov-action@v3
-        if: ${{ !env.ACT && matrix.cc == 'gcc-8' }}
+        if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
         with:
@@ -154,7 +154,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        cc: [gcc-11]
+        cc: [gcc-12]
         ngx: [1.23.2]
         runtime: [wasmer]
         wasmer: [2.3.0]
@@ -168,7 +168,7 @@ jobs:
             hup: 0
             debug: 1
           - os: ubuntu-22.04
-            cc: gcc-11
+            cc: gcc-12
             ngx: 1.23.2
             runtime: v8
             v8: 10.5.18
@@ -176,8 +176,8 @@ jobs:
             debug: 1
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
-      - run: sudo apt-get install -y libstdc++-11-dev
-        if: ${{ matrix.cc == 'gcc-11' }}
+      - run: sudo apt-get install -y libstdc++-12-dev
+        if: ${{ matrix.cc == 'gcc-12' }}
       - uses: actions/checkout@v3
       - name: "Setup cache - rustup toolchain"
         uses: actions/cache@v3
@@ -270,7 +270,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cc: [clang-9]
+        cc: [clang-11]
         ngx: [1.23.2]
         runtime: [wasmtime]
         wasmtime: [0.38.1]
@@ -311,7 +311,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        cc: [clang]
+        cc: [clang-14, gcc-12]
         ngx: [1.23.2]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [0.38.1]
@@ -319,13 +319,13 @@ jobs:
         v8: [10.5.18]
         include:
           - os: ubuntu-latest
-            cc: clang
+            cc: clang-14
             ngx: 1.21.6
             runtime: wasmtime
             wasmtime: 0.38.1
     steps:
-      - run: sudo apt-get install -y gcc-8 libstdc++-8-dev
-        if: ${{ matrix.cc == 'gcc-8' }}
+      - run: sudo apt-get install -y gcc-12 libstdc++-12-dev
+        if: ${{ matrix.cc == 'gcc-12' }}
       - uses: actions/checkout@v3
       - name: "Setup cache - work/ dir"
         uses: actions/cache@v3
