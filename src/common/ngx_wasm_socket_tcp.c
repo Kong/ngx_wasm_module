@@ -46,7 +46,7 @@ ngx_wasm_socket_tcp_set_resume_handler(ngx_wasm_socket_tcp_t *sock)
         rctx = sock->env.ctx.request;
         r = rctx->r;
 
-        if (rctx->entered_content_phase) {
+        if (rctx->entered_content_phase || rctx->fake_request) {
             r->write_event_handler = ngx_http_wasm_content_wev_handler;
 
         } else {
@@ -188,9 +188,13 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
 {
     ngx_resolver_ctx_t          *rslv_ctx = NULL, rslv_tmp;
 #if (NGX_WASM_HTTP)
-    ngx_http_core_loc_conf_t    *clcf;
-    ngx_http_wasm_loc_conf_t    *loc;
+    ngx_msec_t                   conn_timeout, send_timeout, recv_timeout;
+    ngx_resolver_t              *resolver = NULL;
+    ngx_wasm_core_conf_t        *wcf;
     ngx_http_request_t          *r;
+    ngx_http_wasm_req_ctx_t     *rctx;
+    ngx_http_core_loc_conf_t    *clcf;
+    ngx_http_wasm_loc_conf_t    *loc = NULL;
 #endif
 #if (NGX_WASM_STREAM)
     ngx_stream_core_srv_conf_t  *ssrvcf;
@@ -211,23 +215,42 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
     }
 
 #if (NGX_WASM_HTTP)
-    if (sock->kind == NGX_WASM_SOCKET_TCP_KIND_HTTP) {
-        r = sock->env.ctx.request->r;
-        loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
+    rctx = sock->env.ctx.request;
+    r = rctx->r;
 
-        sock->buffer_size = loc->socket_buffer_size;
-        sock->buffer_reuse = loc->socket_buffer_reuse;
+    if (sock->kind == NGX_WASM_SOCKET_TCP_KIND_HTTP) {
+        if (rctx->fake_request) {
+            wcf = ngx_wasm_core_cycle_get_conf(ngx_cycle);
+
+            sock->buffer_size = wcf->socket_buffer_size;
+            sock->buffer_reuse = wcf->socket_buffer_reuse;
+
+            conn_timeout = wcf->connect_timeout;
+            send_timeout = wcf->send_timeout;
+            recv_timeout = wcf->recv_timeout;
+
+        } else {
+            ngx_wasm_assert(r->loc_conf);
+            loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
+
+            sock->buffer_size = loc->socket_buffer_size;
+            sock->buffer_reuse = loc->socket_buffer_reuse;
+
+            conn_timeout = loc->connect_timeout;
+            send_timeout = loc->send_timeout;
+            recv_timeout = loc->recv_timeout;
+        }
 
         if (!sock->connect_timeout) {
-            sock->connect_timeout = loc->connect_timeout;
+            sock->connect_timeout = conn_timeout;
         }
 
         if (!sock->send_timeout) {
-            sock->send_timeout = loc->send_timeout;
+            sock->send_timeout = send_timeout;
         }
 
         if (!sock->read_timeout) {
-            sock->read_timeout = loc->recv_timeout;
+            sock->read_timeout = recv_timeout;
         }
     }
 #endif
@@ -261,11 +284,22 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
     switch (sock->kind) {
 #if (NGX_WASM_HTTP)
     case NGX_WASM_SOCKET_TCP_KIND_HTTP:
-        r = sock->env.ctx.request->r;
-        clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+        if (!rctx->fake_request) {
+            clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-        rslv_tmp.timeout = clcf->resolver_timeout;
-        rslv_ctx = ngx_resolve_start(clcf->resolver, &rslv_tmp);
+            resolver = clcf->resolver;
+            rslv_tmp.timeout = clcf->resolver_timeout;
+        }
+
+        if (resolver == NULL || !resolver->connections.nelts) {
+            /* fallback to default resolver */
+            wcf = ngx_wasm_core_cycle_get_conf(ngx_cycle);
+
+            resolver = wcf->resolver;
+            rslv_tmp.timeout = wcf->resolver_timeout;
+        }
+
+        rslv_ctx = ngx_resolve_start(resolver, &rslv_tmp);
         break;
 #endif
 #if (NGX_WASM_STREAM)
@@ -449,10 +483,14 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
     c = pc->connection;
 
     if (c->pool == NULL) {
+        c->pool = sock->pool;
+#if 0
+        /* disabled: inherited from sock->env.pool for reusing the socket */
         c->pool = ngx_create_pool(128, sock->log);
         if (c->pool == NULL) {
             return NGX_ERROR;
         }
+#endif
     }
 
     c->log = sock->log;
@@ -1061,6 +1099,8 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
     ngx_chain_t       *cl, *ln;
     ngx_connection_t  *c = sock->peer.connection;
 
+    dd("enter");
+
     ngx_wasm_socket_tcp_close(sock);
 
     if (sock->host.data) {
@@ -1069,7 +1109,10 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
     }
 
     if (c && c->pool) {
+#if 0
+        /* disabled: c->pool is inherited from sock->env.pool */
         ngx_destroy_pool(c->pool);
+#endif
         c->pool = NULL;
     }
 

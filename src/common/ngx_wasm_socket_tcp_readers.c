@@ -318,7 +318,8 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
 
     r = &in_ctx->fake_r;
     rctx = in_ctx->rctx;
-    umcf = ngx_http_get_module_main_conf(rctx->r, ngx_http_upstream_module);
+    umcf = ngx_http_cycle_get_module_main_conf(ngx_cycle,
+                                               ngx_http_upstream_module);
 
     if (!r->request_start) {
         r->header_in = src;
@@ -409,7 +410,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                 in_ctx->header_done = 1;
                 in_ctx->headers_len = buf_in->buf->last - buf_in->buf->start;
 
-                ngx_log_debug3(NGX_LOG_DEBUG_WASM, in_ctx->log, 0,
+                ngx_log_debug3(NGX_LOG_DEBUG_HTTP, in_ctx->log, 0,
                                "wasm http read all headers "
                                "(content-length: %O, chunked: %d, "
                                "headers_len: %d)",
@@ -554,7 +555,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
 
             b->pos = src->pos;
 
-            ngx_log_debug1(NGX_LOG_DEBUG_WASM, in_ctx->log, 0,
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, in_ctx->log, 0,
                            "wasm http reading body chunk (rest: %O)",
                            in_ctx->rest);
 
@@ -576,7 +577,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
 
         }  /* for ( ;; ) */
 
-        ngx_log_debug1(NGX_LOG_DEBUG_WASM, in_ctx->log, 0,
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, in_ctx->log, 0,
                        "wasm http read body finished (body_len: %O)",
                        in_ctx->body_len);
     }

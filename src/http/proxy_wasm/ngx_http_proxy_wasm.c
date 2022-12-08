@@ -309,7 +309,7 @@ ngx_http_proxy_wasm_on_dispatch_response(ngx_proxy_wasm_exec_t *pwexec)
 
     ngx_log_debug3(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
                    "proxy_wasm http dispatch response received "
-                   "(pwexec->id: %d, token_id: %d, n_headers: %d)",
+                   "(pwexec->id: %ld, token_id: %ld, n_headers: %ld)",
                    pwexec->id, call->id, n_headers);
 
     rc = ngx_wavm_instance_call_funcref(pwexec->ictx->instance,
@@ -372,14 +372,15 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_exec_t *pwexec,
 
     instance = ngx_proxy_wasm_pwexec2instance(pwexec);
     pwctx = pwexec->parent;
-    rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    r = rctx->r;
 
     switch (step) {
     case NGX_PROXY_WASM_STEP_REQ_HEADERS:
         rc = ngx_http_proxy_wasm_on_request_headers(pwexec, ret);
         break;
     case NGX_PROXY_WASM_STEP_REQ_BODY_READ:
+        rctx = ngx_http_proxy_wasm_get_rctx(instance);
+        r = rctx->r;
+
         if (pwctx->exec_index + 1 == pwctx->nfilters) {
 
             if (rctx->req_content_length_n > 0) {

@@ -4,6 +4,7 @@
 
 #include <ngx_core.h>
 #include <ngx_wrt.h>
+#include <ngx_wasm_shm.h>
 #if (NGX_SSL)
 #include <ngx_wasm_ssl.h>
 #endif
@@ -28,6 +29,15 @@
 #define NGX_WASM_CONF_ERR_DUPLICATE  "is duplicate"
 #define NGX_WASM_CONF_ERR_NO_WASM                                            \
     "is specified but config has no \"wasm\" section"
+
+#define NGX_WASM_DEFAULT_RESOLVER_IP          "8.8.8.8"
+#define NGX_WASM_DEFAULT_RESOLVER_TIMEOUT     30000
+#define NGX_WASM_DEFAULT_SOCK_CONN_TIMEOUT    60000
+#define NGX_WASM_DEFAULT_SOCK_SEND_TIMEOUT    60000
+#define NGX_WASM_DEFAULT_RECV_TIMEOUT         60000
+#define NGX_WASM_DEFAULT_SOCK_BUF_SIZE        1024
+#define NGX_WASM_DEFAULT_SOCK_LARGE_BUF_NUM   4
+#define NGX_WASM_DEFAULT_SOCK_LARGE_BUF_SIZE  8192
 
 #define ngx_wasm_core_cycle_get_conf(cycle)                                  \
     (ngx_get_conf(cycle->conf_ctx, ngx_wasm_module))                         \
@@ -64,6 +74,27 @@ typedef struct {
 } ngx_wasm_module_t;
 
 
+typedef struct {
+    ngx_wavm_t                        *vm;
+    ngx_wavm_conf_t                    vm_conf;
+    ngx_array_t                        shms;     /* element: ngx_wasm_shm_mapping_t */
+#if (NGX_SSL)
+    ngx_wasm_ssl_conf_t                ssl_conf;
+#endif
+    ngx_msec_t                         resolver_timeout;
+    ngx_msec_t                         connect_timeout;
+    ngx_msec_t                         send_timeout;
+    ngx_msec_t                         recv_timeout;
+
+    size_t                             socket_buffer_size;
+    ngx_bufs_t                         socket_large_buffers;
+    ngx_flag_t                         socket_buffer_reuse;
+
+    ngx_resolver_t                    *resolver;
+    ngx_resolver_t                    *user_resolver;
+} ngx_wasm_core_conf_t;
+
+
 ngx_wavm_t *ngx_wasm_main_vm(ngx_cycle_t *cycle);
 size_t ngx_wasm_chain_len(ngx_chain_t *in, unsigned *eof);
 ngx_uint_t ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
@@ -82,8 +113,20 @@ ngx_msec_t ngx_wasm_monotonic_time();
 void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, ...);
 
+/* directives */
+char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+char *ngx_wasm_core_shm_kv_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+char *ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+char *ngx_wasm_core_resolver_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+
+
 extern ngx_module_t  ngx_wasm_module;
-extern ngx_uint_t  ngx_wasm_max_module;
+extern ngx_module_t  ngx_wasm_core_module;
+extern ngx_uint_t    ngx_wasm_max_module;
 
 
 /* ngx_str_node_t extensions */

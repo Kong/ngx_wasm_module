@@ -34,6 +34,8 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
     ngx_proxy_wasm_filter_t    *filter = pwexec->filter;
     ngx_proxy_wasm_instance_t  *ictx;
 
+    dd("enter");
+
     ngx_wasm_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
     ngx_free(ev);
@@ -51,8 +53,12 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
         return;
     }
 
+    pwexec->in_tick = 1;
+
     pwexec->ecode = ngx_proxy_wasm_run_step(pwexec, ictx,
                                             NGX_PROXY_WASM_STEP_TICK, NULL);
+
+    pwexec->in_tick = 0;
 
     ngx_proxy_wasm_release_instance(ictx, 0);
 

@@ -8,6 +8,11 @@
 #include <ngx_http_proxy_wasm_dispatch.h>
 
 
+static void ngx_http_wasm_close_fake_connection(ngx_connection_t *c);
+static void ngx_http_wasm_close_fake_request(ngx_http_request_t *r);
+static void ngx_http_wasm_free_fake_request(ngx_http_request_t *r);
+
+
 ngx_str_t *
 ngx_http_copy_escaped(ngx_str_t *dst, ngx_pool_t *pool,
     ngx_http_wasm_escape_kind kind)
@@ -445,4 +450,330 @@ error:
 done:
 
     return rc;
+}
+
+
+ngx_connection_t *
+ngx_http_wasm_create_fake_connection(ngx_pool_t *pool)
+{
+#if 0
+    ngx_log_t         *log;
+#endif
+    ngx_connection_t  *c = NULL;
+    ngx_connection_t  *saved_c = NULL;
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, pool->log, 0,
+                   "wasm creating fake connection...");
+
+    /* temporarily use a valid fd (0) for ngx_get_connection */
+    if (ngx_cycle->files) {
+        saved_c = ngx_cycle->files[0];
+    }
+
+    c = ngx_get_connection(0, ngx_cycle->log);
+
+    if (ngx_cycle->files) {
+        ngx_cycle->files[0] = saved_c;
+    }
+
+    if (c == NULL) {
+        goto failed;
+    }
+
+    c->fd = NGX_WASM_BAD_FD;
+    c->number = ngx_atomic_fetch_add(ngx_connection_counter, 1);
+
+#if 0
+    if (pool) {
+        c->pool = pool;
+
+    } else {
+#endif
+        c->pool = ngx_create_pool(128, c->log);
+        if (c->pool == NULL) {
+            goto failed;
+        }
+#if 0
+    }
+#endif
+
+#if 0
+    log = ngx_pcalloc(c->pool, sizeof(ngx_log_t));
+    if (log == NULL) {
+        goto failed;
+    }
+
+    c->log = log;
+    c->log->data = c;
+    c->log->connection = c->number;
+    c->log->action = NULL;
+    c->log->data = NULL;
+    c->log_error = NGX_ERROR_INFO;
+#else
+    c->log = ngx_cycle->log;
+#endif
+
+    c->error = 1;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "wasm new fake connection: %p", c);
+
+    return c;
+
+failed:
+
+    ngx_wasm_log_error(NGX_LOG_ERR, pool->log, 0,
+                       "failed creating fake connection");
+
+    if (c) {
+        ngx_http_wasm_close_fake_connection(c);
+    }
+
+    return NULL;
+}
+
+
+ngx_http_request_t *
+ngx_http_wasm_create_fake_request(ngx_connection_t *c)
+{
+    ngx_http_request_t  *r;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "wasm creating fake request... (c: %p)", c);
+
+    r = ngx_pcalloc(c->pool, sizeof(ngx_http_request_t));
+    if (r == NULL) {
+        return NULL;
+    }
+
+    c->requests++;
+
+    r->pool = c->pool;
+
+#if 0
+    hc = ngx_pcalloc(c->pool, sizeof(ngx_http_connection_t));
+    if (hc == NULL) {
+        goto failed;
+    }
+
+    r->header_in = c->buffer;
+    r->header_end = c->buffer->start;
+
+    if (ngx_list_init(&r->headers_out.headers, r->pool, 0,
+                      sizeof(ngx_table_elt_t))
+        != NGX_OK)
+    {
+        goto failed;
+    }
+
+    if (ngx_list_init(&r->headers_in.headers, r->pool, 0,
+                      sizeof(ngx_table_elt_t))
+        != NGX_OK)
+    {
+        goto failed;
+    }
+#endif
+
+    r->ctx = ngx_pcalloc(r->pool, sizeof(void *) * ngx_http_max_module);
+    if (r->ctx == NULL) {
+        return NULL;
+    }
+
+#if 0
+    cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
+
+    r->variables = ngx_pcalloc(r->pool, cmcf->variables.nelts
+                               * sizeof(ngx_http_variable_value_t));
+    if (r->variables == NULL) {
+        goto failed;
+    }
+#endif
+
+    r->connection = c;
+
+    r->headers_in.content_length_n = 0;
+    c->data = r;
+#if 0
+    hc->request = r;
+    r->http_connection = hc;
+#endif
+    r->signature = NGX_HTTP_MODULE;
+    r->main = r;
+    r->count = 1;
+
+    r->method = NGX_HTTP_UNKNOWN;
+
+    r->headers_in.keep_alive_n = -1;
+    r->uri_changes = NGX_HTTP_MAX_URI_CHANGES + 1;
+    r->subrequests = NGX_HTTP_MAX_SUBREQUESTS + 1;
+
+    r->http_state = NGX_HTTP_PROCESS_REQUEST_STATE;
+    r->discard_body = 1;
+
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "wasm created fake request (c: %p, r: %p)", c, r);
+
+    return r;
+}
+
+
+void
+ngx_http_wasm_finalize_fake_request(ngx_http_request_t *r, ngx_int_t rc)
+{
+    ngx_connection_t        *c;
+#if (0 && NGX_HTTP_SSL)
+    ngx_ssl_conn_t          *ssl_conn;
+    ngx_http_lua_ssl_ctx_t  *cctx;
+#endif
+
+    c = r->connection;
+
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "http wasm finalize fake request: %d, a:%d, c:%d",
+                   rc, r == c->data, r->main->count);
+
+    if (rc == NGX_DONE) {
+        ngx_http_wasm_close_fake_request(r);
+        return;
+    }
+
+    if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+#if 0
+#if (NGX_HTTP_SSL)
+        if (r->connection->ssl) {
+            ssl_conn = r->connection->ssl->connection;
+            if (ssl_conn) {
+                c = ngx_ssl_get_connection(ssl_conn);
+
+                if (c && c->ssl) {
+                    cctx = ngx_http_lua_ssl_get_ctx(c->ssl->connection);
+                    if (cctx != NULL) {
+                        cctx->exit_code = 0;
+                    }
+                }
+            }
+        }
+#endif
+#endif
+        ngx_http_wasm_close_fake_request(r);
+        return;
+    }
+
+    if (c->read->timer_set) {
+        ngx_del_timer(c->read);
+    }
+
+    if (c->write->timer_set) {
+        c->write->delayed = 0;
+        ngx_del_timer(c->write);
+    }
+
+    ngx_http_wasm_close_fake_request(r);
+}
+
+
+static void
+ngx_http_wasm_close_fake_connection(ngx_connection_t *c)
+{
+    ngx_pool_t        *pool;
+    ngx_connection_t  *saved_c = NULL;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "wasm closing fake connection: %p", c);
+
+    c->destroyed = 1;
+
+    pool = c->pool;
+
+    if (c->read->timer_set) {
+        ngx_del_timer(c->read);
+    }
+
+    if (c->write->timer_set) {
+        ngx_del_timer(c->write);
+    }
+
+    c->read->closed = 1;
+    c->write->closed = 1;
+
+    /* temporarily use a valid fd (0) for ngx_free_connection */
+
+    c->fd = 0;
+
+    if (ngx_cycle->files) {
+        saved_c = ngx_cycle->files[0];
+    }
+
+    ngx_free_connection(c);
+
+    c->fd = NGX_WASM_BAD_FD;
+
+    if (ngx_cycle->files) {
+        ngx_cycle->files[0] = saved_c;
+    }
+
+    if (pool) {
+        ngx_destroy_pool(pool);
+    }
+}
+
+
+static void
+ngx_http_wasm_close_fake_request(ngx_http_request_t *r)
+{
+    ngx_connection_t  *c;
+
+    r = r->main;
+    c = r->connection;
+
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "wasm closing fake request (r: %p, count: %d)",
+                   r, r->count);
+
+    if (r->count == 0) {
+        ngx_log_error(NGX_LOG_ALERT, c->log, 0,
+                      "wasm fake request count is zero");
+    }
+
+    r->count--;
+
+    if (r->count) {
+        return;
+    }
+
+    ngx_http_wasm_free_fake_request(r);
+    ngx_http_wasm_close_fake_connection(c);
+}
+
+
+static void
+ngx_http_wasm_free_fake_request(ngx_http_request_t *r)
+{
+    ngx_log_t           *log;
+    ngx_http_cleanup_t  *cln;
+
+    log = r->connection->log;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0,
+                   "wasm freeing fake request (r: %p)", r);
+
+    if (r->pool == NULL) {
+        ngx_log_error(NGX_LOG_ALERT, log, 0,
+                      "wasm fake request already freed");
+        return;
+    }
+
+    cln = r->cleanup;
+    r->cleanup = NULL;
+
+    while (cln) {
+        if (cln->handler) {
+            cln->handler(cln->data);
+        }
+
+        cln = cln->next;
+    }
+
+    r->request_line.len = 0;
+    r->connection->destroyed = 1;
 }

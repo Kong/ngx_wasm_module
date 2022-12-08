@@ -93,7 +93,7 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
 
     pwexec->ecode = NGX_PROXY_WASM_ERR_DISPATCH_FAILED;
 
-    if (rctx->yield) {
+    if (rctx->yield || rctx->fake_request) {
         ngx_wasm_log_error(NGX_LOG_ERR, pwexec->log, 0,
                            "%*s", p - (u_char *) &errbuf, &errbuf);
 
@@ -110,6 +110,24 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
 }
 
 
+#if 0
+static void
+ngx_http_proxy_wasm_cleanup_fake_request(void *data)
+{
+    ngx_http_proxy_wasm_dispatch_t  *call = data;
+    ngx_http_wasm_req_ctx_t         *rctx = call->rctx;
+
+    dd("enter");
+
+    ngx_http_proxy_wasm_dispatch_destroy(call);
+
+    if (rctx->fake_request) {
+        ngx_pfree(rctx->pool, rctx);
+    }
+}
+#endif
+
+
 ngx_http_proxy_wasm_dispatch_t *
 ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *host,
@@ -124,16 +142,47 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     ngx_buf_t                       *buf;
     ngx_event_t                     *ev;
     ngx_table_elt_t                 *elts, *elt;
-    ngx_wasm_socket_tcp_t           *sock;
+    ngx_wasm_socket_tcp_t           *sock = NULL;
     ngx_wasm_socket_tcp_env_t        sock_env;
+#if 0
+    ngx_pool_cleanup_t              *cln;
+#endif
+    ngx_connection_t                *c;
     ngx_http_request_t              *r;
+    ngx_http_wasm_req_ctx_t         *rctxp = NULL;
     ngx_http_proxy_wasm_dispatch_t  *call = NULL;
 #if (NGX_SSL)
     unsigned                         enable_ssl = 0;
 #endif
 
-    r = rctx->r;
-    sock = NULL;
+    /* rctx or fake request */
+
+    if (rctx == NULL) {
+        ngx_wasm_assert(pwexec->in_tick);
+        ngx_wasm_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+        ngx_wasm_assert(pwexec->parent->id == NGX_PROXY_WASM_ROOT_CTX_ID);
+
+        c = ngx_http_wasm_create_fake_connection(pwexec->pool);
+        if (c == NULL) {
+            return NULL;
+        }
+
+        r = ngx_http_wasm_create_fake_request(c);
+        if (r == NULL) {
+            return NULL;
+        }
+
+        if (ngx_http_wasm_rctx(r, &rctxp) != NGX_OK) {
+            return NULL;
+        }
+
+        ngx_wasm_assert(r->pool == rctxp->pool);
+
+        rctxp->data = pwexec->parent;
+
+    } else {
+        r = rctx->r;
+    }
 
     /* alloc */
 
@@ -143,11 +192,12 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
         return NULL;
     }
 
-    call->rctx = rctx;
-    call->pwexec = pwexec;
+    call->rctx = rctx ? rctx : rctxp;
     call->ictx = pwexec->ictx;
+    call->pwexec = pwexec;
 
-    switch (pwexec->parent->step) {
+    if (!pwexec->in_tick) {
+        switch (pwexec->parent->step) {
         case NGX_PROXY_WASM_STEP_LOG:
         case NGX_PROXY_WASM_STEP_DONE:
             /* r->pool was released */
@@ -155,6 +205,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
             goto error;
         default:
             break;
+        }
     }
 
     call->pool = ngx_create_pool(512, r->connection->log);
@@ -288,7 +339,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     if (body && body->len) {
         call->req_body_len = body->len;
         call->req_body = ngx_wasm_chain_get_free_buf(r->connection->pool,
-                                                     &rctx->free_bufs,
+                                                     &call->rctx->free_bufs,
                                                      body->len, buf_tag, 1);
         if (call->req_body == NULL) {
             goto error;
@@ -305,7 +356,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     sock_env.connection = r->connection;
     sock_env.buf_tag = buf_tag;
     sock_env.kind = NGX_WASM_SOCKET_TCP_KIND_HTTP;
-    sock_env.ctx.request = rctx;
+    sock_env.ctx.request = call->rctx;
 #if (NGX_SSL)
     sock_env.ssl_conf = (enable_ssl)
                         ? ngx_wasm_core_ssl_conf((ngx_cycle_t *) ngx_cycle)
@@ -325,7 +376,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     call->http_reader.pool = r->connection->pool;  /* longer lifetime than call */
     call->http_reader.log = r->connection->log;
-    call->http_reader.rctx = rctx;
+    call->http_reader.rctx = call->rctx;
     call->http_reader.sock = sock;
 
     /* dispatch */
@@ -341,7 +392,23 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     ngx_post_event(ev, &ngx_posted_events);
 
+    /**
+     * Can change if we yield (e.g. fast-recurring background tick).
+     * Set to detect subsequent calls from callback (no yield).
+     */
     pwexec->call = call;
+
+    /* add cleanup */
+
+#if 0
+    cln = ngx_pool_cleanup_add(r->pool, 0);
+    if (cln == NULL) {
+        return NULL;
+    }
+
+    cln->handler = ngx_http_proxy_wasm_cleanup_fake_request;
+    cln->data = call;
+#endif
 
     return call;
 
@@ -720,6 +787,12 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
             goto error;
         }
 
+        /**
+         * Set current call for subsequent call detection
+         * after the step (no yielding).
+         */
+        pwexec->call = call;
+
         ecode = ngx_proxy_wasm_run_step(pwexec, pwexec->ictx,
                                         NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE,
                                         NULL);
@@ -727,15 +800,15 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
             goto error;
         }
 
-        ngx_http_proxy_wasm_dispatch_destroy(call);
-
         if (pwexec->call == call) {
             /* no further call from the callback */
             pwexec->call = NULL;
             rctx->yield = 0;
         }
 
-        /* resume main handled by wasm callback */
+        ngx_http_proxy_wasm_dispatch_destroy(call);
+
+        /* resume main handler by wasm callback */
         break;
 
     default:

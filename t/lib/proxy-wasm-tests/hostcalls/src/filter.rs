@@ -85,8 +85,8 @@ impl Context for TestHttp {
 
                 let again = self
                     .config
-                    .get("call_again")
-                    .map_or(1, |v| v.parse().expect("bad call_again value"));
+                    .get("ncalls")
+                    .map_or(1, |v| v.parse().expect("bad ncalls value"));
 
                 if self.ncalls < again {
                     self.ncalls += 1;
