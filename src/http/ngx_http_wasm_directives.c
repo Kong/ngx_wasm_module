@@ -7,6 +7,9 @@
 #include <ngx_http_proxy_wasm.h>
 
 
+#define NGX_WASM_DEFAULT_RESOLVER 1
+
+
 char *
 ngx_http_wasm_call_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -187,20 +190,45 @@ char *
 ngx_http_wasm_resolver_add_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf)
 {
-    in_addr_t                  addr;
-    ngx_str_t                 *values, *host, *address;
-    ngx_resolver_t            *r;
-    ngx_resolver_node_t       *rn;
-    ngx_http_core_loc_conf_t  *clcf;
+    in_addr_t                   addr;
+    ngx_str_t                  *values, *host, *address;
+    ngx_resolver_t             *r;
+#if NGX_WASM_DEFAULT_RESOLVER
+    ngx_resolver_t             *rm = NULL;
+    ngx_resolver_node_t        *rnm;
+    ngx_wasm_core_conf_t       *wcf;
+#endif
+    ngx_resolver_node_t        *rn;
+    ngx_http_core_loc_conf_t   *clcf;
 
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
     r = clcf->resolver;
 
     if (r == NULL) {
+#if !NGX_WASM_DEFAULT_RESOLVER
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "no resolver defined");
         return NGX_CONF_ERROR;
+#else
+        wcf = ngx_wasm_core_cycle_get_conf(cf->cycle);
+        if (wcf == NULL) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "no resolver defined and no default resolver");
+            return NGX_CONF_ERROR;
+        }
+
+        r = wcf->resolver;
+#endif
+
     }
+#if NGX_WASM_DEFAULT_RESOLVER
+    else {
+        wcf = ngx_wasm_core_cycle_get_conf(cf->cycle);
+        if (wcf) {
+            rm = wcf->resolver;
+        }
+    }
+#endif
 
     /* args */
 
@@ -226,7 +254,6 @@ ngx_http_wasm_resolver_add_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     }
 
     rn->nlen = host->len;
-
     rn->name = ngx_alloc(rn->nlen, cf->log);
     if (rn->name == NULL) {
         return NGX_CONF_ERROR;
@@ -273,13 +300,33 @@ ngx_http_wasm_resolver_add_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         rn->u.addr = addr;
     }
 
-    ngx_log_debug3(NGX_LOG_DEBUG, cf->log, 0,
-                   "\"%*s\" will resolve to \"%V\"",
-                   rn->nlen, rn->name, address);
-
     ngx_rbtree_insert(&r->name_rbtree, &rn->node);
 
     ngx_queue_insert_head(&r->name_expire_queue, &rn->queue);
+
+#if NGX_WASM_DEFAULT_RESOLVER
+    if (rm) {
+        /* insert in default resolver */
+        rnm = ngx_alloc(sizeof(ngx_resolver_node_t), cf->log);
+        if (rnm == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
+        ngx_memcpy(rnm, rn, sizeof(ngx_resolver_node_t));
+
+        rnm->nlen = host->len;
+        rnm->name = ngx_alloc(rnm->nlen, cf->log);
+        if (rnm->name == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
+        ngx_memcpy(rnm->name, host->data, rnm->nlen);
+
+        ngx_rbtree_insert(&rm->name_rbtree, &rnm->node);
+
+        ngx_queue_insert_head(&rm->name_expire_queue, &rnm->queue);
+    }
+#endif
 
     return NGX_CONF_OK;
 }

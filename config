@@ -115,6 +115,7 @@ NGX_WASM_SRCS="\
     $ngx_addon_dir/src/wasm/ngx_wasm.c \
     $ngx_addon_dir/src/wasm/ngx_wasm_ops.c \
     $ngx_addon_dir/src/wasm/ngx_wasm_util.c \
+    $ngx_addon_dir/src/wasm/ngx_wasm_directives.c \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm.c \
     $ngx_addon_dir/src/wasm/vm/ngx_wavm_host.c \
     $ngx_addon_dir/src/wasm/wasi/ngx_wasi_host.c \

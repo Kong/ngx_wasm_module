@@ -295,16 +295,22 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               NGX_PROXY_WASM_ISOLATION_NONE);
 
     ngx_conf_merge_msec_value(conf->connect_timeout,
-                              prev->connect_timeout, 60000);
+                              prev->connect_timeout,
+                              NGX_WASM_DEFAULT_SOCK_CONN_TIMEOUT);
     ngx_conf_merge_msec_value(conf->send_timeout,
-                              prev->send_timeout, 60000);
+                              prev->send_timeout,
+                              NGX_WASM_DEFAULT_SOCK_SEND_TIMEOUT);
     ngx_conf_merge_msec_value(conf->recv_timeout,
-                              prev->recv_timeout, 60000);
+                              prev->recv_timeout,
+                              NGX_WASM_DEFAULT_RECV_TIMEOUT);
 
     ngx_conf_merge_size_value(conf->socket_buffer_size,
-                              prev->socket_buffer_size, 1024);
+                              prev->socket_buffer_size,
+                              NGX_WASM_DEFAULT_SOCK_BUF_SIZE);
     ngx_conf_merge_bufs_value(conf->socket_large_buffers,
-                              prev->socket_large_buffers, 4, 8192);
+                              prev->socket_large_buffers,
+                              NGX_WASM_DEFAULT_SOCK_LARGE_BUF_NUM,
+                              NGX_WASM_DEFAULT_SOCK_LARGE_BUF_SIZE);
 #if (NGX_DEBUG)
     ngx_conf_merge_value(conf->socket_buffer_reuse,
                          prev->socket_buffer_reuse, 1);
@@ -441,14 +447,16 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
     ngx_wasm_op_ctx_t          *opctx;
     ngx_pool_cleanup_t         *cln;
     ngx_http_wasm_req_ctx_t    *rctx;
-    ngx_http_wasm_loc_conf_t   *loc;
     ngx_http_wasm_main_conf_t  *mcf;
+    ngx_http_wasm_loc_conf_t   *loc = NULL;
 
     rctx = ngx_http_get_module_ctx(r, ngx_http_wasm_module);
     if (rctx == NULL) {
-        loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
-        if (loc->plan == NULL || !loc->plan->populated) {
-            return NGX_DECLINED;
+        if (r->loc_conf) {
+            loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
+            if (loc->plan == NULL || !loc->plan->populated) {
+                return NGX_DECLINED;
+            }
         }
 
         rctx = ngx_pcalloc(r->pool, sizeof(ngx_http_wasm_req_ctx_t));
@@ -456,7 +464,8 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
             return NGX_ERROR;
         }
 
-        mcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
+        mcf = ngx_http_cycle_get_module_main_conf(ngx_cycle,
+                                                  ngx_http_wasm_module);
 
         ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "wasm rctx created: %p (r: %p, main: %d)",
@@ -475,28 +484,36 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         opctx->log = r->connection->log;
         opctx->data = rctx;
 
-        cln = ngx_pool_cleanup_add(r->pool, 0);
-        if (cln == NULL) {
-            return NGX_ERROR;
-        }
+        if (loc) {
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                           "wasm attaching plan to rctx (rctx: %p, plan: %p)",
+                           rctx, loc->plan);
 
-        cln->handler = ngx_http_wasm_cleanup;
-        cln->data = rctx;
+            cln = ngx_pool_cleanup_add(r->pool, 0);
+            if (cln == NULL) {
+                return NGX_ERROR;
+            }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm attaching plan to rctx (rctx: %p, plan: %p)",
-                       rctx, loc->plan);
+            cln->handler = ngx_http_wasm_cleanup;
+            cln->data = rctx;
 
-        if (ngx_wasm_ops_plan_attach(loc->plan, opctx) != NGX_OK) {
-            return NGX_ERROR;
-        }
+            if (ngx_wasm_ops_plan_attach(loc->plan, opctx) != NGX_OK) {
+                return NGX_ERROR;
+            }
 
-        if (r->content_handler != ngx_http_wasm_content_handler) {
+            if (r->content_handler != ngx_http_wasm_content_handler) {
+                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                               "wasm rctx injecting "
+                               "ngx_http_wasm_content_handler");
+
+                rctx->r_content_handler = r->content_handler;
+                r->content_handler = ngx_http_wasm_content_handler;
+            }
+
+        } else {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "wasm rctx injecting ngx_http_wasm_content_handler");
-
-            rctx->r_content_handler = r->content_handler;
-            r->content_handler = ngx_http_wasm_content_handler;
+                           "wasm rctx for fake request");
+            rctx->fake_request = 1;
         }
     }
 #if (NGX_DEBUG)
@@ -827,7 +844,7 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
     }
 
     ngx_log_debug8(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "wasm wev handler \"%V?%V\": timeout:%ud, ready:%ud "
+                   "wasm wev handler \"%V?%V\" - timeout: %ud, ready: %ud "
                    "(main: %d, count: %d, resp_finalized: %d, yield: %d)",
                    &r->uri, &r->args, wev->timedout, wev->ready, r == r->main,
                    r->main->count, rctx->resp_finalized, rctx->yield);
@@ -864,15 +881,24 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
     }
 #endif
 
-    rc = ngx_http_wasm_content(rctx);
-    if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-        ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
-        return;
+    if (rctx->entered_content_phase) {
+        rc = ngx_http_wasm_content(rctx);
+        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+            ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+            return;
+        }
     }
 
     dd("last finalize ");
 
-    ngx_http_finalize_request(r, r == r->main ? NGX_DONE : NGX_OK);
+    if (r->connection->fd == NGX_WASM_BAD_FD) {
+        ngx_wasm_assert(rctx->fake_request);
+        ngx_http_wasm_finalize_fake_request(r, NGX_DONE);
+
+    } else {
+        ngx_wasm_assert(!rctx->fake_request);
+        ngx_http_finalize_request(r, r == r->main ? NGX_DONE : NGX_OK);
+    }
 }
 
 

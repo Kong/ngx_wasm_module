@@ -6,6 +6,7 @@ mod types;
 
 use crate::{tests::*, types::test_http::*, types::test_root::*, types::*};
 use log::*;
+use parse_duration::parse;
 use proxy_wasm::{traits::*, types::*};
 use std::{collections::HashMap, time::Duration};
 
@@ -14,6 +15,7 @@ proxy_wasm::main! {{
     proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
         Box::new(TestRoot {
             config: HashMap::new(),
+            ncalls: 0,
         })
     });
 }}
@@ -67,6 +69,60 @@ impl RootContext for TestRoot {
         match self.get_config("on_tick").unwrap_or("") {
             "log_property" => test_log_property(self),
             "set_property" => test_set_property(self),
+            "dispatch" => {
+                let ncalls = self
+                    .config
+                    .get("ncalls")
+                    .map_or(1, |v| v.parse().expect("bad ncalls value"));
+
+                if self.ncalls >= ncalls {
+                    return;
+                }
+
+                let mut timeout = Duration::from_secs(0);
+                let mut headers = Vec::new();
+                let path = self
+                    .config
+                    .get("path")
+                    .map(|v| v.as_str())
+                    .unwrap_or("/")
+                    .to_string();
+
+                if let Some(val) = self.get_config("timeout") {
+                    if let Ok(t) = parse(val) {
+                        timeout = t
+                    }
+                }
+
+                headers.push((":path", path.as_str()));
+                headers.push((":scheme", "http"));
+                headers.push((
+                    ":method",
+                    self.config
+                        .get("method")
+                        .map(|v| v.as_str())
+                        .unwrap_or("GET"),
+                ));
+
+                headers.push((
+                    ":authority",
+                    self.config
+                        .get("host")
+                        .map(|v| v.as_str())
+                        .unwrap_or("default"),
+                ));
+
+                self.ncalls += 1;
+
+                self.dispatch_http_call(
+                    self.get_config("host").unwrap_or(""),
+                    headers,
+                    self.get_config("body").map(|v| v.as_bytes()),
+                    vec![],
+                    timeout,
+                )
+                .unwrap();
+            }
             _ => (),
         }
     }
@@ -94,5 +150,20 @@ impl RootContext for TestRoot {
             on_phases: phases,
             ncalls: 0,
         }))
+    }
+}
+
+impl Context for TestRoot {
+    fn on_http_call_response(
+        &mut self,
+        token_id: u32,
+        nheaders: usize,
+        body_size: usize,
+        ntrailers: usize,
+    ) {
+        info!(
+            "[hostcalls] on_root_http_call_response (id: {}, headers: {}, body_bytes: {}, trailers: {})",
+            token_id, nheaders, body_size, ntrailers
+        );
     }
 }

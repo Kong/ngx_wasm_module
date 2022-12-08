@@ -196,6 +196,7 @@ struct ngx_proxy_wasm_exec_s {
 
     unsigned                           started:1;
     unsigned                           ecode_logged:1;
+    unsigned                           in_tick:1;
 };
 
 

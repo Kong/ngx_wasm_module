@@ -1309,6 +1309,13 @@ ngx_proxy_wasm_on_start(ngx_proxy_wasm_instance_t *ictx,
         rexec->filter = filter;
         rexec->ictx = ictx;
 
+        rexec->parent = ngx_pcalloc(rexec->pool, sizeof(ngx_proxy_wasm_ctx_t));
+        if (rexec->parent == NULL) {
+            return NGX_PROXY_WASM_ERR_START_FAILED;
+        }
+
+        rexec->parent->id = NGX_PROXY_WASM_ROOT_CTX_ID;
+
         rexec->node.key = rexec->id;
         ngx_rbtree_insert(&ictx->root_ctxs, &rexec->node);
     }

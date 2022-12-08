@@ -217,7 +217,7 @@ Hello world
         _G.c_plan = c_plan
     }
 --- config
-    resolver 1.1.1.1 ipv6=off;
+    resolver     1.1.1.1 ipv6=off;
     resolver_add 127.0.0.1 localhost;
 
     location /t {
@@ -273,7 +273,7 @@ Content-Length: 0.*
         _G.c_plan = c_plan
     }
 --- config
-    resolver 1.1.1.1 ipv6=off;
+    resolver     1.1.1.1 ipv6=off;
     resolver_add 127.0.0.1 localhost;
 
     location /t {
