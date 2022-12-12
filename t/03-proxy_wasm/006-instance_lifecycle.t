@@ -212,3 +212,55 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter new instance.*
 --- no_error_log
 [emerg]
 [alert]
+
+
+
+=== TEST 5: proxy_wasm - globals with default isolation mode
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: instance_lifecycle
+--- config
+    location /t {
+        proxy_wasm instance_lifecycle;
+        echo ok;
+    }
+--- request eval
+["GET /t", "GET /t"]
+--- error_code eval
+[200, 200]
+--- ignore_response_body
+--- grep_error_log eval: qr/\*\d+.*?(on_log).*/
+--- grep_error_log_out eval
+[
+qr/.*?on_log: MY_STATIC_VARIABLE: 123001.*?/,
+qr/.*?on_log: MY_STATIC_VARIABLE: 123002.*?/
+]
+--- no_error_log
+[emerg]
+[alert]
+
+
+
+=== TEST 6: proxy_wasm - globals with stream isolation mode
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: instance_lifecycle
+--- config
+    proxy_wasm_isolation stream;
+
+    location /t {
+        proxy_wasm instance_lifecycle;
+        echo ok;
+    }
+--- request eval
+["GET /t", "GET /t"]
+--- error_code eval
+[200, 200]
+--- ignore_response_body
+--- grep_error_log eval: qr/\*\d+.*?(on_log).*/
+--- grep_error_log_out eval
+[
+qr/.*?on_log: MY_STATIC_VARIABLE: 123001.*?/,
+qr/.*?on_log: MY_STATIC_VARIABLE: 123001.*?/
+]
+--- no_error_log
+[emerg]
+[alert]
