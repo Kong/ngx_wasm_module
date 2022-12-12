@@ -212,3 +212,124 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter new instance.*
 --- no_error_log
 [emerg]
 [alert]
+
+
+
+=== TEST 5: proxy_wasm - globals with default isolation mode (none)
+GET /t
+on_request_headers A: 123000 + 1
+on_request_headers B: 123001 + 1
+on_log A: 123002
+on_log B: 123002
+GET /t
+on_request_headers A: 123002 + 1
+on_request_headers B: 123003 + 1
+on_log A: 123004
+on_log B: 123004
+--- wasm_modules: instance_lifecycle
+--- config
+    location /t {
+        # A
+        proxy_wasm instance_lifecycle;
+        # B
+        proxy_wasm instance_lifecycle;
+        return 200;
+    }
+--- request eval
+["GET /t", "GET /t"]
+--- error_code eval
+[200, 200]
+--- ignore_response_body
+--- grep_error_log eval: qr/\*\d+.*?on_log: MY_STATIC_VARIABLE: \d+/
+--- grep_error_log_out eval
+[
+qr/\A.*?on_log: MY_STATIC_VARIABLE: 123002
+.*?on_log: MY_STATIC_VARIABLE: 123002\Z/,
+qr/\A.*?on_log: MY_STATIC_VARIABLE: 123004
+.*?on_log: MY_STATIC_VARIABLE: 123004\Z/
+]
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 6: proxy_wasm - globals with stream isolation mode
+GET /t
+on_request_headers A: 123000 + 1
+on_request_headers B: 123001 + 1
+on_log A: 123002
+on_log B: 123002
+GET /t
+on_request_headers A: 123000 + 1
+on_request_headers B: 123001 + 1
+on_log A: 123002
+on_log B: 123002
+--- wasm_modules: instance_lifecycle
+--- config
+    proxy_wasm_isolation stream;
+
+    location /t {
+        # A
+        proxy_wasm instance_lifecycle;
+        # B
+        proxy_wasm instance_lifecycle;
+        return 200;
+    }
+--- request eval
+["GET /t", "GET /t"]
+--- error_code eval
+[200, 200]
+--- ignore_response_body
+--- grep_error_log eval: qr/\*\d+.*?on_log: MY_STATIC_VARIABLE: \d+/
+--- grep_error_log_out eval
+[
+qr/\A.*?on_log: MY_STATIC_VARIABLE: 123002
+.*?on_log: MY_STATIC_VARIABLE: 123002\Z/,
+qr/\A.*?on_log: MY_STATIC_VARIABLE: 123002
+.*?on_log: MY_STATIC_VARIABLE: 123002\Z/
+]
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 7: proxy_wasm - globals with filter isolation mode
+GET /t
+on_request_headers A: 123000 + 1
+on_request_headers B: 123000 + 1
+on_log A: 123001
+on_log B: 123001
+GET /t
+on_request_headers A: 123000 + 1
+on_request_headers B: 123000 + 1
+on_log A: 123001
+on_log B: 123001
+--- wasm_modules: instance_lifecycle
+--- config
+    proxy_wasm_isolation filter;
+
+    location /t {
+        # A
+        proxy_wasm instance_lifecycle;
+        # B
+        proxy_wasm instance_lifecycle;
+        return 200;
+    }
+--- request eval
+["GET /t", "GET /t"]
+--- error_code eval
+[200, 200]
+--- ignore_response_body
+--- grep_error_log eval: qr/\*\d+.*?on_log: MY_STATIC_VARIABLE: \d+/
+--- grep_error_log_out eval
+[
+qr/\A.*?on_log: MY_STATIC_VARIABLE: 123001
+.*?on_log: MY_STATIC_VARIABLE: 123001\Z/,
+qr/\A.*?on_log: MY_STATIC_VARIABLE: 123001
+.*?on_log: MY_STATIC_VARIABLE: 123001\Z/
+]
+--- no_error_log
+[error]
+[crit]

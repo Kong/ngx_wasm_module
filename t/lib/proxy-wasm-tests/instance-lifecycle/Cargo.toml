@@ -1,0 +1,13 @@
+[package]
+name = "instance-lifecycle"
+version = "0.1.0"
+authors = ["Hisham Muhammad <hisham@gobolinux.org>"]
+edition = "2018"
+
+[lib]
+path = "src/filter.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+proxy-wasm = "0.2"
+log = "0.4"
