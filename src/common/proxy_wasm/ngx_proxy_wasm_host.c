@@ -913,7 +913,6 @@ ngx_proxy_wasm_hfuncs_get_property(ngx_wavm_instance_t *instance,
     ret_size = NGX_WAVM_HOST_LIFT(instance, args[3].of.i32, int32_t);
 
     rc = ngx_proxy_wasm_properties_get(instance, &path, &value);
-
     if (rc == NGX_DECLINED) {
         return ngx_proxy_wasm_result_notfound(rets);
     }

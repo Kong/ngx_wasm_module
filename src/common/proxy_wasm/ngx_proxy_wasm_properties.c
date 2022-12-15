@@ -152,7 +152,13 @@ get_upstream_address(ngx_wavm_instance_t *instance, ngx_str_t *path,
     ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
     ngx_http_request_t       *r = rctx->r;
     ngx_http_upstream_t      *u = r->upstream;
-    u_char                   *p = u->peer.name->data;
+    u_char                   *p;
+
+    if (u == NULL) {
+        return NGX_DECLINED;
+    }
+
+    p = u->peer.name->data;
 
     if (!pwctx->upstream_address.len) {
         len = ((u_char *) strrchr((char *) p, ':')) - p;
@@ -183,7 +189,13 @@ get_upstream_port(ngx_wavm_instance_t *instance, ngx_str_t *path,
     ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
     ngx_http_request_t       *r = rctx->r;
     ngx_http_upstream_t      *u = r->upstream;
-    u_char                   *p = u->peer.name->data;
+    u_char                   *p;
+
+    if (u == NULL) {
+        return NGX_DECLINED;
+    }
+
+    p = u->peer.name->data;
 
     if (!pwctx->upstream_port.len) {
         a_len = (((u_char *) strrchr((char *) p, ':')) - p) + 1;
