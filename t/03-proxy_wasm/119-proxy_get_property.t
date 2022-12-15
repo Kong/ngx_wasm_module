@@ -338,17 +338,16 @@ qr/$checks/
 
 === TEST 8: proxy_wasm - get_property() - upstream properties (IPv6) on: response_headers
 Disabled on GitHub Actions due to IPv6 constraint.
---- skip_eval: 4: system("ping6 -c 1 ::1 >/dev/null 2>&1") ne 0 || defined $ENV{GITHUB_ACTIONS}
+--- skip_eval: 4: system("ping6 -c 1 ipv6.google.com >/dev/null 2>&1") ne 0 || defined $ENV{GITHUB_ACTIONS}
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_pass https://ipv6.google.com;
+        proxy_pass https://ipv6.google.com/;
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/log/properties \
                               name=upstream.address,upstream.port';
-        echo fail;
     }
 --- response_body_like
 \A\<!doctype html\>.*
@@ -361,7 +360,26 @@ upstream\.port: [0-9]+/
 
 
 
-=== TEST 9: proxy_wasm - get_property() - connection properties on: request_headers,response_headers,response_body,response_trailers
+=== TEST 9: proxy_wasm - get_property() - upstream properties access without an upstream
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        echo ok;
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/properties \
+                              name=upstream.address,upstream.port';
+    }
+--- ignore_response_body
+--- error_log
+property not found: upstream.address
+property not found: upstream.port
+--- no_error_log
+[error]
+
+
+
+=== TEST 10: proxy_wasm - get_property() - connection properties on: request_headers,response_headers,response_body,response_trailers
 --- skip_eval: 4: $::nginxV !~ m/built with OpenSSL/
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -438,7 +456,7 @@ qr/$checks/
 
 
 
-=== TEST 10: proxy_wasm - get_property() - connection properties (mTLS) on: request_headers,response_headers,response_body,response_trailers
+=== TEST 11: proxy_wasm - get_property() - connection properties (mTLS) on: request_headers,response_headers,response_body,response_trailers
 --- skip_eval: 4: $::nginxV !~ m/built with OpenSSL/
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -503,7 +521,7 @@ qr/$checks/
 
 
 
-=== TEST 11: proxy_wasm - get_property() - proxy-wasm properties on: request_headers,request_body,response_headers,response_body,response_trailers
+=== TEST 12: proxy_wasm - get_property() - proxy-wasm properties on: request_headers,request_body,response_headers,response_body,response_trailers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
@@ -551,7 +569,7 @@ qr/$checks/
 
 
 
-=== TEST 12: proxy_wasm - get_property() - uri encoded request.path on: request_headers
+=== TEST 13: proxy_wasm - get_property() - uri encoded request.path on: request_headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -574,7 +592,7 @@ qr/request.path: \/t\?foo=std\:\:min\&bar=\[1,2\]/
 
 
 
-=== TEST 13: proxy_wasm - get_property() - not supported properties on: request_headers
+=== TEST 14: proxy_wasm - get_property() - not supported properties on: request_headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
