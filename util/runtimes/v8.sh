@@ -122,10 +122,10 @@ check_libwee8_build_dependencies() {
 }
 
 build_libwee8() {
-    local v8_ver="$1"
-    local target="$2"
-    local arch="$3"
-    local clean="$4"
+    local target="$1"
+    local clean="$2"
+    local v8_ver="$3"
+    local arch="$4"
 
     case "$arch" in
         x86_64) arch="x64" ;;
@@ -279,7 +279,7 @@ build_v8() {
     local clean="$4"
 
     build_cwabt "$target" "$clean"
-    build_libwee8 "$v8_ver" "$target" "$arch" "$clean"
+    build_libwee8 "$target" "$clean" "$v8_ver" "$arch"
     build_v8bridge "$target" "$clean"
 }
 

@@ -302,6 +302,10 @@ n_jobs() {
     fi
 }
 
+abs_path() {
+    echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+}
+
 get_variable_from_release_yml() {
     local var_name="$1"
     local release_file="$NGX_WASM_DIR/.github/workflows/release.yml"
