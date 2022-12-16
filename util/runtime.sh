@@ -85,9 +85,6 @@ while [[ "$1" ]]; do
             shift
             TARGET_DIR="$1"
             ;;
-        --clean)
-            CLEAN="clean"
-            ;;
         --download)
             MODE="download"
             ;;
@@ -124,6 +121,8 @@ fi
 
 if [[ -z "$TARGET_DIR" ]]; then
     TARGET_DIR="$(get_default_runtime_dir "$RUNTIME" "$RUNTIME_VERSION")"
+else
+    TARGET_DIR=$(abs_path $TARGET_DIR)
 fi
 
 if [[ "$CLEAN" = "clean" ]]; then
