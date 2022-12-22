@@ -51,19 +51,19 @@ here are the packages for various platforms:
 On Ubuntu:
 
 ```
-$ apt-get install build-essential libpcre3-dev zlib1g-dev perl curl
+$ apt-get install build-essential libssl-dev libpcre3-dev zlib1g-dev perl curl
 ```
 
 On Fedora/RedHat (not tested):
 
 ```
-$ yum install gcc pcre-devel zlib perl curl
+$ yum install gcc openssl-devel pcre-devel zlib perl curl
 ```
 
 On Arch Linux:
 
 ```
-$ pacman -S gcc lib32-pcre zlib perl curl
+$ pacman -S gcc openssl lib32-pcre zlib perl curl
 ```
 
 On macOS (not tested):
