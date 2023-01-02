@@ -18,7 +18,7 @@ coverage:
         flags:
           - unit
         paths:
-          - "src"
+          - src
 
 parsers:
   gcov:
@@ -29,11 +29,8 @@ parsers:
       macro: yes
 
 comment:
-  branches:
-    - main
-    - *
-  layout: "reach, diff, flags, files"
+  layout: "reach, diff, files"
   behavior: default
-  require_changes: true
+  require_changes: false
   require_base: no
   require_head: yes

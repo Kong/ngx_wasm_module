@@ -128,10 +128,11 @@ jobs:
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          gcov: true
           flags: unit
-          env_vars: TEST_NGINX_USE_HUP
           fail_ci_if_error: true
+          env_vars: TEST_NGINX_USE_HUP
+          token: ${{ secrets.CODECOV_TOKEN }}
       - uses: actions/upload-artifact@v2
         if: ${{ failure() && !env.ACT }}
         with:
