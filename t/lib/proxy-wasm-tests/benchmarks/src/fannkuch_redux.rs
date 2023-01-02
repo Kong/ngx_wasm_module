@@ -77,7 +77,6 @@ pub fn run(n: usize) -> String {
 
     // Iterate over each block.
     let (checksum, max_flip_count) = (0..block_count)
-        .into_iter()
         .map(|bn| {
             let initial_permutation_index = bn * block_size;
 
