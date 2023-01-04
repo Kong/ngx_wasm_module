@@ -213,3 +213,67 @@ pub fn test_wasi_fd_write_empty_string() {
         resp::ngx_resp_local_reason(500, "test failed");
     }
 }
+
+fn expect_errno<T>(errno: wasi::Errno, r: Result<T, wasi::Errno>) {
+    if let Err(e) = r {
+        if e == errno {
+            resp::ngx_resp_local_reason(204, "test passed");
+            return;
+        }
+        ngx_log!(Err, "unexpected errno: {}", e);
+    }
+
+    resp::ngx_resp_local_reason(500, "test failed");
+}
+
+#[no_mangle]
+pub fn test_wasi_fd_close() {
+    // current stub implementation always returns BADF
+    expect_errno(wasi::ERRNO_BADF, unsafe { wasi::fd_close(1) });
+}
+
+#[no_mangle]
+pub fn test_wasi_fd_fdstat_get() {
+    // current stub implementation always returns BADF
+    expect_errno(wasi::ERRNO_BADF, unsafe { wasi::fd_fdstat_get(1) });
+}
+
+#[no_mangle]
+pub fn test_wasi_fd_prestat_get() {
+    // current stub implementation always returns BADF
+    expect_errno(wasi::ERRNO_BADF, unsafe { wasi::fd_prestat_get(1) });
+}
+
+#[no_mangle]
+pub fn test_wasi_fd_prestat_dir_name() {
+    let mut u = 0;
+
+    // current stub implementation always returns NOTSUP
+    expect_errno(wasi::ERRNO_NOTSUP, unsafe {
+        wasi::fd_prestat_dir_name(1, &mut u, 0)
+    });
+}
+
+#[no_mangle]
+pub fn test_wasi_fd_read() {
+    let iovs: &[wasi::Iovec] = &[];
+
+    // current stub implementation always returns BADF
+    expect_errno(wasi::ERRNO_BADF, unsafe { wasi::fd_read(1, iovs) });
+}
+
+#[no_mangle]
+pub fn test_wasi_fd_seek() {
+    // current stub implementation always returns BADF
+    expect_errno(wasi::ERRNO_BADF, unsafe {
+        wasi::fd_seek(1, 0, wasi::WHENCE_SET)
+    });
+}
+
+#[no_mangle]
+pub fn test_wasi_path_open() {
+    // current stub implementation always returns NOTDIR
+    expect_errno(wasi::ERRNO_NOTDIR, unsafe {
+        wasi::path_open(1, 0, "/tmp", 0, 0, 0, 0)
+    });
+}
