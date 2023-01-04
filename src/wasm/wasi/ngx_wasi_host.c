@@ -161,6 +161,33 @@ ngx_wasi_hfuncs_environ_sizes_get(ngx_wavm_instance_t *instance,
 
 
 static ngx_int_t
+ngx_wasi_hfuncs_errno_badf(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_BADF);
+    return NGX_WAVM_OK;
+}
+
+
+static ngx_int_t
+ngx_wasi_hfuncs_errno_notdir(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_NOTDIR);
+    return NGX_WAVM_OK;
+}
+
+
+static ngx_int_t
+ngx_wasi_hfuncs_errno_notsup(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_NOTSUP);
+    return NGX_WAVM_OK;
+}
+
+
+static ngx_int_t
 ngx_wasi_hfuncs_fd_write(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -297,9 +324,44 @@ static ngx_wavm_host_func_def_t  ngx_wasi_hfuncs[] = {
       ngx_wavm_arity_i32x2,
       ngx_wavm_arity_i32 },
 
+    { ngx_string("fd_close"),
+      &ngx_wasi_hfuncs_errno_badf,
+      ngx_wavm_arity_i32,
+      ngx_wavm_arity_i32 },
+
+    { ngx_string("fd_fdstat_get"),
+      &ngx_wasi_hfuncs_errno_badf,
+      ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
+
+    { ngx_string("fd_prestat_get"),
+      &ngx_wasi_hfuncs_errno_badf,
+      ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
+
+    { ngx_string("fd_prestat_dir_name"),
+      &ngx_wasi_hfuncs_errno_notsup,
+      ngx_wavm_arity_i32x3,
+      ngx_wavm_arity_i32 },
+
+    { ngx_string("fd_read"),
+      &ngx_wasi_hfuncs_errno_badf,
+      ngx_wavm_arity_i32x4,
+      ngx_wavm_arity_i32 },
+
+    { ngx_string("fd_seek"),
+      &ngx_wasi_hfuncs_errno_badf,
+      ngx_wavm_arity_i32_i64_i32x2,
+      ngx_wavm_arity_i32 },
+
     { ngx_string("fd_write"),
       &ngx_wasi_hfuncs_fd_write,
       ngx_wavm_arity_i32x4,
+      ngx_wavm_arity_i32 },
+
+    { ngx_string("path_open"),
+      &ngx_wasi_hfuncs_errno_notdir,
+      ngx_wavm_arity_i32x5_i64x2_i32x2,
       ngx_wavm_arity_i32 },
 
     { ngx_string("proc_exit"),
