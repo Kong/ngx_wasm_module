@@ -323,6 +323,10 @@ ngx_v8_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
         goto error;
     }
 
+    instance->pool = pool;
+    instance->store = store;
+    instance->module = module;
+
     instance->ctxs = ngx_pcalloc(pool,
                                  sizeof(ngx_v8_hfunc_ctx_t) * module->nimports);
     if (instance->ctxs == NULL) {
@@ -353,10 +357,6 @@ ngx_v8_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
         dd("wasm_instance_new failed");
         goto error;
     }
-
-    instance->pool = pool;
-    instance->store = store;
-    instance->module = module;
 
     wasm_instance_exports(instance->instance, &instance->externs);
 
