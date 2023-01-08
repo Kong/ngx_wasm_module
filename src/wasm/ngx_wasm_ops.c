@@ -386,8 +386,31 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
 
 #ifdef NGX_WASM_HTTP
     case NGX_HTTP_REWRITE_PHASE:
-        rc = ngx_proxy_wasm_resume(pwctx, phase,
-                                   NGX_PROXY_WASM_STEP_REQ_HEADERS);
+        if (!pwctx->req_headers_in_access) {
+            rc = ngx_proxy_wasm_resume(pwctx, phase,
+                                       NGX_PROXY_WASM_STEP_REQ_HEADERS);
+
+        } else {
+            if (!pwctx->main) {
+                ngx_wasm_log_error(NGX_LOG_WARN, opctx->log, 0,
+                                   "proxy_wasm_request_headers_in_access "
+                                   "enabled in a subrequest (no access phase)");
+            }
+
+            rc = NGX_OK;
+        }
+
+        break;
+
+    case NGX_HTTP_ACCESS_PHASE:
+        if (pwctx->req_headers_in_access) {
+            rc = ngx_proxy_wasm_resume(pwctx, phase,
+                                       NGX_PROXY_WASM_STEP_REQ_HEADERS);
+
+        } else {
+            rc = NGX_OK;
+        }
+
         break;
 
     case NGX_HTTP_CONTENT_PHASE:

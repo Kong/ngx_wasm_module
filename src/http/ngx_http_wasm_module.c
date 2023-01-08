@@ -20,8 +20,8 @@ static void ngx_http_wasm_exit_process(ngx_cycle_t *cycle);
 static ngx_int_t ngx_http_wasm_rewrite_handler(ngx_http_request_t *r);
 #if (NGX_DEBUG)
 static ngx_int_t ngx_http_wasm_preaccess_handler(ngx_http_request_t *r);
-static ngx_int_t ngx_http_wasm_access_handler(ngx_http_request_t *r);
 #endif
+static ngx_int_t ngx_http_wasm_access_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx);
 static ngx_int_t ngx_http_wasm_content_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_log_handler(ngx_http_request_t *r);
@@ -161,6 +161,13 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       NGX_HTTP_MODULE,
       NULL },
 
+    { ngx_string("proxy_wasm_request_headers_in_access"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, pwm_req_headers_in_access),
+      NULL },
+
       ngx_null_command
 };
 
@@ -201,11 +208,10 @@ static ngx_http_handler_pt  phase_handlers[NGX_HTTP_LOG_PHASE + 1] = {
     NULL,                                /* post_rewrite */
 #if (NGX_DEBUG)
     ngx_http_wasm_preaccess_handler,     /* pre_access */
-    ngx_http_wasm_access_handler,        /* access */
 #else
     NULL,
-    NULL,
 #endif
+    ngx_http_wasm_access_handler,        /* access */
     NULL,                                /* post_access*/
     NULL,                                /* pre_content */
     ngx_http_wasm_content_handler,       /* content */
@@ -268,6 +274,7 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
     loc->recv_timeout = NGX_CONF_UNSET_MSEC;
     loc->socket_buffer_size = NGX_CONF_UNSET_SIZE;
     loc->socket_buffer_reuse = NGX_CONF_UNSET;
+    loc->pwm_req_headers_in_access = NGX_CONF_UNSET;
 
     if (ngx_wasm_main_vm(cf->cycle)) {
         loc->plan = ngx_wasm_ops_plan_new(cf->pool, &ngx_http_wasm_subsystem);
@@ -318,6 +325,9 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     prev->socket_buffer_reuse = 1;
     conf->socket_buffer_reuse = 1;
 #endif
+
+    ngx_conf_merge_value(conf->pwm_req_headers_in_access,
+                         prev->pwm_req_headers_in_access, 0);
 
     if (conf->plan && !conf->plan->populated) {
         conf->plan = prev->plan;
@@ -536,6 +546,8 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
     ngx_int_t            n = 0;
     ngx_http_request_t  *r = rctx->r;
 
+    dd("enter");
+
     if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
         return rc;
     }
@@ -626,10 +638,8 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
 
 done:
 
-#if (DDEBUG)
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "wasm \"rewrite\" phase rc: %d", rc);
-#endif
 
     return rc;
 }
@@ -652,13 +662,12 @@ ngx_http_wasm_preaccess_handler(ngx_http_request_t *r)
 
 done:
 
-#if (DDEBUG)
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "wasm \"preaccess\" phase rc: %d", rc);
-#endif
 
     return rc;
 }
+#endif
 
 
 static ngx_int_t
@@ -679,14 +688,11 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
 
 done:
 
-#if (DDEBUG)
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "wasm \"access\" phase rc: %d", rc);
-#endif
 
     return rc;
 }
-#endif
 
 
 static ngx_int_t
@@ -796,12 +802,8 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     rc = ngx_http_wasm_content(rctx);
 
-#if (DDEBUG)
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "wasm \"content\" phase rc: %d", rc);
-#endif
-
-    dd("exit rc: %ld", rc);
 
     return rc;
 }
@@ -881,7 +883,7 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
     }
 #endif
 
-    if (rctx->entered_content_phase) {
+    if (rctx->entered_content_phase || rctx->resp_content_chosen) {
         rc = ngx_http_wasm_content(rctx);
         if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
             ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -908,14 +910,22 @@ ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main, unsigned wev)
     ngx_http_request_t  *r = rctx->r;
     ngx_connection_t    *c = r->connection;
 
+    dd("enter");
+
     ngx_wasm_assert(wev);
 
     if (rctx->yield) {
+        dd("yielded");
         return;
     }
 
     if (main) {
         if (wev) {
+            if (rctx->resp_content_chosen) {
+                dd("switching wev handler");
+                r->write_event_handler = ngx_http_wasm_content_wev_handler;
+            }
+
             dd("resuming request wev...");
             r->write_event_handler(r);
             dd("...done resuming request");

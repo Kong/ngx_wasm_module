@@ -234,6 +234,7 @@ struct ngx_proxy_wasm_ctx_s {
 
     unsigned                           main:1;            /* r->main */
     unsigned                           ready:1;
+    unsigned                           req_headers_in_access:1;
 };
 
 

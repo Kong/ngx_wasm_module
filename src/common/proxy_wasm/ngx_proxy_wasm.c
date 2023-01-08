@@ -491,6 +491,7 @@ ngx_proxy_wasm_ctx_action(ngx_proxy_wasm_ctx_t *pwctx,
         switch (pwctx->phase->index) {
 #ifdef NGX_WASM_HTTP
         case NGX_HTTP_REWRITE_PHASE:
+        case NGX_HTTP_ACCESS_PHASE:
         case NGX_HTTP_CONTENT_PHASE:
             ngx_log_debug6(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
                            "proxy_wasm pausing in \"%V\" phase"
