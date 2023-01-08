@@ -75,6 +75,8 @@ typedef struct {
     ngx_bufs_t                         socket_large_buffers;  /* wasm_socket_large_buffer_size */
     ngx_flag_t                         socket_buffer_reuse;   /* wasm_socket_buffer_reuse */
 
+    ngx_flag_t                         pwm_req_headers_in_access;
+
     ngx_queue_t                        q;                     /* main_conf */
 } ngx_http_wasm_loc_conf_t;
 

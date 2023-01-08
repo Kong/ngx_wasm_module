@@ -159,6 +159,8 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
         rctx->local_resp_body_len = len;
     }
 
+    rctx->resp_content_chosen = 1;
+
     return NGX_OK;
 
 fail:

@@ -332,10 +332,12 @@ ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_err_e ecode)
 static ngx_proxy_wasm_ctx_t *
 ngx_http_proxy_wasm_ctx(void *data)
 {
-    ngx_proxy_wasm_ctx_t     *pwctx;
-    ngx_http_wasm_req_ctx_t  *rctx = data;
-    ngx_http_request_t       *r = rctx->r;
+    ngx_proxy_wasm_ctx_t      *pwctx;
+    ngx_http_wasm_req_ctx_t   *rctx = data;
+    ngx_http_request_t        *r = rctx->r;
+    ngx_http_wasm_loc_conf_t  *loc;
 
+    loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
     rctx = ngx_http_get_module_ctx(r, ngx_http_wasm_module);
 
     pwctx = (ngx_proxy_wasm_ctx_t *) rctx->data;
@@ -351,6 +353,7 @@ ngx_http_proxy_wasm_ctx(void *data)
         pwctx->log = r->connection->log;
         pwctx->main = r == r->main;
         pwctx->data = rctx;
+        pwctx->req_headers_in_access = loc->pwm_req_headers_in_access;
 
         /* for on_request_body retrieval */
         rctx->data = pwctx;
