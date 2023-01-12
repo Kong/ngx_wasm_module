@@ -1,15 +1,17 @@
 FROM amd64/ubuntu:20.04
 
+ARG GOLANG_VERSION=1.19.5
+ARG TINYGO_VERSION=0.26.0
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+    apt-get install -y \
         ca-certificates \
         build-essential \
         ninja-build \
         python3 \
         cmake \
-        gcc-8 \
-        libstdc++-8-dev \
+        gcc-10 \
+        libstdc++-10-dev \
         git \
         pkg-config \
         libglib2.0-dev \
@@ -23,11 +25,17 @@ RUN mkdir -p "$CARGO_HOME" && mkdir -p "$RUSTUP_HOME" && \
     chmod -R a=rwX $CARGO_HOME
 
 # Note: this image is also used for local CI runs
-RUN apt-get install -y --no-install-recommends \
-        libpcre3-dev \
-        zlib1g-dev \
+RUN apt-get install -y \
         clang-tools \
+        libpcre3-dev \
+        libssl-dev \
+        zlib1g-dev \
         valgrind \
         nodejs \
         gcovr \
-        sudo
+        sudo && \
+    curl -sLO https://golang.google.cn/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz && \
+    sudo rm -rf /usr/local/go && tar -C /usr/local -xzf go${GOLANG_VERSION}.linux-amd64.tar.gz && \
+    curl -sLO https://github.com/tinygo-org/tinygo/releases/download/v$TINYGO_VERSION/tinygo_${TINYGO_VERSION}_amd64.deb && \
+    dpkg -i tinygo_${TINYGO_VERSION}_amd64.deb
+ENV PATH $PATH:/usr/local/go/bin

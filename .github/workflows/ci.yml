@@ -155,7 +155,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        cc: [gcc-12]
+        cc: [gcc-10]
         ngx: [1.23.3]
         runtime: [wasmer]
         wasmer: [3.0.2]
@@ -169,7 +169,7 @@ jobs:
             hup: 0
             debug: 1
           - os: ubuntu-22.04
-            cc: gcc-12
+            cc: gcc-10
             ngx: 1.23.3
             runtime: v8
             v8: 10.5.18
@@ -177,8 +177,6 @@ jobs:
             debug: 1
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
-      - run: sudo apt-get install -y libstdc++-12-dev
-        if: ${{ matrix.cc == 'gcc-12' }}
       - uses: actions/checkout@v3
       - name: "Setup cache - rustup toolchain"
         uses: actions/cache@v3
@@ -312,7 +310,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        cc: [clang-14, gcc-12]
+        cc: [clang-14, gcc-10]
         ngx: [1.23.3]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [4.0.0]
@@ -325,8 +323,6 @@ jobs:
             runtime: wasmtime
             wasmtime: 4.0.0
     steps:
-      - run: sudo apt-get install -y gcc-12 libstdc++-12-dev
-        if: ${{ matrix.cc == 'gcc-12' }}
       - uses: actions/checkout@v3
       - name: "Setup cache - work/ dir"
         uses: actions/cache@v3
