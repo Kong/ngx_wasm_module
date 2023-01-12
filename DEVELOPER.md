@@ -31,15 +31,18 @@ environments yet and may still need refinements; reports are very much welcome.
 ## Requirements
 
 Most of the development of this project currently relies on testing WebAssembly
-modules produced from Rust crates. Hence, while not technically a requirement to
-compile ngx_wasm_module or to produce Wasm bytecode, having Rust installed on
-the system will quickly become necessary for development:
+modules produced from Rust crates and Go packages. Hence, while not technically
+a requirement to compile ngx_wasm_module or to produce Wasm bytecode, having
+Rust and Go installed on the system will quickly become necessary for
+development:
 
 - [rustup.rs](https://rustup.rs/) is the easiest way to install Rust.
     - Then add the Wasm target to your toolchain: `rustup target add
       wasm32-unknown-unknown`.
     - If you wish to target WASI (e.g. proxy-wasm-go-sdk filters), add the
       `wasm32-wasi` target: `rustup target add wasm32-wasi`.
+- [Go](https://golang.google.cn/) for your OS/distribution.
+    - And the [TinyGo](https://tinygo.org/) compiler.
 
 [Back to TOC](#table-of-contents)
 
