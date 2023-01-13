@@ -17,6 +17,8 @@ DIR_OPR_PREFIX=$DIR_BUILDROOT/prefix
 DIR_DIST_OUT=$NGX_WASM_DIR/dist
 URL_KONG_WASM_RUNTIMES="https://github.com/kong/ngx_wasm_runtimes"
 
+export PERL5LIB=$DIR_CPANM/lib/perl5
+
 build_nginx() {
     local ngx_src=$1
     local ngx_ver=$2
