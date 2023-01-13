@@ -32,6 +32,7 @@ pushd $DIR_CPANM
     fi
 
     notice "downloading Test::Nginx dependencies..."
+    HOME=$DIR_CPANM ./cpanm $PERL_ARGS local::lib
     HOME=$DIR_CPANM ./cpanm $PERL_ARGS Test::Nginx
     HOME=$DIR_CPANM ./cpanm $PERL_ARGS IPC::Run
     HOME=$DIR_CPANM ./cpanm $PERL_ARGS Regexp::Common
