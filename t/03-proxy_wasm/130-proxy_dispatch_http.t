@@ -167,9 +167,15 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no resolver defined 
 
 
 === TEST 10: proxy_wasm - dispatch_http_call() using default resolver
-TODO: resolver ext_timeout
+--- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
+--- main_config eval
+qq{
+    wasm {
+        resolver_timeout $::ExtTimeout;
+        module hostcalls $t::TestWasm::crates/hostcalls.wasm;
+    }
+}
 --- config
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
