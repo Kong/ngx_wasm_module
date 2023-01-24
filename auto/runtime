@@ -16,8 +16,13 @@ if [ -n "$ngx_wasm_runtime_inc" ]; then
 fi
 
 if [ -n "$ngx_wasm_runtime_lib" ]; then
-    ngx_feature="$ngx_feature, $ngx_wasm_runtime_lib -l$ngx_wasm_runtime_lib_name"
-    ngx_feature_libs="$ngx_wasm_runtime_lib -l$ngx_wasm_runtime_lib_name"
+    if [ $NGX_RPATH = yes ]; then
+        ngx_feature="$ngx_feature, $ngx_wasm_runtime_lib $(echo "$ngx_wasm_runtime_lib" | sed 's/-L/-R/g') -l$ngx_wasm_runtime_lib_name"
+        ngx_feature_libs="$ngx_wasm_runtime_lib $(echo "$ngx_wasm_runtime_lib" | sed 's/-L/-R/g') -l$ngx_wasm_runtime_lib_name"
+    else
+        ngx_feature="$ngx_feature, $ngx_wasm_runtime_lib $(echo "$ngx_wasm_runtime_lib" | sed 's/-L/-Wl,-rpath,/g') -l$ngx_wasm_runtime_lib_name"
+        ngx_feature_libs="$ngx_wasm_runtime_lib $(echo "$ngx_wasm_runtime_lib" | sed 's/-L/-Wl,-rpath,/g') -l$ngx_wasm_runtime_lib_name"
+    fi
 fi
 
 if [ -n "$ngx_wasm_runtime_opt" ]; then

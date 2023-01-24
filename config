@@ -53,11 +53,13 @@ ngx_wasm_runtime_opt=$NGX_LD_OPT
 
 . $ngx_addon_dir/auto/runtime
 
-ngx_wasm_runtime_inc="-I $NGX_WASM_RUNTIME_INC"
-ngx_wasm_runtime_lib="-L$NGX_WASM_RUNTIME_LIB"
-ngx_wasm_runtime_opt=$NGX_WASM_RUNTIME_LD_OPT
+if [ -n "$NGX_WASM_RUNTIME_INC" -o -n "$NGX_WASM_RUNTIME_LIB" ]; then
+    ngx_wasm_runtime_inc="-I $NGX_WASM_RUNTIME_INC"
+    ngx_wasm_runtime_lib="-L$NGX_WASM_RUNTIME_LIB"
+    ngx_wasm_runtime_opt=$NGX_WASM_RUNTIME_LD_OPT
 
-. $ngx_addon_dir/auto/runtime
+    . $ngx_addon_dir/auto/runtime
+fi
 
 ngx_wasm_runtime_inc="-I /usr/local/opt/include"
 ngx_wasm_runtime_lib="-L/usr/local/opt/lib"

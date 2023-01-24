@@ -57,10 +57,6 @@ build_nginx() {
         # clang 13: -fsanitize-ignorelist=$NGX_WASM_DIR/asan.ignore
     fi
 
-    if [[ -n "$NGX_WASM_RUNTIME_LIB" ]]; then
-        NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -Wl,-rpath,$NGX_WASM_RUNTIME_LIB"
-    fi
-
     if [[ "$NGX_BUILD_CLANG_ANALYZER" == 1 ]]; then
         build_name+=" clang-analyzer"
         NGX_BUILD_CMD="scan-build -o $DIR_WORK/scans \
@@ -202,6 +198,7 @@ build_nginx() {
               || ! -f "Makefile" \
               || ! -d "$NGX_BUILD_DIR_BUILDROOT" \
               || "$NGX_WASM_DIR/config" -nt "Makefile" \
+              || "$NGX_WASM_DIR/auto/runtime" -nt "Makefile" \
               || "$NGX_WASM_DIR/Makefile" -nt "Makefile" \
               || "$NGX_WASM_DIR/util/build.sh" -nt "Makefile" \
               || "$NGX_WASM_DIR/util/_lib.sh" -nt "Makefile" ]];
