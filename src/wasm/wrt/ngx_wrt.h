@@ -81,6 +81,11 @@ void ngx_wasmtime_valvec2wasm(wasm_val_vec_t *out, wasmtime_val_t *vec,
 #elif NGX_WASM_HAVE_WASMER
 #include <wasmer.h>
 
+#if WASMER_VERSION_MAJOR != 3
+#   error Unsupported Wasmer version
+#elif WASMER_VERSION_MINOR > 1
+#   warning Untested Wasmer version
+#endif
 
 typedef ngx_str_t  ngx_wrt_res_t;
 typedef struct ngx_wrt_import_s  ngx_wrt_import_t;
