@@ -14,24 +14,23 @@
    fun:ngx_event_process_init
 }
 {
-   <wasmer 3.0.2: parse>
+   <wasmer 3.1.0: parse>
    Memcheck:Cond
    fun:_ZN10wasmparser6parser6Parser5parse17h5c54f0ee5315402aE
    ...
    fun:main
 }
 {
-   <wasmer 3.0.2: wasm_instance_new>
+   <wasmer 3.1.0: wasm_instance_new>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
    ...
-   fun:_ZN6wasmer3sys8instance8Instance12new_by_index17h7cf168d389363a21E
+   fun:_ZN6wasmer3sys8instance8Instance12new_by_index17h9b11b6b5fcb57319E
    fun:wasm_instance_new
 }
 {
-   <wasmtime 4.0.0: parse>
+   <wasmtime 5.0.0: parse>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17h74fddd7eb21e2c7eE
+   fun:_ZN10wasmparser6parser6Parser5parse17hb5a9cfdb3d8a54dbE
 }
-
