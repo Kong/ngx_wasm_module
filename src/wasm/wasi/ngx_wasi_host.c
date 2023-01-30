@@ -69,25 +69,29 @@ static ngx_int_t
 ngx_wasi_hfuncs_clock_time_get(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    uint32_t   clock_id;
-    uint64_t   precision;
-    uint64_t  *time;
+    uint32_t     clock_id;
+    uint64_t     precision;
+    void        *rtime;
+    ngx_msec_t   t;
 
     clock_id = args[0].of.i32;
     precision = args[1].of.i64;
-    time = NGX_WAVM_HOST_LIFT(instance, args[2].of.i32, uint64_t);
+    /* WASM might not align 64-bit integers to 8-byte boundaries. So we
+     * need to buffer & copy here. */
+    rtime = NGX_WAVM_HOST_LIFT_SLICE(instance, args[2].of.i32,
+                                     sizeof(uint64_t));
 
     /* precision is ignored for now, same as proxy-wasm-cpp-host */
     (void) precision;
 
     switch (clock_id) {
     case WASI_CLOCKID_REALTIME:
-        ngx_time_update();
-        *time = ngx_current_msec;
+        ngx_wasm_wall_time(rtime);
         break;
 
     case WASI_CLOCKID_MONOTONIC:
-        *time = ngx_wasm_monotonic_time();
+        t = ngx_wasm_monotonic_time() * 1000000;
+        ngx_memcpy(rtime, &t, sizeof(uint64_t));
         break;
 
     default:

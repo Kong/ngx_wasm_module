@@ -65,7 +65,7 @@ pub fn test_wasi_clock_time_get_via_systemtime() {
     match now.duration_since(SystemTime::UNIX_EPOCH) {
         Ok(n) => {
             let msg = format!("seconds since Unix epoch: {}", n.as_secs());
-            resp::ngx_resp_local_reason(204, &msg);
+            resp::ngx_resp_say(&msg);
         }
         Err(_) => {
             resp::ngx_resp_local_reason(500, "test failed, bad system time");
@@ -90,7 +90,7 @@ pub fn test_wasi_clock_time_get() {
     // direct WASI access
     if let Ok(timestamp) = unsafe { wasi::clock_time_get(wasi::CLOCKID_REALTIME, 0) } {
         let msg = format!("test passed with timestamp: {timestamp}");
-        resp::ngx_resp_local_reason(204, &msg);
+        resp::ngx_resp_say(&msg);
     } else {
         resp::ngx_resp_local_reason(500, "test failed");
     }
