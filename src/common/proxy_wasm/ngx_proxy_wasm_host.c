@@ -701,21 +701,14 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_get_current_time(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    void        *rtime;
-    uint64_t     t;
-    ngx_time_t  *tp;
+    void  *rtime;
 
     /* WASM might not align 64-bit integers to 8-byte boundaries. So we
      * need to buffer & copy here. */
     rtime = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32,
                                      sizeof(uint64_t));
 
-    ngx_time_update();
-
-    tp = ngx_timeofday();
-
-    t = (tp->sec * 1000 + tp->msec) * 1e6;
-    ngx_memcpy(rtime, &t, sizeof(uint64_t));
+    ngx_wasm_wall_time(rtime);
 
     return ngx_proxy_wasm_result_ok(rets);
 }

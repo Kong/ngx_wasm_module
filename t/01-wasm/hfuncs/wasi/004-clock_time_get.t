@@ -16,9 +16,9 @@ __DATA__
     location /t {
         wasm_call rewrite ngx_rust_tests test_wasi_clock_time_get_via_systemtime;
     }
---- error_code: 204
---- no_error_log
-[error]
+--- error_code: 200
+--- response_body eval
+qr/seconds since Unix epoch: [1-9][0-9]{9}\n/
 
 
 
@@ -40,9 +40,9 @@ __DATA__
     location /t {
         wasm_call rewrite ngx_rust_tests test_wasi_clock_time_get;
     }
---- error_code: 204
---- no_error_log
-[error]
+--- error_code: 200
+--- response_body eval
+qr/test passed with timestamp: [0-9]+\n/
 
 
 

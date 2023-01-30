@@ -485,6 +485,24 @@ ngx_wasm_monotonic_time()
 
 
 void
+ngx_wasm_wall_time(void *rtime)
+{
+    uint64_t     t;
+    ngx_time_t  *tp;
+
+    ngx_time_update();
+
+    tp = ngx_timeofday();
+
+    t = (tp->sec * 1000 + tp->msec) * 1e6;
+
+    /* WASM might not align 64-bit integers to 8-byte boundaries. So we
+     * need to buffer & copy here. */
+    ngx_memcpy(rtime, &t, sizeof(uint64_t));
+}
+
+
+void
 ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, ...)
 {

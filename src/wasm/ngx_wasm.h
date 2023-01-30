@@ -110,6 +110,7 @@ ngx_int_t ngx_wasm_bytes_from_path(wasm_byte_vec_t *out, u_char *path,
 ngx_uint_t ngx_wasm_list_nelts(ngx_list_t *list);
 ngx_str_t *ngx_wasm_get_list_elem(ngx_list_t *map, u_char *key, size_t key_len);
 ngx_msec_t ngx_wasm_monotonic_time();
+void ngx_wasm_wall_time(void *rtime);
 void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, ...);
 
