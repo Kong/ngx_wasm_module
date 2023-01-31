@@ -546,7 +546,7 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
     ngx_int_t            n = 0;
     ngx_http_request_t  *r = rctx->r;
 
-    dd("enter");
+    dd("enter (rc: %ld)", rc);
 
     if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
         return rc;
@@ -651,6 +651,8 @@ ngx_http_wasm_preaccess_handler(ngx_http_request_t *r)
 {
     ngx_int_t                 rc;
     ngx_http_wasm_req_ctx_t  *rctx;
+
+    dd("enter");
 
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc != NGX_OK) {

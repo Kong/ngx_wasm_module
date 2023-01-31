@@ -152,10 +152,11 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
     dd("enter");
 
     if (plan->loaded) {
+        dd("plan already loaded (plan: %p)", plan);
         return NGX_OK;
     }
 
-    dd("load");
+    dd("loading new plan (plan: %p)", plan);
 
     /* initialize pipelines */
 
@@ -287,6 +288,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
         op = ((ngx_wasm_op_t **) pipeline->ops.elts)[i];
 
         rc = op->handler(ctx, phase, op);
+        dd("op rc: %ld", rc);
         if (rc == NGX_ERROR || rc > NGX_OK) {
             /* NGX_ERROR, NGX_HTTP_* */
             goto done;
@@ -307,7 +309,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
 
 done:
 
-    dd("ops resume rc: %ld", rc);
+    dd("rc: %ld", rc);
 
     return rc;
 }

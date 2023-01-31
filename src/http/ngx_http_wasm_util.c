@@ -118,6 +118,8 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
 
 done:
 
+    dd("rc: %ld", rc);
+
     ngx_wasm_assert(rc == NGX_OK || rc == NGX_DONE);
 
     return rc;
