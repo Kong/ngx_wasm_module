@@ -135,6 +135,7 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
 
     } else if (rc == NGX_AGAIN) {
         /* TODO: NYI - NGX_WAVM_AGAIN */
+        ngx_wasm_assert(0);
         return NGX_WAVM_NYI;
     }
 
