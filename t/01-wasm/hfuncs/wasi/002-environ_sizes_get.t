@@ -4,20 +4,27 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 2);
+plan tests => repeat_each() * (blocks() * 3);
 
 run_tests();
 
 __DATA__
 
 === TEST 1: environ_sizes_get
---- wasm_modules: ngx_rust_tests
+--- main_config eval
+qq{
+    env FOO=bar;
+    env NGX_WASI_ENV=1;
+
+    wasm {
+        module wasi_host_tests $t::TestWasm::crates/wasi_host_tests.wasm;
+    }
+}
 --- config
     location /t {
-        wasm_call rewrite ngx_rust_tests test_wasi_environ_sizes_get;
+        wasm_call rewrite wasi_host_tests test_wasi_environ_sizes_get;
     }
---- error_code: 204
+--- response_body_like
+envs: [1-9]\d*, size: [1-9]\d*
 --- no_error_log
 [error]

@@ -11,10 +11,10 @@ run_tests();
 __DATA__
 
 === TEST 1: fd_fdstat_get stub
---- wasm_modules: ngx_rust_tests
+--- wasm_modules: wasi_host_tests
 --- config
     location /t {
-        wasm_call rewrite ngx_rust_tests test_wasi_fd_fdstat_get;
+        wasm_call rewrite wasi_host_tests test_wasi_fd_fdstat_get;
     }
 --- error_code: 204
 --- no_error_log
