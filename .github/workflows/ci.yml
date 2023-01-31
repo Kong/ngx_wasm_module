@@ -18,14 +18,13 @@ jobs:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    outputs:
+      coveralls_name: ${{ steps.lcov.outputs.name }}
     env:
       NGX_BUILD_GCOV: 1
     #if: ${{ false }}
     strategy:
       fail-fast: false
-      # When adding or removing to the build matrix,
-      # make sure the value of after_n_builds in codecov.yml
-      # matches the number of entries in this matrix.
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-9]
@@ -72,8 +71,9 @@ jobs:
             debug: 0
             no_ssl: 1
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y gcc-9 libstdc++-9-dev
+      - name: "Setup deps - apt-get"
         if: ${{ matrix.cc == 'gcc-9' }}
+        run: sudo apt-get update && sudo apt-get install -y gcc-9 libstdc++-9-dev lcov
       - uses: actions/checkout@v3
       - name: "Setup cache - rustup toolchain"
         uses: actions/cache@v3
@@ -91,10 +91,7 @@ jobs:
           path: |
             work/downloads
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
-      - name: Setup gcov
-        if: ${{ !env.ACT && env.NGX_BUILD_GCOV }}
-        run: sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/$(echo ${{ matrix.cc }} | sed s/gcc/gcov/) 100
-      - name: Setup rust
+      - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -123,16 +120,35 @@ jobs:
         if: ${{ matrix.openresty }}
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
-      - uses: codecov/codecov-action@v3
+      - name: Run lcov
+        id: lcov
         if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
-        env:
-          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+        run: |
+          name="unit-tests"
+          if [ -n "${{ matrix.openresty }}" ]; then
+            name="$name-openresty_${{ matrix.openresty }}"
+          else
+            name="$name-ngx_${{ matrix.ngx }}"
+          fi
+          if [ "${{ matrix.no_ssl }}" = 1 ]; then
+            name="$name-no_ssl"
+          else
+            name="$name-with_ssl"
+          fi
+          name="$name-debug_${{ matrix.debug }}"
+          name="$name-runtime_${{ matrix.runtime }}"
+          name="$name-hup_${{ matrix.hup }}"
+          echo "name=$name" >> $GITHUB_OUTPUT
+          lcov --capture --directory work/buildroot --output-file lcov.info
+          lcov --extract lcov.info '*/ngx_wasm_module/src/*' --output-file lcov.info
+      - name: Coveralls Upload
+        if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
+        uses: coverallsapp/github-action@master
         with:
-          gcov: true
-          flags: unit
-          fail_ci_if_error: true
-          env_vars: TEST_NGINX_USE_HUP
-          token: ${{ secrets.CODECOV_TOKEN }}
+          github-token: ${{ secrets.github_token }}
+          flag-name: ${{ needs.tests.outputs.coveralls_name }}
+          path-to-lcov: "./lcov.info"
+          parallel: true
       - uses: actions/upload-artifact@v2
         if: ${{ failure() && !env.ACT }}
         with:
@@ -140,6 +156,16 @@ jobs:
           path: |
             work/buildroot/
             t/servroot*
+
+  finish:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.github_token }}
+          parallel-finished: true
 
   valgrind:
     name: 'Tests - valgrind'
