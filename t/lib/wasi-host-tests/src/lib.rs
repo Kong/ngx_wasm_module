@@ -1,6 +1,5 @@
 use ngx::*;
 use std::time::{Instant, SystemTime};
-use wasi;
 
 macro_rules! test_wasi_assert {
     ($e:expr) => {
@@ -31,31 +30,33 @@ pub fn test_wasi_random_get() {
 #[no_mangle]
 pub fn test_wasi_environ_sizes_get() {
     if let Ok((size, buf_size)) = unsafe { wasi::environ_sizes_get() } {
-        // current implementation of environ_sizes_get always returns 0
-        test_wasi_assert!(size == 0);
-        test_wasi_assert!(buf_size == 0);
-
-        resp::ngx_resp_local_reason(204, "test passed");
+        resp::ngx_resp_say(&format!("envs: {size}, size: {buf_size}"));
     } else {
-        resp::ngx_resp_local_reason(500, "test failed");
+        resp::ngx_resp_say("test failed");
     }
 }
 
 #[no_mangle]
 pub fn test_wasi_environ_get() {
     let mut u: u8 = 0;
-    let mut environ: [*mut u8; 10] = [&mut u; 10];
-    let mut environ_buf: [u8; 10] = [0; 10];
 
-    if let Ok(()) = unsafe { wasi::environ_get(environ.as_mut_ptr(), environ_buf.as_mut_ptr()) } {
-        // current implementation of environ_get does not touch the buffers
-        test_wasi_assert!(environ.iter().filter(|x| std::ptr::eq(**x, &u)).count() == 10);
-        test_wasi_assert!(environ_buf.iter().sum::<u8>() == 0);
+    if let Ok((size, buf_size)) = unsafe { wasi::environ_sizes_get() } {
+        let mut environ: Vec<*mut u8> = vec![&mut u; size];
+        let mut environ_buf = vec![0; buf_size];
 
-        resp::ngx_resp_local_reason(204, "test passed");
-    } else {
-        resp::ngx_resp_local_reason(500, "test failed");
+        if let Ok(()) = unsafe { wasi::environ_get(environ.as_mut_ptr(), environ_buf.as_mut_ptr()) }
+        {
+            match std::str::from_utf8(&environ_buf) {
+                Ok(v) => {
+                    resp::ngx_resp_say(v);
+                    return;
+                }
+                Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+            };
+        }
     }
+
+    resp::ngx_resp_say("test failed")
 }
 
 #[no_mangle]

@@ -147,17 +147,23 @@ ngx_int_t
 ngx_http_wasm_hfuncs_local_response(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t                    reason_len;
-    u_char                   *reason;
+    ngx_int_t                 rc;
+    size_t                    reason_len, body_len;
+    u_char                   *reason, *body;
     ngx_int_t                 status;
     ngx_http_wasm_req_ctx_t  *rctx = instance->data;
 
     status = args[0].of.i32;
     reason_len = args[2].of.i32;
     reason = NGX_WAVM_HOST_LIFT_SLICE(instance, args[1].of.i32, reason_len);
+    body_len = args[4].of.i32;
+    body = NGX_WAVM_HOST_LIFT_SLICE(instance, args[3].of.i32, body_len);
 
-    (void) ngx_http_wasm_stash_local_response(rctx, status, reason, reason_len,
-                                              NULL, NULL, 0);
+    rc = ngx_http_wasm_stash_local_response(rctx, status, reason, reason_len,
+                                            NULL, body, body_len);
+    if (rc != NGX_OK) {
+        return NGX_WAVM_ERROR;
+    }
 
     return NGX_WAVM_OK;
 }
@@ -182,7 +188,7 @@ static ngx_wavm_host_func_def_t  ngx_http_wasm_hfuncs[] = {
 
     { ngx_string("ngx_http_local_response"),
       &ngx_http_wasm_hfuncs_local_response,
-      ngx_wavm_arity_i32x3,
+      ngx_wavm_arity_i32x5,
       NULL },
 
    ngx_wavm_hfunc_null

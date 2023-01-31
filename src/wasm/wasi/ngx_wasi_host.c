@@ -7,6 +7,9 @@
 #include <ngx_wasi.h>
 
 
+extern char **environ;
+
+
 static ngx_int_t
 ngx_wasi_hfuncs_random_get(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
@@ -108,25 +111,24 @@ static ngx_int_t
 ngx_wasi_hfuncs_environ_get(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-#if 0
-    // A sample implementation documenting
-    // the behavior of the arguments:
-    uint32_t   environ = args[0].of.i32;
-    uint32_t   environ_buf = args[1].of.i32;
-    uint32_t  *addrs;
+    size_t     i;
     uint8_t   *envp;
+    uint32_t  *addrs;
 
-    addrs = NGX_WAVM_HOST_LIFT(instance, environ, uint64_t);
-    envp = NGX_WAVM_HOST_LIFT(instance, environ_buf, uint8_t);
+    dd("enter");
 
-    snprintf((char *) envp, 6, "A=aaa");
-    snprintf((char *) envp + 6, 8, "BB=bbbb");
+    addrs = NGX_WAVM_HOST_LIFT(instance, args[0].of.i32, uint32_t);
+    envp = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, uint8_t);
 
-    addrs[0] = environ_buf;
-    addrs[1] = environ_buf + 6;
-#endif
+    for (i = 0; environ[i]; i++) {
+        addrs[i] = *envp;
 
-    /* TODO: nothing is returned for now */
+        envp = ngx_cpymem((u_char *) envp, environ[i],
+                          ngx_strlen(environ[i]) + 1);
+        *envp++ = '\0';
+
+        dd("ENV: %s", environ[i]);
+    }
 
     rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
     return NGX_WAVM_OK;
@@ -137,6 +139,7 @@ static ngx_int_t
 ngx_wasi_hfuncs_environ_sizes_get(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
+    size_t     i;
     uint32_t  *environ_size;
     uint32_t  *environ_buf_size;
 
@@ -150,10 +153,14 @@ ngx_wasi_hfuncs_environ_sizes_get(ngx_wavm_instance_t *instance,
     environ_size = NGX_WAVM_HOST_LIFT(instance, args[0].of.i32, uint32_t);
     environ_buf_size = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, uint32_t);
 
-    /* TODO: nothing is returned for now */
-
     *environ_size = 0;
     *environ_buf_size = 0;
+
+    for (i = 0; environ[i]; i++) {
+        *environ_buf_size += ngx_strlen(environ[i]) + 1;  /* '\0' */
+    }
+
+    *environ_size = i;
 
     rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
     return NGX_WAVM_OK;

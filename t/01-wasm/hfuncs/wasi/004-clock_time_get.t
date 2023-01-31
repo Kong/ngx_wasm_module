@@ -11,10 +11,10 @@ run_tests();
 __DATA__
 
 === TEST 1: clock_time_get via std::time::SystemTime
---- wasm_modules: ngx_rust_tests
+--- wasm_modules: wasi_host_tests
 --- config
     location /t {
-        wasm_call rewrite ngx_rust_tests test_wasi_clock_time_get_via_systemtime;
+        wasm_call rewrite wasi_host_tests test_wasi_clock_time_get_via_systemtime;
     }
 --- error_code: 200
 --- response_body eval
@@ -23,10 +23,10 @@ qr/seconds since Unix epoch: [1-9][0-9]{9}\n/
 
 
 === TEST 2: clock_time_get via std::time::Instant
---- wasm_modules: ngx_rust_tests
+--- wasm_modules: wasi_host_tests
 --- config
     location /t {
-        wasm_call rewrite ngx_rust_tests test_wasi_clock_time_get_via_instant;
+        wasm_call rewrite wasi_host_tests test_wasi_clock_time_get_via_instant;
     }
 --- error_code: 204
 --- no_error_log
@@ -35,10 +35,10 @@ qr/seconds since Unix epoch: [1-9][0-9]{9}\n/
 
 
 === TEST 3: clock_time_get
---- wasm_modules: ngx_rust_tests
+--- wasm_modules: wasi_host_tests
 --- config
     location /t {
-        wasm_call rewrite ngx_rust_tests test_wasi_clock_time_get;
+        wasm_call rewrite wasi_host_tests test_wasi_clock_time_get;
     }
 --- error_code: 200
 --- response_body eval
@@ -47,10 +47,10 @@ qr/test passed with timestamp: [0-9]+\n/
 
 
 === TEST 4: clock_time_get using an unsupported clock
---- wasm_modules: ngx_rust_tests
+--- wasm_modules: wasi_host_tests
 --- config
     location /t {
-        wasm_call rewrite ngx_rust_tests test_wasi_clock_time_get_unsupported;
+        wasm_call rewrite wasi_host_tests test_wasi_clock_time_get_unsupported;
     }
 --- error_code: 204
 --- no_error_log

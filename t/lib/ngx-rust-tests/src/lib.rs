@@ -1,8 +1,5 @@
 use ngx::*;
 
-pub mod test_wasi;
-pub use test_wasi::*;
-
 #[no_mangle]
 pub fn nop() {}
 
