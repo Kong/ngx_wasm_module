@@ -979,6 +979,8 @@ ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
     ngx_http_wasm_req_ctx_t  *rctx;
 #endif
 
+    dd("enter");
+
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
     pwctx = pwexec->parent;
 
@@ -987,6 +989,7 @@ ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
 #ifdef NGX_WASM_HTTP
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
 
+    /* force resume */
     rctx->yield = 0;
 #endif
 

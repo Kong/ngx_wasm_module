@@ -554,10 +554,6 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
 
     if (rc == NGX_AGAIN) {
         r->main->count++;
-
-        rctx->nyields++;
-        rctx->yield = 1;
-
         return NGX_DONE;
     }
 
@@ -721,13 +717,19 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
     case NGX_OK:
         rc = ngx_http_wasm_check_finalize(rctx, rc);
         goto done;
+    case NGX_DECLINED:
+        if (rctx->exited_content_phase) {
+            /* Content phase already ran, no stashed response.
+             * Do not resume ops again and run the orig content
+             * handler instead */
+            goto orig;
+        }
+        /* fallthrough */
     default:
         break;
     }
 
 resume:
-
-    rctx->yield = 0;
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE);
     dd("content ops resume rc: %ld", rc);
@@ -754,6 +756,9 @@ resume:
         /* fallthrough */
 
     case NGX_DECLINED:
+
+orig:
+
         if (rctx->r_content_handler && !rctx->resp_content_chosen) {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                            "wasm running orig \"content\" handler");
@@ -783,6 +788,8 @@ resume:
     rc = ngx_http_wasm_check_finalize(rctx, rc);
 
 done:
+
+    rctx->exited_content_phase = 1;
 
     return rc;
 }
@@ -895,12 +902,11 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
 
     dd("last finalize ");
 
-    if (r->connection->fd == NGX_WASM_BAD_FD) {
-        ngx_wasm_assert(rctx->fake_request);
+    if (rctx->fake_request) {
+        ngx_wasm_assert(r->connection->fd == NGX_WASM_BAD_FD);
         ngx_http_wasm_finalize_fake_request(r, NGX_DONE);
 
     } else {
-        ngx_wasm_assert(!rctx->fake_request);
         ngx_http_finalize_request(r, r == r->main ? NGX_DONE : NGX_OK);
     }
 }

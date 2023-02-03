@@ -93,12 +93,12 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
 
     pwexec->ecode = NGX_PROXY_WASM_ERR_DISPATCH_FAILED;
 
-    if (rctx->yield || rctx->fake_request) {
+    if (!pwexec->ictx->instance->hostcall || rctx->fake_request) {
         ngx_wasm_log_error(NGX_LOG_ERR, pwexec->log, 0,
                            "%*s", p - (u_char *) &errbuf, &errbuf);
 
     } else {
-        /* running */
+        /* in-vm, executing a hostcall */
         ngx_wavm_instance_trap_printf(pwexec->ictx->instance, "%*s",
                                       p - (u_char *) &errbuf, &errbuf);
     }
@@ -106,7 +106,6 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
     ngx_http_proxy_wasm_dispatch_destroy(call);
 
     pwexec->call = NULL;
-    rctx->yield = 0;
 }
 
 
@@ -706,6 +705,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
     case NGX_HTTP_PROXY_WASM_DISPATCH_CONNECTING:
 
         rc = ngx_wasm_socket_tcp_connect(sock);
+        dd("connect rc: %ld", rc);
         if (rc == NGX_ERROR) {
             goto error;
         }
@@ -803,7 +803,11 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         if (pwexec->call == call) {
             /* no further call from the callback */
             pwexec->call = NULL;
-            rctx->yield = 0;
+            rc = NGX_OK;
+
+        } else {
+            /* another call was setup during the callback */
+            rc = NGX_AGAIN;
         }
 
         ngx_http_proxy_wasm_dispatch_destroy(call);

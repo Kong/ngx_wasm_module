@@ -166,7 +166,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no resolver defined 
 
 
 
-=== TEST 10: proxy_wasm - dispatch_http_call() using default resolver
+=== TEST 10: proxy_wasm - dispatch_http_call() sanity (default resolver)
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
@@ -190,7 +190,34 @@ ok
 
 
 
-=== TEST 11: proxy_wasm - dispatch_http_call() resolver + hostname (IPv4)
+=== TEST 11: proxy_wasm - dispatch_http_call() on_request_body, no response
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /dispatched {
+        return 200 "Hello world";
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'on=request_body \
+                              test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched';
+        echo ok;
+    }
+--- request
+GET /t
+
+Hello world
+--- response_body
+ok
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 12: proxy_wasm - dispatch_http_call() resolver + hostname (IPv4)
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -218,7 +245,7 @@ qq{
 
 
 
-=== TEST 12: proxy_wasm - dispatch_http_call() resolver + hostname (IPv6), default port
+=== TEST 13: proxy_wasm - dispatch_http_call() resolver + hostname (IPv6), default port
 Disabled on GitHub Actions due to IPv6 constraint.
 --- skip_eval: 4: system("ping6 -c 1 ::1 >/dev/null 2>&1") ne 0 || defined $ENV{GITHUB_ACTIONS}
 --- timeout eval: $::ExtTimeout
@@ -245,7 +272,7 @@ qq{
 
 
 
-=== TEST 13: proxy_wasm - dispatch_http_call() resolver + hostname (IPv4) + port
+=== TEST 14: proxy_wasm - dispatch_http_call() resolver + hostname (IPv4) + port
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config
@@ -280,7 +307,7 @@ server {
 
 
 
-=== TEST 14: proxy_wasm - dispatch_http_call() resolver error (host not found)
+=== TEST 15: proxy_wasm - dispatch_http_call() resolver error (host not found)
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -304,7 +331,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolve
 
 
 
-=== TEST 15: proxy_wasm - dispatch_http_call() IP + port (IPv4)
+=== TEST 16: proxy_wasm - dispatch_http_call() IP + port (IPv4)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -327,7 +354,7 @@ ok
 
 
 
-=== TEST 16: proxy_wasm - dispatch_http_call() IP + port (IPv6)
+=== TEST 17: proxy_wasm - dispatch_http_call() IP + port (IPv6)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -352,7 +379,7 @@ ok
 
 
 
-=== TEST 17: proxy_wasm - dispatch_http_call() many request headers (> 10)
+=== TEST 18: proxy_wasm - dispatch_http_call() many request headers (> 10)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -390,7 +417,7 @@ K: 11.*
 
 
 
-=== TEST 18: proxy_wasm - dispatch_http_call() empty response body (HTTP 204)
+=== TEST 19: proxy_wasm - dispatch_http_call() empty response body (HTTP 204)
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -419,7 +446,7 @@ tcp socket closing
 
 
 
-=== TEST 19: proxy_wasm - dispatch_http_call() empty response body (Content-Length: 0)
+=== TEST 20: proxy_wasm - dispatch_http_call() empty response body (Content-Length: 0)
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module ngx_http_headers_more_filter_module
 --- wasm_modules: hostcalls
@@ -447,7 +474,7 @@ tcp socket closing
 
 
 
-=== TEST 20: proxy_wasm - dispatch_http_call() no response body (HEAD)
+=== TEST 21: proxy_wasm - dispatch_http_call() no response body (HEAD)
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -477,7 +504,7 @@ tcp socket closing
 
 
 
-=== TEST 21: proxy_wasm - dispatch_http_call() "Content-Length" response body
+=== TEST 22: proxy_wasm - dispatch_http_call() "Content-Length" response body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -500,7 +527,7 @@ Hello world
 
 
 
-=== TEST 22: proxy_wasm - dispatch_http_call() "Transfer-Encoding: chunked" response body
+=== TEST 23: proxy_wasm - dispatch_http_call() "Transfer-Encoding: chunked" response body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -525,7 +552,7 @@ Content-Length: 0.*
 
 
 
-=== TEST 23: proxy_wasm - dispatch_http_call() large response
+=== TEST 24: proxy_wasm - dispatch_http_call() large response
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -551,7 +578,7 @@ Content-Length: 0.*
 
 
 
-=== TEST 24: proxy_wasm - dispatch_http_call() small wasm_socket_buffer_size
+=== TEST 25: proxy_wasm - dispatch_http_call() small wasm_socket_buffer_size
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -579,7 +606,7 @@ tcp socket trying to receive data (max: 1)
 
 
 
-=== TEST 25: proxy_wasm - dispatch_http_call() small wasm_socket_large_buffers
+=== TEST 26: proxy_wasm - dispatch_http_call() small wasm_socket_large_buffers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -606,7 +633,7 @@ Hello world
 
 
 
-=== TEST 26: proxy_wasm - dispatch_http_call() too small wasm_socket_large_buffers
+=== TEST 27: proxy_wasm - dispatch_http_call() too small wasm_socket_large_buffers
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -634,7 +661,7 @@ tcp socket - upstream response headers too large, increase wasm_socket_large_buf
 
 
 
-=== TEST 27: proxy_wasm - dispatch_http_call() too small wasm_socket_large_buffers size
+=== TEST 28: proxy_wasm - dispatch_http_call() too small wasm_socket_large_buffers size
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -662,7 +689,7 @@ tcp socket - upstream response headers too large, increase wasm_socket_large_buf
 
 
 
-=== TEST 28: proxy_wasm - dispatch_http_call() not enough wasm_socket_large_buffers
+=== TEST 29: proxy_wasm - dispatch_http_call() not enough wasm_socket_large_buffers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- tcp_listen: 12345
@@ -693,7 +720,7 @@ sub {
 
 
 
-=== TEST 29: proxy_wasm - dispatch_http_call() scarce wasm_socket_large_buffers
+=== TEST 30: proxy_wasm - dispatch_http_call() scarce wasm_socket_large_buffers
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -721,7 +748,7 @@ tcp socket trying to receive data (max: 1023)
 
 
 
-=== TEST 30: proxy_wasm - dispatch_http_call() TCP reader error
+=== TEST 31: proxy_wasm - dispatch_http_call() TCP reader error
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- tcp_listen: 12345
@@ -745,7 +772,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser 
 
 
 
-=== TEST 31: proxy_wasm - dispatch_http_call() re-entrant after status line
+=== TEST 32: proxy_wasm - dispatch_http_call() re-entrant after status line
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -773,7 +800,7 @@ tcp socket trying to receive data (max: 1017)
 
 
 
-=== TEST 32: proxy_wasm - dispatch_http_call() trap in dispatch handler
+=== TEST 33: proxy_wasm - dispatch_http_call() trap in dispatch handler
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -798,7 +825,7 @@ tcp socket trying to receive data (max: 1017)
 
 
 
-=== TEST 33: proxy_wasm - dispatch_http_call() invalid response headers
+=== TEST 34: proxy_wasm - dispatch_http_call() invalid response headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- tcp_listen: 12345
@@ -824,7 +851,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser 
 
 
 
-=== TEST 34: proxy_wasm - dispatch_http_call() async dispatch x2
+=== TEST 35: proxy_wasm - dispatch_http_call() async dispatch x2
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -872,7 +899,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser 
 
 
 
-=== TEST 35: proxy_wasm - dispatch_http_call() on log step
+=== TEST 36: proxy_wasm - dispatch_http_call() on log step
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -896,7 +923,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: bad step/
 
 
 
-=== TEST 36: proxy_wasm - dispatch_http_call() missing :method but has a :method-prefixed header
+=== TEST 37: proxy_wasm - dispatch_http_call() missing :method but has a :method-prefixed header
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -914,7 +941,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :method/
 
 
 
-=== TEST 37: proxy_wasm - dispatch_http_call() supports get_http_call_response_headers()
+=== TEST 38: proxy_wasm - dispatch_http_call() supports get_http_call_response_headers()
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
