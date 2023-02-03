@@ -58,6 +58,7 @@ struct ngx_wavm_instance_s {
     ngx_str_t                          trapmsg;
     u_char                            *trapbuf;
     void                              *data;
+    unsigned                           hostcall:1;
     unsigned                           trapped:1;
 };
 

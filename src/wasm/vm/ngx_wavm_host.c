@@ -260,8 +260,11 @@ ngx_wavm_hfunc_trampoline(void *env,
     ngx_str_null(&instance->trapmsg);
 
     instance->trapbuf = (u_char *) &trapbuf;
+    instance->hostcall = 1;
 
     rc = hfunc->def->ptr(instance, hargs, hrets);
+
+    instance->hostcall = 0;
 
 #ifdef NGX_WASM_HAVE_WASMTIME
     ngx_wasm_valvec2wasmtime(rets, &vrets);

@@ -20,10 +20,10 @@
 typedef struct {
     ngx_http_request_t                *r;
     ngx_connection_t                  *connection;
-    ngx_pool_t                        *pool;                   /* r->pool */
+    ngx_pool_t                        *pool;                    /* r->pool */
     ngx_wasm_op_ctx_t                  opctx;
     ngx_wasm_ops_t                    *ffi_engine;
-    void                              *data;                   /* per-stream extra context */
+    void                              *data;                    /* per-stream extra context */
 
     ngx_chain_t                       *free_bufs;
     ngx_chain_t                       *busy_bufs;
@@ -32,12 +32,12 @@ typedef struct {
     ngx_array_t                        resp_shim_headers;
     ngx_chain_t                       *resp_chunk;
     off_t                              resp_chunk_len;
-    unsigned                           resp_chunk_eof;         /* seen last buf flag */
+    unsigned                           resp_chunk_eof;          /* seen last buf flag */
 
     off_t                              req_content_length_n;
     off_t                              resp_content_length_n;
 
-    ngx_uint_t                         nyields;                /* keep track of r->main->count increments */
+    ngx_uint_t                         nyields;                 /* keep track of r->main->count increments */
 
     /* local resp */
 
@@ -50,14 +50,15 @@ typedef struct {
     /* flags */
 
     unsigned                           yield:1;
-    unsigned                           req_keepalive:1;        /* r->keepalive copy */
+    unsigned                           req_keepalive:1;         /* r->keepalive copy */
     unsigned                           reset_resp_shims:1;
-    unsigned                           entered_content_phase:1;
-    unsigned                           entered_header_filter:1;
+    unsigned                           entered_content_phase:1; /* entered content handler */
+    unsigned                           exited_content_phase:1;  /* executed content handler at least once */
+    unsigned                           entered_header_filter:1; /* entered header_filter handler */
 
-    unsigned                           resp_content_chosen:1;
-    unsigned                           resp_content_sent:1;
-    unsigned                           resp_finalized:1;       /* finalized connection (ourselves) */
+    unsigned                           resp_content_chosen:1;   /* content handler has an output to produce */
+    unsigned                           resp_content_sent:1;     /* has started sending output (may have yielded) */
+    unsigned                           resp_finalized:1;        /* finalized connection (ourselves) */
     unsigned                           ffi_attached:1;
     unsigned                           fake_request:1;
 } ngx_http_wasm_req_ctx_t;
@@ -71,13 +72,13 @@ typedef struct {
     ngx_msec_t                         send_timeout;
     ngx_msec_t                         recv_timeout;
 
-    size_t                             socket_buffer_size;    /* wasm_socket_buffer_size */
-    ngx_bufs_t                         socket_large_buffers;  /* wasm_socket_large_buffer_size */
-    ngx_flag_t                         socket_buffer_reuse;   /* wasm_socket_buffer_reuse */
+    size_t                             socket_buffer_size;     /* wasm_socket_buffer_size */
+    ngx_bufs_t                         socket_large_buffers;   /* wasm_socket_large_buffer_size */
+    ngx_flag_t                         socket_buffer_reuse;    /* wasm_socket_buffer_reuse */
 
     ngx_flag_t                         pwm_req_headers_in_access;
 
-    ngx_queue_t                        q;                     /* main_conf */
+    ngx_queue_t                        q;                      /* main_conf */
 } ngx_http_wasm_loc_conf_t;
 
 

@@ -101,9 +101,22 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
 #if (NGX_WASM_HTTP)
     case NGX_WASM_SOCKET_TCP_KIND_HTTP:
         rctx = sock->env.ctx.request;
-        rc = sock->resume(sock);
+        rc = sock->resume(sock);  /* handle sock event */
 
-        ngx_http_wasm_resume(rctx, rc != NGX_AGAIN, 1);
+        dd("sock->resume rc: %ld", rc);
+
+        switch (rc) {
+        case NGX_AGAIN:
+            rctx->nyields++;
+            rctx->yield = 1;
+            break;
+        default:
+            ngx_wasm_assert(rc == NGX_OK || rc == NGX_ERROR);
+            rctx->yield = 0;
+            break;
+        }
+
+        ngx_http_wasm_resume(rctx, 1, 1);  /* continue request */
         break;
 #endif
     default:
