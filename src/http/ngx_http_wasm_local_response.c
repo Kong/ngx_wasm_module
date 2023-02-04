@@ -38,7 +38,7 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     u_char *body, size_t body_len)
 {
     size_t               len, i;
-    u_char              *p = NULL;
+    u_char              *p, *buf = NULL;
     ngx_buf_t           *b = NULL;
     ngx_chain_t         *cl = NULL;
     ngx_table_elt_t     *elt, *elts, *eltp;
@@ -72,11 +72,15 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
             goto fail;
         }
 
-        ngx_snprintf(p, reason_len,
-                     "%03ui %*s", status, reason_len, reason);
+        buf = p;
+
+        ngx_snprintf(buf, 4, "%03ui ", status);
+        buf += 4;
+        buf = ngx_cpymem(buf, reason, (int) reason_len - 5);
+        *buf++ = '\0';
 
         rctx->local_resp_reason.data = p;
-        rctx->local_resp_reason.len = reason_len;
+        rctx->local_resp_reason.len = reason_len - 1;
     }
 
     /* headers */
