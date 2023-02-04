@@ -4,7 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 2);
+plan tests => repeat_each() * (blocks() * 3);
 
 run_tests();
 
@@ -16,7 +16,8 @@ __DATA__
     location /t {
         wasm_call rewrite wasi_host_tests test_wasi_fd_write_stdout;
     }
---- error_code: 204
+--- response_body
+test passed, wrote 15 bytes
 --- error_log eval
 qr/\[info\] .*? hello, fd_write/
 
@@ -28,7 +29,8 @@ qr/\[info\] .*? hello, fd_write/
     location /t {
         wasm_call rewrite wasi_host_tests test_wasi_fd_write_stderr;
     }
---- error_code: 204
+--- response_body
+test passed, wrote 15 bytes
 --- error_log eval
 qr/\[error\] .*? hello, fd_write/
 
@@ -40,7 +42,8 @@ qr/\[error\] .*? hello, fd_write/
     location /t {
         wasm_call rewrite wasi_host_tests test_wasi_fd_write_via_println;
     }
---- error_code: 204
+--- response_body
+test passed
 --- error_log eval
 qr/\[info\] .*? Hello, println/
 
@@ -52,7 +55,8 @@ qr/\[info\] .*? Hello, println/
     location /t {
         wasm_call rewrite wasi_host_tests test_wasi_fd_write_unsupported_fd;
     }
---- error_code: 204
+--- response_body
+test passed
 --- no_error_log
 hello, fd_write
 
@@ -64,6 +68,7 @@ hello, fd_write
     location /t {
         wasm_call rewrite wasi_host_tests test_wasi_fd_write_empty_string;
     }
---- error_code: 204
+--- response_body
+test passed
 --- no_error_log
 hello, fd_write

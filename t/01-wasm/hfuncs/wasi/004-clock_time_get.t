@@ -4,7 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 2);
+plan tests => repeat_each() * (blocks() * 3);
 
 run_tests();
 
@@ -19,6 +19,8 @@ __DATA__
 --- error_code: 200
 --- response_body eval
 qr/seconds since Unix epoch: [1-9][0-9]{9}\n/
+--- no_error_log
+[error]
 
 
 
@@ -28,7 +30,8 @@ qr/seconds since Unix epoch: [1-9][0-9]{9}\n/
     location /t {
         wasm_call rewrite wasi_host_tests test_wasi_clock_time_get_via_instant;
     }
---- error_code: 204
+--- response_body
+test passed
 --- no_error_log
 [error]
 
@@ -40,9 +43,10 @@ qr/seconds since Unix epoch: [1-9][0-9]{9}\n/
     location /t {
         wasm_call rewrite wasi_host_tests test_wasi_clock_time_get;
     }
---- error_code: 200
 --- response_body eval
 qr/test passed with timestamp: [0-9]+\n/
+--- no_error_log
+[error]
 
 
 
@@ -52,6 +56,7 @@ qr/test passed with timestamp: [0-9]+\n/
     location /t {
         wasm_call rewrite wasi_host_tests test_wasi_clock_time_get_unsupported;
     }
---- error_code: 204
+--- response_body
+test passed
 --- no_error_log
 [error]

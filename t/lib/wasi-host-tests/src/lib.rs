@@ -4,7 +4,7 @@ use std::time::{Instant, SystemTime};
 macro_rules! test_wasi_assert {
     ($e:expr) => {
         if !($e) {
-            resp::ngx_resp_local_reason(500, "assertion failed");
+            resp::ngx_resp_local(500, None, Some("assertion failed"));
             return;
         }
     };
@@ -21,18 +21,18 @@ pub fn test_wasi_random_get() {
         let sum: u32 = v.iter().map(|&b| b as u32).sum();
         test_wasi_assert!(sum != 0);
 
-        resp::ngx_resp_local_reason(204, "test passed");
+        resp::ngx_resp_local(200, None, Some("test passed"));
     } else {
-        resp::ngx_resp_local_reason(500, "test failed");
+        resp::ngx_resp_local(500, None, Some("test failed"));
     }
 }
 
 #[no_mangle]
 pub fn test_wasi_environ_sizes_get() {
     if let Ok((size, buf_size)) = unsafe { wasi::environ_sizes_get() } {
-        resp::ngx_resp_say(&format!("envs: {size}, size: {buf_size}"));
+        resp::ngx_resp_say(Some(&format!("envs: {size}, size: {buf_size}")));
     } else {
-        resp::ngx_resp_say("test failed");
+        resp::ngx_resp_say(Some("test failed"));
     }
 }
 
@@ -48,7 +48,7 @@ pub fn test_wasi_environ_get() {
         {
             match std::str::from_utf8(&environ_buf) {
                 Ok(v) => {
-                    resp::ngx_resp_say(v);
+                    resp::ngx_resp_say(Some(v));
                     return;
                 }
                 Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
@@ -56,7 +56,7 @@ pub fn test_wasi_environ_get() {
         }
     }
 
-    resp::ngx_resp_say("test failed")
+    resp::ngx_resp_say(Some("test failed"))
 }
 
 #[no_mangle]
@@ -66,10 +66,10 @@ pub fn test_wasi_clock_time_get_via_systemtime() {
     match now.duration_since(SystemTime::UNIX_EPOCH) {
         Ok(n) => {
             let msg = format!("seconds since Unix epoch: {}", n.as_secs());
-            resp::ngx_resp_say(&msg);
+            resp::ngx_resp_say(Some(&msg));
         }
         Err(_) => {
-            resp::ngx_resp_local_reason(500, "test failed, bad system time");
+            resp::ngx_resp_local(500, None, Some("test failed, bad system time"));
         }
     }
 }
@@ -80,9 +80,9 @@ pub fn test_wasi_clock_time_get_via_instant() {
     let mono1 = Instant::now();
     let mono2 = Instant::now();
     if mono2 >= mono1 {
-        resp::ngx_resp_local_reason(204, "test passed");
+        resp::ngx_resp_local(200, None, Some("test passed"));
     } else {
-        resp::ngx_resp_local_reason(500, "test failed");
+        resp::ngx_resp_local(500, None, Some("test failed"));
     }
 }
 
@@ -91,9 +91,9 @@ pub fn test_wasi_clock_time_get() {
     // direct WASI access
     if let Ok(timestamp) = unsafe { wasi::clock_time_get(wasi::CLOCKID_REALTIME, 0) } {
         let msg = format!("test passed with timestamp: {timestamp}");
-        resp::ngx_resp_say(&msg);
+        resp::ngx_resp_say(Some(&msg));
     } else {
-        resp::ngx_resp_local_reason(500, "test failed");
+        resp::ngx_resp_local(500, None, Some("test failed"));
     }
 }
 
@@ -101,9 +101,9 @@ pub fn test_wasi_clock_time_get() {
 pub fn test_wasi_clock_time_get_unsupported() {
     // test an unsupported clock
     if unsafe { wasi::clock_time_get(wasi::CLOCKID_PROCESS_CPUTIME_ID, 0).is_ok() } {
-        resp::ngx_resp_local_reason(500, "test failed");
+        resp::ngx_resp_local(500, None, Some("test failed"));
     } else {
-        resp::ngx_resp_local_reason(204, "test passed, clock is unsupported");
+        resp::ngx_resp_local(200, None, Some("test passed"));
     }
 }
 
@@ -114,9 +114,9 @@ pub fn test_wasi_args_sizes_get() {
         test_wasi_assert!(size == 0);
         test_wasi_assert!(buf_size == 0);
 
-        resp::ngx_resp_local_reason(204, "test passed");
+        resp::ngx_resp_local(200, None, Some("test passed"));
     } else {
-        resp::ngx_resp_local_reason(500, "test failed");
+        resp::ngx_resp_local(500, None, Some("test failed"));
     }
 }
 
@@ -131,9 +131,9 @@ pub fn test_wasi_args_get() {
         test_wasi_assert!(args.iter().filter(|x| std::ptr::eq(**x, &u)).count() == 10);
         test_wasi_assert!(args_buf.iter().sum::<u8>() == 0);
 
-        resp::ngx_resp_local_reason(204, "test passed");
+        resp::ngx_resp_local(200, None, Some("test passed"));
     } else {
-        resp::ngx_resp_local_reason(500, "test failed");
+        resp::ngx_resp_local(500, None, Some("test failed"));
     }
 }
 
@@ -141,7 +141,7 @@ pub fn test_wasi_args_get() {
 pub fn test_wasi_fd_write_via_println() {
     // Rust standard library call which uses wasi
     println!("Hello, println");
-    resp::ngx_resp_local_reason(204, "test passed");
+    resp::ngx_resp_local(200, None, Some("test passed"));
 }
 
 fn test_fd_write(fd: wasi::Fd) {
@@ -163,9 +163,9 @@ fn test_fd_write(fd: wasi::Fd) {
     // direct WASI access
     if let Ok(n) = unsafe { wasi::fd_write(fd, &iovs) } {
         let msg = format!("test passed, wrote {n} bytes");
-        resp::ngx_resp_local_reason(204, &msg);
+        resp::ngx_resp_local(200, None, Some(&msg));
     } else {
-        resp::ngx_resp_local_reason(500, "test failed");
+        resp::ngx_resp_local(500, None, Some("test failed"));
     }
 }
 
@@ -197,9 +197,9 @@ pub fn test_wasi_fd_write_unsupported_fd() {
     ];
 
     if unsafe { wasi::fd_write(999, &iovs).is_ok() } {
-        resp::ngx_resp_local_reason(500, "test failed");
+        resp::ngx_resp_local(500, None, Some("test failed"));
     } else {
-        resp::ngx_resp_local_reason(204, "test passed, unsupported fd");
+        resp::ngx_resp_local(200, None, Some("test passed"));
     }
 }
 
@@ -209,22 +209,22 @@ pub fn test_wasi_fd_write_empty_string() {
 
     // direct WASI access
     if unsafe { wasi::fd_write(1, &iovs).is_ok() } {
-        resp::ngx_resp_local_reason(204, "test passed");
+        resp::ngx_resp_local(200, None, Some("test passed"));
     } else {
-        resp::ngx_resp_local_reason(500, "test failed");
+        resp::ngx_resp_local(500, None, Some("test failed"));
     }
 }
 
 fn expect_errno<T>(errno: wasi::Errno, r: Result<T, wasi::Errno>) {
     if let Err(e) = r {
         if e == errno {
-            resp::ngx_resp_local_reason(204, "test passed");
+            resp::ngx_resp_local(200, None, Some("test passed"));
             return;
         }
         ngx_log!(Err, "unexpected errno: {}", e);
     }
 
-    resp::ngx_resp_local_reason(500, "test failed");
+    resp::ngx_resp_local(500, None, Some("test failed"));
 }
 
 #[no_mangle]
