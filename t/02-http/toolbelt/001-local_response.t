@@ -18,6 +18,6 @@ __DATA__
     }
 --- error_code: 201
 --- raw_response_headers_like
-HTTP/1.1 201 REASON.*
+HTTP/1.1 201 REASON\s
 --- no_error_log
 [error]
