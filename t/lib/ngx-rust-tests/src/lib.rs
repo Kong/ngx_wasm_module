@@ -14,23 +14,28 @@ pub fn log_resp_status() {
 }
 
 #[no_mangle]
-pub fn say_hello() {
-    ngx_resp_say("hello say");
+pub fn set_resp_status() {
+    ngx_resp_set_status(201);
 }
 
 #[no_mangle]
-pub fn local_reason() {
-    ngx_resp_local_reason(201, "REASON");
+pub fn say_hello() {
+    ngx_resp_say(Some("hello say"));
 }
 
 #[no_mangle]
 pub fn say_nothing() {
-    ngx_resp_say("");
+    ngx_resp_say(Some(""));
 }
 
 #[no_mangle]
-pub fn set_resp_status() {
-    ngx_resp_set_status(201);
+pub fn local_reason() {
+    ngx_resp_local(201, Some("REASON"), None);
+}
+
+#[no_mangle]
+pub fn local_response() {
+    ngx_resp_local(200, Some("OK"), Some("hello"));
 }
 
 #[cfg(test)]

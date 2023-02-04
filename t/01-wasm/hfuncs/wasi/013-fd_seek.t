@@ -4,7 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 2);
+plan tests => repeat_each() * (blocks() * 3);
 
 run_tests();
 
@@ -16,6 +16,7 @@ __DATA__
     location /t {
         wasm_call rewrite wasi_host_tests test_wasi_fd_seek;
     }
---- error_code: 204
+--- response_body
+test passed
 --- no_error_log
 [error]
