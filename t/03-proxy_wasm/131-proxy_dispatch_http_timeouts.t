@@ -125,3 +125,26 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed o
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out writing to \".*?\"/
 --- no_error_log
 [crit]
+
+
+
+=== TEST 5: proxy_wasm - dispatch_http_call() on_request_headers EAGAIN
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /dispatched {
+        return 200 "Hello world";
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched \
+                              on_http_call_response=echo_response_body';
+        echo failed;
+    }
+--- response_body
+Hello world
+--- no_error_log
+[error]
+[crit]

@@ -209,7 +209,7 @@ V8 trap format:
 --- error_code eval
 [500, 204]
 --- ignore_response_body
---- grep_error_log eval: qr/(\*\d.*?(resuming|new instance|reusing|finalizing|freeing|now)|(.*?unreachable)).*/
+--- grep_error_log eval: qr/(\*\d.*?(resuming|new instance|reusing|finalizing context|freeing|now)|(.*?unreachable)).*/
 --- grep_error_log_out eval
 [qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
 \*\d+ proxy_wasm "hostcalls" filter reusing instance.*
