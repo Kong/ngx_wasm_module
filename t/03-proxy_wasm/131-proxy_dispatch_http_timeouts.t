@@ -129,6 +129,8 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed o
 
 
 === TEST 5: proxy_wasm - dispatch_http_call() on_request_headers EAGAIN
+dispatch_http_call() EAGAIN
+local_response() EAGAIN
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -143,6 +145,36 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed o
                               on_http_call_response=echo_response_body';
         echo failed;
     }
+--- response_body
+Hello world
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 6: proxy_wasm - dispatch_http_call() on_request_body EAGAIN
+dispatch_http_call() EAGAIN
+local_response() EAGAIN
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /dispatched {
+        return 200 "Hello world";
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'on=request_body \
+                              test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched \
+                              on_http_call_response=echo_response_body';
+        echo failed;
+    }
+--- request
+GET /t
+
+Hello world
 --- response_body
 Hello world
 --- no_error_log
