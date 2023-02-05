@@ -556,6 +556,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
 {
     ngx_int_t                 rc;
     ngx_proxy_wasm_err_e      ecode;
+    ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
     ngx_proxy_wasm_filter_t  *filter = pwexec->filter;
     ngx_wavm_instance_t      *instance = ictx->instance;
 
@@ -579,7 +580,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
         ecode = ngx_proxy_wasm_on_start(ictx, filter, 0);
         if (ecode != NGX_PROXY_WASM_ERR_NONE) {
             pwexec->ecode = ecode;
-            return ecode;
+            goto done;
         }
 
         rc = NGX_OK;
@@ -593,7 +594,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
         ecode = ngx_proxy_wasm_on_start(ictx, filter, 0);
         if (ecode != NGX_PROXY_WASM_ERR_NONE) {
             pwexec->ecode = ecode;
-            return ecode;
+            goto done;
         }
 
         ngx_wasm_assert(ret);
@@ -619,15 +620,22 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
         return NGX_ERROR;
     }
 
-    if (rc == NGX_ABORT) {
+    switch (rc) {
+    case NGX_ABORT:
         pwexec->ecode = NGX_PROXY_WASM_ERR_INSTANCE_TRAPPED;
+        break;
+    case NGX_AGAIN:
+        pwexec->ecode = NGX_PROXY_WASM_ERR_NONE;
+        pwctx->action = NGX_PROXY_WASM_ACTION_PAUSE;
+        break;
+    case NGX_OK:
+        pwexec->ecode = NGX_PROXY_WASM_ERR_NONE;
+        break;
     }
 
-    if (rc == NGX_ABORT || pwexec->ecode) {
-        rc = pwexec->ecode;
-    }
+done:
 
-    return rc;
+    return pwexec->ecode;
 }
 
 
@@ -683,6 +691,7 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
 
         pwexec->ecode = ngx_proxy_wasm_run_step(pwexec, ictx, step,
                                                 &next_action);
+        dd("pwexec->ecode: %d", pwexec->ecode);
         if (pwexec->ecode != NGX_PROXY_WASM_ERR_NONE) {
             rc = filter->subsystem->ecode(pwexec->ecode);
             goto ret;
@@ -721,6 +730,8 @@ ret:
     if (step == NGX_PROXY_WASM_STEP_DONE) {
         ngx_proxy_wasm_ctx_destroy(pwctx);
     }
+
+    dd("rc: %ld", rc);
 
     return rc;
 }

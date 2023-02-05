@@ -50,9 +50,6 @@ ngx_http_wasm_read_client_request_body(ngx_http_request_t *r,
     r->request_body_in_single_buf = 1;
 
     rc = ngx_http_read_client_request_body(r, post_handler);
-
-    ngx_wasm_assert(rc != NGX_AGAIN);
-
     if (rc < NGX_HTTP_SPECIAL_RESPONSE
         && rc != NGX_ERROR)
     {
