@@ -70,7 +70,7 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_http_wasm_req_ctx_t  *rctx;
 
     if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
-        return NGX_ERROR;
+        goto error;
     }
 
     if (!r->headers_out.status) {
@@ -79,7 +79,7 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
 
     rc = ngx_http_send_header(r);
     if (rc == NGX_ERROR) {
-        return NGX_ERROR;
+        goto error;
     }
 
     if (rc > NGX_OK || r->header_only) {
@@ -95,9 +95,11 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
     if (in == NULL) {
         rc = ngx_http_send_special(r, NGX_HTTP_LAST);
         if (rc == NGX_ERROR) {
-            return NGX_ERROR;
+            goto error;
 
-        } else if (rc < NGX_HTTP_SPECIAL_RESPONSE) {
+        } else if (rc != NGX_AGAIN
+                   && rc < NGX_HTTP_SPECIAL_RESPONSE)
+        {
             /* special response >= 300 */
             rc = NGX_OK;
         }
@@ -107,20 +109,36 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
 
     rc = ngx_http_output_filter(r, in);
     if (rc == NGX_ERROR) {
-        return NGX_ERROR;
+        goto error;
     }
 
-    if (!rctx->resp_content_sent) {
-        r->main->count++;
+    goto done;
+
+error:
+
+    rc = NGX_ERROR;
+
+done:
+
+    switch (rc) {
+    case NGX_DONE:
+        rctx->yield = 0;
+        break;
+    case NGX_AGAIN:
+        rctx->yield = 1;
+        break;
+    default:
+        if (!rctx->resp_content_sent) {
+            r->main->count++;
+        }
+
+        ngx_wasm_assert(rc >= NGX_OK);
+        break;
     }
 
     rctx->resp_content_sent = 1;
 
-done:
-
     dd("rc: %ld", rc);
-
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_DONE);
 
     return rc;
 }

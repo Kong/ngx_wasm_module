@@ -35,7 +35,7 @@ pub fn local_reason() {
 
 #[no_mangle]
 pub fn local_response() {
-    ngx_resp_local(200, Some("OK"), Some("hello"));
+    ngx_resp_local(200, Some("OK"), Some("hello world"));
 }
 
 #[cfg(test)]

@@ -713,6 +713,8 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
     switch (rc) {
     case NGX_ERROR:
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
+        /* fallthrough */
+    case NGX_AGAIN:
         goto done;
     case NGX_OK:
         rc = ngx_http_wasm_check_finalize(rctx, rc);
@@ -750,6 +752,9 @@ resume:
 
     case NGX_ERROR:
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
+        /* fallthrough */
+
+    case NGX_AGAIN:
         goto done;
 
     case NGX_OK:
@@ -896,6 +901,10 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
         rc = ngx_http_wasm_content(rctx);
         if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
             ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+            return;
+
+        } else if (rc == NGX_AGAIN) {
+            ngx_http_finalize_request(r, NGX_AGAIN);
             return;
         }
     }
