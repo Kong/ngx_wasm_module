@@ -114,16 +114,16 @@ resp header "hello: there".*/
                               name=Server';
     }
 --- response_headers_like
-Server: nginx.*?
+Server: (nginx|openresty).*?
 --- response_body
 ok
 --- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
 qr/testing in "RequestHeaders".*
 testing in "ResponseHeaders".*
-resp header "Server: nginx.*?".*
+resp header "Server: (nginx|openresty).*?".*
 testing in "Log".*
-resp header "Server: nginx.*?".*/
+resp header "Server: (nginx|openresty).*?".*/
 --- no_error_log
 [error]
 

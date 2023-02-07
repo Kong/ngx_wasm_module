@@ -28,7 +28,7 @@ should not contain any extra header
 "HTTP\/1\.1 204 No Content\r
 Connection: close\r
 Content-Length: 0\r
-Server: nginx.*?\r
+Server: (nginx|openresty).*?\r
 Date: .*? GMT\r"
 --- no_error_log
 [warn]

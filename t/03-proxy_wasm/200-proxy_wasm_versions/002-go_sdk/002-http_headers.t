@@ -25,7 +25,7 @@ ok
 --- error_log eval
 [
     qr/\[info\] .*? request header --> test: best/,
-    qr/\[info\] .*? response header <-- Server: nginx/,
+    qr/\[info\] .*? response header <-- Server: (nginx|openresty)/,
 ]
 --- no_error_log
 [error]
