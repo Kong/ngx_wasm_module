@@ -567,14 +567,7 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
         if (!rctx->resp_finalized) {
             rctx->resp_finalized = 1;
 
-            if (r->write_event_handler == ngx_http_wasm_content_wev_handler
-                && rctx->nyields)
-            {
-                n += rctx->nyields;
-
-                rctx->nyields = 0;
-
-            } else if (rctx->resp_content_chosen) {
+            if (rctx->resp_content_chosen) {
                 n++;
             }
 
@@ -699,11 +692,15 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
     ngx_int_t            rc;
     ngx_http_request_t  *r = rctx->r;
 
-    dd("enter");
-
-    if (rctx->yield) {
-        dd("resuming");
-        goto resume;
+    switch (rctx->state) {
+    case NGX_HTTP_WASM_REQ_STATE_ERROR:
+        dd("error");
+        rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
+        goto done;
+    default:
+        dd("enter/continue");
+        ngx_wasm_assert(rctx->state == NGX_HTTP_WASM_REQ_STATE_CONTINUE);
+        break;
     }
 
     rc = ngx_http_wasm_flush_local_response(rctx);
@@ -730,8 +727,6 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
     default:
         break;
     }
-
-resume:
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE);
     dd("content ops resume rc: %ld", rc);
@@ -861,9 +856,9 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
 
     ngx_log_debug8(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm wev handler \"%V?%V\" - timeout: %ud, ready: %ud "
-                   "(main: %d, count: %d, resp_finalized: %d, yield: %d)",
+                   "(main: %d, count: %d, resp_finalized: %d, state: %d)",
                    &r->uri, &r->args, wev->timedout, wev->ready, r == r->main,
-                   r->main->count, rctx->resp_finalized, rctx->yield);
+                   r->main->count, rctx->resp_finalized, rctx->state);
 
 #if 0
     {
@@ -909,13 +904,14 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
         }
     }
 
-    dd("last finalize ");
-
     if (rctx->fake_request) {
+        dd("last finalize (fake request)");
         ngx_wasm_assert(r->connection->fd == NGX_WASM_BAD_FD);
         ngx_http_wasm_finalize_fake_request(r, NGX_DONE);
 
     } else {
+        dd("last finalize");
+        ngx_wasm_assert(r->connection->fd != NGX_WASM_BAD_FD);
         ngx_http_finalize_request(r, r == r->main ? NGX_DONE : NGX_OK);
     }
 }
@@ -931,7 +927,7 @@ ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main, unsigned wev)
 
     ngx_wasm_assert(wev);
 
-    if (rctx->yield) {
+    if (ngx_http_wasm_req_yielded(rctx)) {
         dd("yielded");
         return;
     }

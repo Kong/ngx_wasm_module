@@ -107,12 +107,14 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
 
         switch (rc) {
         case NGX_AGAIN:
-            rctx->nyields++;
-            rctx->yield = 1;
+            rctx->state = NGX_HTTP_WASM_REQ_STATE_YIELD;
+            break;
+        case NGX_ERROR:
+            rctx->state = NGX_HTTP_WASM_REQ_STATE_ERROR;
             break;
         default:
-            ngx_wasm_assert(rc == NGX_OK || rc == NGX_ERROR);
-            rctx->yield = 0;
+            ngx_wasm_assert(rc == NGX_OK);
+            rctx->state = NGX_HTTP_WASM_REQ_STATE_CONTINUE;
             break;
         }
 

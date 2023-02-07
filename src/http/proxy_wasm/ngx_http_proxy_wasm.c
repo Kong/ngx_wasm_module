@@ -311,7 +311,7 @@ ngx_http_proxy_wasm_on_dispatch_response(ngx_proxy_wasm_exec_t *pwexec)
 
     ngx_log_debug3(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
                    "proxy_wasm http dispatch response received "
-                   "(pwexec->id: %ld, token_id: %ld, n_headers: %ld)",
+                   "(pwexec->id: %d, token_id: %d, n_headers: %d)",
                    pwexec->id, call->id, n_headers);
 
     rc = ngx_wavm_instance_call_funcref(pwexec->ictx->instance,

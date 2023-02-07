@@ -990,7 +990,7 @@ ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
 
     /* force resume */
-    rctx->yield = 0;
+    rctx->state = NGX_HTTP_WASM_REQ_STATE_CONTINUE;
 #endif
 
     return ngx_proxy_wasm_result_ok(rets);
