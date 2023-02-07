@@ -55,13 +55,13 @@ testing in "ResponseHeaders".*
 resp Content-Type: text\/plain.*
 resp Transfer-Encoding: chunked.*
 resp Connection: close.*
-resp Server: nginx.*
+resp Server: (nginx|openresty).*
 resp Date: .*? GMT.*
 testing in "Log".*
 resp Content-Type: text\/plain.*
 resp Transfer-Encoding: chunked.*
 resp Connection: close.*
-resp Server: nginx.*
+resp Server: (nginx|openresty).*
 resp Date: .*? GMT.*/
 
 
@@ -92,7 +92,7 @@ resp Content-Type: text\/plain.*
 resp Content-Length: 0.*
 resp Connection: close.*
 resp Hello: world.*
-resp Server: nginx.*
+resp Server: (nginx|openresty).*
 resp Date: .*? GMT.*
 resp Hello: world.*
 testing in "Log".*
@@ -100,7 +100,7 @@ resp Content-Type: text\/plain.*
 resp Content-Length: 0.*
 resp Connection: close.*
 resp Hello: world.*
-resp Server: nginx.*
+resp Server: (nginx|openresty).*
 resp Date: .*? GMT.*
 resp Hello: world.*/
 

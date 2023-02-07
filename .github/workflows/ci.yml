@@ -113,11 +113,6 @@ jobs:
           NGX_BUILD_DEBUG: ${{ matrix.debug }}
           NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
       - run: make test
-        if: ${{ !matrix.openresty }}
-        env:
-          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
-      - run: ./util/test.sh t/11-openresty
-        if: ${{ matrix.openresty }}
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
       - name: Run lcov
