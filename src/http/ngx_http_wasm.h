@@ -16,14 +16,25 @@
 #define NGX_HTTP_WASM_BODY_FILTER_PHASE    (NGX_HTTP_LOG_PHASE + 2)
 #define NGX_HTTP_WASM_TRAILER_FILTER_PHASE (NGX_HTTP_LOG_PHASE + 3)
 
+#define ngx_http_wasm_req_yielded(rctx)                                      \
+    (rctx->state == NGX_HTTP_WASM_REQ_STATE_YIELD)
+
+
+typedef enum {
+    NGX_HTTP_WASM_REQ_STATE_ERROR = -1,
+    NGX_HTTP_WASM_REQ_STATE_CONTINUE = 0,
+    NGX_HTTP_WASM_REQ_STATE_YIELD,
+} ngx_http_wasm_req_state_e;
+
 
 typedef struct {
     ngx_http_request_t                *r;
     ngx_connection_t                  *connection;
     ngx_pool_t                        *pool;                    /* r->pool */
-    ngx_wasm_op_ctx_t                  opctx;
     ngx_wasm_ops_t                    *ffi_engine;
+    ngx_wasm_op_ctx_t                  opctx;
     void                              *data;                    /* per-stream extra context */
+    ngx_http_wasm_req_state_e          state;                   /* determines next step on resume */
 
     ngx_chain_t                       *free_bufs;
     ngx_chain_t                       *busy_bufs;
@@ -37,8 +48,6 @@ typedef struct {
     off_t                              req_content_length_n;
     off_t                              resp_content_length_n;
 
-    ngx_uint_t                         nyields;                 /* keep track of r->main->count increments */
-
     /* local resp */
 
     ngx_int_t                          local_resp_status;
@@ -49,7 +58,6 @@ typedef struct {
 
     /* flags */
 
-    unsigned                           yield:1;
     unsigned                           req_keepalive:1;         /* r->keepalive copy */
     unsigned                           reset_resp_shims:1;
     unsigned                           entered_content_phase:1; /* entered content handler */

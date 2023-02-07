@@ -118,11 +118,13 @@ error:
 done:
 
     switch (rc) {
+#if 0
     case NGX_DONE:
-        rctx->yield = 0;
+        rctx->state = NGX_HTTP_WASM_REQ_STATE_CONTINUE;
         break;
+#endif
     case NGX_AGAIN:
-        rctx->yield = 1;
+        rctx->state = NGX_HTTP_WASM_REQ_STATE_YIELD;
         break;
     default:
         if (!rctx->resp_content_sent) {
