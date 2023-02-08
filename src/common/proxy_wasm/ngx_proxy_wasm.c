@@ -576,15 +576,6 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
        step, pwexec, pwexec->id);
 
     switch (step) {
-    case NGX_PROXY_WASM_STEP_START:
-        ecode = ngx_proxy_wasm_on_start(ictx, filter, 0);
-        if (ecode != NGX_PROXY_WASM_ERR_NONE) {
-            pwexec->ecode = ecode;
-            goto done;
-        }
-
-        rc = NGX_OK;
-        break;
     case NGX_PROXY_WASM_STEP_REQ_HEADERS:
     case NGX_PROXY_WASM_STEP_REQ_BODY_READ:
     case NGX_PROXY_WASM_STEP_REQ_BODY:
