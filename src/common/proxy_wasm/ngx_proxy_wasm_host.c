@@ -317,7 +317,7 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
         if (offset == 0 && max == 0 && buf_len > 0) {
             rc = ngx_http_wasm_prepend_resp_body(rctx, &s);
 
-        } else{
+        } else {
             rc = ngx_http_wasm_set_resp_body(rctx, &s, offset, max);
         }
 
