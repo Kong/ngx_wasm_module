@@ -559,7 +559,6 @@ failed:
 }
 
 
-
 #if (NGX_DEBUG)
 static void
 ngx_http_wasm_cleanup_nop(void *data)

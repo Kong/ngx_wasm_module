@@ -89,7 +89,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
 
     default:
         ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
-                           "NYI - get_buffer: %d", buf_type);
+                           "NYI - get_buffer bad buf_type: %d", buf_type);
         return NULL;
 
     }
@@ -136,7 +136,7 @@ ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
 
     default:
         ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
-                           "NYI: unknown log level \"%d\"", log_level);
+                           "NYI - proxy_log bad log_level: %d", log_level);
 
         return ngx_proxy_wasm_result_badarg(rets);
 
@@ -185,7 +185,11 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     default:
         cl = ngx_proxy_wasm_get_buffer_helper(instance, buf_type, &none);
         if (cl == NULL) {
-            return ngx_proxy_wasm_result_notfound(rets);
+            if (none) {
+                return ngx_proxy_wasm_result_notfound(rets);
+            }
+
+            return ngx_proxy_wasm_result_badarg(rets);
         }
 
         len = ngx_wasm_chain_len(cl, NULL);
@@ -264,13 +268,13 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t                         buf_len;
     ngx_int_t                      rc = NGX_ERROR;
-    ngx_str_t                      s;
-    ngx_wavm_ptr_t                *buf_data;
     ngx_proxy_wasm_buffer_type_e   buf_type;
 #ifdef NGX_WASM_HTTP
+    size_t                         buf_len;
     size_t                         offset, max;
+    ngx_str_t                      s;
+    ngx_wavm_ptr_t                *buf_data;
     ngx_http_wasm_req_ctx_t       *rctx;
     ngx_proxy_wasm_exec_t         *pwexec;
 
@@ -279,20 +283,19 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 
     offset = args[1].of.i32;
     max = args[2].of.i32;
-#endif
 
-    buf_type = args[0].of.i32;
     buf_len = args[4].of.i32;
     buf_data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[3].of.i32, buf_len);
 
     s.len = buf_len;
     s.data = (u_char *) buf_data;
 
-#ifdef NGX_WASM_HTTP
     if (offset > 0 && max == 0 && s.len > 0) {
         max = s.len;
     }
 #endif
+
+    buf_type = args[0].of.i32;
 
     switch (buf_type) {
 
@@ -332,10 +335,8 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 
     default:
         ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
-                           "NYI - set_buffer bad type "
-                           "(buf_type: %d, len: %d)",
-                           buf_type, s.len);
-        break;
+                           "NYI - set_buffer bad buf_type: %d", buf_type);
+        return ngx_proxy_wasm_result_badarg(rets);
 
     }
 
@@ -489,8 +490,8 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
 
     default:
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
-                           "NYI - map type: %d", map_type);
-        return ngx_proxy_wasm_result_err(rets);
+                           "NYI - set_map bad map_type: %d", map_type);
+        return ngx_proxy_wasm_result_badarg(rets);
     }
 
     if (rc != NGX_OK) {
@@ -659,6 +660,8 @@ ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
     uint32_t                period = args[0].of.i32;
     ngx_event_t            *ev;
     ngx_proxy_wasm_exec_t  *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+
+    ngx_wasm_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
     if (pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID) {
         /* ignore */

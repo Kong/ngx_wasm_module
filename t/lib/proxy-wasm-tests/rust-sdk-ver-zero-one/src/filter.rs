@@ -116,6 +116,14 @@ impl HttpContext for TestHttpHostcalls {
                         Some(ct.as_bytes()),
                     );
                 }
+                "proxy_get_empty_map_value" => {
+                    let ct = self.get_http_request_header("None");
+                    self.send_http_response(
+                        StatusCode::OK.as_u16() as u32,
+                        vec![],
+                        Some(ct.unwrap_or_default().as_bytes()),
+                    );
+                }
                 _ => todo!(),
             };
         }

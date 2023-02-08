@@ -655,12 +655,6 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
         filter = pwexec->filter;
         ictx = pwexec->ictx;
 
-        /* bubble-down filter error */
-
-        if (filter->ecode) {
-            pwexec->ecode = filter->ecode;
-        }
-
         /* check for trap */
 
         if (ictx->instance->trapped && !pwexec->ecode) {

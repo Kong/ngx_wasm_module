@@ -1,4 +1,4 @@
-use crate::{tests::echo::*, tests::*, *};
+use crate::{tests::echo::*, tests::host::*, tests::*, *};
 use http::StatusCode;
 use log::*;
 use parse_duration::parse;
@@ -126,6 +126,12 @@ impl TestHttp {
             "/t/safety/proxy_get_header_map_value_misaligned_return_data" => {
                 test_proxy_get_header_map_value_misaligned_return_data(self)
             }
+            "/t/bad_set_buffer_type" => test_set_buffer_bad_type(),
+            "/t/bad_get_buffer_type" => test_get_buffer_bad_type(),
+            "/t/bad_set_map_type" => test_set_map_bad_type(),
+            "/t/bad_get_map_type" => test_get_map_bad_type(),
+            "/t/bad_log_level" => test_bad_log_level(),
+            "/t/nyi_host_func" => test_nyi_host_func(),
             _ => (),
         }
 
