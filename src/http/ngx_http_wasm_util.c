@@ -381,10 +381,16 @@ ngx_http_wasm_prepend_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body)
     rctx->resp_chunk_len = ngx_wasm_chain_len(rctx->resp_chunk,
                                               &rctx->resp_chunk_eof);
 
+#if 0
     if (!rctx->resp_chunk_len) {
         /* discard chunk */
         rctx->resp_chunk = NULL;
     }
+#else
+    /* Presently, prepend_resp_body is only
+     * called when body->len > 0 */
+    ngx_wasm_assert(rctx->resp_chunk_len);
+#endif
 
     return NGX_OK;
 }
@@ -553,10 +559,23 @@ failed:
 }
 
 
+
+#if (NGX_DEBUG)
+static void
+ngx_http_wasm_cleanup_nop(void *data)
+{
+    /* void */
+}
+#endif
+
+
 ngx_http_request_t *
 ngx_http_wasm_create_fake_request(ngx_connection_t *c)
 {
     ngx_http_request_t  *r;
+#if (NGX_DEBUG)
+    ngx_pool_cleanup_t  *cln;
+#endif
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "wasm creating fake request... (c: %p)", c);
@@ -630,6 +649,17 @@ ngx_http_wasm_create_fake_request(ngx_connection_t *c)
     r->http_state = NGX_HTTP_PROCESS_REQUEST_STATE;
     r->discard_body = 1;
 
+#if (NGX_DEBUG)
+    /* coverage of free_fake_request */
+    cln = ngx_pool_cleanup_add(r->pool, 0);
+    if (cln == NULL) {
+        return NULL;
+    }
+
+    cln->handler = ngx_http_wasm_cleanup_nop;
+    cln->data = NULL;
+#endif
+
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "wasm created fake request (c: %p, r: %p)", c, r);
 
@@ -640,25 +670,33 @@ ngx_http_wasm_create_fake_request(ngx_connection_t *c)
 void
 ngx_http_wasm_finalize_fake_request(ngx_http_request_t *r, ngx_int_t rc)
 {
+#if (NGX_DEBUG)
     ngx_connection_t        *c;
+#endif
 #if (0 && NGX_HTTP_SSL)
     ngx_ssl_conn_t          *ssl_conn;
     ngx_http_lua_ssl_ctx_t  *cctx;
 #endif
 
+    ngx_wasm_assert(rc == NGX_DONE);
+
+#if (NGX_DEBUG)
     c = r->connection;
 
     ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "http wasm finalize fake request: %d, a:%d, c:%d",
                    rc, r == c->data, r->main->count);
+#endif
 
+#if 1
+    ngx_http_wasm_close_fake_request(r);
+#else
     if (rc == NGX_DONE) {
         ngx_http_wasm_close_fake_request(r);
         return;
     }
 
     if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-#if 0
 #if (NGX_HTTP_SSL)
         if (r->connection->ssl) {
             ssl_conn = r->connection->ssl->connection;
@@ -674,7 +712,6 @@ ngx_http_wasm_finalize_fake_request(ngx_http_request_t *r, ngx_int_t rc)
             }
         }
 #endif
-#endif
         ngx_http_wasm_close_fake_request(r);
         return;
     }
@@ -689,6 +726,7 @@ ngx_http_wasm_finalize_fake_request(ngx_http_request_t *r, ngx_int_t rc)
     }
 
     ngx_http_wasm_close_fake_request(r);
+#endif
 }
 
 
@@ -705,6 +743,7 @@ ngx_http_wasm_close_fake_connection(ngx_connection_t *c)
 
     pool = c->pool;
 
+#if 0
     if (c->read->timer_set) {
         ngx_del_timer(c->read);
     }
@@ -712,6 +751,7 @@ ngx_http_wasm_close_fake_connection(ngx_connection_t *c)
     if (c->write->timer_set) {
         ngx_del_timer(c->write);
     }
+#endif
 
     c->read->closed = 1;
     c->write->closed = 1;
@@ -769,19 +809,19 @@ ngx_http_wasm_close_fake_request(ngx_http_request_t *r)
 static void
 ngx_http_wasm_free_fake_request(ngx_http_request_t *r)
 {
+#if (NGX_DEBUG)
     ngx_log_t           *log;
+#endif
     ngx_http_cleanup_t  *cln;
 
+#if (NGX_DEBUG)
     log = r->connection->log;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0,
                    "wasm freeing fake request (r: %p)", r);
+#endif
 
-    if (r->pool == NULL) {
-        ngx_log_error(NGX_LOG_ALERT, log, 0,
-                      "wasm fake request already freed");
-        return;
-    }
+    ngx_wasm_assert(r->pool);  /* already freed */
 
     cln = r->cleanup;
     r->cleanup = NULL;
