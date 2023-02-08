@@ -1,4 +1,5 @@
 pub mod echo;
+pub mod host;
 
 use crate::{types::*, *};
 use chrono::{DateTime, Utc};

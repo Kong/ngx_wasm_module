@@ -64,3 +64,18 @@ close
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 4: proxy_wasm Rust SDK - 0.1 proxy_get_empty_map_value()
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: rust_sdk_ver_zero_one
+--- config
+    location /t {
+        proxy_wasm rust_sdk_ver_zero_one 'test=proxy_get_empty_map_value';
+        echo ok;
+    }
+--- response_body
+--- no_error_log
+[error]
+[crit]

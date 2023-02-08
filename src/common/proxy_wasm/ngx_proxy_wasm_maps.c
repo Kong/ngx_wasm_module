@@ -96,7 +96,7 @@ ngx_proxy_wasm_maps_get_map(ngx_wavm_instance_t *instance,
 
     default:
         ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
-                           "NYI - get_map: %d", map_type);
+                           "NYI - get_map bad map_type: %d", map_type);
         return NULL;
 
     }
