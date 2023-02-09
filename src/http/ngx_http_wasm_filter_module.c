@@ -70,17 +70,14 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
         goto done;
     }
 
-    if (rc == NGX_DECLINED) {
+    if (rc == NGX_DECLINED
+        || rctx->entered_header_filter)
+    {
         rc = ngx_http_next_header_filter(r);
         goto done;
     }
 
     ngx_wasm_assert(rc == NGX_OK);
-
-    if (rctx->entered_header_filter) {
-        rc = ngx_http_next_header_filter(r);
-        goto done;
-    }
 
     rctx->entered_header_filter = 1;
 
@@ -90,7 +87,13 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 
     rc = ngx_wasm_ops_resume(&rctx->opctx,
                              NGX_HTTP_WASM_HEADER_FILTER_PHASE);
-    if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+
+    if (r->err_status) {
+        /* previous unhandled error before resuming header_filter */
+        rc = ngx_http_next_header_filter(r);
+        goto done;
+
+    } else if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
         if (rc == NGX_ERROR) {
             rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
             goto done;

@@ -78,8 +78,7 @@ V8 trap format:
         echo fail;
     }
 --- error_code: 500
---- response_body eval
-qr/500 Internal Server Error/
+--- response_body_like: 500 Internal Server Error
 --- error_log eval
 [
     qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
@@ -385,7 +384,39 @@ failed resuming
 
 
 
-=== TEST 15: proxy_wasm - send_local_response() invoked as a subrequest before content
+=== TEST 15: proxy_wasm - send_local_response() invoked when a response is already stashed
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls ngx_rust_tests
+--- config
+    location /t {
+        wasm_call rewrite ngx_rust_tests local_response;
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/send_local_response/body';
+        echo fail;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log
+host trap (bad usage): local response already stashed
+--- no_error_log
+[crit]
+[emerg]
+[alert]
+
+
+
+=== TEST 16: proxy_wasm - send_local_response() invoked as a subrequest before content
 should produce content from the subrequest, then from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -409,7 +440,7 @@ stub
 
 
 
-=== TEST 16: proxy_wasm - send_local_response() invoked as a subrequest after content
+=== TEST 17: proxy_wasm - send_local_response() invoked as a subrequest after content
 should produce content from echo, then the subrequest
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -435,7 +466,7 @@ stub
 
 
 
-=== TEST 17: proxy_wasm - send_local_response() in chained filters
+=== TEST 18: proxy_wasm - send_local_response() in chained filters
 should interrupt the current phase, preventing "response already stashed"
 should still run all response phases
 --- wasm_modules: hostcalls
@@ -465,7 +496,7 @@ qr/.*? on_request_headers, \d+ headers.*
 
 
 
-=== TEST 18: proxy_wasm - send_local_response() in chained filters as a subrequest
+=== TEST 19: proxy_wasm - send_local_response() in chained filters as a subrequest
 should interrupt the current phase, preventing "response already stashed"
 should still run all response phases
 should not have a log phase (subrequest)
