@@ -346,7 +346,7 @@ ngx_http_proxy_wasm_ctx(void *data)
 
     pwctx = (ngx_proxy_wasm_ctx_t *) rctx->data;
     if (pwctx == NULL) {
-        pwctx = ngx_pcalloc(r->pool, sizeof(ngx_proxy_wasm_ctx_t));
+        pwctx = ngx_proxy_wasm_ctx_alloc(r->pool);
         if (pwctx == NULL) {
             return NULL;
         }

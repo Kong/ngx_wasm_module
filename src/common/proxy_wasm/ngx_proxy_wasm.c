@@ -242,6 +242,23 @@ done:
 
 
 ngx_proxy_wasm_ctx_t *
+ngx_proxy_wasm_ctx_alloc(ngx_pool_t *pool)
+{
+    ngx_proxy_wasm_ctx_t  *pwctx;
+
+    pwctx = ngx_pcalloc(pool, sizeof(ngx_proxy_wasm_ctx_t));
+    if (pwctx == NULL) {
+        return NULL;
+    }
+
+    ngx_rbtree_init(&pwctx->host_props_tree, &pwctx->host_props_sentinel,
+                    ngx_str_rbtree_insert_value);
+
+    return pwctx;
+}
+
+
+ngx_proxy_wasm_ctx_t *
 ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
     ngx_proxy_wasm_subsystem_t *subsys, void *data)
 {
