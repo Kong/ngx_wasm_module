@@ -877,8 +877,10 @@ ngx_int_t
 ngx_proxy_wasm_properties_set(ngx_wavm_instance_t *instance,
     ngx_str_t *path, ngx_str_t *value)
 {
-    u_char     dotted_path_buf[path->len];
-    ngx_str_t  p = { path->len, NULL };
+    u_char              dotted_path_buf[path->len];
+    ngx_str_t           p = { path->len, NULL };
+    ngx_uint_t          key;
+    pwm2ngx_mapping_t  *m;
 
     p.data = replace_nulls_by_dots(path, dotted_path_buf);
 
@@ -886,6 +888,13 @@ ngx_proxy_wasm_properties_set(ngx_wavm_instance_t *instance,
         && ngx_memcmp(p.data, ngx_prefix, ngx_prefix_len) == 0)
     {
         /* nginx variable (ngx.*) */
+        return ngx_proxy_wasm_properties_set_ngx(instance, &p, value);
+    }
+
+    key = ngx_hash_key(p.data, p.len);
+    m = ngx_hash_find_combined(&pwm2ngx_hash, key, p.data, p.len);
+    if (m && m->ngx_key.len) {
+        /* attribute mapped to nginx variable */
         return ngx_proxy_wasm_properties_set_ngx(instance, &p, value);
     }
 
