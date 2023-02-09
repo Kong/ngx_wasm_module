@@ -485,39 +485,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
 
         for ( ;; ) {
 
-            /* incoming chunk */
-
-            ll = in_ctx->chunks;
-
-            for (/* void */; ll && ll->next; ll = ll->next) { /* void */ }
-
-#if 0
-            if (ll && ll->buf->last == NULL) {
-                cl = ll;
-
-            } else {
-#endif
-                cl = ngx_chain_get_free_buf(in_ctx->pool, &rctx->free_bufs);
-                if (cl == NULL) {
-                    return NGX_ERROR;
-                }
-
-                ngx_memzero(cl->buf, sizeof(ngx_buf_t));
-
-                cl->buf->start = buf_in->buf->start;
-                cl->buf->end = buf_in->buf->end;
-
-                if (ll == NULL) {
-                    in_ctx->chunks = cl;
-
-                } else {
-                    ll->next = cl;
-                }
-#if 0
-            }
-#endif
-
-            b = cl->buf;
+            /* chunk size */
 
             if (headers_in->chunked && !in_ctx->rest) {
 
@@ -553,6 +521,44 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                 }
             }
 
+            /* incoming chunk */
+
+            ll = in_ctx->chunks;
+
+            for (/* void */; ll && ll->next; ll = ll->next) { /* void */ }
+
+#if 0
+            if (ll && ll->buf->last == NULL) {
+                cl = ll;
+
+            } else {
+#endif
+                cl = ngx_wasm_chain_get_free_buf(in_ctx->pool,
+                                                 &rctx->free_bufs,
+                                                 in_ctx->rest,
+                                                 in_ctx->sock->env.buf_tag,
+                                                 in_ctx->sock->buffer_reuse);
+                if (cl == NULL) {
+                    return NGX_ERROR;
+                }
+
+                ngx_memzero(cl->buf, sizeof(ngx_buf_t));
+
+                cl->buf->start = buf_in->buf->start;
+                cl->buf->end = buf_in->buf->end;
+
+                if (ll == NULL) {
+                    in_ctx->chunks = cl;
+
+                } else {
+                    ll->next = cl;
+                }
+#if 0
+            }
+#endif
+
+
+            b = cl->buf;
             b->pos = src->pos;
 
             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, in_ctx->log, 0,

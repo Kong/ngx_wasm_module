@@ -336,10 +336,12 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     /* body */
 
     if (body && body->len) {
+        rctx = call->rctx;
         call->req_body_len = body->len;
         call->req_body = ngx_wasm_chain_get_free_buf(r->connection->pool,
-                                                     &call->rctx->free_bufs,
-                                                     body->len, buf_tag, 1);
+                                                     &rctx->free_bufs,
+                                                     body->len, buf_tag,
+                                                     rctx->sock_buffer_reuse);
         if (call->req_body == NULL) {
             goto error;
         }
@@ -587,8 +589,9 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
     /* headers buffer */
 
     nl = ngx_wasm_chain_get_free_buf(r->connection->pool,
-                                     &rctx->free_bufs, len,
-                                     buf_tag, 1);
+                                     &rctx->free_bufs,
+                                     len, buf_tag,
+                                     rctx->sock_buffer_reuse);
     if (nl == NULL) {
         return NULL;
     }

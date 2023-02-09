@@ -58,6 +58,7 @@ typedef struct {
 
     /* flags */
 
+    unsigned                           sock_buffer_reuse:1;     /* convenience alias to loc->socket_buffer_reuse */
     unsigned                           req_keepalive:1;         /* r->keepalive copy */
     unsigned                           reset_resp_shims:1;
     unsigned                           entered_content_phase:1; /* entered content handler */
