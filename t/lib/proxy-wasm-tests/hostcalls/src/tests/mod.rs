@@ -137,7 +137,10 @@ pub(crate) fn test_set_property(ctx: &(dyn TestContext + 'static)) {
     let name = ctx.get_config("name").expect("expected a name argument");
     let path: Vec<&str> = name.split('.').collect();
 
-    info!("old: {}", show_property(ctx, &path));
+    let show_old = ctx.get_config("show_old").map(|value| value.as_bytes());
+    if show_old != Some(b"false") {
+        info!("old: {}", show_property(ctx, &path));
+    }
 
     let value = ctx.get_config("set").map(|value| value.as_bytes());
 

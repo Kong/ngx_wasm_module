@@ -9,6 +9,10 @@
 #include <ngx_http_proxy_wasm.h>
 #endif
 
+#ifndef NGX_WASM_HOST_PROPERTY_NAMESPACE
+#define NGX_WASM_HOST_PROPERTY_NAMESPACE  "wasmx"
+#endif
+
 
 static ngx_int_t ngx_proxy_wasm_properties_get_ngx(
     ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path, ngx_str_t *value);
@@ -30,9 +34,20 @@ typedef struct {
 static const char             *ngx_prefix = "ngx.";
 static const size_t            ngx_prefix_len = 4;
 
+
 static ngx_hash_init_t         pwm2ngx_init;
 static ngx_hash_combined_t     pwm2ngx_hash;
 static ngx_hash_keys_arrays_t  pwm2ngx_keys;
+
+
+static const char  *host_prefix = NGX_WASM_HOST_PROPERTY_NAMESPACE ".";
+static size_t       host_prefix_len;
+
+
+typedef struct {
+    ngx_str_node_t  sn;
+    ngx_str_t       value;
+} host_props_node_t;
 
 
 static ngx_int_t
@@ -55,11 +70,6 @@ not_supported(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path, ngx_str_t *value)
 }
 
 
-#ifdef NGX_WASM_HTTP
-static const size_t  request_headers_prefix_len = 16;   /* request.headers. */
-static const size_t  response_headers_prefix_len = 17;  /* response.headers. */
-
-
 static ngx_uint_t
 hash_str(u_char *src, size_t n)
 {
@@ -74,6 +84,11 @@ hash_str(u_char *src, size_t n)
 
     return key;
 }
+
+
+#ifdef NGX_WASM_HTTP
+static const size_t  request_headers_prefix_len = 16;   /* request.headers. */
+static const size_t  response_headers_prefix_len = 17;  /* response.headers. */
 
 
 static ngx_int_t
@@ -679,6 +694,8 @@ ngx_proxy_wasm_properties_init(ngx_conf_t *cf)
 
         pwm2ngx_hash.wc_tail = (ngx_hash_wildcard_t *) pwm2ngx_init.hash;
     }
+
+    host_prefix_len = ngx_strlen(host_prefix);
 }
 
 
@@ -731,7 +748,7 @@ ngx_proxy_wasm_properties_set_ngx(ngx_proxy_wasm_ctx_t *pwctx,
 
     rctx = (ngx_http_wasm_req_ctx_t *) pwctx->data;
 
-    if (!rctx) {
+    if (rctx == NULL) {
         /* on_tick */
 
         ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
@@ -823,6 +840,100 @@ ngx_proxy_wasm_properties_set_ngx(ngx_proxy_wasm_ctx_t *pwctx,
 }
 
 
+static ngx_int_t
+ngx_proxy_wasm_properties_get_host(ngx_proxy_wasm_ctx_t *pwctx,
+    ngx_str_t *path, ngx_str_t *value)
+{
+    host_props_node_t        *hpn;
+    uint32_t                  hash;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
+
+    if (rctx == NULL) {
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                           "cannot get host properties outside of a request");
+
+        return NGX_ERROR;
+    }
+#endif
+
+    hash = hash_str(path->data, path->len);
+
+    hpn = (host_props_node_t *)
+              ngx_str_rbtree_lookup(&pwctx->host_props_tree, path, hash);
+
+    if (hpn) {
+        value->data = hpn->value.data;
+        value->len = hpn->value.len;
+
+        return NGX_OK;
+    }
+
+    return NGX_DECLINED;
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
+    ngx_str_t *path, ngx_str_t *value)
+{
+    host_props_node_t        *hpn;
+    uint32_t                  hash;
+    unsigned                  new_entry = 1;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
+
+    if (rctx == NULL) {
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                           "cannot set host properties outside of a request");
+
+        return NGX_ERROR;
+    }
+#endif
+
+    hash = hash_str(path->data, path->len);
+
+    hpn = (host_props_node_t *)
+              ngx_str_rbtree_lookup(&pwctx->host_props_tree, path, hash);
+
+    if (value->data == NULL) {
+        if (hpn) {
+            ngx_rbtree_delete(&pwctx->host_props_tree, &hpn->sn.node);
+        }
+
+        return NGX_OK;
+    }
+
+    if (hpn) {
+        ngx_pfree(pwctx->pool, hpn->value.data);
+        new_entry = 0;
+
+    } else {
+        hpn = ngx_pcalloc(pwctx->pool, sizeof(host_props_node_t) + path->len);
+        if (hpn == NULL) {
+            return NGX_ERROR;
+        }
+
+        hpn->sn.node.key = hash;
+        hpn->sn.str.len = path->len;
+        hpn->sn.str.data = (u_char *) hpn + sizeof(host_props_node_t);
+        ngx_memcpy(hpn->sn.str.data, path->data, path->len);
+    }
+
+    hpn->value.len = value->len;
+    hpn->value.data = ngx_pstrdup(pwctx->pool, value);
+    if (hpn->value.data == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (new_entry) {
+        ngx_rbtree_insert(&pwctx->host_props_tree, &hpn->sn.node);
+    }
+
+    return NGX_OK;
+}
+
+
 static u_char *
 replace_nulls_by_dots(ngx_str_t *from, u_char *to)
 {
@@ -867,6 +978,13 @@ ngx_proxy_wasm_properties_get(ngx_proxy_wasm_ctx_t *pwctx,
         return ngx_proxy_wasm_properties_get_ngx(pwctx, &p, value);
     }
 
+    if (p.len > host_prefix_len
+        && ngx_memcmp(p.data, host_prefix, host_prefix_len) == 0)
+    {
+        /* host variable */
+        return ngx_proxy_wasm_properties_get_host(pwctx, &p, value);
+    }
+
     ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
                        "property \"%V\" not found", &p);
 
@@ -897,6 +1015,13 @@ ngx_proxy_wasm_properties_set(ngx_proxy_wasm_ctx_t *pwctx,
     if (m && m->ngx_key.len) {
         /* attribute mapped to nginx variable */
         return ngx_proxy_wasm_properties_set_ngx(pwctx, &m->ngx_key, value);
+    }
+
+    if (p.len > host_prefix_len
+        && ngx_memcmp(p.data, host_prefix, host_prefix_len) == 0)
+    {
+        /* host variable */
+        return ngx_proxy_wasm_properties_set_host(pwctx, &p, value);
     }
 
     ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
