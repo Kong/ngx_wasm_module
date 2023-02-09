@@ -286,7 +286,36 @@ stub
 
 
 
-=== TEST 12: proxy_wasm - get_http_request_header() x on_phases
+=== TEST 12: proxy_wasm - get_http_request_header() many headers
+Covers large list manipulation
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls;
+    }
+--- request
+GET /t/echo/header/header1000
+--- more_headers eval
+my $headers = "";
+
+for (1 .. 1000) {
+    $headers="${headers}header$_: $_\r\n"
+}
+
+$headers
+--- response_body
+header1000: 1000
+--- no_error_log
+[error]
+[alert]
+[crit]
+stub
+stub
+stub
+
+
+
+=== TEST 13: proxy_wasm - get_http_request_header() x on_phases
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

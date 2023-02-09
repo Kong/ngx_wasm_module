@@ -287,12 +287,17 @@ ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
 
     buf = nl->buf;
 
+#if 1
+    ngx_wasm_assert(!extend);
+#else
+    /* presently all calls have extend = 0 therefore fill == 0 */
     if (fill) {
         /* spillover fill */
         ngx_memset(buf->last, ' ', fill);
         buf->last += fill;
         rest -= fill;
     }
+#endif
 
     /* write */
 
@@ -431,7 +436,6 @@ ngx_wasm_get_list_elem(ngx_list_t *map, u_char *key, size_t key_len)
     elt = part->elts;
 
     for (i = 0; /* void */; i++) {
-
         if (i >= part->nelts) {
             if (part->next == NULL) {
                 break;
