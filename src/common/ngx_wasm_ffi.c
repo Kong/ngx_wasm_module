@@ -147,4 +147,44 @@ ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r, ngx_wasm_ops_plan_t *plan)
 
     return NGX_OK;
 }
+
+
+ngx_int_t
+ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
+    ngx_str_t *key, ngx_str_t *value)
+{
+    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_proxy_wasm_ctx_t     *pwctx;
+
+    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    pwctx = ngx_http_proxy_wasm.get_context(rctx);
+    if (pwctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    return ngx_proxy_wasm_properties_set(pwctx, key, value);
+}
+
+
+ngx_int_t
+ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
+    ngx_str_t *key, ngx_str_t *value)
+{
+    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_proxy_wasm_ctx_t     *pwctx;
+
+    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    pwctx = ngx_http_proxy_wasm.get_context(rctx);
+    if (pwctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    return ngx_proxy_wasm_properties_get(pwctx, key, value);
+}
 #endif
