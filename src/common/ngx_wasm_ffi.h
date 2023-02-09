@@ -5,6 +5,7 @@
 #include <ngx_wavm.h>
 #include <ngx_wasm_ops.h>
 #include <ngx_proxy_wasm.h>
+#include <ngx_proxy_wasm_properties.h>
 #ifdef NGX_WASM_HTTP
 #include <ngx_http_proxy_wasm.h>
 #endif
