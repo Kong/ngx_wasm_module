@@ -922,11 +922,15 @@ ngx_proxy_wasm_hfuncs_get_property(ngx_wavm_instance_t *instance,
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
 
     rc = ngx_proxy_wasm_properties_get(pwexec->parent, &path, &value);
-    if (rc == NGX_DECLINED) {
-        return ngx_proxy_wasm_result_notfound(rets);
-    }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    switch (rc) {
+    case NGX_DECLINED:
+        return ngx_proxy_wasm_result_notfound(rets);
+    case NGX_ERROR:
+        return ngx_proxy_wasm_result_err(rets);
+    default:
+        ngx_wasm_assert(rc == NGX_OK);
+    }
 
     p = ngx_proxy_wasm_alloc(pwexec, value.len);
     if (p == 0) {

@@ -229,6 +229,11 @@ struct ngx_proxy_wasm_ctx_s {
     ngx_str_t                          mtls;              /* ngx.https && ngx.ssl_client_verify */
     ngx_str_t                          root_id;           /* pwexec->root_id */
 
+    /* host properties rbtree */
+
+    ngx_rbtree_t                       host_props_tree;
+    ngx_rbtree_node_t                  host_props_sentinel;
+
     /* flags */
 
     unsigned                           main:1;            /* r->main */
@@ -369,6 +374,7 @@ ngx_int_t ngx_proxy_wasm_start(ngx_cycle_t *cycle);
 
 
 /* ctx/store */
+ngx_proxy_wasm_ctx_t *ngx_proxy_wasm_ctx_alloc(ngx_pool_t *pool);
 ngx_proxy_wasm_ctx_t *ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids,
     size_t nfilters, ngx_proxy_wasm_subsystem_t *subsys, void *data);
 void ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx);
