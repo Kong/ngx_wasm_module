@@ -115,11 +115,26 @@ ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r, ngx_wasm_ops_plan_t *plan)
          */
         rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_REWRITE_PHASE);
 
-        /* ignore errors: resume could trap, but attaching succeeded */
+        /* ignore rc: resume could error or trap, but attaching succeeded */
 
-        ngx_wasm_assert(rc == NGX_OK
-                        || rc == NGX_AGAIN
-                        || rc >= NGX_HTTP_SPECIAL_RESPONSE);
+        /*
+         * A successful rewrite phase should return NGX_OK.
+         *
+         * TODO: remove this whole branch and set
+         * 'proxy_wasm_request_headers_in_access on'
+         *
+         * TODO: handle cases if this pops up during integration,
+         * ensuring another rc has already printed correct logs.
+         *
+         * TODO: consider removing this when integration is finished.
+         */
+        if (!(rc == NGX_OK
+              || rc == NGX_AGAIN
+              || rc >= NGX_HTTP_SPECIAL_RESPONSE))
+        {
+            ngx_wasm_log_error(NGX_LOG_CRIT, r->connection->log, 0,
+                               "FFI plan attach, unexpected resume rc: %d", rc);
+        }
     }
 
     rctx->ffi_attached = 1;
