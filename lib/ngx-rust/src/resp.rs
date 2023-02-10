@@ -9,6 +9,7 @@ extern "C" {
         body: *const u8,
         body_len: i32,
     );
+    fn ngx_http_discard_local_response();
 }
 
 pub fn ngx_resp_get_status() -> i32 {
@@ -38,4 +39,8 @@ pub fn ngx_resp_local(status: i32, reason: Option<&str>, body: Option<&str>) {
             body.unwrap_or_default().len() as i32,
         )
     }
+}
+
+pub fn ngx_resp_discard_local() {
+    unsafe { ngx_http_discard_local_response() }
 }

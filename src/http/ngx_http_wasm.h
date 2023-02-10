@@ -105,6 +105,7 @@ ngx_int_t ngx_http_wasm_rctx(ngx_http_request_t *r,
 ngx_int_t ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     ngx_int_t status, u_char *reason, size_t reason_len, ngx_array_t *headers,
     u_char *body, size_t body_len);
+void ngx_http_wasm_discard_local_response(ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx);
 void ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main,
