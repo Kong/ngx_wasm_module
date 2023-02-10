@@ -13,6 +13,7 @@ ngx_http_wasm_discard_local_response(ngx_http_wasm_req_ctx_t *rctx)
 
     r = rctx->r;
 
+    rctx->resp_content_chosen = 0;
     rctx->local_resp_status = 0;
     rctx->local_resp_reason.len = 0;
     rctx->local_resp_body_len = -1;

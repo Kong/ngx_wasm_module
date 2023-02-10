@@ -7,7 +7,7 @@
 #include <ngx_wavm.h>
 
 
-ngx_int_t
+static ngx_int_t
 ngx_http_wasm_hfuncs_resp_get_status(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -39,7 +39,7 @@ ngx_http_wasm_hfuncs_resp_get_status(ngx_wavm_instance_t *instance,
 }
 
 
-ngx_int_t
+static ngx_int_t
 ngx_http_wasm_hfuncs_resp_set_status(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -71,7 +71,7 @@ ngx_http_wasm_hfuncs_resp_set_status(ngx_wavm_instance_t *instance,
 }
 
 
-ngx_int_t
+static ngx_int_t
 ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -143,7 +143,7 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
 }
 
 
-ngx_int_t
+static ngx_int_t
 ngx_http_wasm_hfuncs_local_response(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -169,6 +169,18 @@ ngx_http_wasm_hfuncs_local_response(ngx_wavm_instance_t *instance,
 }
 
 
+static ngx_int_t
+ngx_http_wasm_hfuncs_discard_local_response(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_http_wasm_req_ctx_t  *rctx = instance->data;
+
+    ngx_http_wasm_discard_local_response(rctx);
+
+    return NGX_WAVM_OK;
+}
+
+
 static ngx_wavm_host_func_def_t  ngx_http_wasm_hfuncs[] = {
 
     { ngx_string("ngx_http_resp_get_status"),
@@ -189,6 +201,11 @@ static ngx_wavm_host_func_def_t  ngx_http_wasm_hfuncs[] = {
     { ngx_string("ngx_http_local_response"),
       &ngx_http_wasm_hfuncs_local_response,
       ngx_wavm_arity_i32x5,
+      NULL },
+
+    { ngx_string("ngx_http_discard_local_response"),
+      &ngx_http_wasm_hfuncs_discard_local_response,
+      NULL,
       NULL },
 
    ngx_wavm_hfunc_null

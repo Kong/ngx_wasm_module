@@ -60,3 +60,20 @@ hello world
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 4: local_response - can be discarded
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: ngx_rust_tests
+--- config
+    location /t {
+        wasm_call rewrite ngx_rust_tests local_response;
+        wasm_call rewrite ngx_rust_tests discard_local_response;
+        echo ok;
+    }
+--- response_body
+ok
+--- no_error_log
+[error]
+[crit]

@@ -38,10 +38,7 @@ pub fn local_response() {
     ngx_resp_local(200, Some("OK"), Some("hello world"));
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
+#[no_mangle]
+pub fn discard_local_response() {
+    ngx_resp_discard_local();
 }
