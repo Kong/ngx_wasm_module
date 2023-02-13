@@ -1,4 +1,4 @@
--- vim:set st=4 sw=4 sts=4 et:
+-- vim:set ts=4 sw=4 sts=4 et:
 
 local ffi = require "ffi"
 local wasm = require "resty.wasm"
