@@ -30,7 +30,7 @@ jobs:
         cc: [gcc-9]
         ngx: [1.23.3]
         runtime: [wasmer]
-        wasmer: [3.1.0]
+        wasmer: [3.1.1]
         hup: [0]
         debug: [1, 0]
         include:
@@ -60,14 +60,14 @@ jobs:
             cc: gcc-9
             ngx: 1.21.6
             runtime: wasmer
-            wasmer: 3.1.0
+            wasmer: 3.1.1
             debug: 1
           # No SSL
           - os: ubuntu-latest
             cc: gcc-9
             ngx: 1.21.6
             runtime: wasmer
-            wasmer: 3.1.0
+            wasmer: 3.1.1
             debug: 0
             no_ssl: 1
     steps:
@@ -179,7 +179,7 @@ jobs:
         cc: [gcc-10]
         ngx: [1.23.3]
         runtime: [wasmer]
-        wasmer: [3.1.0]
+        wasmer: [3.1.1]
         hup: [0, 1]
         debug: [1]
         include:
@@ -335,7 +335,7 @@ jobs:
         ngx: [1.23.3]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [5.0.0]
-        wasmer: [3.1.0]
+        wasmer: [3.1.1]
         v8: [10.5.18]
         include:
           - os: ubuntu-latest
