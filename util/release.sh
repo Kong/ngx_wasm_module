@@ -374,4 +374,4 @@ else
     fatal "missing release type, specify --bin, --bin-all, or --src"
 fi
 
-# vim: ft=sh st=4 sts=4 sw=4:
+# vim: ft=sh ts=4 sts=4 sw=4:

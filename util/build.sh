@@ -103,4 +103,4 @@ fi
 
 build_nginx $NGX_DIR $NGX_VER
 
-# vim: ft=sh st=4 sts=4 sw=4:
+# vim: ft=sh ts=4 sts=4 sw=4:
