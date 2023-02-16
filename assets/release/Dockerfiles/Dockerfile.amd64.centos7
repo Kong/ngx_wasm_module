@@ -1,4 +1,5 @@
 FROM amd64/centos:7
+COPY . /ngx_wasm_module
 
 RUN yum install -y epel-release && \
     yum update -y && \
@@ -22,7 +23,7 @@ ENV PATH $CARGO_HOME/bin:$PATH
 RUN ln -nfs $(which cmake3) /usr/bin/cmake
 RUN mkdir -p "$CARGO_HOME" && mkdir -p "$RUSTUP_HOME" && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
-    chmod -R a=rwX $CARGO_HOME
+    chmod -R a=rwX $CARGO_HOME $RUSTUP_HOME
 
 # bypass "multiple definitions of 'assertions'" linker error from wasm.h:
 # https://github.com/WebAssembly/wasm-c-api/blob/master/include/wasm.h#L29
