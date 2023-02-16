@@ -8,6 +8,8 @@ our $ExtResolver = $t::TestWasm::extresolver;
 our $ExtTimeout = $t::TestWasm::exttimeout;
 
 skip_valgrind();
+skip_no_tinygo();
+
 repeat_each(3);
 
 plan tests => repeat_each() * (blocks() * 6);

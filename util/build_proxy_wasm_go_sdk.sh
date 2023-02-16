@@ -66,7 +66,7 @@ EOF
             tinygo build -o main.wasm -scheduler=none -target=wasi ./main.go
         popd
     else
-        make build.examples
+        make build.examples || exit 0
     fi
 
     cd examples
