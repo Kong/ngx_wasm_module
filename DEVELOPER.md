@@ -110,7 +110,7 @@ This makes the building process of ngx_wasm_module entirely idempotent and
 self-contained. The build environment may be destroyed at anytime with:
 
 ```
-$ make cleanup
+$ make cleanall
 ```
 
 Which will remove the `work/` and `dist/` directories (the latter contains
@@ -131,7 +131,8 @@ release script outputs).
 | `todo`             | Search the project for "TODOs" (source + tests)
 | `act`              | Build and run the CI environment
 | `clean`            | Clean the latest build
-| `cleanup`          | Destroy the build environment
+| `cleanup`          | Does `clean` and also cleans some more of the build environment to free-up disk space
+| `cleanall`         | Destroy the build environment
 
 [Back to TOC](#table-of-contents)
 

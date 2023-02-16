@@ -12,6 +12,8 @@ DIR_BUILDROOT=$DIR_WORK/buildroot
 DIR_SRC_ROOT=$DIR_WORK/nginx-src
 DIR_PATCHED_ROOT=$DIR_WORK/nginx-patched
 DIR_TESTS_LIB_WASM=$DIR_WORK/lib/wasm
+DIR_DIST_WORK=$DIR_WORK/dist
+DIR_DIST_RUNTIMES=$DIR_WORK/runtimes
 DIR_PREFIX=$NGX_WASM_DIR/t/servroot
 DIR_OPR_PREFIX=$DIR_BUILDROOT/prefix
 DIR_DIST_OUT=$NGX_WASM_DIR/dist
@@ -323,7 +325,7 @@ get_default_runtime_dir() {
     local runtime="$1"
     local version="${2:-$(get_default_runtime_version "$runtime")}"
 
-    echo "$DIR_WORK/$runtime-$version"
+    echo "$DIR_DIST_RUNTIMES/$runtime-$version"
 }
 
 invalid_usage() {

@@ -82,7 +82,6 @@ fi
 
 DIST_SRC="ngx_wasm_module-$name"
 DIR_BUILD_DOCKERFILES=$NGX_WASM_DIR/assets/release/Dockerfiles
-DIR_DIST_WORK=$DIR_WORK/ngx_wasm_module_dist
 DIR_BUILD=$DIR_DIST_WORK/build
 DIR_DIST_SRC=$DIR_DIST_WORK/$DIST_SRC
 

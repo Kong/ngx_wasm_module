@@ -23,9 +23,13 @@ if [[ -f "$DIR_PATCHED_ROOT/Makefile" ]]; then
     popd
 fi
 
-if [[ "$1" == "--all" ]]; then
-    rm -rf $DIR_WORK $DIR_PREFIX $DIR_DIST_OUT t/servroot*
+if [[ "$1" == "--all" || "$1" == "--more" ]]; then
+    rm -rf t/servroot* $DIR_PREFIX $DIR_DIST_OUT $DIR_DIST_WORK
     cargo clean
+fi
+
+if [[ "$1" == "--all" ]]; then
+    rm -rf $DIR_WORK
 fi
 
 # vim: ft=sh ts=4 sts=4 sw=4:

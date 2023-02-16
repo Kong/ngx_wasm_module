@@ -87,4 +87,8 @@ clean:
 
 .PHONY: cleanup
 cleanup:
+	@util/clean.sh --more
+
+.PHONY: cleanall
+cleanall:
 	@util/clean.sh --all
