@@ -7,7 +7,7 @@ use List::Util qw(max);
 use Cwd qw(cwd);
 
 our $pwd = cwd();
-our $crates = "work/lib/wasm";
+our $crates = "$pwd/work/lib/wasm";
 our $buildroot = "$pwd/work/buildroot";
 our $nginxbin = $ENV{TEST_NGINX_BINARY} || 'nginx';
 our $nginxV = eval { `$nginxbin -V 2>&1` };
@@ -26,6 +26,7 @@ our @EXPORT = qw(
     load_nginx_modules
     skip_no_ssl
     skip_no_debug
+    skip_no_tinygo
     skip_valgrind
 );
 
@@ -70,6 +71,13 @@ sub skip_no_debug {
 sub skip_no_ssl {
     if ($nginxV !~ m/built with \S+SSL/) {
         plan(skip_all => "SSL support required (NGX_BUILD_SSL=1)");
+    }
+}
+
+sub skip_no_tinygo {
+    my @files = glob($ENV{TEST_NGINX_CRATES_DIR} . '/go_*.wasm');
+    if (!@files && !defined($ENV{CI})) {
+        plan(skip_all => "Missing Go .wasm bytecode files in $ENV{TEST_NGINX_CRATES_DIR}");
     }
 }
 
