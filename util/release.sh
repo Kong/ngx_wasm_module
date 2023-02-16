@@ -80,41 +80,11 @@ if [ -z "$name" ]; then
     fi
 fi
 
+DIST_SRC="ngx_wasm_module-$name"
 DIR_BUILD_DOCKERFILES=$NGX_WASM_DIR/assets/release/Dockerfiles
 DIR_DIST_WORK=$DIR_WORK/ngx_wasm_module_dist
 DIR_BUILD=$DIR_DIST_WORK/build
-DIST_SRC="ngx_wasm_module-$name"
-
-mkdir -p $DIR_DIST_WORK $DIR_DIST_OUT
-cd $DIR_DIST_WORK
-
-# ngx_wasm_module-$name.tar.gz (sources)
-
-release_source() {
-    notice "Creating source archive..."
-    cd $DIR_DIST_WORK
-
-    if [ -d $DIST_SRC ]; then
-        rm -rf $DIST_SRC
-    fi
-
-    mkdir -p $DIST_SRC
-    cp -R \
-       $NGX_WASM_DIR/config \
-       $NGX_WASM_DIR/auto \
-       $NGX_WASM_DIR/src \
-       $NGX_WASM_DIR/assets/release/INSTALL \
-       $DIST_SRC
-
-    mkdir -p $DIST_SRC/lib
-    cp -R \
-       $NGX_WASM_DIR/lib/resty \
-       $DIST_SRC/lib
-
-    tar czf $DIST_SRC.tar.gz $DIST_SRC
-    cp $DIST_SRC.tar.gz $DIR_DIST_OUT
-    notice "Created $DIR_DIST_OUT/$DIST_SRC.tar.gz"
-}
+DIR_DIST_SRC=$DIR_DIST_WORK/$DIST_SRC
 
 get_distro() {
     local distro
@@ -143,24 +113,13 @@ get_distro() {
     echo "$distro"
 }
 
-# nginx binary (static)
-
 build_static_binary() {
     local arch=$1
     local runtime=$2
     local runtime_ver=$3
 
-    if [ ! -d $DIST_SRC ]; then
-        fatal "missing source release at $(pwd)/$DIST_SRC to build binary, run with --src"
-    fi
-
     local dist_bin_name=wasmx-$name-$runtime-$arch-$(get_distro)
 
-    if [ -z "$NGX_VER" ]; then
-        fatal "$SCRIPT_NAME missing nginx version for static build, specify --ngx <ver>"
-    fi
-
-    cd $DIR_DIST_WORK
     notice "Building statically linked binary $dist_bin_name..."
     mkdir -p $dist_bin_name
 
@@ -200,7 +159,7 @@ build_static_binary() {
 
     # build
 
-    cd nginx-$NGX_VER
+    pushd nginx-$NGX_VER
 
     export NGX_WASM_RUNTIME=$runtime
 
@@ -249,7 +208,8 @@ build_static_binary() {
 
     make -j$(n_jobs)
 
-    cd $DIR_DIST_WORK
+    popd
+
     cp $DIR_BUILD/build-$dist_bin_name/nginx \
        $NGX_WASM_DIR/assets/release/nginx.conf \
        $NGX_WASM_DIR/assets/release/README \
@@ -294,8 +254,42 @@ build_with_runtime() {
     LD_FLAGS="$save_LD_FLAGS"
 }
 
+# ngx_wasm_module-$name.tar.gz (sources)
+
+release_source() {
+    notice "Creating source archive..."
+    pushd $DIR_DIST_WORK
+    tar czf $DIST_SRC.tar.gz \
+        $DIST_SRC/config \
+        $DIST_SRC/auto \
+        $DIST_SRC/src \
+        $DIST_SRC/lib/resty \
+        $DIST_SRC/assets/release/INSTALL
+    cp $DIST_SRC.tar.gz $DIR_DIST_OUT
+    popd
+    notice "Created $DIR_DIST_OUT/$DIST_SRC.tar.gz"
+}
+
+# wasmx-$name-$runtime-$arch-$os.tar.gz (binary)
+
 release_bin() {
     local arch=$(uname -m)
+
+    if [ -z "$NGX_VER" ]; then
+        fatal "$SCRIPT_NAME missing Nginx version for static build, specify --ngx <ver>"
+    fi
+
+    if [ -z "$OPENSSL_VER" ]; then
+        fatal "$SCRIPT_NAME missing OpenSSL version for static build"
+    fi
+
+    if [ -z "$PCRE_VER" ]; then
+        fatal "$SCRIPT_NAME missing PCRE version for static build"
+    fi
+
+    if [ -z "$ZLIB_VER" ]; then
+        fatal "$SCRIPT_NAME missing zlib version for static build"
+    fi
 
     notice "Building $arch binary..."
 
@@ -318,7 +312,7 @@ release_bin() {
     fi
 
     if [[ -z "$WASMTIME_VER" && -z "$WASMER_VER" && -z "$V8_VER" ]]; then
-        fatal "missing wasm vm, specify --wasmer, --wasmtime, or --v8"
+        fatal "unreachable: missing wasm runtime, specify --wasmer, --wasmtime, or --v8"
     fi
 }
 
@@ -327,29 +321,73 @@ release_all_bin_docker() {
         fatal "missing 'docker' command"
     fi
 
+    if [ -z "$WASMTIME_VER" ]; then
+        WASMTIME_VER=$(get_variable_from_makefile WASMTIME)
+    fi
+
+    if [ -z "$WASMER_VER" ]; then
+        WASMER_VER=$(get_variable_from_makefile WASMER)
+    fi
+
+    if [ -z "$V8_VER" ]; then
+        V8_VER=$(get_variable_from_makefile V8)
+    fi
+
     for path in $DIR_BUILD_DOCKERFILES/Dockerfile.*; do
         local dockerfile=$(basename $path)
         local imgname=${dockerfile#"Dockerfile."}
         local imgtag=wasmx-build-$imgname
 
         docker build \
-            -t $imgtag \
-            -f $path $DIR_BUILD_DOCKERFILES
+            --rm \
+            -f $path \
+            -t $imgtag:latest \
+            $DIR_DIST_SRC
 
+        docker rm -f $imgtag
         docker run \
-            --rm -it \
+            -it \
             --entrypoint /bin/sh \
-            -v "$NGX_WASM_DIR:/ngx_wasm_module" \
-            -u $(id -u ${USER}):$(id -g ${USER}) \
+            --name $imgtag \
+            -e RELEASE_NAME=$name \
             -e NGX_VER=$NGX_VER \
             -e WASMTIME_VER=$WASMTIME_VER \
             -e WASMER_VER=$WASMER_VER \
             -e V8_VER=$V8_VER \
-            -e RELEASE_NAME=$name \
             $imgtag \
-            -c "./ngx_wasm_module/util/release.sh --bin"
+            -c "/ngx_wasm_module/util/release.sh --bin"
+
+         docker cp \
+             $imgtag:/ngx_wasm_module/dist \
+             $DIR_DIST_WORK
+
+         docker rm -f $imgtag
+
+         cp $DIR_DIST_WORK/dist/*.tar.gz $DIR_DIST_OUT
+         rm -rf $DIR_DIST_WORK/dist
     done
 }
+
+# main
+
+mkdir -p $DIR_DIST_WORK $DIR_DIST_OUT $DIR_DIST_SRC
+
+pushd $DIR_DIST_WORK
+
+# prepare sources
+
+rm -rf $DIR_DIST_SRC/*
+cp -R \
+    $NGX_WASM_DIR/Makefile \
+    $NGX_WASM_DIR/config \
+    $NGX_WASM_DIR/auto \
+    $NGX_WASM_DIR/src \
+    $NGX_WASM_DIR/lib \
+    $NGX_WASM_DIR/util \
+    $NGX_WASM_DIR/assets \
+    $DIR_DIST_SRC
+
+# produce release artifact
 
 if [ -n "$RELEASE_SOURCE" ]; then
     release_source
@@ -363,8 +401,6 @@ elif [ -n "$RELEASE_BIN_ALL" ]; then
     esac
 
 elif [ -n "$RELEASE_BIN" ]; then
-    release_source
-
     case $OSTYPE in
         linux*)  release_bin;;
         darwin*) release_bin;;
