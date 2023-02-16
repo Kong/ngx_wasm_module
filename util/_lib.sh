@@ -305,18 +305,18 @@ abs_path() {
     echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 }
 
-get_variable_from_release_yml() {
+get_variable_from_makefile() {
     local var_name="$1"
-    local release_file="$NGX_WASM_DIR/.github/workflows/release.yml"
+    local makefile="$NGX_WASM_DIR/Makefile"
 
-    awk '/'$var_name':/ { print $2 }' "$release_file"
+    awk '/'$var_name' \?= / { print $3 }' "$makefile"
 }
 
 get_default_runtime_version() {
     local runtime="$1"
-    local var_name="$(echo "$runtime" | tr '[a-z]' '[A-Z]')_VER"
+    local var_name=$(echo "$runtime" | tr '[a-z]' '[A-Z]')
 
-    get_variable_from_release_yml "$var_name"
+    get_variable_from_makefile "$var_name"
 }
 
 get_default_runtime_dir() {

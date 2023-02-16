@@ -14,9 +14,10 @@ fi
 source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
-PCRE_VER=8.45
-OPENSSL_VER=1.1.1t
-ZLIB_VER=1.2.13
+NGX_VER=${NGX_VER:-$(get_variable_from_makefile NGX)}
+OPENSSL_VER=${OPENSSL_VER:-$(get_variable_from_makefile OPENSSL)}
+PCRE_VER=${PCRE_VER:-$(get_variable_from_makefile PCRE)}
+ZLIB_VER=${ZLIB_VER:-$(get_variable_from_makefile ZLIB)}
 
 while (( "$#" )); do
     case "$1" in

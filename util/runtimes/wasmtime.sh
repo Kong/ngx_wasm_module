@@ -53,7 +53,7 @@ download_wasmtime() {
 # "$mode" "$target" "$version" "$arch" "$clean"
 # once clients stop using v8.sh directly.
 target="${1:-$DIR_WORK}"
-version="${2:-$(get_variable_from_release_yml WASMTIME_VER)}"
+version="${2:-$(get_variable_from_makefile WASMTIME)}"
 arch="${3:-$(uname -m)}"
 mode="$4"
 clean="$5"
