@@ -289,7 +289,7 @@ build_v8() {
 # "$mode" "$target" "$v8_ver" "$arch" "$clean"
 # once clients stop using v8.sh directly.
 target="${1:-$DIR_WORK}"
-v8_ver="${2:-$(get_variable_from_release_yml V8_VER)}"
+v8_ver="${2:-$(get_variable_from_makefile V8)}"
 arch="$3"
 mode="$4"
 clean="$5"
