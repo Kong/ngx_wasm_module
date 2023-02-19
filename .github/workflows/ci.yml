@@ -196,6 +196,13 @@ jobs:
             v8: 10.5.18
             hup: 0
             debug: 1
+          # OpenResty
+          - os: ubuntu-latest
+            cc: gcc-10
+            openresty: 1.21.4.1
+            runtime: wasmer
+            wasmer: 3.1.1
+            debug: 1
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
       - uses: actions/checkout@v3
@@ -234,6 +241,7 @@ jobs:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
           NGX_BUILD_DEBUG: ${{ matrix.debug }}
+          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
       - run: make test 2>&1 | tee valgrind.out
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}

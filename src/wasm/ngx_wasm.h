@@ -16,6 +16,9 @@
 #   define ngx_wasm_assert(a)
 #endif
 
+#define NGX_WASM_STR_HELPER(s)       #s
+#define NGX_WASM_STR(s)              NGX_WASM_STR_HELPER(s)
+
 #define NGX_LOG_DEBUG_WASM           NGX_LOG_DEBUG_ALL
 #define NGX_LOG_WASM_NYI             NGX_LOG_ALERT
 
@@ -65,6 +68,17 @@ typedef struct ngx_wavm_module_s  ngx_wavm_module_t;
 typedef struct ngx_wavm_funcref_s  ngx_wavm_funcref_t;
 typedef struct ngx_wavm_func_s  ngx_wavm_func_t;
 typedef uint32_t  ngx_wavm_ptr_t;
+
+
+#if (NGX_WASM_HTTP)
+typedef struct ngx_http_wasm_req_ctx_s  ngx_http_wasm_req_ctx_t;
+#endif
+#if (NGX_WASM_STREAM)
+typedef struct ngx_stream_wasm_ctx_s  ngx_stream_wasm_ctx_t;
+#endif
+#if (NGX_WASM_HTTP || NGX_WASM_STREAM)
+typedef struct ngx_wasm_lua_ctx_s  ngx_wasm_lua_ctx_t;
+#endif
 
 
 typedef struct {
@@ -173,6 +187,12 @@ ngx_str_eq(const void *s1, ngx_int_t s1_len, const void *s2, ngx_int_t s2_len)
 
 
 /* subsystems & phases */
+typedef enum {
+    NGX_WASM_SUBSYS_HTTP = 1,
+    NGX_WASM_SUBSYS_STREAM,
+} ngx_wasm_subsys_e;
+
+
 typedef struct {
     ngx_str_t                                name;
     ngx_uint_t                               index;
@@ -182,6 +202,7 @@ typedef struct {
 
 typedef struct {
     ngx_uint_t                               nphases;
+    ngx_wasm_subsys_e                        kind;
     ngx_wasm_phase_t                        *phases;
 } ngx_wasm_subsystem_t;
 

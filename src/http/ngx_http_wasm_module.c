@@ -5,6 +5,7 @@
 
 #include <ngx_http_wasm.h>
 #if (NGX_WASM_LUA)
+#include <ngx_wasm_lua.h>
 #include <ngx_http_lua_util.h>
 #endif
 
@@ -88,6 +89,7 @@ static ngx_wasm_phase_t  ngx_http_wasm_phases[] = {
 
 ngx_wasm_subsystem_t  ngx_http_wasm_subsystem = {
     NGX_WASM_DONE_PHASE + 1,
+    NGX_WASM_SUBSYS_HTTP,
     ngx_http_wasm_phases,
 };
 
@@ -340,7 +342,7 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->pwm_req_headers_in_access,
                          prev->pwm_req_headers_in_access, 0);
 
-    ngx_conf_merge_value(conf->pwm_lua_resolver,  prev->pwm_lua_resolver, 0);
+    ngx_conf_merge_value(conf->pwm_lua_resolver, prev->pwm_lua_resolver, 0);
 
     if (conf->plan && !conf->plan->populated) {
         conf->plan = prev->plan;
@@ -865,9 +867,9 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
     ngx_int_t                  rc;
     ngx_http_wasm_req_ctx_t   *rctx;
 #if (NGX_WASM_LUA)
+    ngx_wasm_lua_ctx_t        *lctx;
     ngx_http_lua_ctx_t        *ctx;
 #endif
-
 #if (NGX_DEBUG)
     ngx_connection_t          *c = r->connection;
     ngx_event_t               *wev = c->write;
@@ -916,22 +918,45 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
 #endif
 
 #if (NGX_WASM_LUA)
-    ctx = ngx_http_get_module_ctx(r, ngx_http_lua_module);
+    lctx = rctx->wasm_lua_ctx;
 
-    if (rctx->wasm_lua_ctx
-        && rctx->wasm_lua_ctx->co_ctx->co_status != NGX_HTTP_LUA_CO_DEAD)
+    if (lctx
+        && lctx->co_ctx
+        && lctx->co_ctx->co_status != NGX_HTTP_LUA_CO_DEAD)
     {
-        ctx->resume_handler(r);
+        ctx = lctx->ctx.rlctx;
 
-        if (rctx->wasm_lua_ctx->co_ctx
-            && rctx->wasm_lua_ctx->co_ctx->co_status != NGX_HTTP_LUA_CO_DEAD)
-        {
-            r->write_event_handler = ngx_http_wasm_content_wev_handler;
-            return;
+        ngx_wasm_assert(ctx == ngx_http_get_module_ctx(r, ngx_http_lua_module));
 
-        } else {
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm wev handler \"%V?%V\" resuming Lua thread",
+                       &r->uri, &r->args);
+
+        rc = ctx->resume_handler(r);
+
+        dd("lua resume handler rc: %ld", rc);
+
+        switch (rc) {
+        case NGX_ERROR:
+        case NGX_AGAIN:
+        case NGX_HTTP_INTERNAL_SERVER_ERROR:
+            break;
+        case NGX_DONE:
+            if (lctx->co_ctx->co_status != NGX_HTTP_LUA_CO_DEAD) {
+                r->write_event_handler = ngx_http_wasm_content_wev_handler;
+            }
+            /* fallthrough*/
+        case NGX_OK:
             return;
+        default:
+            ngx_wasm_log_error(NGX_LOG_CRIT, r->connection->log, 0,
+                               "NYI - lua resume handler rc: %d", rc);
+            ngx_wasm_assert(0);
+            break;
         }
+
+        ngx_http_finalize_request(r, rc);
+        return;
     }
 #endif
 

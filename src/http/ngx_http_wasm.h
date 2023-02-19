@@ -8,9 +8,7 @@
 #include <ngx_http_wasm_util.h>
 #include <ngx_http_wasm_headers.h>
 #include <ngx_http_wasm_trailers.h>
-#if (NGX_WASM_LUA)
-#include <ngx_wasm_lua.h>
-#endif
+
 
 #define NGX_HTTP_WASM_MAX_REQ_HEADERS      100
 
@@ -20,9 +18,6 @@
 
 #define ngx_http_wasm_req_yielded(rctx)                                      \
     (rctx->state == NGX_HTTP_WASM_REQ_STATE_YIELD)
-
-
-typedef struct ngx_http_wasm_req_ctx_s  ngx_http_wasm_req_ctx_t;
 
 
 typedef enum {
@@ -42,7 +37,7 @@ struct ngx_http_wasm_req_ctx_s {
     ngx_http_wasm_req_state_e          state;                   /* determines next step on resume */
 
 #if (NGX_WASM_LUA)
-    struct ngx_wasm_lua_ctx_s         *wasm_lua_ctx;
+    ngx_wasm_lua_ctx_t                *wasm_lua_ctx;
 #endif
 
     ngx_chain_t                       *free_bufs;
@@ -80,7 +75,7 @@ struct ngx_http_wasm_req_ctx_s {
     unsigned                           ffi_attached:1;
     unsigned                           fake_request:1;
 
-    unsigned                           pwm_lua_resolver:1;      /* loc->pwm_lua_resolver */
+    unsigned                           pwm_lua_resolver:1;      /* use Lua-land resolver in OpenResty */
 };
 
 

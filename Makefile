@@ -5,6 +5,7 @@ WASMER ?= 3.1.1
 V8 ?= 10.5.18
 PCRE ?= 8.45
 ZLIB ?= 1.2.13
+LUAROCKS ?= 3.9.0
 
 # Private - ngx_wasm_module development
 export NGX_BUILD_DIR_SCR ?=
