@@ -31,6 +31,7 @@ if [[ "$1" == "--all" || "$1" == "--more" ]]; then
         $DIR_PREFIX \
         $DIR_DIST_OUT \
         $DIR_DIST_WORK \
+    remove_luarocks
     cargo clean
 fi
 

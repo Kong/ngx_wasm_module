@@ -2,6 +2,7 @@
 members = [
     "lib/ngx-rust",
     "t/lib/ngx-rust-tests",
+    "t/lib/ngx-lua-tests",
     "t/lib/wasi-vm-tests",
     "t/lib/wasi-host-tests",
     "t/lib/proxy-wasm-tests/on-tick",

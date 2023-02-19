@@ -5,6 +5,7 @@
 
 #include <ngx_http_wasm.h>
 #if (NGX_WASM_LUA)
+#include <ngx_wasm_lua.h>
 #include <ngx_http_lua_util.h>
 #endif
 
@@ -90,6 +91,7 @@ static ngx_wasm_phase_t  ngx_http_wasm_phases[] = {
 
 ngx_wasm_subsystem_t  ngx_http_wasm_subsystem = {
     NGX_WASM_DONE_PHASE + 1,
+    NGX_WASM_SUBSYS_HTTP,
     ngx_http_wasm_phases,
 };
 
@@ -342,7 +344,7 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->pwm_req_headers_in_access,
                          prev->pwm_req_headers_in_access, 0);
 
-    ngx_conf_merge_value(conf->pwm_lua_resolver,  prev->pwm_lua_resolver, 0);
+    ngx_conf_merge_value(conf->pwm_lua_resolver, prev->pwm_lua_resolver, 0);
 
     if (conf->plan && !conf->plan->populated) {
         conf->plan = prev->plan;
@@ -828,6 +830,15 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
+#if (NGX_WASM_LUA)
+    if (rctx->entered_content_phase && rctx->wasm_lua_ctx) {
+        dd("wasm lua forcing content wev handler");
+        ngx_http_wasm_content_wev_handler(r);
+        rc = ngx_http_wasm_check_finalize(rctx, NGX_AGAIN);
+        return rc;
+    }
+#endif
+
     rctx->entered_content_phase = 1;
 
     rc = ngx_http_wasm_content(rctx);
@@ -866,14 +877,12 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
 {
     ngx_int_t                  rc;
     ngx_http_wasm_req_ctx_t   *rctx;
-#if (NGX_WASM_LUA)
-    ngx_http_lua_ctx_t        *ctx;
-#endif
-
 #if (NGX_DEBUG)
     ngx_connection_t          *c = r->connection;
     ngx_event_t               *wev = c->write;
 #endif
+
+    dd("enter");
 
     if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
         return;
@@ -885,55 +894,14 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
                    &r->uri, &r->args, wev->timedout, wev->ready, r == r->main,
                    r->main->count, rctx->resp_finalized, rctx->state);
 
-#if 0
-    {
-        ngx_http_core_loc_conf_t  *clcf;
-
-        clcf = ngx_http_get_module_loc_conf(r->main, ngx_http_core_module);
-
-        if (wev->timedout) {
-            if (!wev->delayed) {
-                ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT,
-                              "client timed out");
-                c->timedout = 1;
-                return;
-            }
-
-            wev->timedout = 0;
-            wev->delayed = 0;
-
-            if (!wev->ready) {
-                ngx_add_timer(wev, clcf->send_timeout);
-
-                if (ngx_handle_write_event(wev, clcf->send_lowat) != NGX_OK) {
-                    if (rctx->entered_content_phase) {
-                        ngx_http_finalize_request(r, NGX_ERROR);
-                    }
-
-                    return;
-                }
-            }
-        }
-    }
-#endif
-
 #if (NGX_WASM_LUA)
-    ctx = ngx_http_get_module_ctx(r, ngx_http_lua_module);
+    if (rctx->wasm_lua_ctx) {
 
-    if (rctx->wasm_lua_ctx
-        && rctx->wasm_lua_ctx->co_ctx->co_status != NGX_HTTP_LUA_CO_DEAD)
-    {
-        ctx->resume_handler(r);
-
-        if (rctx->wasm_lua_ctx->co_ctx
-            && rctx->wasm_lua_ctx->co_ctx->co_status != NGX_HTTP_LUA_CO_DEAD)
-        {
-            r->write_event_handler = ngx_http_wasm_content_wev_handler;
-            return;
-
-        } else {
-            return;
+        if (ngx_wasm_lua_thread_resume(rctx->wasm_lua_ctx) == NGX_ERROR) {
+            ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         }
+
+        return;
     }
 #endif
 

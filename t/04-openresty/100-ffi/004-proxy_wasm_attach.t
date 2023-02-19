@@ -362,7 +362,7 @@ qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
 
 
 === TEST 8: attach() - plan is garbage collected after execution
---- skip_eval: 4: $::nginxV !~ m/debug/
+--- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -378,17 +378,12 @@ qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
             assert(proxy_wasm.attach(c_plan))
         }
 
-        log_by_lua_block {
-            collectgarbage()
-            collectgarbage()
-        }
-
         echo ok;
     }
 --- response_body
 ok
---- error_log eval
-qr/\[debug\].*?freeing plan.*/
+--- shutdown_error_log eval
+qr/\[debug\] .*? wasm freeing plan/
 --- no_error_log
 [error]
 

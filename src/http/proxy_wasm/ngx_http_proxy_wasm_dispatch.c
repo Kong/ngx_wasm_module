@@ -142,7 +142,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     ngx_event_t                     *ev;
     ngx_table_elt_t                 *elts, *elt;
     ngx_wasm_socket_tcp_t           *sock = NULL;
-    ngx_wasm_socket_tcp_env_t        sock_env;
+    ngx_wasm_subsys_env_t            env;
 #if 0
     ngx_pool_cleanup_t              *cln;
 #endif
@@ -354,17 +354,19 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     sock = &call->sock;
 
-    sock_env.connection = r->connection;
-    sock_env.buf_tag = buf_tag;
-    sock_env.kind = NGX_WASM_SOCKET_TCP_KIND_HTTP;
-    sock_env.ctx.request = call->rctx;
+    ngx_memzero(&env, sizeof(ngx_wasm_subsys_env_t));
+
+    env.connection = r->connection;
+    env.buf_tag = buf_tag;
+    env.subsys = &ngx_http_wasm_subsystem;
+    env.ctx.rctx = call->rctx;
 #if (NGX_SSL)
-    sock_env.ssl_conf = (enable_ssl)
-                        ? ngx_wasm_core_ssl_conf((ngx_cycle_t *) ngx_cycle)
-                        : NULL;
+    env.ssl_conf = (enable_ssl)
+                   ? ngx_wasm_core_ssl_conf((ngx_cycle_t *) ngx_cycle)
+                   : NULL;
 #endif
 
-    if (ngx_wasm_socket_tcp_init(sock, &call->host, port, &sock_env)
+    if (ngx_wasm_socket_tcp_init(sock, &call->host, port, &env)
         != NGX_OK)
     {
         dd("tcp init error");
@@ -468,10 +470,10 @@ ngx_http_proxy_wasm_dispatch_handler(ngx_event_t *ev)
 
     ngx_free(ev);
 
-    sock->resume = ngx_http_proxy_wasm_dispatch_resume_handler;
+    sock->resume_handler = ngx_http_proxy_wasm_dispatch_resume_handler;
     sock->data = call;
 
-    rc = sock->resume(sock);
+    rc = sock->resume_handler(sock);
     if (rc == NGX_ERROR) {
         ngx_http_wasm_resume(rctx, 1, 1);
     }

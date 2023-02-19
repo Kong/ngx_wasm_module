@@ -271,6 +271,8 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
     ops = ctx->ops;
     plan = ctx->plan;
 
+    dd("enter");
+
     phase = ngx_wasm_ops_phase_lookup(ops, phaseidx);
     if (phase == NULL) {
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, ctx->log, 0,

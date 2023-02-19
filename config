@@ -94,7 +94,8 @@ NGX_WASM_INCS="\
     $ngx_addon_dir/src/wasm/wasi \
     $ngx_addon_dir/src/common \
     $ngx_addon_dir/src/common/proxy_wasm \
-    $ngx_addon_dir/src/common/shm"
+    $ngx_addon_dir/src/common/shm \
+    $ngx_addon_dir/src/common/lua"
 
 NGX_WASM_DEPS="\
     $ngx_addon_dir/src/wasm/wrt/ngx_wrt.h \
@@ -104,6 +105,7 @@ NGX_WASM_DEPS="\
     $ngx_addon_dir/src/wasm/ngx_wasm_ops.h \
     $ngx_addon_dir/src/wasm/wasi/ngx_wasi.h \
     $ngx_addon_dir/src/common/ngx_wasm_ffi.h \
+    $ngx_addon_dir/src/common/ngx_wasm_subsystem.h \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp.h \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp_readers.h \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.h \
@@ -197,16 +199,16 @@ fi
 
 # lua
 
-if [ $NGX_BUILD_OPENRESTY ]; then
+if [ -n "$LUAJIT_INC" -o -n "$LUAJIT_LIB" ]; then
     NGX_WASM_DEPS="\
         $NGX_WASM_DEPS \
-        $ngx_addon_dir/src/common/ngx_wasm_lua.h \
-        $ngx_addon_dir/src/common/ngx_wasm_lua_resolver.h"
+        $ngx_addon_dir/src/common/lua/ngx_wasm_lua.h \
+        $ngx_addon_dir/src/common/lua/ngx_wasm_lua_resolver.h"
 
     NGX_WASM_SRCS="\
         $NGX_WASM_SRCS \
-        $ngx_addon_dir/src/common/ngx_wasm_lua.c \
-        $ngx_addon_dir/src/common/ngx_wasm_lua_resolver.c"
+        $ngx_addon_dir/src/common/lua/ngx_wasm_lua.c \
+        $ngx_addon_dir/src/common/lua/ngx_wasm_lua_resolver.c"
 
     have=NGX_WASM_LUA value=1 . auto/define
 fi
