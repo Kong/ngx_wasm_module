@@ -92,6 +92,8 @@ plan not loaded
             if not ok then
                 return ngx.say(err)
             end
+
+            assert(proxy_wasm.start())
         }
 
         echo ok;
@@ -150,6 +152,8 @@ qr/#0 on_configure, config_size: 0.*
             if not ok then
                 return ngx.say(err)
             end
+
+            assert(proxy_wasm.start())
         }
 
         echo ok;
@@ -207,6 +211,8 @@ qr/#0 on_configure, config_size: 0.*
             if not ok then
                 return ngx.say(err)
             end
+
+            assert(proxy_wasm.start())
         }
 
         echo ok;
@@ -275,6 +281,11 @@ V8 trap format:
             if not ok then
                 return ngx.say(err)
             end
+
+            local ok, err = proxy_wasm.start()
+            if not ok then
+                return ngx.say(err)
+            end
         }
 
         echo ok;
@@ -323,6 +334,8 @@ V8 trap format:
             if not ok then
                 return ngx.say(err)
             end
+
+            assert(proxy_wasm.start())
         }
 
         echo -n ok;
@@ -376,6 +389,7 @@ qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
             local c_plan = assert(proxy_wasm.new(filters))
             assert(proxy_wasm.load(c_plan))
             assert(proxy_wasm.attach(c_plan))
+            assert(proxy_wasm.start())
         }
 
         echo ok;
@@ -407,8 +421,9 @@ qr/\[debug\] .*? wasm freeing plan/
             local ok, err = proxy_wasm.attach(c_plan)
             if not ok then
                 ngx.log(ngx.ERR, err)
-                return
             end
+
+            assert(proxy_wasm.start())
         }
 
         echo ok;

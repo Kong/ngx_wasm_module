@@ -27,6 +27,7 @@ ffi.cdef [[
     int ngx_http_wasm_ffi_plan_load(ngx_wasm_plan_t *plan);
     int ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r,
                                       ngx_wasm_plan_t *plan);
+    int ngx_http_wasm_ffi_start(ngx_http_request_t *r);
 ]]
 
 
@@ -131,6 +132,25 @@ function _M.attach(c_plan)
 
     if rc == FFI_DECLINED then
         return nil, "plan not loaded"
+    end
+
+    return true
+end
+
+
+function _M.start()
+    local r = get_request()
+    if not r then
+        error("no request found", 2)
+    end
+
+    local rc = C.ngx_http_wasm_ffi_start(r)
+    if rc == FFI_ERROR then
+        return nil, "unknown error"
+    end
+
+    if rc == FFI_DECLINED then
+        return nil, "plan not loaded and attached"
     end
 
     return true
