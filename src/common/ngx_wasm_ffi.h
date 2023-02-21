@@ -27,6 +27,7 @@ void ngx_http_wasm_ffi_plan_free(ngx_wasm_ops_plan_t *plan);
 ngx_int_t ngx_http_wasm_ffi_plan_load(ngx_wasm_ops_plan_t *plan);
 ngx_int_t ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r,
     ngx_wasm_ops_plan_t *plan);
+ngx_int_t ngx_http_wasm_ffi_start(ngx_http_request_t *r);
 #endif
 
 
