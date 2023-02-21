@@ -34,6 +34,7 @@ __DATA__
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.http.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.start())
 
             ngx.req.set_header("Lua", "yes")
         }
@@ -87,6 +88,7 @@ request header "Lua: yes" while logging request
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.http.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.start())
         }
 
         echo ok;
@@ -130,6 +132,7 @@ resp header "hello: " while logging request
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.http.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.start())
         }
 
         content_by_lua_block {
@@ -170,6 +173,7 @@ request body: From Lua while logging request
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.http.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.start())
         }
 
         content_by_lua_block {
@@ -224,6 +228,7 @@ Hello world
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.http.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.start())
         }
 
         content_by_lua_block {
@@ -280,6 +285,7 @@ Content-Length: 0.*
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.http.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.start())
         }
 
         content_by_lua_block {
@@ -346,6 +352,7 @@ V8 trap format:
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.http.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.start())
         }
 
         content_by_lua_block {

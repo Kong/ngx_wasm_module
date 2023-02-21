@@ -93,6 +93,41 @@ ngx_http_wasm_ffi_plan_load(ngx_wasm_ops_plan_t *plan)
 
 
 ngx_int_t
+ngx_http_wasm_ffi_start(ngx_http_request_t *r)
+{
+    ngx_int_t                  rc, phase;
+    ngx_http_wasm_req_ctx_t   *rctx;
+    ngx_http_wasm_loc_conf_t  *loc;
+
+    rc = ngx_http_wasm_rctx(r, &rctx);
+    if (rc != NGX_OK) {
+        return rc;
+    }
+
+    if (!rctx->ffi_attached) {
+        return NGX_DECLINED;
+    }
+
+    loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
+
+    phase = (loc->pwm_req_headers_in_access == 1)
+            ? NGX_HTTP_ACCESS_PHASE
+            : NGX_HTTP_REWRITE_PHASE;
+
+    rc = ngx_wasm_ops_resume(&rctx->opctx, phase);
+
+    /* ignore errors: resume could trap, but FFI call succeeded */
+
+    ngx_wasm_assert(rc == NGX_OK
+                    || rc == NGX_DONE
+                    || rc == NGX_AGAIN
+                    || rc >= NGX_HTTP_SPECIAL_RESPONSE);
+
+    return NGX_OK;
+}
+
+
+ngx_int_t
 ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r, ngx_wasm_ops_plan_t *plan)
 {
     ngx_int_t                  rc;
@@ -113,35 +148,6 @@ ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r, ngx_wasm_ops_plan_t *plan)
     }
 
     loc->plan = NULL;
-
-    if (!rctx->ffi_attached) {
-        /**
-         * ngx_http_wasm_module's rewrite handler already executed,
-         * invoke resume again since we are still in rewrite phase
-         */
-        rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_REWRITE_PHASE);
-
-        /* ignore rc: resume could error or trap, but attaching succeeded */
-
-        /*
-         * A successful rewrite phase should return NGX_OK.
-         *
-         * TODO: remove this whole branch and set
-         * 'proxy_wasm_request_headers_in_access on'
-         *
-         * TODO: handle cases if this pops up during integration,
-         * ensuring another rc has already printed correct logs.
-         *
-         * TODO: consider removing this when integration is finished.
-         */
-        if (!(rc == NGX_OK
-              || rc == NGX_AGAIN
-              || rc >= NGX_HTTP_SPECIAL_RESPONSE))
-        {
-            ngx_wasm_log_error(NGX_LOG_CRIT, r->connection->log, 0,
-                               "FFI plan attach, unexpected resume rc: %d", rc);
-        }
-    }
 
     rctx->ffi_attached = 1;
 
