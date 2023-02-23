@@ -6,7 +6,9 @@ V8 ?= 10.5.18
 PCRE ?= 8.45
 ZLIB ?= 1.2.13
 
-export NGX_BUILD_DIR_SCRROOT ?=
+# Private - ngx_wasm_module development
+export NGX_BUILD_DIR_SCR ?=
+export NGX_BUILD_DIR_PATCHED ?=
 export NGX_BUILD_DIR_BUILDROOT ?=
 export NGX_BUILD_DIR_PREFIX ?=
 export NGX_BUILD_CONFIGURE_OPT ?=
@@ -17,10 +19,12 @@ export NGX_BUILD_SSL ?= 1
 export NGX_BUILD_DEBUG ?= 1
 export NGX_BUILD_NOPOOL ?= 0
 export NGX_BUILD_FSANITIZE ?=
+export NGX_BUILD_OPENRESTY ?=
 export NGX_BUILD_CLANG_ANALYZER ?= 0
 export NGX_BUILD_GCOV ?= 0
 export NGX_BUILD_FORCE ?= 0
 
+# Public - config
 export NGX_WASM_RUNTIME ?= wasmtime
 export NGX_WASM_RUNTIME_INC ?=
 export NGX_WASM_RUNTIME_LIB ?=
