@@ -22,10 +22,23 @@ URL_KONG_WASM_RUNTIMES="https://github.com/kong/ngx_wasm_runtimes"
 export PERL5LIB=$DIR_CPANM/lib/perl5
 
 build_nginx() {
-    local ngx_src=$1
-    local ngx_ver=$2
-    local build_name=(dev)
+    local tree="$1"
     local build_opts=()
+    local build_name=(dev)
+    local ngx_tree=$tree
+    local src_tree=$tree
+
+    if [[ -n "$NGX_BUILD_OPENRESTY" ]]; then
+        src_tree="$tree/bundle"
+        ngx_tree=$(find $src_tree -type d -name 'nginx-*')
+    fi
+
+    local header="$ngx_tree/src/core/nginx.h"
+    if [[ ! -f "$header" ]]; then
+        fatal "missing header file at $header, not an nginx source"
+    fi
+
+    local ngx_ver=$(awk 'match($0, /NGINX_VERSION\s+"(.*?)"/, m) {print m[1]}' $header)
 
     if [[ -n "$NGX_WASM_RUNTIME" ]] && ! [[ -n "$NGX_WASM_RUNTIME_LIB" ]]; then
         local runtime_dir="$(get_default_runtime_dir "$NGX_WASM_RUNTIME")"
@@ -44,7 +57,7 @@ build_nginx() {
 
     if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
         build_name+=" nopool"
-        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_NOPOOL -DNGX_DEBUG_MALLOC"
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_HAVE_NOPOOL -DNGX_DEBUG_MALLOC"
     fi
 
     if [[ -n "$NGX_BUILD_FSANITIZE" ]]; then
@@ -132,20 +145,20 @@ build_nginx() {
     #########
 
     # Source contents hash to determine repatch
-    local hash_src=$(find $ngx_src -type f -print0 | sort -z | xargs -0 shasum\
-                     | shasum | awk '{ print $1}')
+    local hash_src=$(find $src_tree -type f \( -name '*.c' -or -name '*.h' \) -exec sha1sum {} \; \
+                     | sha1sum | awk '{ print $1 }')
 
     if [[ ! -d "$NGX_BUILD_DIR_SRC" \
           || ! -f "$NGX_BUILD_DIR_SRC/.hash" \
           || $(cat "$NGX_BUILD_DIR_SRC/.hash") != $(echo $hash_src) ]];
     then
         rm -rf $NGX_BUILD_DIR_SRC
-        cp -R $ngx_src $NGX_BUILD_DIR_SRC
+        cp -R $tree $NGX_BUILD_DIR_SRC
         echo $hash_src > "$NGX_BUILD_DIR_SRC/.hash"
     fi
 
     # Build options hash to determine rebuild
-    local hash_opt_txt="ngx=$ngx_ver.$ngx_src.\
+    local hash_opt_txt="ngx=$ngx_ver.$tree.\
                         build_name=$name.\
                         cc=$CC.\
                         conf_opt=$NGX_BUILD_CONFIGURE_OPT.\
@@ -221,12 +234,12 @@ build_nginx() {
                 "${build_opts[@]}" \
                 "$NGX_BUILD_CONFIGURE_OPT" \
 
-            NGX_BUILD_FRESH=1
+            FRESH_BUILD=1
         fi
 
         eval "$NGX_BUILD_CMD make -j$(n_jobs)"
 
-        if [[ -n "$NGX_BUILD_OPENRESTY" && "$NGX_BUILD_FRESH" == 1 ]]; then
+        if [[ -n "$NGX_BUILD_OPENRESTY" && "$FRESH_BUILD" == 1 ]]; then
             # install the prefix to preserve Lua components
             make install
         fi
