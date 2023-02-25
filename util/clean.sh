@@ -24,7 +24,13 @@ if [[ -f "$DIR_PATCHED_ROOT/Makefile" ]]; then
 fi
 
 if [[ "$1" == "--all" || "$1" == "--more" ]]; then
-    rm -rf t/servroot* $DIR_PREFIX $DIR_DIST_OUT $DIR_DIST_WORK
+    rm -rf t/servroot* \
+        $DIR_SRC_ROOT \
+        $DIR_PATCHED_ROOT \
+        $DIR_BUILDROOT \
+        $DIR_PREFIX \
+        $DIR_DIST_OUT \
+        $DIR_DIST_WORK \
     cargo clean
 fi
 
