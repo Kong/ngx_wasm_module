@@ -157,10 +157,12 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
                             &rctx->free_bufs, &rctx->busy_bufs,
                             &rctx->resp_chunk, buf_tag);
 
+#ifdef NGX_WASM_RESPONSE_TRAILERS
     if (rctx->resp_chunk_eof && r->parent == NULL) {
         (void) ngx_wasm_ops_resume(&rctx->opctx,
                                    NGX_HTTP_WASM_TRAILER_FILTER_PHASE);
     }
+#endif
 
 done:
 

@@ -449,7 +449,9 @@ ngx_http_wasm_ops_add_filter(ngx_wasm_ops_plan_t *plan,
                     | (1 << NGX_HTTP_CONTENT_PHASE)
                     | (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE)
                     | (1 << NGX_HTTP_WASM_BODY_FILTER_PHASE)
+#ifdef NGX_WASM_RESPONSE_TRAILERS
                     | (1 << NGX_HTTP_WASM_TRAILER_FILTER_PHASE)
+#endif
                     | (1 << NGX_HTTP_LOG_PHASE)
                     | (1 << NGX_WASM_DONE_PHASE);
 

@@ -35,8 +35,6 @@ should use a global instance reused across streams
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "body_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "trailer_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "trailer_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "log" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "log" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "done" phase.*
@@ -52,8 +50,6 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "body_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "trailer_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "trailer_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "log" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "log" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "done" phase.*
@@ -148,8 +144,6 @@ should use an instance per stream
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "body_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "trailer_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "trailer_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "log" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "log" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "done" phase.*
@@ -166,8 +160,6 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter new instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "body_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "trailer_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "trailer_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "log" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "log" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "done" phase.*

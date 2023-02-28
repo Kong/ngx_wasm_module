@@ -7,14 +7,18 @@
 #include <ngx_http.h>
 #include <ngx_http_wasm_util.h>
 #include <ngx_http_wasm_headers.h>
+#ifdef NGX_WASM_RESPONSE_TRAILERS
 #include <ngx_http_wasm_trailers.h>
+#endif
 
 
 #define NGX_HTTP_WASM_MAX_REQ_HEADERS      100
 
 #define NGX_HTTP_WASM_HEADER_FILTER_PHASE  (NGX_HTTP_LOG_PHASE + 1)
 #define NGX_HTTP_WASM_BODY_FILTER_PHASE    (NGX_HTTP_LOG_PHASE + 2)
+#ifdef NGX_WASM_RESPONSE_TRAILERS
 #define NGX_HTTP_WASM_TRAILER_FILTER_PHASE (NGX_HTTP_LOG_PHASE + 3)
+#endif
 
 #define ngx_http_wasm_req_yielded(rctx)                                      \
     (rctx->state == NGX_HTTP_WASM_REQ_STATE_YIELD)
