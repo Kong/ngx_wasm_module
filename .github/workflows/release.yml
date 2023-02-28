@@ -9,17 +9,28 @@ on:
         description: 'Release name (e.g. v0.1.0)'
         required: true
 
-env:
-  CC: clang
-  RETENTION_DAYS: 2
-
 defaults:
   run:
     shell: bash
 
+env:
+  CC: clang
+  RETENTION_DAYS: 2
+
 jobs:
+  setup-env:
+    name: Set environment variables
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          source ./util/_lib.sh
+          echo "WASMTIME_VER=$(get_variable_from_makefile WASMTIME)" >> $GITHUB_ENV
+          echo "WASMER_VER=$(get_variable_from_makefile WASMER)" >> $GITHUB_ENV
+          echo "V8_VER=$(get_variable_from_makefile V8)" >> $GITHUB_ENV
+
   build-images:
     name: Build Docker binary build images
+    needs: setup-env
     runs-on: ubuntu-latest
     outputs:
       release_name: ${{ steps.assign-name.outputs.release_name }}
