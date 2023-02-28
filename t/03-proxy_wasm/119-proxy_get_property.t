@@ -80,7 +80,6 @@ my $phases = CORE::join(',', qw(
     request_body
     response_headers
     response_body
-    response_trailers
 ));
 
 qq{
@@ -109,7 +108,6 @@ my @phases = qw(
     ResponseHeaders
     ResponseBody
     ResponseBody
-    ResponseTrailers
 );
 
 foreach my $phase (@phases) {
@@ -159,7 +157,7 @@ request.total_size: [1-9]+[0-9]+ at OnHttpCallResponse/
 
 
 
-=== TEST 4: proxy_wasm - get_property() - request.headers.[header_name] on: request_headers,request_body,response_headers,response_body,response_trailers
+=== TEST 4: proxy_wasm - get_property() - request.headers.[header_name] on: request_headers,request_body,response_headers,response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
@@ -168,7 +166,6 @@ my $phases = CORE::join(',', qw(
     request_body
     response_headers
     response_body
-    response_trailers
 ));
 
 qq {
@@ -195,7 +192,6 @@ my @phases = qw(
     ResponseHeaders
     ResponseBody
     ResponseBody
-    ResponseTrailers
 );
 
 foreach my $phase (@phases) {
@@ -209,12 +205,12 @@ qr/$checks/
 
 
 
-=== TEST 5: proxy_wasm - get_property() - response properties on: response_headers,response_body,response_trailers
+=== TEST 5: proxy_wasm - get_property() - response properties on: response_headers,response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        proxy_wasm hostcalls 'on=response_headers,response_body,response_trailers \
+        proxy_wasm hostcalls 'on=response_headers,response_body \
                               test=/t/log/properties \
                               name=response.code,response.size,response.total_size';
         echo ok;
@@ -231,16 +227,13 @@ response\.size: 0 at ResponseBody
 response\.total_size: 0 at ResponseBody
 response\.code: 200 at ResponseBody
 response\.size: 0 at ResponseBody
-response\.total_size: 0 at ResponseBody
-response\.code: 200 at ResponseTrailers
-response\.size: [1-9][0-9]* at ResponseTrailers
-response\.total_size: [1-9][0-9]* at ResponseTrailers/
+response\.total_size: 0 at ResponseBody/
 --- no_error_log
 [error]
 
 
 
-=== TEST 6: proxy_wasm - get_property() - response.headers.header_name - on response_headers,response_body,response_trailers
+=== TEST 6: proxy_wasm - get_property() - response.headers.header_name - on response_headers,response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config eval
@@ -261,7 +254,7 @@ qq{
 }
 --- config
     location /t {
-        proxy_wasm hostcalls 'on=response_headers,response_body,response_trailers \
+        proxy_wasm hostcalls 'on=response_headers,response_body \
                               test=/t/log/properties \
                               name=response.headers.foo,response.headers.bar';
         proxy_pass http://test_upstream/;
@@ -275,7 +268,6 @@ my @phases = qw(
     ResponseHeaders
     ResponseBody
     ResponseBody
-    ResponseTrailers
 );
 
 foreach my $phase (@phases) {
@@ -289,7 +281,7 @@ qr/$checks/
 
 
 
-=== TEST 7: proxy_wasm - get_property() - upstream properties on: response_headers,response_body,response_trailers
+=== TEST 7: proxy_wasm - get_property() - upstream properties on: response_headers,response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config eval
@@ -309,7 +301,7 @@ qq{
 --- config
     location /t {
         proxy_pass http://test_upstream/;
-        proxy_wasm hostcalls 'on=response_headers,response_body,response_trailers \
+        proxy_wasm hostcalls 'on=response_headers,response_body \
                               test=/t/log/properties \
                               name=upstream.address,upstream.port';
     }
@@ -322,7 +314,6 @@ my @phases = qw(
     ResponseHeaders
     ResponseBody
     ResponseBody
-    ResponseTrailers
 );
 
 foreach my $phase (@phases) {
@@ -379,7 +370,7 @@ property not found: upstream.port
 
 
 
-=== TEST 10: proxy_wasm - get_property() - connection properties on: request_headers,response_headers,response_body,response_trailers
+=== TEST 10: proxy_wasm - get_property() - connection properties on: request_headers,response_headers,response_body
 --- skip_eval: 4: $::nginxV !~ m/built with OpenSSL/
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -388,7 +379,6 @@ my $phases = CORE::join(',', qw(
     request_headers
     response_headers
     response_body
-    response_trailers
 ));
 
 my $vars = CORE::join(',', qw(
@@ -438,7 +428,6 @@ my @phases = qw(
     ResponseHeaders
     ResponseBody
     ResponseBody
-    ResponseTrailers
 );
 
 foreach my $phase (@phases) {
@@ -456,7 +445,7 @@ qr/$checks/
 
 
 
-=== TEST 11: proxy_wasm - get_property() - connection properties (mTLS) on: request_headers,response_headers,response_body,response_trailers
+=== TEST 11: proxy_wasm - get_property() - connection properties (mTLS) on: request_headers,response_headers,response_body
 --- skip_eval: 4: $::nginxV !~ m/built with OpenSSL/
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -465,7 +454,6 @@ my $phases = CORE::join(',', qw(
     request_headers
     response_headers
     response_body
-    response_trailers
 ));
 
 qq {
@@ -507,7 +495,6 @@ my @phases = qw(
     ResponseHeaders
     ResponseBody
     ResponseBody
-    ResponseTrailers
 );
 
 foreach my $phase (@phases) {
@@ -521,7 +508,7 @@ qr/$checks/
 
 
 
-=== TEST 12: proxy_wasm - get_property() - proxy-wasm properties on: request_headers,request_body,response_headers,response_body,response_trailers
+=== TEST 12: proxy_wasm - get_property() - proxy-wasm properties on: request_headers,request_body,response_headers,response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
@@ -530,7 +517,6 @@ my $phases = CORE::join(',', qw(
     request_body
     response_headers
     response_body
-    response_trailers
 ));
 
 qq {
@@ -555,7 +541,6 @@ my @phases = qw(
     ResponseHeaders
     ResponseBody
     ResponseBody
-    ResponseTrailers
 );
 
 foreach my $phase (@phases) {
