@@ -38,10 +38,10 @@ build_nginx() {
         fatal "missing header file at $header, not an nginx source"
     fi
 
-    local ngx_ver=$(awk 'match($0, /NGINX_VERSION\s+"(.*?)"/, m) {print m[1]}' $header)
+    local ngx_ver=$(awk 'match($0, /NGINX_VERSION\s+"(.*?)"/, m) { print m[1] }' $header)
 
     if [[ -n "$NGX_WASM_RUNTIME" ]] && ! [[ -n "$NGX_WASM_RUNTIME_LIB" ]]; then
-        local runtime_dir="$(get_default_runtime_dir "$NGX_WASM_RUNTIME")"
+        local runtime_dir=$(get_default_runtime_dir $NGX_WASM_RUNTIME)
         export NGX_WASM_RUNTIME_INC="$runtime_dir/include"
         export NGX_WASM_RUNTIME_LIB="$runtime_dir/lib"
     fi
