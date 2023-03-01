@@ -1,17 +1,15 @@
 package t::TestBuild;
 
 use strict;
-use Cwd qw( cwd );
-use IPC::Run qw( run );
-use File::Temp qw( tempdir );
-use File::Path qw( make_path );
+use Cwd qw(cwd);
+use IPC::Run qw(run);
+use File::Temp qw(tempdir);
+use File::Path qw(make_path);
 use Test::Base -Base;
 use Test::LongString;
 
 $ENV{NGX_BUILD_DIR_BUILDROOT} ||= tempdir(CLEANUP => 1);
-$ENV{NGX_BUILD_DIR_SRCROOT} ||= tempdir(CLEANUP => 1);
-$ENV{NGX_WASM_RUNTIME_DIR} ||= '';
-$ENV{NGX_WASM_RUNTIME} ||= '';
+$ENV{NGX_WASM_RUNTIME} ||= 'wasmtime';
 
 our $buildroot = $ENV{NGX_BUILD_DIR_BUILDROOT};
 
@@ -21,7 +19,17 @@ our @EXPORT = qw(
 );
 
 my $dry_run = 0;
-my $cwd = cwd;
+my $pwd = cwd();
+my ($out, $err);
+
+run ["sh", "-c", "NGX_WASM_DIR=$pwd . $pwd/util/_lib.sh && get_default_runtime_dir $ENV{NGX_WASM_RUNTIME}"], \undef, \$out, \$err;
+if (defined $err && $err ne '') {
+    warn "failed to get default runtime_dir\n$err";
+}
+
+chomp $out;
+
+$ENV{NGX_WASM_RUNTIME_DIR} = $out;
 
 sub bail_out (@) {
     Test::More::BAIL_OUT(@_);
@@ -109,7 +117,7 @@ sub grep_something ($$$) {
 
                 SKIP: {
                     skip "$name - $grep_name - test skipped", 1 if $dry_run;
-                    fail("$name - $grep_name pattern \"$p\" should not match output \"$v\"");
+                    fail "$name - $grep_name pattern \"$p\" should not match output \"$v\"";
                 }
             }
         }
@@ -123,7 +131,7 @@ sub grep_something ($$$) {
 
             SKIP: {
                 skip "$name - $grep_name - test skipped", 1 if $dry_run;
-                pass("$name - $grep_name pattern \"$p\" does not match output \"$v\"");
+                pass "$name - $grep_name pattern \"$p\" does not match output \"$v\"";
             }
         }
 
@@ -138,10 +146,10 @@ sub grep_something ($$$) {
                 skip "$name - $grep_name - test skipped", 1 if $dry_run;
 
                 if ((ref $pat && $out =~ /$pat/) || $out =~ /\Q$pat\E/) {
-                    pass("$name - $grep_name pattern \"$p\" matches output");
+                    pass "$name - $grep_name pattern \"$p\" matches output";
 
                 } else {
-                    fail("$name - $grep_name pattern \"$p\" should match output but does not match \"$v\"");
+                    fail "$name - $grep_name pattern \"$p\" should match output but does not match \"$v\"";
                 }
             }
         }
@@ -226,15 +234,15 @@ sub run_test ($) {
     # --- grep_libs
 
     if (defined $block->grep_libs || defined $block->no_grep_libs) {
-        my $out = get_libs();
+        my $libs = get_libs();
 
-        if (defined $out) {
-            grep_something($block, "grep_libs", $out);
-            grep_something($block, "no_grep_libs", $out);
+        if (defined $libs) {
+            grep_something($block, "grep_libs", $libs);
+            grep_something($block, "no_grep_libs", $libs);
         }
     }
 
-    chdir $cwd or die $!;
+    chdir $pwd or die $!;
 }
 
 sub run_tests () {
