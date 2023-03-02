@@ -156,7 +156,8 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
         return NGX_OK;
     }
 
-    dd("loading new plan (plan: %p)", plan);
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, log, 0,
+                   "wasm loading plan: %p", plan);
 
     /* initialize pipelines */
 
@@ -234,13 +235,8 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
 void
 ngx_wasm_ops_plan_destroy(ngx_wasm_ops_plan_t *plan)
 {
-    size_t                    i;
-    ngx_wasm_ops_pipeline_t  *pipeline;
-
-    for (i = 0; i < plan->subsystem->nphases; i++) {
-        pipeline = &plan->pipelines[i];
-        ngx_array_destroy(&pipeline->ops);
-    }
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
+                   "wasm freeing plan: %p", plan);
 
     if (plan->loaded) {
         ngx_array_destroy(&plan->conf.proxy_wasm.filter_ids);
