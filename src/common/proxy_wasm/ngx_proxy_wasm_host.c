@@ -919,14 +919,14 @@ ngx_proxy_wasm_hfuncs_get_property(ngx_wavm_instance_t *instance,
     ret_data = NGX_WAVM_HOST_LIFT(instance, args[2].of.i32, ngx_wavm_ptr_t);
     ret_size = NGX_WAVM_HOST_LIFT(instance, args[3].of.i32, int32_t);
 
-    rc = ngx_proxy_wasm_properties_get(instance, &path, &value);
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+
+    rc = ngx_proxy_wasm_properties_get(pwexec->parent, &path, &value);
     if (rc == NGX_DECLINED) {
         return ngx_proxy_wasm_result_notfound(rets);
     }
 
     ngx_wasm_assert(rc == NGX_OK);
-
-    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
 
     p = ngx_proxy_wasm_alloc(pwexec, value.len);
     if (p == 0) {
@@ -950,15 +950,18 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_set_property(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_str_t  path, value;
-    ngx_int_t  rc;
+    ngx_proxy_wasm_exec_t  *pwexec;
+    ngx_str_t               path, value;
+    ngx_int_t               rc;
 
     path.len = args[1].of.i32;
     path.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, path.len);
     value.len = args[3].of.i32;
     value.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[2].of.i32, value.len);
 
-    rc = ngx_proxy_wasm_properties_set(instance, &path, &value);
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+
+    rc = ngx_proxy_wasm_properties_set(pwexec->parent, &path, &value);
 
     switch (rc) {
     case NGX_DECLINED:
