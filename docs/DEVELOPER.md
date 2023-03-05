@@ -195,7 +195,7 @@ $ make
 └── libwasmtime.so
 ```
 
-Then, build Nginx & ngx_wasm_module with:
+Then, build Nginx and ngx_wasm_module with:
 
 ```sh
 $ export NGX_WASM_RUNTIME={wasmtime,wasmer,v8}  # defaults to wasmtime
