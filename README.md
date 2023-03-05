@@ -22,9 +22,10 @@ filters identical to those running on
 - [What is WasmX?](#what-is-wasmx)
 - [Examples](#examples)
 - [Documentation](#documentation)
+    - [Usage](#usage)
     - [Installation](#installation)
     - [Development](#development)
-    - [proxy-wasm SDK](#proxy-wasm-sdk)
+    - [Proxy-wasm SDK](#proxy-wasm-sdk)
     - [WebAssembly](#webassembly)
     - [WebAssembly runtimes](#webassembly-runtimes)
 - [License](#license)
@@ -53,7 +54,7 @@ http {
             #           [module]
             proxy_wasm  my_filter;
 
-            # execute more webassembly during the access phase
+            # execute more WebAssembly during the access phase
             #           [phase] [module]  [function]
             wasm_call   access  my_module check_something;
 
@@ -118,6 +119,13 @@ filters, some of which may not yet be compatible with ngx_wasm_module.
 
 ## Documentation
 
+### Usage
+
+See the [user documentation](docs/README.md) for resources on this module's
+usage.
+
+[Back to TOC](#table-of-contents)
+
 ### Installation
 
 A release is produced from the `main` branch every Monday, referred to as the
@@ -154,7 +162,7 @@ layout](docs/DEVELOPER.md#code-layout) section.
 
 [Back to TOC](#table-of-contents)
 
-### proxy-wasm SDK
+### Proxy-wasm SDK
 
 See
 [proxy-wasm/spec/abi-versions/vNEXT](https://github.com/proxy-wasm/spec/tree/master/abi-versions/vNEXT)
