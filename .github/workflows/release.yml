@@ -22,8 +22,9 @@ jobs:
     name: Set environment variables
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - run: |
-          source ./util/_lib.sh
+          . ./util/_lib.sh
           echo "WASMTIME_VER=$(get_variable_from_makefile WASMTIME)" >> $GITHUB_ENV
           echo "WASMER_VER=$(get_variable_from_makefile WASMER)" >> $GITHUB_ENV
           echo "V8_VER=$(get_variable_from_makefile V8)" >> $GITHUB_ENV
@@ -94,7 +95,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -121,7 +122,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -148,7 +149,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -175,7 +176,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -202,7 +203,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -226,7 +227,7 @@ jobs:
     steps:
       - name: Set up Homebrew dependencies
         run: brew install ninja
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
