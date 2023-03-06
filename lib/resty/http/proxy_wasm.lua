@@ -5,6 +5,7 @@ local wasm = require "resty.wasm"
 
 
 local C = ffi.C
+local ngx = ngx
 local error = error
 local type = type
 local ffi_gc = ffi.gc
@@ -120,6 +121,11 @@ function _M.attach(c_plan)
         error("plan should be a cdata object", 2)
     end
 
+    local phase = ngx.get_phase()
+    if phase ~= "rewrite" and phase ~= "access" then
+        error("attach must be called from 'rewrite' or 'access' phase", 2)
+    end
+
     local r = get_request()
     if not r then
         error("no request found", 2)
@@ -139,6 +145,11 @@ end
 
 
 function _M.start()
+    local phase = ngx.get_phase()
+    if phase ~= "rewrite" and phase ~= "access" then
+        error("start must be called from 'rewrite' or 'access' phase", 2)
+    end
+
     local r = get_request()
     if not r then
         error("no request found", 2)

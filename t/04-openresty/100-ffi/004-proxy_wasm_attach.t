@@ -455,3 +455,35 @@ qr/#0 on_configure, config_size: 0.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
+
+
+
+=== TEST 10: attach() - fail if attempt to attach on init_worker
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- http_config
+    init_worker_by_lua_block {
+        local proxy_wasm = require "resty.http.proxy_wasm"
+        local filters = {
+            { name = "on_phases" },
+        }
+
+        local c_plan = assert(proxy_wasm.new(filters))
+        assert(proxy_wasm.load(c_plan))
+        assert(proxy_wasm.attach(c_plan))
+    }
+--- config
+    location /t {
+        echo ok;
+    }
+--- request
+POST /t
+Hello world
+--- ignore_response_body
+--- error_log eval
+[
+    qr/attach must be called from 'rewrite' or 'access' phase/,
+]
+--- no_error_log
+[emerg]
+[crit]
