@@ -57,7 +57,30 @@ GET /t?hello=world
 
 
 
-=== TEST 3: proxy_wasm - set_property() can unset Nginx indexed variable
+=== TEST 3: proxy_wasm - set_property() can set proxy-wasm variable with set_handler
+--- wasm_modules: hostcalls
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_property \
+                              name=request.query \
+                              set=456';
+        echo ok;
+    }
+--- request
+GET /t?hello=world
+--- error_log eval
+[
+    qr/\[info\] .*? old: "hello=world"/,
+    qr/\[info\] .*? new: "456"/,
+]
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 4: proxy_wasm - set_property() can unset Nginx indexed variable
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -79,7 +102,7 @@ GET /t?hello=world
 
 
 
-=== TEST 4: proxy_wasm - set_property() can unset Nginx variable with set_handler
+=== TEST 5: proxy_wasm - set_property() can unset Nginx variable with set_handler
 All set_property calls for Nginx variables return strings, so this
 should print the $pid as ASCII numbers.
 --- wasm_modules: hostcalls
@@ -104,7 +127,7 @@ GET /t?hello=world
 
 
 
-=== TEST 5: proxy_wasm - set_property() fails when a variable that is not changeable
+=== TEST 6: proxy_wasm - set_property() fails when a variable that is not changeable
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -127,7 +150,7 @@ qr/500 Internal Server Error/
 
 
 
-=== TEST 6: proxy_wasm - set_property() fails when an ngx.* property is not found
+=== TEST 7: proxy_wasm - set_property() fails when an ngx.* property is not found
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -149,7 +172,7 @@ qr/500 Internal Server Error/
 
 
 
-=== TEST 7: proxy_wasm - set_property() fails if a generic property is not found
+=== TEST 8: proxy_wasm - set_property() fails if a generic property is not found
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -170,7 +193,7 @@ qr/500 Internal Server Error/
 
 
 
-=== TEST 8: proxy_wasm - set_property() works on_request_headers
+=== TEST 9: proxy_wasm - set_property() works on_request_headers
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -193,7 +216,7 @@ qr/500 Internal Server Error/
 
 
 
-=== TEST 9: proxy_wasm - set_property() works on_request_body
+=== TEST 10: proxy_wasm - set_property() works on_request_body
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -219,7 +242,7 @@ hello world
 
 
 
-=== TEST 10: proxy_wasm - set_property() works on_response_headers
+=== TEST 11: proxy_wasm - set_property() works on_response_headers
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -242,7 +265,7 @@ hello world
 
 
 
-=== TEST 11: proxy_wasm - set_property() works on_response_body
+=== TEST 12: proxy_wasm - set_property() works on_response_body
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -265,7 +288,7 @@ hello world
 
 
 
-=== TEST 12: proxy_wasm - set_property() works on_log
+=== TEST 13: proxy_wasm - set_property() works on_log
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -288,7 +311,7 @@ hello world
 
 
 
-=== TEST 13: proxy_wasm - set_property() for ngx.* does not work on_tick (isolation: global)
+=== TEST 14: proxy_wasm - set_property() for ngx.* does not work on_tick (isolation: global)
 on_tick runs on the root context, so it does not have access to ngx_http_* calls.
 HTTP 500 since instance recycling happens on next request, and isolation is global (single instance for root/request)
 
@@ -328,7 +351,7 @@ V8 trap format:
 
 
 
-=== TEST 14: proxy_wasm - set_property() for ngx.* does not work on_tick (isolation: stream)
+=== TEST 15: proxy_wasm - set_property() for ngx.* does not work on_tick (isolation: stream)
 on_tick runs on the root context, so it does not have access to ngx_http_* calls.
 
 Wasmtime trap format:
