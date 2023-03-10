@@ -896,7 +896,7 @@ ngx_proxy_wasm_properties_set(ngx_proxy_wasm_ctx_t *pwctx,
     m = ngx_hash_find_combined(&pwm2ngx_hash, key, p.data, p.len);
     if (m && m->ngx_key.len) {
         /* attribute mapped to nginx variable */
-        return ngx_proxy_wasm_properties_set_ngx(pwctx, &p, value);
+        return ngx_proxy_wasm_properties_set_ngx(pwctx, &m->ngx_key, value);
     }
 
     ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
