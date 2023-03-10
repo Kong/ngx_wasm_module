@@ -103,6 +103,7 @@ typedef struct {
 
     ngx_resolver_t                    *resolver;
     ngx_resolver_t                    *user_resolver;
+    ngx_flag_t                         pwm_lua_resolver;
 } ngx_wasm_core_conf_t;
 
 
@@ -133,6 +134,8 @@ char *ngx_wasm_core_shm_kv_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 char *ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_wasm_core_resolver_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+char *ngx_wasm_core_lua_resolver_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 
 

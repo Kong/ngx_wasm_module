@@ -30,6 +30,7 @@ ngx_int_t ngx_http_wasm_ops_add_filter(ngx_wasm_ops_plan_t *plan,
 /* fake requests */
 ngx_connection_t *ngx_http_wasm_create_fake_connection(ngx_pool_t *pool);
 ngx_http_request_t *ngx_http_wasm_create_fake_request(ngx_connection_t *c);
+void ngx_http_wasm_init_fake_connection(ngx_connection_t *c);
 void ngx_http_wasm_finalize_fake_request(ngx_http_request_t *r, ngx_int_t rc);
 
 

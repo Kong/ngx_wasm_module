@@ -177,7 +177,7 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
 
     { ngx_string("proxy_wasm_lua_resolver"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
+      ngx_wasm_core_lua_resolver_directive,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_wasm_loc_conf_t, pwm_lua_resolver),
       NULL },
@@ -344,7 +344,8 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->pwm_req_headers_in_access,
                          prev->pwm_req_headers_in_access, 0);
 
-    ngx_conf_merge_value(conf->pwm_lua_resolver, prev->pwm_lua_resolver, 0);
+    ngx_conf_merge_value(conf->pwm_lua_resolver, prev->pwm_lua_resolver,
+                         NGX_CONF_UNSET);
 
     if (conf->plan && !conf->plan->populated) {
         conf->plan = prev->plan;
@@ -473,6 +474,7 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 {
     ngx_wasm_op_ctx_t          *opctx;
     ngx_pool_cleanup_t         *cln;
+    ngx_wasm_core_conf_t       *wcf;
     ngx_http_wasm_req_ctx_t    *rctx;
     ngx_http_wasm_main_conf_t  *mcf;
     ngx_http_wasm_loc_conf_t   *loc = NULL;
@@ -481,7 +483,9 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
     if (rctx == NULL) {
         if (r->loc_conf) {
             loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
-            if (loc->plan == NULL || !loc->plan->populated) {
+            if (r->connection->fd != NGX_WASM_BAD_FD
+                && (loc->plan == NULL || !loc->plan->populated))
+            {
                 return NGX_DECLINED;
             }
         }
@@ -498,6 +502,15 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
                        "wasm rctx created: %p (r: %p, main: %d)",
                        rctx, r, r->main == r);
 
+        wcf = ngx_wasm_core_cycle_get_conf(ngx_cycle);
+
+        if (wcf && loc) {
+            /* this dosn't feel like the right place for this merge */
+            /* TODO: try moving this merge to ngx_http_wasm_create_loc_conf */
+            ngx_conf_merge_value(loc->pwm_lua_resolver, wcf->pwm_lua_resolver,
+                                 0);
+        }
+
         rctx->r = r;
         rctx->pool = r->pool;
         rctx->connection = r->connection;
@@ -505,6 +518,7 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 
         if (loc) {
             rctx->sock_buffer_reuse = loc->socket_buffer_reuse;
+            rctx->pwm_lua_resolver = loc->pwm_lua_resolver;
         }
 
         ngx_http_set_ctx(r, rctx, ngx_http_wasm_module);
@@ -542,8 +556,9 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
                 rctx->r_content_handler = r->content_handler;
                 r->content_handler = ngx_http_wasm_content_handler;
             }
+        }
 
-        } else {
+        if (r->connection->fd == NGX_WASM_BAD_FD){
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                            "wasm rctx for fake request");
             rctx->fake_request = 1;

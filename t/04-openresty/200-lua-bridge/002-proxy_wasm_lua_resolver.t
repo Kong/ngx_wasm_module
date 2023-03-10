@@ -41,7 +41,32 @@ __DATA__
 
 
 
-=== TEST 2: Lua bridge - proxy_wasm_lua_resolver disabled
+=== TEST 2: Lua bridge - proxy_wasm_lua_resolver disabled by default (on_request_headers)
+--- timeout eval: $::ExtTimeout
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config eval
+qq{
+    resolver         $::ExtResolver ipv6=off;
+    resolver_timeout $::ExtTimeout;
+    location /t {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/dispatch_http_call \
+                              host=httpbin.org \
+                              path=/headers \
+                              on_http_call_response=echo_response_body';
+        echo failed;
+    }
+}
+--- response_body_like: "Host": "httpbin\.org"
+--- no_error_log
+[error]
+[crit]
+lua resolver
+
+
+
+=== TEST 3: Lua bridge - proxy_wasm_lua_resolver disabled (on_request_headers)
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -68,7 +93,7 @@ lua resolver
 
 
 
-=== TEST 3: Lua bridge - proxy_wasm_lua_resolver, default client settings
+=== TEST 4: Lua bridge - proxy_wasm_lua_resolver, default client settings
 lua-resty-dns-client default timeout is 2000ms
 NGX_WASM_DEFAULT_RESOLVER_TIMEOUT is 30000ms
 --- skip_no_debug: 5
@@ -95,7 +120,7 @@ NGX_WASM_DEFAULT_RESOLVER_TIMEOUT is 30000ms
 
 
 
-=== TEST 4: Lua bridge - proxy_wasm_lua_resolver, existing client
+=== TEST 5: Lua bridge - proxy_wasm_lua_resolver, existing client
 --- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -136,7 +161,7 @@ qr/\[debug\] .*? wasm lua resolver using existing dns_client/
 
 
 
-=== TEST 5: Lua bridge - proxy_wasm_lua_resolver, synchronized client (on_request_headers)
+=== TEST 6: Lua bridge - proxy_wasm_lua_resolver, synchronized client (on_request_headers)
 --- skip_no_debug: 5
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
@@ -175,7 +200,7 @@ qr/\[debug\] .*? wasm lua resolver using existing dns_client/
 
 
 
-=== TEST 6: Lua bridge - proxy_wasm_lua_resolver, SRV record
+=== TEST 7: Lua bridge - proxy_wasm_lua_resolver, SRV record
 --- skip_no_debug: 5
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
@@ -253,7 +278,8 @@ hello world
 
 
 
-=== TEST 7: Lua bridge - proxy_wasm_lua_resolver, IPv6
+=== TEST 8: Lua bridge - proxy_wasm_lua_resolver, IPv6
+--- SKIP
 --- skip_eval: 5: system("cat /sys/module/ipv6/parameters/disable") ne 0 || defined $ENV{GITHUB_ACTIONS}
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
@@ -276,7 +302,7 @@ hello world
 
 
 
-=== TEST 8: Lua bridge - proxy_wasm_lua_resolver, NXDOMAIN
+=== TEST 9: Lua bridge - proxy_wasm_lua_resolver, NXDOMAIN
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -297,3 +323,36 @@ qr/\[error\] .*? lua entry thread aborted: .*? wasm lua failed resolving "foo": 
 --- no_error_log
 [crit]
 [emerg]
+
+
+
+=== TEST 10: proxy_wasm - dispatch_http_call() on_tick (1 call)
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config eval
+qq{
+    wasm {
+        proxy_wasm_lua_resolver on;
+        module hostcalls $t::TestWasm::crates/hostcalls.wasm;
+    }
+}
+--- config
+    location /dispatched {
+        echo "Hello world";
+    }
+    location /t {
+        proxy_wasm_lua_resolver on;
+        proxy_wasm hostcalls 'tick_period=5 \
+                              on_tick=dispatch \
+                              host=localhost:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched';
+        echo ok;
+    }
+--- response_body
+ok
+--- error_log eval
+[
+    qr/on_root_http_call_response \(id: 0, headers: 5, body_bytes: 12, trailers: 0\)/,
+    qr/\[debug\] .*? wasm lua resolved "localhost" to "127.0.0.1"/
+]
+--- no_error_log
+[error]

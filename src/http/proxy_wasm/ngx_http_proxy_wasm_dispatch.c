@@ -166,6 +166,8 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
             return NULL;
         }
 
+        ngx_http_wasm_init_fake_connection(c);
+
         r = ngx_http_wasm_create_fake_request(c);
         if (r == NULL) {
             return NULL;

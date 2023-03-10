@@ -573,13 +573,16 @@ ngx_http_wasm_cleanup_nop(void *data)
 ngx_http_request_t *
 ngx_http_wasm_create_fake_request(ngx_connection_t *c)
 {
-    ngx_http_request_t  *r;
+    ngx_http_request_t     *r;
+    ngx_http_connection_t  *hc;
 #if (NGX_DEBUG)
-    ngx_pool_cleanup_t  *cln;
+    ngx_pool_cleanup_t     *cln;
 #endif
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "wasm creating fake request... (c: %p)", c);
+
+    hc = c->data;
 
     r = ngx_pcalloc(c->pool, sizeof(ngx_http_request_t));
     if (r == NULL) {
@@ -630,6 +633,11 @@ ngx_http_wasm_create_fake_request(ngx_connection_t *c)
 #endif
 
     r->connection = c;
+    r->http_connection = hc;
+
+    r->main_conf = hc->conf_ctx->main_conf;
+    r->srv_conf = hc->conf_ctx->srv_conf;
+    r->loc_conf = hc->conf_ctx->loc_conf;
 
     r->headers_in.content_length_n = 0;
     c->data = r;
@@ -804,6 +812,108 @@ ngx_http_wasm_close_fake_request(ngx_http_request_t *r)
 
     ngx_http_wasm_free_fake_request(r);
     ngx_http_wasm_close_fake_connection(c);
+}
+
+
+ngx_http_wasm_init_fake_connection(ngx_connection_t *c)
+{
+    ngx_uint_t              i;
+    struct sockaddr_in     *sin;
+    ngx_http_port_t        *port;
+    ngx_http_in_addr_t     *addr;
+    ngx_http_connection_t  *hc;
+#if (NGX_HAVE_INET6)
+    struct sockaddr_in6    *sin6;
+    ngx_http_in6_addr_t    *addr6;
+#endif
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "wasm initing fake connection...");
+
+    hc = ngx_pcalloc(c->pool, sizeof(ngx_http_connection_t));
+    if (hc == NULL) {
+        ngx_http_close_connection(c);
+        return;
+    }
+
+    c->data = hc;
+    c->listening = (ngx_listening_t *) ngx_cycle->listening.elts;
+    c->local_sockaddr = c->listening->sockaddr;
+
+    port = c->listening->servers;
+
+    if (port->naddrs > 1) {
+
+        /*
+         * there are several addresses on this port and one of them
+         * is an "*:port" wildcard so getsockname() in ngx_http_server_addr()
+         * is required to determine a server address
+         */
+
+        if (ngx_connection_local_sockaddr(c, NULL, 0) != NGX_OK) {
+            ngx_http_close_connection(c);
+            return;
+        }
+
+        switch (c->local_sockaddr->sa_family) {
+
+#if (NGX_HAVE_INET6)
+        case AF_INET6:
+            sin6 = (struct sockaddr_in6 *) c->local_sockaddr;
+
+            addr6 = port->addrs;
+
+            /* the last address is "*" */
+
+            for (i = 0; i < port->naddrs - 1; i++) {
+                if (ngx_memcmp(&addr6[i].addr6, &sin6->sin6_addr, 16) == 0) {
+                    break;
+                }
+            }
+
+            hc->addr_conf = &addr6[i].conf;
+
+            break;
+#endif
+
+        default: /* AF_INET */
+            sin = (struct sockaddr_in *) c->local_sockaddr;
+
+            addr = port->addrs;
+
+            /* the last address is "*" */
+
+            for (i = 0; i < port->naddrs - 1; i++) {
+                if (addr[i].addr == sin->sin_addr.s_addr) {
+                    break;
+                }
+            }
+
+            hc->addr_conf = &addr[i].conf;
+
+            break;
+        }
+
+    } else {
+
+        switch (c->local_sockaddr->sa_family) {
+
+#if (NGX_HAVE_INET6)
+        case AF_INET6:
+            addr6 = port->addrs;
+            hc->addr_conf = &addr6[0].conf;
+            break;
+#endif
+
+        default: /* AF_INET */
+            addr = port->addrs;
+            hc->addr_conf = &addr[0].conf;
+            break;
+        }
+    }
+
+    /* the default server configuration for the address:port */
+    hc->conf_ctx = hc->addr_conf->default_server->ctx;
 }
 
 

@@ -135,3 +135,42 @@ on_root_http_call_response \(id: 9, headers: 5, body_bytes: 12, trailers: 0\)\Z/
 [error]
 [crit]
 [emerg]
+
+
+
+=== TEST 5: proxy_wasm - dispatch_https_call() on_tick (SSL)
+--- skip_no_debug: 4
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config eval
+qq{
+    wasm {
+        module hostcalls        $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
+        tls_trusted_certificate $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
+    }
+}
+--- config
+    listen              $TEST_NGINX_SERVER_PORT2 ssl;
+    server_name         hostname;
+    ssl_certificate     $TEST_NGINX_DATA_DIR/hostname_cert.pem;
+    ssl_certificate_key $TEST_NGINX_DATA_DIR/hostname_key.pem;
+    resolver 1.1.1.1 ipv6=off;
+    resolver_add 127.0.0.1 hostname;
+    location /dispatch {
+        echo "Hello World";
+    }
+    location /t {
+        proxy_wasm hostcalls 'tick_period=5 \
+                              on_tick=dispatch \
+                              host=hostname:$TEST_NGINX_SERVER_PORT2 \
+                              https=yes \
+                              path=/dispatch';
+        echo ok;
+    }
+--- response_body
+ok
+--- error_log
+upstream tls server name: "hostname"
+on_root_http_call_response (id: 0, headers: 5, body_bytes: 12, trailers: 0)
+--- no_error_log
+[error]
+[crit]
