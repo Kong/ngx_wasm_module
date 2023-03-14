@@ -19,11 +19,12 @@ env:
 
 jobs:
   setup-env:
-    name: Set environment variables
+    name: Setup environment
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - run: |
+          export NGX_WASM_DIR=$(pwd)
           . ./util/_lib.sh
           echo "WASMTIME_VER=$(get_variable_from_makefile WASMTIME)" >> $GITHUB_ENV
           echo "WASMER_VER=$(get_variable_from_makefile WASMER)" >> $GITHUB_ENV
@@ -36,7 +37,6 @@ jobs:
     outputs:
       release_name: ${{ steps.assign-name.outputs.release_name }}
     steps:
-      - uses: actions/checkout@v3
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
@@ -47,25 +47,25 @@ jobs:
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      - name: "Ubuntu 18.04 build image"
+      - name: 'Ubuntu 18.04 build image'
         uses: docker/build-push-action@v2
         with:
           file: ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-18.04
           tags: ghcr.io/kong/wasmx-build-ubuntu:18.04
           push: true
-      - name: "Ubuntu 20.04 build image"
+      - name: 'Ubuntu 20.04 build image'
         uses: docker/build-push-action@v2
         with:
           file: ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-20.04
           tags: ghcr.io/kong/wasmx-build-ubuntu:20.04
           push: true
-      - name: "Centos 7 build image"
+      - name: 'Centos 7 build image'
         uses: docker/build-push-action@v2
         with:
           file: ./assets/release/Dockerfiles/Dockerfile.amd64.centos7
           tags: ghcr.io/kong/wasmx-build-centos:7
           push: true
-      - name: "Centos 8 build image"
+      - name: 'Centos 8 build image'
         uses: docker/build-push-action@v2
         with:
           file: ./assets/release/Dockerfiles/Dockerfile.amd64.centos8
@@ -86,7 +86,7 @@ jobs:
           fi
 
   build-ubuntu-bionic:
-    name: "Build Ubuntu 18.04 (bionic) binary"
+    name: 'Build Ubuntu 18.04 (bionic) binary'
     needs: build-images
     runs-on: ubuntu-latest
     container:
@@ -95,7 +95,6 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -113,7 +112,7 @@ jobs:
           path: work/ngx_wasm_module_dist/build/*
 
   build-ubuntu-focal:
-    name: "Build Ubuntu 20.04 (focal) binary"
+    name: 'Build Ubuntu 20.04 (focal) binary'
     needs: build-images
     runs-on: ubuntu-latest
     container:
@@ -122,7 +121,6 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -140,7 +138,7 @@ jobs:
           path: work/ngx_wasm_module_dist/build/*
 
   build-centos7:
-    name: "Build Centos 7 binary"
+    name: 'Build Centos 7 binary'
     needs: build-images
     runs-on: ubuntu-latest
     container:
@@ -149,7 +147,6 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -167,7 +164,7 @@ jobs:
           path: work/ngx_wasm_module_dist/build/*
 
   build-centos8:
-    name: "Build Centos 8 binary"
+    name: 'Build Centos 8 binary'
     needs: build-images
     runs-on: ubuntu-latest
     container:
@@ -176,7 +173,6 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -203,7 +199,6 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -227,7 +222,6 @@ jobs:
     steps:
       - name: Set up Homebrew dependencies
         run: brew install ninja
-      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
