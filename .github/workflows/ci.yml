@@ -4,7 +4,7 @@ on:
   push:
     branches: main
   pull_request:
-    branches: '*'
+    branches: "*"
 
 defaults:
   run:
@@ -15,7 +15,7 @@ env:
 
 jobs:
   tests:
-    name: 'Tests - unit'
+    name: "Tests - unit"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     outputs:
@@ -72,7 +72,7 @@ jobs:
             no_ssl: 1
     steps:
       - name: "Setup deps - apt-get"
-        if: ${{ matrix.cc == 'gcc-9' }}
+        if: ${{ matrix.cc == "gcc-9" }}
         run: sudo apt-get update && sudo apt-get install -y gcc-9 libstdc++-9-dev lcov
       - uses: actions/checkout@v3
       - name: "Setup cache - rustup toolchain"
@@ -83,14 +83,14 @@ jobs:
             ~/.rustup/settings.toml
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
-          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles(".github/**/*.yml", ".github/**/*.sh") }}
       - name: "Setup cache - work/ dir"
         uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles("util/**/*.sh", "util/**/*.pl", "util/**/*.awk", ".github/**/*.yml", ".github/**/*.sh", ".github/**/*.js", "rust-toolchain") }}
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -117,7 +117,7 @@ jobs:
           TEST_NGINX_USE_HUP: ${{ matrix.hup }}
       - name: Run lcov
         id: lcov
-        if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
+        if: ${{ !env.ACT && matrix.cc == "gcc-9" }}
         run: |
           name="unit-tests"
           if [ -n "${{ matrix.openresty }}" ]; then
@@ -135,9 +135,9 @@ jobs:
           name="$name-hup_${{ matrix.hup }}"
           echo "name=$name" >> $GITHUB_OUTPUT
           lcov --capture --directory work/buildroot --output-file lcov.info
-          lcov --extract lcov.info '*/ngx_wasm_module/src/*' --output-file lcov.info
+          lcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
       - name: Coveralls Upload
-        if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
+        if: ${{ !env.ACT && matrix.cc == "gcc-9" }}
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.github_token }}
@@ -163,13 +163,13 @@ jobs:
           parallel-finished: true
 
   valgrind:
-    name: 'Tests - valgrind'
+    name: "Tests - valgrind"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 70
     #if: ${{ false }}
     env:
       NGX_BUILD_NOPOOL: 1
-      NGX_BUILD_CC_OPT: '-O2'
+      NGX_BUILD_CC_OPT: "-O2"
       TEST_NGINX_TIMEOUT: 120
       TEST_NGINX_USE_VALGRIND: 1
     strategy:
@@ -207,15 +207,15 @@ jobs:
             ~/.rustup/settings.toml
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
-          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles(".github/**/*.yml", ".github/**/*.sh") }}
       - name: "Setup cache - work/ dir"
         uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
-      - name: Setup rust
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles("util/**/*.sh", "util/**/*.pl", "util/**/*.awk", ".github/**/*.yml", ".github/**/*.sh", ".github/**/*.js", "rust-toolchain") }}
+      - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -254,7 +254,7 @@ jobs:
             valgrind.out
 
   lint:
-    name: 'Lint'
+    name: "Lint"
     runs-on: ubuntu-latest
     #if: ${{ false }}
     steps:
@@ -267,7 +267,7 @@ jobs:
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles("util/**/*.sh", "util/**/*.pl", "util/**/*.awk", ".github/**/*.yml", ".github/**/*.sh", ".github/**/*.js", "rust-toolchain") }}
       - run: make setup
       - run: make lint
       - uses: actions-rs/clippy-check@v1
@@ -282,7 +282,7 @@ jobs:
           fi
 
   analyzer:
-    name: 'Clang analyzer'
+    name: "Clang analyzer"
     runs-on: ubuntu-latest
     #if: ${{ false }}
     env:
@@ -306,7 +306,7 @@ jobs:
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles("util/**/*.sh", "util/**/*.pl", "util/**/*.awk", ".github/**/*.yml", ".github/**/*.sh", ".github/**/*.js", "rust-toolchain") }}
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
         env:
@@ -323,7 +323,7 @@ jobs:
           path: work/scans/*
 
   build:
-    name: 'Tests - build'
+    name: "Tests - build"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     #if: ${{ false }}
@@ -351,7 +351,7 @@ jobs:
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles("util/**/*.sh", "util/**/*.pl", "util/**/*.awk", ".github/**/*.yml", ".github/**/*.sh", ".github/**/*.js", "rust-toolchain") }}
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
         env:
