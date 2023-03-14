@@ -71,11 +71,11 @@ jobs:
             debug: 0
             no_ssl: 1
     steps:
-      - name: "Setup deps - apt-get"
+      - name: 'Setup deps - apt-get'
         if: ${{ matrix.cc == 'gcc-9' }}
         run: sudo apt-get update && sudo apt-get install -y gcc-9 libstdc++-9-dev lcov
       - uses: actions/checkout@v3
-      - name: "Setup cache - rustup toolchain"
+      - name: 'Setup cache - rustup toolchain'
         uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
@@ -84,7 +84,7 @@ jobs:
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
-      - name: "Setup cache - work/ dir"
+      - name: 'Setup cache - work/ dir'
         uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
@@ -135,14 +135,14 @@ jobs:
           name="$name-hup_${{ matrix.hup }}"
           echo "name=$name" >> $GITHUB_OUTPUT
           lcov --capture --directory work/buildroot --output-file lcov.info
-          lcov --extract lcov.info '*/ngx_wasm_module/src/*' --output-file lcov.info
+          lcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
       - name: Coveralls Upload
         if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.github_token }}
           flag-name: ${{ needs.tests.outputs.coveralls_name }}
-          path-to-lcov: "./lcov.info"
+          path-to-lcov: './lcov.info'
           parallel: true
       - uses: actions/upload-artifact@v2
         if: ${{ failure() && !env.ACT }}
@@ -199,7 +199,7 @@ jobs:
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
       - uses: actions/checkout@v3
-      - name: "Setup cache - rustup toolchain"
+      - name: 'Setup cache - rustup toolchain'
         uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
@@ -208,14 +208,14 @@ jobs:
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
-      - name: "Setup cache - work/ dir"
+      - name: 'Setup cache - work/ dir'
         uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
           path: |
             work/downloads
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
-      - name: Setup rust
+      - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -300,7 +300,7 @@ jobs:
           sudo apt-get install -y $(echo ${{ matrix.cc }} | sed s/clang/clang-tools/)
           sudo update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/$(echo ${{ matrix.cc }} | sed s/clang/scan-build/) 100
       - uses: actions/checkout@v3
-      - name: "Setup cache - work/ dir"
+      - name: 'Setup cache - work/ dir'
         uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
@@ -345,7 +345,7 @@ jobs:
             wasmtime: 5.0.0
     steps:
       - uses: actions/checkout@v3
-      - name: "Setup cache - work/ dir"
+      - name: 'Setup cache - work/ dir'
         uses: actions/cache@v3
         if: ${{ !env.ACT }}
         with:
