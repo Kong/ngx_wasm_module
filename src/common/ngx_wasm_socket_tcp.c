@@ -340,13 +340,9 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
     if (rslv_ctx == NULL) {
         ngx_wasm_socket_tcp_err(sock, "failed starting resolver");
         return NGX_ERROR;
-
-    } else if (rslv_ctx == NGX_NO_RESOLVER) {
-        /* TODO: remove dead code along with test */
-        ngx_wasm_socket_tcp_err(sock, "no resolver defined to resolve \"%*s\"",
-                                (int) sock->url.host.len, sock->url.host.data);
-        return NGX_ERROR;
     }
+
+    ngx_wasm_assert(rslv_ctx != NGX_NO_RESOLVER);
 
     rslv_ctx->name = rslv_tmp.name;
     rslv_ctx->timeout = rslv_tmp.timeout;
@@ -490,12 +486,6 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
 
     ngx_wasm_assert(!sock->connected);
     ngx_wasm_assert(sock->resolved.sockaddr);
-
-    if (!sock->resolved.sockaddr) {
-        /* TODO: remove dead code */
-        ngx_wasm_socket_tcp_err(sock, "resolver failed");
-        return NGX_ERROR;
-    }
 
     pc = &sock->peer;
     pc->log = sock->log;
