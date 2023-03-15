@@ -75,8 +75,8 @@ qr/\[info\] .*? property not found: ngx.nonexistent_property/
     }
 --- response_body
 ok
---- error_log
-[wasm] property "nonexistent_property" not found
+--- error_log eval
+qr/\[info\] .*? property not found: nonexistent_property,/
 --- no_error_log
 [crit]
 
@@ -92,8 +92,8 @@ ok
     }
 --- response_body
 ok
---- error_log
-[wasm] property "n" not found
+--- error_log eval
+qr/\[info\] .*? property not found: n,/
 --- no_error_log
 [crit]
 
