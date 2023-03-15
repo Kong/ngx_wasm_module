@@ -151,6 +151,13 @@ qr/500 Internal Server Error/
 
 
 === TEST 7: proxy_wasm - set_property() fails when an ngx.* property is not found
+In spite of the panic below, our proxy-wasm implementation does not cause a
+critical failure when a property is not found.
+
+The Rust SDK, which we're using here, panics with "unexpected status: 1",
+(where 1 means NotFound), but other SDKs, such as the Go SDK, forward the
+NotFound status back to the caller.
+
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -164,15 +171,22 @@ qr/500 Internal Server Error/
 qr/500 Internal Server Error/
 --- error_log eval
 [
-    qr/\[error\] .*? nginx variable "nonexistent_property" not found/,
     qr/\[crit\] .*? panicked at 'unexpected status: 1'/,
 ]
 --- no_error_log
+[emerg]
 [alert]
 
 
 
 === TEST 8: proxy_wasm - set_property() fails if a generic property is not found
+In spite of the panic below, our proxy-wasm implementation does not cause a
+critical failure when a property is not found.
+
+The Rust SDK, which we're using here, panics with "unexpected status: 1",
+(where 1 means NotFound), but other SDKs, such as the Go SDK, forward the
+NotFound status back to the caller.
+
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -185,10 +199,10 @@ qr/500 Internal Server Error/
 qr/500 Internal Server Error/
 --- error_log eval
 [
-    qr/\[error\] .*? property "nonexistent_property" not found/,
     qr/\[crit\] .*? panicked at 'unexpected status: 1'/,
 ]
 --- no_error_log
+[emerg]
 [alert]
 
 
