@@ -708,7 +708,7 @@ ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t *name)
 
     p = ngx_strlchr(p, last, ':');
 
-    if (p != NULL) {
+    if (p) {
         name->len = p - name->data;
     }
 
