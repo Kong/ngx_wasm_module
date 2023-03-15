@@ -361,6 +361,12 @@ for my $file (@ARGV) {
                  }
             }
 
+            # zero/null tests */
+
+            if ($line =~ /!= NULL/) {
+                output "use 'if (ptr)' instead of if (ptr != NULL)";
+            }
+
             ##################################################################
             # end new rules - excluding comment lines
             ##################################################################
