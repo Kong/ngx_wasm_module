@@ -768,9 +768,6 @@ ngx_proxy_wasm_properties_set_ngx(ngx_proxy_wasm_ctx_t *pwctx,
 
     v = ngx_hash_find(&cmcf->variables_hash, hash, name.data, name.len);
     if (!v) {
-        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
-                           "nginx variable \"%V\" not found", &name);
-
         return NGX_DECLINED;
     }
 
@@ -985,9 +982,6 @@ ngx_proxy_wasm_properties_get(ngx_proxy_wasm_ctx_t *pwctx,
         return ngx_proxy_wasm_properties_get_host(pwctx, &p, value);
     }
 
-    ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
-                       "property \"%V\" not found", &p);
-
     return NGX_DECLINED;
 }
 
@@ -1023,9 +1017,6 @@ ngx_proxy_wasm_properties_set(ngx_proxy_wasm_ctx_t *pwctx,
         /* host variable */
         return ngx_proxy_wasm_properties_set_host(pwctx, &p, value);
     }
-
-    ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
-                       "property \"%V\" not found", &p);
 
     return NGX_DECLINED;
 }
