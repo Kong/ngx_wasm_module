@@ -22,7 +22,7 @@ __DATA__
     }
 --- ignore_response_body
 --- error_log eval
-qr/\[info\] .*? property not found: wasmx.nonexistent_property/
+qr/\[info\] .*? property not found: wasmx.nonexistent_property,/
 --- no_error_log
 [error]
 [emerg]
@@ -39,8 +39,8 @@ qr/\[info\] .*? property not found: wasmx.nonexistent_property/
     }
 --- response_body
 ok
---- error_log
-[wasm] property "was" not found
+--- error_log eval
+qr/\[info\] .*? property not found: was,/
 --- no_error_log
 [crit]
 [emerg]
