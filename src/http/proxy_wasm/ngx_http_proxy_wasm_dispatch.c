@@ -243,7 +243,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     p = ngx_strlchr(p, last, ':');
 
-    if (p != NULL) {
+    if (p) {
         port = ngx_atoi(p + 1, last - p);
     }
 

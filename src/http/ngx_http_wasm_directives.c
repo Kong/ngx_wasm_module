@@ -266,9 +266,7 @@ ngx_http_wasm_resolver_add_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     rn->expire = NGX_MAX_UINT32_VALUE;
     rn->node.key = ngx_crc32_short(rn->name, rn->nlen);
 
-    if (ngx_strlchr(address->data, address->data + address->len, ':')
-        != NULL)
-    {
+    if (ngx_strlchr(address->data, address->data + address->len, ':')) {
 
 #if (NGX_HAVE_INET6)
         if (!r->ipv6
