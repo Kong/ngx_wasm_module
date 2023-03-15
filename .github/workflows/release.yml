@@ -95,6 +95,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -121,6 +122,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -147,6 +149,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -173,6 +176,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -199,6 +203,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
@@ -222,6 +227,7 @@ jobs:
     steps:
       - name: Set up Homebrew dependencies
         run: brew install ninja
+      - uses: actions/checkout@v3
       - name: Build binary
         run: ./util/release.sh ${{ needs.build-images.outputs.release_name }} --bin
         env:
