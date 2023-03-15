@@ -704,7 +704,7 @@ ngx_http_wasm_finalize_fake_request(ngx_http_request_t *r, ngx_int_t rc)
 
                 if (c && c->ssl) {
                     cctx = ngx_http_lua_ssl_get_ctx(c->ssl->connection);
-                    if (cctx != NULL) {
+                    if (cctx) {
                         cctx->exit_code = 0;
                     }
                 }

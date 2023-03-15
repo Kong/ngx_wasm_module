@@ -129,7 +129,7 @@ ngx_wavm_host_kindvec2typevec(const wasm_valkind_t **valkinds,
 
     for (i = 0; i < out->size; i++) {
         valkind = ((wasm_valkind_t **) valkinds)[i];
-        ngx_wasm_assert(valkind != NULL);
+        ngx_wasm_assert(valkind);
         out->data[i] = wasm_valtype_new(*valkind);
     }
 }
