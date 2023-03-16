@@ -481,6 +481,13 @@ name = "ngx"
 version = "0.1.0"
 
 [[package]]
+name = "ngx-lua-tests"
+version = "0.1.0"
+dependencies = [
+ "ngx",
+]
+
+[[package]]
 name = "ngx-rust-tests"
 version = "0.1.0"
 dependencies = [

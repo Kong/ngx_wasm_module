@@ -581,7 +581,9 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     case NGX_PROXY_WASM_STEP_REQ_BODY:
     case NGX_PROXY_WASM_STEP_RESP_HEADERS:
     case NGX_PROXY_WASM_STEP_RESP_BODY:
+#ifdef NGX_WASM_RESPONSE_TRAILERS
     case NGX_PROXY_WASM_STEP_RESP_TRAILERS:
+#endif
         ecode = ngx_proxy_wasm_on_start(ictx, filter, 0);
         if (ecode != NGX_PROXY_WASM_ERR_NONE) {
             pwexec->ecode = ecode;
@@ -1400,7 +1402,7 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_exec_t *pwexec)
 {
     ngx_wavm_instance_t             *instance;
     ngx_proxy_wasm_filter_t         *filter = pwexec->filter;
-#if 0
+#if 1
 #ifdef NGX_WASM_HTTP
     ngx_http_proxy_wasm_dispatch_t  *call;
 #endif
@@ -1414,7 +1416,7 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_exec_t *pwexec)
                    pwexec->filter->name, pwexec->index + 1,
                    pwexec->parent->nfilters);
 
-#if 0
+#if 1
 #ifdef NGX_WASM_HTTP
     call = pwexec->call;
     if (call) {

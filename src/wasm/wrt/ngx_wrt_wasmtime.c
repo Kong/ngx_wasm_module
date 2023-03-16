@@ -58,7 +58,7 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
     wasmtime_config_wasm_reference_types_set(config, true);
     wasmtime_config_parallel_compilation_set(config, false);
 
-#ifdef NGX_WASM_NOPOOL
+#ifdef NGX_WASM_HAVE_NOPOOL
     wasmtime_config_debug_info_set(config, false);
     wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_NONE);
     wasmtime_config_static_memory_maximum_size_set(config, 0);

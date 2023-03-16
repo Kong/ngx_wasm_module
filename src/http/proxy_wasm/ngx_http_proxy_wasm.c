@@ -241,6 +241,7 @@ ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_exec_t *pwexec,
 }
 
 
+#ifdef NGX_WASM_RESPONSE_TRAILERS
 static ngx_int_t
 ngx_http_proxy_wasm_on_response_trailers(ngx_proxy_wasm_exec_t *pwexec,
     ngx_uint_t *ret)
@@ -282,6 +283,7 @@ ngx_http_proxy_wasm_on_response_trailers(ngx_proxy_wasm_exec_t *pwexec,
 
     return rc;
 }
+#endif
 
 
 static ngx_int_t
@@ -410,9 +412,11 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_exec_t *pwexec,
     case NGX_PROXY_WASM_STEP_RESP_BODY:
         rc = ngx_http_proxy_wasm_on_response_body(pwexec, ret);
         break;
+#ifdef NGX_WASM_RESPONSE_TRAILERS
     case NGX_PROXY_WASM_STEP_RESP_TRAILERS:
         rc = ngx_http_proxy_wasm_on_response_trailers(pwexec, ret);
         break;
+#endif
     case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
         rc = ngx_http_proxy_wasm_on_dispatch_response(pwexec);
         break;

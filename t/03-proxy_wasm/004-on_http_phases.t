@@ -232,6 +232,7 @@ Hello
 
 
 === TEST 11: proxy_wasm - on_response_trailers gets number of response trailers (with body)
+--- SKIP: HTTP trailers support is not ready yet
 --- http2
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -260,6 +261,7 @@ qr/#\d+ on_response_headers, \d+ headers.*
 
 === TEST 12: proxy_wasm - on_response_trailers gets number of response trailers (without body)
 No trailers in response
+--- SKIP: HTTP trailers support is not ready yet
 --- http2
 --- wasm_modules: on_phases
 --- config
@@ -314,7 +316,6 @@ qr/404 Not Found/
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, \d+ bytes.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- error_log eval
 qr/\[error\] .*? open\(\) \".*?\" failed/
@@ -337,7 +338,6 @@ should produce a response in and of itself, proxy_wasm wraps around
 --- grep_error_log_out eval
 qr/#\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 0 bytes.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -362,7 +362,6 @@ qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -388,7 +387,6 @@ qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -425,7 +423,6 @@ qq{
 qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -454,7 +451,6 @@ should not execute a log phase
 qr/#\d+ on_request_headers, 2 headers.*? subrequest: "\/subrequest".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*/
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
 --- no_error_log
 [error]
 on_log
@@ -487,7 +483,6 @@ qr/#\d+ on_request_headers, 3 headers.*? subrequest: "\/subrequest".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*
 #\d+ on_response_body, 3 bytes, eof: false.*? subrequest: "\/subrequest".*
 #\d+ on_response_body, 0 bytes, eof: true.*? subrequest: "\/subrequest".*/
-#\d+ on_response_trailers, 0 trailers.*
 --- no_error_log
 [error]
 on_log
@@ -516,7 +511,6 @@ qr/#\d+ on_request_headers, 3 headers.*? subrequest: "\/subrequest".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*
 #\d+ on_response_body, 3 bytes, eof: false.*? subrequest: "\/subrequest".*
 #\d+ on_response_body, 0 bytes, eof: true.*? subrequest: "\/subrequest".*/
-#\d+ on_response_trailers, 0 trailers.*
 --- no_error_log
 [error]
 on_log
@@ -629,7 +623,6 @@ qr/#\d+ on_request_headers, 2 headers.*? subrequest: "\/subrequest\/a".*
 #\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest\/b".*
 #\d+ on_response_body, 2 bytes, eof: false.*? subrequest: "\/subrequest\/b".*
 #\d+ on_response_body, 0 bytes, eof: true.*? subrequest: "\/subrequest\/b".*/
-#\d+ on_response_trailers, 0 trailers.*
 --- no_error_log
 [error]
 on_log
@@ -664,8 +657,6 @@ qr/#\d+ on_request_headers, 3 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*
 #\d+ on_log.*/
 --- no_error_log
@@ -697,8 +688,6 @@ qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log .*
 #\d+ on_log .*/
 --- no_error_log
@@ -730,8 +719,6 @@ qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log .*
 #\d+ on_log .*/
 --- no_error_log
@@ -759,7 +746,6 @@ qr/#\d+ on_request_headers, 2 headers.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- error_log eval
 qr/log_msg: server .*? request: "GET \/t\s+/
@@ -785,7 +771,6 @@ should not chain; instead, location{} overrides server{}
 --- grep_error_log_out eval
 qr/#\d+ on_response_headers, \d+ headers.*
 #\d+ on_response_body, \d+ bytes.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- error_log eval
 qr/log_msg: location .*? request: "GET \/t\s+/
@@ -813,7 +798,6 @@ should not chain; instead, location{} overrides server{}, server{} overrides htt
 --- grep_error_log_out eval
 qr/#\d+ on_response_headers, \d+ headers.*
 #\d+ on_response_body, \d+ bytes.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- error_log eval
 qr/log_msg: location .*? request: "GET \/t\s+/

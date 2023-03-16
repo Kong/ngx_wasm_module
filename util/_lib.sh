@@ -17,18 +17,94 @@ DIR_LIBWEE8=$DIR_DIST_RUNTIMES/libwee8
 DIR_PREFIX=$NGX_WASM_DIR/t/servroot
 DIR_OPR_PREFIX=$DIR_BUILDROOT/prefix
 DIR_DIST_OUT=$NGX_WASM_DIR/dist
+DIR_LUAJIT=$DIR_OPR_PREFIX/luajit
+DIR_LUAROCKS=$DIR_WORK/luarocks
+BIN_LUAROCKS=$DIR_LUAROCKS/bin/luarocks
 URL_KONG_WASM_RUNTIMES="https://github.com/kong/ngx_wasm_runtimes"
 
 export PERL5LIB=$DIR_CPANM/lib/perl5
 
-build_nginx() {
-    local ngx_src=$1
-    local ngx_ver=$2
-    local build_name=(dev)
-    local build_opts=()
+get_variable_from_makefile() {
+    local var_name="$1"
+    local makefile="$NGX_WASM_DIR/Makefile"
 
-    if [[ -n "$NGX_WASM_RUNTIME" ]] && ! [[ -n "$NGX_WASM_RUNTIME_LIB" ]]; then
-        local runtime_dir="$(get_default_runtime_dir "$NGX_WASM_RUNTIME")"
+    awk '/'"$var_name"' \?= / { print $3 }' "$makefile"
+}
+
+# luarocks
+
+LUAROCKS_VER=$(get_variable_from_makefile LUAROCKS)
+
+install_luarocks() {
+    notice "installing LuaRocks $LUAROCKS_VER..."
+
+    if [[ ! -d "$DIR_DOWNLOAD/luarocks-$LUAROCKS_VER" ]]; then
+        notice "downloading LuaRocks $LUAROCKS_VER..."
+        download $DIR_DOWNLOAD/luarocks-$LUAROCKS_VER.tar.gz \
+            "https://luarocks.org/releases/luarocks-$LUAROCKS_VER.tar.gz"
+        tar -xf $DIR_DOWNLOAD/luarocks-$LUAROCKS_VER.tar.gz -C $DIR_DOWNLOAD
+    fi
+
+    pushd $DIR_DOWNLOAD/luarocks-$LUAROCKS_VER
+        ./configure \
+            --with-lua-include=$DIR_LUAJIT/include/luajit-2.1 \
+            --with-lua-bin=$DIR_LUAJIT/bin \
+            --prefix=$DIR_LUAROCKS
+        make
+        make install
+    popd
+
+    $BIN_LUAROCKS --tree=$DIR_LUAJIT --lua-version=5.1 install lua-resty-dns-client
+    $BIN_LUAROCKS --tree=$DIR_LUAJIT --lua-version=5.1 install LuaFileSystem
+}
+
+remove_luarocks() {
+    if [[ -x "$BIN_LUAROCKS" ]]; then
+        local cur_ver=$($BIN_LUAROCKS --version | grep -Po '\d+\.\d+\.\d+')
+        notice "removing LuaRocks $cur_ver..."
+        $BIN_LUAROCKS --tree=$DIR_LUAJIT purge
+        rm -rf $DIR_LUAROCKS
+        rm -rf $DIR_LUAJIT/lib/luarocks
+        rm -f $BIN_LUAROCKS
+    fi
+}
+
+update_luarocks() {
+    if [[ -x "$BIN_LUAROCKS" ]]; then
+        local cur_ver=$($BIN_LUAROCKS --version | grep -Po '\d+\.\d+\.\d+')
+        if [[ "$cur_ver" != "$LUAROCKS_VER" ]]; then
+            # mostly for remove_luarocks, since updating the ver in the
+            # Makefile triggered a fresh build
+            remove_luarocks
+        fi
+    fi
+
+    install_luarocks
+}
+
+# nginx
+
+build_nginx() {
+    local tree="$1"
+    local build_opts=()
+    local build_name=(dev)
+    local ngx_tree=$tree
+    local src_tree=$tree
+
+    if [[ -n "$NGX_BUILD_OPENRESTY" ]]; then
+        src_tree="$tree/bundle"
+        ngx_tree=$(find $src_tree -type d -name 'nginx-*')
+    fi
+
+    local header="$ngx_tree/src/core/nginx.h"
+    if [[ ! -f "$header" ]]; then
+        fatal "missing header file at $header, not an nginx source"
+    fi
+
+    local ngx_ver=$(awk 'match($0, /NGINX_VERSION\s+"(.*?)"/, m) { print m[1] }' $header)
+
+    if [[ -n "$NGX_WASM_RUNTIME" ]] && [[ -z "$NGX_WASM_RUNTIME_LIB" ]]; then
+        local runtime_dir=$(get_default_runtime_dir "$NGX_WASM_RUNTIME")
         export NGX_WASM_RUNTIME_INC="$runtime_dir/include"
         export NGX_WASM_RUNTIME_LIB="$runtime_dir/lib"
     fi
@@ -44,7 +120,7 @@ build_nginx() {
 
     if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
         build_name+=" nopool"
-        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_NOPOOL -DNGX_DEBUG_MALLOC"
+        NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_HAVE_NOPOOL -DNGX_DEBUG_MALLOC"
     fi
 
     if [[ -n "$NGX_BUILD_FSANITIZE" ]]; then
@@ -93,19 +169,6 @@ build_nginx() {
         build_opts+="--add-module=$NGX_WASM_DIR "
     fi
 
-    if [[ -n "$NGX_BUILD_OPENRESTY" ]]; then
-        # switch prefix with Lua components since t/servroot
-        # is cleaned by Test::Nginx
-        NGX_BUILD_DIR_PREFIX=$DIR_OPR_PREFIX
-
-        # ./configure -j for LuaJIT build
-        build_opts+="-j$(n_jobs) "
-
-        # built as dynamic modules below for Test::Wasm
-        build_opts+="--without-http_echo_module "
-        build_opts+="--without-http_headers_more_module "
-    fi
-
     if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http" ]]; then
         # ngx_echo_module, ngx_headers_more_module do not support --without-http
         # no need to add them when compiling OpenResty
@@ -132,20 +195,20 @@ build_nginx() {
     #########
 
     # Source contents hash to determine repatch
-    local hash_src=$(find $ngx_src -type f -print0 | sort -z | xargs -0 shasum\
-                     | shasum | awk '{ print $1}')
+    local hash_src=$(find $src_tree -type f \( -name '*.c' -or -name '*.h' \) -exec sha1sum {} \; \
+                     | sha1sum | awk '{ print $1 }')
 
     if [[ ! -d "$NGX_BUILD_DIR_SRC" \
           || ! -f "$NGX_BUILD_DIR_SRC/.hash" \
           || $(cat "$NGX_BUILD_DIR_SRC/.hash") != $(echo $hash_src) ]];
     then
         rm -rf $NGX_BUILD_DIR_SRC
-        cp -R $ngx_src $NGX_BUILD_DIR_SRC
+        cp -R $tree $NGX_BUILD_DIR_SRC
         echo $hash_src > "$NGX_BUILD_DIR_SRC/.hash"
     fi
 
     # Build options hash to determine rebuild
-    local hash_opt_txt="ngx=$ngx_ver.$ngx_src.\
+    local hash_opt_txt="ngx=$ngx_ver.$tree.\
                         build_name=$name.\
                         cc=$CC.\
                         conf_opt=$NGX_BUILD_CONFIGURE_OPT.\
@@ -191,6 +254,38 @@ build_nginx() {
         fi
     fi
 
+    ###########
+    # OpenResty
+    ###########
+
+    if [[ -n "$NGX_BUILD_OPENRESTY" ]]; then
+        # switch prefix to preserve Lua components since t/servroot
+        # is cleaned by Test::Nginx
+        NGX_BUILD_DIR_PREFIX=$DIR_OPR_PREFIX
+
+        for dirname in $(find $src_tree -type d -name 'ngx_*lua-*' \
+                         | xargs -I{} basename {} \
+                         | sort -u);
+        do
+            # include bundle/ngx_lua-*/src and bundle/ngx_stream_lua-*/src
+            NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -I${src_tree}/${dirname}/src"
+            # include autogenerated build/*/src/ngx_http_lua_autoconf.h
+            NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -I${NGX_BUILD_DIR_PATCHED}/build/${dirname}/src"
+        done
+
+        # Wasm/Lua bridge test cases
+        if [[ "$NGX_BUILD_DEBUG" == 1 ]]; then
+            NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_LUA_BRIDGE_TESTS"
+        fi
+
+        # ./configure -j for LuaJIT build
+        build_opts+="-j$(n_jobs) "
+
+        # built as dynamic modules above for Test::Wasm
+        build_opts+="--without-http_echo_module "
+        build_opts+="--without-http_headers_more_module "
+    fi
+
     #######
     # Build
     #######
@@ -221,17 +316,22 @@ build_nginx() {
                 "${build_opts[@]}" \
                 "$NGX_BUILD_CONFIGURE_OPT" \
 
-            NGX_BUILD_FRESH=1
+            FRESH_BUILD=1
         fi
 
         eval "$NGX_BUILD_CMD make -j$(n_jobs)"
 
-        if [[ -n "$NGX_BUILD_OPENRESTY" && "$NGX_BUILD_FRESH" == 1 ]]; then
-            # install the prefix to preserve Lua components
+        if [[ -n "$NGX_BUILD_OPENRESTY" || "$FRESH_BUILD" == 1 ]]; then
             make install
+        fi
+
+        if [[ -n "$NGX_BUILD_OPENRESTY" && "$FRESH_BUILD" == 1 ]]; then
+            update_luarocks
         fi
     popd
 }
+
+# utils
 
 download() {
     local output=$1
@@ -305,13 +405,6 @@ n_jobs() {
 
 abs_path() {
     echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
-}
-
-get_variable_from_makefile() {
-    local var_name="$1"
-    local makefile="$NGX_WASM_DIR/Makefile"
-
-    awk '/'$var_name' \?= / { print $3 }' "$makefile"
 }
 
 get_default_runtime_version() {

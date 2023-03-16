@@ -7,14 +7,17 @@
 #include <ngx_http.h>
 #include <ngx_http_wasm_util.h>
 #include <ngx_http_wasm_headers.h>
+#ifdef NGX_WASM_RESPONSE_TRAILERS
 #include <ngx_http_wasm_trailers.h>
-
+#endif
 
 #define NGX_HTTP_WASM_MAX_REQ_HEADERS      100
 
 #define NGX_HTTP_WASM_HEADER_FILTER_PHASE  (NGX_HTTP_LOG_PHASE + 1)
 #define NGX_HTTP_WASM_BODY_FILTER_PHASE    (NGX_HTTP_LOG_PHASE + 2)
+#ifdef NGX_WASM_RESPONSE_TRAILERS
 #define NGX_HTTP_WASM_TRAILER_FILTER_PHASE (NGX_HTTP_LOG_PHASE + 3)
+#endif
 
 #define ngx_http_wasm_req_yielded(rctx)                                      \
     (rctx->state == NGX_HTTP_WASM_REQ_STATE_YIELD)
@@ -27,7 +30,7 @@ typedef enum {
 } ngx_http_wasm_req_state_e;
 
 
-typedef struct {
+struct ngx_http_wasm_req_ctx_s {
     ngx_http_request_t                *r;
     ngx_connection_t                  *connection;
     ngx_pool_t                        *pool;                    /* r->pool */
@@ -35,6 +38,10 @@ typedef struct {
     ngx_wasm_op_ctx_t                  opctx;
     void                              *data;                    /* per-stream extra context */
     ngx_http_wasm_req_state_e          state;                   /* determines next step on resume */
+
+#if (NGX_WASM_LUA)
+    ngx_wasm_lua_ctx_t                *wasm_lua_ctx;
+#endif
 
     ngx_chain_t                       *free_bufs;
     ngx_chain_t                       *busy_bufs;
@@ -70,7 +77,9 @@ typedef struct {
     unsigned                           resp_finalized:1;        /* finalized connection (ourselves) */
     unsigned                           ffi_attached:1;
     unsigned                           fake_request:1;
-} ngx_http_wasm_req_ctx_t;
+
+    unsigned                           pwm_lua_resolver:1;      /* use Lua-land resolver in OpenResty */
+};
 
 
 typedef struct {
@@ -86,6 +95,7 @@ typedef struct {
     ngx_flag_t                         socket_buffer_reuse;    /* wasm_socket_buffer_reuse */
 
     ngx_flag_t                         pwm_req_headers_in_access;
+    ngx_flag_t                         pwm_lua_resolver;
 
     ngx_queue_t                        q;                      /* main_conf */
 } ngx_http_wasm_loc_conf_t;

@@ -112,7 +112,6 @@ qr/#0 on_configure, config_size: 0.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -172,7 +171,6 @@ qr/#0 on_configure, config_size: 0.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -232,7 +230,6 @@ qr/#0 on_configure, config_size: 0.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -357,7 +354,6 @@ qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "trailer_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "log" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "done" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) finalizing context.*
@@ -369,7 +365,6 @@ qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "trailer_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "log" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "done" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) finalizing context.*
@@ -380,7 +375,7 @@ qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
 
 
 === TEST 8: attach() - plan is garbage collected after execution
---- skip_eval: 4: $::nginxV !~ m/debug/
+--- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -397,17 +392,12 @@ qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
             assert(proxy_wasm.start())
         }
 
-        log_by_lua_block {
-            collectgarbage()
-            collectgarbage()
-        }
-
         echo ok;
     }
 --- response_body
 ok
---- error_log eval
-qr/\[debug\].*?freeing plan.*/
+--- shutdown_error_log eval
+qr/\[debug\] .*? wasm freeing plan/
 --- no_error_log
 [error]
 
@@ -451,7 +441,6 @@ qr/#0 on_configure, config_size: 0.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]

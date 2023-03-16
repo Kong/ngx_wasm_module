@@ -95,7 +95,6 @@ impl RootContext for TestRoot {
                 }
 
                 headers.push((":path", path.as_str()));
-                headers.push((":scheme", "http"));
                 headers.push((
                     ":method",
                     self.config
@@ -111,6 +110,12 @@ impl RootContext for TestRoot {
                         .map(|v| v.as_str())
                         .unwrap_or("default"),
                 ));
+
+                if self.get_config("https") == Some("yes") {
+                    headers.push((":scheme", "https"));
+                } else {
+                    headers.push((":scheme", "http"));
+                }
 
                 self.ncalls += 1;
 

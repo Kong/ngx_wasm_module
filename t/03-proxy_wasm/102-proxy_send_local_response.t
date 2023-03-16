@@ -155,7 +155,6 @@ qr/.*? on_request_headers, 2 headers, .*
 .*? testing in "RequestHeaders", .*
 .*? on_response_headers, 5 headers, .*
 .*? on_response_body, 0 bytes, eof: true, .*
-.*? on_response_trailers, 0 trailers, .*
 .*? on_log.*/
 --- no_error_log
 [error]
@@ -261,7 +260,6 @@ qr/.*? on_request_headers, 2 headers, .*
 .*? testing in "RequestHeaders", .*
 .*? on_response_headers, 16 headers, .*
 .*? on_response_body, 0 bytes, eof: true, .*
-.*? on_response_trailers, 0 trailers, .*
 .*? on_log.*/
 --- no_error_log
 [error]
@@ -485,8 +483,6 @@ qr/.*? on_request_headers, \d+ headers.*
 .*? on_response_headers, \d+ headers.*
 .*? on_response_body, \d+ bytes, eof: true.*
 .*? on_response_body, \d+ bytes, eof: true.*
-.*? on_response_trailers, \d+ trailers.*
-.*? on_response_trailers, \d+ trailers.*
 .*? on_log.*
 .*? on_log.*/
 --- no_error_log
