@@ -21,9 +21,14 @@ jobs:
   setup:
     name: "Setup runtime versions"
     runs-on: ubuntu-latest
+    outputs:
+      wasmtime_ver: ${{ steps.versions.outputs.wasmtime_ver }}
+      wasmer_ver: ${{ steps.versions.outputs.wasmer_ver }}
+      v8_ver: ${{ steps.versions.outputs.v8_ver }}
     steps:
       - uses: actions/checkout@v3
-      - run: |
+      - id: versions
+        run: |
           export NGX_WASM_DIR=$(pwd)
           . ./util/_lib.sh
           echo "wasmtime_ver=$(get_variable_from_makefile WASMTIME)" >> $GITHUB_OUTPUT
