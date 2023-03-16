@@ -2,11 +2,11 @@ name: Release
 
 on:
   schedule:
-    - cron: '0 6 * * mon' # 6am UTC, 11pm PST
+    - cron: "0 6 * * mon" # 6am UTC, 11pm PST
   workflow_dispatch:
     inputs:
       release_name:
-        description: 'Release name (e.g. v0.1.0)'
+        description: "Release name (e.g. v0.1.0)"
         required: true
 
 defaults:
@@ -18,21 +18,21 @@ env:
   RETENTION_DAYS: 2
 
 jobs:
-  setup-env:
-    name: Setup environment
+  setup:
+    name: "Setup runtime versions"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - run: |
           export NGX_WASM_DIR=$(pwd)
           . ./util/_lib.sh
-          echo "WASMTIME_VER=$(get_variable_from_makefile WASMTIME)" >> $GITHUB_ENV
-          echo "WASMER_VER=$(get_variable_from_makefile WASMER)" >> $GITHUB_ENV
-          echo "V8_VER=$(get_variable_from_makefile V8)" >> $GITHUB_ENV
+          echo "wasmtime_ver=$(get_variable_from_makefile WASMTIME)" >> $GITHUB_OUTPUT
+          echo "wasmer_ver=$(get_variable_from_makefile WASMER)" >> $GITHUB_OUTPUT
+          echo "v8_ver=$(get_variable_from_makefile V8)" >> $GITHUB_OUTPUT
 
   build-images:
-    name: Build Docker binary build images
-    needs: setup-env
+    name: "Build Docker binary build images"
+    needs: setup
     runs-on: ubuntu-latest
     outputs:
       release_name: ${{ steps.assign-name.outputs.release_name }}
@@ -47,25 +47,25 @@ jobs:
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      - name: 'Ubuntu 18.04 build image'
+      - name: "Ubuntu 18.04 build image"
         uses: docker/build-push-action@v2
         with:
           file: ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-18.04
           tags: ghcr.io/kong/wasmx-build-ubuntu:18.04
           push: true
-      - name: 'Ubuntu 20.04 build image'
+      - name: "Ubuntu 20.04 build image"
         uses: docker/build-push-action@v2
         with:
           file: ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-20.04
           tags: ghcr.io/kong/wasmx-build-ubuntu:20.04
           push: true
-      - name: 'Centos 7 build image'
+      - name: "Centos 7 build image"
         uses: docker/build-push-action@v2
         with:
           file: ./assets/release/Dockerfiles/Dockerfile.amd64.centos7
           tags: ghcr.io/kong/wasmx-build-centos:7
           push: true
-      - name: 'Centos 8 build image'
+      - name: "Centos 8 build image"
         uses: docker/build-push-action@v2
         with:
           file: ./assets/release/Dockerfiles/Dockerfile.amd64.centos8
@@ -86,9 +86,13 @@ jobs:
           fi
 
   build-ubuntu-bionic:
-    name: 'Build Ubuntu 18.04 (bionic) binary'
-    needs: build-images
+    name: "Build Ubuntu 18.04 (bionic) binary"
+    needs: [setup, build-images]
     runs-on: ubuntu-latest
+    env:
+      WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
+      WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
+      V8_VER: ${{ needs.setup.outputs.v8_ver }}
     container:
       image: ghcr.io/kong/wasmx-build-ubuntu:18.04
       credentials:
@@ -113,9 +117,13 @@ jobs:
           path: work/ngx_wasm_module_dist/build/*
 
   build-ubuntu-focal:
-    name: 'Build Ubuntu 20.04 (focal) binary'
-    needs: build-images
+    name: "Build Ubuntu 20.04 (focal) binary"
+    needs: [setup, build-images]
     runs-on: ubuntu-latest
+    env:
+      WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
+      WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
+      V8_VER: ${{ needs.setup.outputs.v8_ver }}
     container:
       image: ghcr.io/kong/wasmx-build-ubuntu:20.04
       credentials:
@@ -140,9 +148,13 @@ jobs:
           path: work/ngx_wasm_module_dist/build/*
 
   build-centos7:
-    name: 'Build Centos 7 binary'
-    needs: build-images
+    name: "Build Centos 7 binary"
+    needs: [setup, build-images]
     runs-on: ubuntu-latest
+    env:
+      WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
+      WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
+      V8_VER: ${{ needs.setup.outputs.v8_ver }}
     container:
       image: ghcr.io/kong/wasmx-build-centos:7
       credentials:
@@ -167,9 +179,13 @@ jobs:
           path: work/ngx_wasm_module_dist/build/*
 
   build-centos8:
-    name: 'Build Centos 8 binary'
-    needs: build-images
+    name: "Build Centos 8 binary"
+    needs: [setup, build-images]
     runs-on: ubuntu-latest
+    env:
+      WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
+      WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
+      V8_VER: ${{ needs.setup.outputs.v8_ver }}
     container:
       image: ghcr.io/kong/wasmx-build-centos:8
       credentials:
@@ -194,9 +210,13 @@ jobs:
           path: work/ngx_wasm_module_dist/build/*
 
   build-arch:
-    name: Build ArchLinux binary
-    needs: build-images
+    name: "Build ArchLinux binary"
+    needs: [setup, build-images]
     runs-on: ubuntu-latest
+    env:
+      WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
+      WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
+      V8_VER: ${{ needs.setup.outputs.v8_ver }}
     container:
       image: ghcr.io/kong/wasmx-build-arch:latest
       credentials:
@@ -221,9 +241,13 @@ jobs:
           path: work/ngx_wasm_module_dist/build/*
 
   build-macos:
-    name: Build macOS binary
-    needs: build-images
+    name: "Build macOS binary"
+    needs: [setup, build-images]
     runs-on: macos-latest
+    env:
+      WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
+      WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
+      V8_VER: ${{ needs.setup.outputs.v8_ver }}
     steps:
       - name: Set up Homebrew dependencies
         run: brew install ninja
@@ -245,7 +269,7 @@ jobs:
           path: work/ngx_wasm_module_dist/build/*
 
   upload-artifacts:
-    name: Upload release artifacts
+    name: "Upload release artifacts"
     needs: [build-images, build-ubuntu-bionic, build-ubuntu-focal, build-centos7, build-centos8, build-arch, build-macos]
     runs-on: ubuntu-latest
     steps:
