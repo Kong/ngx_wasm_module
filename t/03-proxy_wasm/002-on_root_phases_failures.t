@@ -4,6 +4,8 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
+skip_valgrind('wasmtime');
+
 my $n = 4;
 plan tests => repeat_each() * (blocks() * $n);
 

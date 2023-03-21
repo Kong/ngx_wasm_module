@@ -12,7 +12,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: safety - proxy_get_header_map_value() with oob key
+=== TEST 1: proxy_wasm - proxy_get_header_map_value() with oob key
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -26,7 +26,7 @@ qr/host trap \(bad usage\): invalid slice pointer passed to host function/
 
 
 
-=== TEST 2: safety - proxy_get_header_map_value() with oob return data
+=== TEST 2: proxy_wasm - proxy_get_header_map_value() with oob return data
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -40,7 +40,7 @@ qr/host trap \(bad usage\): invalid data pointer passed to host function/
 
 
 
-=== TEST 3: safety - proxy_get_header_map_value() with misaligned return data
+=== TEST 3: proxy_wasm - proxy_get_header_map_value() with misaligned return data
 --- wasm_modules: hostcalls
 --- config
     location /t {
