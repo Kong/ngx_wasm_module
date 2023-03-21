@@ -12,7 +12,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: bench - proxy_wasm
+=== TEST 1: bench - proxy_wasm on_phases filter
 --- wasm_modules: on_phases
 --- config
     location /t {
