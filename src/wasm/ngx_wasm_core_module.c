@@ -29,7 +29,7 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       NULL },
 
     { ngx_string("module"),
-      NGX_WASM_CONF|NGX_CONF_TAKE2,
+      NGX_WASM_CONF|NGX_CONF_TAKE23,
       ngx_wasm_core_module_directive,
       0,
       0,

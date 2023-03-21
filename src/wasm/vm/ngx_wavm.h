@@ -70,6 +70,7 @@ struct ngx_wavm_module_s {
     ngx_uint_t                         state;
     ngx_str_t                          name;
     ngx_str_t                          path;
+    ngx_str_t                          config;     /* proxy-wasm vm_config */
     wasm_byte_vec_t                    bytes;
     wasm_importtype_vec_t              imports;
     wasm_exporttype_vec_t              exports;
@@ -105,7 +106,8 @@ ngx_int_t ngx_wavm_load(ngx_wavm_t *vm);
 void ngx_wavm_destroy(ngx_wavm_t *vm);
 
 
-ngx_int_t ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path);
+ngx_int_t ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path,
+    ngx_str_t *config);
 ngx_wavm_module_t *ngx_wavm_module_lookup(ngx_wavm_t *vm, ngx_str_t *name);
 ngx_int_t ngx_wavm_module_link(ngx_wavm_module_t *module,
     ngx_wavm_host_def_t *host);

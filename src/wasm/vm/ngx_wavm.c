@@ -330,7 +330,8 @@ ngx_wavm_module_lookup(ngx_wavm_t *vm, ngx_str_t *name)
 
 
 ngx_int_t
-ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path)
+ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path,
+    ngx_str_t *config)
 {
     u_char             *p;
     const char         *err = NGX_WAVM_NOMEM_CHAR;
@@ -386,6 +387,14 @@ ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path)
                     ".wat", 4) == 0)
     {
         module->state |= NGX_WAVM_MODULE_ISWAT;
+    }
+
+    if (config) {
+        module->config.len = config->len;
+        module->config.data = ngx_pstrdup(vm->pool, config);
+        if (module->config.data == NULL) {
+            goto error;
+        }
     }
 
     ngx_wasm_sn_init(&module->sn, &module->name);
@@ -796,6 +805,10 @@ ngx_wavm_module_destroy(ngx_wavm_module_t *module)
 
     if (module->path.data) {
         ngx_pfree(vm->pool, module->path.data);
+    }
+
+    if (module->config.data) {
+        ngx_pfree(vm->pool, module->config.data);
     }
 
     for (i = 0; i < module->hfuncs.nelts; i++) {

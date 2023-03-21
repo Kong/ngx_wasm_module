@@ -9,13 +9,6 @@ skip_no_tinygo();
 
 plan tests => repeat_each() * (blocks() * 5);
 
-our $compiler;
-if ($::nginxV =~ /wasmer/) {
-    $compiler = "singlepass";
-} else {
-    $compiler = "auto";
-}
-
 run_tests();
 
 __DATA__
@@ -25,8 +18,7 @@ __DATA__
 --- main_config eval
 qq{
     wasm {
-        compiler $::compiler;
-        module go_vm_plugin_configuration $ENV{TEST_NGINX_CRATES_DIR}/go_vm_plugin_configuration.wasm;
+        module go_vm_plugin_configuration $ENV{TEST_NGINX_CRATES_DIR}/go_vm_plugin_configuration.wasm 'hello=world';
     }
 
     timer_resolution 10ms;
@@ -45,7 +37,7 @@ qq{
 --- error_log eval
 [
     qr/\[info\] .*? successfully loaded "go_vm_plugin_configuration"/,
-    qr/\[info\] .*? vm config: $::compiler/,
+    qr/\[info\] .*? vm config: hello=world/,
     qr/\[info\] .*? plugin config: default config/,
 ]
 --- no_error_log
