@@ -178,8 +178,8 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
         break;
 
     case NGX_PROXY_WASM_BUFFER_VM_CONFIGURATION:
-        start = instance->vm->config->compiler.data;
-        len = instance->vm->config->compiler.len;
+        start = pwexec->filter->module->config.data;
+        len = pwexec->filter->module->config.len;
         break;
 
     default:

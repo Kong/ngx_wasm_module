@@ -25,11 +25,18 @@ impl RootContext for TestRoot {
         if let Some(config) = self.get_vm_configuration() {
             if let Ok(text) = std::str::from_utf8(&config) {
                 info!("vm config: {}", text);
+
+                if text == "do_trap" {
+                    panic!("trap on_vm_start");
+                } else if text == "do_false" {
+                    info!("on_vm_start returning false");
+                    return false;
+                }
             } else {
                 info!("cannot parse vm config");
             }
         } else {
-            info!("cannot get vm config");
+            info!("no vm config");
         }
 
         true
@@ -51,6 +58,14 @@ impl RootContext for TestRoot {
             self.set_tick_period(Duration::from_millis(
                 period.parse().expect("bad tick_period"),
             ));
+        }
+
+        if let Some(on_configure) = self.get_config("on_configure") {
+            match on_configure {
+                "do_trap" => panic!("trap on_configure"),
+                "do_return_false" => return false,
+                _ => (),
+            }
         }
 
         true

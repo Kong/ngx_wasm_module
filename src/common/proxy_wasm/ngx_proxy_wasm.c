@@ -232,7 +232,6 @@ ngx_proxy_wasm_start(ngx_cycle_t *cycle)
                                      "proxy_wasm failed initializing "
                                      "\"%V\" filter", filter->name);
             return NGX_ERROR;
-
         }
     }
 

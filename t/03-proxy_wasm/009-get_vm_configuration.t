@@ -4,27 +4,35 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-our $compiler;
-if ($::nginxV =~ /wasmer/) {
-    $compiler = "singlepass";
-} else {
-    $compiler = "auto";
-}
-
-skip_valgrind('wasmtime');
-
-plan tests => repeat_each() * (blocks() * 3);
+plan tests => repeat_each() * (blocks() * 5);
 
 run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - get_vm_configuration() on_vm_start
+=== TEST 1: proxy_wasm - get_vm_configuration() on_vm_start, no config
+--- main_config eval
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls;
+        return 200;
+    }
+--- ignore_response_body
+--- error_log eval
+qr/\[info\] .*? no vm config/
+--- no_error_log
+[error]
+vm config:
+cannot parse vm config
+
+
+
+=== TEST 2: proxy_wasm - get_vm_configuration() on_vm_start, with config
 --- main_config eval
 qq{
     wasm {
-        compiler $::compiler;
-        module   hostcalls $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
+        module hostcalls $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm 'hello=world';
     }
 }
 --- config
@@ -34,6 +42,8 @@ qq{
     }
 --- ignore_response_body
 --- error_log eval
-qr/\[info\] .*? vm config: $::compiler/
+qr/\[info\] .*? vm config: hello=world/
 --- no_error_log
 [error]
+no vm config
+cannot parse vm config
