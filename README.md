@@ -21,14 +21,12 @@ filters identical to those running on
 - [Synopsys](#synopsys)
 - [What is WasmX?](#what-is-wasmx)
 - [Examples](#examples)
-- [Install](#install)
 - [Documentation](#documentation)
+    - [Installation](#installation)
     - [Development](#development)
     - [proxy-wasm SDK](#proxy-wasm-sdk)
     - [WebAssembly](#webassembly)
     - [WebAssembly runtimes](#webassembly-runtimes)
-- [Roadmap](#roadmap)
-- [Getting involved](#getting-involved)
 - [License](#license)
 
 ## Synopsis
@@ -118,7 +116,9 @@ filters, some of which may not yet be compatible with ngx_wasm_module.
 
 [Back to TOC](#table-of-contents)
 
-## Install
+## Documentation
+
+### Installation
 
 A release is produced from the `main` branch every Monday, referred to as the
 "nightly" release channel. The nightly releases are considered unstable. The
@@ -134,23 +134,25 @@ methods and usage purposes:
   runtime/architecture/OS.
 - `ngx_wasm_module-$release.tar.gz`: a tarball of the ngx_wasm_module release.
   To be compiled alongside Nginx with `--add-module=` or
-  `--add-dynamic-module=`. See [INSTALL.md](INSTALL.md) for instructions and
-  examples.
+  `--add-dynamic-module=`.
+
+See the [installation documentation](docs/INSTALL.md) for instructions on how to
+install this module or use one of the binary releases.
 
 [Back to TOC](#table-of-contents)
 
-## Documentation
-
 ### Development
 
-See [DEVELOPER.md](DEVELOPER.md) for developer resources on building this module
-from source and other general development processes.
+See the [developer documentation](docs/DEVELOPER.md) for developer resources on
+building this module from source and other general development processes.
 
 See a term you are unfamiliar with? Consult the [code
-lexicon](DEVELOPER.md#code-lexicon).
+lexicon](docs/DEVELOPER.md#code-lexicon).
 
 For a primer on the code's layout and architecture, see the [code
-layout](DEVELOPER.md#code-layout) section.
+layout](docs/DEVELOPER.md#code-layout) section.
+
+[Back to TOC](#table-of-contents)
 
 ### proxy-wasm SDK
 
@@ -162,11 +164,15 @@ Also consult the source of the language of your choice in the [proxy-wasm SDKs
 list](https://github.com/proxy-wasm/spec#sdks) as this ABI specification is
 still evolving and unstable.
 
+[Back to TOC](#table-of-contents)
+
 ### WebAssembly
 
 - WebAssembly Specification (Wasm): https://webassembly.github.io/spec/core/index.html
 - WebAssembly System Interface (WASI): https://github.com/WebAssembly/WASI
 - WebAssembly text format (`.wat`): https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format
+
+[Back to TOC](#table-of-contents)
 
 ### WebAssembly runtimes
 
@@ -174,22 +180,6 @@ still evolving and unstable.
 - Wasmer C API: https://docs.rs/wasmer-c-api/
 - Wasmtime C API: https://docs.wasmtime.dev/c-api/
 - V8 embedding: https://v8.dev/docs/embed
-
-[Back to TOC](#table-of-contents)
-
-## Roadmap
-
-This project's roadmap is documented via [GitHub
-projects](https://github.com/Kong/ngx_wasm_module/projects).
-
-[Back to TOC](#table-of-contents)
-
-## Getting involved
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) to find ways of getting involved.
-
-See [DEVELOPER.md](DEVELOPER.md) for developer resources on building this module
-from source and other general development processes.
 
 [Back to TOC](#table-of-contents)
 
