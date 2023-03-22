@@ -29,7 +29,7 @@ provided below.
 ### Nginx
 
 Ensure that you have all the necessary dependencies to build Nginx on your
-system. See [DEVELOPER.md](#developer.md) for a list of platform-specific
+system. See [DEVELOPER.md](docs/DEVELOPER.md) for a list of platform-specific
 dependencies.
 
 Download Nginx at https://nginx.org/en/download.html and extract it:
@@ -53,7 +53,7 @@ Several runtimes are supported, and at least one of them must be specified:
 - [V8](https://v8.dev) (not pre-built for embedding; but can be compiled locally
   by this module's build environment: run `NGX_WASM_RUNTIME=v8 make setup`
   *without* having set `NGX_WASM_RUNTIME_LIB` or `NGX_WASM_RUNTIME_INC`. See
-  [DEVELOPER.md](#developer.md) for more details).
+  [DEVELOPER.md](docs/DEVELOPER.md) for more details).
 
 [Back to TOC](#table-of-contents)
 
