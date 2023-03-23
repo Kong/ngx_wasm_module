@@ -138,6 +138,8 @@ elif [ ! -x "$(command -v ldd)" ]; then
     ldd $TEST_NGINX_BINARY | grep wasm
 fi
 
+rm -rf $TEST_NGINX_SERVROOT
+
 echo
 exec prove -r $prove_opts $@
 
