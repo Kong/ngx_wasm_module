@@ -94,25 +94,30 @@ ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_int_t              rc;
     ngx_str_t             *value, *name, *path;
+    ngx_str_t             *config = NULL;
     ngx_wasm_core_conf_t  *wcf = conf;
 
     value = cf->args->elts;
     name = &value[1];
     path = &value[2];
 
-    if (name->len == 0) {
+    if (!name->len) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "[wasm] invalid module name \"%V\"", name);
         return NGX_CONF_ERROR;
     }
 
-    if (path->len == 0) {
+    if (!path->len) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "[wasm] invalid module path \"%V\"", path);
         return NGX_CONF_ERROR;
     }
 
-    rc = ngx_wavm_module_add(wcf->vm, name, path);
+    if (cf->args->nelts == 4) {
+        config = &value[3];
+    }
+
+    rc = ngx_wavm_module_add(wcf->vm, name, path, config);
     if (rc != NGX_OK) {
         if (rc == NGX_DECLINED) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,

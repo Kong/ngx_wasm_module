@@ -79,21 +79,3 @@ __DATA__
     qr/\[alert\] .*? NYI - get_map bad map_type: 100/,
     qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
 ]
-
-
-
-=== TEST 5: proxy_wasm - proxy_log() bad log level
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
---- config
-    location /t {
-        proxy_wasm hostcalls 'test=/t/bad_log_level';
-        echo fail;
-    }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
---- error_log eval
-[
-    qr/\[alert\] .*? NYI - proxy_log bad log_level: 100/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
-]

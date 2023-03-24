@@ -12,7 +12,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: wasm_call directive - oob memory read
+=== TEST 1: wasm - oob memory read
 Wasmtime trap format:
     [error] error while executing ...
     [stacktrace]
@@ -51,7 +51,7 @@ qr/(\[error\] .*? out of bounds|wasm trap: out of bounds memory access|Uncaught 
 
 
 
-=== TEST 2: wasm_call directive - oob memory write
+=== TEST 2: wasm - oob memory write
 Wasmtime trap format:
     [error] error while executing ...
     [stacktrace]
