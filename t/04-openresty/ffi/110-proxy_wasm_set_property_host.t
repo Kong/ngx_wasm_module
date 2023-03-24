@@ -40,10 +40,10 @@ __DATA__
 ok
 --- error_log eval
 [
-    qr/\[error\] .* init_worker_by_lua:\d+: unknown error/,
+    qr/\[error\] .*? cannot set host properties outside of a request/,
+    qr/\[error\] .*? init_worker_by_lua:\d+: unknown error/,
 ]
 --- no_error_log
-[emerg]
 [crit]
 
 

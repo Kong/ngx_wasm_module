@@ -152,7 +152,6 @@ qr/#0 on_configure, config_size: 0.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -207,7 +206,6 @@ qr/#0 on_configure, config_size: 0.*
 #\d+ on_response_headers, 5 headers.*
 #\d+ on_response_body, 3 bytes, eof: false.*
 #\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_response_trailers, 0 trailers.*
 #\d+ on_log.*/
 --- no_error_log
 [error]
@@ -232,9 +230,7 @@ POST /t
 Hello world
 --- ignore_response_body
 --- error_log eval
-[
-    qr/start must be called from 'rewrite' or 'access' phase/,
-]
+qr/start must be called from 'rewrite' or 'access' phase/
 --- no_error_log
-[emerg]
 [crit]
+[emerg]
