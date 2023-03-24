@@ -715,8 +715,11 @@ ngx_proxy_wasm_properties_get_ngx(ngx_proxy_wasm_ctx_t *pwctx,
     hash = hash_str(name.data, name.len);
 
     rctx = (ngx_http_wasm_req_ctx_t *) pwctx->data;
-    if (!rctx) {
-        return NGX_DECLINED;
+
+    if (rctx == NULL || rctx->fake_request) {
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                           "cannot get ngx properties outside of a request");
+        return NGX_ERROR;
     }
 
     vv = ngx_http_get_variable(rctx->r, &name, hash);
@@ -748,12 +751,9 @@ ngx_proxy_wasm_properties_set_ngx(ngx_proxy_wasm_ctx_t *pwctx,
 
     rctx = (ngx_http_wasm_req_ctx_t *) pwctx->data;
 
-    if (rctx == NULL) {
-        /* on_tick */
-
+    if (rctx == NULL || rctx->fake_request) {
         ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
-                           "cannot get request context");
-
+                           "cannot set ngx properties outside of a request");
         return NGX_ERROR;
     }
 
@@ -767,7 +767,7 @@ ngx_proxy_wasm_properties_set_ngx(ngx_proxy_wasm_ctx_t *pwctx,
     hash = hash_str(name.data, name.len);
 
     v = ngx_hash_find(&cmcf->variables_hash, hash, name.data, name.len);
-    if (!v) {
+    if (v == NULL) {
         return NGX_DECLINED;
     }
 
@@ -781,7 +781,7 @@ ngx_proxy_wasm_properties_set_ngx(ngx_proxy_wasm_ctx_t *pwctx,
     if (v->set_handler) {
         vv = ngx_pcalloc(r->pool, sizeof(ngx_http_variable_value_t)
                          + value->len);
-        if (!vv) {
+        if (vv == NULL) {
             return NGX_ERROR;
         }
 
@@ -804,6 +804,12 @@ ngx_proxy_wasm_properties_set_ngx(ngx_proxy_wasm_ctx_t *pwctx,
     }
 
     if (v->flags & NGX_HTTP_VAR_INDEXED) {
+
+        if (r->variables == NULL) {
+            ngx_wasm_assert(r->connection->fd == NGX_WASM_BAD_FD);
+            return NGX_ERROR;
+        }
+
         vv = &r->variables[v->index];
 
         if (value->data == NULL) {
@@ -846,10 +852,9 @@ ngx_proxy_wasm_properties_get_host(ngx_proxy_wasm_ctx_t *pwctx,
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
 
-    if (rctx == NULL) {
+    if (rctx == NULL || rctx->fake_request) {
         ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
                            "cannot get host properties outside of a request");
-
         return NGX_ERROR;
     }
 #endif
@@ -880,10 +885,9 @@ ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
 
-    if (rctx == NULL) {
+    if (rctx == NULL || rctx->fake_request) {
         ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
                            "cannot set host properties outside of a request");
-
         return NGX_ERROR;
     }
 #endif

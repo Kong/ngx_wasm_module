@@ -26,7 +26,7 @@ __DATA__
 
         local ok, err = proxy_wasm.get_property("wasmx.my_prop")
         if not ok then
-            ngx.log(ngx.INFO, err)
+            ngx.log(ngx.ERR, err)
             return
         end
     }
@@ -39,9 +39,10 @@ __DATA__
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .* init_worker_by_lua:\d+: unknown error/
---- no_error_log
-[crit]
+[
+    qr/\[error\] .*? cannot get host properties outside of a request/,
+    qr/\[error\] .*? init_worker_by_lua:\d+: unknown error/,
+]
 
 
 
