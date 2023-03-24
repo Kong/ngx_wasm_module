@@ -39,9 +39,10 @@ __DATA__
 --- response_body
 ok
 --- error_log eval
-qr/\[error\] .* init_worker_by_lua:\d+: unknown error/
---- no_error_log
-[crit]
+[
+    qr/\[error\] .*? cannot get ngx properties outside of a request/,
+    qr/\[error\] .*? init_worker_by_lua:\d+: unknown error/,
+]
 
 
 

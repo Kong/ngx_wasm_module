@@ -349,7 +349,8 @@ V8 trap format:
         proxy_wasm hostcalls 'tick_period=10 \
                               on_tick=set_property \
                               name=ngx.my_var \
-                              set=456';
+                              set=456 \
+                              show_old=false';
         echo_sleep 0.150;
         echo ok;
     }
@@ -358,7 +359,7 @@ V8 trap format:
 --- error_log eval
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
-    qr/\[error\] .*? cannot get request context/,
+    qr/\[error\] .*? cannot set ngx properties outside of a request/,
     qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
     qr/(.*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed).*/
 ]
@@ -390,7 +391,8 @@ V8 trap format:
         proxy_wasm hostcalls 'tick_period=10 \
                               on_tick=set_property \
                               name=ngx.my_var \
-                              set=456';
+                              set=456 \
+                              show_old=false';
         echo_sleep 0.150;
         echo ok;
     }
@@ -398,7 +400,7 @@ V8 trap format:
 --- error_log eval
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
-    qr/\[error\] .*? cannot get request context/,
+    qr/\[error\] .*? cannot set ngx properties outside of a request/,
     qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
     qr/(.*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed).*/
 

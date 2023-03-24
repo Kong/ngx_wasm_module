@@ -199,6 +199,18 @@ hello world
 
 === TEST 11: proxy_wasm - get_property() for ngx.* does not work on_tick
 on_tick runs on the root context, so it does not have access to ngx_http_* calls.
+
+Wasmtime trap format:
+    [error] error while executing ...
+    [stacktrace]
+    Caused by:
+        [trap msg]
+
+Wasmer trap format:
+    [error] [trap msg]
+
+V8 trap format:
+    [error] Uncaught RuntimeError: [trap msg]
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -207,11 +219,11 @@ on_tick runs on the root context, so it does not have access to ngx_http_* calls
         echo_sleep 0.150;
         echo ok;
     }
+--- error_code: 500
 --- ignore_response_body
 --- error_log eval
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
-    qr/\[info\] .*? property not found: ngx.hostname/,
+    qr/\[error\] .*? cannot get ngx properties outside of a request/,
+    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
 ]
---- no_error_log
-[error]
