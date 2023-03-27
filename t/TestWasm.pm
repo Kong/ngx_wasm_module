@@ -15,33 +15,6 @@ our $exttimeout = $ENV{TEST_NGINX_EXTERNAL_TIMEOUT} || '60s';
 our $extresolver = $ENV{TEST_NGINX_EXTERNAL_RESOLVER} || '8.8.8.8';
 our @nginx_modules;
 
-if ($exttimeout =~ m/(\d+)(\S{1,2})/) {
-    my $val = $1;
-    my $suffix = $2;
-    my $scale;
-
-    if ($suffix eq 's') {
-        $scale = 1;
-
-    } elsif ($suffix eq 'ms') {
-        $scale = 1000;
-
-    } else {
-        # assume seconds
-        $scale = 1;
-        $suffix = 's';
-    }
-
-    # The external timeout value should not be larger than the client
-    # socket timeout value.
-
-    if ($val > $ENV{TEST_NGINX_TIMEOUT} * $scale) {
-        $exttimeout = $ENV{TEST_NGINX_TIMEOUT} * $scale . $suffix;
-        warn "WARNING: TEST_NGINX_EXTERNAL_TIMEOUT value capped at " .
-             $exttimeout . " (value of TEST_NGINX_TIMEOUT)\n";
-    }
-}
-
 our @EXPORT = qw(
     $pwd
     $crates
