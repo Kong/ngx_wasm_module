@@ -4,6 +4,10 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
+skip_valgrind('wasmtime');
+
+plan tests => repeat_each() * (blocks() * 5);
+
 our $request_properties = join(',', qw(
     request.path
     request.url_path
@@ -20,10 +24,6 @@ our $request_properties = join(',', qw(
     request.size
     request.total_size
 ));
-
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 4);
 
 run_tests();
 
@@ -68,10 +68,11 @@ request\.size: 5 at RequestHeaders
 request\.total_size: 187 at RequestHeaders/
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 2: proxy_wasm - get_property() - request properties on: request_headers,request_body,response_headers,response_body
+=== TEST 2: proxy_wasm - get_property() - request properties on: request_headers, request_body, response_headers, response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
@@ -119,6 +120,7 @@ foreach my $phase (@phases) {
 qr/$checks/
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -154,10 +156,11 @@ request.query: hello\=world at OnHttpCallResponse
 request.total_size: [1-9]+[0-9]+ at OnHttpCallResponse/
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 4: proxy_wasm - get_property() - request.headers.[header_name] on: request_headers,request_body,response_headers,response_body
+=== TEST 4: proxy_wasm - get_property() - request.headers.[header_name] on: request_headers, request_body, response_headers, response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
@@ -202,10 +205,11 @@ foreach my $phase (@phases) {
 qr/$checks/
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 5: proxy_wasm - get_property() - response properties on: response_headers,response_body
+=== TEST 5: proxy_wasm - get_property() - response properties on: response_headers, response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -230,10 +234,11 @@ response\.size: 0 at ResponseBody
 response\.total_size: 0 at ResponseBody/
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 6: proxy_wasm - get_property() - response.headers.header_name - on response_headers,response_body
+=== TEST 6: proxy_wasm - get_property() - response.headers.header_name on: response_headers, response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config eval
@@ -278,10 +283,11 @@ foreach my $phase (@phases) {
 qr/$checks/
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 7: proxy_wasm - get_property() - upstream properties on: response_headers,response_body
+=== TEST 7: proxy_wasm - get_property() - upstream properties on: response_headers, response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config eval
@@ -324,12 +330,15 @@ foreach my $phase (@phases) {
 qr/$checks/
 --- no_error_log
 [error]
+[crit]
 
 
 
 === TEST 8: proxy_wasm - get_property() - upstream properties (IPv6) on: response_headers
+
 Disabled on GitHub Actions due to IPv6 constraint.
---- skip_eval: 4: system("ping6 -c 1 ipv6.google.com >/dev/null 2>&1") ne 0 || defined $ENV{GITHUB_ACTIONS}
+
+--- skip_eval: 5: system("ping6 -c 1 ipv6.google.com >/dev/null 2>&1") ne 0 || defined $ENV{GITHUB_ACTIONS}
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -348,6 +357,7 @@ qr/upstream\.address: \[[a-z0-9]+:[a-z0-9]+:[a-z0-9]+:[a-z0-9]+::[a-z0-9]+\]
 upstream\.port: [0-9]+/
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -367,11 +377,12 @@ property not found: upstream.address
 property not found: upstream.port
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 10: proxy_wasm - get_property() - connection properties on: request_headers,response_headers,response_body
---- skip_eval: 4: $::nginxV !~ m/built with OpenSSL/
+=== TEST 10: proxy_wasm - get_property() - connection properties on: request_headers, response_headers, response_body
+--- skip_eval: 5: $::nginxV !~ m/built with OpenSSL/
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
@@ -443,11 +454,39 @@ foreach my $phase (@phases) {
 qr/$checks/
 --- no_error_log
 [error]
+[crit]
 
 
 
 === TEST 11: proxy_wasm - get_property() - connection properties (mTLS) on: request_headers, response_headers, response_body
---- skip_eval: 4: $::nginxV !~ m/built with OpenSSL/
+
+TODO: fix what looks like an nginx memleak:
+
+==15082== 8,002 (928 direct, 7,074 indirect) bytes in 1 blocks are definitely lost in loss record 92 of 93
+==15082==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==15082==    by 0x58B041D: CRYPTO_zalloc (in /usr/lib/x86_64-linux-gnu/libcrypto.so.3)
+==15082==    by 0x498488A: SSL_SESSION_new (in /usr/lib/x86_64-linux-gnu/libssl.so.3)
+==15082==    by 0x4984D35: ??? (in /usr/lib/x86_64-linux-gnu/libssl.so.3)
+==15082==    by 0x49A6F79: ??? (in /usr/lib/x86_64-linux-gnu/libssl.so.3)
+==15082==    by 0x49A67FC: ??? (in /usr/lib/x86_64-linux-gnu/libssl.so.3)
+==15082==    by 0x169241: ngx_ssl_handshake.part.0 (ngx_event_openssl.c:1781)
+==15082==    by 0x1972A4: ngx_http_upstream_ssl_init_connection.part.0 (ngx_http_upstream.c:1727)
+==15082==    by 0x189E61: ngx_http_read_client_request_body (ngx_http_request_body.c:84)
+==15082==    by 0x189E61: ngx_http_read_client_request_body (ngx_http_request_body.c:32)
+==15082==    by 0x1CF16E: ngx_http_proxy_handler (ngx_http_proxy_module.c:1023)
+==15082==    by 0x1CF16E: ngx_http_proxy_handler (ngx_http_proxy_module.c:935)
+==15082==    by 0x17A603: ngx_http_core_content_phase (ngx_http_core_module.c:1261)
+==15082==    by 0x174B3C: ngx_http_core_run_phases (ngx_http_core_module.c:875)
+==15082==    by 0x1816A7: ngx_http_process_request_headers (ngx_http_request.c:1496)
+==15082==    by 0x181B35: ngx_http_process_request_line (ngx_http_request.c:1163)
+==15082==    by 0x16405A: ngx_epoll_process_events (ngx_epoll_module.c:901)
+==15082==    by 0x158A84: ngx_process_events_and_timers (ngx_event.c:248)
+==15082==    by 0x163074: ngx_single_process_cycle (ngx_process_cycle.c:300)
+==15082==    by 0x135378: main (nginx.c:380)
+
+Also caused without ngx_wasm_module compiled in, and with tcp & unix upstreams.
+
+--- skip_eval: 5: ($::nginxV !~ m/built with OpenSSL/ || $ENV{TEST_NGINX_USE_VALGRIND} == 1)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config eval
@@ -507,10 +546,11 @@ foreach my $phase (@phases) {
 qr/$checks/
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 12: proxy_wasm - get_property() - proxy-wasm properties on: request_headers,request_body,response_headers,response_body
+=== TEST 12: proxy_wasm - get_property() - proxy-wasm properties on: request_headers, request_body, response_headers, response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
@@ -553,6 +593,7 @@ foreach my $phase (@phases) {
 qr/$checks/
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -576,10 +617,11 @@ ok
 qr/request.path: \/t\?foo=std\:\:min\&bar=\[1,2\]/
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 14: proxy_wasm - get_property() - not supported properties on: request_headers
+=== TEST 14: proxy_wasm - get_property() - explicitly unsupported properties on: request_headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
@@ -621,4 +663,24 @@ qr/"response.code_details" property not supported
 "route_metadata" property not supported
 "upstream_host_metadata" property not supported/
 --- no_error_log
+[crit]
+[emerg]
+
+
+
+=== TEST 15: proxy_wasm - get_property() - unknown property on: request_headers
+--- wasm_modules: hostcalls
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/log/property \
+                              name=nonexistent_property';
+        echo ok;
+    }
+--- response_body
+ok
+--- error_log eval
+qr/\[info\] .*? property not found: nonexistent_property,/
+--- no_error_log
+[error]
 [crit]
