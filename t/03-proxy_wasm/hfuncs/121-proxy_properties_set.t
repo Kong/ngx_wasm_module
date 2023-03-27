@@ -1,0 +1,54 @@
+# vim:set ft= ts=4 sts=4 sw=4 et fdm=marker:
+
+use strict;
+use lib '.';
+use t::TestWasm;
+
+skip_valgrind('wasmtime');
+
+plan tests => repeat_each() * (blocks() * 5);
+
+run_tests();
+
+__DATA__
+
+=== TEST 1: proxy_wasm - set_property() - non-changeable property: request_headers
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config eval
+qq{
+    location /t {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/set_property \
+                              name=request.path';
+        echo ok;
+    }
+}
+--- error_code: 500
+--- response_body_like eval: qr/500 Internal Server Error/
+--- error_log eval
+[
+    qr/\[error\] .*? variable "request_uri" is not changeable/,
+    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
+]
+--- no_error_log
+[emerg]
+
+
+
+=== TEST 2: proxy_wasm - get_property() - unknown property on: request_headers
+--- wasm_modules: hostcalls
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/log/property \
+                              name=nonexistent_property';
+        echo ok;
+    }
+--- response_body
+ok
+--- error_log eval
+qr/\[info\] .*? property not found: nonexistent_property,/
+--- no_error_log
+[error]
+[crit]
