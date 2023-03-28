@@ -30,7 +30,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-9]
-        ngx: [1.23.3]
+        ngx: [1.23.4]
         runtime: [wasmer]
         wasmer: [3.1.1]
         hup: [0]
@@ -39,7 +39,7 @@ jobs:
           # Wasmtime
           - os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.23.3
+            ngx: 1.23.4
             runtime: wasmtime
             wasmtime: 5.0.0
             hup: 1
@@ -47,7 +47,7 @@ jobs:
           # V8
           - os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.23.3
+            ngx: 1.23.4
             runtime: v8
             v8: 10.5.18
           # OpenResty
@@ -67,7 +67,7 @@ jobs:
           # No SSL
           - os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.21.6
+            ngx: 1.23.4
             runtime: wasmer
             wasmer: 3.1.1
             debug: 0
@@ -180,7 +180,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         cc: [gcc-10]
-        ngx: [1.23.3]
+        ngx: [1.23.4]
         runtime: [wasmer]
         wasmer: [3.1.1]
         hup: [0, 1]
@@ -189,7 +189,7 @@ jobs:
           # Wasmtime
           - os: ubuntu-22.04
             cc: gcc-10
-            ngx: 1.23.3
+            ngx: 1.23.4
             runtime: wasmtime
             wasmtime: 5.0.0
             hup: 0
@@ -197,7 +197,7 @@ jobs:
           # V8
           - os: ubuntu-22.04
             cc: gcc-10
-            ngx: 1.23.3
+            ngx: 1.23.4
             runtime: v8
             v8: 10.5.18
             hup: 0
@@ -307,7 +307,7 @@ jobs:
       fail-fast: false
       matrix:
         cc: [clang-11]
-        ngx: [1.23.3]
+        ngx: [1.23.4]
         runtime: [wasmtime]
         wasmtime: [5.0.0]
     steps:
@@ -348,7 +348,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [clang-14, gcc-10]
-        ngx: [1.23.3]
+        ngx: [1.23.4]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [5.0.0]
         wasmer: [3.1.1]
