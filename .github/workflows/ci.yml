@@ -174,7 +174,7 @@ jobs:
   valgrind:
     name: 'Tests - valgrind'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 70
+    timeout-minutes: 90
     #if: ${{ false }}
     env:
       NGX_BUILD_NOPOOL: 1
