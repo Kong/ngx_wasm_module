@@ -98,9 +98,19 @@ ngx_http_wasm_ffi_start(ngx_http_request_t *r)
         return rc;
     }
 
+
+#if 1
+    ngx_wasm_assert(rctx->ffi_attached);
+#else
+    /*
+     * presently, the above rctx rc is already NGX_DECLINED
+     * since loc->plan is empty
+     */
     if (!rctx->ffi_attached) {
+        ngx_wasm_assert(0);
         return NGX_DECLINED;
     }
+#endif
 
     loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
 

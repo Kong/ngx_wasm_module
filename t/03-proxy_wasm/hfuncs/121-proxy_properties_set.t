@@ -36,19 +36,27 @@ qq{
 
 
 
-=== TEST 2: proxy_wasm - get_property() - unknown property on: request_headers
+=== TEST 2: proxy_wasm - set_property() - unknown property on: request_headers
+
+In spite of the panic below, our proxy-wasm implementation does not
+cause a critical failure when a property is not found.
+
+The Rust SDK, which we're using here, panics with "unexpected status:
+1", (where 1 means NotFound), but other SDKs, such as the Go SDK,
+forward the NotFound status back to the caller.
+
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls 'test=/t/log/property \
+        proxy_wasm hostcalls 'test=/t/set_property \
                               name=nonexistent_property';
         echo ok;
     }
---- response_body
-ok
+--- error_code: 500
+--- response_body_like eval: qr/500 Internal Server Error/
 --- error_log eval
-qr/\[info\] .*? property not found: nonexistent_property,/
+qr/\[crit\] .*? panicked at 'unexpected status: 1'/
 --- no_error_log
-[error]
-[crit]
+[emerg]
+[alert]
