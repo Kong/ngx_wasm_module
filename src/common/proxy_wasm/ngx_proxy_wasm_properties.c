@@ -805,10 +805,13 @@ ngx_proxy_wasm_properties_set_ngx(ngx_proxy_wasm_ctx_t *pwctx,
 
     if (v->flags & NGX_HTTP_VAR_INDEXED) {
 
+#if 0
+        /* fake requests are presently caught above */
         if (r->variables == NULL) {
             ngx_wasm_assert(r->connection->fd == NGX_WASM_BAD_FD);
             return NGX_ERROR;
         }
+#endif
 
         vv = &r->variables[v->index];
 

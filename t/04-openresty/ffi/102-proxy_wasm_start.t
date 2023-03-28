@@ -88,7 +88,7 @@ plan not loaded and attached
                 return ngx.say(err)
             end
 
-            local ok, err = proxy_wasm.start()
+            ok, err = proxy_wasm.start()
             if not ok then
                 return ngx.say(err)
             end
@@ -130,7 +130,7 @@ plan not loaded and attached
                 return ngx.say(err)
             end
 
-            local ok, err = proxy_wasm.start()
+            ok, err = proxy_wasm.start()
             if not ok then
                 return ngx.say(err)
             end
@@ -184,7 +184,7 @@ qr/#0 on_configure, config_size: 0.*
                 return ngx.say(err)
             end
 
-            local ok, err = proxy_wasm.start()
+            ok, err = proxy_wasm.start()
             if not ok then
                 return ngx.say(err)
             end
