@@ -393,6 +393,7 @@ my $vars = CORE::join(',', qw(
 qq {
     listen              $ENV{TEST_NGINX_SERVER_PORT2} ssl;
     server_name         hostname;
+    ssl_protocols       TLSv1.2;
     ssl_certificate     $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
     ssl_certificate_key $ENV{TEST_NGINX_DATA_DIR}/hostname_key.pem;
 
@@ -445,7 +446,7 @@ qr/$checks/
 
 
 
-=== TEST 11: proxy_wasm - get_property() - connection properties (mTLS) on: request_headers,response_headers,response_body
+=== TEST 11: proxy_wasm - get_property() - connection properties (mTLS) on: request_headers, response_headers, response_body
 --- skip_eval: 4: $::nginxV !~ m/built with OpenSSL/
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -464,6 +465,7 @@ qq {
     server {
         listen                   unix:$ENV{TEST_NGINX_UNIX_SOCKET} ssl;
         server_name              hostname;
+        ssl_protocols            TLSv1.2;
         ssl_certificate          $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
         ssl_certificate_key      $ENV{TEST_NGINX_DATA_DIR}/hostname_key.pem;
         ssl_client_certificate   $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
