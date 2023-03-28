@@ -10,14 +10,11 @@ defaults:
   run:
     shell: bash
 
-env:
-  TEST_NGINX_RANDOMIZE: 1
-
 jobs:
   tests:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 30
     #if: ${{ false }}
     outputs:
       coveralls_name: ${{ steps.lcov.outputs.name }}
@@ -36,7 +33,7 @@ jobs:
         hup: [0]
         debug: [1, 0]
         include:
-          # Wasmtime
+          # Wasmtime + HUP
           - os: ubuntu-latest
             cc: gcc-9
             ngx: 1.23.4
@@ -167,11 +164,12 @@ jobs:
   valgrind:
     name: 'Tests - valgrind'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 70
+    timeout-minutes: 120
     #if: ${{ false }}
     env:
       NGX_BUILD_NOPOOL: 1
       NGX_BUILD_CC_OPT: '-O2'
+      TEST_NGINX_RANDOMIZE: 1
       TEST_NGINX_TIMEOUT: 120
       TEST_NGINX_EXTERNAL_TIMEOUT: 120
       TEST_NGINX_USE_VALGRIND: 1
@@ -183,16 +181,16 @@ jobs:
         ngx: [1.23.4]
         runtime: [wasmer]
         wasmer: [3.1.1]
-        hup: [0, 1]
+        hup: [0]
         debug: [1]
         include:
-          # Wasmtime
+          # Wasmtime + HUP
           - os: ubuntu-22.04
             cc: gcc-10
             ngx: 1.23.4
             runtime: wasmtime
             wasmtime: 7.0.0
-            hup: 0
+            hup: 1
             debug: 1
           # V8
           - os: ubuntu-22.04
@@ -306,7 +304,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cc: [clang-11]
+        cc: [clang-14]
         ngx: [1.23.4]
         runtime: [wasmtime]
         wasmtime: [7.0.0]
@@ -347,18 +345,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        cc: [clang-14, gcc-10]
+        cc: [gcc-10]
         ngx: [1.23.4]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [7.0.0]
         wasmer: [3.1.1]
         v8: [10.5.18]
-        include:
-          - os: ubuntu-latest
-            cc: clang-14
-            ngx: 1.21.6
-            runtime: wasmtime
-            wasmtime: 7.0.0
     steps:
       - uses: actions/checkout@v3
       - name: 'Setup cache - work/ dir'
