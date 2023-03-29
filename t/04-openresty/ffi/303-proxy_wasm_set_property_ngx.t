@@ -274,3 +274,27 @@ ok
 ]
 --- no_error_log
 [error]
+
+
+
+=== TEST 7: set_property() - without loading a plan
+--- config
+    location /t {
+        access_by_lua_block {
+            local proxy_wasm = require "resty.http.proxy_wasm"
+
+            local prop, err = proxy_wasm.set_property("ngx.my_var", "123")
+            if not prop then
+                ngx.log(ngx.ERR, err)
+            end
+
+            ngx.say("ok")
+        }
+    }
+--- response_body
+ok
+--- error_log eval
+qr/\[error\] .*? access_by_lua.*?: unknown error/
+--- no_error_log
+[crit]
+[emerg]
