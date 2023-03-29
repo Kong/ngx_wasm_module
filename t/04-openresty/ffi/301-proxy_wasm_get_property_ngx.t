@@ -6,7 +6,7 @@ use t::TestWasm::Lua;
 
 skip_no_openresty();
 
-plan tests => repeat_each() * (blocks() * 4);
+plan tests => repeat_each() * (blocks() * 5);
 
 run_tests();
 
@@ -43,6 +43,8 @@ ok
     qr/\[error\] .*? cannot get ngx properties outside of a request/,
     qr/\[error\] .*? init_worker_by_lua:\d+: unknown error/,
 ]
+--- no_error_log
+[crit]
 
 
 
@@ -82,6 +84,7 @@ ok
 qr/\[info\] .*? ngx.my_var is 456/
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -122,6 +125,7 @@ ok
 qr/\[info\] .*? ngx.my_var is 456/
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -165,6 +169,7 @@ ok
 qr/\[info\] .*? ngx.my_var is 456/
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -208,6 +213,7 @@ ok
 qr/\[info\] .*? ngx.my_var is 456/
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -251,3 +257,28 @@ ok
 qr/\[info\] .*? ngx.my_var is 456/
 --- no_error_log
 [error]
+[crit]
+
+
+
+=== TEST 7: get_property() - without loading a plan
+--- config
+    location /t {
+        access_by_lua_block {
+            local proxy_wasm = require "resty.http.proxy_wasm"
+
+            local prop, err = proxy_wasm.get_property("ngx.my_var")
+            if not prop then
+                ngx.log(ngx.ERR, err)
+            end
+
+            ngx.say("ok")
+        }
+    }
+--- response_body
+ok
+--- error_log eval
+qr/\[error\] .*? access_by_lua.*?: unknown error/
+--- no_error_log
+[crit]
+[emerg]
