@@ -404,6 +404,7 @@ my $vars = CORE::join(',', qw(
 qq {
     listen              $ENV{TEST_NGINX_SERVER_PORT2} ssl;
     server_name         hostname;
+    ssl_protocols       TLSv1.2;
     ssl_certificate     $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
     ssl_certificate_key $ENV{TEST_NGINX_DATA_DIR}/hostname_key.pem;
 
@@ -503,6 +504,7 @@ qq {
     server {
         listen                   unix:$ENV{TEST_NGINX_UNIX_SOCKET} ssl;
         server_name              hostname;
+        ssl_protocols            TLSv1.2;
         ssl_certificate          $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
         ssl_certificate_key      $ENV{TEST_NGINX_DATA_DIR}/hostname_key.pem;
         ssl_client_certificate   $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;

@@ -1,5 +1,5 @@
 {
-   <nginx 1.23.2: ngx_set_environment>
+   <nginx 1.23.4: ngx_set_environment>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
@@ -7,7 +7,7 @@
    fun:ngx_set_environment
 }
 {
-   <nginx 1.23.2: ngx_event_process_init>
+   <nginx 1.23.4: ngx_event_process_init>
    Memcheck:Leak
    fun:malloc
    fun:ngx_alloc
@@ -30,7 +30,7 @@
    fun:wasm_instance_new
 }
 {
-   <wasmtime 5.0.0: parse>
+   <wasmtime 7.0.0: parse>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17hb5a9cfdb3d8a54dbE
+   fun:_ZN10wasmparser6parser6Parser5parse17h80eb27fd0ce3f825E
 }
