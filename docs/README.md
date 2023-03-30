@@ -44,16 +44,21 @@ layout](DEVELOPER.md#code-layout) section.
 ### Proxy-wasm
 
 As the de-facto SDK for proxies in the WebAssembly world, the prominent way of
-extending Nginx with ngx_wasm_module is to write a proxy-wasm filter.
+extending Nginx with ngx_wasm_module is to write a
+[proxy-wasm](https://github.com/proxy-wasm/spec) filter.
 
-The proxy-wasm SDK is the main initial focus of WasmX/ngx_wasm_module
-development and is still a work in progress.
+The [proxy-wasm SDK](https://github.com/proxy-wasm/spec) is the initial focus of
+WasmX/ngx_wasm_module development and is still a work in progress.
 
 ```
 TODO: PROXY_WASM.md:
    - Map of Nginx phases to proxy-wasm steps.
    - SDK feature completion document.
 ```
+
+As a reliable resource in an evolving ABI specification, you may consult the
+SDK source of the language of your choice in the [proxy-wasm SDKs
+list](https://github.com/proxy-wasm/spec#sdks).
 
 [Back to TOC](#table-of-contents)
 
