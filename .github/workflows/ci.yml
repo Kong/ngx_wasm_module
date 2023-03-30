@@ -33,6 +33,7 @@ jobs:
         ngx: [1.23.4]
         runtime: [wasmer]
         wasmer: [3.1.1]
+        ssl: [1]
         debug: [1, 0]
         hup: [0]
         include:
@@ -42,6 +43,7 @@ jobs:
             ngx: 1.23.4
             runtime: wasmtime
             wasmtime: 7.0.0
+            ssl: 1
             debug: 1
             hup: 1
           # V8
@@ -50,6 +52,7 @@ jobs:
             ngx: 1.23.4
             runtime: v8
             v8: 10.5.18
+            ssl: 1
             debug: 1
             hup: 0
           # OpenResty
@@ -58,6 +61,7 @@ jobs:
             openresty: 1.21.4.1
             runtime: wasmtime
             wasmtime: 7.0.0
+            ssl: 1
             debug: 1
             hup: 0
           # Old Nginx
@@ -66,6 +70,7 @@ jobs:
             ngx: 1.21.6
             runtime: wasmer
             wasmer: 3.1.1
+            ssl: 1
             debug: 1
             hup: 0
           # No SSL
@@ -74,9 +79,9 @@ jobs:
             ngx: 1.23.4
             runtime: wasmer
             wasmer: 3.1.1
+            ssl: 0
             debug: 0
             hup: 0
-            no_ssl: 1
     steps:
       - name: 'Setup deps - apt-get'
         if: ${{ matrix.cc == 'gcc-9' }}
@@ -116,7 +121,7 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
-          NGX_BUILD_SSL: ${{ !matrix.no_ssl && 1 }}
+          NGX_BUILD_SSL: ${{ matrix.ssl }}
           NGX_BUILD_DEBUG: ${{ matrix.debug }}
           NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
       - run: make test
@@ -133,11 +138,7 @@ jobs:
             name="$name-ngx"
           fi
           name="$name-${{ matrix.runtime }}"
-          if [ "${{ matrix.no_ssl }}" = 1 ]; then
-            name="$name-ssl_0"
-          else
-            name="$name-ssl_1"
-          fi
+          name="$name-ssl_${{ matrix.ssl }}"
           name="$name-debug_${{ matrix.debug }}"
           name="$name-hup_${{ matrix.hup }}"
           echo "name=$name" >> $GITHUB_OUTPUT
