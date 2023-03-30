@@ -77,6 +77,7 @@ qq{
                               test=/t/dispatch_http_call \
                               host=httpbin.org \
                               path=/headers';
+        echo_sleep 0.3;
         echo failed;
     }
 --- error_code: 500
@@ -127,6 +128,7 @@ qq{
                               on_tick=dispatch \
                               host=httpbin.org \
                               path=/headers';
+        echo_sleep 0.3;
         echo ok;
     }
 --- response_body
