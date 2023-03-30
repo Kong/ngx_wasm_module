@@ -11,15 +11,22 @@ runtimes inside of [Nginx](https://nginx.org/) and aims at offering several host
 SDK abstractions for the purpose of extending and/or introspecting the Nginx web
 server/proxy runtime.
 
-Currently, the module aims at supporting the
+Currently, the module supports the
 [proxy-wasm](https://github.com/proxy-wasm/spec) host SDK and supports Wasm
-filters identical to those running on
-[Envoy today](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter.html).
+filters identical to those running on [Envoy
+today](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter.html).
+
+## What is WasmX?
+
+WasmX aims at extending Nginx for the modern Web infrastructure. This includes
+supporting [CNCF](https://www.cncf.io/) projects & standards, supporting
+WebAssembly runtimes & SDKs (by way of ngx_wasm_module), and generally
+increasing the breadth of features relied upon by the API Gateway use-case (i.e.
+reverse-proxying).
 
 ## Table of Contents
 
 - [Synopsys](#synopsys)
-- [What is WasmX?](#what-is-wasmx)
 - [Examples](#examples)
 - [Documentation](#documentation)
     - [Usage](#usage)
@@ -71,20 +78,6 @@ http {
     wasm_socket_large_buffers   32 16k;
 }
 ```
-
-[Back to TOC](#table-of-contents)
-
-## What is WasmX?
-
-WasmX aims at extending Nginx for the modern Web infrastructure. This includes -
-but is not limited to - supporting [CNCF](https://www.cncf.io/) projects &
-standards, supporting WebAssembly runtimes (by way of ngx_wasm_module), easing
-the contribution learning curve, etc...
-
-While WasmX offers obvious benefits to Kong Inc. today (i.e. embedding
-WebAssembly filters inside of Kong Gateway), it could become its own proxy
-runtime should it prove itself valuable alongside Envoy, that is: unique in its
-own proposition value in terms of performance & footprint compromises.
 
 [Back to TOC](#table-of-contents)
 
@@ -164,13 +157,16 @@ layout](docs/DEVELOPER.md#code-layout) section.
 
 ### Proxy-wasm SDK
 
+The [proxy-wasm SDK](https://github.com/proxy-wasm/spec) is the initial focus of
+WasmX/ngx_wasm_module development and is still a work in progress.
+
 See
 [proxy-wasm/spec/abi-versions/vNEXT](https://github.com/proxy-wasm/spec/tree/master/abi-versions/vNEXT)
 for a _mostly_ up-to-date list of functions and their effects.
 
-Also consult the source of the language of your choice in the [proxy-wasm SDKs
-list](https://github.com/proxy-wasm/spec#sdks) as this ABI specification is
-still evolving and unstable.
+As a reliable resource in an evolving ABI specification, you may consult the
+SDK source of the language of your choice in the [proxy-wasm SDKs
+list](https://github.com/proxy-wasm/spec#sdks).
 
 [Back to TOC](#table-of-contents)
 
