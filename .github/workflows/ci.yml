@@ -149,7 +149,7 @@ jobs:
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.github_token }}
-          flag-name: ${{ needs.tests.outputs.coveralls_name }}
+          flag-name: ${{ steps.lcov.outputs.name }}
           path-to-lcov: './lcov.info'
           parallel: true
       - uses: actions/upload-artifact@v2
