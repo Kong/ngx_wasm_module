@@ -23,8 +23,8 @@ jobs:
       coveralls_name: ${{ steps.lcov.outputs.name }}
     env:
       NGX_BUILD_GCOV: 1
-      TEST_NGINX_TIMEOUT: 65
-      TEST_NGINX_EXTERNAL_TIMEOUT: 60
+      TEST_NGINX_TIMEOUT: 60
+      TEST_NGINX_EXTERNAL_TIMEOUT: 120
     strategy:
       fail-fast: false
       matrix:
@@ -179,8 +179,8 @@ jobs:
     env:
       NGX_BUILD_NOPOOL: 1
       NGX_BUILD_CC_OPT: '-O2'
-      TEST_NGINX_TIMEOUT: 150
-      TEST_NGINX_EXTERNAL_TIMEOUT: 120
+      TEST_NGINX_TIMEOUT: 120
+      TEST_NGINX_EXTERNAL_TIMEOUT: 200
       TEST_NGINX_USE_VALGRIND: 1
     strategy:
       fail-fast: false
