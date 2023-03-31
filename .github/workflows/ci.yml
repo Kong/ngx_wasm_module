@@ -133,9 +133,9 @@ jobs:
         run: |
           name="unit"
           if [ -n "${{ matrix.openresty }}" ]; then
-            name="$name-openresty"
+            name="$name-openresty_${{ matrix.openresty }}"
           else
-            name="$name-ngx"
+            name="$name-ngx_${{ matrix.ngx }}"
           fi
           name="$name-${{ matrix.runtime }}"
           name="$name-ssl_${{ matrix.ssl }}"
@@ -169,7 +169,7 @@ jobs:
         with:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true
-          carryforward: "unit-ngx-wasmer-ssl_1-debug_1-hup_0,unit-ngx-wasmer-ssl_1-debug_0-hup_0,unit-ngx-wasmtime-ssl_1-debug_1-hup_1,unit-ngx-v8-ssl_1-debug_1-hup_0,unit-openresty-wasmtime-ssl_1-debug_1-hup_0,unit-ngx-wasmer-ssl_1-debug_1-hup_0,unit-ngx-wasmer-ssl_0-debug_0-hup_0"
+          carryforward: "unit-ngx_1.23.4-wasmer-ssl_1-debug_1-hup_0,unit-ngx_1.23.4-wasmer-ssl_1-debug_0-hup_0,unit-ngx_1.23.4-wasmtime-ssl_1-debug_1-hup_1,unit-ngx_1.23.4-v8-ssl_1-debug_1-hup_0,unit-openresty_1.21.4.1-wasmtime-ssl_1-debug_1-hup_0,unit-ngx_1.21.6-wasmer-ssl_1-debug_1-hup_0,unit-ngx_1.23.4-wasmer-ssl_0-debug_0-hup_0"
 
   valgrind:
     name: 'Tests - valgrind'
