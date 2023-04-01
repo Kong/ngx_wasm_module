@@ -19,7 +19,7 @@ if [[ ! -x "$(command -v tinygo)" ]]; then
     fatal "missing 'tinygo', is TinyGo installed?"
 fi
 
-PROXY_WASM_GO_SDK_TAG=${PROXY_WASM_GO_SDK_TAG:-v0.20.0}
+PROXY_WASM_GO_SDK_TAG=${PROXY_WASM_GO_SDK_TAG:-v0.21.0}
 
 if [[ -z "$1" ]]; then
     if ls $DIR_TESTS_LIB_WASM/go_* &> /dev/null; then
