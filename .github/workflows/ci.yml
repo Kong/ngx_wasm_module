@@ -23,8 +23,8 @@ jobs:
       coveralls_name: ${{ steps.lcov.outputs.name }}
     env:
       NGX_BUILD_GCOV: 1
-      TEST_NGINX_TIMEOUT: 65
-      TEST_NGINX_EXTERNAL_TIMEOUT: 60
+      TEST_NGINX_TIMEOUT: 60
+      TEST_NGINX_EXTERNAL_TIMEOUT: 120
     strategy:
       fail-fast: false
       matrix:
@@ -33,8 +33,9 @@ jobs:
         ngx: [1.23.4]
         runtime: [wasmer]
         wasmer: [3.1.1]
-        hup: [0]
+        ssl: [1]
         debug: [1, 0]
+        hup: [0]
         include:
           # Wasmtime
           - os: ubuntu-latest
@@ -42,36 +43,45 @@ jobs:
             ngx: 1.23.4
             runtime: wasmtime
             wasmtime: 7.0.0
-            hup: 1
+            ssl: 1
             debug: 1
+            hup: 1
           # V8
           - os: ubuntu-latest
             cc: gcc-9
             ngx: 1.23.4
             runtime: v8
             v8: 10.5.18
+            ssl: 1
+            debug: 1
+            hup: 0
           # OpenResty
           - os: ubuntu-latest
             cc: gcc-9
             openresty: 1.21.4.1
             runtime: wasmtime
             wasmtime: 7.0.0
+            ssl: 1
             debug: 1
+            hup: 0
           # Old Nginx
           - os: ubuntu-latest
             cc: gcc-9
             ngx: 1.21.6
             runtime: wasmer
             wasmer: 3.1.1
+            ssl: 1
             debug: 1
+            hup: 0
           # No SSL
           - os: ubuntu-latest
             cc: gcc-9
             ngx: 1.23.4
             runtime: wasmer
             wasmer: 3.1.1
+            ssl: 0
             debug: 0
-            no_ssl: 1
+            hup: 0
     steps:
       - name: 'Setup deps - apt-get'
         if: ${{ matrix.cc == 'gcc-9' }}
@@ -111,7 +121,7 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
-          NGX_BUILD_SSL: ${{ !matrix.no_ssl && 1 }}
+          NGX_BUILD_SSL: ${{ matrix.ssl }}
           NGX_BUILD_DEBUG: ${{ matrix.debug }}
           NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
       - run: make test
@@ -121,19 +131,15 @@ jobs:
         id: lcov
         if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
         run: |
-          name="unit-tests"
+          name="unit"
           if [ -n "${{ matrix.openresty }}" ]; then
             name="$name-openresty_${{ matrix.openresty }}"
           else
             name="$name-ngx_${{ matrix.ngx }}"
           fi
-          if [ "${{ matrix.no_ssl }}" = 1 ]; then
-            name="$name-no_ssl"
-          else
-            name="$name-with_ssl"
-          fi
+          name="$name-${{ matrix.runtime }}"
+          name="$name-ssl_${{ matrix.ssl }}"
           name="$name-debug_${{ matrix.debug }}"
-          name="$name-runtime_${{ matrix.runtime }}"
           name="$name-hup_${{ matrix.hup }}"
           echo "name=$name" >> $GITHUB_OUTPUT
           lcov --capture --directory work/buildroot --output-file lcov.info
@@ -143,7 +149,7 @@ jobs:
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.github_token }}
-          flag-name: ${{ needs.tests.outputs.coveralls_name }}
+          flag-name: ${{ steps.lcov.outputs.name }}
           path-to-lcov: './lcov.info'
           parallel: true
       - uses: actions/upload-artifact@v2
@@ -163,6 +169,7 @@ jobs:
         with:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true
+          carryforward: "unit-ngx_1.23.4-wasmer-ssl_1-debug_1-hup_0,unit-ngx_1.23.4-wasmer-ssl_1-debug_0-hup_0,unit-ngx_1.23.4-wasmtime-ssl_1-debug_1-hup_1,unit-ngx_1.23.4-v8-ssl_1-debug_1-hup_0,unit-openresty_1.21.4.1-wasmtime-ssl_1-debug_1-hup_0,unit-ngx_1.21.6-wasmer-ssl_1-debug_1-hup_0,unit-ngx_1.23.4-wasmer-ssl_0-debug_0-hup_0"
 
   valgrind:
     name: 'Tests - valgrind'
@@ -173,7 +180,7 @@ jobs:
       NGX_BUILD_NOPOOL: 1
       NGX_BUILD_CC_OPT: '-O2'
       TEST_NGINX_TIMEOUT: 120
-      TEST_NGINX_EXTERNAL_TIMEOUT: 120
+      TEST_NGINX_EXTERNAL_TIMEOUT: 200
       TEST_NGINX_USE_VALGRIND: 1
     strategy:
       fail-fast: false

@@ -50,6 +50,7 @@ __DATA__
 
 === TEST 2: Lua bridge - on_request_headers Lua resolver can timeout during cosocket I/O
 lua-resty-dns-resolver client timeout
+--- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config eval
@@ -77,6 +78,7 @@ qq{
                               test=/t/dispatch_http_call \
                               host=httpbin.org \
                               path=/headers';
+        echo_sleep 0.3;
         echo failed;
     }
 --- error_code: 500
@@ -127,6 +129,7 @@ qq{
                               on_tick=dispatch \
                               host=httpbin.org \
                               path=/headers';
+        echo_sleep 0.3;
         echo ok;
     }
 --- response_body

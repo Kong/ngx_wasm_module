@@ -11,24 +11,30 @@ runtimes inside of [Nginx](https://nginx.org/) and aims at offering several host
 SDK abstractions for the purpose of extending and/or introspecting the Nginx web
 server/proxy runtime.
 
-Currently, the module aims at supporting the
+Currently, the module supports the
 [proxy-wasm](https://github.com/proxy-wasm/spec) host SDK and supports Wasm
-filters identical to those running on
-[Envoy today](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter.html).
+filters identical to those running on [Envoy
+today](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter.html).
+
+## What is WasmX?
+
+WasmX aims at extending Nginx for the modern Web infrastructure. This includes
+supporting [CNCF](https://www.cncf.io/) projects & standards, supporting
+WebAssembly runtimes & SDKs (by way of ngx_wasm_module), and generally
+increasing the breadth of features relied upon by the API Gateway use-case (i.e.
+reverse-proxying).
 
 ## Table of Contents
 
 - [Synopsys](#synopsys)
-- [What is WasmX?](#what-is-wasmx)
 - [Examples](#examples)
-- [Install](#install)
 - [Documentation](#documentation)
+    - [Usage](#usage)
+    - [Installation](#installation)
     - [Development](#development)
-    - [proxy-wasm SDK](#proxy-wasm-sdk)
+    - [Proxy-wasm SDK](#proxy-wasm-sdk)
     - [WebAssembly](#webassembly)
     - [WebAssembly runtimes](#webassembly-runtimes)
-- [Roadmap](#roadmap)
-- [Getting involved](#getting-involved)
 - [License](#license)
 
 ## Synopsis
@@ -55,7 +61,7 @@ http {
             #           [module]
             proxy_wasm  my_filter;
 
-            # execute more webassembly during the access phase
+            # execute more WebAssembly during the access phase
             #           [phase] [module]  [function]
             wasm_call   access  my_module check_something;
 
@@ -72,20 +78,6 @@ http {
     wasm_socket_large_buffers   32 16k;
 }
 ```
-
-[Back to TOC](#table-of-contents)
-
-## What is WasmX?
-
-WasmX aims at extending Nginx for the modern Web infrastructure. This includes -
-but is not limited to - supporting [CNCF](https://www.cncf.io/) projects &
-standards, supporting WebAssembly runtimes (by way of ngx_wasm_module), easing
-the contribution learning curve, etc...
-
-While WasmX offers obvious benefits to Kong Inc. today (i.e. embedding
-WebAssembly filters inside of Kong Gateway), it could become its own proxy
-runtime should it prove itself valuable alongside Envoy, that is: unique in its
-own proposition value in terms of performance & footprint compromises.
 
 [Back to TOC](#table-of-contents)
 
@@ -118,7 +110,16 @@ filters, some of which may not yet be compatible with ngx_wasm_module.
 
 [Back to TOC](#table-of-contents)
 
-## Install
+## Documentation
+
+### Usage
+
+See the [user documentation](docs/README.md) for resources on this module's
+usage.
+
+[Back to TOC](#table-of-contents)
+
+### Installation
 
 A release is produced from the `main` branch every Monday, referred to as the
 "nightly" release channel. The nightly releases are considered unstable. The
@@ -134,33 +135,40 @@ methods and usage purposes:
   runtime/architecture/OS.
 - `ngx_wasm_module-$release.tar.gz`: a tarball of the ngx_wasm_module release.
   To be compiled alongside Nginx with `--add-module=` or
-  `--add-dynamic-module=`. See [INSTALL.md](INSTALL.md) for instructions and
-  examples.
+  `--add-dynamic-module=`.
+
+See the [installation documentation](docs/INSTALL.md) for instructions on how to
+install this module or use one of the binary releases.
 
 [Back to TOC](#table-of-contents)
 
-## Documentation
-
 ### Development
 
-See [DEVELOPER.md](DEVELOPER.md) for developer resources on building this module
-from source and other general development processes.
+See the [developer documentation](docs/DEVELOPER.md) for developer resources on
+building this module from source and other general development processes.
 
 See a term you are unfamiliar with? Consult the [code
-lexicon](DEVELOPER.md#code-lexicon).
+lexicon](docs/DEVELOPER.md#code-lexicon).
 
 For a primer on the code's layout and architecture, see the [code
-layout](DEVELOPER.md#code-layout) section.
+layout](docs/DEVELOPER.md#code-layout) section.
 
-### proxy-wasm SDK
+[Back to TOC](#table-of-contents)
+
+### Proxy-wasm SDK
+
+The [proxy-wasm SDK](https://github.com/proxy-wasm/spec) is the initial focus of
+WasmX/ngx_wasm_module development and is still a work in progress.
 
 See
 [proxy-wasm/spec/abi-versions/vNEXT](https://github.com/proxy-wasm/spec/tree/master/abi-versions/vNEXT)
 for a _mostly_ up-to-date list of functions and their effects.
 
-Also consult the source of the language of your choice in the [proxy-wasm SDKs
-list](https://github.com/proxy-wasm/spec#sdks) as this ABI specification is
-still evolving and unstable.
+As a reliable resource in an evolving ABI specification, you may consult the
+SDK source of the language of your choice in the [proxy-wasm SDKs
+list](https://github.com/proxy-wasm/spec#sdks).
+
+[Back to TOC](#table-of-contents)
 
 ### WebAssembly
 
@@ -168,28 +176,14 @@ still evolving and unstable.
 - WebAssembly System Interface (WASI): https://github.com/WebAssembly/WASI
 - WebAssembly text format (`.wat`): https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format
 
+[Back to TOC](#table-of-contents)
+
 ### WebAssembly runtimes
 
 - Wasm C API: https://github.com/WebAssembly/wasm-c-api
 - Wasmer C API: https://docs.rs/wasmer-c-api/
 - Wasmtime C API: https://docs.wasmtime.dev/c-api/
 - V8 embedding: https://v8.dev/docs/embed
-
-[Back to TOC](#table-of-contents)
-
-## Roadmap
-
-This project's roadmap is documented via [GitHub
-projects](https://github.com/Kong/ngx_wasm_module/projects).
-
-[Back to TOC](#table-of-contents)
-
-## Getting involved
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) to find ways of getting involved.
-
-See [DEVELOPER.md](DEVELOPER.md) for developer resources on building this module
-from source and other general development processes.
 
 [Back to TOC](#table-of-contents)
 
