@@ -13,6 +13,7 @@ typedef struct ngx_wavm_instance_s  ngx_wavm_instance_t;
 
 typedef struct {
     ngx_str_t                      compiler;
+    ngx_flag_t                     backtraces;
 } ngx_wavm_conf_t;
 
 
@@ -236,8 +237,8 @@ typedef struct {
 
 
 typedef struct {
-    wasm_trap_t     *trap;
-    ngx_wrt_res_t   *res;
+    wasm_trap_t          *trap;
+    ngx_wrt_res_t        *res;
 } ngx_wrt_err_t;
 
 

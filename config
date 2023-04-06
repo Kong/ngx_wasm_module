@@ -20,6 +20,13 @@ case $ngx_wasm_runtime_name in
     wasmer)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_wasmer.c"
 
+        ngx_wasm_cargo_library=yes
+        ngx_wasm_cargo_mandatory=no
+        ngx_wasm_cargo_flags=""
+        ngx_wasm_cargo_crate_type="cdylib"
+        ngx_wasm_cargo_defines="NGX_WASM_BACKTRACE"
+        ngx_wasm_cargo_feature_incs="#include <ngx_wasm_backtrace.h>"
+
         ngx_feature_name="NGX_WASM_HAVE_WASMER"
         ngx_feature_incs="#include <wasmer.h>"
         ;;
@@ -32,7 +39,7 @@ case $ngx_wasm_runtime_name in
         ngx_wasm_cargo_library=yes
         ngx_wasm_cargo_mandatory=yes
         ngx_wasm_cargo_flags="--features wat"
-        ngx_wasm_cargo_defines="NGX_WASM_WAT"
+        ngx_wasm_cargo_defines="NGX_WASM_BACKTRACE NGX_WASM_WAT"
         ngx_wasm_cargo_feature_incs="#include <ngx_wasm_wat.h>"
 
         ngx_feature_name="NGX_WASM_HAVE_V8"

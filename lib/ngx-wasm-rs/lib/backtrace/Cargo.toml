@@ -7,4 +7,4 @@ edition = "2018"
 [dependencies]
 ngx-wasm-c-api = { path = "../c-api" }
 wasmparser = "0.102"
-"rustc-demangle" = "0.1"
+rustc-demangle = "0.1"

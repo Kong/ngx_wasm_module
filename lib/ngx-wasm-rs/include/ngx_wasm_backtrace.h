@@ -19,8 +19,9 @@ typedef struct {
 } ngx_wasm_backtrace_name_table_t;
 
 
-ngx_wasm_backtrace_name_table_t* ngx_wasm_backtrace_get_function_name_table(
+ngx_wasm_backtrace_name_table_t* ngx_wasm_backtrace_get_name_table(
     const wasm_byte_vec_t *wasm);
+void ngx_wasm_backtrace_free_name_table(ngx_wasm_backtrace_name_table_t* t);
 void ngx_wasm_backtrace_demangle(const wasm_byte_vec_t *mangled,
     wasm_byte_vec_t *demangled);
 void ngx_wasm_backtrace_drop_byte_vec(const wasm_byte_vec_t *vec);

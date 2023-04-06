@@ -4,8 +4,8 @@ the C environment. All `extern "C"` and `unsafe` operations from
 this crate happen only in this module.
 */
 
-use ngx_wasm_c_api::*;
 use crate::backtrace::*;
+use ngx_wasm_c_api::*;
 use std::mem;
 
 #[repr(C)]
@@ -20,7 +20,24 @@ pub struct ngx_wasm_backtrace_name_table_t {
     pub table: *mut ngx_wasm_backtrace_name_t,
 }
 
-fn vec_into_wasm_byte_vec_t(bv: *mut wasm_byte_vec_t, v: Vec<u8>) -> () {
+impl Drop for ngx_wasm_backtrace_name_table_t {
+    fn drop(&mut self) {
+        unsafe {
+            let mut v =
+                Vec::<ngx_wasm_backtrace_name_t>::from_raw_parts(self.table, self.size, self.size);
+
+            for n in v.drain(..) {
+                drop(String::from_raw_parts(
+                    n.name.data,
+                    n.name.size,
+                    n.name.size,
+                ));
+            }
+        }
+    }
+}
+
+fn vec_into_wasm_byte_vec_t(bv: *mut wasm_byte_vec_t, v: Vec<u8>) {
     unsafe {
         let (ptr, len, _cap) = v.into_raw_parts();
         (*bv).size = len;
@@ -28,11 +45,14 @@ fn vec_into_wasm_byte_vec_t(bv: *mut wasm_byte_vec_t, v: Vec<u8>) -> () {
     }
 }
 
+/// # Safety
+///
+/// The `wasm` byte vector pointer must not be NULL, and it should contain
+/// valid binary WebAssembly.
 #[no_mangle]
-pub extern "C" fn ngx_wasm_backtrace_get_function_name_table(
-    wasm: *mut wasm_byte_vec_t
+pub unsafe extern "C" fn ngx_wasm_backtrace_get_name_table(
+    wasm: *const wasm_byte_vec_t,
 ) -> Option<Box<ngx_wasm_backtrace_name_table_t>> {
-
     let wasm_slice = unsafe {
         eprintln!("INPUT DATA SIZE: {}", (*wasm).size);
         std::slice::from_raw_parts((*wasm).data, (*wasm).size)
@@ -44,9 +64,8 @@ pub extern "C" fn ngx_wasm_backtrace_get_function_name_table(
         let mut names = Vec::<ngx_wasm_backtrace_name_t>::with_capacity(table.len());
         for (idx, name) in table.drain(..) {
             let (bytes, len, _cap) = name.into_raw_parts();
-            mem::forget(bytes);
             let name_t = ngx_wasm_backtrace_name_t {
-                idx: idx,
+                idx,
                 name: Box::new(wasm_byte_vec_t {
                     size: len,
                     data: bytes,
@@ -57,7 +76,6 @@ pub extern "C" fn ngx_wasm_backtrace_get_function_name_table(
         }
 
         let (bytes, len, _cap) = names.into_raw_parts();
-        //mem::forget(bytes);
         Some(Box::new(ngx_wasm_backtrace_name_table_t {
             size: len,
             table: bytes,
@@ -67,17 +85,27 @@ pub extern "C" fn ngx_wasm_backtrace_get_function_name_table(
     }
 }
 
+/// # Safety
+///
+/// Argument must be a name table returned by [ngx_wasm_backtrace_get_name_table].
 #[no_mangle]
-pub extern "C" fn ngx_wasm_backtrace_free_function_name_table(v: *mut u8, size: usize) -> () {
-    let s = unsafe { Vec::<u8>::from_raw_parts(v, size, size) };
-    mem::drop(s);
+pub unsafe extern "C" fn ngx_wasm_backtrace_free_name_table(
+    ptr: *mut ngx_wasm_backtrace_name_table_t,
+) {
+    drop(Box::from_raw(ptr));
 }
 
+/// # Safety
+///
+/// First argument must point to a byte vector containing a mangled name.
+/// Second argument must point to a byte vector with NULL data; both fields
+/// are overwritten by this function. The data must be disposed later with
+/// [ngx_wasm_backtrace_drop_byte_vec].
 #[no_mangle]
-pub extern "C" fn ngx_wasm_backtrace_demangle(
+pub unsafe extern "C" fn ngx_wasm_backtrace_demangle(
     mangled: *const wasm_byte_vec_t,
     demangled: *mut wasm_byte_vec_t,
-) -> () {
+) {
     let s: &str = unsafe {
         let slice = std::slice::from_raw_parts((*mangled).data, (*mangled).size);
         std::str::from_utf8_unchecked(slice)
@@ -88,8 +116,11 @@ pub extern "C" fn ngx_wasm_backtrace_demangle(
     vec_into_wasm_byte_vec_t(demangled, bytes);
 }
 
+/// # Safety
+///
+/// The byte vector given must be the one produced by [ngx_wasm_backtrace_demangle].
 #[no_mangle]
-pub extern "C" fn ngx_wasm_backtrace_drop_byte_vec(v: *const wasm_byte_vec_t) -> () {
+pub unsafe extern "C" fn ngx_wasm_backtrace_drop_byte_vec(v: *const wasm_byte_vec_t) {
     let s = unsafe { String::from_raw_parts((*v).data, (*v).size, (*v).size) };
     mem::drop(s);
 }
