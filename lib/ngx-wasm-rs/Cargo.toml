@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 ngx-wasm-wat = { path = "lib/wat", optional = true }
+ngx-wasm-backtrace = { path = "lib/backtrace" }
 
 [features]
 wat = ["dep:ngx-wasm-wat"]
