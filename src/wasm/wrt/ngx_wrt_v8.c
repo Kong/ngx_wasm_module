@@ -18,16 +18,15 @@ static void ngx_v8_destroy_instance(ngx_wrt_instance_t *instance);
 static wasm_engine_t  *v8_engine = NULL;
 
 
-static ngx_int_t
-ngx_v8_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
-    ngx_log_t *log)
+static wasm_config_t *
+ngx_v8_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
 {
     if (conf->compiler.len) {
         if (!ngx_str_eq(conf->compiler.data, conf->compiler.len, "auto", -1)) {
             ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
                                "invalid compiler \"%V\"",
                                &conf->compiler);
-            return NGX_ERROR;
+            return NULL;
         }
 
         ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
@@ -35,7 +34,7 @@ ngx_v8_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
                            &conf->compiler);
     }
 
-    return NGX_OK;
+    return wasm_config_new();
 }
 
 
