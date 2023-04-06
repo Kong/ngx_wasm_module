@@ -1,6 +1,4 @@
-use rustc_demangle;
 use std::convert::TryInto;
-use wasmparser;
 
 // see specification at:
 // https://webassembly.github.io/spec/core/appendix/custom.html#name-section
@@ -34,18 +32,16 @@ fn read_name_section(
 pub(crate) fn get_function_name_table(
     wasm_slice: &[u8],
 ) -> Result<Vec<(u32, String)>, wasmparser::BinaryReaderError> {
-    for payload in wasmparser::Parser::new(0).parse_all(wasm_slice) {
-        match payload {
-            Ok(wasmparser::Payload::CustomSection(s)) => {
-                if s.name() == "name" {
-                    let reader = wasmparser::BinaryReader::new(s.data());
-                    return read_name_section(reader);
-                }
+    for payload in wasmparser::Parser::new(0).parse_all(wasm_slice).flatten() {
+        if let wasmparser::Payload::CustomSection(s) = payload {
+            if s.name() == "name" {
+                let reader = wasmparser::BinaryReader::new(s.data());
+                return read_name_section(reader);
             }
-            _ => {}
         }
     }
-    return Ok(Vec::new());
+
+    Ok(Vec::new())
 }
 
 pub(crate) fn demangle(mangled: &str) -> String {
