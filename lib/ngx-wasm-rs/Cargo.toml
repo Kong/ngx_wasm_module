@@ -1,0 +1,19 @@
+[package]
+name = "ngx-wasm"
+version = "0.1.0"
+authors = ["Hisham Muhammad <hisham@gobolinux.org>"]
+edition = "2018"
+
+[dependencies]
+ngx-wasm-wat = { path = "lib/wat", optional = true }
+
+[features]
+wat = ["dep:ngx-wasm-wat"]
+
+[lib]
+name = "ngx_wasm_rs"
+crate-type = ["staticlib"]
+
+[workspace]
+# not in a workspace
+
