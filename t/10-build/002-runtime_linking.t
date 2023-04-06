@@ -65,7 +65,7 @@ libwee8
 
 === TEST 5: build with statically linked runtime - v8
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'v8' || $ENV{NGX_WASM_RUNTIME_LIB} eq '' || $ENV{NGX_WASM_RUNTIME_INC} eq '' || $ENV{NGX_WASM_RUNTIME} eq ''
---- build eval: qq{NGX_WASM_RUNTIME_LD_OPT="$ENV{NGX_WASM_RUNTIME_LIB}/libwee8.a -lm -ldl -lpthread -lstdc++ -L$ENV{NGX_WASM_RUNTIME_LIB} -L$ENV{NGX_WASM_CWABT_LIB} -lcwabt" make}
+--- build eval: qq{NGX_WASM_RUNTIME_LD_OPT="$ENV{NGX_WASM_RUNTIME_LIB}/libwee8.a -lm -ldl -lpthread -lstdc++ -L$ENV{NGX_WASM_RUNTIME_LIB}" make}
 --- no_grep_libs eval
 [
     qr/libwee8/,

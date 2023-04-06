@@ -6,6 +6,11 @@
 #include <ngx_wavm_host.h>
 
 
+#ifdef NGX_WASM_CARGO_FAILED
+#warning "Failed building ngx_wasm_rs: some functionality is unavailable."
+#endif
+
+
 #define NGX_WAVM_OK                   0
 #define NGX_WAVM_ERROR               -10
 #define NGX_WAVM_BAD_ARG             -11

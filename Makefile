@@ -24,6 +24,8 @@ export NGX_BUILD_OPENRESTY ?=
 export NGX_BUILD_CLANG_ANALYZER ?= 0
 export NGX_BUILD_GCOV ?= 0
 export NGX_BUILD_FORCE ?= 0
+export NGX_WASM_CARGO_TARGET ?= debug
+export NGX_WASM_CARGO ?= 1
 
 # Public - config
 export NGX_WASM_RUNTIME ?= wasmtime

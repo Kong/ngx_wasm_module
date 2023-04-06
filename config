@@ -26,16 +26,14 @@ case $ngx_wasm_runtime_name in
     v8)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_v8.c"
         ngx_wasm_runtime_lib_name="wee8"
-        ngx_wasm_runtime_pre_libs="-lcwabt -lv8bridge"
+        ngx_wasm_runtime_pre_libs="-lv8bridge"
         ngx_wasm_runtime_post_libs="-ldl -lpthread -lm -lstdc++"
 
-        if [ -n "$NGX_WASM_CWABT_INC" ]; then
-            NGX_WASM_RUNTIME_INC="$NGX_WASM_RUNTIME_INC -I $NGX_WASM_CWABT_INC"
-        fi
-
-        if [ -n "$NGX_WASM_CWABT_LIB" ]; then
-            NGX_WASM_RUNTIME_LIB="$NGX_WASM_RUNTIME_LIB -L$NGX_WASM_CWABT_LIB"
-        fi
+        ngx_wasm_cargo_library=yes
+        ngx_wasm_cargo_mandatory=yes
+        ngx_wasm_cargo_flags="--features wat"
+        ngx_wasm_cargo_defines="NGX_WASM_WAT"
+        ngx_wasm_cargo_feature_incs="#include <ngx_wasm_wat.h>"
 
         ngx_feature_name="NGX_WASM_HAVE_V8"
         ngx_feature_incs="#include <wasm.h>"
@@ -80,14 +78,32 @@ if [ $ngx_found = no ]; then
     exit 1
 fi
 
+ngx_wasm_runtime_path=$ngx_feature_path
+ngx_wasm_runtime_libs=$ngx_feature_libs
+
 have=NGX_WASM_RUNTIME value="\"$ngx_wasm_runtime_name\"" . auto/define
+
+if [ "$NGX_WASM_CARGO" != 0 -a "$ngx_wasm_cargo_library" = yes ]; then
+    # allow the feature test to find wasm.h
+    ngx_wasm_cargo_feature_path="$ngx_wasm_runtime_path"
+
+    ngx_wasm_cargo_lib_dir=$ngx_addon_dir/lib/ngx-wasm-rs
+    ngx_wasm_cargo_lib_name=ngx_wasm_rs
+
+    . $ngx_addon_dir/auto/cargo
+
+    if [ $ngx_found = yes ]; then
+        ngx_wasm_runtime_path="$ngx_wasm_runtime_path $ngx_feature_path"
+        ngx_wasm_runtime_libs="$ngx_wasm_runtime_libs $ngx_feature_libs"
+    fi
+fi
 
 ###############################################################################
 
 # core
 
 NGX_WASM_INCS="\
-    $ngx_feature_path \
+    $ngx_wasm_runtime_path \
     $ngx_addon_dir/src/wasm \
     $ngx_addon_dir/src/wasm/wrt \
     $ngx_addon_dir/src/wasm/vm \
@@ -238,7 +254,7 @@ if [ "$ngx_module_link" = DYNAMIC ]; then
     ngx_module_deps="$NGX_WASM_DEPS"
     ngx_module_srcs="$NGX_WASM_SRCS \
                      $NGX_WASM_CORE_SRCS"
-    ngx_module_libs=$ngx_feature_libs
+    ngx_module_libs=$ngx_wasm_runtime_libs
 
 else
     # addon
@@ -247,7 +263,7 @@ else
     ngx_module_incs="$NGX_WASM_INCS"
     ngx_module_deps="$NGX_WASM_DEPS"
     ngx_module_srcs="$NGX_WASM_SRCS"
-    ngx_module_libs=$ngx_feature_libs
+    ngx_module_libs=$ngx_wasm_runtime_libs
 
     . auto/module
 

@@ -13,5 +13,5 @@ members = [
     "t/lib/proxy-wasm-tests/instance-lifecycle",
 ]
 exclude = [
-    "lib/cwabt",
+    "lib/ngx-wasm-rs",
 ]

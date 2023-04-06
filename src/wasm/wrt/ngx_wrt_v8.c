@@ -6,8 +6,11 @@
 #include <ngx_wrt.h>
 #include <ngx_wavm_host.h>
 #include <ngx_wasi.h>
-#include <cwabt.h>
 #include <v8bridge.h>
+
+#ifdef NGX_WASM_WAT
+#include <ngx_wasm_wat.h>
+#endif
 
 
 static void ngx_v8_destroy_instance(ngx_wrt_instance_t *instance);
@@ -94,11 +97,17 @@ static ngx_int_t
 ngx_v8_wat2wasm(wasm_byte_vec_t *wat, wasm_byte_vec_t *wasm,
     ngx_wrt_err_t *err)
 {
+#ifdef NGX_WASM_WAT
     wasm_byte_vec_t  out;
+#else
+    static char      err_msg[] = ".wat support not compiled in";
+    static size_t    err_len = sizeof(err_msg) - 1;
+#endif
 
+#ifdef NGX_WASM_WAT
     wasm_byte_vec_new(&out, 0, NULL);
 
-    err->res = wat2wasm(wat, &out);
+    err->res = ngx_wasm_wat_to_wasm(wat, &out);
 
     /* V8's own API needs to create the wasm_byte_vec_t*
        because its implementation is backed by a C++ array. */
@@ -107,6 +116,25 @@ ngx_v8_wat2wasm(wasm_byte_vec_t *wat, wasm_byte_vec_t *wasm,
     /* we can free cwabt's wasm_byte_vec_t* manually
        because it conforms to the C ABI. */
     ngx_free(out.data);
+
+#else
+    err->trap = NULL;
+
+    err->res = ngx_alloc(sizeof(wasm_byte_vec_t), ngx_cycle->log);
+    if (err->res == NULL) {
+        return NGX_ERROR;
+    }
+
+    err->res->data = ngx_calloc(err_len, ngx_cycle->log);
+    if (err->res->data == NULL) {
+        ngx_free(err->res);
+        err->res = NULL;
+        return NGX_ERROR;
+    }
+
+    err->res->size = err_len;
+    ngx_memcpy(err->res->data, err_msg, err_len);
+#endif /* NGX_WASM_WAT */
 
     return err->res == NULL ? NGX_OK : NGX_ERROR;
 }
