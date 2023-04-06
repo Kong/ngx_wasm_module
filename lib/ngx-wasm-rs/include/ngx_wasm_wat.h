@@ -1,9 +1,7 @@
-#ifndef CWABT_H
-#define CWABT_H
+#ifndef _NGX_WASM_WAT_H_INCLUDED_
+#define _NGX_WASM_WAT_H_INCLUDED_
 
 #include <wasm.h>
-
-#include <stdbool.h>
 
 /*
 Reads a buffer containing textual .wat data, parses it,
@@ -20,6 +18,7 @@ Return value:
 * NULL in case of a successful parse, or a pointer to a newly allocated
   wasm_byte_vec_t containing the error message, owned by the caller.
 */
-wasm_byte_vec_t* wat2wasm(const wasm_byte_vec_t *wat, wasm_byte_vec_t *wasm);
+wasm_byte_vec_t* ngx_wasm_wat_to_wasm(const wasm_byte_vec_t *wat,
+    wasm_byte_vec_t *wasm);
 
-#endif /* CWABT_H */
+#endif /* _NGX_WASM_WAT_H_INCLUDED_ */

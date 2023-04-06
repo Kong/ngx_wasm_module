@@ -1,0 +1,69 @@
+ngx_found=no
+
+ngx_wasm_push_dir=$(pwd)
+cd $ngx_wasm_cargo_lib_dir
+
+if [ "$NGX_WASM_CARGO_PROFILE" = "debug" ]; then
+    ngx_wasm_cargo_profile=debug
+    ngx_wasm_cargo_profile_flag=
+
+else
+    ngx_wasm_cargo_profile=release
+    ngx_wasm_cargo_profile_flag=--release
+fi
+
+cargo build $ngx_wasm_cargo_profile_flag $ngx_wasm_cargo_flags
+ngx_wasm_rc=$?
+
+ngx_wasm_cargo_target_dir=$ngx_wasm_cargo_lib_dir/target/$ngx_wasm_cargo_profile
+
+cd $ngx_wasm_push_dir
+
+if [ $ngx_wasm_rc = 0 ]; then
+    ngx_feature="$ngx_wasm_cargo_lib_name"
+    ngx_feature_incs="$ngx_wasm_cargo_feature_incs"
+    ngx_feature_test="$ngx_wasm_cargo_feature_test"
+
+    if [ "$ngx_wasm_cargo_crate_type" = "cdylib" ]; then
+        ngx_feature_libs="\
+            -Wl,-rpath $ngx_wasm_cargo_target_dir \
+            -L$ngx_wasm_cargo_target_dir \
+            -l$ngx_wasm_cargo_lib_name"
+
+    else
+        ngx_feature_libs="$ngx_wasm_cargo_target_dir/lib$ngx_wasm_cargo_lib_name.a"
+    fi
+
+    ngx_feature_path="-I $ngx_wasm_cargo_lib_dir/include $ngx_wasm_cargo_feature_path"
+    ngx_feature_run=yes
+
+    . auto/feature
+
+    if [ $ngx_found = yes ]; then
+        for d in $ngx_wasm_cargo_defines; do
+            have=$d value=1 . auto/define
+        done
+
+    else
+        echo "$0: error: $ngx_addon_name failed testing lib$ngx_wasm_cargo_lib_name."
+    fi
+
+else
+    echo "$0: error: $ngx_addon_name failed building lib$ngx_wasm_cargo_lib_name."
+fi
+
+if [ $ngx_found = no ]; then
+    if [ $ngx_wasm_cargo_mandatory = yes ]; then
+        echo "$0: error: $ngx_addon_name requires lib$ngx_wasm_cargo_lib_name - aborting."
+        echo
+        exit 1
+    fi
+
+    echo "$0: warning: the following functionality is not available for $ngx_addon_name:"
+    echo "    $ngx_wasm_cargo_defines"
+    echo
+
+    have=NGX_WASM_CARGO_FAILED value=1 . auto/define
+fi
+
+# vim:ft=sh ts=4 sts=4 sw=4:
