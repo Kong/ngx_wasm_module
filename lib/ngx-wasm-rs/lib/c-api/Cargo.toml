@@ -1,0 +1,5 @@
+[package]
+name = "ngx-wasm-c-api"
+version = "0.1.0"
+authors = ["Hisham Muhammad <hisham@gobolinux.org>"]
+edition = "2018"

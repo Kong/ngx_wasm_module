@@ -78,22 +78,6 @@ download_v8() {
 
 ###############################################################################
 
-build_cwabt() {
-    local target="$1"
-    local clean="$2"
-
-    notice "building lib/cwabt..."
-
-    cd $NGX_WASM_DIR/lib/cwabt
-
-    if [ "$clean" = "clean" ]; then
-        make clean
-    fi
-
-    make
-    make install TARGET="$target"
-}
-
 check_libwee8_build_dependencies() {
     python3 --help >/dev/null 2>/dev/null || {
         fatal "python3 is required in your path."
@@ -279,7 +263,6 @@ build_v8() {
     local arch="$3"
     local clean="$4"
 
-    build_cwabt "$target" "$clean"
     build_libwee8 "$target" "$clean" "$v8_ver" "$arch"
     build_v8bridge "$target" "$clean"
 }

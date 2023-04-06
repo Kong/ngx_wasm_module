@@ -40,7 +40,7 @@ __DATA__
 
 === TEST 3: build as a dynamic module, with statically linked runtime - v8
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'v8' || $ENV{NGX_WASM_RUNTIME_DIR} eq '' || $ENV{NGX_WASM_RUNTIME} eq ''
---- build eval: qq{NGX_WASM_RUNTIME_INC="$ENV{NGX_WASM_RUNTIME_DIR}/include" NGX_WASM_RUNTIME_LD_OPT="$ENV{NGX_WASM_RUNTIME_DIR}/lib/libwee8.a -L\${NGX_WASM_CWABT_LIB:-\$NGX_WASM_RUNTIME_DIR/lib} -lstdc++ -lcwabt -lm -ldl -lpthread" NGX_BUILD_DYNAMIC_MODULE=1 make }
+--- build eval: qq{NGX_WASM_RUNTIME_INC="$ENV{NGX_WASM_RUNTIME_DIR}/include" NGX_WASM_RUNTIME_LD_OPT="$ENV{NGX_WASM_RUNTIME_DIR}/lib/libwee8.a -L$ENV{NGX_WASM_RUNTIME_DIR}/lib -lv8bridge -lstdc++ -lm -ldl -lpthread" NGX_BUILD_DYNAMIC_MODULE=1 make}
 --- run_cmd eval: qq{find $::buildroot -name 'ngx_wasm_module.*' | xargs -I{} nm -g {}}
 --- grep_cmd eval
 [

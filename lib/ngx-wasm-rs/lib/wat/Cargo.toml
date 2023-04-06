@@ -1,19 +1,13 @@
 [package]
-name = "cwabt"
+name = "ngx-wasm-wat"
 version = "0.1.0"
 authors = ["Hisham Muhammad <hisham@gobolinux.org>"]
 edition = "2018"
 
 [dependencies]
+ngx-wasm-c-api = { path = "../c-api" }
 wabt = "0.10.0"
 regex = "1.5.6"
 libc = "*"
 unescape = "0.1.0"
 lazy_static = "*"
-
-[lib]
-name = "cwabt"
-crate-type = ["staticlib"]
-
-[workspace]
-# not in a workspace

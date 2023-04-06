@@ -286,6 +286,7 @@ build_nginx() {
               || ! -d "$NGX_BUILD_DIR_BUILDROOT" \
               || "$NGX_WASM_DIR/config" -nt "Makefile" \
               || "$NGX_WASM_DIR/auto/runtime" -nt "Makefile" \
+              || "$NGX_WASM_DIR/auto/cargo" -nt "Makefile" \
               || "$NGX_WASM_DIR/Makefile" -nt "Makefile" \
               || "$NGX_WASM_DIR/util/build.sh" -nt "Makefile" \
               || "$NGX_WASM_DIR/util/_lib.sh" -nt "Makefile" ]];
