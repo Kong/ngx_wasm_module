@@ -34,3 +34,8 @@
    Memcheck:Cond
    fun:_ZN10wasmparser6parser6Parser5parse17h80eb27fd0ce3f825E
 }
+{
+   <ngx_wasm_rs: parse>
+   Memcheck:Cond
+   fun:_ZN10wasmparser6parser6Parser5parse17h9b8c5cdeb2164838E
+}

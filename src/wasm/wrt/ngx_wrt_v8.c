@@ -52,7 +52,8 @@ ngx_v8_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
                We also need to set `--no-liftoff` here, because tiering up
                is not possible under single-threaded mode and we need TurboFan
                for performance. */
-            ngx_v8_set_flags("--no-liftoff --single-threaded");
+            ngx_v8_set_flags("--no-liftoff --single-threaded "
+                             "--stack-trace-limit 32");
 
             if (ngx_v8_enable_wasm_trap_handler(1)) {
                 ngx_wavm_log_error(NGX_LOG_INFO, pool->log, NULL,

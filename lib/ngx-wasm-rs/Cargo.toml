@@ -13,7 +13,7 @@ wat = ["dep:ngx-wasm-wat"]
 
 [lib]
 name = "ngx_wasm_rs"
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "cdylib"]
 
 [workspace]
 # not in a workspace
