@@ -5,6 +5,10 @@
 
 #include <ngx_wavm.h>
 
+#ifdef NGX_WASM_BACKTRACE
+#include <ngx_wasm_backtrace.h>
+#endif
+
 
 #define ngx_wavm_state(m, s)  ((m)->state & (s))
 
@@ -609,6 +613,17 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
         }
     }
 
+    if (vm->config->backtraces) {
+#ifdef NGX_WASM_BACKTRACE
+        module->name_table = ngx_wasm_backtrace_get_name_table(&module->bytes);
+
+#elif (NGX_WASM_HAVE_V8 || NGX_WASM_HAVE_WASMER)
+        ngx_wavm_log_error(NGX_LOG_WARN, vm->log, NULL,
+                           "\"backtraces\" enabled but support for detailed "
+                           "backtraces lacking in current build");
+#endif
+    }
+
     module->idx = vm->modules_max++;
     module->state |= NGX_WAVM_MODULE_LOADED;
 
@@ -811,6 +826,12 @@ ngx_wavm_module_destroy(ngx_wavm_module_t *module)
     if (module->config.data) {
         ngx_pfree(vm->pool, module->config.data);
     }
+
+#if NGX_WASM_BACKTRACE
+    if (module->name_table) {
+        ngx_wasm_backtrace_free_name_table(module->name_table);
+    }
+#endif
 
     for (i = 0; i < module->hfuncs.nelts; i++) {
         hfunc = ((ngx_wavm_hfunc_t **) module->hfuncs.elts)[i];
@@ -1375,13 +1396,39 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
 }
 
 
+#if NGX_WASM_BACKTRACE
+
+static int
+name_idx_compare(const void *a, const void *b)
+{
+    return ((ngx_wasm_backtrace_name_t *) a)->idx -
+           ((ngx_wasm_backtrace_name_t *) b)->idx;
+}
+#endif
+
 void
 ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
     const char *fmt, ...)
 {
-    va_list          args;
-    wasm_message_t   trapmsg;
-    u_char          *p, *last, errstr[NGX_MAX_ERROR_STR];
+    va_list                           args;
+    wasm_message_t                    trapmsg;
+    u_char                           *p, *last, errstr[NGX_MAX_ERROR_STR];
+
+#if (NGX_WASM_HAVE_V8 || NGX_WASM_HAVE_WASMER)
+    ngx_wavm_log_ctx_t               *ctx = log->data;
+    size_t                            i, func_index, func_offset;
+    wasm_frame_vec_t                  trace;
+    wasm_frame_t                     *frame;
+    char                              hex[20];
+
+#if NGX_WASM_BACKTRACE
+    ngx_wasm_backtrace_name_table_t  *name_table;
+    ngx_wasm_backtrace_name_t         key;
+    ngx_wasm_backtrace_name_t        *found;
+    wasm_byte_vec_t                   demangled;
+#endif /* NGX_WASM_BACKTRACE */
+
+#endif /* (NGX_WASM_HAVE_V8 || NGX_WASM_HAVE_WASMER) */
 
     last = errstr + NGX_MAX_ERROR_STR;
     p = &errstr[0];
@@ -1407,6 +1454,59 @@ ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
                          , trapmsg.data);
 
         wasm_byte_vec_delete(&trapmsg);
+
+#if (NGX_WASM_HAVE_V8 || NGX_WASM_HAVE_WASMER)
+        if (ctx->instance) {
+            wasm_trap_trace(e->trap, &trace);
+
+            if (trace.size > 0) {
+                p = ngx_slprintf(p, last, "\nBacktrace:\n");
+
+#if NGX_WASM_BACKTRACE
+                name_table = ctx->instance->module->name_table;
+                found = NULL;
+#endif
+            }
+
+            for (i = 0; i < trace.size; i++) {
+                frame = trace.data[i];
+                func_index = wasm_frame_func_index(frame);
+                func_offset = wasm_frame_func_offset(frame);
+
+                /* using plain sprintf for hexadecimal formatting support */
+                snprintf(hex, sizeof(hex) - 1, "%04lx", func_offset);
+
+                p = ngx_slprintf(p, last, "\t%d: ", i);
+
+#if NGX_WASM_BACKTRACE
+                if (name_table) {
+                    key.idx = func_index;
+                    found = bsearch(&key, name_table->table, name_table->size,
+                                    sizeof(ngx_wasm_backtrace_name_t),
+                                    name_idx_compare);
+                }
+
+                if (found) {
+                    ngx_wasm_backtrace_demangle(found->name, &demangled);
+
+                    p = ngx_slprintf(p, last, "%*s",
+                                     demangled.size, demangled.data);
+
+                    free(demangled.data);
+
+                } else {
+                    p = ngx_slprintf(p, last, "func %d", func_index);
+                }
+#else
+                p = ngx_slprintf(p, last, "func %d", func_index);
+#endif
+                p = ngx_slprintf(p, last, " @ 0x%s\n", hex);
+            }
+
+            wasm_frame_vec_delete(&trace);
+        }
+#endif
+
         wasm_trap_delete(e->trap);
     }
 

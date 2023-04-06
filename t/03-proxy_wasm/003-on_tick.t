@@ -155,7 +155,7 @@ qq{
 --- ignore_response_body
 --- grep_error_log eval: qr/.*?(\[emerg\]|tick_period already set).*/
 --- grep_error_log_out eval
-qr/.*?(\[error\]|Uncaught RuntimeError: |\s+)tick_period already set <.*
+qr/.*?(\[error\]|Uncaught RuntimeError: |\s+)tick_period already set.*
 .*?\[emerg\] .*? proxy_wasm failed initializing \"on_tick\" filter.*/
 --- no_error_log
 [warn]
