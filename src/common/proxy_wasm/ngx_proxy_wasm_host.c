@@ -15,6 +15,15 @@
 #endif
 
 
+#ifdef NGX_WASM_HTTP
+static ngx_int_t ngx_proxy_wasm_hfuncs_resume_http_request(
+    ngx_wavm_instance_t *instance, wasm_val_t args[], wasm_val_t rets[]);
+#else
+static ngx_int_t ngx_proxy_wasm_hfuncs_no_http(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[]);
+#endif
+
+
 static ngx_chain_t *
 ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_buffer_type_e buf_type, unsigned *none)
@@ -97,6 +106,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
 
 
 /* hfuncs */
+/* integration */
 
 
 static ngx_int_t
@@ -147,6 +157,95 @@ ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
 
     return ngx_proxy_wasm_result_ok(rets);
 }
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_get_current_time(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    void  *rtime;
+
+    /* WASM might not align 64-bit integers to 8-byte boundaries. So we
+     * need to buffer & copy here. */
+    rtime = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32,
+                                     sizeof(uint64_t));
+
+    ngx_wasm_wall_time(rtime);
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+/* context */
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_set_effective_context(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+#if (DDEBUG)
+    uint32_t   context_id;
+
+    context_id = args[0].of.i32;
+
+    dd("effective context_id: %d", context_id);
+#endif
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+/* timers */
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    uint32_t                period = args[0].of.i32;
+    ngx_event_t            *ev;
+    ngx_proxy_wasm_exec_t  *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+
+    ngx_wasm_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+
+    if (pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID) {
+        /* ignore */
+        return ngx_proxy_wasm_result_ok(rets);
+    }
+
+    if (ngx_exiting) {
+        return ngx_proxy_wasm_result_trap(pwexec, "process exiting", rets,
+                                          NGX_WAVM_OK);
+    }
+
+    if (pwexec->tick_period) {
+        return ngx_proxy_wasm_result_trap(pwexec, "tick_period already set",
+                                          rets, NGX_WAVM_OK);
+    }
+
+    pwexec->tick_period = period;
+
+    ev = ngx_calloc(sizeof(ngx_event_t), instance->log);
+    if (ev == NULL) {
+        goto nomem;
+    }
+
+    ev->handler = ngx_proxy_wasm_filter_tick_handler;
+    ev->data = pwexec;
+    ev->log = pwexec->log;
+
+    ngx_add_timer(ev, pwexec->tick_period);
+
+    return ngx_proxy_wasm_result_ok(rets);
+
+nomem:
+
+    return ngx_proxy_wasm_result_trap(pwexec, "no memory",
+                                      rets, NGX_WAVM_ERROR);
+}
+
+
+/* buffers */
 
 
 static ngx_int_t
@@ -346,6 +445,9 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 
     return ngx_proxy_wasm_result_ok(rets);
 }
+
+
+/* maps */
 
 
 static ngx_int_t
@@ -653,254 +755,7 @@ ngx_proxy_wasm_hfuncs_remove_header_map_value(ngx_wavm_instance_t *instance,
 }
 
 
-static ngx_int_t
-ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    uint32_t                period = args[0].of.i32;
-    ngx_event_t            *ev;
-    ngx_proxy_wasm_exec_t  *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
-
-    ngx_wasm_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
-
-    if (pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID) {
-        /* ignore */
-        return ngx_proxy_wasm_result_ok(rets);
-    }
-
-    if (ngx_exiting) {
-        return ngx_proxy_wasm_result_trap(pwexec, "process exiting", rets,
-                                          NGX_WAVM_OK);
-    }
-
-    if (pwexec->tick_period) {
-        return ngx_proxy_wasm_result_trap(pwexec, "tick_period already set",
-                                          rets, NGX_WAVM_OK);
-    }
-
-    pwexec->tick_period = period;
-
-    ev = ngx_calloc(sizeof(ngx_event_t), instance->log);
-    if (ev == NULL) {
-        goto nomem;
-    }
-
-    ev->handler = ngx_proxy_wasm_filter_tick_handler;
-    ev->data = pwexec;
-    ev->log = pwexec->log;
-
-    ngx_add_timer(ev, pwexec->tick_period);
-
-    return ngx_proxy_wasm_result_ok(rets);
-
-nomem:
-
-    return ngx_proxy_wasm_result_trap(pwexec, "no memory",
-                                      rets, NGX_WAVM_ERROR);
-}
-
-
-static ngx_int_t
-ngx_proxy_wasm_hfuncs_get_current_time(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    void  *rtime;
-
-    /* WASM might not align 64-bit integers to 8-byte boundaries. So we
-     * need to buffer & copy here. */
-    rtime = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32,
-                                     sizeof(uint64_t));
-
-    ngx_wasm_wall_time(rtime);
-
-    return ngx_proxy_wasm_result_ok(rets);
-}
-
-
-#ifdef NGX_WASM_HTTP
-static ngx_int_t
-ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    int32_t                           status, reason_len, body_len;
-#if (NGX_DEBUG)
-    int32_t                           grpc_status;
-#endif
-    u_char                           *reason, *body;
-    ngx_int_t                         rc;
-    ngx_array_t                       headers;
-    ngx_proxy_wasm_marshalled_map_t   map;
-    ngx_proxy_wasm_exec_t            *pwexec;
-    ngx_http_wasm_req_ctx_t          *rctx;
-
-    rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
-
-    status = args[0].of.i32;
-    reason_len = args[2].of.i32;
-    reason = NGX_WAVM_HOST_LIFT_SLICE(instance, args[1].of.i32, reason_len);
-    body_len = args[4].of.i32;
-    body = NGX_WAVM_HOST_LIFT_SLICE(instance, args[3].of.i32, body_len);
-    map.len = args[6].of.i32;
-    map.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[5].of.i32, map.len);
-
-#if (NGX_DEBUG)
-    grpc_status = args[7].of.i32;
-
-    ngx_wasm_assert(grpc_status == -1);
-#endif
-
-    if (ngx_proxy_wasm_pairs_unmarshal(pwexec, &headers, &map) != NGX_OK) {
-        return ngx_proxy_wasm_result_err(rets);
-    }
-
-    rc = ngx_http_wasm_stash_local_response(rctx, status, reason, reason_len,
-                                            &headers, body, body_len);
-
-    dd("stash local response rc: %ld", rc);
-
-    switch (rc) {
-
-    case NGX_OK:
-        pwexec->parent->action = NGX_PROXY_WASM_ACTION_DONE;
-        break;
-
-    case NGX_ERROR:
-        return ngx_proxy_wasm_result_err(rets);
-
-    case NGX_DECLINED:
-        return ngx_proxy_wasm_result_badarg(rets);
-
-    case NGX_BUSY:
-        return ngx_proxy_wasm_result_trap(pwexec,
-                                          "local response already stashed",
-                                          rets, NGX_WAVM_BAD_USAGE);
-
-    case NGX_ABORT:
-        return ngx_proxy_wasm_result_trap(pwexec,
-                                          "response already sent", rets,
-                                          NGX_WAVM_BAD_USAGE);
-
-    default:
-        /* unreachable */
-        ngx_wasm_assert(0);
-        return NGX_WAVM_NYI;
-
-    }
-
-    return ngx_proxy_wasm_result_ok(rets);
-}
-
-
-static ngx_int_t
-ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    uint32_t                         *callout_id, timeout;
-    ngx_str_t                         host, body;
-    ngx_proxy_wasm_marshalled_map_t   headers, trailers;
-    ngx_proxy_wasm_exec_t            *pwexec;
-    ngx_http_wasm_req_ctx_t          *rctx;
-    ngx_http_proxy_wasm_dispatch_t   *call = NULL;
-
-    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
-    rctx = ngx_http_proxy_wasm_get_rctx(instance);
-
-    host.len = args[1].of.i32;
-    host.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, host.len);
-
-    headers.len = args[3].of.i32;
-    headers.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[2].of.i32,
-                                            headers.len);
-
-    body.len = args[5].of.i32;
-    body.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[4].of.i32, body.len);
-
-    trailers.len = args[7].of.i32;
-    trailers.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[6].of.i32,
-                                             trailers.len);
-
-    timeout = args[8].of.i32;
-    callout_id = NGX_WAVM_HOST_LIFT(instance, args[9].of.i32, uint32_t);
-
-    call = ngx_http_proxy_wasm_dispatch(pwexec, rctx, &host,
-                                        &headers, &trailers,
-                                        &body, timeout);
-    if (call == NULL) {
-        return ngx_proxy_wasm_result_err(rets);
-    }
-
-    *callout_id = call->id;
-
-    return ngx_proxy_wasm_result_ok(rets);
-}
-
-
-#else
-static ngx_int_t
-ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    ngx_proxy_wasm_exec_t  *pwexec;
-
-    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
-
-    return ngx_proxy_wasm_result_trap(pwexec,
-                                      "NYI - not supported without "
-                                      "ngx_http_core_module",
-                                      rets, NGX_WAVM_ERROR);
-}
-#endif
-
-
-static ngx_int_t
-ngx_proxy_wasm_hfuncs_set_effective_context(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-#if (DDEBUG)
-    uint32_t   context_id;
-
-    context_id = args[0].of.i32;
-
-    dd("effective context_id: %d", context_id);
-#endif
-
-    return ngx_proxy_wasm_result_ok(rets);
-}
-
-
-static ngx_int_t
-ngx_proxy_wasm_hfuncs_get_configuration(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    uint32_t               *rlen;
-    ngx_wavm_ptr_t         *rbuf, p;
-    ngx_proxy_wasm_exec_t  *pwexec;
-
-    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
-
-    rbuf = NGX_WAVM_HOST_LIFT(instance, args[0].of.i32, ngx_wavm_ptr_t);
-    rlen = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, uint32_t);
-
-    if (pwexec->filter->config.len) {
-        p = ngx_proxy_wasm_alloc(pwexec, pwexec->filter->config.len);
-        if (p == 0) {
-            return ngx_proxy_wasm_result_err(rets);
-        }
-
-        if (!ngx_wavm_memory_memcpy(instance->memory, p,
-                                    pwexec->filter->config.data,
-                                    pwexec->filter->config.len))
-        {
-            return ngx_proxy_wasm_result_invalid_mem(rets);
-        }
-
-        *rbuf = p;
-        *rlen = (uint32_t) pwexec->filter->config.len;
-    }
-
-    return ngx_proxy_wasm_result_ok(rets);
-}
+/* properties */
 
 
 static ngx_int_t
@@ -979,32 +834,7 @@ ngx_proxy_wasm_hfuncs_set_property(ngx_wavm_instance_t *instance,
 }
 
 
-static ngx_int_t
-ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
-    wasm_val_t args[], wasm_val_t rets[])
-{
-    ngx_proxy_wasm_exec_t    *pwexec;
-    ngx_proxy_wasm_ctx_t     *pwctx;
-#ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t  *rctx;
-#endif
-
-    dd("enter");
-
-    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
-    pwctx = pwexec->parent;
-
-    pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
-
-#ifdef NGX_WASM_HTTP
-    rctx = ngx_http_proxy_wasm_get_rctx(instance);
-
-    /* force resume */
-    rctx->state = NGX_HTTP_WASM_REQ_STATE_CONTINUE;
-#endif
-
-    return ngx_proxy_wasm_result_ok(rets);
-}
+/* stream */
 
 
 static ngx_int_t
@@ -1018,7 +848,11 @@ ngx_proxy_wasm_hfuncs_continue(ngx_wavm_instance_t *instance,
     switch (type) {
     case NGX_PROXY_WASM_STREAM_TYPE_HTTP_REQUEST:
     case NGX_PROXY_WASM_STREAM_TYPE_HTTP_RESPONSE:
+#ifdef NGX_WASM_HTTP
         return ngx_proxy_wasm_hfuncs_resume_http_request(instance, args, rets);
+#else
+        return ngx_proxy_wasm_hfuncs_no_http(instance, args, rets);
+#endif
     default:
         ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
                            "NYI - continue stream type: %ld", type);
@@ -1027,6 +861,179 @@ ngx_proxy_wasm_hfuncs_continue(ngx_wavm_instance_t *instance,
 
     return ngx_proxy_wasm_result_err(rets);
 }
+
+
+/* http */
+
+
+#ifdef NGX_WASM_HTTP
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_proxy_wasm_exec_t    *pwexec;
+    ngx_proxy_wasm_ctx_t     *pwctx;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    dd("enter");
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    pwctx = pwexec->parent;
+
+    pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
+
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
+    /* force resume */
+    rctx->state = NGX_HTTP_WASM_REQ_STATE_CONTINUE;
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    int32_t                           status, reason_len, body_len;
+#if (NGX_DEBUG)
+    int32_t                           grpc_status;
+#endif
+    u_char                           *reason, *body;
+    ngx_int_t                         rc;
+    ngx_array_t                       headers;
+    ngx_proxy_wasm_marshalled_map_t   map;
+    ngx_proxy_wasm_exec_t            *pwexec;
+    ngx_http_wasm_req_ctx_t          *rctx;
+
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+
+    status = args[0].of.i32;
+    reason_len = args[2].of.i32;
+    reason = NGX_WAVM_HOST_LIFT_SLICE(instance, args[1].of.i32, reason_len);
+    body_len = args[4].of.i32;
+    body = NGX_WAVM_HOST_LIFT_SLICE(instance, args[3].of.i32, body_len);
+    map.len = args[6].of.i32;
+    map.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[5].of.i32, map.len);
+
+#if (NGX_DEBUG)
+    grpc_status = args[7].of.i32;
+
+    ngx_wasm_assert(grpc_status == -1);
+#endif
+
+    if (ngx_proxy_wasm_pairs_unmarshal(pwexec, &headers, &map) != NGX_OK) {
+        return ngx_proxy_wasm_result_err(rets);
+    }
+
+    rc = ngx_http_wasm_stash_local_response(rctx, status, reason, reason_len,
+                                            &headers, body, body_len);
+
+    dd("stash local response rc: %ld", rc);
+
+    switch (rc) {
+
+    case NGX_OK:
+        pwexec->parent->action = NGX_PROXY_WASM_ACTION_DONE;
+        break;
+
+    case NGX_ERROR:
+        return ngx_proxy_wasm_result_err(rets);
+
+    case NGX_DECLINED:
+        return ngx_proxy_wasm_result_badarg(rets);
+
+    case NGX_BUSY:
+        return ngx_proxy_wasm_result_trap(pwexec,
+                                          "local response already stashed",
+                                          rets, NGX_WAVM_BAD_USAGE);
+
+    case NGX_ABORT:
+        return ngx_proxy_wasm_result_trap(pwexec,
+                                          "response already sent", rets,
+                                          NGX_WAVM_BAD_USAGE);
+
+    default:
+        /* unreachable */
+        ngx_wasm_assert(0);
+        return NGX_WAVM_NYI;
+
+    }
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+/* http callouts */
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    uint32_t                         *callout_id, timeout;
+    ngx_str_t                         host, body;
+    ngx_proxy_wasm_marshalled_map_t   headers, trailers;
+    ngx_proxy_wasm_exec_t            *pwexec;
+    ngx_http_wasm_req_ctx_t          *rctx;
+    ngx_http_proxy_wasm_dispatch_t   *call = NULL;
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
+    host.len = args[1].of.i32;
+    host.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, host.len);
+
+    headers.len = args[3].of.i32;
+    headers.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[2].of.i32,
+                                            headers.len);
+
+    body.len = args[5].of.i32;
+    body.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[4].of.i32, body.len);
+
+    trailers.len = args[7].of.i32;
+    trailers.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[6].of.i32,
+                                             trailers.len);
+
+    timeout = args[8].of.i32;
+    callout_id = NGX_WAVM_HOST_LIFT(instance, args[9].of.i32, uint32_t);
+
+    call = ngx_http_proxy_wasm_dispatch(pwexec, rctx, &host,
+                                        &headers, &trailers,
+                                        &body, timeout);
+    if (call == NULL) {
+        return ngx_proxy_wasm_result_err(rets);
+    }
+
+    *callout_id = call->id;
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+#else
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_no_http(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_proxy_wasm_exec_t  *pwexec;
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+
+    return ngx_proxy_wasm_result_trap(pwexec,
+                                      "NYI - not supported without "
+                                      "ngx_http_core_module",
+                                      rets, NGX_WAVM_ERROR);
+}
+#endif
+
+
+/* grpc callouts */
+/* NYI */
+
+
+/* shared k/v store */
 
 
 static ngx_int_t
@@ -1174,6 +1181,9 @@ ngx_proxy_wasm_hfuncs_set_shared_data(ngx_wavm_instance_t *instance,
 
     return ngx_proxy_wasm_result_ok(rets);
 }
+
+
+/* shared queue */
 
 
 static ngx_int_t
@@ -1360,6 +1370,54 @@ ngx_proxy_wasm_hfuncs_dequeue_shared_queue(ngx_wavm_instance_t *instance,
 }
 
 
+/* stats/metrics */
+/* NYI */
+
+
+/* custom extension points */
+/* NYI */
+
+
+/* legacy */
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_get_configuration(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    uint32_t               *rlen;
+    ngx_wavm_ptr_t         *rbuf, p;
+    ngx_proxy_wasm_exec_t  *pwexec;
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+
+    rbuf = NGX_WAVM_HOST_LIFT(instance, args[0].of.i32, ngx_wavm_ptr_t);
+    rlen = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, uint32_t);
+
+    if (pwexec->filter->config.len) {
+        p = ngx_proxy_wasm_alloc(pwexec, pwexec->filter->config.len);
+        if (p == 0) {
+            return ngx_proxy_wasm_result_err(rets);
+        }
+
+        if (!ngx_wavm_memory_memcpy(instance->memory, p,
+                                    pwexec->filter->config.data,
+                                    pwexec->filter->config.len))
+        {
+            return ngx_proxy_wasm_result_invalid_mem(rets);
+        }
+
+        *rbuf = p;
+        *rlen = (uint32_t) pwexec->filter->config.len;
+    }
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+/* NOP */
+
+
 static ngx_int_t
 ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
@@ -1369,17 +1427,28 @@ ngx_proxy_wasm_hfuncs_nop(ngx_wavm_instance_t *instance,
 
 
 static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
+    /**
+     * Compatible:
+     *   - 0.1.0
+     *   - 0.2.0
+     *   - 0.2.1
+     *
+     * vNEXT (aka reviewed): https://github.com/proxy-wasm/spec/pull/1
+     */
 
     /* integration */
-
-    { ngx_string("proxy_abi_version_0_1_0"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      NULL,
-      NULL },
 
     { ngx_string("proxy_log"),
       &ngx_proxy_wasm_hfuncs_proxy_log,
       ngx_wavm_arity_i32x3,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_get_log_level"),
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_get_current_time_nanoseconds"),  /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_get_current_time,
+      ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
 
     /* context */
@@ -1388,380 +1457,354 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
       &ngx_proxy_wasm_hfuncs_set_effective_context,
       ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_context_finalize"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    /* vNEXT: merge of proxy_on_log + proxy_on_done + proxy_on_delete */
+    { ngx_string("proxy_context_finalize"),              /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       NULL,
       ngx_wavm_arity_i32 },
-    /* legacy: 0.1.0 - 0.2.1 */
-    { ngx_string("proxy_done"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_done"),                          /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       NULL,
       ngx_wavm_arity_i32 },
 
-    /* stream */
+    /* timers */
 
-    /* rust-sdk < 0.2.0 */
-    { ngx_string("proxy_resume_stream"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_create_timer"),                  /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x3,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_delete_timer"),                  /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-
-    /* rust-sdk >= 0.2.0 */
-    { ngx_string("proxy_continue_stream"),
-      &ngx_proxy_wasm_hfuncs_continue,
+    { ngx_string("proxy_set_tick_period_milliseconds"),  /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_set_tick_period,
       ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_close_stream"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32,
-      ngx_wavm_arity_i32 },
-
-    /* http */
-
-#ifdef NGX_WASM_HTTP
-    { ngx_string("proxy_send_http_response"),
-      &ngx_proxy_wasm_hfuncs_send_local_response,
-      ngx_wavm_arity_i32x8,
-      ngx_wavm_arity_i32 },
-    /* legacy: 0.1.0 - 0.2.1 */
-    { ngx_string("proxy_send_local_response"),
-      &ngx_proxy_wasm_hfuncs_send_local_response,
-      ngx_wavm_arity_i32x8,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_resume_http_stream"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32,
-      ngx_wavm_arity_i32 },
-    /* legacy: 0.1.0 - 0.2.1 */
-    { ngx_string("proxy_continue_request"),
-      &ngx_proxy_wasm_hfuncs_resume_http_request,
-      NULL,
-      ngx_wavm_arity_i32 },
-    /* legacy: 0.1.0 - 0.2.1 */
-    { ngx_string("proxy_continue_response"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      NULL,
-      ngx_wavm_arity_i32 },
-#endif
 
     /* buffers */
 
-    { ngx_string("proxy_get_buffer"),
+    { ngx_string("proxy_get_buffer"),                    /* vNEXT */
       &ngx_proxy_wasm_hfuncs_get_buffer,
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
-    { ngx_string("proxy_get_buffer_bytes"),
+    { ngx_string("proxy_get_buffer_bytes"),              /* <= 0.2.1 */
       &ngx_proxy_wasm_hfuncs_get_buffer,
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_set_buffer"),
+    { ngx_string("proxy_set_buffer"),                    /* vNEXT */
       &ngx_proxy_wasm_hfuncs_set_buffer,
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
-    { ngx_string("proxy_set_buffer_bytes"),
+    { ngx_string("proxy_set_buffer_bytes"),              /* <= 0.2.1 */
       &ngx_proxy_wasm_hfuncs_set_buffer,
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
 
     /* maps */
 
-    { ngx_string("proxy_get_map_values"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_get_map_values"),                /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
-    { ngx_string("proxy_get_header_map_pairs"),
+    { ngx_string("proxy_get_header_map_pairs"),          /* <= 0.2.1 */
       &ngx_proxy_wasm_hfuncs_get_header_map_pairs,
       ngx_wavm_arity_i32x3,
       ngx_wavm_arity_i32 },
-    { ngx_string("proxy_get_header_map_value"),
+    { ngx_string("proxy_get_header_map_value"),          /* <= 0.2.1 */
       &ngx_proxy_wasm_hfuncs_get_header_map_value,
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_set_map_values"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_set_map_values"),                /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
-    { ngx_string("proxy_set_header_map_pairs"),
+    { ngx_string("proxy_set_header_map_pairs"),          /* <= 0.2.1 */
       &ngx_proxy_wasm_hfuncs_set_header_map_pairs,
       ngx_wavm_arity_i32x3,
       ngx_wavm_arity_i32 },
-    { ngx_string("proxy_add_header_map_value"),
+    { ngx_string("proxy_add_header_map_value"),          /* <= 0.2.1 */
       &ngx_proxy_wasm_hfuncs_add_header_map_value,
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
-    { ngx_string("proxy_replace_header_map_value"),
+    { ngx_string("proxy_replace_header_map_value"),      /* <= 0.2.1 */
       &ngx_proxy_wasm_hfuncs_replace_header_map_value,
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
-    { ngx_string("proxy_remove_header_map_value"),
+    { ngx_string("proxy_remove_header_map_value"),       /* <= 0.2.1 */
       &ngx_proxy_wasm_hfuncs_remove_header_map_value,
       ngx_wavm_arity_i32x3,
       ngx_wavm_arity_i32 },
 
-    /* shared k/v store */
+    /*
+     * properties
+     *
+     * note: no properties support in vNEXT.
+     */
 
-    { ngx_string("proxy_open_shared_kvstore"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_get_property"),                  /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_get_property,
+      ngx_wavm_arity_i32x4,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_set_property"),                  /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_set_property,
       ngx_wavm_arity_i32x4,
       ngx_wavm_arity_i32 },
 
-    { ngx_string("proxy_get_shared_kvstore_key_values"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x6,
-      ngx_wavm_arity_i32 },
-    { ngx_string("proxy_get_shared_data"),
-      &ngx_proxy_wasm_hfuncs_get_shared_data,
-      ngx_wavm_arity_i32x5,
-      ngx_wavm_arity_i32 },
+    /* stream */
 
-    { ngx_string("proxy_set_shared_kvstore_key_values"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x6,
+    { ngx_string("proxy_resume_stream"),                 /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-    { ngx_string("proxy_set_shared_data"),
-      &ngx_proxy_wasm_hfuncs_set_shared_data,
-      ngx_wavm_arity_i32x5,
+    { ngx_string("proxy_resume_downstream"),             /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_add_shared_kvstore_key_values"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x6,
+    { ngx_string("proxy_resume_upstream"),               /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_remove_shared_kvstore_key"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x6,
+    { ngx_string("proxy_continue_stream"),               /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_continue,
+      ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_delete_shared_kvstore"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x6,
-      ngx_wavm_arity_i32 },
-
-    /* shared queue */
-
-    { ngx_string("proxy_open_shared_queue"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x4,
-      ngx_wavm_arity_i32 },
-    { ngx_string("proxy_register_shared_queue"),
-      &ngx_proxy_wasm_hfuncs_register_shared_queue,
-      ngx_wavm_arity_i32x3,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_dequeue_shared_queue_item"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x3,
-      ngx_wavm_arity_i32 },
-    { ngx_string("proxy_dequeue_shared_queue"),
-      &ngx_proxy_wasm_hfuncs_dequeue_shared_queue,
-      ngx_wavm_arity_i32x3,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_enqueue_shared_queue_item"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x3,
-      ngx_wavm_arity_i32 },
-    { ngx_string("proxy_enqueue_shared_queue"),
-      &ngx_proxy_wasm_hfuncs_enqueue_shared_queue,
-      ngx_wavm_arity_i32x3,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_delete_shared_queue"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x4,
-      ngx_wavm_arity_i32 },
-
-    /* timers */
-
-    { ngx_string("proxy_create_timer"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x3,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_delete_timer"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_close_stream"),                  /* >= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
 
-    /* stats/metrics */
+    /* http */
 
-    { ngx_string("proxy_create_metric"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x4,
-      ngx_wavm_arity_i32 },
-    { ngx_string("proxy_define_metric"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x4,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_get_metric_value"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x2,
-      ngx_wavm_arity_i32 },
-    { ngx_string("proxy_get_metric"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x2,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_set_metric_value"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32_i64,
-      ngx_wavm_arity_i32 },
-    { ngx_string("proxy_record_metric"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32_i64,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_increment_metric_value"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32_i64,
-      ngx_wavm_arity_i32 },
-    { ngx_string("proxy_increment_metric"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32_i64,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_delete_metric"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_resume_http_stream"),            /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-    { ngx_string("proxy_remove_metric"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32,
+    { ngx_string("proxy_continue_request"),              /* <= 0.2.1 */
+#ifdef NGX_WASM_HTTP
+      &ngx_proxy_wasm_hfuncs_resume_http_request,
+#else
+      &ngx_proxy_wasm_hfuncs_no_http,
+#endif
+      NULL,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_continue_response"),             /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      NULL,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_send_http_response"),            /* vNEXT */
+#ifdef NGX_WASM_HTTP
+      &ngx_proxy_wasm_hfuncs_send_local_response,
+#else
+      &ngx_proxy_wasm_hfuncs_no_http,
+#endif
+      ngx_wavm_arity_i32x8,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_send_local_response"),           /* <= 0.2.1 */
+#ifdef NGX_WASM_HTTP
+      &ngx_proxy_wasm_hfuncs_send_local_response,
+#else
+      &ngx_proxy_wasm_hfuncs_no_http,
+#endif
+      ngx_wavm_arity_i32x8,
       ngx_wavm_arity_i32 },
 
     /* http callouts */
 
-    { ngx_string("proxy_dispatch_http_call"),
+    { ngx_string("proxy_dispatch_http_call"),            /* vNEXT */
+#ifdef NGX_WASM_HTTP
       &ngx_proxy_wasm_hfuncs_dispatch_http_call,
+#else
+      &ngx_proxy_wasm_hfuncs_no_http,
+#endif
       ngx_wavm_arity_i32x10,
       ngx_wavm_arity_i32 },
-    /* legacy: 0.1.0 - 0.2.1 */
-    { ngx_string("proxy_http_call"),
+    { ngx_string("proxy_http_call"),                     /* <= 0.2.1 */
+#ifdef NGX_WASM_HTTP
       &ngx_proxy_wasm_hfuncs_dispatch_http_call,
+#else
+      &ngx_proxy_wasm_hfuncs_no_http,
+#endif
       ngx_wavm_arity_i32x10,
       ngx_wavm_arity_i32 },
 
     /* grpc callouts */
 
-    { ngx_string("proxy_dispatch_grpc_call"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_dispatch_grpc_call"),            /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32x12,
       ngx_wavm_arity_i32 },
-    /* legacy: 0.2.0 - 0.2.1 */
-    { ngx_string("proxy_grpc_call"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_grpc_call"),                     /* 0.2.0 && 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32x12,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_open_grpc_stream"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_open_grpc_stream"),              /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32x9,
       ngx_wavm_arity_i32 },
-    /* legacy: 0.2.0 - 0.2.1 */
-    { ngx_string("proxy_grpc_stream"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_grpc_stream"),                   /* 0.2.0 && 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32x9,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_send_grpc_stream_message"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_send_grpc_stream_message"),      /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32x3,
       ngx_wavm_arity_i32 },
-    /* legacy: 0.2.0 - 0.2.1 */
-    { ngx_string("proxy_grpc_send"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_grpc_send"),                     /* 0.2.0 && 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32x4,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_cancel_grpc_call"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_cancel_grpc_call"),              /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-    /* legacy: 0.2.0 - 0.2.1 */
-    { ngx_string("proxy_grpc_cancel"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_grpc_cancel"),                   /* 0.2.0 && 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_close_grpc_call"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_close_grpc_call"),               /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-    /* legacy: 0.2.0 - 0.2.1 */
-    { ngx_string("proxy_grpc_close"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_grpc_close"),                    /* 0.2.0 && 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
-
-    /* legacy */
-    { ngx_string("proxy_get_status"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    /* host function for rust-sdk get_grpc_status */
+    { ngx_string("proxy_get_status"),                    /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32x3,
+      ngx_wavm_arity_i32 },
+
+    /* shared k/v store */
+
+    { ngx_string("proxy_open_shared_kvstore"),           /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x4,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_get_shared_kvstore_key_values"), /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x6,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_get_shared_data"),               /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_get_shared_data,
+      ngx_wavm_arity_i32x5,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_set_shared_kvstore_key_values"), /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x6,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_set_shared_data"),               /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_set_shared_data,
+      ngx_wavm_arity_i32x5,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_add_shared_kvstore_key_values"), /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x6,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_remove_shared_kvstore_key"),     /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x6,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_delete_shared_kvstore"),         /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x6,
+      ngx_wavm_arity_i32 },
+
+    /* shared queue */
+
+    { ngx_string("proxy_open_shared_queue"),             /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x4,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_register_shared_queue"),         /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_register_shared_queue,
+      ngx_wavm_arity_i32x3,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_dequeue_shared_queue_item"),     /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x3,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_dequeue_shared_queue"),          /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_dequeue_shared_queue,
+      ngx_wavm_arity_i32x3,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_enqueue_shared_queue_item"),     /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x3,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_enqueue_shared_queue"),          /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_enqueue_shared_queue,
+      ngx_wavm_arity_i32x3,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_delete_shared_queue"),           /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x4,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_resolve_shared_queue"),          /* <= 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x5,
+      ngx_wavm_arity_i32 },
+
+    /* stats/metrics */
+
+    { ngx_string("proxy_create_metric"),                 /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x4,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_define_metric"),                 /* 0.2.0 && 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x4,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_get_metric_value"),              /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_get_metric"),                    /* 0.2.0 && 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_set_metric_value"),              /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32_i64,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_record_metric"),                 /* 0.2.0 && 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32_i64,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_increment_metric_value"),        /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32_i64,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_increment_metric"),              /* 0.2.0 && 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32_i64,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_delete_metric"),                 /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      ngx_wavm_arity_i32,
       ngx_wavm_arity_i32 },
 
     /* custom extension points */
 
-    /* rust-sdk < 0.2.0 */
-    { ngx_string("proxy_call_custom_function"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_call_custom_function"),          /* vNEXT */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
-
-    /* rust-sdk >= 0.2.0 */
-    { ngx_string("proxy_call_foreign_function"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_call_foreign_function"),         /* 0.2.0 && 0.2.1 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       ngx_wavm_arity_i32x6,
       ngx_wavm_arity_i32 },
 
-    /* legacy: 0.2.1 */
+    /* legacy */
 
-    { ngx_string("proxy_get_log_level"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x2,
-      ngx_wavm_arity_i32 },
-
-    /* legacy: 0.1.0 - 0.2.1 */
-
-    { ngx_string("proxy_set_tick_period_milliseconds"),
-      &ngx_proxy_wasm_hfuncs_set_tick_period,
-      ngx_wavm_arity_i32,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_get_current_time_nanoseconds"),
-      &ngx_proxy_wasm_hfuncs_get_current_time,
-      ngx_wavm_arity_i32,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_get_configuration"),
+    { ngx_string("proxy_get_configuration"),             /* 0.1.0 */
       &ngx_proxy_wasm_hfuncs_get_configuration,
       ngx_wavm_arity_i32x2,
       ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_resolve_shared_queue"),
-      &ngx_proxy_wasm_hfuncs_nop,
-      ngx_wavm_arity_i32x5,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_clear_route_cache"),
-      &ngx_proxy_wasm_hfuncs_nop,
+    { ngx_string("proxy_clear_route_cache"),             /* 0.1.0 */
+      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       NULL,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_get_property"),
-      &ngx_proxy_wasm_hfuncs_get_property,
-      ngx_wavm_arity_i32x4,
-      ngx_wavm_arity_i32 },
-
-    { ngx_string("proxy_set_property"),
-      &ngx_proxy_wasm_hfuncs_set_property,
-      ngx_wavm_arity_i32x4,
       ngx_wavm_arity_i32 },
 
     ngx_wavm_hfunc_null
