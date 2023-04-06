@@ -58,7 +58,6 @@ sub skip_valgrind (@) {
 
     if (!defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}) {
         plan skip_all => 'slow with Valgrind (set TEST_NGINX_USE_VALGRIND_ALL to run)';
-
     }
 }
 

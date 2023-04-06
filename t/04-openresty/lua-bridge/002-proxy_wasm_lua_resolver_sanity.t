@@ -292,8 +292,9 @@ qr/\[debug\] .*? wasm lua resolver using existing dns_client/
 
 
 === TEST 9: Lua bridge - proxy_wasm_lua_resolver, synchronized client
+Too slow for Valgrind.
+--- skip_valgrind: 5
 --- skip_no_debug: 5
---- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config eval
