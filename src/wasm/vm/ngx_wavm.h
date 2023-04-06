@@ -4,6 +4,9 @@
 
 #include <ngx_wasm.h>
 #include <ngx_wavm_host.h>
+#ifdef NGX_WASM_BACKTRACE
+#include <ngx_wasm_backtrace.h>
+#endif
 
 
 #ifdef NGX_WASM_CARGO_FAILED
@@ -85,6 +88,9 @@ struct ngx_wavm_module_s {
     ngx_wavm_funcref_t                *f_start;
     ngx_wavm_host_def_t               *host_def;
     ngx_array_t                        hfuncs;
+#ifdef NGX_WASM_BACKTRACE
+    ngx_wasm_backtrace_name_table_t   *name_table;
+#endif
 };
 
 

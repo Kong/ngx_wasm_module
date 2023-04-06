@@ -28,6 +28,14 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       + offsetof(ngx_wavm_conf_t, compiler),
       NULL },
 
+    { ngx_string("backtraces"),
+      NGX_WASM_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      0,
+      offsetof(ngx_wasm_core_conf_t, vm_conf)
+      + offsetof(ngx_wavm_conf_t, backtraces),
+      NULL },
+
     { ngx_string("module"),
       NGX_WASM_CONF|NGX_CONF_TAKE23,
       ngx_wasm_core_module_directive,
@@ -260,6 +268,8 @@ ngx_wasm_core_create_conf(ngx_conf_t *cf)
         return NULL;
     }
 
+    wcf->vm_conf.backtraces = NGX_CONF_UNSET;
+
 #if (NGX_SSL)
     wcf->ssl_conf.verify_cert = NGX_CONF_UNSET;
     wcf->ssl_conf.verify_host = NGX_CONF_UNSET;
@@ -303,6 +313,10 @@ ngx_wasm_core_init_conf(ngx_conf_t *cf, void *conf)
         wcf->ssl_conf.no_verify_warn = 1;
     }
 #endif
+
+    if (wcf->vm_conf.backtraces == NGX_CONF_UNSET) {
+        wcf->vm_conf.backtraces = 0;
+    }
 
     if (wcf->resolver_timeout == NGX_CONF_UNSET_MSEC) {
         wcf->resolver_timeout = NGX_WASM_DEFAULT_RESOLVER_TIMEOUT;
