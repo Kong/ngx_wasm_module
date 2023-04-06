@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="WasmX logo" src="assets/logo.svg" style="width: 140px;" />
+  <img alt="WasmX logo" src="assets/vectors/logo.svg" style="width:140px;" />
 </p>
 
 # WasmX/ngx_wasm_module
