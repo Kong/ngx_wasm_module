@@ -242,8 +242,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_int_t                    (*conf_init)(wasm_config_t *config,
-                                              ngx_wavm_conf_t *conf,
+    wasm_config_t *              (*conf_init)(ngx_wavm_conf_t *conf,
                                               ngx_log_t *log);
     ngx_int_t                    (*engine_init)(ngx_wrt_engine_t *engine,
                                                 wasm_config_t *config,

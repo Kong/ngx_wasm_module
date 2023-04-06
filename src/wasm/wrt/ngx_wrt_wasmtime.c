@@ -8,14 +8,21 @@
 #include <ngx_wasi.h>
 
 
-static ngx_int_t
-ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
+static wasm_config_t *
+ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf,
     ngx_log_t *log)
 {
+    wasm_config_t  *config;
+
 #if 0
     wasm_name_t        msg;
     wasmtime_error_t  *err = NULL;
 #endif
+
+    config = wasm_config_new();
+    if (config == NULL) {
+        return NULL;
+    }
 
     if (conf->compiler.len) {
         if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
@@ -32,7 +39,7 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
             ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
                                "invalid compiler \"%V\"",
                                &conf->compiler);
-            return NGX_ERROR;
+            goto error;
         }
 
 #if 0
@@ -46,7 +53,7 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
             wasmtime_error_delete(err);
             wasm_name_delete(&msg);
 
-            return NGX_ERROR;
+            goto error;
         }
 #endif
 
@@ -64,7 +71,13 @@ ngx_wasmtime_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
     wasmtime_config_static_memory_maximum_size_set(config, 0);
 #endif
 
-    return NGX_OK;
+    return config;
+
+error:
+
+    wasm_config_delete(config);
+
+    return NULL;
 }
 
 

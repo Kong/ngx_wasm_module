@@ -31,10 +31,11 @@ struct ngx_wrt_import_s {
 static void ngx_wasmer_last_err(ngx_wrt_res_t **res);
 
 
-static ngx_int_t
-ngx_wasmer_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
-    ngx_log_t *log)
+static wasm_config_t *
+ngx_wasmer_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
 {
+    wasm_config_t  *config = wasm_config_new();
+
     if (conf->compiler.len) {
         if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
                        "cranelift", -1))
@@ -55,7 +56,7 @@ ngx_wasmer_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
             ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
                                "invalid compiler \"%V\"",
                                &conf->compiler);
-            return NGX_ERROR;
+            goto error;
         }
 
         ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
@@ -63,7 +64,13 @@ ngx_wasmer_init_conf(wasm_config_t *config, ngx_wavm_conf_t *conf,
                            &conf->compiler);
     }
 
-    return NGX_OK;
+    return config;
+
+error:
+
+    wasm_config_delete(config);
+
+    return NULL;
 }
 
 

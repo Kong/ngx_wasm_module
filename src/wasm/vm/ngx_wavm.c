@@ -126,14 +126,15 @@ ngx_wavm_engine_init(ngx_wavm_t *vm)
                    "wasm initializing \"%V\" vm engine (engine: %p)",
                    vm->name, &vm->wrt_engine);
 
-    config = wasm_config_new();
+    if (vm->config) {
+        config = ngx_wrt.conf_init(vm->config, vm->log);
+        if (config == NULL) {
+            err = "invalid configuration";
+            goto error;
+        }
 
-    if (vm->config
-        && ngx_wrt.conf_init(config, vm->config, vm->log) != NGX_OK)
-    {
-        err = "invalid configuration";
-        wasm_config_delete(config);
-        goto error;
+    } else {
+        config = wasm_config_new();
     }
 
     rc = ngx_wrt.engine_init(&vm->wrt_engine, config, vm->pool, &e);
