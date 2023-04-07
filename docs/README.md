@@ -44,20 +44,15 @@ layout](DEVELOPER.md#code-layout) section.
 ### Proxy-wasm
 
 As the de-facto SDK for proxies in the WebAssembly world, the prominent way of
-extending Nginx with ngx_wasm_module is to write a
-[proxy-wasm](https://github.com/proxy-wasm/spec) filter.
+extending Nginx with ngx_wasm_module is to write a proxy-wasm filter.
 
 The [proxy-wasm SDK](https://github.com/proxy-wasm/spec) is the initial focus of
-WasmX/ngx_wasm_module development and is still a work in progress.
+WasmX/ngx_wasm_module development and is still a work in progress. You can
+browse [PROXY_WASM.md](PROXY_WASM.md) for a guide on proxy-wasm support in
+ngx_wasm_module.
 
-```
-TODO: PROXY_WASM.md:
-   - Map of Nginx phases to proxy-wasm steps.
-   - SDK feature completion document.
-```
-
-As a reliable resource in an evolving ABI specification, you may consult the
-SDK source of the language of your choice in the [proxy-wasm SDKs
+For a reliable resource in an evolving ABI specification, you may also wish to
+consult the SDK source of the language of your choice in the [proxy-wasm SDKs
 list](https://github.com/proxy-wasm/spec#sdks).
 
 [Back to TOC](#table-of-contents)
@@ -246,7 +241,12 @@ In the above example:
 - `9001:/with-filter`: Inherits its execution chain from its grandparent block:
   `http{}`. Runs `my_global_filter`.
 
+You may also consult another description of the execution chain through the
+[Filter Chains] section, which focuses on the execution chain only through the
+lens of Proxy-Wasm filters.
+
 [Back to TOC](#table-of-contents)
 
 [Contexts]: #contexts
 [Execution Chain]: #execution-chain
+[Filter Chains]: PROXY_WASM.md#filter-chains
