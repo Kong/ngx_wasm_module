@@ -6,10 +6,10 @@
 
 > Nginx + WebAssembly
 
-This module enables the embedding of [WebAssembly](https://webassembly.org/)
-runtimes inside of [Nginx](https://nginx.org/) and aims at offering several host
-SDK abstractions for the purpose of extending and/or introspecting the Nginx web
-server/proxy runtime.
+This module enables the embedding of [WebAssembly] runtimes inside of
+[Nginx](https://nginx.org/) and aims at offering several host SDK abstractions
+for the purpose of extending and/or introspecting the Nginx web server/proxy
+runtime.
 
 Currently, the module supports the
 [proxy-wasm](https://github.com/proxy-wasm/spec) host SDK and supports Wasm
@@ -32,7 +32,7 @@ reverse-proxying).
     - [Usage](#usage)
     - [Installation](#installation)
     - [Development](#development)
-    - [Proxy-wasm SDK](#proxy-wasm-sdk)
+    - [Proxy-Wasm SDK](#proxy-wasm-sdk)
     - [WebAssembly](#webassembly)
     - [WebAssembly runtimes](#webassembly-runtimes)
 - [License](#license)
@@ -155,17 +155,15 @@ layout](docs/DEVELOPER.md#code-layout) section.
 
 [Back to TOC](#table-of-contents)
 
-### Proxy-wasm SDK
+### Proxy-Wasm SDK
 
 The [proxy-wasm SDK](https://github.com/proxy-wasm/spec) is the initial focus of
-WasmX/ngx_wasm_module development and is still a work in progress.
+WasmX/ngx_wasm_module development and is still a work in progress. You can
+browse [PROXY_WASM.md](docs/PROXY_WASM.md) for a guide on proxy-wasm support in
+ngx_wasm_module.
 
-See
-[proxy-wasm/spec/abi-versions/vNEXT](https://github.com/proxy-wasm/spec/tree/master/abi-versions/vNEXT)
-for a _mostly_ up-to-date list of functions and their effects.
-
-As a reliable resource in an evolving ABI specification, you may consult the
-SDK source of the language of your choice in the [proxy-wasm SDKs
+For a reliable resource in an evolving ABI specification, you may also wish to
+consult the SDK source of the language of your choice in the [proxy-wasm SDKs
 list](https://github.com/proxy-wasm/spec#sdks).
 
 [Back to TOC](#table-of-contents)
@@ -192,3 +190,5 @@ list](https://github.com/proxy-wasm/spec#sdks).
 [Pending]
 
 [Back to TOC](#table-of-contents)
+
+[WebAssembly]: https://webassembly.org/
