@@ -370,6 +370,8 @@ ngx_http_wasm_postconfig(ngx_conf_t *cf)
 
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
 
+    ngx_wasm_assert(cmcf); /* in http{} block */
+
     for (i = 0; i <= NGX_HTTP_LOG_PHASE; i++) {
         if (phase_handlers[i]) {
             h = ngx_array_push(&cmcf->phases[i].handlers);
@@ -393,8 +395,8 @@ ngx_http_wasm_init_process(ngx_cycle_t *cycle)
     ngx_http_wasm_main_conf_t  *mcf;
 
     mcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_wasm_module);
-
-    if (!mcf->vm) {
+    if (mcf == NULL || mcf->vm == NULL) {
+        /* no http{} block */
         return NGX_OK;
     }
 
@@ -426,11 +428,12 @@ ngx_http_wasm_exit_process(ngx_cycle_t *cycle)
     ngx_http_wasm_main_conf_t  *mcf;
 
     mcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_wasm_module);
+    if (mcf) {
+        ngx_proxy_wasm_exit();
+        ngx_proxy_wasm_store_destroy(&mcf->store);
 
-    ngx_proxy_wasm_exit();
-    ngx_proxy_wasm_store_destroy(&mcf->store);
-
-    ngx_wasm_ops_destroy(mcf->ops);
+        ngx_wasm_ops_destroy(mcf->ops);
+    }
 }
 
 
@@ -498,8 +501,6 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         }
 
         wcf = ngx_wasm_core_cycle_get_conf(ngx_cycle);
-        mcf = ngx_http_cycle_get_module_main_conf(ngx_cycle,
-                                                  ngx_http_wasm_module);
 
         rctx->r = r;
         rctx->pool = r->pool;
@@ -514,6 +515,9 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         ngx_http_set_ctx(r, rctx, ngx_http_wasm_module);
 
         if (!fake) {
+            mcf = ngx_http_cycle_get_module_main_conf(ngx_cycle,
+                                                      ngx_http_wasm_module);
+            ngx_wasm_assert(mcf); /* in http{} block */
 
             /* attach plan */
 

@@ -33,6 +33,12 @@ ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
     static ngx_uint_t           isolation = NGX_PROXY_WASM_ISOLATION_STREAM;
 
     mcf = ngx_http_cycle_get_module_main_conf(ngx_cycle, ngx_http_wasm_module);
+    if (mcf == NULL) {
+        /* no http{} block */
+        *errlen = ngx_snprintf(err, *errlen, "%V", &NGX_WASM_STR_NO_HTTP)
+                  - err;
+        return NGX_ERROR;
+    }
 
     plan = ngx_wasm_ops_plan_new(vm->pool, &ngx_http_wasm_subsystem);
     if (plan == NULL) {
