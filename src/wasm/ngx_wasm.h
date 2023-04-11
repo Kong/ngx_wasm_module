@@ -207,4 +207,10 @@ typedef struct {
 } ngx_wasm_subsystem_t;
 
 
+static const ngx_str_t  NGX_WASM_STR_NO_HTTP =
+    ngx_string("failed getting http main conf (no http{} block?)");
+static const ngx_str_t  NGX_WASM_STR_NO_HTTP_UPSTREAM =
+    ngx_string("failed getting http_upstream main conf (no http{} block?)");
+
+
 #endif /* _NGX_WASM_H_INCLUDED_ */
