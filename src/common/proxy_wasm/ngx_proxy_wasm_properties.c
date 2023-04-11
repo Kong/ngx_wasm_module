@@ -750,7 +750,6 @@ ngx_proxy_wasm_properties_set_ngx(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_http_core_main_conf_t  *cmcf;
 
     rctx = (ngx_http_wasm_req_ctx_t *) pwctx->data;
-
     if (rctx == NULL || rctx->fake_request) {
         ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
                            "cannot set ngx properties outside of a request");
@@ -760,6 +759,12 @@ ngx_proxy_wasm_properties_set_ngx(ngx_proxy_wasm_ctx_t *pwctx,
     r = rctx->r;
 
     cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
+    if (cmcf == NULL) {
+        /* possible path on fake request, no http{} block */
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                           "%V", &NGX_WASM_STR_NO_HTTP);
+        return NGX_ERROR;
+    }
 
     name.data = (u_char *) (path->data + ngx_prefix_len);
     name.len = path->len - ngx_prefix_len;

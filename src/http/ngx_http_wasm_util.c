@@ -729,6 +729,8 @@ ngx_http_wasm_create_fake_request(ngx_connection_t *c)
 #if 0
     cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
+    /* handle missing http{} block */
+
     r->variables = ngx_pcalloc(r->pool, cmcf->variables.nelts
                                * sizeof(ngx_http_variable_value_t));
     if (r->variables == NULL) {

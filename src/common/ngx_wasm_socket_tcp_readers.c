@@ -320,6 +320,12 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
     rctx = in_ctx->rctx;
     umcf = ngx_http_cycle_get_module_main_conf(ngx_cycle,
                                                ngx_http_upstream_module);
+    if (umcf == NULL) {
+        /* possible path on fake request, no http{} block */
+        ngx_wasm_log_error(NGX_LOG_ERR, in_ctx->log, 0,
+                           "tcp socket - %V", &NGX_WASM_STR_NO_HTTP_UPSTREAM);
+        return NGX_ERROR;
+    }
 
     if (!r->request_start) {
         r->header_in = src;
