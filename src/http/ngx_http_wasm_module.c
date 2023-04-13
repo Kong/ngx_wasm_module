@@ -845,8 +845,9 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 
     dd("enter");
 
-    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_http_wasm_rctx(r, &rctx);
+    if (rc != NGX_OK) {
+        goto done;
     }
 
 #if (NGX_WASM_LUA)
@@ -854,13 +855,15 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
         dd("wasm lua forcing content wev handler");
         ngx_http_wasm_content_wev_handler(r);
         rc = ngx_http_wasm_check_finalize(rctx, NGX_AGAIN);
-        return rc;
+        goto done;
     }
 #endif
 
     rctx->entered_content_phase = 1;
 
     rc = ngx_http_wasm_content(rctx);
+
+done:
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "wasm \"content\" phase rc: %d", rc);
