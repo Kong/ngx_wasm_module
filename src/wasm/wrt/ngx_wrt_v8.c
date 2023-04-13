@@ -12,6 +12,87 @@
 #endif
 
 
+typedef void (*v8_config_set_pt)(char *flag, size_t len);
+
+
+static u_char  flags[NGX_OFF_T_LEN];
+static size_t  flags_len;
+
+
+static void
+v8_config_set(char *flag, size_t flag_len)
+{
+    size_t  len;
+
+    if (flags_len + flag_len + 1 < NGX_OFF_T_LEN) {
+        len = ngx_sprintf(&flags[flags_len], " %s", flag) - flags;
+        flags_len += len;
+        flags[flags_len] = '\0';
+    }
+}
+
+
+static u_char *
+replace_underlines_by_dashes(ngx_str_t *from, u_char *to)
+{
+    size_t  i;
+
+    for (i = 0; i < from->len; i++) {
+        to[i] = from->data[i] == '_' ? '-' : from->data[i];
+    }
+
+    return to;
+}
+
+
+static void
+bool_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    void *config_set_pt)
+{
+    size_t            len;
+    u_char            buf[NGX_OFF_T_LEN];
+    u_char            dashed_name[name->len + 1];
+    v8_config_set_pt  f = (v8_config_set_pt) config_set_pt;
+
+    replace_underlines_by_dashes(name, dashed_name);
+    dashed_name[name->len] = '\0';
+
+    if (ngx_str_eq(value->data, value->len, "on", -1)) {
+        len = ngx_sprintf(buf, "--%s", dashed_name) - buf;
+
+    } else {
+        len = ngx_sprintf(buf, "--no%s", dashed_name) - buf;
+
+    }
+
+    buf[len] = '\0';
+
+    ngx_wavm_log_error(NGX_LOG_INFO, ngx_cycle->log, NULL,
+                       "applying V8 flag: \"%s\"", buf);
+
+    f((char *) buf, len);
+}
+
+
+static void
+generic_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    void *config_set_pt)
+{
+    size_t            len;
+    u_char            buf[NGX_OFF_T_LEN];
+    u_char            dashed_name[name->len + 1];
+    v8_config_set_pt  f = (v8_config_set_pt) config_set_pt;
+
+    replace_underlines_by_dashes(name, dashed_name);
+    dashed_name[name->len] = '\0';
+
+    len = ngx_sprintf(buf, "--%s=%V", dashed_name, value) - buf;
+    buf[len] = '\0';
+
+    f((char *) buf, len);
+}
+
+
 static void ngx_v8_destroy_instance(ngx_wrt_instance_t *instance);
 
 
@@ -29,6 +110,10 @@ ngx_v8_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
             return NULL;
         }
     }
+
+    flags_len = 0;
+    ngx_memzero(flags, sizeof(flags));
+    ngx_wrt_apply_flags(NULL, conf, log);
 
     return wasm_config_new();
 }
@@ -50,6 +135,10 @@ ngx_v8_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
                for performance. */
             ngx_v8_set_flags("--no-liftoff --single-threaded "
                              "--stack-trace-limit 32");
+
+            if (flags_len) {
+                ngx_v8_set_flags((char *) flags);
+            }
 
             if (ngx_v8_enable_wasm_trap_handler(1)) {
                 ngx_wavm_log_error(NGX_LOG_INFO, pool->log, NULL,
@@ -531,6 +620,7 @@ ngx_v8_log_handler(ngx_wrt_res_t *res, u_char *buf, size_t len)
 
 ngx_wrt_t  ngx_wrt = {
     ngx_v8_init_conf,
+    ngx_wrt_add_flag,
     ngx_v8_init_engine,
     ngx_v8_destroy_engine,
     ngx_v8_validate,
@@ -548,4 +638,225 @@ ngx_wrt_t  ngx_wrt = {
     ngx_v8_trap,
     NULL,                              /* get_ctx */
     ngx_v8_log_handler,
+};
+
+
+ngx_wrt_flag_handler_t ngx_wrt_flag_handlers[] = {
+    { ngx_string("turbo_stats_wasm"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("turbo_inline_js_wasm_calls"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_generic_wrapper"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("expose_wasm"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_num_compilation_tasks"),
+      generic_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_write_protect_code_memory"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_memory_protection_keys"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_async_compilation"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_test_streaming"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_max_mem_pages"),
+      generic_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_max_table_size"),
+      generic_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_max_code_space"),
+      generic_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_tier_up"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_dynamic_tiering"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_tiering_budget"),
+      generic_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_caching_threshold"),
+      generic_flag_handler, v8_config_set },
+
+    { ngx_string("trace_wasm_compilation_times"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_tier_up_filter"),
+      generic_flag_handler, v8_config_set },
+
+    { ngx_string("trace_wasm_memory"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_tier_mask_for_testing"),
+      generic_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_debug_mask_for_testing"),
+      generic_flag_handler, v8_config_set },
+
+    { ngx_string("dump_wasm_module_path"),
+      generic_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_compilation_hints"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_gc"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_nn_locals"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_unsafe_nn_locals"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_assume_ref_cast_succeeds"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_skip_null_checks"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_skip_bounds_checks"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_typed_funcref"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_memory64"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_relaxed_simd"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_branch_hinting"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_stack_switching"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_extended_const"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_return_call"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_type_reflection"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_simd"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_threads"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_eh"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_gc_js_interop"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_staging"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_opt"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_bounds_checks"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_stack_checks"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_enforce_bounds_checks"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_math_intrinsics"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_inlining"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_inlining_budget_factor"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_inlining_max_size"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_speculative_inlining"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("trace_wasm_inlining"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("trace_wasm_speculative_inlining"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_type_canonicalization"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_loop_unrolling"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_loop_peeling"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_fuzzer_gen_test"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("print_wasm_code"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("print_wasm_code_function_index"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("print_wasm_stub_code"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("asm_wasm_lazy_compilation"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_lazy_compilation"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_lazy_validation"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_simd_ssse3_codegen"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_code_gc"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("trace_wasm_code_gc"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("stress_wasm_code_gc"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("wasm_max_initial_code_space_reservation"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("experimental_wasm_allow_huge_modules"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("trace_wasm"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("perf_prof_annotate_wasm"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_string("vtune_prof_annotate_wasm"),
+      bool_flag_handler, v8_config_set },
+
+    { ngx_null_string, NULL, NULL }
 };

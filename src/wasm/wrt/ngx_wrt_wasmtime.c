@@ -8,9 +8,102 @@
 #include <ngx_wasi.h>
 
 
+typedef void (*wasmtime_config_set_int_pt)(wasm_config_t *config,
+    uint64_t value);
+typedef void (*wasmtime_config_set_bool_pt)(wasm_config_t *config, bool value);
+
+
+static void
+size_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    void *wasmtime_config_set_pt)
+{
+    uint64_t                    v = ngx_parse_size(value);
+    wasmtime_config_set_int_pt  f;
+
+    f = (wasmtime_config_set_int_pt) wasmtime_config_set_pt;
+
+    f(config, v);
+}
+
+
+static void
+bool_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    void *wasmtime_config_set_pt)
+{
+    wasmtime_config_set_bool_pt  f;
+
+    f = (wasmtime_config_set_bool_pt)  wasmtime_config_set_pt;
+
+    if (ngx_str_eq(value->data, value->len, "on", -1)) {
+        f(config, true);
+
+    } else {
+        f(config, false);
+    }
+}
+
+
+static void
+strategy_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    void *wasmtime_config_set_pt)
+{
+    if (ngx_str_eq(value->data, value->len, "auto", -1)) {
+        wasmtime_config_strategy_set(config, WASMTIME_STRATEGY_AUTO);
+
+    } else if (ngx_str_eq(value->data, value->len, "cranelift", -1)) {
+        wasmtime_config_strategy_set(config, WASMTIME_STRATEGY_CRANELIFT);
+    }
+}
+
+
+static void
+opt_level_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    void *wasmtime_config_set_pt)
+{
+    if (ngx_str_eq(value->data, value->len, "none", -1)) {
+        wasmtime_config_cranelift_opt_level_set(config,
+                                                WASMTIME_OPT_LEVEL_NONE);
+
+    } else if (ngx_str_eq(value->data, value->len, "speed", -1)) {
+        wasmtime_config_cranelift_opt_level_set(config,
+                                                WASMTIME_OPT_LEVEL_SPEED);
+
+    } else if (ngx_str_eq(value->data, value->len, "speed_and_size", -1)) {
+        wasmtime_config_cranelift_opt_level_set(
+            config, WASMTIME_OPT_LEVEL_SPEED_AND_SIZE);
+    }
+}
+
+
+static void
+profiler_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    void *wasmtime_config_set_pt)
+{
+    if (ngx_str_eq(value->data, value->len, "none", -1)) {
+        wasmtime_config_profiler_set(config,
+                                     WASMTIME_PROFILING_STRATEGY_NONE);
+
+    } else if (ngx_str_eq(value->data, value->len, "jitdump", -1)) {
+        wasmtime_config_profiler_set(config,
+                                     WASMTIME_PROFILING_STRATEGY_JITDUMP);
+
+    }
+
+#if 0
+    if (ngx_str_eq(value->data, value->len, "vtune", -1)) {
+        wasmtime_config_profiler_set(config,
+                                     WASMTIME_PROFILING_STRATEGY_VTUNE);
+
+    } else if (ngx_str_eq(value->data, value->len, "perfmap", -1)) {
+        wasmtime_config_profiler_set(config,
+                                     WASMTIME_PROFILING_STRATEGY_PERFMAP);
+    }
+#endif
+}
+
+
 static wasm_config_t *
-ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf,
-    ngx_log_t *log)
+ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
 {
     wasm_config_t  *config;
 
@@ -75,6 +168,8 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf,
     wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_NONE);
     wasmtime_config_static_memory_maximum_size_set(config, 0);
 #endif
+
+    ngx_wrt_apply_flags(config, conf, log);
 
     return config;
 
@@ -584,6 +679,7 @@ ngx_wasmtime_log_handler(ngx_wrt_res_t *res, u_char *buf, size_t len)
 
 ngx_wrt_t  ngx_wrt = {
     ngx_wasmtime_init_conf,
+    ngx_wrt_add_flag,
     ngx_wasmtime_init_engine,
     ngx_wasmtime_destroy_engine,
     ngx_wasmtime_validate,
@@ -601,4 +697,89 @@ ngx_wrt_t  ngx_wrt = {
     ngx_wasmtime_trap,
     ngx_wasmtime_get_ctx,
     ngx_wasmtime_log_handler,
+};
+
+
+ngx_wrt_flag_handler_t ngx_wrt_flag_handlers[] = {
+    { ngx_string("debug_info"),
+      bool_flag_handler,
+      wasmtime_config_debug_info_set },
+
+    { ngx_string("consume_fuel"),
+      bool_flag_handler,
+      wasmtime_config_consume_fuel_set },
+
+    { ngx_string("epoch_interruption"),
+      bool_flag_handler,
+      wasmtime_config_epoch_interruption_set },
+
+    { ngx_string("max_wasm_stack"),
+      size_flag_handler,
+      wasmtime_config_max_wasm_stack_set },
+
+    { ngx_string("wasm_threads"),
+      bool_flag_handler,
+      wasmtime_config_wasm_threads_set },
+
+    { ngx_string("wasm_reference_types"),
+      bool_flag_handler,
+      wasmtime_config_wasm_reference_types_set },
+
+    { ngx_string("wasm_simd"),
+      bool_flag_handler,
+      wasmtime_config_wasm_simd_set },
+
+    { ngx_string("wasm_bulk_memory"),
+      bool_flag_handler,
+      wasmtime_config_wasm_bulk_memory_set },
+
+    { ngx_string("wasm_multi_value"),
+      bool_flag_handler,
+      wasmtime_config_wasm_multi_value_set },
+
+    { ngx_string("wasm_multi_memory"),
+      bool_flag_handler,
+      wasmtime_config_wasm_multi_memory_set },
+
+    { ngx_string("wasm_memory64"),
+      bool_flag_handler,
+      wasmtime_config_wasm_memory64_set },
+
+    { ngx_string("strategy"),
+      strategy_flag_handler,
+      NULL }, /* wasmtime_strategy_t */
+
+    { ngx_string("parallel_compilation"),
+      bool_flag_handler,
+      wasmtime_config_parallel_compilation_set },
+
+    { ngx_string("cranelift_debug_verifier"),
+      bool_flag_handler,
+      wasmtime_config_cranelift_debug_verifier_set },
+
+    { ngx_string("cranelift_nan_canonicalization"),
+      bool_flag_handler,
+      wasmtime_config_cranelift_nan_canonicalization_set },
+
+    { ngx_string("cranelift_opt_level"),
+      opt_level_flag_handler,
+      NULL }, /* wasmtime_opt_level_t */
+
+    { ngx_string("profiler"),
+      profiler_flag_handler,
+      NULL }, /* wasmtime_profiling_strategy_t */
+
+    { ngx_string("static_memory_maximum_size"),
+      size_flag_handler,
+      wasmtime_config_static_memory_maximum_size_set },
+
+    { ngx_string("static_memory_guard_size"),
+      size_flag_handler,
+      wasmtime_config_static_memory_guard_size_set },
+
+    { ngx_string("dynamic_memory_guard_size"),
+      size_flag_handler,
+      wasmtime_config_dynamic_memory_guard_size_set },
+
+    { ngx_null_string, NULL, NULL },
 };

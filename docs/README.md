@@ -80,6 +80,9 @@ and provide additional sub-contexts:
 All directives specified in a given context will be inherited by its nested
 sub-contexts, unless explicitly overridden.
 
+There are also the contexts `wasmtime{}`, `wasmer{}` and `v8{}`, currently
+dedicated to configuring runtime specific settings.
+
 For example:
 ```nginx
 # nginx.conf
@@ -89,6 +92,18 @@ wasm {
 
     # this setting applies to wasm execution in all other contexts
     socket_connect_timeout 60s;
+
+    wasmtime {
+        flag static_memory_maximum_size 1m;
+    }
+
+    wasmer {
+        flag wasm_reference_types on;
+    }
+
+    v8 {
+        flag trace_wasm on;
+    }
 }
 
 http {

@@ -11,6 +11,10 @@
 #define NGX_WRT_WASMER_CONFIG_NAME  "ngx_wasm_module"
 
 
+typedef void (*wasmer_feature_set_pt)(struct wasmer_features_t * features,
+    bool enable);
+
+
 typedef enum {
     NGX_WRT_IMPORT_HFUNC,
     NGX_WRT_IMPORT_WASI,
@@ -28,14 +32,39 @@ struct ngx_wrt_import_s {
 };
 
 
+static wasmer_features_t  *wasmer_features = NULL;
+
+
 static void ngx_wasmer_last_err(ngx_wrt_res_t **res);
+
+
+static void
+features_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    void *config_set_pt)
+{
+    wasmer_feature_set_pt  f = (wasmer_feature_set_pt) config_set_pt;
+
+    if (!wasmer_features) {
+        wasmer_features = wasmer_features_new();
+    }
+
+    if (ngx_str_eq(value->data, value->len, "on", -1)) {
+        f(wasmer_features, true);
+
+    } else {
+        f(wasmer_features, false);
+
+    }
+}
 
 
 static wasm_config_t *
 ngx_wasmer_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
 {
-    wasm_config_t  *config = wasm_config_new();
     char           *auto_compiler;
+    wasm_config_t  *config = wasm_config_new();
+
+    ngx_wrt_apply_flags(config, conf, log);
 
     if (!conf->compiler.len
         || ngx_str_eq(conf->compiler.data, conf->compiler.len,
@@ -91,6 +120,10 @@ ngx_wasmer_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
         goto error;
     }
 
+    if (wasmer_features) {
+        wasm_config_set_features(config, wasmer_features);
+    }
+
     return config;
 
 error:
@@ -134,6 +167,11 @@ ngx_wasmer_destroy_engine(ngx_wrt_engine_t *engine)
 
     wasm_store_delete(engine->store);
     wasm_engine_delete(engine->engine);
+
+    if (wasmer_features) {
+        wasmer_features_delete(wasmer_features);
+        wasmer_features = NULL;
+    }
 }
 
 
@@ -767,6 +805,7 @@ error:
 
 ngx_wrt_t  ngx_wrt = {
     ngx_wasmer_init_conf,
+    ngx_wrt_add_flag,
     ngx_wasmer_init_engine,
     ngx_wasmer_destroy_engine,
     ngx_wasmer_validate,
@@ -784,4 +823,48 @@ ngx_wrt_t  ngx_wrt = {
     ngx_wasmer_trap,
     NULL,                              /* get_ctx */
     ngx_wasmer_log_handler,
+};
+
+
+ngx_wrt_flag_handler_t ngx_wrt_flag_handlers[] = {
+    { ngx_string("wasm_bulk_memory"),
+      features_flag_handler, wasmer_features_bulk_memory },
+
+    { ngx_string("wasm_memory64"),
+      features_flag_handler, wasmer_features_memory64 },
+
+    { ngx_string("wasm_module_linking"),
+      features_flag_handler, wasmer_features_module_linking },
+
+    { ngx_string("wasm_multi_memory"),
+      features_flag_handler, wasmer_features_multi_memory },
+
+    { ngx_string("wasm_multi_value"),
+      features_flag_handler, wasmer_features_multi_value },
+
+    { ngx_string("wasm_reference_types"),
+      features_flag_handler, wasmer_features_reference_types },
+
+    { ngx_string("wasm_simd"),
+      features_flag_handler, wasmer_features_simd },
+
+    { ngx_string("wasm_tail_call"),
+      features_flag_handler, wasmer_features_tail_call },
+
+    { ngx_string("wasm_threads"),
+      features_flag_handler, wasmer_features_threads },
+
+    { ngx_string("max_wasm_stack"),
+      NULL, NULL },
+
+    { ngx_string("static_memory_bound"),
+      NULL, NULL },
+
+    { ngx_string("static_memory_offset_guard_size"),
+      NULL, NULL },
+
+    { ngx_string("dynamic_memory_offset_guard_size"),
+      NULL, NULL },
+
+    { ngx_null_string, NULL, NULL }
 };

@@ -28,12 +28,40 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       + offsetof(ngx_wavm_conf_t, compiler),
       NULL },
 
+    { ngx_string("wasmtime"),
+      NGX_WASM_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+      ngx_wasm_core_wasmtime_block,
+      0,
+      0,
+      NULL },
+
+    { ngx_string("wasmer"),
+      NGX_WASM_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+      ngx_wasm_core_wasmer_block,
+      0,
+      0,
+      NULL },
+
+    { ngx_string("v8"),
+      NGX_WASM_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+      ngx_wasm_core_v8_block,
+      0,
+      0,
+      NULL },
+
     { ngx_string("backtraces"),
       NGX_WASM_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
       0,
       offsetof(ngx_wasm_core_conf_t, vm_conf)
       + offsetof(ngx_wavm_conf_t, backtraces),
+      NULL },
+
+    { ngx_string("flag"),
+      NGX_WASMTIME_CONF|NGX_WASMER_CONF|NGX_V8_CONF|NGX_CONF_TAKE2,
+      ngx_wasm_core_flag_directive,
+      0,
+      0,
       NULL },
 
     { ngx_string("module"),
@@ -269,6 +297,13 @@ ngx_wasm_core_create_conf(ngx_conf_t *cf)
     }
 
     wcf->vm_conf.backtraces = NGX_CONF_UNSET;
+
+    if (ngx_array_init(&wcf->vm_conf.flags, cycle->pool,
+                       1, sizeof(ngx_wrt_flag_t))
+        != NGX_OK)
+    {
+        return NULL;
+    }
 
 #if (NGX_SSL)
     wcf->ssl_conf.verify_cert = NGX_CONF_UNSET;

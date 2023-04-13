@@ -3,6 +3,7 @@
 
 
 #include <ngx_core.h>
+#include <wasm.h>
 
 
 #define ngx_wrt_err_init(err)  ngx_memzero((err), sizeof(ngx_wrt_err_t))
@@ -11,9 +12,27 @@
 typedef struct ngx_wavm_hfunc_s  ngx_wavm_hfunc_t;
 typedef struct ngx_wavm_instance_s  ngx_wavm_instance_t;
 
+
+typedef void (*flag_handler_pt)(wasm_config_t *config, ngx_str_t *name,
+    ngx_str_t *value, void *wrt_config_set);
+
+typedef struct {
+    ngx_str_t        flag_name;
+    flag_handler_pt  handler;
+    void            *wrt_config_set;
+} ngx_wrt_flag_handler_t;
+
+
+typedef struct {
+    ngx_str_t                      name;
+    ngx_str_t                      value;
+} ngx_wrt_flag_t;
+
+
 typedef struct {
     ngx_str_t                      compiler;
     ngx_flag_t                     backtraces;
+    ngx_array_t                    flags;
 } ngx_wavm_conf_t;
 
 
@@ -27,9 +46,8 @@ typedef enum {
 
 
 #if NGX_WASM_HAVE_WASMTIME
-#include <wasm.h>
-#include <wasi.h>
 #include <wasmtime.h>
+#include <wasi.h>
 
 
 typedef wasmtime_error_t  ngx_wrt_res_t;
@@ -245,6 +263,9 @@ typedef struct {
 typedef struct {
     wasm_config_t *              (*conf_init)(ngx_wavm_conf_t *conf,
                                               ngx_log_t *log);
+    ngx_int_t                    (*conf_add_flag)(ngx_array_t *flags,
+                                                  ngx_str_t *name,
+                                                  ngx_str_t *value);
     ngx_int_t                    (*engine_init)(ngx_wrt_engine_t *engine,
                                                 wasm_config_t *config,
                                                 ngx_pool_t *pool,
@@ -296,10 +317,16 @@ typedef struct {
 
 
 extern ngx_wrt_t  ngx_wrt;
+extern ngx_wrt_flag_handler_t  ngx_wrt_flag_handlers[];
 
 
 void ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
     const char *fmt, ...);
+
+void ngx_wrt_apply_flags(wasm_config_t *config, ngx_wavm_conf_t *conf,
+    ngx_log_t *log);
+ngx_int_t ngx_wrt_add_flag(ngx_array_t *flags, ngx_str_t *name,
+    ngx_str_t *value);
 
 
 #endif /* _NGX_WRT_H_INCLUDED_ */

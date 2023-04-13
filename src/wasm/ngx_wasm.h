@@ -21,6 +21,9 @@
 
 #define NGX_WASM_MODULE              0x5741534d   /* "WASM" */
 #define NGX_WASM_CONF                0x00300000
+#define NGX_WASMTIME_CONF            0x00001000
+#define NGX_WASMER_CONF              0x00002000
+#define NGX_V8_CONF                  0x00004000
 
 #define NGX_WASM_DONE_PHASE          15
 
@@ -127,6 +130,13 @@ void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, ...);
 
 /* directives */
+char *ngx_wasm_core_wasmtime_block(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+char *ngx_wasm_core_wasmer_block(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+char *ngx_wasm_core_v8_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+char *ngx_wasm_core_flag_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
 char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_wasm_core_shm_kv_directive(ngx_conf_t *cf, ngx_command_t *cmd,

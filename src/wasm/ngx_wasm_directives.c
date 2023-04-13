@@ -187,3 +187,110 @@ ngx_wasm_core_pwm_lua_resolver_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     return NGX_CONF_ERROR;
 #endif
 }
+
+
+static ngx_int_t
+ngx_wasm_core_current_runtime_flag(ngx_conf_t *cf)
+{
+    if (cf->cmd_type == NGX_WASMTIME_CONF
+        && !ngx_str_eq(NGX_WASM_RUNTIME, -1, "wasmtime", -1))
+    {
+        return NGX_DECLINED;
+    }
+
+    if (cf->cmd_type == NGX_WASMER_CONF
+        && !ngx_str_eq(NGX_WASM_RUNTIME, -1, "wasmer", -1))
+    {
+        return NGX_DECLINED;
+    }
+
+    if (cf->cmd_type == NGX_V8_CONF
+        && !ngx_str_eq(NGX_WASM_RUNTIME, -1, "v8", -1))
+    {
+        return NGX_DECLINED;
+    }
+
+    return NGX_OK;
+}
+
+
+char *
+ngx_wasm_core_flag_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_str_t             *value, *flag_name, *flag_value;
+    ngx_wasm_core_conf_t  *wcf = conf;
+
+    value = cf->args->elts;
+    flag_name = &value[1];
+    flag_value = &value[2];
+
+    if (ngx_wasm_core_current_runtime_flag(cf) != NGX_OK) {
+        /* flag from a different runtime block, ignoring it */
+        return NGX_CONF_OK;
+    }
+
+    switch (ngx_wrt.conf_add_flag(&wcf->vm_conf.flags, flag_name, flag_value)) {
+
+    case NGX_OK:
+        return NGX_CONF_OK;
+
+    case NGX_ABORT:
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] unsupported \"%s\" configuration flag: "
+                           "\"%V\"",
+                           NGX_WASM_RUNTIME, flag_name);
+
+        return NGX_CONF_ERROR;
+
+    case NGX_DECLINED:
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] unknown \"%s\" configuration flag: \"%V\"",
+                           NGX_WASM_RUNTIME, flag_name);
+
+        return NGX_CONF_ERROR;
+
+    default:
+        ngx_wasm_assert(0);
+
+        return NGX_CONF_ERROR;
+    }
+
+}
+
+
+static char *
+ngx_wasm_core_runtime_block(ngx_conf_t *cf, ngx_uint_t cmd_type)
+{
+    char        *rv;
+    ngx_conf_t   save = *cf;
+
+    cf->cmd_type = cmd_type;
+    cf->module_type = NGX_WASM_MODULE;
+
+    rv = ngx_conf_parse(cf, NULL);
+
+    *cf = save;
+
+    return rv;
+};
+
+
+char *
+ngx_wasm_core_wasmtime_block(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
+{
+    return ngx_wasm_core_runtime_block(cf, NGX_WASMTIME_CONF);
+};
+
+
+char *
+ngx_wasm_core_wasmer_block(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
+{
+    return ngx_wasm_core_runtime_block(cf, NGX_WASMER_CONF);
+};
+
+
+char *
+ngx_wasm_core_v8_block(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
+{
+    return ngx_wasm_core_runtime_block(cf, NGX_V8_CONF);
+};

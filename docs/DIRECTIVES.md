@@ -4,6 +4,7 @@ By alphabetical order:
 
 - [backtraces](#backtraces)
 - [compiler](#compiler)
+- [flag](#flag)
 - [module](#module)
 - [proxy_wasm](#proxy_wasm)
 - [proxy_wasm_isolation](#proxy_wasm_isolation)
@@ -65,6 +66,8 @@ By context:
     - [wasm_socket_large_buffers](#wasm_socket_large_buffers)
     - [wasm_socket_read_timeout](#wasm_socket_read_timeout)
     - [wasm_socket_send_timeout](#wasm_socket_send_timeout)
+- `wasmtime{}`, `wasmer{}`, `v8{}`
+    - [flag](#flag)
 
 backtraces
 ----------
@@ -117,6 +120,45 @@ Different runtimes support different compilers:
     - `singlepass`
 
 [Back to TOC](#directives)
+
+flag
+--------
+
+**usage**    | `flag <name> <value>;`
+------------:|:----------------------------------------------------------------
+**contexts** | `wasmtime{}`, `wasmer{}`, `v8{}`
+**default**  |
+**example**  | `flag static_memory_maximum_size 1m;`
+
+Set a wasm configuration flag in the underlying wasm runtime.
+
+A flag can be:
+- `boolean` (i.e., `on`, `off`), e.g. `flag debug_info on;`
+- `string`, e.g. `flag opt_level none;`
+- `size`, e.g. `flag max_wasm_stack 512k;`
+
+Flags are parsed in the order they are declared. If a flag is declared
+twice, the second declaration overwrites the previous one.
+
+Each runtime supports a different set of flags and their behavior is documented
+at:
+
+ - [V8](https://github.com/v8/v8/blob/main/src/flags/flag-definitions.h)
+ - [Wasmer](https://docs.rs/wasmer/latest/wasmer/struct.Features.html)
+ - [Wasmtime](https://docs.wasmtime.dev/api/wasmtime/struct.Config.html)
+
+[Back to TOC](#directives)
+
+> Notes
+
+Flags directed to V8 are treated either as `boolean` or `string`. `boolean`
+flags are converted to `--flag` or `--noflag` while `string` values are passed
+directly as `--flag=a_value` to V8.
+
+As such, If a V8 flag expects a value representing size, it should be provided
+as a regular number, e.g. `flag a_size 10000;`, rather than using Nginx size
+suffixes.
+``
 
 module
 ------

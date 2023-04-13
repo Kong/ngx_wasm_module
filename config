@@ -139,6 +139,7 @@ NGX_WASM_DEPS="\
     $ngx_addon_dir/src/common/shm/ngx_wasm_shm_queue.h"
 
 NGX_WASM_SRCS="\
+    $ngx_addon_dir/src/wasm/wrt/ngx_wrt_utils.c \
     $ngx_addon_dir/src/wasm/ngx_wasm.c \
     $ngx_addon_dir/src/wasm/ngx_wasm_ops.c \
     $ngx_addon_dir/src/wasm/ngx_wasm_util.c \
