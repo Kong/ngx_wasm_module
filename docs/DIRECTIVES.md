@@ -4,6 +4,7 @@ By alphabetical order:
 
 - [backtraces](#backtraces)
 - [compiler](#compiler)
+- [flag](#flag)
 - [module](#module)
 - [proxy_wasm](#proxy_wasm)
 - [proxy_wasm_isolation](#proxy_wasm_isolation)
@@ -52,6 +53,12 @@ By context:
     - [tls_trusted_certificate](#tls_trusted_certificate)
     - [tls_verify_cert](#tls_verify_cert)
     - [tls_verify_host](#tls_verify_host)
+    - `wasmtime{}`
+        - [flag](#flag)
+    - `wasmer{}`
+        - [flag](#flag)
+    - `v8{}`
+        - [flag](#flag)
 - `http{}`, `server{}`, `location{}`
     - [proxy_wasm](#proxy_wasm)
     - [proxy_wasm_isolation](#proxy_wasm_isolation)
@@ -115,6 +122,61 @@ Different runtimes support different compilers:
     - `llvm`
     - `cranelift`
     - `singlepass`
+
+[Back to TOC](#directives)
+
+flag
+----
+
+**usage**    | `flag <name> <value>;`
+------------:|:----------------------------------------------------------------
+**contexts** | `wasmtime{}`, `wasmer{}`, `v8{}`
+**default**  |
+**example**  | `flag static_memory_maximum_size 1m;`
+
+Set a Wasm configuration flag in the underlying Wasm runtime.
+
+A flag can be of type:
+- `boolean`, e.g. `flag debug_info [on\|off];`
+- `string`, e.g. `flag opt_level none;`
+- `size`, e.g. `flag max_wasm_stack 512k;`
+
+Flags are parsed in the order they are declared. If a flag is declared twice,
+the second declaration overwrites the previous one.
+
+Each runtime supports a different set of flags; their behavior is documented
+as:
+- [V8 flags definitions](https://github.com/v8/v8/blob/main/src/flags/flag-definitions.h)
+- [Wasmer features](https://docs.rs/wasmer/latest/wasmer/struct.Features.html)
+- [Wasmtime config](https://docs.wasmtime.dev/api/wasmtime/struct.Config.html)
+
+> Notes
+
+V8 flags are treated either as `boolean` or `string`. Flags of `boolean` types
+are converted to `--flag` or `--noflag`, while `string` values are passed as
+`--flag=a_value`.
+
+Because V8 flags have no `size` type, values representing a size should be
+provided as a regular number (e.g. `flag a_size 10000;`) rather than using Nginx
+size suffixes.
+
+Also note that this directive's context is one of the runtime blocks and
+**not** `wasm{}`:
+
+```nginx
+# nginx.conf
+wasm {
+    wasmtime {
+        # this flag only takes effect if wasmtime is in use
+        flag static_memory_maximum_size 1m;
+    }
+
+    wasmer {
+        # this flag only takes effect if wasmer is in use
+        flag wasm_reference_types on;
+    }
+}
+```
 
 [Back to TOC](#directives)
 

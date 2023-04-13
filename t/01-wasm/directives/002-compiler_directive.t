@@ -91,7 +91,7 @@ qr/\[info\] .*? \[wasm\] using wasmtime with compiler: "cranelift"/
     }
 --- error_log eval
 [
-    qr/\[info\] .*? \[wasm\] wasmer "auto" compiler selected: "\S+"/,
+    qr/\[info\] .*? \[wasm\] wasmer "auto" compiler selected "\S+"/,
     qr/\[info\] .*? \[wasm\] using wasmer with compiler: "auto"/
 ]
 --- no_error_log
