@@ -26,7 +26,8 @@ if [ $ngx_wasm_rc = 0 ]; then
 
     if [ "$ngx_wasm_cargo_crate_type" = "cdylib" ]; then
         ngx_feature_libs="\
-            -Wl,-rpath $ngx_wasm_cargo_target_dir \
+            -Wl,-rpath=$ngx_wasm_cargo_target_dir \
+            -Wl,-rpath=$NGX_PREFIX/lib \
             -L$ngx_wasm_cargo_target_dir \
             -l$ngx_wasm_cargo_lib_name"
 
@@ -43,6 +44,28 @@ if [ $ngx_wasm_rc = 0 ]; then
         for d in $ngx_wasm_cargo_defines; do
             have=$d value=1 . auto/define
         done
+
+        if [ "$ngx_wasm_cargo_crate_type" = "cdylib" ]; then
+            ngx_wasm_cargo_cdylib="$ngx_wasm_cargo_target_dir/lib$ngx_wasm_cargo_lib_name.so"
+            ngx_wasm_cargo_cdylibs="$ngx_wasm_cargo_cdylibs $ngx_wasm_cargo_cdylib"
+
+            if ! grep -q ngx_wasm_cargo_cdylib auto/install; then
+                cat << EOF >> auto/install
+
+for ngx_wasm_cargo_cdylib in \$ngx_wasm_cargo_cdylibs
+do
+
+cat << END                                                    >> \$NGX_MAKEFILE
+
+	test -d '\\\$(DESTDIR)\$NGX_PREFIX/lib' \\
+		|| mkdir -p '\\\$(DESTDIR)\$NGX_PREFIX/lib'
+	cp \$ngx_wasm_cargo_cdylib '\\\$(DESTDIR)\$NGX_PREFIX/lib'
+END
+
+done
+EOF
+            fi
+        fi
 
     else
         echo "$0: error: $ngx_addon_name failed testing lib$ngx_wasm_cargo_lib_name."
