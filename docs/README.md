@@ -65,6 +65,12 @@ and provide additional sub-contexts:
 
 - `wasm{}`: All directives specified within this block globally affect all
   WebAssembly execution throughout all other contexts.
+  - `wasmtime{}`: all directives specified within this block will only take
+    effect when ngx_wasm_module is compiled with Wasmtime.
+  - `wasmer{}`: all directives specified within this block will only take
+    effect when ngx_wasm_module is compiled with Wasmer.
+  - `v8{}`: all directives specified within this block will only take
+    effect when ngx_wasm_module is compiled with V8.
 - `http{}`: this context is the "HTTP subsystem". All directives specified
   within this block apply to all enclosed `server{}` blocks. See
   [http](https://nginx.org/en/docs/http/ngx_http_core_module.html#http).
@@ -89,6 +95,21 @@ wasm {
 
     # this setting applies to wasm execution in all other contexts
     socket_connect_timeout 60s;
+
+    wasmtime {
+        # this flag only takes effect if wasmtime is in use
+        flag static_memory_maximum_size 1m;
+    }
+
+    wasmer {
+        # this flag only takes effect if wasmer is in use
+        flag wasm_reference_types on;
+    }
+
+    v8 {
+        # this flag only takes effect if v8 is in use
+        flag trace_wasm on;
+    }
 }
 
 http {

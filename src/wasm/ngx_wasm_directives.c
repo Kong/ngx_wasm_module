@@ -8,6 +8,108 @@
 
 
 static char *
+ngx_wasm_core_runtime_block(ngx_conf_t *cf, ngx_uint_t cmd_type)
+{
+    char        *rv;
+    ngx_conf_t   save = *cf;
+
+    cf->cmd_type = cmd_type;
+    cf->module_type = NGX_WASM_MODULE;
+
+    rv = ngx_conf_parse(cf, NULL);
+
+    *cf = save;
+
+    return rv;
+}
+
+
+char *
+ngx_wasm_core_wasmtime_block(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
+{
+    return ngx_wasm_core_runtime_block(cf, NGX_WASMTIME_CONF);
+}
+
+
+char *
+ngx_wasm_core_wasmer_block(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
+{
+    return ngx_wasm_core_runtime_block(cf, NGX_WASMER_CONF);
+}
+
+
+char *
+ngx_wasm_core_v8_block(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
+{
+    return ngx_wasm_core_runtime_block(cf, NGX_V8_CONF);
+}
+
+
+static ngx_int_t
+ngx_wasm_core_current_runtime_flag(ngx_conf_t *cf)
+{
+    if (cf->cmd_type == NGX_WASMTIME_CONF
+        && !ngx_str_eq(NGX_WASM_RUNTIME, -1, "wasmtime", -1))
+    {
+        return NGX_DECLINED;
+    }
+
+    if (cf->cmd_type == NGX_WASMER_CONF
+        && !ngx_str_eq(NGX_WASM_RUNTIME, -1, "wasmer", -1))
+    {
+        return NGX_DECLINED;
+    }
+
+    if (cf->cmd_type == NGX_V8_CONF
+        && !ngx_str_eq(NGX_WASM_RUNTIME, -1, "v8", -1))
+    {
+        return NGX_DECLINED;
+    }
+
+    return NGX_OK;
+}
+
+
+char *
+ngx_wasm_core_flag_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_int_t              rc;
+    ngx_str_t             *value, *fname, *fval;
+    ngx_wasm_core_conf_t  *wcf = conf;
+
+    value = cf->args->elts;
+    fname = &value[1];
+    fval = &value[2];
+
+    if (ngx_wasm_core_current_runtime_flag(cf) != NGX_OK) {
+        /* flag from a different runtime block, ignoring it */
+        return NGX_CONF_OK;
+    }
+
+    rc = ngx_wrt.conf_flags_add(&wcf->vm_conf.flags, fname, fval);
+    switch (rc) {
+    case NGX_OK:
+        return NGX_CONF_OK;
+    case NGX_DECLINED:
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] unsupported \"%s\" configuration flag: "
+                           "\"%V\"", NGX_WASM_RUNTIME, fname);
+        return NGX_CONF_ERROR;
+    case NGX_ABORT:
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] unknown \"%s\" configuration flag: \"%V\"",
+                           NGX_WASM_RUNTIME, fname);
+        return NGX_CONF_ERROR;
+    default:
+        ngx_wasm_assert(0);
+        break;
+    }
+
+    return NGX_CONF_ERROR;
+}
+
+
+static char *
 ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf, ngx_wasm_shm_type_e type)
 {

@@ -20,6 +20,38 @@ extern ngx_wavm_host_def_t  ngx_wasm_core_interface;
 
 static ngx_command_t  ngx_wasm_core_commands[] = {
 
+    /* blocks */
+
+    { ngx_string("wasmtime"),
+      NGX_WASM_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+      ngx_wasm_core_wasmtime_block,
+      0,
+      0,
+      NULL },
+
+    { ngx_string("wasmer"),
+      NGX_WASM_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+      ngx_wasm_core_wasmer_block,
+      0,
+      0,
+      NULL },
+
+    { ngx_string("v8"),
+      NGX_WASM_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+      ngx_wasm_core_v8_block,
+      0,
+      0,
+      NULL },
+
+    /* directives */
+
+    { ngx_string("flag"),
+      NGX_WASMTIME_CONF|NGX_WASMER_CONF|NGX_V8_CONF|NGX_CONF_TAKE2,
+      ngx_wasm_core_flag_directive,
+      0,
+      0,
+      NULL },
+
     { ngx_string("compiler"),
       NGX_WASM_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
@@ -235,6 +267,7 @@ ngx_wasm_core_create_conf(ngx_conf_t *cf)
     ngx_pool_cleanup_t      *cln;
     ngx_wasm_core_conf_t    *wcf;
     static const ngx_str_t   vm_name = ngx_string("main");
+    static const ngx_str_t   runtime_name = ngx_string(NGX_WASM_RUNTIME);
     static const ngx_str_t   ip = ngx_string(NGX_WASM_DEFAULT_RESOLVER_IP);
 
     wcf = ngx_pcalloc(cycle->pool, sizeof(ngx_wasm_core_conf_t));
@@ -256,19 +289,27 @@ ngx_wasm_core_create_conf(ngx_conf_t *cf)
     cln->handler = ngx_wasm_core_cleanup_pool;
     cln->data = cycle;
 
-    /*
-     * Passing zero to ngx_array_init prevents future `ngx_array_push` calls
-     * from allocating memory and causes silent pool memory corruption
-     */
-
     if (ngx_array_init(&wcf->shms, cycle->pool,
                        1, sizeof(ngx_wasm_shm_mapping_t))
         != NGX_OK)
     {
+        /*
+         * future ngx_array_push calls will fail allocating memory and cause
+         * silent pool corruption
+         */
         return NULL;
     }
 
+    wcf->vm_conf.vm_name = wcf->vm->name;
+    wcf->vm_conf.runtime_name = &runtime_name;
     wcf->vm_conf.backtraces = NGX_CONF_UNSET;
+
+    if (ngx_array_init(&wcf->vm_conf.flags, cycle->pool,
+                       1, sizeof(ngx_wrt_flag_t))
+        != NGX_OK)
+    {
+        return NULL;
+    }
 
 #if (NGX_SSL)
     wcf->ssl_conf.verify_cert = NGX_CONF_UNSET;

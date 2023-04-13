@@ -8,12 +8,124 @@
 #include <ngx_wasi.h>
 
 
+typedef void (*wasmtime_config_set_int_pt)(wasm_config_t *config,
+    uint64_t value);
+typedef void (*wasmtime_config_set_bool_pt)(wasm_config_t *config, bool value);
+
+
+static ngx_int_t
+size_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    ngx_log_t *log, void *wrt_setter)
+{
+    size_t                      v;
+    wasmtime_config_set_int_pt  f = wrt_setter;
+
+    v = ngx_parse_size(value);
+    if (v == (size_t) NGX_ERROR) {
+        ngx_log_error(NGX_LOG_EMERG, log, 0,
+                      "failed setting wasmtime flag: "
+                      "invalid value \"%V\"", value);
+        return NGX_ERROR;
+    }
+
+    f(config, v);
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+bool_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    ngx_log_t *log, void *wrt_setter)
+{
+    wasmtime_config_set_bool_pt  f = wrt_setter;
+
+    if (ngx_str_eq(value->data, value->len, "on", -1)) {
+        f(config, true);
+
+    } else if (ngx_str_eq(value->data, value->len, "off", -1)) {
+        f(config, false);
+
+    } else {
+        ngx_log_error(NGX_LOG_EMERG, log, 0,
+                      "failed setting wasmtime flag: "
+                      "invalid value \"%V\"", value);
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+strategy_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    ngx_log_t *log, void *wrt_setter)
+{
+    if (ngx_str_eq(value->data, value->len, "auto", -1)) {
+        wasmtime_config_strategy_set(config, WASMTIME_STRATEGY_AUTO);
+
+    } else if (ngx_str_eq(value->data, value->len, "cranelift", -1)) {
+        wasmtime_config_strategy_set(config, WASMTIME_STRATEGY_CRANELIFT);
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+opt_level_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    ngx_log_t *log, void *wrt_setter)
+{
+    if (ngx_str_eq(value->data, value->len, "none", -1)) {
+        wasmtime_config_cranelift_opt_level_set(config,
+                                                WASMTIME_OPT_LEVEL_NONE);
+
+    } else if (ngx_str_eq(value->data, value->len, "speed", -1)) {
+        wasmtime_config_cranelift_opt_level_set(config,
+                                                WASMTIME_OPT_LEVEL_SPEED);
+
+    } else if (ngx_str_eq(value->data, value->len, "speed_and_size", -1)) {
+        wasmtime_config_cranelift_opt_level_set(config,
+            WASMTIME_OPT_LEVEL_SPEED_AND_SIZE);
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+profiler_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
+    ngx_log_t *log, void *wrt_setter)
+{
+    if (ngx_str_eq(value->data, value->len, "none", -1)) {
+        wasmtime_config_profiler_set(config,
+                                     WASMTIME_PROFILING_STRATEGY_NONE);
+
+    } else if (ngx_str_eq(value->data, value->len, "jitdump", -1)) {
+        wasmtime_config_profiler_set(config,
+                                     WASMTIME_PROFILING_STRATEGY_JITDUMP);
+
+    }
+
+#if 0
+    if (ngx_str_eq(value->data, value->len, "vtune", -1)) {
+        wasmtime_config_profiler_set(config,
+                                     WASMTIME_PROFILING_STRATEGY_VTUNE);
+
+    } else if (ngx_str_eq(value->data, value->len, "perfmap", -1)) {
+        wasmtime_config_profiler_set(config,
+                                     WASMTIME_PROFILING_STRATEGY_PERFMAP);
+    }
+#endif
+
+    return NGX_OK;
+}
+
+
 static wasm_config_t *
-ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf,
-    ngx_log_t *log)
+ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
 {
     wasm_config_t  *config;
-
 #if 0
     wasm_name_t        msg;
     wasmtime_error_t  *err = NULL;
@@ -33,6 +145,15 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf,
         return NULL;
     }
 
+    wasmtime_config_wasm_reference_types_set(config, true);
+    wasmtime_config_parallel_compilation_set(config, false);
+
+#ifdef NGX_WASM_HAVE_NOPOOL
+    wasmtime_config_debug_info_set(config, false);
+    wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_NONE);
+    wasmtime_config_static_memory_maximum_size_set(config, 0);
+#endif
+
     if (conf->compiler.len) {
         if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
                        "auto", -1))
@@ -50,7 +171,6 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf,
                                &conf->compiler);
             goto error;
         }
-
 #if 0
         if (err) {
             wasmtime_error_message(err, &msg);
@@ -67,14 +187,9 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf,
 #endif
     }
 
-    wasmtime_config_wasm_reference_types_set(config, true);
-    wasmtime_config_parallel_compilation_set(config, false);
-
-#ifdef NGX_WASM_HAVE_NOPOOL
-    wasmtime_config_debug_info_set(config, false);
-    wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_NONE);
-    wasmtime_config_static_memory_maximum_size_set(config, 0);
-#endif
+    if (ngx_wrt_apply_flags(config, conf, log) != NGX_OK) {
+        goto error;
+    }
 
     return config;
 
@@ -582,8 +697,95 @@ ngx_wasmtime_log_handler(ngx_wrt_res_t *res, u_char *buf, size_t len)
 }
 
 
+static ngx_wrt_flag_handler_t  flag_handlers[] = {
+    { ngx_string("debug_info"),
+      bool_flag_handler,
+      wasmtime_config_debug_info_set },
+
+    { ngx_string("consume_fuel"),
+      bool_flag_handler,
+      wasmtime_config_consume_fuel_set },
+
+    { ngx_string("epoch_interruption"),
+      bool_flag_handler,
+      wasmtime_config_epoch_interruption_set },
+
+    { ngx_string("max_wasm_stack"),
+      size_flag_handler,
+      wasmtime_config_max_wasm_stack_set },
+
+    { ngx_string("wasm_threads"),
+      bool_flag_handler,
+      wasmtime_config_wasm_threads_set },
+
+    { ngx_string("wasm_reference_types"),
+      bool_flag_handler,
+      wasmtime_config_wasm_reference_types_set },
+
+    { ngx_string("wasm_simd"),
+      bool_flag_handler,
+      wasmtime_config_wasm_simd_set },
+
+    { ngx_string("wasm_bulk_memory"),
+      bool_flag_handler,
+      wasmtime_config_wasm_bulk_memory_set },
+
+    { ngx_string("wasm_multi_value"),
+      bool_flag_handler,
+      wasmtime_config_wasm_multi_value_set },
+
+    { ngx_string("wasm_multi_memory"),
+      bool_flag_handler,
+      wasmtime_config_wasm_multi_memory_set },
+
+    { ngx_string("wasm_memory64"),
+      bool_flag_handler,
+      wasmtime_config_wasm_memory64_set },
+
+    { ngx_string("strategy"),
+      strategy_flag_handler,
+      NULL }, /* wasmtime_strategy_t */
+
+    { ngx_string("parallel_compilation"),
+      bool_flag_handler,
+      wasmtime_config_parallel_compilation_set },
+
+    { ngx_string("cranelift_debug_verifier"),
+      bool_flag_handler,
+      wasmtime_config_cranelift_debug_verifier_set },
+
+    { ngx_string("cranelift_nan_canonicalization"),
+      bool_flag_handler,
+      wasmtime_config_cranelift_nan_canonicalization_set },
+
+    { ngx_string("cranelift_opt_level"),
+      opt_level_flag_handler,
+      NULL }, /* wasmtime_opt_level_t */
+
+    { ngx_string("profiler"),
+      profiler_flag_handler,
+      NULL }, /* wasmtime_profiling_strategy_t */
+
+    { ngx_string("static_memory_maximum_size"),
+      size_flag_handler,
+      wasmtime_config_static_memory_maximum_size_set },
+
+    { ngx_string("static_memory_guard_size"),
+      size_flag_handler,
+      wasmtime_config_static_memory_guard_size_set },
+
+    { ngx_string("dynamic_memory_guard_size"),
+      size_flag_handler,
+      wasmtime_config_dynamic_memory_guard_size_set },
+
+    { ngx_null_string, NULL, NULL },
+};
+
+
 ngx_wrt_t  ngx_wrt = {
+    flag_handlers,
     ngx_wasmtime_init_conf,
+    ngx_wrt_add_flag,
     ngx_wasmtime_init_engine,
     ngx_wasmtime_destroy_engine,
     ngx_wasmtime_validate,
