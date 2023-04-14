@@ -35,34 +35,65 @@ static wasm_config_t *
 ngx_wasmer_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
 {
     wasm_config_t  *config = wasm_config_new();
+    char           *auto_compiler;
 
-    if (conf->compiler.len) {
-        if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
-                       "cranelift", -1))
-        {
-            wasm_config_set_compiler(config, CRANELIFT);
-
-        } else if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
-                              "singlepass", -1))
-        {
-            wasm_config_set_compiler(config, SINGLEPASS);
-
-        } else if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
-                              "llvm", -1))
-        {
+    if (!conf->compiler.len || ngx_str_eq(conf->compiler.data,
+                                          conf->compiler.len,
+                                          "auto", -1))
+    {
+        if (wasmer_is_compiler_available(LLVM)) {
             wasm_config_set_compiler(config, LLVM);
+            auto_compiler = "llvm";
+
+        } else if (wasmer_is_compiler_available(CRANELIFT)) {
+            wasm_config_set_compiler(config, CRANELIFT);
+            auto_compiler = "cranelift";
+
+        } else if (wasmer_is_compiler_available(SINGLEPASS)) {
+            wasm_config_set_compiler(config, SINGLEPASS);
+            auto_compiler = "singlepass";
 
         } else {
             ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
-                               "invalid compiler \"%V\"",
-                               &conf->compiler);
+                               "no known compiler available");
             goto error;
         }
 
-        ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
-                           "using wasmer with compiler: \"%V\"",
-                           &conf->compiler);
+        if (conf->compiler.len) {
+            ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
+                               "using wasmer with compiler: \"auto\", "
+                               "enabled compiler: \"%s\"",
+                               auto_compiler);
+        }
+
+        return config;
     }
+
+    if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
+                   "cranelift", -1))
+    {
+        wasm_config_set_compiler(config, CRANELIFT);
+
+    } else if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
+                          "singlepass", -1))
+    {
+        wasm_config_set_compiler(config, SINGLEPASS);
+
+    } else if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
+                          "llvm", -1))
+    {
+        wasm_config_set_compiler(config, LLVM);
+
+    } else {
+        ngx_wavm_log_error(NGX_LOG_ERR, log, NULL,
+                           "invalid compiler \"%V\"",
+                           &conf->compiler);
+        goto error;
+    }
+
+    ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
+                       "using wasmer with compiler: \"%V\"",
+                       &conf->compiler);
 
     return config;
 

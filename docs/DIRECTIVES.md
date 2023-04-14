@@ -83,8 +83,9 @@ Different runtimes support different compilers:
     - `auto` (default)
     - `cranelift`
 - Wasmer
+    - `auto` (default)
     - `llvm`
-    - `cranelift` (default)
+    - `cranelift`
     - `singlepass`
 
 [Back to TOC](#directives)
