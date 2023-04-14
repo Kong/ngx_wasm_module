@@ -2,6 +2,7 @@
 
 By alphabetical order:
 
+- [backtraces](#backtraces)
 - [compiler](#compiler)
 - [module](#module)
 - [proxy_wasm](#proxy_wasm)
@@ -35,6 +36,7 @@ By context:
 
 - `wasm{}`
     - [compiler](#compiler)
+    - [backtraces](#backtraces)
     - [module](#module)
     - [resolver](#resolver)
     - [resolver_timeout](#resolver_timeout)
@@ -63,6 +65,31 @@ By context:
     - [wasm_socket_large_buffers](#wasm_socket_large_buffers)
     - [wasm_socket_read_timeout](#wasm_socket_read_timeout)
     - [wasm_socket_send_timeout](#wasm_socket_send_timeout)
+
+backtraces
+--------
+
+**usage**    | `backtraces <on/off>;`
+------------:|:----------------------------------------------------------------
+**contexts** | `wasm{}`
+**default**  | `off`
+**example**  | `backtraces on;`
+
+Enable more detailed backtraces displayed in the Nginx logs, in the event of
+an execution panic in WebAssembly code.
+
+Different runtimes support different levels of detail:
+
+- V8 and Wasmer
+    - when enabled, backtraces display function names and hex address offsets
+    - when disabled, backtraces display numeric ids of functions and hex address
+      offsets
+- Wasmtime
+    - when enabled, backtraces display function names, and filenames with line
+      and column positions
+    - when disabled, backtraces display function names
+
+[Back to TOC](#directives)
 
 compiler
 --------
