@@ -84,7 +84,21 @@ qr/\[info\] .*? \[wasm\] using wasmtime with compiler: "cranelift"/
 
 
 
-=== TEST 6: compiler directive - wasmer 'cranelift'
+=== TEST 6: compiler directive - wasmer 'auto'
+--- skip_eval: 4: $::nginxV !~ m/wasmer/
+--- main_config
+    wasm {
+        compiler auto;
+    }
+--- error_log eval
+qr/\[info\] .*? \[wasm\] using wasmer with compiler: "auto", enabled compiler: "/
+--- no_error_log
+[error]
+[emerg]
+
+
+
+=== TEST 7: compiler directive - wasmer 'cranelift'
 --- skip_eval: 4: $::nginxV !~ m/wasmer/
 --- main_config
     wasm {
@@ -98,7 +112,7 @@ qr/\[info\] .*? \[wasm\] using wasmer with compiler: "cranelift"/
 
 
 
-=== TEST 7: compiler directive - wasmer 'singlepass'
+=== TEST 8: compiler directive - wasmer 'singlepass'
 --- skip_eval: 4: $::nginxV !~ m/wasmer/
 --- main_config
     wasm {
@@ -112,7 +126,7 @@ qr/\[info\] .*? \[wasm\] using wasmer with compiler: "singlepass"/
 
 
 
-=== TEST 8: compiler directive - wasmer 'llvm'
+=== TEST 9: compiler directive - wasmer 'llvm'
 --- SKIP
 --- skip_eval: 4: $::nginxV !~ m/wasmer/
 --- main_config
