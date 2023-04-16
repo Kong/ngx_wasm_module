@@ -235,7 +235,7 @@ the chosen `isolation` mode:
 proxy_wasm_lua_resolver
 -----------------------
 
-**usage**    | `proxy_wasm_lua_resolver <on/off>;`
+**usage**    | `proxy_wasm_lua_resolver <on\|off>;`
 ------------:|:----------------------------------------------------------------
 **contexts** | `http{}`, `server{}`, `location{}`
 **default**  | `off`
