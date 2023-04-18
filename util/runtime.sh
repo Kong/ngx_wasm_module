@@ -46,7 +46,7 @@ show_help() {
     echo "      Where to put built files"
     echo "      Defaults to $DIR_WORK/<runtime>-<version>"
     echo
-    echo "   --clean"
+    echo "   --clean|--force|-f"
     echo "      Force a clean build"
     echo
 }
@@ -91,7 +91,7 @@ while [[ "$1" ]]; do
         --build)
             MODE="build"
             ;;
-        --clean)
+        --clean|--force|-f)
             CLEAN="clean"
             ;;
         -h|--help)
