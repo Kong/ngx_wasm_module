@@ -14,6 +14,8 @@ DIR_TESTS_LIB_WASM=$DIR_WORK/lib/wasm
 DIR_DIST_WORK=$DIR_WORK/dist
 DIR_DIST_RUNTIMES=$DIR_WORK/runtimes
 DIR_LIBWEE8=$DIR_DIST_RUNTIMES/libwee8
+DIR_LIBWASMTIME=$DIR_DIST_RUNTIMES/libwasmtime
+DIR_LIBWASMER=$DIR_DIST_RUNTIMES/libwasmer
 DIR_PREFIX=$NGX_WASM_DIR/t/servroot
 DIR_OPR_PREFIX=$DIR_BUILDROOT/prefix
 DIR_DIST_OUT=$NGX_WASM_DIR/dist
@@ -28,7 +30,8 @@ get_variable_from_makefile() {
     local var_name="$1"
     local makefile="$NGX_WASM_DIR/Makefile"
 
-    awk '/'"$var_name"' \?= / { print $3 }' "$makefile"
+    # xargs: trim prefix spaces
+    awk '/'"$var_name"' \?= / { $1=$2=""; print $0 }' "$makefile" | xargs
 }
 
 # luarocks
@@ -165,6 +168,7 @@ build_nginx() {
     if [[ "$NGX_BUILD_DYNAMIC_MODULE" == 1 ]]; then
         build_name+=" dyn"
         build_opts+="--add-dynamic-module=$NGX_WASM_DIR "
+
     else
         build_opts+="--add-module=$NGX_WASM_DIR "
     fi
@@ -383,6 +387,7 @@ get_no_pool_nginx() {
                 git reset --hard origin/master
             popd
         fi
+
     else
         notice "cloning the no-pool-nginx repository..."
         git clone https://github.com/openresty/no-pool-nginx.git $DIR_NOPOOL

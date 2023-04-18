@@ -25,7 +25,6 @@ download_v8() {
     local tarball="$DIR_DOWNLOAD/v8-$version.tar.gz"
 
     if [[ "$clean" = "clean" ]]; then
-        rm -f "$tarball"
         rm -rfv "$target"
     fi
 
@@ -95,12 +94,16 @@ build_cwabt() {
 }
 
 check_libwee8_build_dependencies() {
-    python3 --help >/dev/null 2>/dev/null || {
-        fatal "python3 is required in your path."
-    }
-
     git --help >/dev/null 2>/dev/null || {
         fatal "git is required in your path."
+    }
+
+    curl --help >/dev/null 2>/dev/null || {
+        fatal "curl is required in your path."
+    }
+
+    python3 --help >/dev/null 2>/dev/null || {
+        fatal "python3 is required in your path."
     }
 
     xz --help >/dev/null 2>/dev/null || {
@@ -109,10 +112,6 @@ check_libwee8_build_dependencies() {
 
     pkg-config --help >/dev/null 2>/dev/null || {
         fatal "pkg-config is required in your path."
-    }
-
-    curl --help >/dev/null 2>/dev/null || {
-        fatal "curl is required in your path."
     }
 
     ninja --help >/dev/null 2>/dev/null
@@ -127,13 +126,12 @@ build_libwee8() {
     local v8_ver="$3"
     local arch="$4"
 
+    notice "building libwee8..."
+    check_libwee8_build_dependencies || exit 1
+
     case "$arch" in
         x86_64) arch="x64" ;;
     esac
-
-    notice "building libwee8..."
-
-    check_libwee8_build_dependencies || exit 1
 
     mkdir -p "$DIR_LIBWEE8"
     cd "$DIR_LIBWEE8"
@@ -239,7 +237,7 @@ build_libwee8() {
     notice "building V8..."
     ninja -C out.gn/"$build_mode" wee8
 
-    ### install to target
+    ### install
 
     mkdir -p "$target/lib"
     cp out.gn/"$build_mode"/obj/libwee8.a "$target/lib"
