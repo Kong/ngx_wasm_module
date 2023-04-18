@@ -7,6 +7,11 @@ PCRE ?= 8.45
 ZLIB ?= 1.2.13
 LUAROCKS ?= 3.9.0
 
+# util/runtime.sh - no makefile target
+NGX_BUILD_WASMER_RUSTFLAGS ?= -g -C opt-level=0 -C debuginfo=1
+NGX_BUILD_WASMTIME_RUSTFLAGS ?= -g -C opt-level=0 -C debuginfo=1
+NGX_BUILD_WASMTIME_PROFILE ?= debug
+
 # Private - ngx_wasm_module development
 export NGX_BUILD_DIR_SCR ?=
 export NGX_BUILD_DIR_PATCHED ?=
