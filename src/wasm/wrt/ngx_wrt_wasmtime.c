@@ -19,10 +19,9 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf,
     wasmtime_error_t  *err = NULL;
 #endif
 
-    if (conf->backtraces == 1) {
-        ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
-                           "wasmtime enabling detailed backtraces");
+    ngx_wasm_assert(conf->backtraces != NGX_CONF_UNSET);
 
+    if (conf->backtraces) {
         setenv("WASMTIME_BACKTRACE_DETAILS", "1", 1);
 
     } else {
@@ -66,10 +65,6 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf,
             goto error;
         }
 #endif
-
-        ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
-                           "using wasmtime with compiler: \"%V\"",
-                           &conf->compiler);
     }
 
     wasmtime_config_wasm_reference_types_set(config, true);

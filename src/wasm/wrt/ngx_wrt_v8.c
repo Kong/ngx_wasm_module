@@ -28,10 +28,6 @@ ngx_v8_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
                                &conf->compiler);
             return NULL;
         }
-
-        ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
-                           "using V8 with compiler: \"%V\"",
-                           &conf->compiler);
     }
 
     return wasm_config_new();
