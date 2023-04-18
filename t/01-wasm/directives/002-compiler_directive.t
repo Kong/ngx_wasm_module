@@ -47,12 +47,11 @@ qr/\[emerg\] .*? invalid number of arguments in "compiler" directive/
 === TEST 3: compiler directive - default (unspecified)
 --- main_config
     wasm {}
---- no_error_log eval
-[
-    qr/\[error\]/,
-    qr/\[emerg\]/,
-    qr/using .*? with compiler/
-]
+--- error_log eval
+qr/\[info\] .*? \[wasm\] using \S+ with compiler: "auto"/
+--- no_error_log
+[error]
+[emerg]
 
 
 
@@ -91,9 +90,11 @@ qr/\[info\] .*? \[wasm\] using wasmtime with compiler: "cranelift"/
         compiler auto;
     }
 --- error_log eval
-qr/\[info\] .*? \[wasm\] using wasmer with compiler: "auto", enabled compiler: "/
+[
+    qr/\[info\] .*? \[wasm\] wasmer "auto" compiler selected: "\S+"/,
+    qr/\[info\] .*? \[wasm\] using wasmer with compiler: "auto"/
+]
 --- no_error_log
-[error]
 [emerg]
 
 
