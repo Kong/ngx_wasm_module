@@ -4,7 +4,6 @@
 #include "ddebug.h"
 
 #include <ngx_wavm.h>
-
 #ifdef NGX_WASM_BACKTRACE
 #include <ngx_wasm_backtrace.h>
 #endif
@@ -130,16 +129,22 @@ ngx_wavm_engine_init(ngx_wavm_t *vm)
                    "wasm initializing \"%V\" vm engine (engine: %p)",
                    vm->name, &vm->wrt_engine);
 
-    if (vm->config) {
-        config = ngx_wrt.conf_init(vm->config, vm->log);
-        if (config == NULL) {
-            err = "invalid configuration";
-            goto error;
-        }
+    ngx_wasm_assert(vm->config);
 
-    } else {
-        config = wasm_config_new();
+    config = ngx_wrt.conf_init(vm->config, vm->log);
+    if (config == NULL) {
+        err = "invalid configuration";
+        goto error;
     }
+
+    ngx_wavm_log_error(NGX_LOG_INFO, vm->log, NULL,
+                       "using %s with compiler: \"%s\" "
+                       "(backtraces: %d)",
+                       NGX_WASM_RUNTIME,
+                       vm->config->compiler.len
+                           ? vm->config->compiler.data
+                           : (u_char *) "auto",
+                       vm->config->backtraces);
 
     rc = ngx_wrt.engine_init(&vm->wrt_engine, config, vm->pool, &e);
     if (rc != NGX_OK) {
@@ -1397,7 +1402,6 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
 
 
 #if NGX_WASM_BACKTRACE
-
 static int
 name_idx_compare(const void *a, const void *b)
 {
@@ -1497,6 +1501,7 @@ ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
                 } else {
                     p = ngx_slprintf(p, last, "func %d", func_index);
                 }
+
 #else
                 p = ngx_slprintf(p, last, "func %d", func_index);
 #endif

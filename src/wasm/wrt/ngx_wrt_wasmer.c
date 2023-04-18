@@ -62,8 +62,7 @@ ngx_wasmer_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
 
         if (conf->compiler.len) {
             ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
-                               "using wasmer with compiler: \"auto\" "
-                               "(chosen: \"%s\")",
+                               "wasmer \"auto\" compiler selected: \"%s\"",
                                auto_compiler);
         }
 
@@ -91,10 +90,6 @@ ngx_wasmer_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
                            &conf->compiler);
         goto error;
     }
-
-    ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
-                       "using wasmer with compiler: \"%V\"",
-                       &conf->compiler);
 
     return config;
 
