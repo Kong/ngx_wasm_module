@@ -311,18 +311,6 @@ on_response_body, 0 bytes, eof: true.*/
 === TEST 7: proxy_wasm - set_http_response_body() x on_phases
 should not be usable anywhere else than on_http_response_body
 should not be retrievable after on_http_response_body since buffers are consumed
-
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

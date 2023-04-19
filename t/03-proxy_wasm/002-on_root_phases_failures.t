@@ -14,18 +14,6 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm - trap on_vm_start
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
-
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
@@ -79,18 +67,6 @@ qq{
 
 
 === TEST 3: proxy_wasm - trap on_configure
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
-
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code

@@ -131,18 +131,6 @@ ok
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
-
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- skip_eval: 7: $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{

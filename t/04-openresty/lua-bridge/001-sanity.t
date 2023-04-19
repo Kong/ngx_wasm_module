@@ -34,17 +34,6 @@ qr/\[info\] .*? arg: argument/
 
 
 === TEST 2: Lua bridge - bad Lua chunk
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- config
     location /t {
         wasm_call log ngx_lua_tests test_bad_lua_chunk;
