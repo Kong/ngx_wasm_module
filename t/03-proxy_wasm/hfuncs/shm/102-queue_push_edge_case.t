@@ -37,17 +37,6 @@ circular_write: wrapping around
 
 
 === TEST 2: proxy_wasm queue shm - push when data size == buffer_size + 1
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: test 262144

@@ -50,17 +50,6 @@ hello say
 
 
 === TEST 3: resp_set_status: bad usage in 'log' phase
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- config
     location /t {
         return 200;

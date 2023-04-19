@@ -11,17 +11,6 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm - NYI host function
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

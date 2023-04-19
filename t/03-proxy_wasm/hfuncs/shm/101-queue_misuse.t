@@ -13,17 +13,6 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm queue shm - push to non-existing queue
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: test 1m
@@ -43,17 +32,6 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): could not fi
 
 
 === TEST 2: proxy_wasm queue shm - pop from non-existing queue
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: test 1m
@@ -73,17 +51,6 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): could not fi
 
 
 === TEST 3: proxy_wasm queue shm - push with raw token (oob index)
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: test 1m
@@ -105,17 +72,6 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): could not fi
 
 
 === TEST 4: proxy_wasm queue shm - pop with raw token (oob index)
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: test 1m
@@ -136,17 +92,6 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): could not fi
 
 
 === TEST 5: proxy_wasm queue shm - attempt to set key/value
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: queue1 64k
@@ -168,17 +113,6 @@ qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): attempt to s
 
 
 === TEST 6: proxy_wasm queue shm - attempt to get key/value
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: queue1 64k
@@ -199,17 +133,6 @@ qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): attempt to g
 
 
 === TEST 7: proxy_wasm queue shm - attempt to get key/value
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: queue1 64k
@@ -230,17 +153,6 @@ qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): attempt to g
 
 
 === TEST 8: proxy_wasm queue shm - attempt to enqueue in a key/value shm by id
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv 64k
@@ -263,17 +175,6 @@ qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): attempt to u
 
 
 === TEST 9: proxy_wasm queue shm - attempt to dequeue from a key/value shm by id
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv 64k
