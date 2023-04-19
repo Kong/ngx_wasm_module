@@ -304,17 +304,6 @@ qr/on_http_call_response \(id: \d+, headers: 5, body_bytes: \d+, trailers: 0/
 
 
 === TEST 7: proxy_wasm FFI - HTTP dispatch alongside Lua VM (trap on response)
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config

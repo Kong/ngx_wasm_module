@@ -196,18 +196,6 @@ ngx_http_* calls.
 HTTP 500 since instance recycling happens on next
 request, and isolation is global (single instance for root/request)
 
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
-
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -240,18 +228,6 @@ on_tick runs on the root context, so it does not have access to
 ngx_http_* calls.
 
 HTTP 200 since the root and request instances are different.
-
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module

@@ -13,17 +13,6 @@ run_tests();
 __DATA__
 
 === TEST 1: wasm - oob memory read
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -52,17 +41,6 @@ qr/(\[error\] .*? out of bounds|wasm trap: out of bounds memory access|Uncaught 
 
 
 === TEST 2: wasm - oob memory write
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;

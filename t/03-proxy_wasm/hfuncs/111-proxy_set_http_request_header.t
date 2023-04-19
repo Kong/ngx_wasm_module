@@ -297,17 +297,6 @@ path: /test
 
 
 === TEST 12: proxy_wasm - set_http_request_headers() cannot set ':path' with querystring (NYI)
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- wasm_modules: hostcalls
 --- config
     location /t {

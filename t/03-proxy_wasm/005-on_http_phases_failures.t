@@ -15,17 +15,6 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm - trap on_response_trailers
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- wasm_modules: hostcalls
 --- config
     location /t {
