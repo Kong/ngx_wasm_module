@@ -26,7 +26,7 @@ reverse-proxying).
 
 ## Table of Contents
 
-- [Synopsys](#synopsys)
+- [Synopsis](#synopsis)
 - [Examples](#examples)
 - [Documentation](#documentation)
     - [Usage](#usage)
