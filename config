@@ -20,7 +20,8 @@ case $ngx_wasm_runtime_name in
     wasmer)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_wasmer.c"
 
-        ngx_wasm_cargo_enabled=yes
+        ngx_wasm_cargo_lib_name=ngx_wasm_rs
+        ngx_wasm_cargo_lib_dir=$ngx_addon_dir/lib/ngx-wasm-rs
         ngx_wasm_cargo_mandatory=no
         ngx_wasm_cargo_flags=""
         ngx_wasm_cargo_crate_type="cdylib"
@@ -36,7 +37,8 @@ case $ngx_wasm_runtime_name in
         ngx_wasm_runtime_pre_libs="-lv8bridge"
         ngx_wasm_runtime_post_libs="-ldl -lpthread -lm -lstdc++"
 
-        ngx_wasm_cargo_enabled=yes
+        ngx_wasm_cargo_lib_name=ngx_wasm_rs
+        ngx_wasm_cargo_lib_dir=$ngx_addon_dir/lib/ngx-wasm-rs
         ngx_wasm_cargo_mandatory=yes
         ngx_wasm_cargo_flags="--features wat"
         ngx_wasm_cargo_defines="NGX_WASM_BACKTRACE NGX_WASM_WAT"
@@ -51,6 +53,8 @@ case $ngx_wasm_runtime_name in
         echo
         exit 1
 esac
+
+# auto/runtime
 
 ngx_wasm_runtime_inc=$NGX_CC_OPT
 ngx_wasm_runtime_lib=
@@ -90,13 +94,9 @@ ngx_wasm_runtime_libs=$ngx_feature_libs
 
 have=NGX_WASM_RUNTIME value="\"$ngx_wasm_runtime_name\"" . auto/define
 
-if [ "$NGX_WASM_CARGO" != 0 -a "$ngx_wasm_cargo_enabled" = yes ]; then
-    ngx_wasm_cargo_lib_name=ngx_wasm_rs
-    ngx_wasm_cargo_lib_dir=$ngx_addon_dir/lib/ngx-wasm-rs
+# auto/cargo (ngx_wasm_rs)
 
-    # allow the feature test to find wasm.h
-    ngx_wasm_cargo_feature_path="$ngx_wasm_runtime_path"
-
+if [ "$NGX_WASM_CARGO" != 0 -a "$ngx_wasm_cargo_lib_name" = ngx_wasm_rs ]; then
     . $ngx_addon_dir/auto/cargo
 
     if [ $ngx_found = yes ]; then
