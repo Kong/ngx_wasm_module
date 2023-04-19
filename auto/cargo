@@ -1,5 +1,20 @@
 ngx_found=no
 
+if [ -z "$ngx_wasm_runtime_path" ]; then
+    echo "$0: error: $ngx_addon_name auto/cargo invoked without \$ngx_wasm_runtime_path."
+    echo
+    exit 1
+fi
+
+if [ -z "$ngx_wasm_cargo_lib_name" ]; then
+    echo "$0: error: $ngx_addon_name auto/cargo invoked without \$ngx_wasm_cargo_lib_name."
+    echo
+    exit 1
+fi
+
+# allow the feature test to find wasm.h
+ngx_wasm_cargo_feature_path="$ngx_wasm_runtime_path"
+
 ngx_wasm_push_dir=$(pwd)
 cd $ngx_wasm_cargo_lib_dir
 
