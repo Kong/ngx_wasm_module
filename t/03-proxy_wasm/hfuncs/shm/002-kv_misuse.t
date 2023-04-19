@@ -13,17 +13,6 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm key/value shm - set in non-existing namespace
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 64k
@@ -45,17 +34,6 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): failed setti
 
 
 === TEST 2: proxy_wasm key/value shm - get from non-existing namespace
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 64k
@@ -76,17 +54,6 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): failed getti
 
 
 === TEST 3: proxy_wasm key/value shm - attempt to enqueue
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 1m
@@ -108,17 +75,6 @@ qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): attempt to u
 
 
 === TEST 4: proxy_wasm key/value shm - attempt to dequeue
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 1m

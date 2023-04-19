@@ -133,18 +133,6 @@ qr/\[info\] .*? property not found: was,/
 HTTP 500 since instance recycling happens on next request, and isolation
 is global (single instance for root/request).
 
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
-
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -172,18 +160,6 @@ V8 trap format:
 === TEST 5: proxy_wasm - get_property() wasmx - not available on: tick (isolation: stream)
 
 HTTP 200 since the root and request instances are different.
-
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module

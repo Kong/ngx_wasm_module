@@ -65,18 +65,6 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 
 === TEST 2: proxy_wasm - trap with none isolation mode
 Should recycle the global instance when trapped.
-
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -175,17 +163,6 @@ qr/\A\*\d+ proxy_wasm "hostcalls" filter new instance.*
 
 
 === TEST 4: proxy_wasm - trap with stream isolation mode
-Wasmtime trap format:
-    [error] error while executing ...
-    [stacktrace]
-    Caused by:
-        [trap msg]
-
-Wasmer trap format:
-    [error] [trap msg]
-
-V8 trap format:
-    [error] Uncaught RuntimeError: [trap msg]
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
