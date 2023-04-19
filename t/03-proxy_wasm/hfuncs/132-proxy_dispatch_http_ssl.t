@@ -23,28 +23,33 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - dispatch_https_call() verify off, warn, default port, ok
---- timeout eval: $::ExtTimeout
+=== TEST 1: proxy_wasm - dispatch_https_call() verify off, warn, ok
 --- wasm_modules: hostcalls
 --- config eval
 qq{
-    resolver         $::ExtResolver ipv6=off;
-    resolver_timeout $::ExtTimeout;
+    listen              $ENV{TEST_NGINX_SERVER_PORT2} ssl;
+    server_name         hostname;
+    ssl_certificate     $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
+    ssl_certificate_key $ENV{TEST_NGINX_DATA_DIR}/hostname_key.pem;
+
+    resolver            1.1.1.1 ipv6=off;
+    resolver_add        127.0.0.1 hostname;
 
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=httpbin.org \
+                              host=hostname:$ENV{TEST_NGINX_SERVER_PORT2} \
                               https=yes \
-                              path=/headers \
-                              headers=X-Thing:foo|X-Thing:bar|Hello:world \
+                              path=/dispatch \
                               on_http_call_response=echo_response_body';
         echo fail;
     }
+
+    location /dispatch {
+        echo ok;
+    }
 }
---- response_body_like
-\s*"Hello": "world",\s*
-.*?
-\s*"X-Thing": "foo,bar"\s*
+--- response_body
+ok
 --- error_log eval
 [
     qr/\[warn\] .*? tls certificate not verified/,
@@ -53,8 +58,7 @@ qq{
 
 
 
-=== TEST 2: proxy_wasm - dispatch_https_call() verify off, no warn, default port, ok
---- timeout eval: $::ExtTimeout
+=== TEST 2: proxy_wasm - dispatch_https_call() verify off, no warn, ok
 --- main_config eval
 qq{
     wasm {
@@ -64,23 +68,29 @@ qq{
 }
 --- config eval
 qq{
-    resolver         $::ExtResolver ipv6=off;
-    resolver_timeout $::ExtTimeout;
+    listen              $ENV{TEST_NGINX_SERVER_PORT2} ssl;
+    server_name         hostname;
+    ssl_certificate     $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
+    ssl_certificate_key $ENV{TEST_NGINX_DATA_DIR}/hostname_key.pem;
+
+    resolver            1.1.1.1 ipv6=off;
+    resolver_add        127.0.0.1 hostname;
 
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=httpbin.org \
+                              host=hostname:$ENV{TEST_NGINX_SERVER_PORT2} \
                               https=yes \
-                              headers=X-Thing:foo|X-Thing:bar|Hello:world \
-                              path=/headers \
+                              path=/dispatch \
                               on_http_call_response=echo_response_body';
         echo fail;
     }
+
+    location /dispatch {
+        echo ok;
+    }
 }
---- response_body_like
-\s*"Hello": "world",\s*
-.*?
-\s*"X-Thing": "foo,bar"\s*
+--- response_body
+ok
 --- no_error_log eval
 [
     qr/tls certificate not verified/,
@@ -456,7 +466,7 @@ upstream tls server name: "hostname"
 
 
 
-=== TEST 15: proxy_wasm - dispatch_https_call() on_tick, verify off, warn, default port, ok
+=== TEST 15: proxy_wasm - dispatch_https_call() on_tick, verify off, warn, ok
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
 qq{
@@ -496,7 +506,7 @@ qq{
 
 
 
-=== TEST 16: proxy_wasm - dispatch_https_call() on_tick, verify on, check_host on, default port, ok
+=== TEST 16: proxy_wasm - dispatch_https_call() on_tick, verify on, check_host on, ok
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
@@ -523,7 +533,7 @@ qq{
                               host=hostname:$TEST_NGINX_SERVER_PORT2 \
                               https=yes \
                               path=/dispatch';
-        echo ok;
+        echo fail;
     }
 
     location /dispatch {
