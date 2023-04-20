@@ -26,6 +26,8 @@ environments yet and may still need refinements; reports are very much welcome.
 - [Sources](#sources)
     - [Code layout](#code-layout)
     - [Code lexicon](#code-lexicon)
+- [Profiling](#profiling)
+    - [Wasmtime](#wasmtime)
 
 ## Requirements
 
@@ -609,5 +611,85 @@ filter chain".
 | `ngx_proxy_wasm_*`         | Subsystem-agnostic proxy-wasm-sdk code.
 | `ngx_http_proxy_wasm_*`    | HTTP subsystem proxy-wasm-sdk code.
 | `ngx_stream_proxy_wasm_*`  | Stream subsystem proxy-wasm-sdk code.
+
+[Back to TOC](#table-of-contents)
+
+## Profiling
+
+Instructions for generating ngx_wasm_module CPU
+[flamegraphs](https://github.com/brendangregg/FlameGraph) with
+[perf](https://perf.wiki.kernel.org/index.php/Main_Page).
+
+[Back to TOC](#table-of-contents)
+
+### Wasmtime
+
+First, compile a local, unoptimized profiling build of Wasmtime:
+
+```sh
+$ export NGX_BUILD_WASMTIME_PROFILE=profile
+$ export NGX_BUILD_WASMTIME_RUSTFLAGS='-g -C opt-level=0 -C debuginfo=1'
+$ ./util/runtime.sh --build --runtime wasmtime --force
+```
+
+Then, compile ngx_wasm_module against Wasmtime and tuned for profiling with:
+
+```sh
+$ export NGX_BUILD_DEBUG=0
+$ export NGX_BUILD_CC_OPT='-O0 -g'
+$ export NGX_WASM_RUNTIME=wasmtime
+$ make
+```
+
+Next, configure ngx_wasm_module with the desired workload. For a default
+workload, we suggest reusing the benchmark test suite:
+
+```sh
+# Build the NOP benchmark filter:
+$ export TEST_NGINX_CARGO_PROFILE=
+$ export TEST_NGINX_CARGO_RUSTFLAGS='-g -C opt-level=0 -C debuginfo=1'
+# Generate t/servroot and t/servroot/conf/nginx.conf
+$ ./util/test.sh t/11-bench/003-bench_proxy_wasm.t
+```
+
+Once the above test succeeds, review and edit `t/servroot/conf/nginx.conf`.
+Make sure it is appropriate - for example there should only be one worker
+process - and add the `perfmap` profiling flag:
+
+```nginx
+daemon           off; # optional
+worker_processes 1;
+
+wasm {
+    wasmtime {
+        flag profiler perfmap; # required
+    }
+}
+```
+
+Let's now start Nginx:
+
+```sh
+$ ./work/buildroot/nginx -p t/servroot
+```
+
+Once Nginx has started, you may start `perf` recording anytime:
+
+```sh
+$ perf record -p $(pgrep nginx) -g  # ensure -p is the worker process pid
+# > perf.data
+```
+
+After recording, process the generated output with the [FlameGraph
+tools](https://github.com/brendangregg/FlameGraph) to produce the flamegraph:
+
+```sh
+# perf.data > out.perf
+$ perf script > out.perf
+$ stackcollapse-perf.pl out.perf > out.folded
+$ flamegraph.pl out.folded > out.svg
+```
+
+The resulting `out.svg` file is the produced flamegraph.
 
 [Back to TOC](#table-of-contents)
