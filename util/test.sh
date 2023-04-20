@@ -71,6 +71,8 @@ export LD_PRELOAD=$DIR_MOCKEAGAIN/mockeagain.so
 #export TEST_NGINX_NO_CLEAN=1
 #export TEST_NGINX_BENCHMARK='1000 10'
 export TEST_NGINX_CLEAN_LOG=${TEST_NGINX_CLEAN_LOG:=0}
+export TEST_NGINX_CARGO_RUSTFLAGS=${TEST_NGINX_CARGO_RUSTFLAGS:=}
+export TEST_NGINX_CARGO_PROFILE=${TEST_NGINX_CARGO_PROFILE:=release}
 
 if [[ ! -x "$TEST_NGINX_BINARY" ]]; then
     fatal "no nginx binary at $TEST_NGINX_BINARY"
@@ -93,9 +95,16 @@ fi
 
 $NGX_WASM_DIR/util/build_proxy_wasm_go_sdk.sh
 
-cargo build \
+args=()
+
+if [ "$TEST_NGINX_CARGO_PROFILE" = release ]; then
+    args+="--release"
+fi
+
+export RUSTFLAGS="$TEST_NGINX_CARGO_RUSTFLAGS"
+eval cargo build \
     --lib \
-    --release \
+    "${args[@]}" \
     --target wasm32-wasi \
     --out-dir $DIR_TESTS_LIB_WASM \
     -Z unstable-options
