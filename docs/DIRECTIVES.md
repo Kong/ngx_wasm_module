@@ -132,7 +132,7 @@ Load a Wasm module from disk.
 - `name` is expected to be unique since it will be used to refer to this module.
 - `path` must point to a bytecode file whose format is `.wasm` (binary) or
   `.wat` (text).
-- `config` is an optional configuration string passed to `on_vm_configure` when
+- `config` is an optional configuration string passed to `on_vm_start` when
   `module` is a proxy-wasm filter.
 
 If successfully loaded, the module can later be referred to by `name`.
