@@ -22,6 +22,8 @@ proxy_wasm::main! {{
 
 impl RootContext for TestRoot {
     fn on_vm_start(&mut self, _: usize) -> bool {
+        info!("[hostcalls] #0 on_vm_start");
+
         if let Some(config) = self.get_vm_configuration() {
             if let Ok(text) = std::str::from_utf8(&config) {
                 info!("vm config: {}", text);
@@ -43,6 +45,8 @@ impl RootContext for TestRoot {
     }
 
     fn on_configure(&mut self, _: usize) -> bool {
+        info!("[hostcalls] #0 on_configure");
+
         if let Some(config_bytes) = self.get_plugin_configuration() {
             let config_str = String::from_utf8(config_bytes).unwrap();
             self.config = config_str

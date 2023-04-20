@@ -25,9 +25,14 @@ should use a global instance reused across streams
 --- request eval
 ["GET /t", "GET /t"]
 --- ignore_response_body
---- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing|finalizing|freeing).*/
+--- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing|finalizing|freeing|trap in)|#\d+ on_(configure|vm_start)).*/
 --- grep_error_log_out eval
-[qr/.*?\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
+[
+qr/^[^#]*#0 on_configure[^#*]*
+#0 on_vm_start[^#*]*
+#0 on_configure[^#*]*
+#0 on_vm_start[^#*]*
+\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
@@ -122,12 +127,19 @@ should use an instance per stream
 --- request eval
 ["GET /t", "GET /t"]
 --- ignore_response_body
---- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing|finalizing|freeing).*/
+--- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing|finalizing|freeing|trap in)|#\d+ on_(configure|vm_start)).*/
 --- grep_error_log_out eval
-[qr/.*?\*\d+ proxy_wasm "hostcalls" filter new instance.*
+[
+qr/^[^#]*#0 on_configure[^#*]*
+#0 on_vm_start[^#*]*
+#0 on_configure[^#*]*
+#0 on_vm_start[^#*]*
+\*\d+ proxy_wasm "hostcalls" filter new instance.*
 \*\d+ proxy_wasm "hostcalls" filter reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
+\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase[^#*]*
+#0 on_configure[^#*]*
+\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase[^#*]*
+#0 on_configure[^#*]*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "body_filter" phase.*
@@ -142,8 +154,10 @@ should use an instance per stream
 \*\d+ wasm freeing "hostcalls" instance in "main" vm.*\Z/,
 qr/\A\*\d+ proxy_wasm "hostcalls" filter new instance.*
 \*\d+ proxy_wasm "hostcalls" filter reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase.*
+\*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase[^#*]*
+#0 on_configure[^#*]*
+\*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "rewrite" phase[^#*]*
+#0 on_configure[^#*]*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(2\/2\) resuming in "header_filter" phase.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "body_filter" phase.*
