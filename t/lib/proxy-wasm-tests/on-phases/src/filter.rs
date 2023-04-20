@@ -33,7 +33,7 @@ struct HttpHeadersRoot {
 impl Context for HttpHeadersRoot {}
 impl RootContext for HttpHeadersRoot {
     fn on_vm_start(&mut self, config_size: usize) -> bool {
-        info!("on_vm_start, config_size: {}", config_size);
+        info!("#{} on_vm_start, config_size: {}", ROOT_ID, config_size);
         true
     }
 

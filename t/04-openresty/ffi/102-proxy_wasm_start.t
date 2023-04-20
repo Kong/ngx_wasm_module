@@ -143,9 +143,10 @@ POST /t
 Hello world
 --- response_body
 ok
---- grep_error_log eval: qr/#\d+ on_(configure|request|response|log).*/
+--- grep_error_log eval: qr/#\d+ on_(configure|vm_start|request|response|log).*/
 --- grep_error_log_out eval
-qr/#0 on_configure, config_size: 0.*
+qr/^#0 on_configure, config_size: 0[^#]*
+#0 on_vm_start[^#]*
 #\d+ on_request_headers, 3 headers.*
 #\d+ on_request_body, 11 bytes.*
 #\d+ on_response_headers, 5 headers.*
@@ -196,9 +197,10 @@ POST /t
 Hello world
 --- response_body
 ok
---- grep_error_log eval: qr/#\d+ on_(configure|request|response|log).*/
+--- grep_error_log eval: qr/#\d+ on_(configure|vm_start|request|response|log).*/
 --- grep_error_log_out eval
-qr/#0 on_configure, config_size: 0.*
+qr/^#0 on_configure, config_size: 0[^#]*
+#0 on_vm_start[^#]*
 #\d+ on_request_headers, 3 headers.*
 #\d+ on_request_body, 11 bytes.*
 #\d+ on_response_headers, 5 headers.*
