@@ -32,7 +32,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_wasm_phase_t                        *phase;
+    ngx_uint_t                               isolation;
 } ngx_wasm_op_proxy_wasm_ctx_t;
 
 

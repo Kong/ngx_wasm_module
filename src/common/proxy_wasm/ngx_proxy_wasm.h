@@ -89,9 +89,10 @@ typedef enum {
 
 
 typedef enum {
-    NGX_PROXY_WASM_ISOLATION_NONE = 0,
-    NGX_PROXY_WASM_ISOLATION_STREAM = 1,
-    NGX_PROXY_WASM_ISOLATION_FILTER = 2,
+    NGX_PROXY_WASM_ISOLATION_UNSET = 0,  /* FFI only */
+    NGX_PROXY_WASM_ISOLATION_NONE = 1,
+    NGX_PROXY_WASM_ISOLATION_STREAM = 2,
+    NGX_PROXY_WASM_ISOLATION_FILTER = 3,
 } ngx_proxy_wasm_isolation_mode_e;
 
 
@@ -203,6 +204,7 @@ struct ngx_proxy_wasm_ctx_s {
     ngx_uint_t                         id;      /* r->connection->number */
     ngx_uint_t                         nfilters;
     ngx_array_t                        pwexecs;
+    ngx_uint_t                         isolation;
     ngx_proxy_wasm_store_t             store;
     ngx_proxy_wasm_context_type_e      type;
     ngx_log_t                         *log;
@@ -287,7 +289,6 @@ struct ngx_proxy_wasm_filter_s {
 
     ngx_uint_t                     id;
     ngx_uint_t                     max_pairs;
-    ngx_uint_t                    *isolation;
 
     /**
      * SDK
@@ -376,7 +377,8 @@ ngx_int_t ngx_proxy_wasm_start(ngx_cycle_t *cycle);
 /* ctx/store */
 ngx_proxy_wasm_ctx_t *ngx_proxy_wasm_ctx_alloc(ngx_pool_t *pool);
 ngx_proxy_wasm_ctx_t *ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids,
-    size_t nfilters, ngx_proxy_wasm_subsystem_t *subsys, void *data);
+    size_t nfilters, ngx_uint_t isolation, ngx_proxy_wasm_subsystem_t *subsys,
+    void *data);
 void ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx);
 ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_wasm_phase_t *phase, ngx_proxy_wasm_step_e step);

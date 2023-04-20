@@ -260,7 +260,7 @@ ngx_proxy_wasm_ctx_alloc(ngx_pool_t *pool)
 
 ngx_proxy_wasm_ctx_t *
 ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
-    ngx_proxy_wasm_subsystem_t *subsys, void *data)
+    ngx_uint_t isolation, ngx_proxy_wasm_subsystem_t *subsys, void *data)
 {
     size_t                      i;
     ngx_uint_t                  id;
@@ -279,6 +279,12 @@ ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
 
     if (!pwctx->ready) {
         pwctx->nfilters = nfilters;
+        pwctx->isolation = isolation;
+
+        ngx_log_debug2(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                       "proxy_wasm initializing filter chain "
+                       "(nfilters: %l, isolation: %ui)",
+                       pwctx->nfilters, pwctx->isolation);
 
         ngx_proxy_wasm_store_init(&pwctx->store, pwctx->pool);
 
@@ -295,7 +301,7 @@ ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
                 return NULL;
             }
 
-            switch (*filter->isolation) {
+            switch (pwctx->isolation) {
             case NGX_PROXY_WASM_ISOLATION_NONE:
                 pwstore = filter->store;
                 pool = filter->pool;
@@ -313,7 +319,7 @@ ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
             default:
                 ngx_wasm_log_error(NGX_LOG_WASM_NYI, pwctx->log, 0,
                                    "NYI - instance isolation: %d",
-                                   *filter->isolation);
+                                   pwctx->isolation);
                 return NULL;
             }
 
@@ -867,12 +873,10 @@ ngx_proxy_wasm_abi_version(ngx_proxy_wasm_filter_t *filter)
 static ngx_int_t
 ngx_proxy_wasm_init_abi(ngx_proxy_wasm_filter_t *filter)
 {
-    ngx_log_debug5(NGX_LOG_DEBUG_WASM, filter->log, 0,
+    ngx_log_debug4(NGX_LOG_DEBUG_WASM, filter->log, 0,
                    "proxy_wasm initializing \"%V\" filter "
-                   "(config size: %d, filter: %p, filter->id: %ui, "
-                   "isolation: %ui)",
-                   filter->name, filter->config.len, filter, filter->id,
-                   *filter->isolation);
+                   "(config size: %d, filter: %p, filter->id: %ui)",
+                   filter->name, filter->config.len, filter, filter->id);
 
     filter->abi_version = ngx_proxy_wasm_abi_version(filter);
 

@@ -29,12 +29,15 @@ ffi.cdef [[
     int ngx_http_wasm_ffi_plan_free(ngx_wasm_plan_t *plan);
     int ngx_http_wasm_ffi_plan_load(ngx_wasm_plan_t *plan);
     int ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r,
-                                      ngx_wasm_plan_t *plan);
+                                      ngx_wasm_plan_t *plan,
+                                      unsigned int isolation);
     int ngx_http_wasm_ffi_start(ngx_http_request_t *r);
     int ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
-                                       ngx_str_t *key, ngx_str_t *value);
+                                       ngx_str_t *key,
+                                       ngx_str_t *value);
     int ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
-                                       ngx_str_t *key, ngx_str_t *out);
+                                       ngx_str_t *key,
+                                       ngx_str_t *out);
 ]]
 
 
@@ -46,6 +49,12 @@ local _M = {
     codes = {
         ERROR = ERROR,
         NOT_FOUND = NOT_FOUND,
+    },
+    isolations = {
+        UNSET = 0,
+        NONE = 1,
+        STREAM = 2,
+        FILTER = 3,
     }
 }
 
@@ -97,8 +106,8 @@ function _M.new(filters)
     local pcfilters = ffi.cast("ngx_wasm_filter_t *", cfilters)
     local errbuf, errlen = get_err_ptr()
 
-    local rc = C.ngx_http_wasm_ffi_plan_new(vm, pcfilters, nfilters, pplan,
-                                            errbuf, errlen)
+    local rc = C.ngx_http_wasm_ffi_plan_new(vm, pcfilters, nfilters,
+                                            pplan, errbuf, errlen)
     if rc == FFI_ERROR then
         return nil, ffi_str(errbuf, errlen[0])
     end
@@ -127,9 +136,28 @@ function _M.load(c_plan)
 end
 
 
-function _M.attach(c_plan)
+function _M.attach(c_plan, opts)
+    local isolation = _M.isolations.UNSET
+
     if type(c_plan) ~= "cdata" then
-        error("plan should be a cdata object", 2)
+        error("plan must be a cdata object", 2)
+    end
+
+    if opts ~= nil then
+        if type(opts) ~= "table" then
+            error("opts must be a table", 2)
+        end
+
+        if opts.isolation ~= nil then
+            if opts.isolation ~= _M.isolations.NONE
+               and opts.isolation ~= _M.isolations.STREAM
+               and opts.isolation ~= _M.isolations.FILTER
+            then
+                error("bad opts.isolation value: " .. opts.isolation, 2)
+            end
+
+            isolation = opts.isolation
+        end
     end
 
     local phase = ngx.get_phase()
@@ -142,7 +170,7 @@ function _M.attach(c_plan)
         error("no request found", 2)
     end
 
-    local rc = C.ngx_http_wasm_ffi_plan_attach(r, c_plan)
+    local rc = C.ngx_http_wasm_ffi_plan_attach(r, c_plan, isolation)
     if rc == FFI_ERROR then
         return nil, "unknown error"
     end

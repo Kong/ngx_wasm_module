@@ -30,7 +30,6 @@ ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
     ngx_wasm_ops_plan_t        *plan;
     ngx_wasm_ffi_filter_t      *ffi_filter;
     ngx_http_wasm_main_conf_t  *mcf;
-    static ngx_uint_t           isolation = NGX_PROXY_WASM_ISOLATION_STREAM;
 
     mcf = ngx_http_cycle_get_module_main_conf(ngx_cycle, ngx_http_wasm_module);
     if (mcf == NULL) {
@@ -55,7 +54,6 @@ ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
         rc = ngx_http_wasm_ops_add_filter(plan,
                                           ffi_filter->name,
                                           ffi_filter->config,
-                                          &isolation,
                                           &mcf->store, vm);
         if (rc != NGX_OK) {
             if (rc == NGX_ABORT) {
@@ -89,6 +87,39 @@ ngx_http_wasm_ffi_plan_load(ngx_wasm_ops_plan_t *plan)
     }
 
     return ngx_proxy_wasm_start((ngx_cycle_t *) ngx_cycle);
+}
+
+
+ngx_int_t
+ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r, ngx_wasm_ops_plan_t *plan,
+    ngx_uint_t isolation)
+{
+    ngx_int_t                  rc;
+    ngx_http_wasm_req_ctx_t   *rctx;
+    ngx_http_wasm_loc_conf_t  *loc;
+    ngx_wasm_ops_plan_t       *old_plan;
+
+    if (!plan->loaded) {
+        return NGX_DECLINED;
+    }
+
+    loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
+
+    old_plan = loc->plan;
+    loc->plan = plan;
+
+    rc = ngx_http_wasm_rctx(r, &rctx);
+    ngx_wasm_assert(rc != NGX_DECLINED);
+    if (rc != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    loc->plan = old_plan;
+
+    rctx->opctx.ctx.proxy_wasm.isolation = isolation;
+    rctx->ffi_attached = 1;
+
+    return NGX_OK;
 }
 
 
@@ -132,35 +163,6 @@ ngx_http_wasm_ffi_start(ngx_http_request_t *r)
                     || rc == NGX_DONE
                     || rc == NGX_AGAIN
                     || rc >= NGX_HTTP_SPECIAL_RESPONSE);
-
-    return NGX_OK;
-}
-
-
-ngx_int_t
-ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r, ngx_wasm_ops_plan_t *plan)
-{
-    ngx_int_t                  rc;
-    ngx_http_wasm_req_ctx_t   *rctx;
-    ngx_http_wasm_loc_conf_t  *loc;
-
-    if (!plan->loaded) {
-        return NGX_DECLINED;
-    }
-
-    loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
-
-    loc->plan = plan;
-
-    rc = ngx_http_wasm_rctx(r, &rctx);
-    ngx_wasm_assert(rc != NGX_DECLINED);
-    if (rc != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    loc->plan = NULL;
-
-    rctx->ffi_attached = 1;
 
     return NGX_OK;
 }

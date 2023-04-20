@@ -360,20 +360,36 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     ngx_wasm_phase_t *phase, ngx_wasm_op_t *op)
 {
     ngx_int_t                    rc = NGX_ERROR;
+    ngx_uint_t                   isolation;
     ngx_array_t                 *ids;
     ngx_proxy_wasm_ctx_t        *pwctx;
     ngx_proxy_wasm_subsystem_t  *subsystem = NULL;
-
-    ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);
-
 #ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t     *rctx = opctx->data;
+    ngx_http_wasm_loc_conf_t    *loc;
+
+    loc = ngx_http_get_module_loc_conf(rctx->r, ngx_http_wasm_module);
     subsystem = &ngx_http_proxy_wasm;
 #endif
 
-    ids = &opctx->plan->conf.proxy_wasm.filter_ids;
-    opctx->ctx.proxy_wasm.phase = phase;
+    ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);
 
-    pwctx = ngx_proxy_wasm_ctx((ngx_uint_t *) ids->elts, ids->nelts, subsystem,
+    ids = &opctx->plan->conf.proxy_wasm.filter_ids;
+    isolation = opctx->ctx.proxy_wasm.isolation;
+
+    if (isolation == NGX_PROXY_WASM_ISOLATION_UNSET) {
+#ifdef NGX_WASM_HTTP
+        isolation = loc->isolation;
+
+#else
+        ngx_wasm_assert(0);
+        isolation = NGX_PROXY_WASM_ISOLATION_NONE;
+#endif
+    }
+
+    pwctx = ngx_proxy_wasm_ctx((ngx_uint_t *) ids->elts, ids->nelts,
+                               isolation,
+                               subsystem,
                                opctx->data);
     if (pwctx == NULL) {
         goto done;
