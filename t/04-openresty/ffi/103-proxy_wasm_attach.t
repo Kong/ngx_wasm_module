@@ -102,16 +102,16 @@ POST /t
 Hello world
 --- response_body
 ok
---- grep_error_log eval: qr/#\d+ on_(configure|vm_start|request|response|log).*/
+--- grep_error_log eval: qr/#\d+ on_.*/
 --- grep_error_log_out eval
 qr/^[^#]*#0 on_configure, config_size: 0[^#]*
 #0 on_vm_start[^#]*
-#\d+ on_request_headers, 3 headers.*
-#\d+ on_request_body, 11 bytes.*
-#\d+ on_response_headers, 5 headers.*
-#\d+ on_response_body, 3 bytes, eof: false.*
-#\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_log.*/
+#\d+ on_request_headers, 3 headers[^#]*
+#\d+ on_request_body, 11 bytes[^#]*
+#\d+ on_response_headers, 5 headers[^#]*
+#\d+ on_response_body, 3 bytes, eof: false[^#]*
+#\d+ on_response_body, 0 bytes, eof: true[^#]*
+#\d+ on_log[^#]*$/
 --- no_error_log
 [error]
 
@@ -153,15 +153,16 @@ POST /t
 Hello world
 --- response_body
 ok
---- grep_error_log eval: qr/#\d+ on_(configure|request|response|log).*/
+--- grep_error_log eval: qr/#\d+ on_.*/
 --- grep_error_log_out eval
 qr/^[^#]*#0 on_configure, config_size: 0[^#]*
-#\d+ on_request_headers, 3 headers.*
-#\d+ on_request_body, 11 bytes.*
-#\d+ on_response_headers, 5 headers.*
-#\d+ on_response_body, 3 bytes, eof: false.*
-#\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_log.*/
+#0 on_vm_start[^#]*
+#\d+ on_request_headers, 3 headers[^#]*
+#\d+ on_request_body, 11 bytes[^#]*
+#\d+ on_response_headers, 5 headers[^#]*
+#\d+ on_response_body, 3 bytes, eof: false[^#]*
+#\d+ on_response_body, 0 bytes, eof: true[^#]*
+#\d+ on_log[^#]*$/
 --- no_error_log
 [error]
 
@@ -203,15 +204,16 @@ POST /t
 Hello world
 --- response_body
 ok
---- grep_error_log eval: qr/#\d+ on_(configure|request|response|log).*/
+--- grep_error_log eval: qr/#\d+ on_.*/
 --- grep_error_log_out eval
 qr/^[^#]*#0 on_configure, config_size: 0[^#]*
-#\d+ on_request_headers, 3 headers.*
-#\d+ on_request_body, 11 bytes.*
-#\d+ on_response_headers, 5 headers.*
-#\d+ on_response_body, 3 bytes, eof: false.*
-#\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_log.*/
+#0 on_vm_start[^#]*
+#\d+ on_request_headers, 3 headers[^#]*
+#\d+ on_request_body, 11 bytes[^#]*
+#\d+ on_response_headers, 5 headers[^#]*
+#\d+ on_response_body, 3 bytes, eof: false[^#]*
+#\d+ on_response_body, 0 bytes, eof: true[^#]*
+#\d+ on_log[^#]*$/
 --- no_error_log
 [error]
 
@@ -320,15 +322,16 @@ POST /t
 Hello world
 --- response_body
 ok
---- grep_error_log eval: qr/#\d+ on_(configure|request|response|log).*/
+--- grep_error_log eval: qr/#\d+ on_.*/
 --- grep_error_log_out eval
 qr/^[^#]*#0 on_configure, config_size: 0[^#]*
-#\d+ on_request_headers, 3 headers.*
-#\d+ on_request_body, 11 bytes.*
-#\d+ on_response_headers, 5 headers.*
-#\d+ on_response_body, 3 bytes, eof: false.*
-#\d+ on_response_body, 0 bytes, eof: true.*
-#\d+ on_log.*/
+#0 on_vm_start[^#]*
+#\d+ on_request_headers, 3 headers[^#]*
+#\d+ on_request_body, 11 bytes[^#]*
+#\d+ on_response_headers, 5 headers[^#]*
+#\d+ on_response_body, 3 bytes, eof: false[^#]*
+#\d+ on_response_body, 0 bytes, eof: true[^#]*
+#\d+ on_log[^#]*$/
 --- no_error_log
 [error]
 
