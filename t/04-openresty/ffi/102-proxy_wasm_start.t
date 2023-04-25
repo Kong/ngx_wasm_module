@@ -145,8 +145,8 @@ Hello world
 ok
 --- grep_error_log eval: qr/#\d+ on_(configure|vm_start|request|response|log).*/
 --- grep_error_log_out eval
-qr/^#0 on_configure, config_size: 0[^#]*
-#0 on_vm_start[^#]*
+qr/^#0 on_vm_start[^#]*
+#0 on_configure, config_size: 0[^#]*
 #\d+ on_request_headers, 3 headers[^#]*
 #\d+ on_request_body, 11 bytes[^#]*
 #\d+ on_response_headers, 5 headers[^#]*
@@ -199,8 +199,8 @@ Hello world
 ok
 --- grep_error_log eval: qr/#\d+ on_(configure|vm_start|request|response|log).*/
 --- grep_error_log_out eval
-qr/^#0 on_configure, config_size: 0[^#]*
-#0 on_vm_start[^#]*
+qr/^#0 on_vm_start[^#]*
+#0 on_configure, config_size: 0[^#]*
 #\d+ on_request_headers, 3 headers[^#]*
 #\d+ on_request_body, 11 bytes[^#]*
 #\d+ on_response_headers, 5 headers[^#]*

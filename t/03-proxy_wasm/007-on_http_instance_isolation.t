@@ -28,10 +28,10 @@ should use a global instance reused across streams
 --- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing|finalizing|freeing|trap in)|#\d+ on_(configure|vm_start)).*/
 --- grep_error_log_out eval
 [
-qr/^[^#]*#0 on_configure[^#*]*
-#0 on_vm_start[^#*]*
+qr/^[^#]*#0 on_vm_start[^#*]*
 #0 on_configure[^#*]*
 #0 on_vm_start[^#*]*
+#0 on_configure[^#*]*
 \*\d+ proxy_wasm "hostcalls" filter reusing instance[^#*]*
 \*\d+ proxy_wasm "hostcalls" filter reusing instance[^#*]*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase[^#*]*
@@ -130,10 +130,10 @@ should use an instance per stream
 --- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing|finalizing|freeing|trap in)|#\d+ on_(configure|vm_start)).*/
 --- grep_error_log_out eval
 [
-qr/^[^#]*#0 on_configure[^#*]*
-#0 on_vm_start[^#*]*
+qr/^[^#]*#0 on_vm_start[^#*]*
 #0 on_configure[^#*]*
 #0 on_vm_start[^#*]*
+#0 on_configure[^#*]*
 \*\d+ proxy_wasm "hostcalls" filter new instance[^#*]*
 \*\d+ proxy_wasm "hostcalls" filter reusing instance[^#*]*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/2\) resuming in "rewrite" phase[^#*]*

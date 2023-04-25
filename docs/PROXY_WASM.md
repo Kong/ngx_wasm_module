@@ -83,7 +83,7 @@ The Proxy-Wasm specifications allow for entrypoints within several contexts:
 
 - A **Root context**, representing the filter within the proxy process. This
   context is unique for each filter configured in ngx_wasm_module. It exposes
-  the configuration entrypoints `on_configure`, `on_vm_start`, as well as
+  the configuration entrypoints `on_vm_start`, `on_configure`, as well as
   `on_tick`.
 - An **HTTP context**, representing the filter within a request/response
   lifecycle.  This context is unique for each request traversing the filter, and
@@ -428,8 +428,8 @@ SDK ABI `0.2.1`) and their present status in ngx_wasm_module:
 ----------------------------------:|:-------------------:|:--------------
 *Root contexts*                    |                     |
 `proxy_wasm::main!`                | :heavy_check_mark:  | Allocate the root context.
-`on_configure`                     | :heavy_check_mark:  | Filter configuration handler.
 `on_vm_start`                      | :heavy_check_mark:  | VM configuration handler.
+`on_configure`                     | :heavy_check_mark:  | Filter configuration handler.
 `on_tick`                          | :heavy_check_mark:  | Background tick handler.
 *Stream (L4) contexts*             |                     |
 `on_new_connection`                | :x:                 | *NYI*.

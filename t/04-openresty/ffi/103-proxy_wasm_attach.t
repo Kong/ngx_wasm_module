@@ -104,8 +104,8 @@ Hello world
 ok
 --- grep_error_log eval: qr/#\d+ on_.*/
 --- grep_error_log_out eval
-qr/^[^#]*#0 on_configure, config_size: 0[^#]*
-#0 on_vm_start[^#]*
+qr/^[^#]*#0 on_vm_start[^#]*
+#0 on_configure, config_size: 0[^#]*
 #\d+ on_request_headers, 3 headers[^#]*
 #\d+ on_request_body, 11 bytes[^#]*
 #\d+ on_response_headers, 5 headers[^#]*
@@ -155,8 +155,8 @@ Hello world
 ok
 --- grep_error_log eval: qr/#\d+ on_.*/
 --- grep_error_log_out eval
-qr/^[^#]*#0 on_configure, config_size: 0[^#]*
-#0 on_vm_start[^#]*
+qr/^[^#]*#0 on_vm_start[^#]*
+#0 on_configure, config_size: 0[^#]*
 #\d+ on_request_headers, 3 headers[^#]*
 #\d+ on_request_body, 11 bytes[^#]*
 #\d+ on_response_headers, 5 headers[^#]*
@@ -206,8 +206,8 @@ Hello world
 ok
 --- grep_error_log eval: qr/#\d+ on_.*/
 --- grep_error_log_out eval
-qr/^[^#]*#0 on_configure, config_size: 0[^#]*
-#0 on_vm_start[^#]*
+qr/^[^#]*#0 on_vm_start[^#]*
+#0 on_configure, config_size: 0[^#]*
 #\d+ on_request_headers, 3 headers[^#]*
 #\d+ on_request_body, 11 bytes[^#]*
 #\d+ on_response_headers, 5 headers[^#]*
@@ -324,8 +324,8 @@ Hello world
 ok
 --- grep_error_log eval: qr/#\d+ on_.*/
 --- grep_error_log_out eval
-qr/^[^#]*#0 on_configure, config_size: 0[^#]*
-#0 on_vm_start[^#]*
+qr/^[^#]*#0 on_vm_start[^#]*
+#0 on_configure, config_size: 0[^#]*
 #\d+ on_request_headers, 3 headers[^#]*
 #\d+ on_request_body, 11 bytes[^#]*
 #\d+ on_response_headers, 5 headers[^#]*
@@ -511,8 +511,8 @@ qr/^\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\).*
 --- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing instance|finalizing|freeing|now|trap in|filter chain)|#\d+ on_(configure|vm_start)).*/
 --- grep_error_log_out eval
 [
-qr/^[^#]*#0 on_configure[^#]*
-#0 on_vm_start[^#*]*
+qr/^[^#]*#0 on_vm_start[^#*]*
+#0 on_configure[^#]*
 \*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\).*
 \*\d+ proxy_wasm "hostcalls" filter new instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "rewrite" phase[^#*]*
@@ -576,8 +576,8 @@ qr/^\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\).*
 --- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing instance|finalizing|freeing|now|trap in|filter chain)|#\d+ (on_configure|on_vm_start)).*/
 --- grep_error_log_out eval
 [
-qr/^[^#]*#0 on_configure[^#]*
-#0 on_vm_start[^#*]*
+qr/^[^#]*#0 on_vm_start[^#*]*
+#0 on_configure[^#]*
 \*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\).*
 .*?\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
 \*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "rewrite" phase.*
