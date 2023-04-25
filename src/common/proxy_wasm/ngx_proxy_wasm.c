@@ -1355,14 +1355,6 @@ ngx_proxy_wasm_on_start(ngx_proxy_wasm_instance_t *ictx,
             return NGX_PROXY_WASM_ERR_START_FAILED;
         }
 
-        rc = ngx_wavm_instance_call_funcref(instance,
-                                            filter->proxy_on_plugin_start,
-                                            &rets,
-                                            rexec->id, filter->config.len);
-        if (rc != NGX_OK || !rets->data[0].of.i32) {
-            return NGX_PROXY_WASM_ERR_START_FAILED;
-        }
-
         if (start) {
             rc = ngx_wavm_instance_call_funcref(instance,
                                                 filter->proxy_on_vm_start,
@@ -1371,6 +1363,14 @@ ngx_proxy_wasm_on_start(ngx_proxy_wasm_instance_t *ictx,
             if (rc != NGX_OK || !rets->data[0].of.i32) {
                 return NGX_PROXY_WASM_ERR_START_FAILED;
             }
+        }
+
+        rc = ngx_wavm_instance_call_funcref(instance,
+                                            filter->proxy_on_plugin_start,
+                                            &rets,
+                                            rexec->id, filter->config.len);
+        if (rc != NGX_OK || !rets->data[0].of.i32) {
+            return NGX_PROXY_WASM_ERR_START_FAILED;
         }
 
         rexec->started = 1;
