@@ -92,8 +92,8 @@ ngx_wasm_read_bytes(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
     }
 
     if ((size_t) bytes >= *rest) {
-        buf_in->buf->last += *rest;
         src->pos += *rest;
+        buf_in->buf->last = src->pos;
         *rest = 0;
 
         return NGX_OK;
