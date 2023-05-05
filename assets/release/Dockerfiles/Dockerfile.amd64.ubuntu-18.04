@@ -12,6 +12,8 @@ RUN apt-get update && \
         gcc-8 \
         libstdc++-8-dev \
         git \
+        openssh-server \
+        openssh-clients \
         pkg-config \
         libglib2.0-dev \
         clang \
