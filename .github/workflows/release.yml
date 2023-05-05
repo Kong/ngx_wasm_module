@@ -270,7 +270,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Setup Homebrew dependencies
-        run: brew install ninja
+        run: brew install ninja openssh
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
