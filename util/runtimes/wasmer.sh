@@ -24,7 +24,6 @@ download_wasmer() {
 
     case $arch in
         x86_64)  arch='amd64';;
-        aarch64) arch='arm64';;
     esac
 
     kernel=$(uname -s | tr '[:upper:]' '[:lower:]')
