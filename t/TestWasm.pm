@@ -42,7 +42,10 @@ $ENV{TEST_NGINX_SERVER_PORT2} = gen_rand_port(1000);
 sub skip_valgrind (@) {
     my ($skip) = @_;
 
-    if (!$ENV{TEST_NGINX_USE_VALGRIND}) {
+    if (!defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}
+        || (defined $ENV{TEST_NGINX_USE_VALGRIND}
+            && !$ENV{TEST_NGINX_USE_VALGRIND}))
+    {
         return;
     }
 
@@ -212,6 +215,7 @@ add_block_preprocessor(sub {
     # --- skip_valgrind: 3
 
     if (defined $block->skip_valgrind
+        && defined $ENV{TEST_NGINX_USE_VALGRIND}
         && $ENV{TEST_NGINX_USE_VALGRIND}
         && !defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}
         && $block->skip_valgrind =~ m/\s*(\d+)/)
@@ -223,15 +227,25 @@ add_block_preprocessor(sub {
 
     if (!defined $block->timeout
         && defined $block->timeout_no_valgrind
-        && $block->timeout_no_valgrind =~ m/\s*(\S+)/
-        && !defined $ENV{TEST_NGINX_USE_VALGRIND})
+        && $block->timeout_no_valgrind =~ m/\s*(\S+)/)
     {
         my $timeout = $1;
 
-        if ($nginxV =~ m/wasmtime/ || $nginxV =~ m/v8/) {
-            # Wasmtime and V8 (TurboFan) are much slower to load modules
-            $timeout += 30;
-            $timeout = max($timeout, 45);
+        if (defined $ENV{TEST_NGINX_USE_VALGRIND}
+            && $ENV{TEST_NGINX_USE_VALGRIND})
+        {
+            if ($nginxV =~ m/wasmtime/ || $nginxV =~ m/v8/) {
+                # Wasmtime and V8 (TurboFan) are much slower to load modules
+                # min timeout: 45s
+                $timeout += 30;
+                $timeout = max($timeout, 45);
+
+            } else {
+                # Wasmer
+                # min timeout: 30s
+                $timeout += 30;
+                $timeout = max($timeout, 30);
+            }
         }
 
         $block->set_value("timeout", $timeout);

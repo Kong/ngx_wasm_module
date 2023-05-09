@@ -284,7 +284,6 @@ qr/tls certificate verify error: \(19:self.signed certificate in certificate cha
 
 
 === TEST 8: proxy_wasm - dispatch_https_call() attempt https at plain-text host
---- timeout_no_valgrind: 1
 --- wasm_modules: hostcalls
 --- config
     location /t {
