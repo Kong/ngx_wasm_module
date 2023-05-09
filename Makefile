@@ -75,7 +75,7 @@ todo:
 act-build:
 	@docker build \
 		-t wasmx-build-ubuntu \
-		-f ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-20.04 \
+		-f ./assets/release/Dockerfiles/Dockerfile.ubuntu-20.04 \
 		./assets/release/Dockerfiles
 
 .PHONY: act

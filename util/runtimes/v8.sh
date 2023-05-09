@@ -243,9 +243,13 @@ build_v8bridge() {
     # Use the same V8 clang toolchain to build v8bridge - C++ ABI compatibility
     local v8_cxx="$DIR_LIBWEE8/repos/v8/third_party/llvm-build/Release+Asserts/bin/clang"
 
-    # On macOS builds, use the system-provided clang to avoid header issues
     if [[ "$(uname -s)" = "Darwin" ]]; then
+        # On macOS builds, use the system-provided clang to avoid header issues
         v8_cxx="clang"
+
+    elif [[ "$(uname -m)" = "aarch64" ]]; then
+        # V8 clang is built for x86_64; if running on arm64 defaults to gcc
+        v8_cxx="gcc"
     fi
 
     make -C "$NGX_WASM_DIR/lib/v8bridge" \
@@ -278,6 +282,12 @@ clean="$5"
 
 if [ "$mode" = "download" ]; then
     download_v8 "$target" "$v8_ver" "$arch" "$clean"
+
+elif [[ -n "$CI" && "$arch" = "aarch64" ]]; then
+    # building ARM v8 over qemu on CI is expensive
+    notice "running on aarch64 CI: forcing download mode"
+    download_v8 "$target" "$v8_ver" "$arch" "$clean"
+
 else
     build_v8 "$target" "$v8_ver" "$arch" "$clean"
 fi

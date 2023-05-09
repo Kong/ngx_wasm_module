@@ -82,8 +82,9 @@ jobs:
       - name: "Ubuntu 20.04 build image"
         uses: docker/build-push-action@v2
         with:
-          file: ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-20.04
+          file: ./assets/release/Dockerfiles/Dockerfile.ubuntu-20.04
           tags: ghcr.io/kong/wasmx-build-ubuntu:20.04
+          platforms: linux/arm64,linux/amd64
           push: true
       - name: "Centos 7 build image"
         uses: docker/build-push-action@v2
@@ -154,6 +155,42 @@ jobs:
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-artifacts
+          path: dist
+          retention-days: ${{ env.RETENTION_DAYS }}
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: work/dist/build/*
+
+  build-ubuntu-focal-arm:
+    name: "Build ARM Ubuntu 20.04 (focal) binary"
+    needs: [setup, build-images]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.TOKEN_GITHUB }}
+      - run: |
+          docker run \
+              --platform=linux/arm64 \
+              --volume $PWD:/wasmx \
+              --env CARGO_NET_GIT_FETCH_WITH_CLI=true \
+              --env WASMTIME_VER='${{ needs.setup.outputs.wasmtime_ver }}' \
+              --env WASMER_VER='${{ needs.setup.outputs.wasmer_ver }}' \
+              --env V8_VER='${{ needs.setup.outputs.v8_ver }}' \
+              ghcr.io/kong/wasmx-build-ubuntu:20.04 \
+              /wasmx/util/release.sh ${{ needs.setup.outputs.release_name }} --bin
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -289,7 +326,7 @@ jobs:
 
   upload-artifacts:
     name: "Upload release artifacts"
-    needs: [source-release, build-images, build-ubuntu-bionic, build-ubuntu-focal, build-centos7, build-centos8, build-arch, build-macos]
+    needs: [source-release, build-images, build-ubuntu-bionic, build-ubuntu-focal, build-ubuntu-focal-arm, build-centos7, build-centos8, build-arch, build-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Retrieve sibling release artifacts
