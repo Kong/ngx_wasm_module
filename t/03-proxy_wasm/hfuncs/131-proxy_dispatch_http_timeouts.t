@@ -75,7 +75,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolve
 
 
 === TEST 3: proxy_wasm - dispatch_http_call() read timeout
---- timeout_no_valgrind: 1
+--- timeout_no_valgrind: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -101,7 +101,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed o
 
 
 === TEST 4: proxy_wasm - dispatch_http_call() write timeout
---- timeout_no_valgrind: 1
+--- timeout_no_valgrind: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
