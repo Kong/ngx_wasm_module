@@ -15,7 +15,7 @@ RUN apt-get update && \
         libstdc++-10-dev \
         git \
         openssh-server \
-        openssh-clients \
+        openssh-client \
         pkg-config \
         libglib2.0-dev \
         clang \
