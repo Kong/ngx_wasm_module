@@ -30,9 +30,9 @@
    fun:wasm_instance_new
 }
 {
-   <wasmtime 7.0.0: parse>
+   <wasmtime 8.0.1: parse>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17h80eb27fd0ce3f825E
+   fun:_ZN10wasmparser6parser6Parser5parse17hc93c537ec1d89366E
 }
 {
    <ngx_wasm_rs: parse>
