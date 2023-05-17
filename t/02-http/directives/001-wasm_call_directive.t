@@ -196,6 +196,7 @@ qr/\[error\] .*? no "nonexist" function in "a" module/
 
 
 === TEST 11: wasm_call directive - catch runtime error sanity
+--- valgrind_track_register_updates
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
