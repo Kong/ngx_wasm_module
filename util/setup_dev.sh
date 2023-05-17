@@ -79,6 +79,33 @@ EOF
                  system("rm -rf $ServRoot");
              }
 EOF
+    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
+    @@ -1953,10 +1953,14 @@
+                 }
+
+                 if ($UseValgrind) {
+    -                my $opts;
+    +                my $opts = "";
+    +
+    +                if (defined $block->valgrind_track_register_updates) {
+    +                    $opts = "--vex-iropt-register-updates=allregs-at-each-insn"
+    +                }
+
+                     if ($UseValgrind =~ /^\d+$/) {
+    -                    $opts = "--tool=memcheck --leak-check=full --show-possibly-lost=no";
+    +                    $opts = "--tool=memcheck --leak-check=full --show-possibly-lost=no $opts";
+
+                         if (-f 'valgrind.suppress') {
+                             $cmd = "valgrind --num-callers=100 -q $opts --gen-suppressions=all --suppressions=valgrind.suppress $cmd";
+    @@ -1965,7 +1969,7 @@
+                         }
+
+                     } else {
+    -                    $opts = $UseValgrind;
+    +                    $opts = "$UseValgrind $opts";
+                         $cmd = "valgrind -q $opts $cmd";
+                     }
+EOF
     patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Socket.pm <<'EOF'
     @@ -813,6 +813,10 @@ again:
 
