@@ -5,6 +5,7 @@ target/
 t/servroot*
 *.data*
 *.perf*
+*.dump
 *.svg
 *.log*
 *.gcov
