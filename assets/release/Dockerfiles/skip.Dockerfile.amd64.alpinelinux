@@ -1,4 +1,5 @@
-FROM amd64/alpine:latest
+FROM amd64/alpine:3.17
+COPY . /ngx_wasm_module
 
 RUN apk update && apk upgrade && apk add --no-cache \
     ca-certificates \
@@ -13,7 +14,25 @@ RUN apk update && apk upgrade && apk add --no-cache \
     make \
     bash \
     curl \
-    tar
+    tar \
+    cmake \
+    gcc \
+    python3 \
+    git \
+    openssh \
+    pkgconf \
+    which \
+    ninja && \
+    update-ca-certificates && \
+    ln -sf /usr/bin/pkgconf /usr/bin/pkg-config
+
+RUN mkdir -p /root/.ssh && ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
 
 # force CC to clang
 ENV CC=clang
+
+ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
+ENV PATH $CARGO_HOME/bin:$PATH
+RUN mkdir -p "$CARGO_HOME" && mkdir -p "$RUSTUP_HOME" && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
+    chmod -R a=rwX $CARGO_HOME $RUSTUP_HOME
