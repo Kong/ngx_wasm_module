@@ -105,18 +105,18 @@ profiler_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
         wasmtime_config_profiler_set(config,
                                      WASMTIME_PROFILING_STRATEGY_JITDUMP);
 
-    }
-
-#if 0
-    if (ngx_str_eq(value->data, value->len, "vtune", -1)) {
+    } else if (ngx_str_eq(value->data, value->len, "vtune", -1)) {
         wasmtime_config_profiler_set(config,
                                      WASMTIME_PROFILING_STRATEGY_VTUNE);
+
+#if WASMTIME_VERSION_MAJOR >= 8
 
     } else if (ngx_str_eq(value->data, value->len, "perfmap", -1)) {
         wasmtime_config_profiler_set(config,
                                      WASMTIME_PROFILING_STRATEGY_PERFMAP);
-    }
+
 #endif
+    }
 
     return NGX_OK;
 }
