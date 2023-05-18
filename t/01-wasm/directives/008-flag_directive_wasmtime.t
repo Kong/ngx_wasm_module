@@ -596,6 +596,7 @@ qr/setting flag: "profiler=jitdump"/
 
 
 === TEST 37: flag directive - wasmtime - profiler - vtune
+--- SKIP: vtune disabled at compile time in release builds
 --- skip_eval: 4: $::nginxV !~ m/wasmtime/
 --- main_config
     wasm {
