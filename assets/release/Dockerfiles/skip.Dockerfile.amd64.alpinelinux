@@ -19,7 +19,6 @@ RUN apk update && apk upgrade && apk add --no-cache \
     gcc \
     python3 \
     git \
-    openssh \
     pkgconf \
     which \
     ninja && \

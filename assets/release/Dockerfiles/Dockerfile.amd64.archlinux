@@ -8,7 +8,6 @@ RUN pacman -Syyu --noconfirm \
     gcc \
     python \
     git \
-    openssh \
     pkg-config \
     which \
     ninja
