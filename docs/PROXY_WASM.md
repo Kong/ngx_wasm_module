@@ -449,7 +449,7 @@ SDK ABI `0.2.1`) and their present status in ngx_wasm_module:
 `on_http_response_trailers`        | :x:                 | *NYI*. Response trailers handler.
 `on_http_response_metadata`        | :x:                 | *NYI*. Upstream HTTP/2 METADATA frame handler.
 `on_http_call_response`            | :heavy_check_mark:  | Dispatch HTTP call response handler.
-`on_grpc_call_initial_metadata`    | :heavy_check_mark:  | Dispatch gRPC call response, initial metadata handler.
+`on_grpc_call_initial_metadata`    | :x:                 | Dispatch gRPC call response, initial metadata handler.
 `on_grpc_call_message`             | :x:                 | *NYI*.
 `on_grpc_call_trailing_metadata`   | :x:                 | *NYI*.
 `on_grpc_call_close`               | :x:                 | *NYI*.
