@@ -79,7 +79,7 @@ build_wasmtime() {
         pushd repos
             if [ ! -d wasmtime ]; then
                 notice "fetching Wasmtime repository..."
-                git clone git@github.com:bytecodealliance/wasmtime.git
+                git clone https://github.com/bytecodealliance/wasmtime.git
 
             else
                 notice "synchronizing Wasmtime repository..."

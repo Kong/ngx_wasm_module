@@ -16,8 +16,6 @@ RUN yum install -y epel-release && \
         perl \
         python3 \
         git \
-        openssh-server \
-        openssh-clients \
         glib2-devel
 
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
