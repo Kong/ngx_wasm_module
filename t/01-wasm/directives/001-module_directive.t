@@ -250,7 +250,7 @@ qq{
     wasm {
         module a $ENV{TEST_NGINX_HTML_DIR}/a.wat;
     }
-}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
+}.($ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- user_files
 >>> a.wat
 (module
@@ -275,7 +275,7 @@ qq{
     wasm {
         module a $ENV{TEST_NGINX_HTML_DIR}/a.wat;
     }
-}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
+}.($ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     proxy_wasm a;
 --- user_files
@@ -302,7 +302,7 @@ qq{
     wasm {
         module x $ENV{TEST_NGINX_HTML_DIR}/x.wat;
     }
-}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
+}.($ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     proxy_wasm x;
 --- user_files

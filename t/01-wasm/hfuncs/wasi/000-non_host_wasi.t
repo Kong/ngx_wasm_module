@@ -34,7 +34,7 @@ HUP mode does not catch the worker exit_code
 --- skip_eval: 4: $::nginxV !~ m/v8/ || $ENV{TEST_NGINX_USE_HUP} == 1
 --- wasm_modules: wasi_vm_tests
 --- main_config eval
-defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;'
+$ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;'
 --- config
     location /t {
         wasm_call rewrite wasi_vm_tests test_wasi_non_host;
