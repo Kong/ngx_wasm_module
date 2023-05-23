@@ -23,7 +23,7 @@ qq{
     wasm {
         module hostcalls $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm 'do_trap';
     }
-}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
+}.($ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     location /t {
         proxy_wasm hostcalls;
@@ -49,7 +49,7 @@ qq{
     wasm {
         module hostcalls $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm 'do_false';
     }
-}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
+}.($ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     location /t {
         proxy_wasm hostcalls;
@@ -76,7 +76,7 @@ qq{
     wasm {
         module hostcalls $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
     }
-}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
+}.($ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     location /t {
         proxy_wasm hostcalls 'on_configure=do_trap';
@@ -102,7 +102,7 @@ qq{
     wasm {
         module hostcalls $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
     }
-}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
+}.($ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     location /t {
         proxy_wasm hostcalls 'on_configure=do_return_false';

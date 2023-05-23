@@ -137,7 +137,7 @@ qq{
     wasm {
         module on_tick $ENV{TEST_NGINX_CRATES_DIR}/on_tick.wasm;
     }
-}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
+}.($ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     proxy_wasm on_tick 'double_tick';
 --- ignore_response_body

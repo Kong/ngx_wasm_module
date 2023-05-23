@@ -31,6 +31,8 @@ our @EXPORT = qw(
 );
 
 $ENV{TEST_NGINX_USE_HUP} ||= 0;
+$ENV{TEST_NGINX_USE_VALGRIND} ||= 0;
+$ENV{TEST_NGINX_USE_VALGRIND_ALL} ||= 0;
 $ENV{TEST_NGINX_HTML_DIR} = html_dir();
 $ENV{TEST_NGINX_DATA_DIR} = "$pwd/t/data";
 $ENV{TEST_NGINX_CRATES_DIR} = $crates;
@@ -42,10 +44,7 @@ $ENV{TEST_NGINX_SERVER_PORT2} = gen_rand_port(1000);
 sub skip_valgrind (@) {
     my ($skip) = @_;
 
-    if (!defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}
-        || (defined $ENV{TEST_NGINX_USE_VALGRIND}
-            && !$ENV{TEST_NGINX_USE_VALGRIND}))
-    {
+    if (!$ENV{TEST_NGINX_USE_VALGRIND}) {
         return;
     }
 
@@ -59,8 +58,8 @@ sub skip_valgrind (@) {
         return;
     }
 
-    if (!defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}) {
-        plan skip_all => 'slow with Valgrind (set TEST_NGINX_USE_VALGRIND_ALL to run)';
+    if (!$ENV{TEST_NGINX_USE_VALGRIND_ALL}) {
+        plan skip_all => 'slow with Valgrind (set TEST_NGINX_USE_VALGRIND_ALL=1 to run)';
     }
 }
 
@@ -215,12 +214,10 @@ add_block_preprocessor(sub {
     # --- skip_valgrind: 3
 
     if (defined $block->skip_valgrind
-        && defined $ENV{TEST_NGINX_USE_VALGRIND}
         && $ENV{TEST_NGINX_USE_VALGRIND}
-        && !defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}
         && $block->skip_valgrind =~ m/\s*(\d+)/)
     {
-        $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND} && !defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}', $1);
+        $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND} && !$ENV{TEST_NGINX_USE_VALGRIND_ALL}', $1);
     }
 
     # --- timeout_expected: 1

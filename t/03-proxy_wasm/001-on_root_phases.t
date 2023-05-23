@@ -72,7 +72,7 @@ qq{
     wasm {
         module on_phases $ENV{TEST_NGINX_CRATES_DIR}/on_phases.wasm;
     }
-}.(defined $ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
+}.($ENV{TEST_NGINX_USE_VALGRIND} ? '' : 'daemon off;')
 --- config
     location /t {
         proxy_wasm on_phases 'fail_configure=true';
