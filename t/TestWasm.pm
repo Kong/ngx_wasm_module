@@ -223,17 +223,15 @@ add_block_preprocessor(sub {
         $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND} && !defined $ENV{TEST_NGINX_USE_VALGRIND_ALL}', $1);
     }
 
-    # --- timeout_no_valgrind: 1
+    # --- timeout_expected: 1
 
     if (!defined $block->timeout
-        && defined $block->timeout_no_valgrind
-        && $block->timeout_no_valgrind =~ m/\s*(\S+)/)
+        && defined $block->timeout_expected
+        && $block->timeout_expected =~ m/\s*(\S+)/)
     {
         my $timeout = $1;
 
-        if (defined $ENV{TEST_NGINX_USE_VALGRIND}
-            && $ENV{TEST_NGINX_USE_VALGRIND})
-        {
+        if ($ENV{TEST_NGINX_USE_VALGRIND}) {
             if ($nginxV =~ m/wasmtime/ || $nginxV =~ m/v8/) {
                 # Wasmtime and V8 (TurboFan) are much slower to load modules
                 # min timeout: 45s
