@@ -44,7 +44,7 @@ jobs:
             debug: debug
             hup: hup
             ssl: ssl
-            os: ubuntu-latest
+            os: ubuntu-latest-kong
             cc: gcc-9
             ngx: 1.25.0
           # V8
@@ -53,7 +53,7 @@ jobs:
             debug: debug
             hup: no_hup
             ssl: ssl
-            os: ubuntu-latest
+            os: ubuntu-latest-kong
             cc: gcc-9
             ngx: 1.25.0
           # OpenResty
@@ -64,7 +64,7 @@ jobs:
             debug: debug
             hup: no_hup
             ssl: ssl
-            os: ubuntu-latest
+            os: ubuntu-latest-kong
             cc: gcc-9
           # Old Nginx
           - label: old_nginx
@@ -74,7 +74,7 @@ jobs:
             debug: debug
             hup: no_hup
             ssl: ssl
-            os: ubuntu-latest
+            os: ubuntu-latest-kong
             cc: gcc-9
           # No SSL
           - ssl: no_ssl
@@ -82,7 +82,7 @@ jobs:
             wasmer: 3.1.1
             debug: no_debug
             hup: no_hup
-            os: ubuntu-latest
+            os: ubuntu-latest-kong
             cc: gcc-9
             ngx: 1.25.0
     steps:
@@ -165,7 +165,7 @@ jobs:
 
   finish:
     needs: tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-kong
     steps:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master
@@ -206,7 +206,7 @@ jobs:
             wasmtime: 8.0.1
             hup: no_hup
             debug: debug
-            os: ubuntu-22.04
+            os: ubuntu-latest-kong
             cc: gcc-10
             ngx: 1.25.0
           # V8
@@ -214,7 +214,7 @@ jobs:
             v8: 10.5.18
             debug: debug
             hup: no_hup
-            os: ubuntu-22.04
+            os: ubuntu-latest-kong
             cc: gcc-10
             ngx: 1.25.0
           # OpenResty
@@ -287,7 +287,7 @@ jobs:
 
   lint:
     name: 'Lint'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-kong
     #if: ${{ false }}
     steps:
       - uses: actions/checkout@v3
@@ -315,7 +315,7 @@ jobs:
 
   analyzer:
     name: 'Clang analyzer'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-kong
     #if: ${{ false }}
     env:
       NGX_BUILD_CLANG_ANALYZER: 1
@@ -365,7 +365,7 @@ jobs:
         label: [""]
         runtime: [wasmer, wasmtime, v8]
         cc: [clang-14, gcc-10]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest-kong]
         ngx: [1.25.0]
         wasmtime: [8.0.1]
         wasmer: [3.1.1]
@@ -375,10 +375,13 @@ jobs:
             ngx: 1.21.6
             runtime: wasmtime
             cc: clang-14
-            os: ubuntu-latest
+            os: ubuntu-latest-kong
             wasmtime: 8.0.1
     steps:
       - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
       - name: 'Setup cache - work/ dir'
         uses: actions/cache@v3
         if: ${{ !env.ACT }}
