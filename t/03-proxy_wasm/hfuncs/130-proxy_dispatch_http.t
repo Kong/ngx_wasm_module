@@ -264,6 +264,10 @@ Hello back
 
 
 === TEST 14: proxy_wasm - dispatch_http_call() resolver + hostname (IPv4)
+Needs IPv4 resolution + external I/O to succeed.
+Succeeds on:
+- HTTP 200 (httpbin.org/headers success)
+- HTTP 504 (httpbin.org Gateway timeout)
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -281,10 +285,11 @@ qq{
         echo fail;
     }
 }
+--- error_code_like: (200|504)
 --- response_body_like
-\s*"Hello": "world",\s*
+(\s*"Hello": "world",\s*
 .*?
-\s*"X-Thing": "foo,bar"\s*
+\s*"X-Thing": "foo,bar"\s*|.*?504 Gateway Time-out.*)
 --- no_error_log
 [error]
 [crit]

@@ -16,6 +16,9 @@ run_tests();
 __DATA__
 
 === TEST 1: Lua bridge - proxy_wasm_lua_resolver, sanity (on_request_headers)
+Succeeds on:
+- HTTP 200 (httpbin.org/headers success)
+- HTTP 504 (httpbin.org Gateway timeout)
 --- skip_no_debug: 5
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
@@ -30,7 +33,8 @@ __DATA__
                               on_http_call_response=echo_response_body';
         echo failed;
     }
---- response_body_like: "Host": "httpbin\.org"
+--- error_code_like: (200|504)
+--- response_body_like: ("Host": "httpbin\.org"|.*?504 Gateway Time-out.*)
 --- error_log eval
 [
     qr/\[debug\] .*? wasm lua resolver thread/,
@@ -240,7 +244,8 @@ NGX_WASM_DEFAULT_RESOLVER_TIMEOUT is 30000ms
                               on_http_call_response=echo_response_body';
         echo failed;
     }
---- response_body_like: "Host": "httpbin\.org"
+--- error_code_like: (200|504)
+--- response_body_like: ("Host": "httpbin\.org"|.*?504 Gateway Time-out.*)
 --- error_log eval
 [
     qr/\[debug\] .*? wasm lua resolver creating new dns_client/,
@@ -293,6 +298,9 @@ qr/\[debug\] .*? wasm lua resolver using existing dns_client/
 
 === TEST 9: Lua bridge - proxy_wasm_lua_resolver, synchronized client
 Too slow for Valgrind.
+Succeeds on:
+- HTTP 200 (httpbin.org/headers success)
+- HTTP 504 (httpbin.org Gateway timeout)
 --- skip_valgrind: 5
 --- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
@@ -322,7 +330,8 @@ qq{
                               on_http_call_response=echo_response_body';
         echo failed;
     }
---- response_body_like: "Host": "httpbin\.org"
+--- error_code_like: (200|504)
+--- response_body_like: ("Host": "httpbin\.org"|.*?504 Gateway Time-out.*)
 --- error_log eval
 qr/\[debug\] .*? wasm lua resolver using existing dns_client/
 --- no_error_log

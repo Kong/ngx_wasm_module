@@ -22,6 +22,9 @@ run_tests();
 __DATA__
 
 === TEST 1: Lua bridge - Lua resolver can EAGAIN
+Succeeds on:
+- HTTP 200 (httpbin.org/headers success)
+- HTTP 504 (httpbin.org Gateway timeout)
 --- skip_no_debug: 5
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
@@ -36,8 +39,8 @@ __DATA__
                               on_http_call_response=echo_response_body';
         echo failed;
     }
---- response_body_like
-\s+"Host": "httpbin\.org".*
+--- error_code_like: (200|504)
+--- response_body_like: ("Host": "httpbin\.org"|.*?504 Gateway Time-out.*)
 --- error_log eval
 [
     qr/\[debug\] .*? wasm lua resolver thread/,
