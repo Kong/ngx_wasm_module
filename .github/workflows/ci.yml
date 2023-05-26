@@ -17,7 +17,7 @@ jobs:
   tests:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 25
     #if: ${{ false }}
     outputs:
       coveralls_name: ${{ steps.lcov.outputs.name }}
