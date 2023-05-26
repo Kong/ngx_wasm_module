@@ -21,7 +21,15 @@ __DATA__
 === TEST 1: proxy_wasm Go SDK - http_auth_random example
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: go_http_auth_random
+--- main_config eval
+qq{
+    wasm {
+        module go_http_auth_random $ENV{TEST_NGINX_CRATES_DIR}/go_http_auth_random.wasm;
+        socket_connect_timeout $::ExtTimeout;
+        socket_send_timeout    $::ExtTimeout;
+        socket_read_timeout    $::ExtTimeout;
+    }
+}
 --- config eval
 qq{
     resolver         $::ExtResolver;

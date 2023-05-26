@@ -24,7 +24,7 @@ jobs:
     env:
       NGX_BUILD_GCOV: 1
       TEST_NGINX_TIMEOUT: 60
-      TEST_NGINX_EXTERNAL_TIMEOUT: 120
+      TEST_NGINX_EXTERNAL_TIMEOUT: 120s
     strategy:
       fail-fast: false
       matrix:
