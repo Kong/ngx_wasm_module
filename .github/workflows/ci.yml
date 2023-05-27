@@ -10,14 +10,11 @@ defaults:
   run:
     shell: bash
 
-env:
-  TEST_NGINX_RANDOMIZE: 1
-
 jobs:
   tests:
     name: 'Tests - unit'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    timeout-minutes: 30
     #if: ${{ false }}
     outputs:
       coveralls_name: ${{ steps.lcov.outputs.name }}
@@ -37,7 +34,7 @@ jobs:
         debug: [1, 0]
         hup: [0]
         include:
-          # Wasmtime
+          # Wasmtime + HUP
           - os: ubuntu-latest
             cc: gcc-9
             ngx: 1.25.0
@@ -179,6 +176,7 @@ jobs:
     env:
       NGX_BUILD_NOPOOL: 1
       NGX_BUILD_CC_OPT: '-O2'
+      TEST_NGINX_RANDOMIZE: 1
       TEST_NGINX_TIMEOUT: 120
       TEST_NGINX_EXTERNAL_TIMEOUT: 200
       TEST_NGINX_USE_VALGRIND: 1
@@ -361,6 +359,7 @@ jobs:
         wasmer: [3.1.1]
         v8: [10.5.18]
         include:
+          # Old Nginx
           - os: ubuntu-latest
             cc: clang-14
             ngx: 1.21.6
