@@ -77,10 +77,10 @@ ngx_int_t
 ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
     ngx_str_t *value, uint32_t cas, ngx_int_t *written)
 {
-    u_char                  *value_buf;
     ngx_wasm_shm_kv_t       *kv = ngx_wasm_shm_get_kv(shm);
-    ngx_wasm_shm_kv_node_t  *n;
+    ngx_wasm_shm_kv_node_t  *n, *old;
 
+    old = NULL;
     n = (ngx_wasm_shm_kv_node_t *) ngx_str_rbtree_lookup(&kv->rbtree, key, 0);
 
     if (cas != (n == NULL ? 0 : n->cas)) {
@@ -94,8 +94,6 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
 
         if (n) {
             ngx_rbtree_delete(&kv->rbtree, &n->key.node);
-            ngx_slab_free_locked(shm->shpool, n->key.str.data);
-            ngx_slab_free_locked(shm->shpool, n->value.data);
             ngx_slab_free_locked(shm->shpool, n);
             *written = 1;
 
@@ -108,23 +106,27 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
 
     /* set */
 
-    value_buf = ngx_slab_alloc_locked(shm->shpool, value->len);
-    if (value_buf == NULL) {
-        return NGX_ERROR;
+    if (n && key->len > n->value.len) {
+        old = n;
+        n = NULL;
     }
 
     if (n == NULL) {
-        n = ngx_slab_calloc_locked(shm->shpool, sizeof(ngx_wasm_shm_kv_node_t));
+        n = ngx_slab_calloc_locked(shm->shpool,
+                                   sizeof(ngx_wasm_shm_kv_node_t)
+                                   + key->len + value->len);
         if (n == NULL) {
-            ngx_slab_free_locked(shm->shpool, value_buf);
             return NGX_ERROR;
         }
 
-        n->key.str.data = ngx_slab_alloc_locked(shm->shpool, key->len);
-        if (n->key.str.data == NULL) {
-            ngx_slab_free_locked(shm->shpool, n);
-            ngx_slab_free_locked(shm->shpool, value_buf);
-            return NGX_ERROR;
+        n->key.str.data = (u_char *) n + sizeof(ngx_wasm_shm_kv_node_t);
+        n->key.str.len = key->len;
+        n->value.data = n->key.str.data + key->len;
+
+        if (old) {
+            n->cas = old->cas;
+            ngx_rbtree_delete(&kv->rbtree, &old->key.node);
+            ngx_slab_free_locked(shm->shpool, old);
         }
 
         ngx_memcpy(n->key.str.data, key->data, key->len);
@@ -135,11 +137,6 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
 
     /* no failure after this point */
 
-    if (n->value.data) {
-        ngx_slab_free_locked(shm->shpool, n->value.data);
-    }
-
-    n->value.data = value_buf;
     n->value.len = value->len;
     n->cas += 1;
 
