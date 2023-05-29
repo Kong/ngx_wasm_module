@@ -109,6 +109,7 @@ impl TestHttp {
             /* shared memory */
             "/t/shm/get_shared_data" => test_get_shared_data(self),
             "/t/shm/set_shared_data" => test_set_shared_data(self),
+            "/t/shm/set_shared_data_by_len" => test_set_shared_data_by_len(self),
             "/t/shm/enqueue" => test_shared_queue_enqueue(self),
             "/t/shm/dequeue" => test_shared_queue_dequeue(self),
 

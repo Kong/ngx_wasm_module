@@ -10,6 +10,7 @@
 typedef struct {
     ngx_rbtree_t        rbtree;
     ngx_rbtree_node_t   sentinel;
+    ngx_queue_t         lru_queue;
 } ngx_wasm_shm_kv_t;
 
 
@@ -17,6 +18,7 @@ typedef struct {
     ngx_str_node_t      key;
     ngx_str_t           value;
     uint32_t            cas;
+    ngx_queue_t         queue;
 } ngx_wasm_shm_kv_node_t;
 
 
@@ -40,6 +42,9 @@ ngx_wasm_shm_kv_init(ngx_wasm_shm_t *shm)
 
     ngx_rbtree_init(&kv->rbtree, &kv->sentinel, ngx_str_rbtree_insert_value);
     shm->data = kv;
+    shm->shpool->log_nomem = 0;
+
+    ngx_queue_init(&kv->lru_queue);
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, shm->log, 0,
                    "wasm \"%V\" shm store: initialized", &shm->name);
@@ -61,6 +66,9 @@ ngx_wasm_shm_kv_get_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
         return NGX_DECLINED;
     }
 
+    ngx_queue_remove(&n->queue);
+    ngx_queue_insert_head(&kv->lru_queue, &n->queue);
+
     if (value_out) {
         *value_out = &n->value;
     }
@@ -68,6 +76,30 @@ ngx_wasm_shm_kv_get_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
     if (cas) {
         *cas = n->cas;
     }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+lru_expire(ngx_wasm_shm_t *shm)
+{
+    ngx_wasm_shm_kv_t       *kv = ngx_wasm_shm_get_kv(shm);
+    ngx_queue_t             *q, *lru_queue = &kv->lru_queue;
+    ngx_wasm_shm_kv_node_t  *node;
+
+    q = ngx_queue_last(lru_queue);
+    if (q == ngx_queue_sentinel(lru_queue)) {
+        return NGX_ABORT;
+    }
+
+    node = ngx_queue_data(q, ngx_wasm_shm_kv_node_t, queue);
+
+    ngx_queue_remove(q);
+
+    ngx_rbtree_delete(&kv->rbtree, &node->key.node);
+
+    ngx_slab_free_locked(shm->shpool, node);
 
     return NGX_OK;
 }
@@ -93,6 +125,7 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
         /* delete */
 
         if (n) {
+            ngx_queue_remove(&n->queue);
             ngx_rbtree_delete(&kv->rbtree, &n->key.node);
             ngx_slab_free_locked(shm->shpool, n);
             *written = 1;
@@ -112,11 +145,26 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
     }
 
     if (n == NULL) {
-        n = ngx_slab_calloc_locked(shm->shpool,
-                                   sizeof(ngx_wasm_shm_kv_node_t)
-                                   + key->len + value->len);
-        if (n == NULL) {
-            return NGX_ERROR;
+        for ( ;; ) {
+            n = ngx_slab_calloc_locked(shm->shpool,
+                                       sizeof(ngx_wasm_shm_kv_node_t)
+                                       + key->len + value->len);
+            if (n) {
+                break;
+            }
+
+            if (lru_expire(shm) != NGX_OK) {
+                ngx_wasm_log_error(NGX_LOG_CRIT, shm->log, 0,
+                                   "\"%V\" shm store: "
+                                   "no memory; cannot allocate pair with "
+                                   "key size %d and value size %d",
+                                   &shm->name, key->len, value->len);
+                return NGX_ERROR;
+            }
+
+            ngx_log_debug1(NGX_LOG_DEBUG_WASM, shm->log, 0,
+                           "wasm \"%V\" shm store: expired LRU entry",
+                           &shm->name);
         }
 
         n->key.str.data = (u_char *) n + sizeof(ngx_wasm_shm_kv_node_t);
@@ -126,6 +174,7 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
         if (old) {
             n->cas = old->cas;
             ngx_rbtree_delete(&kv->rbtree, &old->key.node);
+            ngx_queue_remove(&old->queue);
             ngx_slab_free_locked(shm->shpool, old);
         }
 
@@ -133,6 +182,7 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
         n->key.str.len = key->len;
 
         ngx_rbtree_insert(&kv->rbtree, &n->key.node);
+        ngx_queue_insert_head(&kv->lru_queue, &n->queue);
     }
 
     /* no failure after this point */
