@@ -389,6 +389,17 @@ pub(crate) fn test_set_shared_data(ctx: &mut TestHttp) {
     ctx.add_http_response_header(hok, if ok { "1" } else { "0" });
 }
 
+pub(crate) fn test_set_shared_data_by_len(ctx: &mut TestHttp) {
+    let len = ctx
+        .config
+        .get("len")
+        .map_or(0, |v| v.parse::<usize>().unwrap());
+
+    ctx.config.insert("value".to_string(), "x".repeat(len));
+
+    test_set_shared_data(ctx);
+}
+
 pub(crate) fn test_shared_queue_enqueue(ctx: &mut TestHttp) {
     let queue_id: u32 = ctx
         .config
