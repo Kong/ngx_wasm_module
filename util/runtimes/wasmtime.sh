@@ -120,7 +120,7 @@ build_wasmtime() {
             ### install
 
             mkdir -p "$target/lib"
-            cp $cargo_target_dir/libwasmtime.{a,so} "$target/lib"
+            cp $cargo_target_dir/libwasmtime.* "$target/lib"
 
             mkdir -p "$target/include"
             cp -R crates/c-api/include/* "$target/include"
