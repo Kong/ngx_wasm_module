@@ -1,4 +1,4 @@
-NGX ?= 1.23.4
+NGX ?= 1.25.0
 OPENSSL ?= 1.1.1u
 WASMTIME ?= 8.0.1
 WASMER ?= 3.1.1
