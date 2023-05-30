@@ -5,7 +5,7 @@ WASMER ?= 3.1.1
 V8 ?= 10.5.18
 PCRE ?= 8.45
 ZLIB ?= 1.2.13
-LUAROCKS ?= 3.9.0
+LUAROCKS ?= 3.9.2
 
 # util/runtime.sh - no makefile target
 NGX_BUILD_WASMER_RUSTFLAGS ?= -g -C opt-level=0 -C debuginfo=1
