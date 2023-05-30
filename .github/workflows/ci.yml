@@ -30,7 +30,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [gcc-9]
-        ngx: [1.23.4]
+        ngx: [1.25.0]
         runtime: [wasmer]
         wasmer: [3.1.1]
         ssl: [1]
@@ -40,7 +40,7 @@ jobs:
           # Wasmtime
           - os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.23.4
+            ngx: 1.25.0
             runtime: wasmtime
             wasmtime: 8.0.1
             ssl: 1
@@ -49,7 +49,7 @@ jobs:
           # V8
           - os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.23.4
+            ngx: 1.25.0
             runtime: v8
             v8: 10.5.18
             ssl: 1
@@ -76,7 +76,7 @@ jobs:
           # No SSL
           - os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.23.4
+            ngx: 1.25.0
             runtime: wasmer
             wasmer: 3.1.1
             ssl: 0
@@ -169,7 +169,7 @@ jobs:
         with:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true
-          carryforward: "unit-ngx_1.23.4-wasmer-ssl_1-debug_1-hup_0,unit-ngx_1.23.4-wasmer-ssl_1-debug_0-hup_0,unit-ngx_1.23.4-wasmtime-ssl_1-debug_1-hup_1,unit-ngx_1.23.4-v8-ssl_1-debug_1-hup_0,unit-openresty_1.21.4.1-wasmtime-ssl_1-debug_1-hup_0,unit-ngx_1.21.6-wasmer-ssl_1-debug_1-hup_0,unit-ngx_1.23.4-wasmer-ssl_0-debug_0-hup_0"
+          carryforward: "unit-ngx_1.25.0-wasmer-ssl_1-debug_1-hup_0,unit-ngx_1.25.0-wasmer-ssl_1-debug_0-hup_0,unit-ngx_1.25.0-wasmtime-ssl_1-debug_1-hup_1,unit-ngx_1.25.0-v8-ssl_1-debug_1-hup_0,unit-openresty_1.21.4.1-wasmtime-ssl_1-debug_1-hup_0,unit-ngx_1.21.6-wasmer-ssl_1-debug_1-hup_0,unit-ngx_1.25.0-wasmer-ssl_0-debug_0-hup_0"
 
   valgrind:
     name: 'Tests - valgrind'
@@ -187,7 +187,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         cc: [gcc-10]
-        ngx: [1.23.4]
+        ngx: [1.25.0]
         runtime: [wasmer]
         wasmer: [3.1.1]
         hup: [0, 1]
@@ -196,7 +196,7 @@ jobs:
           # Wasmtime
           - os: ubuntu-22.04
             cc: gcc-10
-            ngx: 1.23.4
+            ngx: 1.25.0
             runtime: wasmtime
             wasmtime: 8.0.1
             hup: 0
@@ -204,7 +204,7 @@ jobs:
           # V8
           - os: ubuntu-22.04
             cc: gcc-10
-            ngx: 1.23.4
+            ngx: 1.25.0
             runtime: v8
             v8: 10.5.18
             hup: 0
@@ -314,7 +314,7 @@ jobs:
       fail-fast: false
       matrix:
         cc: [clang-11]
-        ngx: [1.23.4]
+        ngx: [1.25.0]
         runtime: [wasmtime]
         wasmtime: [8.0.1]
     steps:
@@ -355,7 +355,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [clang-14, gcc-10]
-        ngx: [1.23.4]
+        ngx: [1.25.0]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [8.0.1]
         wasmer: [3.1.1]
