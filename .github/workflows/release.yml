@@ -8,6 +8,11 @@ on:
       release_name:
         description: "Release name (e.g. v0.1.0)"
         required: true
+      create_tag:
+        type: boolean
+        description: "Create release tag?"
+        required: true
+        default: false
 
 defaults:
   run:
@@ -15,7 +20,7 @@ defaults:
 
 env:
   CC: clang
-  RETENTION_DAYS: 2
+  RETENTION_DAYS: 7
 
 jobs:
   setup:
@@ -343,7 +348,7 @@ jobs:
           files: |
             *.tar.gz
       - uses: marvinpinto/action-automatic-releases@latest
-        if: ${{ github.event_name != 'schedule' }}
+        if: ${{ github.event_name != 'schedule' && github.event.inputs.create_tag == 'true' }}
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: release-${{ needs.setup.outputs.release_name }}
