@@ -12,7 +12,7 @@ defaults:
 
 jobs:
   tests:
-    name: 'Tests - unit'
+    name: 'Unit'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     #if: ${{ false }}
@@ -25,60 +25,66 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        label: [""]
+        openresty: [""]
+        runtime: [wasmer]
+        wasmer: [3.1.1]
+        wasmtime: [""]
+        v8: [""]
+        debug: [debug, no_debug]
+        hup: [no_hup]
+        ssl: [ssl]
         os: [ubuntu-latest]
         cc: [gcc-9]
         ngx: [1.25.0]
-        runtime: [wasmer]
-        wasmer: [3.1.1]
-        ssl: [1]
-        debug: [1, 0]
-        hup: [0]
         include:
-          # Wasmtime + HUP
-          - os: ubuntu-latest
-            cc: gcc-9
-            ngx: 1.25.0
-            runtime: wasmtime
+          # Wasmtime
+          - runtime: wasmtime
             wasmtime: 8.0.1
-            ssl: 1
-            debug: 1
-            hup: 1
-          # V8
-          - os: ubuntu-latest
+            debug: debug
+            hup: hup
+            ssl: ssl
+            os: ubuntu-latest
             cc: gcc-9
             ngx: 1.25.0
-            runtime: v8
+          # V8
+          - runtime: v8
             v8: 10.5.18
-            ssl: 1
-            debug: 1
-            hup: 0
-          # OpenResty
-          - os: ubuntu-latest
+            debug: debug
+            hup: no_hup
+            ssl: ssl
+            os: ubuntu-latest
             cc: gcc-9
+            ngx: 1.25.0
+          # OpenResty
+          - label: openresty
             openresty: 1.21.4.1
             runtime: wasmtime
             wasmtime: 8.0.1
-            ssl: 1
-            debug: 1
-            hup: 0
-          # Old Nginx
-          - os: ubuntu-latest
+            debug: debug
+            hup: no_hup
+            ssl: ssl
+            os: ubuntu-latest
             cc: gcc-9
+          # Old Nginx
+          - label: old_nginx
             ngx: 1.21.6
             runtime: wasmer
             wasmer: 3.1.1
-            ssl: 1
-            debug: 1
-            hup: 0
-          # No SSL
-          - os: ubuntu-latest
+            debug: debug
+            hup: no_hup
+            ssl: ssl
+            os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.25.0
+          # No SSL
+          - ssl: no_ssl
             runtime: wasmer
             wasmer: 3.1.1
-            ssl: 0
-            debug: 0
-            hup: 0
+            debug: no_debug
+            hup: no_hup
+            os: ubuntu-latest
+            cc: gcc-9
+            ngx: 1.25.0
     steps:
       - name: 'Setup deps - apt-get'
         if: ${{ matrix.cc == 'gcc-9' }}
@@ -118,12 +124,12 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
-          NGX_BUILD_SSL: ${{ matrix.ssl }}
-          NGX_BUILD_DEBUG: ${{ matrix.debug }}
+          NGX_BUILD_SSL: ${{ matrix.ssl == 'ssl' && 1 || 0 }}
+          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
           NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
       - run: make test
         env:
-          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+          TEST_NGINX_USE_HUP: ${{ matrix.hup == 'hup' && 1 || 0 }}
       - name: Run lcov
         id: lcov
         if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
@@ -135,9 +141,9 @@ jobs:
             name="$name-ngx_${{ matrix.ngx }}"
           fi
           name="$name-${{ matrix.runtime }}"
-          name="$name-ssl_${{ matrix.ssl }}"
-          name="$name-debug_${{ matrix.debug }}"
-          name="$name-hup_${{ matrix.hup }}"
+          name="$name-${{ matrix.ssl }}"
+          name="$name-${{ matrix.debug }}"
+          name="$name-${{ matrix.hup }}"
           echo "name=$name" >> $GITHUB_OUTPUT
           lcov --capture --directory work/buildroot --output-file lcov.info
           lcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
@@ -166,10 +172,10 @@ jobs:
         with:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true
-          carryforward: "unit-ngx_1.25.0-wasmer-ssl_1-debug_1-hup_0,unit-ngx_1.25.0-wasmer-ssl_1-debug_0-hup_0,unit-ngx_1.25.0-wasmtime-ssl_1-debug_1-hup_1,unit-ngx_1.25.0-v8-ssl_1-debug_1-hup_0,unit-openresty_1.21.4.1-wasmtime-ssl_1-debug_1-hup_0,unit-ngx_1.21.6-wasmer-ssl_1-debug_1-hup_0,unit-ngx_1.25.0-wasmer-ssl_0-debug_0-hup_0"
+          carryforward: "unit-ngx_1.25.0-wasmer-ssl-debug-no_hup,unit-ngx_1.25.0-wasmer-ssl-no_debug-no_hup,unit-ngx_1.25.0-wasmtime-ssl-debug-hup,unit-ngx_1.25.0-v8-ssl-debug-no_hup,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup,unit-ngx_1.25.0-wasmer-no_ssl-no_debug-no_hup"
 
   valgrind:
-    name: 'Tests - valgrind'
+    name: 'Valgrind'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 100
     #if: ${{ false }}
@@ -183,39 +189,44 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        label: [""]
+        openresty: [""]
+        runtime: [wasmer]
+        wasmer: [3.1.1]
+        wasmtime: [""]
+        v8: [""]
+        hup: [no_hup, hup]
+        debug: [debug]
         os: [ubuntu-22.04]
         cc: [gcc-10]
         ngx: [1.25.0]
-        runtime: [wasmer]
-        wasmer: [3.1.1]
-        hup: [0, 1]
-        debug: [1]
         include:
           # Wasmtime
-          - os: ubuntu-22.04
-            cc: gcc-10
-            ngx: 1.25.0
-            runtime: wasmtime
+          - runtime: wasmtime
             wasmtime: 8.0.1
-            hup: 0
-            debug: 1
-          # V8
-          - os: ubuntu-22.04
+            hup: no_hup
+            debug: debug
+            os: ubuntu-22.04
             cc: gcc-10
             ngx: 1.25.0
-            runtime: v8
+          # V8
+          - runtime: v8
             v8: 10.5.18
-            hup: 0
-            debug: 1
-          # OpenResty
-          - os: ubuntu-22.04
+            debug: debug
+            hup: no_hup
+            os: ubuntu-22.04
             cc: gcc-10
-            ngx:
+            ngx: 1.25.0
+          # OpenResty
+          - label: openresty
             openresty: 1.21.4.1
             runtime: wasmer
             wasmer: 3.1.1
-            hup: 0
-            debug: 1
+            debug: debug
+            hup: no_hup
+            os: ubuntu-22.04
+            cc: gcc-10
+            ngx:
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
       - uses: actions/checkout@v3
@@ -253,11 +264,11 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
-          NGX_BUILD_DEBUG: ${{ matrix.debug }}
+          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
           NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
       - run: make test 2>&1 | tee valgrind.out
         env:
-          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+          TEST_NGINX_USE_HUP: ${{ matrix.hup == 'hup' && 1 || 0 }}
           TEST_NGINX_NO_CLEAN: 1
       - run: |
           awk -f ./util/parse-valgrind.awk valgrind.out > valgrind.log
@@ -311,10 +322,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cc: [clang-11]
-        ngx: [1.25.0]
         runtime: [wasmtime]
         wasmtime: [8.0.1]
+        cc: [clang-11]
+        ngx: [1.25.0]
     steps:
       - run: |
           sudo apt-get update
@@ -344,26 +355,27 @@ jobs:
           path: work/scans/*
 
   build:
-    name: 'Tests - build'
+    name: 'Test builds'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     #if: ${{ false }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        cc: [clang-14, gcc-10]
-        ngx: [1.25.0]
+        label: [""]
         runtime: [wasmer, wasmtime, v8]
+        cc: [clang-14, gcc-10]
+        os: [ubuntu-latest]
+        ngx: [1.25.0]
         wasmtime: [8.0.1]
         wasmer: [3.1.1]
         v8: [10.5.18]
         include:
-          # Old Nginx
-          - os: ubuntu-latest
-            cc: clang-14
+          - label: old_nginx
             ngx: 1.21.6
             runtime: wasmtime
+            cc: clang-14
+            os: ubuntu-latest
             wasmtime: 8.0.1
     steps:
       - uses: actions/checkout@v3
