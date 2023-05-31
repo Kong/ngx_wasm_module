@@ -13,23 +13,23 @@ env:
 
 jobs:
   tests:
-    name: 'Tests - unit (large)'
+    name: 'Unit (large)'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        #os: [ubuntu-latest, macos-latest]
-        cc: [clang]
-        ngx: [1.21.6]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [0.38.1]
         wasmer: [3.0.2]
         v8: [10.5.18]
-        hup: [1, 0]
-        debug: [1, 0]
+        debug: [debug, no_debug]
+        hup: [hup, no_hup]
+        os: [ubuntu-latest]
+        #os: [ubuntu-latest, macos-latest]
+        cc: [clang]
+        ngx: [1.21.6]
     steps:
       - uses: actions/checkout@v3
       - name: "Set up cache - rustup toolchain"
@@ -64,13 +64,13 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
-          NGX_BUILD_DEBUG: ${{ matrix.debug }}
+          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
       - run: make test
         env:
-          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+          TEST_NGINX_USE_HUP: ${{ matrix.hup == 'hup' && 1 || 0 }}
 
   valgrind:
-    name: 'Tests - valgrind (large)'
+    name: 'Valgrind (large)'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     if: ${{ false }} # too slow
@@ -88,8 +88,8 @@ jobs:
         wasmtime: [0.38.1]
         wasmer: [3.0.2]
         v8: [10.5.18]
-        hup: [0, 1]
-        debug: [1]
+        hup: [hup, no_hup]
+        debug: [debug]
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind gcc-8
       - uses: actions/checkout@v3
@@ -125,10 +125,10 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           NGX: ${{ matrix.ngx }}
-          NGX_BUILD_DEBUG: ${{ matrix.debug }}
+          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
       - run: make test 2>&1 | tee valgrind.out
         env:
-          TEST_NGINX_USE_HUP: ${{ matrix.hup }}
+          TEST_NGINX_USE_HUP: ${{ matrix.hup == 'hup' && 1 || 0 }}
       - run: |
           awk -f ./util/parse-valgrind.awk valgrind.out > valgrind.log
           if [[ -s valgrind.log ]]; then
@@ -142,20 +142,20 @@ jobs:
           path: valgrind.out
 
   build:
-    name: 'Tests - build (large)'
+    name: 'Build tests (large)'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        #os: [ubuntu-latest, macos-latest]
-        cc: [clang]
-        ngx: [1.21.6]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [0.38.1]
         wasmer: [3.0.2]
         v8: [10.5.18]
+        os: [ubuntu-latest]
+        #os: [ubuntu-latest, macos-latest]
+        cc: [clang]
+        ngx: [1.21.6]
     steps:
       - uses: actions/checkout@v3
       - name: "Set up cache - ngx_wasm_module work/ dir"
