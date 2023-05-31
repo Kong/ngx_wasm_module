@@ -230,6 +230,11 @@ lua resolver
 === TEST 7: Lua bridge - proxy_wasm_lua_resolver, default client settings
 lua-resty-dns-client default timeout is 2000ms
 NGX_WASM_DEFAULT_RESOLVER_TIMEOUT is 30000ms
+Needs IPv4 resolution + external I/O to succeed.
+Succeeds on:
+- HTTP 200 (httpbin.org/headers success)
+- HTTP 502 (httpbin.org Bad Gateway)
+- HTTP 504 (httpbin.org Gateway timeout)
 --- skip_no_debug: 5
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
@@ -244,8 +249,8 @@ NGX_WASM_DEFAULT_RESOLVER_TIMEOUT is 30000ms
                               on_http_call_response=echo_response_body';
         echo failed;
     }
---- error_code_like: (200|504)
---- response_body_like: ("Host": "httpbin\.org"|.*?504 Gateway Time-out.*)
+--- error_code_like: (200|502|504)
+--- response_body_like: ("Host": "httpbin\.org"|.*?502 Bad Gateway.*|.*?504 Gateway Time-out.*)
 --- error_log eval
 [
     qr/\[debug\] .*? wasm lua resolver creating new dns_client/,
