@@ -137,7 +137,7 @@ flag
 Set a Wasm configuration flag in the underlying Wasm runtime.
 
 A flag can be of type:
-- `boolean`, e.g. `flag debug_info [on\|off];`
+- `boolean`, e.g. `flag debug_info [on|off];`
 - `string`, e.g. `flag opt_level none;`
 - `size`, e.g. `flag max_wasm_stack 512k;`
 
