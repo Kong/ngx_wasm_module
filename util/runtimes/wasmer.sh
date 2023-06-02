@@ -118,7 +118,7 @@ build_wasmer() {
             ### install
 
             mkdir -p "$target/lib"
-            cp target/release/libwasmer.* "$target/lib"
+            cp -R target/release/libwasmer.* "$target/lib"
 
             mkdir -p "$target/include"
             cp -R lib/c-api/wasmer*.h "$target/include"
