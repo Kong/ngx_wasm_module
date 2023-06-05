@@ -76,14 +76,14 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       NULL },
 
     { ngx_string("shm_kv"),
-      NGX_WASM_CONF|NGX_CONF_TAKE23,
+      NGX_WASM_CONF|NGX_CONF_TAKE23|NGX_CONF_TAKE4,
       ngx_wasm_core_shm_kv_directive,
       0,
       0,
       NULL },
 
     { ngx_string("shm_queue"),
-      NGX_WASM_CONF|NGX_CONF_TAKE23,
+      NGX_WASM_CONF|NGX_CONF_TAKE23|NGX_CONF_TAKE4,
       ngx_wasm_core_shm_queue_directive,
       0,
       0,

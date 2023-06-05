@@ -145,3 +145,93 @@ qr/\[emerg\] .*? "my_shm" shm already defined/
 [crit]
 stub
 --- must_die
+
+
+
+=== TEST 10: shm directive - kv eviction policies
+--- main_config
+    wasm {
+        shm_kv my_kv_1 1m eviction=lru;
+        shm_kv my_kv_2 64k eviction=none;
+        shm_kv my_kv_3 64k;
+    }
+--- no_error_log
+[error]
+[crit]
+[emerg]
+stub
+
+
+
+=== TEST 11: shm directive - queue does not support eviction policies
+--- main_config
+    wasm {
+        shm_queue my_shm 16k eviction=lru;
+    }
+--- error_log eval
+qr/\[emerg\] .*? shm_queue \"my_shm\": queues do not support eviction policies/
+--- no_error_log
+[error]
+[crit]
+stub
+--- must_die
+
+
+
+=== TEST 12: shm directive - kv invalid option
+--- main_config
+    wasm {
+        shm_kv my_shm 16k foo=bar;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid option \"foo=bar\"/
+--- no_error_log
+[error]
+[crit]
+stub
+--- must_die
+
+
+
+=== TEST 13: shm directive - queue invalid option
+--- main_config
+    wasm {
+        shm_queue my_shm 16k foo=bar;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid option \"foo=bar\"/
+--- no_error_log
+[error]
+[crit]
+stub
+--- must_die
+
+
+
+=== TEST 14: shm directive - kv invalid eviction policy
+--- main_config
+    wasm {
+        shm_kv my_shm 16k eviction=foobar;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid eviction policy \"foobar\"/
+--- no_error_log
+[error]
+[crit]
+stub
+--- must_die
+
+
+
+=== TEST 15: shm directive - kv invalid empty eviction policy
+--- main_config
+    wasm {
+        shm_kv my_shm 16k eviction=;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid eviction policy \"\"/
+--- no_error_log
+[error]
+[crit]
+stub
+--- must_die
