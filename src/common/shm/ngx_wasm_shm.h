@@ -14,18 +14,25 @@ typedef enum {
 } ngx_wasm_shm_type_e;
 
 
+typedef enum {
+    NGX_WASM_SHM_EVICTION_LRU,
+    NGX_WASM_SHM_EVICTION_NONE,
+} ngx_wasm_shm_eviction_e;
+
+
 typedef struct {
-    ngx_wasm_shm_type_e     type;
-    ngx_str_t               name;
-    ngx_log_t              *log;
-    ngx_slab_pool_t        *shpool;
-    void                   *data;
+    ngx_wasm_shm_type_e       type;
+    ngx_wasm_shm_eviction_e   eviction;
+    ngx_str_t                 name;
+    ngx_log_t                *log;
+    ngx_slab_pool_t          *shpool;
+    void                     *data;
 } ngx_wasm_shm_t;
 
 
 typedef struct {
-    ngx_str_t               name;
-    ngx_shm_zone_t         *zone;
+    ngx_str_t                 name;
+    ngx_shm_zone_t           *zone;
 } ngx_wasm_shm_mapping_t;
 
 

@@ -426,7 +426,7 @@ Wasm sockets.
 shm_kv
 ------
 
-**usage**    | `shm_kv <name> <size>;`
+**usage**    | `shm_kv <name> <size> [eviction=lru\|none];`
 ------------:|:----------------------------------------------------------------
 **contexts** | `wasm{}`
 **default**  |
@@ -438,6 +438,13 @@ Define a shared key/value memory zone.
   zone.
 - `size` defines the allocated memory slab and must be at least `15k`, but
   accepts other units like `m`.
+- `eviction` defines the eviction policy in the event of unavailable space for
+  storing new entries. Supported values are:
+  - `lru` (default): least recently used entries are evicted until enough space
+    is available for storing the new item.
+  - `none`: no eviction policy. Attempting to insert into a full memory zone
+    will result in an error code produced by the host API, to be interpreted
+    by the language SDK.
 
 Shared memory zones defined as such are accessible through all [Contexts] and by
 all nginx worker processes.
@@ -452,9 +459,6 @@ a means of storage and exchange for worker processes of a server instance.
 
 Shared key/value memory zones can be used via the [proxy-wasm
 SDK](#proxy-wasm)'s `[get\|set]_shared_data` API.
-
-**Note:** shared memory zones do not presently implement an LRU eviction policy,
-and writes will fail when the allocated memory slab is full.
 
 [Back to TOC](#directives)
 

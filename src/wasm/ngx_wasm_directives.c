@@ -113,17 +113,20 @@ static char *
 ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf, ngx_wasm_shm_type_e type)
 {
-    size_t                   i;
-    ssize_t                  size;
-    ngx_str_t               *value, *name;
-    ngx_wasm_core_conf_t    *wcf = conf;
-    ngx_wasm_shm_mapping_t  *mapping;
-    ngx_wasm_shm_t          *shm;
-    const ssize_t            min_size = 3 * ngx_pagesize;
+    size_t                    i;
+    ssize_t                   size;
+    ngx_str_t                *value, *name, *arg3;
+    ngx_wasm_core_conf_t     *wcf = conf;
+    ngx_wasm_shm_mapping_t   *mapping;
+    ngx_wasm_shm_t           *shm;
+    ngx_wasm_shm_eviction_e   eviction;
+    const ssize_t             min_size = 3 * ngx_pagesize;
 
     value = cf->args->elts;
     name = &value[1];
     size = ngx_parse_size(&value[2]);
+    arg3 = (cf->args->nelts == 4) ? &value[3] : NULL;
+    eviction = NGX_WASM_SHM_EVICTION_LRU;
 
     if (!name->len) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -151,12 +154,35 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
+    if (arg3) {
+        if (ngx_str_eq(arg3->data, arg3->len, "eviction=lru", -1)) {
+            eviction = NGX_WASM_SHM_EVICTION_LRU;
+
+        } else if (ngx_str_eq(arg3->data, arg3->len, "eviction=none", -1)) {
+            eviction = NGX_WASM_SHM_EVICTION_NONE;
+
+        } else if (ngx_strncmp(arg3->data, "eviction=", 9) == 0) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "[wasm] invalid eviction policy \"%s\"",
+                               arg3->data + 9);
+
+            return NGX_CONF_ERROR;
+
+        } else {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "[wasm] invalid option \"%V\"",
+                               arg3);
+            return NGX_CONF_ERROR;
+        }
+    }
+
     shm = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_shm_t));
     if (shm == NULL) {
         return NGX_CONF_ERROR;
     }
 
     shm->type = type;
+    shm->eviction = eviction;
     shm->name = *name;
     shm->log = cf->cycle->log;
 
@@ -247,6 +273,22 @@ char *
 ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf)
 {
+    ngx_str_t  *args, *arg3;
+
+    if (cf->args->nelts == 4) {
+        args = cf->args->elts;
+        arg3 = &args[3];
+
+        if (ngx_strncmp(arg3->data, "eviction=", 9) == 0) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "[wasm] shm_queue \"%V\": queues do not "
+                               "support eviction policies",
+                               &args[1]);
+
+            return NGX_CONF_ERROR;
+        }
+    }
+
     return ngx_wasm_core_shm_generic_directive(cf, cmd,
                                                conf, NGX_WASM_SHM_TYPE_QUEUE);
 }
