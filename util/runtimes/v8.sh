@@ -115,6 +115,7 @@ build_libwee8() {
 
     case "$arch" in
         x86_64) arch="x64" ;;
+        aarch64) arch="arm64" ;;
     esac
 
     mkdir -p "$DIR_LIBWEE8"

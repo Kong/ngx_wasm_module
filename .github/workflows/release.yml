@@ -190,6 +190,7 @@ jobs:
           docker run \
               --platform=linux/arm64 \
               --volume $PWD:/wasmx \
+              --e CI \
               --env CARGO_NET_GIT_FETCH_WITH_CLI=true \
               --env WASMTIME_VER='${{ needs.setup.outputs.wasmtime_ver }}' \
               --env WASMER_VER='${{ needs.setup.outputs.wasmer_ver }}' \
