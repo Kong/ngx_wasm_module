@@ -340,7 +340,7 @@ qr/\[crit\] .*? \[wasm\] "test" shm store: no memory; cannot allocate pair with 
 --- skip_no_debug: 25
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
---- shm_kv: test 16384
+--- shm_kv: test 16384 eviction=lru
 --- config
     location /t {
         # Set 4 small entries. A 4096-byte slab will be allocated into slot 7
