@@ -16,6 +16,7 @@ typedef enum {
 
 typedef enum {
     NGX_WASM_SHM_EVICTION_LRU,
+    NGX_WASM_SHM_EVICTION_SLRU,
     NGX_WASM_SHM_EVICTION_NONE,
 } ngx_wasm_shm_eviction_e;
 

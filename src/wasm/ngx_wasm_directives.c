@@ -158,6 +158,9 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         if (ngx_str_eq(arg3->data, arg3->len, "eviction=lru", -1)) {
             eviction = NGX_WASM_SHM_EVICTION_LRU;
 
+        } else if (ngx_str_eq(arg3->data, arg3->len, "eviction=slru", -1)) {
+            eviction = NGX_WASM_SHM_EVICTION_SLRU;
+
         } else if (ngx_str_eq(arg3->data, arg3->len, "eviction=none", -1)) {
             eviction = NGX_WASM_SHM_EVICTION_NONE;
 
