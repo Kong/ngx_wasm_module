@@ -7,10 +7,21 @@
 #include <ngx_wasm_shm_kv.h>
 
 
+/* as defined in nginx/src/core/ngx_slab.c */
+#define NGX_WASM_SLAB_MAX_SIZE       (ngx_pagesize / 2)
+#define NGX_WASM_SLAB_SLOTS(pool)    (ngx_pagesize_shift - (pool)->min_shift)
+
+/* one extra queue for larger items */
+#define NGX_WASM_SLRU_NQUEUES(pool)  (NGX_WASM_SLAB_SLOTS(pool) + 1)
+
+
 typedef struct {
     ngx_rbtree_t        rbtree;
     ngx_rbtree_node_t   sentinel;
-    ngx_queue_t         lru_queue;
+    union {
+        ngx_queue_t     lru_queue;
+        ngx_queue_t     slru_queues[0];
+    } eviction;
 } ngx_wasm_shm_kv_t;
 
 
@@ -33,9 +44,19 @@ ngx_wasm_shm_get_kv(ngx_wasm_shm_t *shm)
 ngx_int_t
 ngx_wasm_shm_kv_init(ngx_wasm_shm_t *shm)
 {
+    size_t              size, i;
+    ngx_uint_t          n;
     ngx_wasm_shm_kv_t  *kv;
 
-    kv = ngx_slab_calloc(shm->shpool, sizeof(ngx_wasm_shm_kv_t));
+    n = 0;
+    size = sizeof(ngx_wasm_shm_kv_t);
+
+    if (shm->eviction == NGX_WASM_SHM_EVICTION_SLRU) {
+        n = NGX_WASM_SLRU_NQUEUES(shm->shpool);
+        size += sizeof(ngx_queue_t) * n;
+    }
+
+    kv = ngx_slab_calloc(shm->shpool, size);
     if (kv == NULL) {
         return NGX_ERROR;
     }
@@ -45,7 +66,12 @@ ngx_wasm_shm_kv_init(ngx_wasm_shm_t *shm)
     shm->shpool->log_nomem = 0;
 
     if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU) {
-        ngx_queue_init(&kv->lru_queue);
+        ngx_queue_init(&kv->eviction.lru_queue);
+
+    } else if (shm->eviction == NGX_WASM_SHM_EVICTION_SLRU) {
+        for (i = 0; i < n; i++) {
+            ngx_queue_init(&kv->eviction.slru_queues[i]);
+        }
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, shm->log, 0,
@@ -55,12 +81,57 @@ ngx_wasm_shm_kv_init(ngx_wasm_shm_t *shm)
 }
 
 
+static ngx_uint_t
+slru_index_for_size(ngx_wasm_shm_t *shm, size_t size)
+{
+    size_t      s;
+    ngx_uint_t  shift;
+
+    if (size > NGX_WASM_SLAB_MAX_SIZE) {
+        return NGX_WASM_SLRU_NQUEUES(shm->shpool) - 1;
+    }
+
+    if (size > shm->shpool->min_size) {
+        shift = 1;
+        for (s = size - 1; s >>= 1; shift++) { /* void */ }
+
+        return shift - shm->shpool->min_shift;
+    }
+
+    return 0;
+}
+
+
+static ngx_queue_t*
+queue_for_node(ngx_wasm_shm_t *shm, ngx_wasm_shm_kv_node_t *n)
+{
+    size_t              size;
+    ngx_wasm_shm_kv_t  *kv = ngx_wasm_shm_get_kv(shm);
+
+    if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU) {
+        return &kv->eviction.lru_queue;
+    }
+
+    if (shm->eviction == NGX_WASM_SHM_EVICTION_SLRU) {
+        size = sizeof(ngx_wasm_shm_kv_node_t)
+               + n->key.str.len
+               + n->value.len;
+
+        return &kv->eviction.slru_queues[slru_index_for_size(shm, size)];
+    }
+
+    /* unreachable */
+    ngx_wasm_assert(0);
+    return NULL;
+}
+
+
 ngx_int_t
 ngx_wasm_shm_kv_get_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
     ngx_str_t **value_out, uint32_t *cas)
 {
-    ngx_wasm_shm_kv_t       *kv = ngx_wasm_shm_get_kv(shm);
     ngx_wasm_shm_kv_node_t  *n;
+    ngx_wasm_shm_kv_t       *kv = ngx_wasm_shm_get_kv(shm);
 
     n = (ngx_wasm_shm_kv_node_t *) ngx_str_rbtree_lookup(&kv->rbtree, key, 0);
 
@@ -68,9 +139,11 @@ ngx_wasm_shm_kv_get_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
         return NGX_DECLINED;
     }
 
-    if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU) {
+    if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU
+        || shm->eviction == NGX_WASM_SHM_EVICTION_SLRU)
+    {
         ngx_queue_remove(&n->queue);
-        ngx_queue_insert_head(&kv->lru_queue, &n->queue);
+        ngx_queue_insert_head(queue_for_node(shm, n), &n->queue);
     }
 
     if (value_out) {
@@ -86,16 +159,10 @@ ngx_wasm_shm_kv_get_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
 
 
 static ngx_int_t
-lru_expire(ngx_wasm_shm_t *shm)
+queue_expire(ngx_wasm_shm_t *shm, ngx_queue_t *queue, ngx_queue_t *q)
 {
-    ngx_wasm_shm_kv_t       *kv = ngx_wasm_shm_get_kv(shm);
-    ngx_queue_t             *q, *lru_queue = &kv->lru_queue;
     ngx_wasm_shm_kv_node_t  *node;
-
-    q = ngx_queue_last(lru_queue);
-    if (q == ngx_queue_sentinel(lru_queue)) {
-        return NGX_ABORT;
-    }
+    ngx_wasm_shm_kv_t       *kv = ngx_wasm_shm_get_kv(shm);
 
     node = ngx_queue_data(q, ngx_wasm_shm_kv_node_t, queue);
 
@@ -109,12 +176,65 @@ lru_expire(ngx_wasm_shm_t *shm)
 }
 
 
+static ngx_int_t
+slru_expire(ngx_wasm_shm_t *shm, size_t size)
+{
+    ngx_int_t           i;
+    ngx_uint_t          n, start;
+    ngx_queue_t        *q, *queue;
+    ngx_wasm_shm_kv_t  *kv = ngx_wasm_shm_get_kv(shm);
+
+    n = NGX_WASM_SLRU_NQUEUES(shm->shpool);
+    start = slru_index_for_size(shm, size);
+
+    /* find a non-empty queue to expire something,
+       starting from the correct one, then into larger slots */
+    for (i = start; i < (ngx_int_t) n; i++) {
+        queue = &kv->eviction.slru_queues[i];
+
+        q = ngx_queue_last(queue);
+        if (q != ngx_queue_sentinel(queue)) {
+            return queue_expire(shm, queue, q);
+        }
+    }
+
+    /* fallback into freeing smaller slots */
+    for (i = start - 1; i >= 0; i--) {
+        queue = &kv->eviction.slru_queues[i];
+
+        q = ngx_queue_last(queue);
+        if (q != ngx_queue_sentinel(queue)) {
+            return queue_expire(shm, queue, q);
+        }
+    }
+
+    /* no luck */
+    return NGX_ABORT;
+}
+
+
+static ngx_int_t
+lru_expire(ngx_wasm_shm_t *shm)
+{
+    ngx_wasm_shm_kv_t  *kv = ngx_wasm_shm_get_kv(shm);
+    ngx_queue_t        *q, *lru_queue = &kv->eviction.lru_queue;
+
+    q = ngx_queue_last(lru_queue);
+    if (q == ngx_queue_sentinel(lru_queue)) {
+        return NGX_ABORT;
+    }
+
+    return queue_expire(shm, lru_queue, q);
+}
+
+
 ngx_int_t
 ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
     ngx_str_t *value, uint32_t cas, ngx_int_t *written)
 {
-    ngx_wasm_shm_kv_t       *kv = ngx_wasm_shm_get_kv(shm);
+    size_t                   size;
     ngx_wasm_shm_kv_node_t  *n, *old;
+    ngx_wasm_shm_kv_t       *kv = ngx_wasm_shm_get_kv(shm);
 
     old = NULL;
     n = (ngx_wasm_shm_kv_node_t *) ngx_str_rbtree_lookup(&kv->rbtree, key, 0);
@@ -152,16 +272,18 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
     }
 
     if (n == NULL) {
+        size = sizeof(ngx_wasm_shm_kv_node_t) + key->len + value->len;
+
         for ( ;; ) {
-            n = ngx_slab_calloc_locked(shm->shpool,
-                                       sizeof(ngx_wasm_shm_kv_node_t)
-                                       + key->len + value->len);
+            n = ngx_slab_calloc_locked(shm->shpool, size);
             if (n) {
                 break;
             }
 
-            if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU
-                && lru_expire(shm) == NGX_OK)
+            if ((shm->eviction == NGX_WASM_SHM_EVICTION_LRU
+                 && lru_expire(shm) == NGX_OK) ||
+                (shm->eviction == NGX_WASM_SHM_EVICTION_SLRU
+                 && slru_expire(shm, size) == NGX_OK))
             {
                 ngx_log_debug1(NGX_LOG_DEBUG_WASM, shm->log, 0,
                                "wasm \"%V\" shm store: expired LRU entry",
@@ -181,9 +303,12 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
         n->key.str.data = (u_char *) n + sizeof(ngx_wasm_shm_kv_node_t);
         n->key.str.len = key->len;
         n->value.data = n->key.str.data + key->len;
+        n->value.len = value->len;
 
         if (old) {
-            if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU) {
+            if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU
+                || shm->eviction == NGX_WASM_SHM_EVICTION_SLRU)
+            {
                 ngx_queue_remove(&old->queue);
             }
 
@@ -197,14 +322,25 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
 
         ngx_rbtree_insert(&kv->rbtree, &n->key.node);
 
-        if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU) {
-            ngx_queue_insert_head(&kv->lru_queue, &n->queue);
+        if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU
+            || shm->eviction == NGX_WASM_SHM_EVICTION_SLRU)
+        {
+            ngx_queue_insert_head(queue_for_node(shm, n), &n->queue);
+        }
+
+    } else {
+        n->value.len = value->len;
+
+        if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU
+            || shm->eviction == NGX_WASM_SHM_EVICTION_SLRU)
+        {
+            ngx_queue_remove(&n->queue);
+            ngx_queue_insert_head(queue_for_node(shm, n), &n->queue);
         }
     }
 
     /* no failure after this point */
 
-    n->value.len = value->len;
     n->cas += 1;
 
     ngx_memcpy(n->value.data, value->data, value->len);
