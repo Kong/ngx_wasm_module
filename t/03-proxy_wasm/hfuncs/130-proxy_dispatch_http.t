@@ -267,6 +267,7 @@ Hello back
 Needs IPv4 resolution + external I/O to succeed.
 Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
+- HTTP 502 (httpbin.org Bad Gateway)
 - HTTP 504 (httpbin.org Gateway timeout)
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
@@ -285,11 +286,11 @@ qq{
         echo fail;
     }
 }
---- error_code_like: (200|504)
+--- error_code_like: (200|502|504)
 --- response_body_like
 (\s*"Hello": "world",\s*
 .*?
-\s*"X-Thing": "foo,bar"\s*|.*?504 Gateway Time-out.*)
+\s*"X-Thing": "foo,bar"\s*|.*?502 Bad Gateway.*|.*?504 Gateway Time-out.*)
 --- no_error_log
 [error]
 [crit]
