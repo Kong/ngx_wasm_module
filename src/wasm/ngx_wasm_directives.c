@@ -126,7 +126,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     name = &value[1];
     size = ngx_parse_size(&value[2]);
     arg3 = (cf->args->nelts == 4) ? &value[3] : NULL;
-    eviction = NGX_WASM_SHM_EVICTION_LRU;
+    eviction = NGX_WASM_SHM_EVICTION_SLRU;
 
     if (!name->len) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
