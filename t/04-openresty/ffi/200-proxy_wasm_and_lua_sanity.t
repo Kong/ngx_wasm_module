@@ -358,3 +358,133 @@ qr/on_http_call_response \(id: \d+, headers: 5, body_bytes: \d+, trailers: 0/
 ]
 --- no_error_log
 [emerg]
+
+
+
+=== TEST 8: proxy_wasm FFI - filter chain attached before error handler location
+Run 1 filter chain in /t, but produce content through /error
+
+At r->pool cleanup, the done step is invoked the /t chain, and the chain is
+freed. /error does not concern itself with any chain.
+
+--- skip_no_debug: 6
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- http_config
+    init_worker_by_lua_block {
+        local proxy_wasm = require "resty.http.proxy_wasm"
+
+        local c_plan = assert(proxy_wasm.new({
+            { name = "hostcalls", config = "test=/t/log/current_time on=log" },
+        }))
+        assert(proxy_wasm.load(c_plan))
+
+        _G.c_plan = c_plan
+    }
+--- config
+    error_page 502 /error;
+
+    location /t {
+        rewrite_by_lua_block {
+            local proxy_wasm = require "resty.http.proxy_wasm"
+            assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.start())
+        }
+
+        access_by_lua_block {
+            ngx.exit(502)
+        }
+
+        echo failed;
+    }
+
+    location = /error {
+        internal;
+        echo 'error handler content';
+    }
+--- error_code: 502
+--- response_body
+error handler content
+--- grep_error_log eval: qr/\*\d+.*?(resuming in "done"|wasm cleaning up).*/
+--- grep_error_log_out eval
+qr/.*? wasm cleaning up request pool.*
+.*?resuming in "done"/
+--- no_error_log
+[error]
+[crit]
+[emerg]
+
+
+
+=== TEST 9: proxy_wasm FFI - filter chain attached before and during error handler location
+Run 2 filters chains:
+1. /t
+2. /error
+
+At r->pool cleanup, the done step is invoked for both chains, and both chains
+are freed.
+
+--- skip_no_debug: 6
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- http_config
+    init_worker_by_lua_block {
+        local proxy_wasm = require "resty.http.proxy_wasm"
+
+        local t_plan = assert(proxy_wasm.new({
+            { name = "hostcalls", config = "test=/t/log/current_time on=log" },
+        }))
+        assert(proxy_wasm.load(t_plan))
+
+        local error_plan = assert(proxy_wasm.new({
+            {
+                name = "hostcalls",
+                config = "test=/t/set_response_body value=error_handler_content on=response_body"
+            }
+        }))
+        assert(proxy_wasm.load(error_plan))
+
+        _G.t_plan = t_plan
+        _G.error_plan = error_plan
+    }
+--- config
+    error_page 502 /error;
+
+    location /t {
+        rewrite_by_lua_block {
+            local proxy_wasm = require "resty.http.proxy_wasm"
+            assert(proxy_wasm.attach(_G.t_plan))
+            assert(proxy_wasm.start())
+        }
+
+        access_by_lua_block {
+            ngx.exit(502)
+        }
+
+        echo failed;
+    }
+
+    location = /error {
+        internal;
+
+        rewrite_by_lua_block {
+            local proxy_wasm = require "resty.http.proxy_wasm"
+            assert(proxy_wasm.attach(_G.error_plan))
+            assert(proxy_wasm.start())
+        }
+
+        echo failed;
+    }
+--- error_code: 502
+--- response_body
+error_handler_content
+--- grep_error_log eval: qr/\*\d+.*?(resuming in "done"|wasm cleaning up).*/
+--- grep_error_log_out eval
+qr/.*?wasm cleaning up request pool.*
+.*?resuming in "done".*
+.*?wasm cleaning up request pool.*
+.*?resuming in "done"/
+--- no_error_log
+[error]
+[crit]
+[emerg]

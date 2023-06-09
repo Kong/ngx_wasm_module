@@ -342,7 +342,6 @@ ngx_http_proxy_wasm_ctx(void *data)
     ngx_http_wasm_loc_conf_t  *loc;
 
     loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
-    rctx = ngx_http_get_module_ctx(r, ngx_http_wasm_module);
 
     pwctx = (ngx_proxy_wasm_ctx_t *) rctx->data;
     if (pwctx == NULL) {
