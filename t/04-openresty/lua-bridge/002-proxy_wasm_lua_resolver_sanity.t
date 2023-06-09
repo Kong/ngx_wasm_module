@@ -18,6 +18,7 @@ __DATA__
 === TEST 1: Lua bridge - proxy_wasm_lua_resolver, sanity (on_request_headers)
 Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
+- HTTP 502 (httpbin.org Bad Gateway)
 - HTTP 504 (httpbin.org Gateway timeout)
 --- skip_no_debug: 5
 --- timeout eval: $::ExtTimeout
@@ -33,8 +34,8 @@ Succeeds on:
                               on_http_call_response=echo_response_body';
         echo failed;
     }
---- error_code_like: (200|504)
---- response_body_like: ("Host": "httpbin\.org"|.*?504 Gateway Time-out.*)
+--- error_code_like: (200|502|504)
+--- response_body_like: ("Host": "httpbin\.org"|.*?502 Bad Gateway.*|.*?504 Gateway Time-out.*)
 --- error_log eval
 [
     qr/\[debug\] .*? wasm lua resolver thread/,
@@ -305,6 +306,7 @@ qr/\[debug\] .*? wasm lua resolver using existing dns_client/
 Too slow for Valgrind.
 Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
+- HTTP 502 (httpbin.org Bad Gateway)
 - HTTP 504 (httpbin.org Gateway timeout)
 --- skip_valgrind: 5
 --- skip_no_debug: 5
@@ -335,8 +337,8 @@ qq{
                               on_http_call_response=echo_response_body';
         echo failed;
     }
---- error_code_like: (200|504)
---- response_body_like: ("Host": "httpbin\.org"|.*?504 Gateway Time-out.*)
+--- error_code_like: (200|502|504)
+--- response_body_like: ("Host": "httpbin\.org"|.*?502 Bad Gateway.*|.*?504 Gateway Time-out.*)
 --- error_log eval
 qr/\[debug\] .*? wasm lua resolver using existing dns_client/
 --- no_error_log
