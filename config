@@ -245,6 +245,19 @@ if [ -n "$HTTP_LUA_DEPS" ]; then
     have=NGX_WASM_LUA value=1 . auto/define
 fi
 
+# debug
+
+if [ $NGX_DEBUG = YES ]; then
+    ngx_module_type=WASM
+    ngx_module_name=ngx_wasm_debug_module
+    ngx_module_incs="$NGX_WASM_INCS"
+    ngx_module_deps="$NGX_WASM_DEPS"
+    ngx_module_srcs="$ngx_addon_dir/src/common/debug/ngx_wasm_debug_module.c"
+    ngx_module_libs=
+
+    . auto/module
+fi
+
 ###############################################################################
 
 if [ "$ngx_module_link" = DYNAMIC ]; then
