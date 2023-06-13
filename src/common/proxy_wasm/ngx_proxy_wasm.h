@@ -370,7 +370,7 @@ void ngx_proxy_wasm_init(ngx_conf_t *cf);
 void ngx_proxy_wasm_exit();
 ngx_uint_t ngx_proxy_wasm_id(ngx_str_t *name, ngx_str_t *config,
     uintptr_t data);
-ngx_int_t ngx_proxy_wasm_load(ngx_proxy_wasm_filter_t *filter);
+ngx_int_t ngx_proxy_wasm_load(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log);
 ngx_int_t ngx_proxy_wasm_start(ngx_cycle_t *cycle);
 
 

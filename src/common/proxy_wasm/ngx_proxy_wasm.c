@@ -167,7 +167,7 @@ ngx_proxy_wasm_id(ngx_str_t *name, ngx_str_t *config, uintptr_t data)
 
 
 ngx_int_t
-ngx_proxy_wasm_load(ngx_proxy_wasm_filter_t *filter)
+ngx_proxy_wasm_load(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log)
 {
     dd("enter");
 
@@ -181,6 +181,7 @@ ngx_proxy_wasm_load(ngx_proxy_wasm_filter_t *filter)
         return NGX_ERROR;
     }
 
+    filter->log = log;
     filter->name = &filter->module->name;
     filter->id = ngx_proxy_wasm_id(filter->name,
                                    &filter->config,
@@ -1106,6 +1107,13 @@ ngx_proxy_wasm_start_filter(ngx_proxy_wasm_filter_t *filter)
     if (ictx == NULL) {
         return NGX_ERROR;
     }
+
+    /*
+     * update instance log
+     * FFI-injected filters have a valid log while the instance's
+     * might be outdated.
+     */
+    ngx_wavm_instance_set_data(ictx->instance, ictx, filter->log);
 
     ecode = ngx_proxy_wasm_on_start(ictx, filter, 1);
     if (ecode != NGX_PROXY_WASM_ERR_NONE) {
