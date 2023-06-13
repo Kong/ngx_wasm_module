@@ -172,7 +172,9 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
             case NGX_WASM_OP_PROXY_WASM:
                 op->handler = &ngx_wasm_op_proxy_wasm_handler;
 
-                if (ngx_proxy_wasm_load(op->conf.proxy_wasm.filter) != NGX_OK) {
+                if (ngx_proxy_wasm_load(op->conf.proxy_wasm.filter, log)
+                    != NGX_OK)
+                {
                     return NGX_ERROR;
                 }
 

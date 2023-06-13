@@ -82,7 +82,10 @@ ngx_http_wasm_ffi_plan_free(ngx_wasm_ops_plan_t *plan)
 ngx_int_t
 ngx_http_wasm_ffi_plan_load(ngx_wasm_ops_plan_t *plan)
 {
-    if (ngx_wasm_ops_plan_load(plan, ngx_cycle->log) != NGX_OK) {
+    if (ngx_wasm_ops_plan_load(plan,
+                               (ngx_log_t *) &ngx_cycle->new_log)
+        != NGX_OK)
+    {
         return NGX_ERROR;
     }
 
