@@ -24,45 +24,17 @@ download_v8() {
     local os=$(uname -s | tr '[:upper:]' '[:lower:]')
     local tarball="$DIR_DOWNLOAD/v8-$version.tar.gz"
 
+    case "$arch" in
+        aarch64) arch="arm64" ;;
+    esac
+
     if [[ "$clean" = "clean" ]]; then
         rm -rfv "$target"
     fi
 
     if [[ ! -d "$tarball" ]]; then
-
-        if [[ ! -e "$DIR_BIN/fetch" ]]; then
-            local hostarch=$(uname -m)
-            case $hostarch in
-                x86_64)  hostarch='amd64';;
-                aarch64) hostarch='arm64';;
-            esac
-
-            download $DIR_BIN/fetch \
-                "https://github.com/gruntwork-io/fetch/releases/download/v0.4.5/fetch_${os}_${hostarch}"
-
-            chmod +x $DIR_BIN/fetch
-        fi
-
-        local filename="ngx_wasm_runtime-v8-$version-$os-$arch.tar.gz"
-
-        mkdir -p "$DIR_DOWNLOAD"
-
-        # This requires a Personal Access Token in
-        # the $GITHUB_OAUTH_TOKEN environment variable:
-        $DIR_BIN/fetch \
-            --repo "$URL_KONG_WASM_RUNTIMES" \
-            --tag latest \
-            --release-asset "$filename" \
-            "$DIR_DOWNLOAD"
-
-        mv "$DIR_DOWNLOAD/$filename" "$tarball"
-
-        # TODO: replace all of the above with...
-        #
-        # download $tarball \
-        #   "https://github.com/kong/ngx_wasm_runtimes/releases/download/latest/ngx_wasm_runtime-v8-${version}-${os}-${arch}.tar.gz"
-        #
-        # ...once ngx_wasm_runtimes is open-sourced
+        download $tarball \
+          "$URL_KONG_WASM_RUNTIMES/releases/download/latest/ngx_wasm_runtime-v8-${version}-${os}-${arch}.tar.gz"
     fi
 
     if [[ ! -d "$target" ]]; then
