@@ -22,15 +22,15 @@ ZLIB_VER=${ZLIB_VER:-$(get_variable_from_makefile ZLIB)}
 while (( "$#" )); do
     case "$1" in
         --src)
-            RELEASE_SOURCE=1
+            RELEASE_MODE=src
             shift
             ;;
-        --bin-all)
-            RELEASE_BIN_ALL=1
+        --all|--bin-all)
+            RELEASE_MODE=all
             shift
             ;;
         --bin)
-            RELEASE_BIN=1
+            RELEASE_MODE=bin
             shift
             ;;
         --match)
@@ -399,10 +399,10 @@ cp -R \
 
 # produce release artifact
 
-if [ -n "$RELEASE_SOURCE" ]; then
+if [ "$RELEASE_MODE" = "src" ]; then
     release_source
 
-elif [ -n "$RELEASE_BIN_ALL" ]; then
+elif [ "$RELEASE_MODE" = "all" ]; then
     release_source
 
     case $OSTYPE in
@@ -410,7 +410,7 @@ elif [ -n "$RELEASE_BIN_ALL" ]; then
         *)       fatal "cannot build release from docker images on \"$OSTYPE\""
     esac
 
-elif [ -n "$RELEASE_BIN" ]; then
+elif [ "$RELEASE_MODE" = "bin" ]; then
     case $OSTYPE in
         linux*)  release_bin;;
         darwin*) release_bin;;
@@ -418,7 +418,7 @@ elif [ -n "$RELEASE_BIN" ]; then
     esac
 
 else
-    fatal "missing release type, specify --bin, --bin-all, or --src"
+    fatal "missing release mode, specify --src, --bin or --all"
 fi
 
 # vim: ft=sh ts=4 sts=4 sw=4:
