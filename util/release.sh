@@ -19,8 +19,52 @@ OPENSSL_VER=${OPENSSL_VER:-$(get_variable_from_makefile OPENSSL)}
 PCRE_VER=${PCRE_VER:-$(get_variable_from_makefile PCRE)}
 ZLIB_VER=${ZLIB_VER:-$(get_variable_from_makefile ZLIB)}
 
+show_help() {
+    cat << EOF
+Generate release assets.
+
+Usage:
+
+  $0 <name> --src
+  $0 <name> --bin [--wasmtime <ver>] [--wasmer <ver>] [--v8 <ver>]
+  $0 <name> --all [--match <pattern>]
+
+Arguments:
+
+  <name>  Release name.
+          Will appear in asset names as wasmx-NAME-RUNTIME-ARCH-OS.EXT
+
+  Release mode:
+
+  --src   Produce source tarball.
+
+  --bin   Produce binary package(s) for the currently running system.
+          Packages are built depending on the presence of the
+          runtime flags --wasmtime, --wasmer and/or --v8,
+          or the environment variables WASMTIME_VER, WASMER_V8 and/or V8_VER.
+
+  --all   Produce source tarball and binary packages for all
+          supported runtimes and distros using container images.
+
+  More options (for --all, defaults are autodetected from the source Makefile):
+
+  --wasmtime <ver>    Set Wasmtime version.
+  --wasmer <ver>      Set Wasmer version.
+  --v8 <ver>          Set V8 version.
+  --ngx <ver>         Set Nginx version.
+
+  --match <pattern>   (--all only) Only container images whose names
+                      match <pattern> will be used.
+
+EOF
+}
+
 while (( "$#" )); do
     case "$1" in
+        --help)
+            show_help
+            exit 0
+            ;;
         --src)
             RELEASE_MODE=src
             shift
@@ -83,7 +127,7 @@ if [ -z "$name" ]; then
     name=$RELEASE_NAME
 
     if [ -z "$name" ]; then
-        fatal "$SCRIPT_NAME missing release name argument/env variable"
+        fatal "$SCRIPT_NAME missing release name argument/env variable. Try --help."
     fi
 fi
 
