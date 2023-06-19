@@ -33,6 +33,13 @@ while (( "$#" )); do
             RELEASE_BIN=1
             shift
             ;;
+        --match)
+            MATCH_DOCKERFILES="$2"
+            if [ -z "$MATCH_DOCKERFILES" ]; then
+                fatal "--match argument missing a pattern to match Dockerfiles"
+            fi
+            shift 2
+            ;;
         --ngx)
             NGX_VER="$2"
             if [ -z "$NGX_VER" ]; then
@@ -332,7 +339,11 @@ release_all_bin_docker() {
         V8_VER=$(get_variable_from_makefile V8)
     fi
 
-    for path in $DIR_BUILD_DOCKERFILES/Dockerfile.*; do
+    dockerfiles=(`echo $DIR_BUILD_DOCKERFILES/Dockerfile.* \
+                  | tr ' ' '\n' \
+                  | grep "$MATCH_DOCKERFILES"`)
+
+    for path in $dockerfiles; do
         local dockerfile=$(basename $path)
         local imgname=${dockerfile#"Dockerfile."}
         local imgtag=wasmx-build-$imgname
