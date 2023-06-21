@@ -358,6 +358,8 @@ if [ "$ngx_module_link" = DYNAMIC ]; then
     # add other modules into this bundled one
     ngx_wasm_module_MODULES=$ngx_module_order
 
+    have=NGX_WASM_DYNAMIC_MODULE value=1 . auto/define
+
 else
     # addon
     # bypass auto/make which does not recognize $WASM_ variables

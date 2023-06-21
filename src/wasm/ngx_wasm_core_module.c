@@ -260,6 +260,39 @@ ngx_wasm_core_cleanup_pool(void *data)
 }
 
 
+#if (NGX_WASM_LUA && NGX_WASM_DYNAMIC_MODULE)
+static unsigned
+get_module_index(ngx_cycle_t *cycle, char *module_name, ngx_uint_t *out)
+{
+    size_t  i;
+
+    for (i = 0; cycle->modules[i]; i++) {
+        if (ngx_str_eq(cycle->modules[i]->name, -1, module_name, -1)) {
+            *out = i;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+
+static void
+swap_modules(ngx_conf_t *cf, ngx_uint_t i, ngx_uint_t j)
+{
+    ngx_cycle_t   *cycle = cf->cycle;
+    ngx_module_t  *tmp = cycle->modules[i];
+
+    ngx_wasm_log_error(NGX_LOG_NOTICE, cf->log, 0,
+                       "swapping modules: \"%s\" (index: %l) and \"%s\" "
+                       "(index: %l)", tmp->name, i, cycle->modules[j]->name, j);
+
+    cycle->modules[i] = cycle->modules[j];
+    cycle->modules[j] = tmp;
+}
+#endif
+
+
 static void *
 ngx_wasm_core_create_conf(ngx_conf_t *cf)
 {
@@ -269,6 +302,40 @@ ngx_wasm_core_create_conf(ngx_conf_t *cf)
     static const ngx_str_t   vm_name = ngx_string("main");
     static const ngx_str_t   runtime_name = ngx_string(NGX_WASM_RUNTIME);
     static const ngx_str_t   ip = ngx_string(NGX_WASM_DEFAULT_RESOLVER_IP);
+
+#if (NGX_WASM_LUA && NGX_WASM_DYNAMIC_MODULE)
+    ngx_uint_t               l_idx, w_idx;
+
+    /*
+     * ngx_lua init_worker may need wasm modules, which are only loaded in
+     * ngx_wasm init_worker.
+     *
+     * Mimic static cycle order if necessary:
+     *   1. ngx_wasm_core_module
+     *   2. ngx_http_lua_module
+     */
+    if (get_module_index(cycle, "ngx_http_lua_module", &l_idx)
+        && get_module_index(cycle, "ngx_wasm_core_module", &w_idx)
+        && l_idx < w_idx)
+    {
+        swap_modules(cf, l_idx, w_idx);
+    }
+
+    /*
+     * headers_more_filter is expected to run before ngx_wasm_filter in the
+     * test suite (filters run in reverse order).
+     *
+     * Mimic static cycle order if necessary:
+     *   1. ngx_http_wasm_filter_module
+     *   2. ngx_http_headers_more_filter_module
+     */
+    if (get_module_index(cycle, "ngx_http_headers_more_filter_module", &l_idx)
+        && get_module_index(cycle, "ngx_http_wasm_filter_module", &w_idx)
+        && l_idx < w_idx)
+    {
+        swap_modules(cf, l_idx, w_idx);
+    }
+#endif
 
     wcf = ngx_pcalloc(cycle->pool, sizeof(ngx_wasm_core_conf_t));
     if (wcf == NULL) {
