@@ -260,15 +260,64 @@ ngx_wasm_core_cleanup_pool(void *data)
 }
 
 
+#if (NGX_WASM_LUA && NGX_WASM_DYNAMIC_MODULE)
+static ngx_module_t **
+ngx_wasm_core_get_module_ptr(ngx_cycle_t *cycle, char *module_name)
+{
+    ngx_int_t  i;
+
+    for (i = 0; cycle->modules[i]; i++) {
+        if (ngx_str_eq(cycle->modules[i]->name, -1, module_name, -1)) {
+            return &cycle->modules[i];
+        }
+    }
+
+    return NULL;
+}
+#endif
+
+
 static void *
 ngx_wasm_core_create_conf(ngx_conf_t *cf)
 {
-    ngx_cycle_t             *cycle = cf->cycle;
-    ngx_pool_cleanup_t      *cln;
-    ngx_wasm_core_conf_t    *wcf;
-    static const ngx_str_t   vm_name = ngx_string("main");
-    static const ngx_str_t   runtime_name = ngx_string(NGX_WASM_RUNTIME);
-    static const ngx_str_t   ip = ngx_string(NGX_WASM_DEFAULT_RESOLVER_IP);
+    ngx_cycle_t              *cycle = cf->cycle;
+    ngx_pool_cleanup_t       *cln;
+    ngx_wasm_core_conf_t     *wcf;
+    static const ngx_str_t    vm_name = ngx_string("main");
+    static const ngx_str_t    runtime_name = ngx_string(NGX_WASM_RUNTIME);
+    static const ngx_str_t    ip = ngx_string(NGX_WASM_DEFAULT_RESOLVER_IP);
+
+#if (NGX_WASM_LUA && NGX_WASM_DYNAMIC_MODULE)
+    ngx_module_t            **o_ptr, **w_ptr, *tmp;
+
+    /*
+     * ngx_http_lua_module relies on ngx_wasm_core_module when filters are
+     * loaded from, e.g., init_worker_by_lua_block */
+
+    o_ptr = ngx_wasm_core_get_module_ptr(cycle, "ngx_http_lua_module");
+    w_ptr = ngx_wasm_core_get_module_ptr(cycle, "ngx_wasm_core_module");
+
+    if (o_ptr && w_ptr && o_ptr < w_ptr) {
+        tmp = *o_ptr;
+        *o_ptr = *w_ptr;
+        *w_ptr = tmp;
+    }
+
+    /*
+     * ngx_http_wasm_filter_module should preceed
+     * ngx_http_headers_more_filter_module so added headers are available in
+     * on_http_request_headers and on_http_response_headers */
+
+    o_ptr = ngx_wasm_core_get_module_ptr(cycle,
+                                         "ngx_http_headers_more_filter_module");
+    w_ptr = ngx_wasm_core_get_module_ptr(cycle, "ngx_http_wasm_filter_module");
+
+    if (o_ptr && w_ptr && o_ptr < w_ptr) {
+        tmp = *o_ptr;
+        *o_ptr = *w_ptr;
+        *w_ptr = tmp;
+    }
+#endif
 
     wcf = ngx_pcalloc(cycle->pool, sizeof(ngx_wasm_core_conf_t));
     if (wcf == NULL) {
