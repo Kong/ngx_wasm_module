@@ -10,6 +10,9 @@ defaults:
   run:
     shell: bash
 
+env:
+  COVERALLS_SERVICE_NUMBER: ${{ github.run_id }}-${{ github.run_attempt }}
+
 jobs:
   tests:
     name: 'Unit'
