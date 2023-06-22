@@ -304,7 +304,7 @@ linking:
 
         if (wasi_version_name
             && ngx_str_eq(wasi_version_name->data, wasi_version_name->len,
-                          importmodule->data, wasi_version_name->len))
+                          importmodule->data, importmodule->size))
         {
             if (!module->wasi) {
                 module->wasi = 1;
