@@ -15,6 +15,7 @@ local get_request = wasm.get_request
 local get_err_ptr = wasm.get_err_ptr
 local FFI_OK = wasm.FFI_OK
 local FFI_ERROR = wasm.FFI_ERROR
+local FFI_ABORT = wasm.FFI_ABORT
 local FFI_DECLINED = wasm.FFI_DECLINED
 local NOT_FOUND = "missing"
 local ERROR = "error"
@@ -177,6 +178,10 @@ function _M.attach(c_plan, opts)
 
     if rc == FFI_DECLINED then
         return nil, "plan not loaded"
+    end
+
+    if rc == FFI_ABORT then
+        return nil, "previous plan already attached"
     end
 
     return true

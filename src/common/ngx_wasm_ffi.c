@@ -119,8 +119,12 @@ ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r, ngx_wasm_ops_plan_t *plan,
 
     loc->plan = old_plan;
 
-    rctx->opctx.ctx.proxy_wasm.isolation = isolation;
+    if (rctx->ffi_attached) {
+        return NGX_ABORT;
+    }
+
     rctx->ffi_attached = 1;
+    rctx->opctx.ctx.proxy_wasm.isolation = isolation;
 
     return NGX_OK;
 }

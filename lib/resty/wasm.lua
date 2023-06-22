@@ -28,7 +28,9 @@ local ERR_BUF_SIZE = 256
 
 local _M = {
     FFI_DECLINED = base.FFI_DECLINED,
-    FFI_ABORT = base.FFI_ABORT,
+    FFI_ABORT = base.FFI_ABORT  -- nil in OpenResty 1.21.4.1
+                and base.FFI_ABORT
+                or -6,
     FFI_ERROR = base.FFI_ERROR,
     FFI_DONE = base.FFI_DONE,
     FFI_OK = base.FFI_OK,
