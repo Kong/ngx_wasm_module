@@ -635,7 +635,8 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     default:
         ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwexec->log, 0,
                                  "NYI - proxy_wasm step: %d", step);
-        return NGX_ERROR;
+        rc = NGX_ERROR;
+        break;
     }
 
     switch (rc) {
@@ -649,9 +650,13 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     case NGX_OK:
         pwexec->ecode = NGX_PROXY_WASM_ERR_NONE;
         break;
+    default:
+        break;
     }
 
 done:
+
+    ictx->pwexec = NULL;
 
     return pwexec->ecode;
 }
