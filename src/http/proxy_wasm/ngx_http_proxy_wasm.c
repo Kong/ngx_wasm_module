@@ -345,14 +345,15 @@ ngx_http_proxy_wasm_ctx(void *data)
 
     pwctx = (ngx_proxy_wasm_ctx_t *) rctx->data;
     if (pwctx == NULL) {
-        pwctx = ngx_proxy_wasm_ctx_alloc(r->pool);
+        pwctx = ngx_proxy_wasm_ctx_alloc(r == r->main
+                                         ? r->connection->pool
+                                         : r->pool);
         if (pwctx == NULL) {
             return NULL;
         }
 
         pwctx->type = NGX_PROXY_WASM_CONTEXT_HTTP;
         pwctx->id = r->connection->number;
-        pwctx->pool = pwctx->main ? r->connection->pool : r->pool;
         pwctx->log = r->connection->log;
         pwctx->main = r == r->main;
         pwctx->data = rctx;

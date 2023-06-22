@@ -252,6 +252,8 @@ ngx_proxy_wasm_ctx_alloc(ngx_pool_t *pool)
         return NULL;
     }
 
+    pwctx->pool = pool;
+
     ngx_rbtree_init(&pwctx->host_props_tree, &pwctx->host_props_sentinel,
                     ngx_str_rbtree_insert_value);
 
@@ -1095,6 +1097,8 @@ ngx_proxy_wasm_start_filter(ngx_proxy_wasm_filter_t *filter)
     ngx_proxy_wasm_err_e        ecode;
     ngx_proxy_wasm_instance_t  *ictx;
 
+    ngx_wasm_assert(filter->loaded);
+
     if (filter->ecode) {
         return NGX_ERROR;
     }
@@ -1225,7 +1229,7 @@ reuse:
     ngx_log_debug4(NGX_LOG_DEBUG_WASM, log, 0,
                    "proxy_wasm \"%V\" filter "
                    "reusing instance (ictx: %p, nrefs: %d, store: %p)",
-                   filter->name, ictx, ictx->nrefs, store);
+                   filter->name, ictx, ictx->nrefs + 1, store);
 
 done:
 
