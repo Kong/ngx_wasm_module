@@ -66,7 +66,52 @@ plan not loaded
 
 
 
-=== TEST 3: attach() - load() + attach() in rewrite
+=== TEST 3: attach() - plan already attached
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        rewrite_by_lua_block {
+            local proxy_wasm = require "resty.http.proxy_wasm"
+            local filters = {
+                { name = "on_phases" },
+            }
+
+            local c_plan, err = proxy_wasm.new(filters)
+            if not c_plan then
+                return ngx.say(err)
+            end
+
+            assert(proxy_wasm.load(c_plan))
+            assert(proxy_wasm.attach(c_plan))
+
+            local ok, err = proxy_wasm.attach(c_plan)
+            if not ok then
+                ngx.log(ngx.ERR, err)
+            end
+
+            assert(proxy_wasm.start())
+        }
+
+        echo ok;
+    }
+--- response_body
+ok
+--- grep_error_log eval: qr/#\d+ on_.*/
+--- grep_error_log_out eval
+qr/^[^#]*#0 on_vm_start[^#]*
+#0 on_configure, config_size: 0[^#]*
+#\d+ on_request_headers, 2 headers[^#]*
+#\d+ on_response_headers, 5 headers[^#]*
+#\d+ on_response_body, 3 bytes, eof: false[^#]*
+#\d+ on_response_body, 0 bytes, eof: true[^#]*
+#\d+ on_log[^#]*$/
+--- error_log eval
+qr/\[error\] .*? previous plan already attached/
+
+
+
+=== TEST 4: attach() - load() + attach() in rewrite
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -117,7 +162,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 
 
 
-=== TEST 4: attach() - load() in init_worker + attach() in rewrite
+=== TEST 5: attach() - load() in init_worker + attach() in rewrite
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- http_config
@@ -168,7 +213,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 
 
 
-=== TEST 5: attach() - load() in init_worker + attach() in access
+=== TEST 6: attach() - load() in init_worker + attach() in access
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- http_config
@@ -219,7 +264,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 
 
 
-=== TEST 6: attach() - sanity on trap (on_request_headers)
+=== TEST 7: attach() - sanity on trap (on_request_headers)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config
@@ -263,7 +308,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 
 
 
-=== TEST 7: attach() - plan is garbage collected after execution
+=== TEST 8: attach() - plan is garbage collected after execution
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -287,51 +332,6 @@ qr/^[^#]*#0 on_vm_start[^#]*
 ok
 --- shutdown_error_log eval
 qr/\[debug\] .*? wasm freeing plan/
---- no_error_log
-[error]
-
-
-
-=== TEST 8: attach() - plan cannot be attached more than once in a given request
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: on_phases
---- config
-    location /t {
-        rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
-            local filters = {
-                { name = "on_phases" },
-            }
-
-            local c_plan = assert(proxy_wasm.new(filters))
-            assert(proxy_wasm.load(c_plan))
-            assert(proxy_wasm.attach(c_plan))
-
-            local ok, err = proxy_wasm.attach(c_plan)
-            if not ok then
-                ngx.log(ngx.ERR, err)
-            end
-
-            assert(proxy_wasm.start())
-        }
-
-        echo ok;
-    }
---- request
-POST /t
-Hello world
---- response_body
-ok
---- grep_error_log eval: qr/#\d+ on_.*/
---- grep_error_log_out eval
-qr/^[^#]*#0 on_vm_start[^#]*
-#0 on_configure, config_size: 0[^#]*
-#\d+ on_request_headers, 3 headers[^#]*
-#\d+ on_request_body, 11 bytes[^#]*
-#\d+ on_response_headers, 5 headers[^#]*
-#\d+ on_response_body, 3 bytes, eof: false[^#]*
-#\d+ on_response_body, 0 bytes, eof: true[^#]*
-#\d+ on_log[^#]*$/
 --- no_error_log
 [error]
 
