@@ -152,7 +152,7 @@ jobs:
           lcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
       - name: Coveralls Upload
         if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.github_token }}
           flag-name: ${{ steps.lcov.outputs.name }}
@@ -171,7 +171,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true
