@@ -138,7 +138,6 @@ ngx_http_wasm_ffi_start(ngx_http_request_t *r)
         return rc;
     }
 
-
 #if 1
     ngx_wasm_assert(rctx->ffi_attached);
 #else

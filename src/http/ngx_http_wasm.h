@@ -34,10 +34,10 @@ struct ngx_http_wasm_req_ctx_s {
     ngx_http_request_t                *r;
     ngx_connection_t                  *connection;
     ngx_pool_t                        *pool;                    /* r->pool */
-    ngx_wasm_ops_t                    *ffi_engine;
-    ngx_wasm_op_ctx_t                  opctx;
-    void                              *data;                    /* per-stream extra context */
     ngx_http_wasm_req_state_e          state;                   /* determines next step on resume */
+    ngx_wasm_op_ctx_t                  opctx;
+    ngx_wasm_ops_t                    *ffi_engine;
+    void                              *data;                    /* per-stream extra context */
 
 #if (NGX_WASM_LUA)
     ngx_wasm_lua_ctx_t                *wasm_lua_ctx;
@@ -75,9 +75,9 @@ struct ngx_http_wasm_req_ctx_s {
     unsigned                           resp_content_chosen:1;   /* content handler has an output to produce */
     unsigned                           resp_content_sent:1;     /* has started sending output (may have yielded) */
     unsigned                           resp_finalized:1;        /* finalized connection (ourselves) */
-    unsigned                           ffi_attached:1;
     unsigned                           fake_request:1;
 
+    unsigned                           ffi_attached:1;
     unsigned                           pwm_lua_resolver:1;      /* use Lua-land resolver in OpenResty */
 };
 
