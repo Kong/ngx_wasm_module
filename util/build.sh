@@ -15,16 +15,29 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
 
-show_usage() {
-    echo "Usage: $SCRIPT_NAME <NGX> [options]"
-    echo
-    echo "<NGX>             Version of NGINX to build (e.g. 1.17.9)"
-    echo "                  or path to an NGINX source tree (e.g. /tmp/nginx)."
-    echo
-    echo "Options:"
-    echo "  -f,--force      Force a complete build (no incremental build)."
-    echo
-    echo "  -h,--help       Print this message and exit."
+show_help() {
+    cat << EOF
+Build Nginx or OpenResty with ngx_wasm_module.
+
+Lots of build options are supported through environment variables; consult
+_lib.sh or DEVELOPER.md.
+
+Usage:
+
+  $SCRIPT_NAME <NGX> [options]
+
+Arguments:
+
+  <NGX>   Version of Nginx to build (e.g. 1.17.9) or path to an Nginx source
+          tree (e.g. /tmp/nginx).
+
+Options:
+
+  -f, --force   Force a fresh build (no incremental build).
+
+  -h, --help    Print this message and exit.
+
+EOF
 }
 
 ###############################################################################
@@ -32,8 +45,8 @@ show_usage() {
 while (( "$#" )); do
     case $1 in
         -h|--help)
-            show_usage
-            exit
+            show_help
+            exit 0
             ;;
         -f|--force)
             NGX_BUILD_FORCE=1

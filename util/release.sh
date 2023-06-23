@@ -19,16 +19,24 @@ OPENSSL_VER=${OPENSSL_VER:-$(get_variable_from_makefile OPENSSL)}
 PCRE_VER=${PCRE_VER:-$(get_variable_from_makefile PCRE)}
 ZLIB_VER=${ZLIB_VER:-$(get_variable_from_makefile ZLIB)}
 
+show_usage() {
+    cat << EOF
+Usage:
+
+  $SCRIPT_NAME <name> --src
+  $SCRIPT_NAME <name> --bin [--ngx <ver>] [--wasmtime <ver>] [--wasmer <ver>] [--v8 <ver>]
+  $SCRIPT_NAME <name> --all [--match <pattern>]
+
+EOF
+}
+
 show_help() {
     cat << EOF
 Generate release assets in: $DIR_DIST_OUT
 
-Usage:
-
-  $0 <name> --src
-  $0 <name> --bin [--wasmtime <ver>] [--wasmer <ver>] [--v8 <ver>]
-  $0 <name> --all [--match <pattern>]
-
+EOF
+    show_usage
+    cat << EOF
 Arguments:
 
   <name>  Release name.
@@ -39,25 +47,35 @@ Arguments:
   --src   Produce source tarball.
 
   --bin   Produce binary package(s) for the currently running system.
-          Packages are built depending on the presence of the runtime flags
-          --wasmtime, --wasmer and/or --v8, or the environment variables
-          WASMTIME_VER, WASMER_V8 and/or V8_VER.
+          At least one runtime must be specified either via the
+          --wasmtime, --wasmer, and/or --v8 arguments, or by setting the
+          WASMTIME_VER, WASMER_V8, and/or V8_VER environment variables.
 
   --all   Produce source tarball and binary packages for all
           supported runtimes and distros using container images.
 
-  More options (for --all, defaults are autodetected from the source Makefile):
+Options:
+
+  NOTE: --all will infer all unspecified <ver> arguments from the Makefile.
+
+  --ngx <ver>         Nginx version.
+                      Inferred from the Makefile if unspecified.
 
   --wasmtime <ver>    Set Wasmtime version.
+
   --wasmer <ver>      Set Wasmer version.
+
   --v8 <ver>          Set V8 version.
-  --ngx <ver>         Set Nginx version.
 
   --match <pattern>   (--all only) Only container images whose names
                       match <pattern> will be used.
 
+  -h, --help          Print this message and exit.
+
 EOF
 }
+
+###############################################################################
 
 while (( "$#" )); do
     case "$1" in
@@ -80,6 +98,7 @@ while (( "$#" )); do
         --match)
             MATCH_DOCKERFILES="$2"
             if [ -z "$MATCH_DOCKERFILES" ]; then
+                show_usage
                 fatal "--match argument missing a pattern to match Dockerfiles"
             fi
             shift 2
@@ -87,6 +106,7 @@ while (( "$#" )); do
         --ngx)
             NGX_VER="$2"
             if [ -z "$NGX_VER" ]; then
+                show_usage
                 fatal "--ngx argument missing version"
             fi
             shift 2
@@ -94,6 +114,7 @@ while (( "$#" )); do
         --wasmtime)
             WASMTIME_VER="$2"
             if [ -z "$WASMTIME_VER" ]; then
+                show_usage
                 fatal "--wasmtime argument missing version"
             fi
             shift 2
@@ -101,6 +122,7 @@ while (( "$#" )); do
         --wasmer)
             WASMER_VER="$2"
             if [ -z "$WASMER_VER" ]; then
+                show_usage
                 fatal "--wasmer argument missing version"
             fi
             shift 2
@@ -108,6 +130,7 @@ while (( "$#" )); do
         --v8)
             V8_VER="$2"
             if [ -z "$V8_VER" ]; then
+                show_usage
                 fatal "--v8 argument missing version"
             fi
             shift 2
@@ -127,7 +150,8 @@ if [ -z "$name" ]; then
     name=$RELEASE_NAME
 
     if [ -z "$name" ]; then
-        fatal "$SCRIPT_NAME missing release name argument/env variable. Consult --help."
+        show_usage
+        fatal "$SCRIPT_NAME missing name argument/env variable"
     fi
 fi
 
@@ -326,6 +350,7 @@ release_bin() {
     local arch=$(uname -m)
 
     if [ -z "$NGX_VER" ]; then
+        show_usage
         fatal "$SCRIPT_NAME missing Nginx version for static build, specify --ngx <ver>"
     fi
 

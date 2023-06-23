@@ -16,39 +16,47 @@ source $NGX_WASM_DIR/util/_lib.sh
 ###############################################################################
 
 show_usage() {
-    echo "usage: $0 -R <runtime> [-V <version>] [-T <target_dir>] [--clean]"
-    echo
+    cat << EOF
+Usage:
+
+  $SCRIPT_NAME -R <runtime> [options]
+
+EOF
 }
 
 show_help() {
-    echo "Download or build a Wasm runtime."
-    echo
+    cat << EOF
+Download or build a Wasm runtime.
+
+EOF
     show_usage
-    echo "   --download"
-    echo "      Prefer downloading a precompiled runtime."
-    echo "      This is the default."
-    echo
-    echo "   --build"
-    echo "      Prefer building a runtime from source."
-    echo
-    echo "   -R|--runtime <runtime>"
-    echo "      Runtime to build (e.g. 'v8')"
-    echo
-    echo "   -V|--runtime-version <version>"
-    echo "      Runtime version to build (e.g. '10.5.18')"
-    echo "      Defaults to infer from .github/workflows/release.yml"
-    echo
-    echo "   -A|--arch <arch>"
-    echo "      Architecture in 'uname -m' format (e.g. 'x86_64')"
-    echo "      Defaults to the system's own"
-    echo
-    echo "   -T|--target-dir <target_dir>"
-    echo "      Where to put built files"
-    echo "      Defaults to $DIR_WORK/<runtime>-<version>"
-    echo
-    echo "   --clean|--force|-f"
-    echo "      Force a clean build"
-    echo
+    cat << EOF
+Arguments:
+
+  -R, --runtime <runtime>   Runtime to build (e.g. 'v8').
+
+Options:
+
+  --download                Prefer downloading a precompiled runtime.
+                            This is the default.
+
+  --build                   Prefer building a runtime from source.
+
+  -A, --arch <arch>         Architecture in 'uname -m' format (e.g. 'x86_64').
+                            Defaults to the system's own.
+
+  -V, --runtime-ver <ver>   Runtime version to build (e.g. '10.5.18')
+                            Inferred from .github/workflows/release.yml
+                            if unspecified.
+
+  -T, --target-dir <dir>    Where to put built files.
+                            Defaults to $DIR_WORK/<runtime>-<ver>
+
+  -f, --force, --clean      Force a clean build.
+
+  -h, --help                Print this message and exit.
+
+EOF
 }
 
 check_target() {
@@ -73,7 +81,7 @@ while [[ "$1" ]]; do
             shift
             RUNTIME="$1"
             ;;
-        -V|--runtime-version)
+        -V|--runtime-ver|--runtime-version) # --runtime-version: deprecated
             shift
             RUNTIME_VERSION="$1"
             ;;
@@ -99,9 +107,7 @@ while [[ "$1" ]]; do
             exit 0
             ;;
         -v|--version)
-            echo "$0 version $(git rev-parse HEAD 2> /dev/null)"
-            echo "Run $0 --help for usage."
-            echo
+            echo "$SCRIPT_NAME version $(git rev-parse HEAD 2> /dev/null)"
             exit 0
             ;;
     esac
@@ -110,9 +116,7 @@ done
 
 if [[ -z "$RUNTIME" ]]; then
     show_usage
-    echo "Run $0 --help for details."
-    echo
-    exit 1
+    fatal "Bad usage. Consult --help"
 fi
 
 if [[ -z "$RUNTIME_VERSION" ]]; then
@@ -121,12 +125,13 @@ fi
 
 if [[ -z "$TARGET_DIR" ]]; then
     TARGET_DIR="$(get_default_runtime_dir "$RUNTIME" "$RUNTIME_VERSION")"
+
 else
     TARGET_DIR=$(abs_path $TARGET_DIR)
 fi
 
 if [[ "$CLEAN" = "clean" ]]; then
-    echo "Deleting $TARGET_DIR..."
+    notice "deleting $TARGET_DIR..."
     rm -rfv "$TARGET_DIR"
 fi
 
@@ -147,8 +152,9 @@ BUILD_SCRIPT=$NGX_WASM_DIR/util/runtimes/$RUNTIME.sh
 # once clients stop using v8.sh directly.
 if "$BUILD_SCRIPT" "$TARGET_DIR" "$RUNTIME_VERSION" "$ARCH" "$MODE" "$CLEAN"; then
     exit 0
+
 else
-    echo "$MODE failed -- deleting $TARGET_DIR..."
+    notice "$MODE failed -- deleting $TARGET_DIR..."
     rm -rfv "$TARGET_DIR"
     exit 1
 fi
