@@ -29,6 +29,9 @@ jobs:
       fail-fast: false
       matrix:
         label: [""]
+        os: [ubuntu-latest]
+        cc: [gcc-9]
+        ngx: [1.25.0]
         openresty: [""]
         runtime: [wasmer]
         wasmer: [3.1.1]
@@ -37,57 +40,54 @@ jobs:
         debug: [debug, no_debug]
         hup: [no_hup]
         ssl: [ssl]
-        os: [ubuntu-latest]
-        cc: [gcc-9]
-        ngx: [1.25.0]
         include:
           # Wasmtime
           - runtime: wasmtime
             wasmtime: 8.0.1
+            os: ubuntu-latest
+            cc: gcc-9
+            ngx: 1.25.0
             debug: debug
             hup: hup
             ssl: ssl
-            os: ubuntu-latest
-            cc: gcc-9
-            ngx: 1.25.0
           # V8
           - runtime: v8
             v8: 10.5.18
-            debug: debug
-            hup: no_hup
-            ssl: ssl
             os: ubuntu-latest
             cc: gcc-9
             ngx: 1.25.0
+            debug: debug
+            hup: no_hup
+            ssl: ssl
           # OpenResty
           - label: openresty
+            os: ubuntu-latest
+            cc: gcc-9
             openresty: 1.21.4.1
             runtime: wasmtime
             wasmtime: 8.0.1
             debug: debug
             hup: no_hup
             ssl: ssl
-            os: ubuntu-latest
-            cc: gcc-9
           # Old Nginx
           - label: old_nginx
+            os: ubuntu-latest
+            cc: gcc-9
             ngx: 1.21.6
             runtime: wasmer
             wasmer: 3.1.1
             debug: debug
             hup: no_hup
             ssl: ssl
-            os: ubuntu-latest
-            cc: gcc-9
           # No SSL
           - ssl: no_ssl
+            os: ubuntu-latest
+            cc: gcc-9
+            ngx: 1.25.0
             runtime: wasmer
             wasmer: 3.1.1
             debug: no_debug
             hup: no_hup
-            os: ubuntu-latest
-            cc: gcc-9
-            ngx: 1.25.0
     steps:
       - name: 'Setup deps - apt-get'
         if: ${{ matrix.cc == 'gcc-9' }}
@@ -108,7 +108,8 @@ jobs:
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+            work/runtimes
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -193,6 +194,9 @@ jobs:
       fail-fast: false
       matrix:
         label: [""]
+        os: [ubuntu-22.04]
+        cc: [gcc-10]
+        ngx: [1.25.0]
         openresty: [""]
         runtime: [wasmer]
         wasmer: [3.1.1]
@@ -200,36 +204,33 @@ jobs:
         v8: [""]
         hup: [no_hup, hup]
         debug: [debug]
-        os: [ubuntu-22.04]
-        cc: [gcc-10]
-        ngx: [1.25.0]
         include:
           # Wasmtime
           - runtime: wasmtime
             wasmtime: 8.0.1
-            hup: no_hup
-            debug: debug
             os: ubuntu-22.04
             cc: gcc-10
             ngx: 1.25.0
+            hup: no_hup
+            debug: debug
           # V8
           - runtime: v8
             v8: 10.5.18
-            debug: debug
-            hup: no_hup
             os: ubuntu-22.04
             cc: gcc-10
             ngx: 1.25.0
+            debug: debug
+            hup: no_hup
           # OpenResty
           - label: openresty
+            os: ubuntu-22.04
+            cc: gcc-10
             openresty: 1.21.4.1
+            ngx:
             runtime: wasmer
             wasmer: 3.1.1
             debug: debug
             hup: no_hup
-            os: ubuntu-22.04
-            cc: gcc-10
-            ngx:
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
       - uses: actions/checkout@v3
@@ -248,7 +249,8 @@ jobs:
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+            work/runtimes
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -302,7 +304,7 @@ jobs:
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+          key: lint-${{ runner.os }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - run: make setup
       - run: make lint
       - uses: actions-rs/clippy-check@v1
@@ -341,7 +343,8 @@ jobs:
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+            work/runtimes
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
         env:
@@ -366,19 +369,19 @@ jobs:
       fail-fast: false
       matrix:
         label: [""]
-        runtime: [wasmer, wasmtime, v8]
-        cc: [clang-14, gcc-10]
         os: [ubuntu-latest]
+        cc: [clang-14, gcc-10]
         ngx: [1.25.0]
+        runtime: [wasmer, wasmtime, v8]
         wasmtime: [8.0.1]
         wasmer: [3.1.1]
         v8: [10.5.18]
         include:
           - label: old_nginx
+            os: ubuntu-latest
+            cc: clang-14
             ngx: 1.21.6
             runtime: wasmtime
-            cc: clang-14
-            os: ubuntu-latest
             wasmtime: 8.0.1
     steps:
       - uses: actions/checkout@v3
@@ -388,7 +391,8 @@ jobs:
         with:
           path: |
             work/downloads
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+            work/runtimes
+          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
         env:
