@@ -128,9 +128,14 @@ function _M.load(c_plan)
         error("plan should be a cdata object", 2)
     end
 
+    local phase = ngx.get_phase()
+    if phase == "init" then
+        error("load cannot be called from 'init' phase", 2)
+    end
+
     local rc = C.ngx_http_wasm_ffi_plan_load(c_plan)
     if rc == FFI_ERROR then
-        return nil, "unknown error"
+        return nil, "failed loading plan"
     end
 
     return true
