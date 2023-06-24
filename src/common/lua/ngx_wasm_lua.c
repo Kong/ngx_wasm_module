@@ -82,6 +82,8 @@ ngx_wasm_lua_thread_destroy(ngx_wasm_lua_ctx_t *lctx)
 
     dd("enter");
 
+    ngx_wasm_assert(env);
+
     switch (env->subsys->kind) {
 #if (NGX_WASM_HTTP)
     case NGX_WASM_SUBSYS_HTTP:
@@ -327,8 +329,12 @@ ngx_wasm_lua_thread_handle_rc(ngx_wasm_lua_ctx_t *lctx, ngx_int_t rc)
         ngx_wasm_assert(ngx_wasm_lua_thread_is_dead(lctx));
 
         if (lctx->success_handler) {
+#if (DDEBUG)
             rc = lctx->success_handler(lctx);
             dd("lua success handler rc: %ld", rc);
+#else
+            (void) lctx->success_handler(lctx);
+#endif
         }
 
         rc = NGX_DONE;
