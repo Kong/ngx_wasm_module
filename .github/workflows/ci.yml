@@ -325,10 +325,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        cc: [clang-11]
+        openresty: [1.21.4.1]
         runtime: [wasmtime]
         wasmtime: [8.0.1]
-        cc: [clang-11]
-        ngx: [1.25.0]
     steps:
       - run: |
           sudo apt-get update
@@ -350,7 +350,7 @@ jobs:
       - run: make
         env:
           CC: ${{ matrix.cc }}
-          NGX: ${{ matrix.ngx }}
+          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
       - uses: actions/upload-artifact@v2
         if: ${{ failure() && !env.ACT }}
         with:
