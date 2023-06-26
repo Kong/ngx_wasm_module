@@ -426,7 +426,7 @@ Wasm sockets.
 shm_kv
 ------
 
-**usage**    | `shm_kv <name> <size> [eviction=lru\|none];`
+**usage**    | `shm_kv <name> <size> [eviction=slru\|lru\|none];`
 ------------:|:----------------------------------------------------------------
 **contexts** | `wasm{}`
 **default**  |
@@ -440,8 +440,11 @@ Define a shared key/value memory zone.
   accepts other units like `m`.
 - `eviction` defines the eviction policy in the event of unavailable space for
   storing new entries. Supported values are:
-  - `lru` (default): least recently used entries are evicted until enough space
-    is available for storing the new item.
+  - `slru` (default): [SLRU eviction algorithm]. When evicting existing items to
+    make room for the new item, the least recently used entries of a similar
+    size are picked first.
+  - `lru`: LRU eviction algorithm. Least recently used entries are evicted
+    until enough space is available for storing the new item.
   - `none`: no eviction policy. Attempting to insert into a full memory zone
     will result in an error code produced by the host API, to be interpreted
     by the language SDK.
@@ -492,8 +495,8 @@ a means of storage and exchange for worker processes of a server instance.
 Shared queue memory zones can be used via the [proxy-wasm SDK](#proxy-wasm)'s
 `[enqueue\|dequeue]_shared_queue` API.
 
-**Note:** shared memory zones do not presently implement an LRU eviction policy,
-and writes will fail when the allocated memory slab is full.
+**Note:** shared memory queues do not presently implement an automatic eviction
+policy, and writes will fail when the allocated memory slab is full.
 
 [Back to TOC](#directives)
 
@@ -840,6 +843,7 @@ the `http{}` contexts.
 [Back to TOC](#directives)
 
 [Contexts]: USER.md#contexts
+[SLRU eviction algorithm]: SLRU.md
 [Execution Chain]: USER.md#execution-chain
 [OpenResty]: https://openresty.org/en/
 [resolver]: https://nginx.org/en/docs/http/ngx_http_core_module.html#resolver
