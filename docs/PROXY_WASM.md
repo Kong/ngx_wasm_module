@@ -527,11 +527,11 @@ SDK ABI `0.2.1`) and their present status in ngx_wasm_module:
 `proxy_get_status`                    | :x:                 | Host function for proxy-wasm-rust-sdk `get_grpc_status`.
 *Shared key/value stores*             |                     |
 `proxy_get_shared_data`               | :heavy_check_mark:  |
-`proxy_set_shared_data`               | :heavy_check_mark:  | **Caveat:** no LRU eviction mechanism yet.
+`proxy_set_shared_data`               | :heavy_check_mark:  |
 *Shared queues*                       |                     |
 `proxy_register_shared_queue`         | :heavy_check_mark:  |
 `proxy_dequeue_shared_queue`          | :heavy_check_mark:  |
-`proxy_enqueue_shared_queue`          | :heavy_check_mark:  | **Caveat:** no LRU eviction mechanism yet.
+`proxy_enqueue_shared_queue`          | :heavy_check_mark:  | No automatic eviction mechanism if the queue is full.
 `proxy_resolve_shared_queue`          | :x:                 |
 *Stats/metrics*                       |                     |
 `proxy_define_metric`                 | :x:                 |
