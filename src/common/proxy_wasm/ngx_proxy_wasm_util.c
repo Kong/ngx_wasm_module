@@ -6,6 +6,10 @@
 #include <ngx_event.h>
 #include <ngx_wavm.h>
 #include <ngx_proxy_wasm.h>
+#ifdef NGX_WASM_HTTP
+#include <ngx_http_wasm.h>
+#include <ngx_wasm_subsystem.h>
+#endif
 
 
 #define NGX_PROXY_WASM_PTR_SIZE  4
@@ -26,11 +30,173 @@ static ngx_str_t  ngx_proxy_wasm_errlist[] = {
 };
 
 
+static ngx_str_t  ngx_proxy_wasm_steplist[] = {
+    ngx_null_string,
+    ngx_string("on_request_headers"),
+    ngx_string("on_request_body"),
+    ngx_string("on_request_trailers"),
+    ngx_string("on_response_headers"),
+    ngx_string("on_response_body"),
+    ngx_string("on_response_tailers"),
+    ngx_string("on_log"),
+    ngx_string("on_done"),
+    ngx_string("on_tick"),
+    ngx_string("on_dispatch_response")
+};
+
+
+static ngx_str_t  ngx_proxy_wasm_actionlist[] = {
+    ngx_string("CONTINUE"),
+    ngx_string("PAUSE"),
+    ngx_string("END_STREAM"),
+    ngx_string("DONE"),
+    ngx_string("WAIT"),
+    ngx_string("WAIT_FULL"),
+    ngx_string("CLOSE"),
+};
+
+
+ngx_str_t *
+ngx_proxy_wasm_step_name(ngx_proxy_wasm_step_e step)
+{
+    ngx_str_t  *name;
+
+    ngx_wasm_assert(step);
+    ngx_wasm_assert(step <= NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE);
+
+    name = &ngx_proxy_wasm_steplist[step];
+
+    ngx_wasm_assert(name);
+
+    return name;
+}
+
+
+ngx_str_t *
+ngx_proxy_wasm_action_name(ngx_proxy_wasm_action_e action)
+{
+    ngx_str_t  *name;
+
+    ngx_wasm_assert(action >= NGX_PROXY_WASM_ACTION_CONTINUE);
+    ngx_wasm_assert(action <= NGX_PROXY_WASM_ACTION_CLOSE);
+
+    name = &ngx_proxy_wasm_actionlist[action];
+
+    ngx_wasm_assert(name);
+
+    return name;
+}
+
+
+static ngx_inline ngx_str_t *
+ngx_proxy_wasm_filter_strerror(ngx_proxy_wasm_err_e err)
+{
+    ngx_str_t  *msg;
+
+    msg = ((ngx_uint_t) err < NGX_PROXY_WASM_ERR_UNKNOWN)
+          ? &ngx_proxy_wasm_errlist[err]
+          : &ngx_proxy_wasm_errlist[NGX_PROXY_WASM_ERR_UNKNOWN];
+
+    return msg;
+}
+
+
+u_char *
+ngx_proxy_wasm_log_error_handler(ngx_log_t *log, u_char *buf,
+    size_t len)
+{
+    return buf;
+}
+
+
+void
+ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
+    ngx_proxy_wasm_err_e err, const char *fmt, ...)
+{
+    va_list                    args;
+    ngx_str_t                 *pre = NULL;
+    u_char                    *p, *last, buf[NGX_MAX_ERROR_STR];
+    ngx_str_t                 *errmsg = NULL;
+    ngx_proxy_wasm_exec_t     *pwexec;
+    ngx_proxy_wasm_filter_t   *filter;
+    ngx_proxy_wasm_log_ctx_t  *log_ctx;
+
+    if (log->handler != ngx_proxy_wasm_log_error_handler) {
+        goto skip_prefix;
+    }
+
+    log_ctx = (ngx_proxy_wasm_log_ctx_t *) log->data;
+    pwexec = log_ctx->pwexec;
+    filter = pwexec->filter;
+    pre = &log_ctx->log_prefix;
+    log = log_ctx->orig_log;
+
+    if (pre->data == NULL) {
+        p = &buf[0];
+
+        pre->len = sizeof("[\"\" #") - 1;
+        pre->len += filter->name->len;
+
+        if (pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID) {
+            pre->len += ngx_snprintf(p, NGX_SIZE_T_LEN, "%l", pwexec->root_id)
+                        - buf;
+
+        } else {
+            pre->len += ngx_snprintf(p, NGX_SIZE_T_LEN, "%l", pwexec->id)
+                        - buf;
+        }
+
+        pre->len += sizeof("] ") - 1;
+        pre->data = ngx_pnalloc(pwexec->pool, pre->len);
+        if (pre->data == NULL) {
+            goto skip_prefix;
+        }
+
+        p = pre->data;
+        p = ngx_snprintf(p, pre->len, "[\"%V\" #%l] ",
+                         filter->name,
+                         pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID
+                         ? pwexec->root_id
+                         : pwexec->id);
+
+        ngx_wasm_assert(pre->len == (size_t) (p - pre->data));
+    }
+
+skip_prefix:
+
+    last = buf + NGX_MAX_ERROR_STR;
+    p = &buf[0];
+
+    if (pre) {
+        p = ngx_slprintf(p, last, "%*s", pre->len, pre->data);
+    }
+
+    va_start(args, fmt);
+    p = ngx_vslprintf(p, last, fmt, args);
+    va_end(args);
+
+    if (err) {
+        errmsg = ngx_proxy_wasm_filter_strerror(err);
+        p = ngx_slprintf(p, last, " (%V)", errmsg);
+    }
+
+    if (pre) {
+        ngx_log_error_core(level, log, 0, "[proxy-wasm]%*s", p - buf, buf);
+
+    } else {
+        ngx_log_error_core(level, log, 0, "[proxy-wasm] %*s", p - buf, buf);
+    }
+}
+
+
 void
 ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 {
     ngx_log_t                  *log = ev->log;
     ngx_proxy_wasm_exec_t      *pwexec = ev->data;
+#ifdef NGX_WASM_HTTP
+    ngx_proxy_wasm_ctx_t       *pwctx = pwexec->parent;
+#endif
     ngx_proxy_wasm_filter_t    *filter = pwexec->filter;
     ngx_proxy_wasm_instance_t  *ictx;
 
@@ -53,10 +219,14 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
         return;
     }
 
+#ifdef NGX_WASM_HTTP
+    pwctx->phase = ngx_wasm_phase_lookup(&ngx_http_wasm_subsystem,
+                                         NGX_WASM_BACKGROUND_PHASE);
+#endif
     pwexec->in_tick = 1;
 
     pwexec->ecode = ngx_proxy_wasm_run_step(pwexec, ictx,
-                                            NGX_PROXY_WASM_STEP_TICK, NULL);
+                                            NGX_PROXY_WASM_STEP_TICK);
 
     pwexec->in_tick = 0;
 
@@ -85,43 +255,6 @@ nomem:
 
     ngx_wasm_log_error(NGX_LOG_CRIT, log, 0,
                        "tick_handler: no memory");
-}
-
-
-static ngx_inline ngx_str_t *
-ngx_proxy_wasm_filter_strerror(ngx_proxy_wasm_err_e err)
-{
-    ngx_str_t  *msg;
-
-    msg = ((ngx_uint_t) err < NGX_PROXY_WASM_ERR_UNKNOWN)
-              ? &ngx_proxy_wasm_errlist[err]
-              : &ngx_proxy_wasm_errlist[NGX_PROXY_WASM_ERR_UNKNOWN];
-
-    return msg;
-}
-
-
-void
-ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
-    ngx_proxy_wasm_err_e err, const char *fmt, ...)
-{
-    va_list     args;
-    u_char     *p, *last, buf[NGX_MAX_ERROR_STR];
-    ngx_str_t  *errmsg = NULL;
-
-    last = buf + NGX_MAX_ERROR_STR;
-    p = &buf[0];
-
-    va_start(args, fmt);
-    p = ngx_vslprintf(p, last, fmt, args);
-    va_end(args);
-
-    if (err) {
-        errmsg = ngx_proxy_wasm_filter_strerror(err);
-        p = ngx_slprintf(p, last, " (%V)", errmsg);
-    }
-
-    ngx_wasm_log_error(level, log, 0, "%*s", p - buf, buf);
 }
 
 

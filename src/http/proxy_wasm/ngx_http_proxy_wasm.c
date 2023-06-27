@@ -11,7 +11,7 @@
 
 static ngx_int_t
 ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_exec_t *pwexec,
-    ngx_uint_t *ret)
+    ngx_proxy_wasm_action_e *out)
 {
     ngx_int_t                 rc;
     ngx_uint_t                nheaders;
@@ -49,7 +49,7 @@ ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_exec_t *pwexec,
 
     /* rc == NGX_OK */
 
-    *ret = rets->data[0].of.i32;
+    *out = rets->data[0].of.i32;
 
     return rc;
 }
@@ -57,11 +57,11 @@ ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_exec_t *pwexec,
 
 static ngx_int_t
 ngx_http_proxy_wasm_on_request_body(ngx_proxy_wasm_exec_t *pwexec,
-    ngx_uint_t *ret)
+    ngx_proxy_wasm_action_e *out)
 {
     ngx_int_t                 rc;
-    ngx_proxy_wasm_filter_t  *filter;
     ngx_wavm_instance_t      *instance;
+    ngx_proxy_wasm_filter_t  *filter;
     wasm_val_vec_t           *rets;
 
     instance = ngx_proxy_wasm_pwexec2instance(pwexec);
@@ -78,13 +78,13 @@ ngx_http_proxy_wasm_on_request_body(ngx_proxy_wasm_exec_t *pwexec,
 
     /* rc == NGX_OK */
 
-    *ret = rets->data[0].of.i32;
+    *out = rets->data[0].of.i32;
 
     return rc;
 }
 
 
-static void
+void
 ngx_http_proxy_wasm_on_request_body_handler(ngx_http_request_t *r)
 {
     size_t                    len = 0;
@@ -117,12 +117,13 @@ ngx_http_proxy_wasm_on_request_body_handler(ngx_http_request_t *r)
         if (file.fd != NGX_INVALID_FILE
             && ngx_fd_info(file.fd, &file.info) == NGX_FILE_ERROR)
         {
-            ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno,
-                          ngx_fd_info_n " \"%V\" failed", file.name);
+            ngx_wasm_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno,
+                               ngx_fd_info_n " \"%V\" failed", file.name);
 
             if (ngx_close_file(file.fd) == NGX_FILE_ERROR) {
-                ngx_log_error(NGX_LOG_ALERT, r->connection->log, ngx_errno,
-                              ngx_close_file_n " \"%V\" failed", file.name);
+                ngx_wasm_log_error(NGX_LOG_ALERT, r->connection->log, ngx_errno,
+                                   ngx_close_file_n " \"%V\" failed",
+                                   file.name);
             }
 
             file.fd = NGX_INVALID_FILE;
@@ -144,17 +145,23 @@ ngx_http_proxy_wasm_on_request_body_handler(ngx_http_request_t *r)
         pwctx->exec_index = 0;
         pwctx->req_body_len = len;
 
-        pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
+        ngx_proxy_wasm_ctx_set_next_action(pwctx,
+                                           NGX_PROXY_WASM_ACTION_CONTINUE);
 
-        (void) ngx_proxy_wasm_resume(pwctx, pwctx->phase,
-                                     NGX_PROXY_WASM_STEP_REQ_BODY);
+        rc = ngx_proxy_wasm_resume(pwctx, pwctx->phase,
+                                   NGX_PROXY_WASM_STEP_REQ_BODY);
+        if (rc == NGX_AGAIN) {
+            ngx_wasm_yield(&rctx->env);
+        }
     }
+
+    dd("exit (len: %ld)", len);
 }
 
 
 static ngx_int_t
 ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_exec_t *pwexec,
-    ngx_uint_t *ret)
+    ngx_proxy_wasm_action_e *out)
 {
     ngx_int_t                 rc;
     ngx_uint_t                nheaders;
@@ -195,7 +202,7 @@ ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_exec_t *pwexec,
 
     /* rc == NGX_OK */
 
-    *ret = rets->data[0].of.i32;
+    *out = rets->data[0].of.i32;
 
     return rc;
 }
@@ -203,7 +210,7 @@ ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_exec_t *pwexec,
 
 static ngx_int_t
 ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_exec_t *pwexec,
-    ngx_uint_t *ret)
+    ngx_proxy_wasm_action_e *out)
 {
     ngx_int_t                 rc;
     ngx_http_wasm_req_ctx_t  *rctx;
@@ -232,7 +239,7 @@ ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_exec_t *pwexec,
 
         /* rc == NGX_OK */
 
-        *ret = rets->data[0].of.i32;
+        *out = rets->data[0].of.i32;
 
         return rc;
     }
@@ -244,7 +251,7 @@ ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_exec_t *pwexec,
 #ifdef NGX_WASM_RESPONSE_TRAILERS
 static ngx_int_t
 ngx_http_proxy_wasm_on_response_trailers(ngx_proxy_wasm_exec_t *pwexec,
-    ngx_uint_t *ret)
+    ngx_proxy_wasm_action_e *out)
 {
     ngx_int_t                 rc;
     ngx_uint_t                ntrailers;
@@ -279,7 +286,7 @@ ngx_http_proxy_wasm_on_response_trailers(ngx_proxy_wasm_exec_t *pwexec,
 
     /* rc == NGX_OK */
 
-    *ret = rets->data[0].of.i32;
+    *out = rets->data[0].of.i32;
 
     return rc;
 }
@@ -295,6 +302,7 @@ ngx_http_proxy_wasm_on_dispatch_response(ngx_proxy_wasm_exec_t *pwexec)
     ngx_list_part_t                 *part;
     ngx_proxy_wasm_filter_t         *filter = pwexec->filter;
     ngx_http_proxy_wasm_dispatch_t  *call = pwexec->call;
+    ngx_http_wasm_req_ctx_t         *rctx = call->rctx;
 
     part = &call->http_reader.fake_r.upstream->headers_in.headers.part;
 
@@ -315,6 +323,11 @@ ngx_http_proxy_wasm_on_dispatch_response(ngx_proxy_wasm_exec_t *pwexec)
                    "proxy_wasm http dispatch response received "
                    "(pwexec->id: %d, token_id: %d, n_headers: %d)",
                    pwexec->id, call->id, n_headers);
+
+    ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
+                                       NGX_PROXY_WASM_ACTION_CONTINUE);
+
+    ngx_http_wasm_continue(rctx);
 
     rc = ngx_wavm_instance_call_funcref(pwexec->ictx->instance,
                                         filter->proxy_on_http_call_response,
@@ -369,52 +382,26 @@ ngx_http_proxy_wasm_ctx(void *data)
 
 static ngx_int_t
 ngx_http_proxy_wasm_resume(ngx_proxy_wasm_exec_t *pwexec,
-    ngx_proxy_wasm_step_e step, ngx_uint_t *ret)
+    ngx_proxy_wasm_step_e step, ngx_proxy_wasm_action_e *out)
 {
-    ngx_int_t                 rc = NGX_ERROR;
-    ngx_http_request_t       *r;
-    ngx_http_wasm_req_ctx_t  *rctx;
-    ngx_proxy_wasm_ctx_t     *pwctx;
-    ngx_wavm_instance_t      *instance;
-
-    instance = ngx_proxy_wasm_pwexec2instance(pwexec);
-    pwctx = pwexec->parent;
+    ngx_int_t   rc = NGX_ERROR;
 
     switch (step) {
     case NGX_PROXY_WASM_STEP_REQ_HEADERS:
-        rc = ngx_http_proxy_wasm_on_request_headers(pwexec, ret);
-        break;
-    case NGX_PROXY_WASM_STEP_REQ_BODY_READ:
-        rctx = ngx_http_proxy_wasm_get_rctx(instance);
-        r = rctx->r;
-
-        if (pwctx->exec_index + 1 == pwctx->nfilters) {
-
-            if (rctx->req_content_length_n > 0) {
-                r->headers_in.content_length_n = rctx->req_content_length_n;
-            }
-
-            /* last filter */
-            rc = ngx_http_wasm_read_client_request_body(r,
-                     ngx_http_proxy_wasm_on_request_body_handler);
-
-        } else {
-            rc = NGX_OK;
-        }
-
+        rc = ngx_http_proxy_wasm_on_request_headers(pwexec, out);
         break;
     case NGX_PROXY_WASM_STEP_REQ_BODY:
-        rc = ngx_http_proxy_wasm_on_request_body(pwexec, ret);
+        rc = ngx_http_proxy_wasm_on_request_body(pwexec, out);
         break;
     case NGX_PROXY_WASM_STEP_RESP_HEADERS:
-        rc = ngx_http_proxy_wasm_on_response_headers(pwexec, ret);
+        rc = ngx_http_proxy_wasm_on_response_headers(pwexec, out);
         break;
     case NGX_PROXY_WASM_STEP_RESP_BODY:
-        rc = ngx_http_proxy_wasm_on_response_body(pwexec, ret);
+        rc = ngx_http_proxy_wasm_on_response_body(pwexec, out);
         break;
 #ifdef NGX_WASM_RESPONSE_TRAILERS
     case NGX_PROXY_WASM_STEP_RESP_TRAILERS:
-        rc = ngx_http_proxy_wasm_on_response_trailers(pwexec, ret);
+        rc = ngx_http_proxy_wasm_on_response_trailers(pwexec, out);
         break;
 #endif
     case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
@@ -422,7 +409,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_exec_t *pwexec,
         break;
     default:
         ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwexec->log, 0,
-                                 "NYI - http_proxy_wasm step: %d", step);
+                                 "NYI - proxy-wasm step: %d", step);
         break;
     }
 

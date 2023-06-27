@@ -93,14 +93,14 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
 
         switch (rc) {
         case NGX_AGAIN:
-            rctx->state = NGX_HTTP_WASM_REQ_STATE_YIELD;
+            ngx_wasm_yield(&rctx->env);
             break;
         case NGX_ERROR:
-            rctx->state = NGX_HTTP_WASM_REQ_STATE_ERROR;
+            ngx_http_wasm_error(rctx);
             break;
         default:
             ngx_wasm_assert(rc == NGX_OK);
-            rctx->state = NGX_HTTP_WASM_REQ_STATE_CONTINUE;
+            ngx_http_wasm_continue(rctx);
             break;
         }
 
@@ -119,7 +119,8 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
 
 ngx_int_t
 ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host, in_port_t port, ngx_wasm_subsys_env_t *env)
+    ngx_str_t *host, in_port_t port, unsigned tls,
+    ngx_wasm_subsys_env_t *env)
 {
     ngx_memzero(sock, sizeof(ngx_wasm_socket_tcp_t));
 
@@ -158,8 +159,8 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
     ngx_memzero(&sock->url, sizeof(ngx_url_t));
 
 #if (NGX_SSL)
-    sock->ssl_conf = env->ssl_conf;
-    sock->url.default_port = env->ssl_conf ? 443 : 80;
+    sock->ssl_conf = tls ? env->ssl_conf : NULL;
+    sock->url.default_port = tls ? 443 : 80;
 #else
     sock->url.default_port = 80;
 #endif

@@ -81,7 +81,7 @@ qq{
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/\[emerg\] .*? proxy_wasm failed initializing "on_phases" filter \(initialization failed\)/
+qr/\[emerg\] .*? failed initializing "on_phases" filter \(initialization failed\)/
 --- no_error_log
 [error]
 [crit]

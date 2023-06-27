@@ -26,6 +26,7 @@
 #define NGX_V8_CONF                  0x00004000
 
 #define NGX_WASM_DONE_PHASE          15
+#define NGX_WASM_BACKGROUND_PHASE    16
 
 #define NGX_WASM_BAD_FD              (ngx_socket_t) -1
 
@@ -75,9 +76,6 @@ typedef struct ngx_http_wasm_req_ctx_s  ngx_http_wasm_req_ctx_t;
 #endif
 #if (NGX_WASM_STREAM)
 typedef struct ngx_stream_wasm_ctx_s  ngx_stream_wasm_ctx_t;
-#endif
-#if (NGX_WASM_HTTP || NGX_WASM_STREAM)
-typedef struct ngx_wasm_lua_ctx_s  ngx_wasm_lua_ctx_t;
 #endif
 
 
@@ -206,6 +204,7 @@ typedef enum {
 typedef struct {
     ngx_str_t                                name;
     ngx_uint_t                               index;
+    ngx_uint_t                               real_index;
     ngx_uint_t                               on;
 } ngx_wasm_phase_t;
 
@@ -215,6 +214,27 @@ typedef struct {
     ngx_wasm_subsys_e                        kind;
     ngx_wasm_phase_t                        *phases;
 } ngx_wasm_subsystem_t;
+
+
+typedef struct ngx_wasm_lua_ctx_s  ngx_wasm_lua_ctx_t;
+
+typedef struct {
+    ngx_connection_t                        *connection;
+    ngx_buf_tag_t                           *buf_tag;
+    ngx_wasm_subsystem_t                    *subsys;
+#if (NGX_SSL)
+    ngx_wasm_ssl_conf_t                     *ssl_conf;
+#endif
+
+    union {
+#if (NGX_WASM_HTTP)
+        ngx_http_wasm_req_ctx_t             *rctx;
+#endif
+#if (NGX_WASM_STREAM)
+        ngx_stream_wasm_ctx_t               *sctx;
+#endif
+    } ctx;
+} ngx_wasm_subsys_env_t;
 
 
 static const ngx_str_t  NGX_WASM_STR_NO_HTTP =

@@ -162,7 +162,7 @@ ngx_wasm_lua_resolver_resolve(ngx_resolver_ctx_t *rslv_ctx)
 
     rc = ngx_wasm_lua_thread_run(lctx);
 
-    dd("thread run rc: %ld", rc);
+    dd("lua thread run rc: %ld", rc);
 
     switch (rc) {
     case NGX_ERROR:

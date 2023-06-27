@@ -98,6 +98,7 @@ struct ngx_wasm_op_ctx_s {
     ngx_log_t                               *log;
     ngx_wasm_ops_t                          *ops;
     ngx_wasm_ops_plan_t                     *plan;
+    ngx_wasm_phase_t                        *last_phase;
     void                                    *data;
 
     union {

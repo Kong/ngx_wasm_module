@@ -3,6 +3,7 @@
 
 
 #include <ngx_wasm_ops.h>
+#include <ngx_wasm_subsystem.h>
 #include <ngx_proxy_wasm.h>
 #include <ngx_http.h>
 #include <ngx_http_wasm_util.h>
@@ -19,13 +20,10 @@
 #define NGX_HTTP_WASM_TRAILER_FILTER_PHASE (NGX_HTTP_LOG_PHASE + 3)
 #endif
 
-#define ngx_http_wasm_req_yielded(rctx)                                      \
-    (rctx->state == NGX_HTTP_WASM_REQ_STATE_YIELD)
-
 
 typedef enum {
-    NGX_HTTP_WASM_REQ_STATE_ERROR = -1,
-    NGX_HTTP_WASM_REQ_STATE_CONTINUE = 0,
+    NGX_HTTP_WASM_REQ_STATE_CONTINUE,
+    NGX_HTTP_WASM_REQ_STATE_ERROR,
     NGX_HTTP_WASM_REQ_STATE_YIELD,
 } ngx_http_wasm_req_state_e;
 
@@ -34,6 +32,7 @@ struct ngx_http_wasm_req_ctx_s {
     ngx_http_request_t                *r;
     ngx_connection_t                  *connection;
     ngx_pool_t                        *pool;                    /* r->pool */
+    ngx_wasm_subsys_env_t              env;
     ngx_http_wasm_req_state_e          state;                   /* determines next step on resume */
     ngx_wasm_op_ctx_t                  opctx;
     ngx_wasm_ops_t                    *ffi_engine;
@@ -72,6 +71,7 @@ struct ngx_http_wasm_req_ctx_s {
     unsigned                           exited_content_phase:1;  /* executed content handler at least once */
     unsigned                           entered_header_filter:1; /* entered header_filter handler */
 
+    unsigned                           in_wev:1;                /* in wev_handler */
     unsigned                           resp_content_chosen:1;   /* content handler has an output to produce */
     unsigned                           resp_content_sent:1;     /* has started sending output (may have yielded) */
     unsigned                           resp_finalized:1;        /* finalized connection (ourselves) */
@@ -118,9 +118,6 @@ ngx_int_t ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
 void ngx_http_wasm_discard_local_response(ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx);
-void ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main,
-    unsigned wev);
-void ngx_http_wasm_content_wev_handler(ngx_http_request_t *r);
 
 
 /* directives */
@@ -161,6 +158,21 @@ ngx_int_t ngx_http_wasm_prepend_resp_body(ngx_http_wasm_req_ctx_t *rctx,
     ngx_str_t *body);
 
 
+/* yielding */
+#define ngx_http_wasm_continue(rctx)                                         \
+    (rctx->state = NGX_HTTP_WASM_REQ_STATE_CONTINUE)
+#define ngx_http_wasm_error(rctx)                                            \
+    (rctx->state = NGX_HTTP_WASM_REQ_STATE_ERROR)
+#define ngx_http_wasm_yielding(rctx)                                         \
+    (rctx->state == NGX_HTTP_WASM_REQ_STATE_YIELD)
+
+
+void ngx_http_wasm_set_resume_handler(ngx_http_wasm_req_ctx_t *rctx);
+void ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main,
+    unsigned wev);
+
+
+/* externs */
 extern ngx_wasm_subsystem_t  ngx_http_wasm_subsystem;
 extern ngx_wavm_host_def_t   ngx_http_wasm_host_interface;
 extern ngx_module_t          ngx_http_wasm_module;

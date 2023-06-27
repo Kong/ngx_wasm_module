@@ -76,7 +76,7 @@ qq{
   (func $nop)
   (export "nop" (func $nop)))
 --- error_log eval
-qr/\[emerg\] .*? proxy_wasm failed loading "a" filter \(unknown ABI version\)/
+qr/\[emerg\] .*? \[proxy-wasm\] failed loading "a" filter \(unknown ABI version\)/
 --- no_error_log
 [error]
 [crit]
@@ -105,7 +105,7 @@ qq{
   (func $nop)
   (export "proxy_abi_version_0_2_1" (func $nop)))
 --- error_log eval
-qr/\[emerg\] .*? proxy_wasm "a" filter missing malloc \(incompatible SDK interface\)/
+qr/\[emerg\] .*? \[proxy-wasm\] "a" filter missing malloc \(incompatible SDK interface\)/
 --- no_error_log
 [error]
 [crit]
@@ -135,7 +135,7 @@ qq{
   (export "proxy_abi_version_0_2_1" (func $nop))
   (export "proxy_on_memory_allocate" (func $nop)))
 --- error_log eval
-qr/\[emerg\] .*? proxy_wasm "a" filter missing one of: .*? \(incompatible SDK interface\)/,
+qr/\[emerg\] .*? \[proxy-wasm\] "a" filter missing one of: .*? \(incompatible SDK interface\)/,
 --- no_error_log
 [error]
 [crit]
@@ -164,7 +164,7 @@ qq{
   (func $nop)
   (export "proxy_abi_version_0_0_0" (func $nop)))
 --- error_log eval
-qr/\[emerg\] .*? proxy_wasm failed loading "a" filter \(unknown ABI version\)/,
+qr/\[emerg\] .*? \[proxy-wasm\] failed loading "a" filter \(unknown ABI version\)/,
 --- no_error_log
 [error]
 [crit]
@@ -193,7 +193,7 @@ qq{
   (func $nop)
   (export "proxy_abi_version_vnext" (func $nop)))
 --- error_log eval
-qr/\[emerg\] .*? proxy_wasm failed loading "a" filter \(incompatible ABI version\)/
+qr/\[emerg\] .*? \[proxy-wasm\] failed loading "a" filter \(incompatible ABI version\)/
 --- no_error_log
 [error]
 [crit]

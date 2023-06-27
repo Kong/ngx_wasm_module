@@ -113,9 +113,10 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    uint32_t     log_level, msg_size;
-    u_char      *msg_data;
-    ngx_uint_t   level;
+    uint32_t                log_level, msg_size;
+    ngx_uint_t              level;
+    u_char                 *msg_data;
+    ngx_proxy_wasm_exec_t  *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
 
     log_level = args[0].of.i32;
     msg_size = args[2].of.i32;
@@ -152,8 +153,8 @@ ngx_proxy_wasm_hfuncs_proxy_log(ngx_wavm_instance_t *instance,
 
     }
 
-    ngx_log_error(level, instance->log_ctx.orig_log, 0, "%*s",
-                  msg_size, msg_data);
+    ngx_proxy_wasm_log_error(level, pwexec->log, 0, "%*s",
+                             msg_size, msg_data);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -482,7 +483,7 @@ ngx_proxy_wasm_hfuncs_get_header_map_pairs(ngx_wavm_instance_t *instance,
     }
 
     if (truncated) {
-        ngx_proxy_wasm_log_error(NGX_LOG_WARN, instance->log, 0,
+        ngx_proxy_wasm_log_error(NGX_LOG_WARN, pwexec->log, 0,
                                  "marshalled map truncated to %ui elements",
                                  truncated);
     }
@@ -871,21 +872,14 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_resume_http_request(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_proxy_wasm_exec_t    *pwexec;
-    ngx_proxy_wasm_ctx_t     *pwctx;
     ngx_http_wasm_req_ctx_t  *rctx;
 
     dd("enter");
 
-    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
-    pwctx = pwexec->parent;
-
-    pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
-
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
 
     /* force resume */
-    rctx->state = NGX_HTTP_WASM_REQ_STATE_CONTINUE;
+    ngx_http_wasm_continue(rctx);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -935,7 +929,8 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     switch (rc) {
 
     case NGX_OK:
-        pwexec->parent->action = NGX_PROXY_WASM_ACTION_DONE;
+        ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
+                                           NGX_PROXY_WASM_ACTION_DONE);
         break;
 
     case NGX_ERROR:
@@ -1007,6 +1002,9 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
     }
 
     *callout_id = call->id;
+
+    ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
+                                       NGX_PROXY_WASM_ACTION_PAUSE);
 
     return ngx_proxy_wasm_result_ok(rets);
 }

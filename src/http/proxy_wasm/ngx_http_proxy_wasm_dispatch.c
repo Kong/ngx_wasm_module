@@ -142,7 +142,6 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     ngx_event_t                     *ev;
     ngx_table_elt_t                 *elts, *elt;
     ngx_wasm_socket_tcp_t           *sock = NULL;
-    ngx_wasm_subsys_env_t            env;
 #if 0
     ngx_pool_cleanup_t              *cln;
 #endif
@@ -150,9 +149,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     ngx_http_request_t              *r;
     ngx_http_wasm_req_ctx_t         *rctxp = NULL;
     ngx_http_proxy_wasm_dispatch_t  *call = NULL;
-#if (NGX_SSL)
     unsigned                         enable_ssl = 0;
-#endif
 
     /* rctx or fake request */
 
@@ -206,6 +203,8 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
             break;
         }
     }
+
+    rctx = call->rctx;
 
     call->pool = ngx_create_pool(512, r->connection->log);
     if (call->pool == NULL) {
@@ -336,7 +335,6 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     /* body */
 
     if (body && body->len) {
-        rctx = call->rctx;
         call->req_body_len = body->len;
         call->req_body = ngx_wasm_chain_get_free_buf(r->connection->pool,
                                                      &rctx->free_bufs,
@@ -354,19 +352,10 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     sock = &call->sock;
 
-    ngx_memzero(&env, sizeof(ngx_wasm_subsys_env_t));
+    ngx_wasm_assert(rctx);
 
-    env.connection = r->connection;
-    env.buf_tag = buf_tag;
-    env.subsys = &ngx_http_wasm_subsystem;
-    env.ctx.rctx = call->rctx;
-#if (NGX_SSL)
-    env.ssl_conf = (enable_ssl)
-                   ? ngx_wasm_core_ssl_conf((ngx_cycle_t *) ngx_cycle)
-                   : NULL;
-#endif
-
-    if (ngx_wasm_socket_tcp_init(sock, &call->host, port, &env)
+    if (ngx_wasm_socket_tcp_init(sock, &call->host, port, enable_ssl,
+                                 &rctx->env)
         != NGX_OK)
     {
         dd("tcp init error");
@@ -801,8 +790,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         pwexec->call = call;
 
         ecode = ngx_proxy_wasm_run_step(pwexec, pwexec->ictx,
-                                        NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE,
-                                        NULL);
+                                        NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE);
         if (ecode != NGX_PROXY_WASM_ERR_NONE) {
             goto error;
         }
@@ -841,6 +829,7 @@ error:
         rc = NGX_ERROR;
     }
 
+    ngx_http_wasm_error(rctx);
     ngx_http_proxy_wasm_dispatch_err(call);
 
     ngx_wasm_assert(rc == NGX_ERROR);

@@ -16,24 +16,6 @@ static ngx_int_t ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *ctx,
     ngx_wasm_phase_t *phase, ngx_wasm_op_t *op);
 
 
-static ngx_inline ngx_wasm_phase_t *
-ngx_wasm_ops_phase_lookup(ngx_wasm_ops_t *ops,
-    ngx_uint_t phaseidx)
-{
-    ngx_wasm_phase_t  *phase = ops->subsystem->phases;
-
-    while (phase->index != phaseidx) {
-        phase++;
-    }
-
-    if (phase->name.len == 0) {
-        return NULL;
-    }
-
-    return phase;
-}
-
-
 ngx_wasm_ops_t *
 ngx_wasm_ops_new(ngx_pool_t *pool, ngx_log_t *log, ngx_wavm_t *vm,
     ngx_wasm_subsystem_t *subsystem)
@@ -270,14 +252,38 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
     ops = ctx->ops;
     plan = ctx->plan;
 
-    dd("enter");
+    dd("enter (phaseidx: %ld, phase: \"%.*s\")",
+       phaseidx, (int) phase->name.len, phase->name.data);
 
-    phase = ngx_wasm_ops_phase_lookup(ops, phaseidx);
+    phase = ngx_wasm_phase_lookup(ops->subsystem, phaseidx);
     if (phase == NULL) {
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, ctx->log, 0,
-                           "ops resume: no phase for index '%ui'", phase);
+                           "ops resume: no phase for index '%ld'", phaseidx);
         goto done;
     }
+
+    dd("phaseidx: %ld, phase: %.*s",
+       phaseidx, (int) phase->name.len, phase->name.data);
+
+    /* check last phase */
+
+#if 0
+    switch (phaseidx) {
+    default:
+        if (ctx->last_phase
+            && phase->real_index <= ctx->last_phase->real_index)
+        {
+            dd("ops resume: \"%.*s\" phase already executed (%ld <= %ld)",
+               (int) ctx->last_phase->name.len, ctx->last_phase->name.data,
+               phase->real_index, ctx->last_phase->real_index);
+
+            rc = NGX_DONE;
+            goto done;
+        }
+    }
+#endif
+
+    /* run pipeline */
 
     pipeline = &plan->pipelines[phase->index];
 
@@ -303,6 +309,12 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
                     || rc == NGX_DECLINED
                     || rc == NGX_AGAIN
                     || rc == NGX_DONE);
+
+    ctx->last_phase = phase;
+
+    dd("ops resume: setting last phase to \"%.*s\" (%ld)",
+       (int) ctx->last_phase->name.len, ctx->last_phase->name.data,
+       ctx->last_phase->real_index);
 
 done:
 
@@ -368,6 +380,7 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     ngx_proxy_wasm_subsystem_t  *subsystem = NULL;
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t     *rctx = opctx->data;
+    ngx_http_request_t          *r = rctx->r;
     ngx_http_wasm_loc_conf_t    *loc;
 
     loc = ngx_http_get_module_loc_conf(rctx->r, ngx_http_wasm_module);
@@ -396,6 +409,8 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     if (pwctx == NULL) {
         goto done;
     }
+
+    pwctx->phase = phase;
 
     switch (phase->index) {
 
@@ -429,8 +444,16 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
         break;
 
     case NGX_HTTP_CONTENT_PHASE:
-        rc = ngx_proxy_wasm_resume(pwctx, phase,
-                                   NGX_PROXY_WASM_STEP_REQ_BODY_READ);
+        if (rctx->req_content_length_n > 0) {
+            r->headers_in.content_length_n = rctx->req_content_length_n;
+        }
+
+        rc = ngx_http_wasm_read_client_request_body(r,
+                 ngx_http_proxy_wasm_on_request_body_handler);
+        if (rc == NGX_OK && ngx_http_wasm_yielding(rctx)) {
+            rc = NGX_AGAIN;
+        }
+
         break;
 
     case NGX_HTTP_WASM_HEADER_FILTER_PHASE:
@@ -473,7 +496,10 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
 
 done:
 
-    ngx_wasm_assert(rc >= NGX_OK           /* step completed */
+    ngx_wasm_assert(rc == NGX_OK           /* step completed */
+#ifdef NGX_WASM_HTTP
+                    || rc >= NGX_HTTP_SPECIAL_RESPONSE
+#endif
                     || rc == NGX_ERROR
                     || rc == NGX_AGAIN     /* step yielded */
                     || rc == NGX_DECLINED  /* handled by caller */

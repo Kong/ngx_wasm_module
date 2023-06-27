@@ -68,8 +68,8 @@ NYI
 --- error_log eval
 [
     qr/pausing after "ResponseHeaders"/,
-    qr/\[error\] .*? \[wasm\] proxy_wasm cannot pause in "header_filter" phase/,
-    qr/\[warn\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(not yieldable\)/
+    qr#\[error\] .*? filter 1/1 cannot pause in "header_filter" phase#,
+    qr#\[warn\] .*? filter 1/1 failed resuming "on_response_body" step in "body_filter" phase \(not yieldable\)#
 ]
 
 
@@ -86,8 +86,8 @@ NYI
 --- error_log eval
 [
     qr/pausing after "ResponseBody"/,
-    qr/\[error\] .*? \[wasm\] proxy_wasm cannot pause in "body_filter" phase/,
-    qr/\[warn\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(not yieldable\)/
+    qr#\[error\] .*? filter 1/1 cannot pause in "body_filter" phase#,
+    qr#\[warn\] .*? filter 1/1 failed resuming "on_log" step in "log" phase \(not yieldable\)#
 ]
 
 
@@ -143,14 +143,15 @@ pausing after "RequestHeaders"
     }
 
     location /t {
-        echo_subrequest_async GET /pause;
         echo_subrequest_async GET /nop;
+        echo_subrequest_async GET /pause;
     }
 --- request
 POST /t
 Hello world
---- error_code:
+--- error_code: 200
 --- response_body
+nop
 --- error_log
 pausing after "RequestBody"
 --- no_error_log
@@ -187,8 +188,8 @@ NYI
 --- error_log eval
 [
     qr/pausing after "ResponseHeaders"/,
-    qr/\[error\] .*? \[wasm\] proxy_wasm cannot pause in "header_filter" phase/,
-    qr/\[warn\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(not yieldable\)/
+    qr#\[error\] .*? filter 1/1 cannot pause in "header_filter" phase#,
+    qr#\[warn\] .*? filter 1/1 failed resuming "on_response_body" step in "body_filter" phase \(not yieldable\)#
 ]
 
 
@@ -223,6 +224,6 @@ ok
 --- error_log eval
 [
     qr/pausing after "ResponseBody"/,
-    qr/\[error\] .*? \[wasm\] proxy_wasm cannot pause in "body_filter" phase/,
-    qr/\[warn\] .*? proxy_wasm "on_phases" filter \(1\/1\) failed resuming \(not yieldable\)/
+    qr#\[error\] .*? filter 1/1 cannot pause in "body_filter" phase#,
+    qr#\[warn\] .*? filter 1/1 failed resuming "on_response_body" step in "body_filter" phase \(not yieldable\)#
 ]

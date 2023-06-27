@@ -118,17 +118,16 @@ error:
 done:
 
     switch (rc) {
-#if 0
-    case NGX_DONE:
-        rctx->state = NGX_HTTP_WASM_REQ_STATE_CONTINUE;
-        break;
-#endif
     case NGX_AGAIN:
-        rctx->state = NGX_HTTP_WASM_REQ_STATE_YIELD;
         break;
     default:
-        if (!rctx->resp_content_sent) {
+        if (!rctx->resp_content_sent
+            && rctx->entered_content_phase
+            && !rctx->in_wev
+            && r == r->main)
+        {
             r->main->count++;
+            dd("r->main->count++: %d", r->main->count);
         }
 
         ngx_wasm_assert(rc >= NGX_OK);
@@ -452,7 +451,8 @@ ngx_http_wasm_ops_add_filter(ngx_wasm_ops_plan_t *plan,
                     | (1 << NGX_HTTP_WASM_TRAILER_FILTER_PHASE)
 #endif
                     | (1 << NGX_HTTP_LOG_PHASE)
-                    | (1 << NGX_WASM_DONE_PHASE);
+                    | (1 << NGX_WASM_DONE_PHASE)
+                    | (1 << NGX_WASM_BACKGROUND_PHASE);
 
     op->conf.proxy_wasm.filter = filter;
 

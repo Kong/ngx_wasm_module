@@ -308,7 +308,7 @@ path: /test
 --- grep_error_log eval: qr/(NYI|\[.*?failed resuming).*/
 --- grep_error_log_out eval
 qr/.*?NYI - cannot set request path with querystring.*
-\[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/1\) failed resuming \(instance trapped\).*/
+\[warn\] .*? filter 1\/1 failed resuming "on_response_headers" step in "header_filter" phase \(instance trapped\)/
 --- no_error_log
 [alert]
 [stderr]

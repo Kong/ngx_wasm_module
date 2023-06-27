@@ -19,11 +19,11 @@ __DATA__
     location /t {
         wasm_call rewrite wasi_vm_tests test_wasi_non_host;
     }
---- error_code: 204
+--- response_body
+test passed
 --- no_error_log
 [error]
 [crit]
-[emerg]
 
 
 

@@ -296,10 +296,18 @@ Content-Length: 0.*
 ok
 --- error_log eval
 qr/on_http_call_response \(id: \d+, status: 200, headers: 5, body_bytes: \d+, trailers: 0/
+--- grep_error_log eval: qr/\*\d+.*?\[proxy-wasm\].*?(resuming|freeing).*/
+--- grep_error_log_out eval
+qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_dispatch_response" step in "access" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_log" step in "log" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_done" step in "done" phase[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*\Z/
 --- no_error_log
 [error]
 [crit]
-[emerg]
 
 
 
@@ -356,8 +364,12 @@ qr/on_http_call_response \(id: \d+, status: 200, headers: 5, body_bytes: \d+, tr
     qr/\[crit\] .*? panicked at 'trap!'/,
     qr/\[error\] .*? (error while executing at wasm backtrace:|(Uncaught RuntimeError)?unreachable)/
 ]
---- no_error_log
-[emerg]
+--- grep_error_log eval: qr/\*\d+.*?\[proxy-wasm\].*?(resuming|freeing).*/
+--- grep_error_log_out eval
+qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_dispatch_response" step in "access" phase[^#*]*
+\*\d+ .*? filter 1\/1 failed resuming "on_response_body" step in "body_filter" phase \(dispatch failed\)[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*\Z/
 
 
 
@@ -405,10 +417,10 @@ freed. /error does not concern itself with any chain.
 --- error_code: 502
 --- response_body
 error handler content
---- grep_error_log eval: qr/\*\d+.*?(resuming in "done"|wasm cleaning up).*/
+--- grep_error_log eval: qr/\*\d+.*?(resuming "on_done"|wasm cleaning up).*/
 --- grep_error_log_out eval
 qr/.*? wasm cleaning up request pool.*
-.*?resuming in "done"/
+.*?resuming "on_done" step/
 --- no_error_log
 [error]
 [crit]
@@ -478,12 +490,12 @@ are freed.
 --- error_code: 502
 --- response_body
 error_handler_content
---- grep_error_log eval: qr/\*\d+.*?(resuming in "done"|wasm cleaning up).*/
+--- grep_error_log eval: qr/\*\d+.*?(resuming "on_done"|wasm cleaning up).*/
 --- grep_error_log_out eval
 qr/.*?wasm cleaning up request pool.*
-.*?resuming in "done".*
+.*?resuming "on_done" step.*
 .*?wasm cleaning up request pool.*
-.*?resuming in "done"/
+.*?resuming "on_done" step/
 --- no_error_log
 [error]
 [crit]

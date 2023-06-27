@@ -454,26 +454,26 @@ bad opts.isolation value: -1
 --- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing instance|finalizing|freeing|now|trap in|filter chain).*/
 --- grep_error_log_out eval
 [
-qr/^\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\).*
-.*?\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "header_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "log" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "done" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) finalizing context.*
-\*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\).*/,
-qr/^\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\).*
-.*?\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "header_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "log" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "done" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) finalizing context.*
-\*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\).*/
+qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\)[^#*]*
+\*\d+ .*? "hostcalls" filter reusing instance[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_headers" step in "header_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_log" step in "log" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_done" step in "done" phase[^#*]*
+\*\d+ .*? filter 1\/1 finalizing context[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*\Z/,
+qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\)[^#*]*
+\*\d+ .*? "hostcalls" filter reusing instance[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_headers" step in "header_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_log" step in "log" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_done" step in "done" phase[^#*]*
+\*\d+ .*? filter 1\/1 finalizing context[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*\Z/,
 ]
 
 
@@ -511,32 +511,32 @@ qr/^\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\).*
 --- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing instance|finalizing|freeing|now|trap in|filter chain)|#\d+ on_(configure|vm_start)).*/
 --- grep_error_log_out eval
 [
-qr/^[^#]*#0 on_vm_start[^#*]*
-#0 on_configure[^#]*
-\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\).*
-\*\d+ proxy_wasm "hostcalls" filter new instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "rewrite" phase[^#*]*
+qr/\A[^#]*#0 on_vm_start[^#*]*
 #0 on_configure[^#*]*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "header_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "log" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "done" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) finalizing context.*
-\*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\).*
-\*\d+ wasm freeing "hostcalls" instance/,
-qr/^\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\).*
-\*\d+ proxy_wasm "hostcalls" filter new instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "rewrite" phase[^#*]*
+\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\)[^#*]*
+\*\d+ .*? "hostcalls" filter new instance[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 #0 on_configure[^#*]*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "header_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "log" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "done" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) finalizing context.*
-\*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\).*
-\*\d+ wasm freeing "hostcalls" instance/
+\*\d+ .*? filter 1\/1 resuming "on_response_headers" step in "header_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_log" step in "log" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_done" step in "done" phase[^#*]*
+\*\d+ .*? filter 1\/1 finalizing context[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*
+\*\d+ wasm freeing "hostcalls" instance[^#*]*\Z/,
+qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\)[^#*]*
+\*\d+ .*? "hostcalls" filter new instance[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
+#0 on_configure[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_headers" step in "header_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_log" step in "log" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_done" step in "done" phase[^#*]*
+\*\d+ .*? filter 1\/1 finalizing context[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*
+\*\d+ wasm freeing "hostcalls" instance[^#*]*\Z/,
 ]
 
 
@@ -576,26 +576,26 @@ qr/^\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\).*
 --- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing instance|finalizing|freeing|now|trap in|filter chain)|#\d+ (on_configure|on_vm_start)).*/
 --- grep_error_log_out eval
 [
-qr/^[^#]*#0 on_vm_start[^#*]*
-#0 on_configure[^#]*
-\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\).*
-.*?\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "header_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "log" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "done" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) finalizing context.*
-\*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\)/,
-qr/^\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\).*
-.*?\*\d+ proxy_wasm "hostcalls" filter reusing instance.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "rewrite" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "header_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "body_filter" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "log" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) resuming in "done" phase.*
-\*\d+ proxy_wasm "hostcalls" filter \(1\/1\) finalizing context.*
-\*\d+ proxy_wasm freeing stream context #\d+ \(main: 1\)/
+qr/\A[^#]*#0 on_vm_start[^#*]*
+#0 on_configure[^#*]*
+\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\)[^#*]*
+\*\d+ .*? "hostcalls" filter reusing instance[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_headers" step in "header_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_log" step in "log" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_done" step in "done" phase[^#*]*
+\*\d+ .*? filter 1\/1 finalizing context[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*\Z/,
+qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\)[^#*]*
+\*\d+ .*? "hostcalls" filter reusing instance[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_headers" step in "header_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_log" step in "log" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_done" step in "done" phase[^#*]*
+\*\d+ .*? filter 1\/1 finalizing context[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*\Z/,
 ]

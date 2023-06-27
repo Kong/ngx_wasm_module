@@ -162,6 +162,12 @@ ngx_http_wasm_ffi_start(ngx_http_request_t *r)
             : NGX_HTTP_REWRITE_PHASE;
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, phase);
+    if (rc == NGX_AGAIN) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm \"ffi_start\" yield");
+
+        ngx_wasm_yield(&rctx->env);
+    }
 
     /* ignore errors: resume could trap, but FFI call succeeded */
 
