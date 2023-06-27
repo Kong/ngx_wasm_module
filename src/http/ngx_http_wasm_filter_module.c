@@ -88,6 +88,8 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
     rc = ngx_wasm_ops_resume(&rctx->opctx,
                              NGX_HTTP_WASM_HEADER_FILTER_PHASE);
 
+    dd("ops resume rc: %ld", rc);
+
     if (r->err_status) {
         /* previous unhandled error before resuming header_filter */
         rc = ngx_http_next_header_filter(r);
@@ -130,6 +132,10 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
     rc = ngx_http_wasm_rctx(r, &rctx);
     if (rc == NGX_ERROR) {
         goto done;
+    }
+
+    if (rc != NGX_DECLINED && !rctx->entered_header_filter) {
+        rc = NGX_DECLINED;
     }
 
     if (rc == NGX_DECLINED) {

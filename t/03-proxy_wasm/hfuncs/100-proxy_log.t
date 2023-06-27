@@ -24,11 +24,11 @@ __DATA__
 ok
 --- error_log eval
 [
-    qr/\[debug\] .*? \*\d+ proxy_log trace$/,
-    qr/\[info\] .*? \*\d+ proxy_log info, client:/,
-    qr/\[warn\] .*? \*\d+ proxy_log warn, client:/,
-    qr/\[error\] .*? \*\d+ proxy_log error, client:/,
-    qr/\[crit\] .*? \*\d+ proxy_log critical, client:/
+    qr/\[debug\] .*? \*\d+ \[proxy-wasm\]\["hostcalls" #\d+\] proxy_log trace$/,
+    qr/\[info\] .*? \*\d+ \[proxy-wasm\]\["hostcalls" #\d+\] proxy_log info, client:/,
+    qr/\[warn\] .*? \*\d+ \[proxy-wasm\]\["hostcalls" #\d+\] proxy_log warn, client:/,
+    qr/\[error\] .*? \*\d+ \[proxy-wasm\]\["hostcalls" #\d+\] proxy_log error, client:/,
+    qr/\[crit\] .*? \*\d+ \[proxy-wasm\]\["hostcalls" #\d+\] proxy_log critical, client:/
 ]
 --- no_error_log
 [alert]

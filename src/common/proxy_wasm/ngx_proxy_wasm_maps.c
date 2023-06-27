@@ -718,19 +718,11 @@ ngx_proxy_wasm_maps_get_dispatch_status(ngx_wavm_instance_t *instance,
 
     /* status */
 
-#if (NGX_DEBUG)
-    ngx_wasm_assert(&reader->fake_r);
-    ngx_wasm_assert(&reader->fake_r.upstream);
-    ngx_wasm_assert(&reader->fake_r.upstream->headers_in);
+    ngx_wasm_assert(reader->fake_r.upstream);
 
-#else
-    if (&reader->fake_r == NULL
-        || &reader->fake_r.upstream == NULL
-        || &reader->fake_r.upstream->headers_in == NULL)
-    {
+    if (reader->fake_r.upstream == NULL) {
         return NULL;
     }
-#endif
 
     status = reader->fake_r.upstream->headers_in.status_n;
     if (!status) {

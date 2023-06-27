@@ -347,9 +347,9 @@ qr/500 Internal Server Error/
 --- grep_error_log eval: qr/(.*?cannot set|\[.*?failed resuming).*/
 --- grep_error_log_out eval
 qr/.*?host trap \(bad usage\): cannot set response body.*
-\[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/request_headers".*
+\[warn\] .*? filter 1\/2 failed resuming "on_response_headers" step in "header_filter" phase \(instance trapped\).*? subrequest: "\/request_headers".*
 .*?host trap \(bad usage\): cannot set response body.*
-\[warn\] .*? \*\d+ \[wasm\] proxy_wasm "hostcalls" filter \(1\/2\) failed resuming \(instance trapped\).*? subrequest: "\/response_headers".*
+\[warn\] .*? filter 1\/2 failed resuming "on_response_body" step in "body_filter" phase \(instance trapped\).*? subrequest: "\/response_headers".*
 .*?host trap \(bad usage\): cannot set response body.*/
 --- no_error_log
 [alert]

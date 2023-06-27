@@ -74,17 +74,16 @@ typedef enum {
 
 
 typedef enum {
-    NGX_PROXY_WASM_STEP_REQ_HEADERS = 0,
-    NGX_PROXY_WASM_STEP_REQ_BODY_READ,
+    NGX_PROXY_WASM_STEP_REQ_HEADERS = 1,
     NGX_PROXY_WASM_STEP_REQ_BODY,
     NGX_PROXY_WASM_STEP_REQ_TRAILERS,
     NGX_PROXY_WASM_STEP_RESP_HEADERS,
     NGX_PROXY_WASM_STEP_RESP_BODY,
     NGX_PROXY_WASM_STEP_RESP_TRAILERS,
     NGX_PROXY_WASM_STEP_LOG,
-    NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE,
     NGX_PROXY_WASM_STEP_DONE,
     NGX_PROXY_WASM_STEP_TICK,
+    NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE,
 } ngx_proxy_wasm_step_e;
 
 
@@ -175,6 +174,13 @@ typedef struct {
 } ngx_proxy_wasm_store_t;
 
 
+typedef struct {
+    ngx_str_t                          log_prefix;
+    ngx_log_t                         *orig_log;
+    ngx_proxy_wasm_exec_t             *pwexec;
+} ngx_proxy_wasm_log_ctx_t;
+
+
 struct ngx_proxy_wasm_exec_s {
     ngx_uint_t                         root_id;
     ngx_uint_t                         id;
@@ -184,6 +190,7 @@ struct ngx_proxy_wasm_exec_s {
     ngx_proxy_wasm_err_e               ecode;
     ngx_pool_t                        *pool;
     ngx_log_t                         *log;
+    ngx_proxy_wasm_log_ctx_t           log_ctx;
     ngx_proxy_wasm_ctx_t              *parent;
     ngx_proxy_wasm_filter_t           *filter;
     ngx_proxy_wasm_instance_t         *ictx;
@@ -216,6 +223,7 @@ struct ngx_proxy_wasm_ctx_s {
     ngx_wasm_phase_t                  *phase;
     ngx_proxy_wasm_action_e            action;
     ngx_proxy_wasm_step_e              step;
+    ngx_proxy_wasm_step_e              last_step;
     ngx_uint_t                         exec_index;
 
     /* cache */
@@ -272,7 +280,7 @@ typedef struct {
     ngx_proxy_wasm_ctx_t              *(*get_context)(void *data);
     ngx_int_t                          (*resume)(ngx_proxy_wasm_exec_t *pwexec,
                                                  ngx_proxy_wasm_step_e step,
-                                                 ngx_uint_t *ret);
+                                                 ngx_proxy_wasm_action_e *out);
     ngx_int_t                          (*ecode)(ngx_proxy_wasm_err_e ecode);
 } ngx_proxy_wasm_subsystem_t;
 
@@ -396,17 +404,32 @@ void ngx_proxy_wasm_release_instance(ngx_proxy_wasm_instance_t *ictx,
 
 
 /* utils */
-void ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev);
+ngx_str_t *ngx_proxy_wasm_step_name(ngx_proxy_wasm_step_e step);
+ngx_str_t *ngx_proxy_wasm_action_name(ngx_proxy_wasm_action_e action);
+u_char *ngx_proxy_wasm_log_error_handler(ngx_log_t *log, u_char *buf,
+    size_t len);
 void ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
     ngx_proxy_wasm_err_e err, const char *fmt, ...);
+void ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev);
 ngx_int_t ngx_proxy_wasm_pairs_unmarshal(ngx_proxy_wasm_exec_t *pwexec,
     ngx_array_t *dst, ngx_proxy_wasm_marshalled_map_t *map);
 unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_exec_t *pwexec,
     ngx_list_t *list, ngx_array_t *extras, ngx_wavm_ptr_t *out,
     uint32_t *out_size, ngx_uint_t *truncated);
 ngx_proxy_wasm_err_e ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
-    ngx_proxy_wasm_instance_t *ictx, ngx_proxy_wasm_step_e step,
-    ngx_uint_t *ret);
+    ngx_proxy_wasm_instance_t *ictx, ngx_proxy_wasm_step_e step);
+
+
+static ngx_inline void
+ngx_proxy_wasm_ctx_set_next_action(ngx_proxy_wasm_ctx_t *pwctx,
+    ngx_proxy_wasm_action_e action)
+{
+    ngx_proxy_wasm_log_error(NGX_LOG_DEBUG, pwctx->log, 0,
+                             "setting next action: pwctx->action = \"%V\" "
+                             "(pwctx: %p)",
+                             ngx_proxy_wasm_action_name(action), pwctx);
+    pwctx->action = action;
+}
 
 
 static ngx_inline ngx_proxy_wasm_exec_t *

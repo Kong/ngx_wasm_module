@@ -33,7 +33,7 @@ qq{
 [
     qr/\[crit\] .*? panicked at 'trap on_vm_start'/,
     qr/(\[error\] .*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed)/,
-    qr/\[emerg\] .*? proxy_wasm failed initializing "hostcalls" filter \(initialization failed\)/,
+    qr/\[emerg\] .*? failed initializing "hostcalls" filter \(initialization failed\)/,
 ]
 --- must_die: 2
 
@@ -58,7 +58,7 @@ qq{
 --- error_log eval
 [
     qr/\[info\] .*? on_vm_start returning false/,
-    qr/\[emerg\] .*? proxy_wasm failed initializing "hostcalls" filter \(initialization failed\)/,
+    qr/\[emerg\] .*? failed initializing "hostcalls" filter \(initialization failed\)/,
 ]
 --- no_error_log
 [crit]
@@ -86,7 +86,7 @@ qq{
 [
     qr/\[crit\] .*? panicked at 'trap on_configure'/,
     qr/(\[error\] .*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed)/,
-    qr/\[emerg\] .*? proxy_wasm failed initializing "hostcalls" filter \(initialization failed\)/,
+    qr/\[emerg\] .*? failed initializing "hostcalls" filter \(initialization failed\)/,
 ]
 --- must_die: 2
 
@@ -109,7 +109,7 @@ qq{
         return 200;
     }
 --- error_log eval
-qr/\[emerg\] .*? proxy_wasm failed initializing "hostcalls" filter \(initialization failed\)/
+qr/\[emerg\] .*? failed initializing "hostcalls" filter \(initialization failed\)/
 --- no_error_log
 [error]
 [crit]

@@ -31,12 +31,14 @@ static ngx_int_t ngx_http_wasm_content_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_log_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx,
     ngx_int_t rc);
+static void ngx_http_wasm_wev_handler(ngx_http_request_t *r);
 
 
 static ngx_wasm_phase_t  ngx_http_wasm_phases[] = {
 
     { ngx_string("post_read"),
       NGX_HTTP_POST_READ_PHASE,
+      0,
       0 },
 
     /* server_rewrite */
@@ -44,16 +46,19 @@ static ngx_wasm_phase_t  ngx_http_wasm_phases[] = {
 
     { ngx_string("rewrite"),
       NGX_HTTP_REWRITE_PHASE,
+      1,
       (1 << NGX_HTTP_REWRITE_PHASE) },
 
     /* post_rewrite */
 
     { ngx_string("preaccess"),
       NGX_HTTP_PREACCESS_PHASE,
+      2,
       (1 << NGX_HTTP_PREACCESS_PHASE) },
 
     { ngx_string("access"),
       NGX_HTTP_ACCESS_PHASE,
+      3,
       (1 << NGX_HTTP_ACCESS_PHASE) },
 
     /* post_access */
@@ -61,36 +66,47 @@ static ngx_wasm_phase_t  ngx_http_wasm_phases[] = {
 
     { ngx_string("content"),
       NGX_HTTP_CONTENT_PHASE,
+      4,
       (1 << NGX_HTTP_CONTENT_PHASE) },
 
     { ngx_string("header_filter"),
       NGX_HTTP_WASM_HEADER_FILTER_PHASE,
+      5,
       (1 << NGX_HTTP_WASM_HEADER_FILTER_PHASE) },
 
     { ngx_string("body_filter"),
       NGX_HTTP_WASM_BODY_FILTER_PHASE,
+      6,
       (1 << NGX_HTTP_WASM_BODY_FILTER_PHASE) },
 
 #ifdef NGX_WASM_RESPONSE_TRAILERS
     { ngx_string("trailer_filter"),
       NGX_HTTP_WASM_TRAILER_FILTER_PHASE,
+      7,
       (1 << NGX_HTTP_WASM_TRAILER_FILTER_PHASE) },
 #endif
 
     { ngx_string("log"),
       NGX_HTTP_LOG_PHASE,
+      8,
       (1 << NGX_HTTP_LOG_PHASE) },
 
     { ngx_string("done"),
       NGX_WASM_DONE_PHASE,
+      9,
       (1 << NGX_WASM_DONE_PHASE) },
 
-    { ngx_null_string, 0, 0 }
+    { ngx_string("background"),
+      NGX_WASM_BACKGROUND_PHASE,
+      10,
+      (1 << NGX_WASM_BACKGROUND_PHASE) },
+
+    { ngx_null_string, 0, 0, 0 }
 };
 
 
 ngx_wasm_subsystem_t  ngx_http_wasm_subsystem = {
-    NGX_WASM_DONE_PHASE + 1,
+    NGX_WASM_BACKGROUND_PHASE + 1,
     NGX_WASM_SUBSYS_HTTP,
     ngx_http_wasm_phases,
 };
@@ -508,6 +524,16 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         rctx->req_keepalive = r->keepalive;
         rctx->fake_request = fake;
 
+        /* setup subsystem env */
+
+        rctx->env.connection = r->connection;
+        rctx->env.buf_tag = buf_tag;
+        rctx->env.subsys = &ngx_http_wasm_subsystem;
+        rctx->env.ctx.rctx = rctx;
+#if (NGX_SSL)
+        rctx->env.ssl_conf = ngx_wasm_core_ssl_conf((ngx_cycle_t *) ngx_cycle);
+#endif
+
         ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "wasm rctx created: %p (r: %p, main: %d, fake: %d)",
                        rctx, r, r->main == r, rctx->fake_request);
@@ -585,18 +611,16 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
 static ngx_int_t
 ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
 {
-    ngx_int_t            n = 0;
     ngx_http_request_t  *r = rctx->r;
 
-    dd("enter (rc: %ld)", rc);
+    dd("enter (rc: %ld, count: %d, resp_content_sent: %d, "
+       "entered_content_phase: %d)", rc, r->main->count,
+       rctx->resp_content_sent, rctx->entered_content_phase);
 
-    if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+    if (rc >= NGX_HTTP_SPECIAL_RESPONSE
+        || rc == NGX_AGAIN)
+    {
         return rc;
-    }
-
-    if (rc == NGX_AGAIN) {
-        r->main->count++;
-        return NGX_DONE;
     }
 
     if (rctx->resp_content_sent) {
@@ -609,27 +633,14 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
         if (!rctx->resp_finalized) {
             rctx->resp_finalized = 1;
 
-            if (rctx->resp_content_chosen) {
-                n++;
-            }
+            if (rctx->entered_content_phase || rctx->in_wev) {
+                ngx_log_debug5(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                               "wasm finalizing request "
+                               "(main: %d, count: %l, uri: \"%V\", "
+                               "rc: %d, rctx: %p)",
+                               r->main == r, r->main->count, &r->uri, rc, rctx);
 
-            if (!rctx->entered_content_phase) {
-                n++;
-            }
-
-            ngx_log_debug5(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "wasm finalizing request "
-                           "(main: %d, count: %l, uri: \"%V\","
-                           " rctx: %p, n: %d)",
-                           r->main == r, r->main->count, &r->uri, rctx, n);
-
-            while (n-- > 0) {
-                if (n == 0) {
-                    ngx_http_finalize_request(r, NGX_DONE);
-
-                } else {
-                    ngx_http_finalize_request(r, rc);
-                }
+                ngx_http_finalize_request(r, rc);
             }
         }
     }
@@ -651,7 +662,18 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
         goto done;
     }
 
+#if (NGX_WASM_LUA)
+    if (rctx->wasm_lua_ctx && rctx->wasm_lua_ctx->yielded) {
+        /* previous Lua yield in previous rewrite, resume */
+        dd("wasm lua forcing content wev handler");
+        ngx_http_wasm_wev_handler(r);
+        rc = NGX_DONE;
+        goto done;
+    }
+#endif
+
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_REWRITE_PHASE);
+    rc = ngx_http_wasm_check_finalize(rctx, rc);
     if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
         r->content_handler = rctx->r_content_handler;
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -663,9 +685,17 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
                     || rc == NGX_AGAIN
                     || rc == NGX_DECLINED);
 
-    /* delegate to content phase */
+    switch (rc) {
+    case NGX_AGAIN:
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm \"rewrite\" yield");
+        rc = NGX_DONE;
+        goto done;
 
-    rc = NGX_DECLINED;
+    default:
+        rc = NGX_DECLINED;
+        break;
+    }
 
 done:
 
@@ -691,7 +721,6 @@ ngx_http_wasm_preaccess_handler(ngx_http_request_t *r)
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_PREACCESS_PHASE);
-    rc = ngx_http_wasm_check_finalize(rctx, rc);
 
 done:
 
@@ -719,6 +748,28 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_ACCESS_PHASE);
     rc = ngx_http_wasm_check_finalize(rctx, rc);
 
+    ngx_wasm_assert(rc == NGX_OK
+                    || rc == NGX_DONE
+                    || rc == NGX_AGAIN
+                    || rc == NGX_DECLINED);
+
+    switch (rc) {
+    case NGX_AGAIN:
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm \"access\" yield");
+
+        ngx_wasm_yield(&rctx->env);
+        goto done;
+    case NGX_DONE:
+        if (rctx->resp_content_sent) {
+            rc = NGX_OK;
+        }
+
+        break;
+    default:
+        break;
+    }
+
 done:
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
@@ -739,6 +790,12 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
         dd("error");
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
         goto done;
+    case NGX_HTTP_WASM_REQ_STATE_YIELD:
+        /* e.g. lua handler yield */
+        r->main->count++;
+        dd("r->main->count++: %d", r->main->count);
+        rc = NGX_AGAIN;
+        goto done;
     default:
         dd("enter/continue");
         ngx_wasm_assert(rctx->state == NGX_HTTP_WASM_REQ_STATE_CONTINUE);
@@ -756,8 +813,7 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
     case NGX_AGAIN:
         goto done;
     case NGX_OK:
-        rc = ngx_http_wasm_check_finalize(rctx, rc);
-        goto done;
+        goto finalize;
     case NGX_DECLINED:
         if (rctx->exited_content_phase) {
             /* Content phase already ran, no stashed response.
@@ -765,6 +821,7 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
              * handler instead */
             goto orig;
         }
+
         /* fallthrough */
     default:
         break;
@@ -774,10 +831,17 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
     dd("content ops resume rc: %ld", rc);
     rc = ngx_http_wasm_check_finalize(rctx, rc);
     if (rc == NGX_ERROR
+        || rc == NGX_AGAIN
         || rc == NGX_DONE
         || rc >= NGX_HTTP_SPECIAL_RESPONSE)
     {
-        goto done;
+        if (rc == NGX_AGAIN && r == r->main) {
+            r->main->count++;
+            dd("r->main->count++: %d", r->main->count);
+            rc = NGX_DONE;
+        }
+
+        goto finalize;
     }
 
     rc = ngx_http_wasm_flush_local_response(rctx);
@@ -786,17 +850,13 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
                    "wasm flush_local_response post-ops rc: %d", rc);
 
     switch (rc) {
-
     case NGX_ERROR:
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
         /* fallthrough */
-
     case NGX_AGAIN:
         goto done;
-
     case NGX_OK:
         /* fallthrough */
-
     case NGX_DECLINED:
 
 orig:
@@ -827,11 +887,15 @@ orig:
 
     }
 
+finalize:
+
+    rctx->exited_content_phase = 1;
+
     rc = ngx_http_wasm_check_finalize(rctx, rc);
 
 done:
 
-    rctx->exited_content_phase = 1;
+    dd("exit rc: %ld", rc);
 
     return rc;
 }
@@ -853,7 +917,7 @@ ngx_http_wasm_content_handler(ngx_http_request_t *r)
 #if (NGX_WASM_LUA)
     if (rctx->entered_content_phase && rctx->wasm_lua_ctx) {
         dd("wasm lua forcing content wev handler");
-        ngx_http_wasm_content_wev_handler(r);
+        ngx_http_wasm_wev_handler(r);
         rc = ngx_http_wasm_check_finalize(rctx, NGX_AGAIN);
         goto done;
     }
@@ -894,8 +958,8 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
 }
 
 
-void
-ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
+static void
+ngx_http_wasm_wev_handler(ngx_http_request_t *r)
 {
     ngx_int_t                  rc;
     ngx_http_wasm_req_ctx_t   *rctx;
@@ -908,6 +972,10 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
 
     if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
         return;
+    }
+
+    if (rctx->state != NGX_HTTP_WASM_REQ_STATE_ERROR) {
+        rctx->in_wev = 1;
     }
 
     ngx_log_debug8(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -939,12 +1007,34 @@ ngx_http_wasm_content_wev_handler(ngx_http_request_t *r)
 
     if (rctx->entered_content_phase || rctx->resp_content_chosen) {
         rc = ngx_http_wasm_content(rctx);
+        dd("wev content rc: %ld", rc);
         if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
             rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
             goto last_finalize;
 
         } else if (rc == NGX_AGAIN) {
             goto last_finalize;
+
+        } else if (rc == NGX_DONE) {
+            return;
+        }
+
+    } else if (!rctx->fake_request) {
+        rc = ngx_wasm_ops_resume(&rctx->opctx, rctx->opctx.last_phase->index);
+        dd("wev ops resume rc: %ld", rc);
+        if (rc == NGX_AGAIN) {
+            ngx_wasm_yield(&rctx->env);
+            return;
+        }
+
+        if (rc == NGX_OK || rc == NGX_DONE) {
+            if (r == r->main) {
+                r->write_event_handler = ngx_http_core_run_phases;
+                ngx_http_wasm_resume(rctx, r == r->main, 1);
+                return;
+            }
+
+            /* finalize subrequest */
         }
     }
 
@@ -958,12 +1048,37 @@ last_finalize:
         ngx_http_wasm_finalize_fake_request(r, NGX_DONE);
 
     } else {
-        dd("last finalize");
+        dd("last finalize (rc: %ld, main: %d, count: %d)",
+           rc, r == r->main, r->main->count);
         ngx_wasm_assert(r->connection->fd != NGX_WASM_BAD_FD);
         ngx_http_finalize_request(r, rc);
     }
 
     dd("exit");
+}
+
+
+void
+ngx_http_wasm_set_resume_handler(ngx_http_wasm_req_ctx_t *rctx)
+{
+    ngx_http_request_t  *r = rctx->r;
+
+    if (ngx_http_wasm_yielding(rctx)
+        || rctx->entered_content_phase
+        || rctx->resp_content_chosen
+        || rctx->fake_request)
+    {
+        dd("resume_handler = ngx_http_wasm_wev_handler (r: %p, rctx: %p)",
+           r, rctx);
+
+        r->write_event_handler = ngx_http_wasm_wev_handler;
+
+    } else {
+        dd("resume_handler = ngx_http_core_run_phases (r: %p, rctx: %p)",
+           r, rctx);
+
+        r->write_event_handler = ngx_http_core_run_phases;
+    }
 }
 
 
@@ -977,22 +1092,16 @@ ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main, unsigned wev)
 
     ngx_wasm_assert(wev);
 
-    if (ngx_http_wasm_req_yielded(rctx)) {
+    if (ngx_http_wasm_yielding(rctx)) {
         dd("yielded");
         return;
     }
 
     if (main) {
         if (wev) {
-            if (rctx->resp_content_chosen) {
-                dd("switching wev handler");
-                r->write_event_handler = ngx_http_wasm_content_wev_handler;
-            }
-
             dd("resuming request wev...");
             r->write_event_handler(r);
-            dd("...done resuming request");
-
+            dd("...done resuming request wev");
         }
 #if 0
         else {

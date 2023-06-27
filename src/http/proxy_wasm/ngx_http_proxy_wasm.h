@@ -7,6 +7,9 @@
 #include <ngx_http_proxy_wasm_dispatch.h>
 
 
+void ngx_http_proxy_wasm_on_request_body_handler(ngx_http_request_t *r);
+
+
 static ngx_inline ngx_http_wasm_req_ctx_t *
 ngx_http_proxy_wasm_get_rctx(ngx_wavm_instance_t *instance)
 {

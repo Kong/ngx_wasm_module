@@ -449,8 +449,8 @@ should not execute a log phase
 --- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
 --- grep_error_log_out eval
 qr/#\d+ on_request_headers, 2 headers.*? subrequest: "\/subrequest".*
-#\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*/
-#\d+ on_response_body, 0 bytes, eof: true.*
+#\d+ on_response_headers, 5 headers.*? subrequest: "\/subrequest".*
+#\d+ on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [error]
 on_log
@@ -538,13 +538,13 @@ should invoke wasm ops "done" phase to destroy proxy-wasm ctxid in "content" pha
 --- response_body
 ok
 ok
---- grep_error_log eval: qr/proxy_wasm .*? resuming in "(log|done)" phase/
+--- grep_error_log eval: qr/.*?resuming "on_done" step.*/
 --- grep_error_log_out eval
-qr/proxy_wasm "on_phases" filter \(1\/2\) resuming in "done" phase
-proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
-proxy_wasm "on_phases" filter \(1\/2\) resuming in "done" phase
-proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
-\Z/
+qr#filter 1/2 resuming "on_done" step in "done" phase
+.*? filter 2/2 resuming "on_done" step in "done" phase
+.*? filter 1/2 resuming "on_done" step in "done" phase
+.*? filter 2/2 resuming "on_done" step in "done" phase
+\Z#
 --- no_error_log
 [error]
 on_log
@@ -572,17 +572,25 @@ on_log
 --- response_body
 ok
 ok
---- grep_error_log eval: qr/proxy_wasm .*? resuming in "(log|done)" phase/
+--- grep_error_log eval: qr/\[proxy-wasm\].*? resuming.*/
 --- grep_error_log_out eval
-qr/proxy_wasm "on_phases" filter \(1\/2\) resuming in "log" phase
-proxy_wasm "on_phases" filter \(2\/2\) resuming in "log" phase
-proxy_wasm "on_phases" filter \(1\/2\) resuming in "log" phase
-proxy_wasm "on_phases" filter \(2\/2\) resuming in "log" phase
-proxy_wasm "on_phases" filter \(1\/2\) resuming in "done" phase
-proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
-proxy_wasm "on_phases" filter \(1\/2\) resuming in "done" phase
-proxy_wasm "on_phases" filter \(2\/2\) resuming in "done" phase
-\Z/
+qr#filter 1/2 resuming "on_log" step in "log" phase
+.*? filter 2/2 resuming "on_log" step in "log" phase
+.*? filter 1/2 resuming "on_request_headers" step in "rewrite" phase
+.*? filter 2/2 resuming "on_request_headers" step in "rewrite" phase
+.*? filter 1/2 resuming "on_response_headers" step in "header_filter" phase
+.*? filter 2/2 resuming "on_response_headers" step in "header_filter" phase
+.*? filter 1/2 resuming "on_response_body" step in "body_filter" phase
+.*? filter 2/2 resuming "on_response_body" step in "body_filter" phase
+.*? filter 1/2 resuming "on_response_body" step in "body_filter" phase
+.*? filter 2/2 resuming "on_response_body" step in "body_filter" phase
+.*? filter 1/2 resuming "on_log" step in "log" phase
+.*? filter 2/2 resuming "on_log" step in "log" phase
+.*? filter 1/2 resuming "on_done" step in "done" phase
+.*? filter 2/2 resuming "on_done" step in "done" phase
+.*? filter 1/2 resuming "on_done" step in "done" phase
+.*? filter 2/2 resuming "on_done" step in "done" phase
+\Z#
 --- error_log eval
 [
     qr/on_log.*? subrequest: "\/subrequest"/,

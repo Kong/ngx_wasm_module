@@ -138,8 +138,8 @@ qr/#0 on_configure, config_size: 0.*/
     }
 --- error_log eval
 [
-    qr/\[info\] \d+#\d+: ticking/,
-    qr/\[info\] \d+#\d+: ticking/,
+    qr/\[info\] .*? ticking/,
+    qr/\[info\] .*? ticking/,
 ]
 --- no_error_log
 [error]

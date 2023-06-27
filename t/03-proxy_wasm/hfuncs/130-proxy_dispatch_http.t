@@ -953,7 +953,40 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser 
 
 
 
-=== TEST 38: proxy_wasm - dispatch_http_call() on log step
+=== TEST 38: proxy_wasm - dispatch_http_call() can be chained by different filters
+So long as these filters do not produce content.
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /status/200 {
+        return 200;
+    }
+
+    location /status/201 {
+        return 201;
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/status/200';
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/status/201';
+        echo ok;
+    }
+--- ignore_response_body
+--- grep_error_log eval: qr/\*\d+.*?on_http_call_response.*/
+--- grep_error_log_out eval
+qr/^\*\d+ .*? on_http_call_response \(id: \d+[^*]*
+\*\d+ .*? on_http_call_response \(id: \d+[^*]*$/
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 39: proxy_wasm - dispatch_http_call() on log step
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -977,7 +1010,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: bad step/
 
 
 
-=== TEST 39: proxy_wasm - dispatch_http_call() supports get_http_call_response_headers()
+=== TEST 40: proxy_wasm - dispatch_http_call() supports get_http_call_response_headers()
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -1001,7 +1034,7 @@ X-Callout-Header: callout-header-value
 
 
 
-=== TEST 40: proxy_wasm - dispatch_http_call() get :status dispatch response header
+=== TEST 41: proxy_wasm - dispatch_http_call() get :status dispatch response header
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

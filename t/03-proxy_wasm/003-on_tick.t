@@ -33,9 +33,9 @@ since it runs at root level context.
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[info\] \d+#\d+: ticking/,
-    qr/\[info\] \d+#\d+: ticking/,
-    qr/\[info\] \d+#\d+: ticking/,
+    qr/\[info\] .*? ticking/,
+    qr/\[info\] .*? ticking/,
+    qr/\[info\] .*? ticking/,
 ]
 --- no_error_log
 [error]
@@ -62,9 +62,9 @@ since it runs at root level context.
 --- ignore_response_body
 --- error_log eval
 [
-    qr/\[info\] \d+#\d+: ticking/,
+    qr/\[info\] .*? ticking/,
     qr/\[info\] .*? from request_headers, client: .*?, server: .*?, request:/,
-    qr/\[info\] \d+#\d+: ticking/,
+    qr/\[info\] .*? ticking/,
 ]
 --- no_error_log
 [error]
@@ -117,10 +117,10 @@ on_tick 50000
 ok
 --- error_log eval
 [
-    qr/\[info\] \d+#\d+: on_tick 20/,
-    qr/\[info\] \d+#\d+: on_tick 30/,
-    qr/\[info\] \d+#\d+: on_tick 20/,
-    qr/\[info\] \d+#\d+: on_tick 30/,
+    qr/\[info\] .*? on_tick 20/,
+    qr/\[info\] .*? on_tick 30/,
+    qr/\[info\] .*? on_tick 20/,
+    qr/\[info\] .*? on_tick 30/,
 ]
 --- no_error_log
 [error]
@@ -144,7 +144,7 @@ qq{
 --- grep_error_log eval: qr/.*?(\[emerg\]|tick_period already set).*/
 --- grep_error_log_out eval
 qr/.*?(\[error\]|Uncaught RuntimeError: |\s+)tick_period already set.*
-.*?\[emerg\] .*? proxy_wasm failed initializing \"on_tick\" filter.*/
+.*?\[emerg\] .*? failed initializing \"on_tick\" filter.*/
 --- no_error_log
 [warn]
 [crit]
