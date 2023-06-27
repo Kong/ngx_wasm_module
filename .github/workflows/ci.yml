@@ -31,7 +31,7 @@ jobs:
         label: [""]
         os: [ubuntu-latest]
         cc: [gcc-9]
-        ngx: [1.25.0]
+        ngx: [1.25.1]
         openresty: [""]
         runtime: [wasmer]
         wasmer: [3.1.1]
@@ -47,7 +47,7 @@ jobs:
             wasmtime: 8.0.1
             os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.25.0
+            ngx: 1.25.1
             debug: debug
             hup: hup
             ssl: ssl
@@ -56,7 +56,7 @@ jobs:
             v8: 10.5.18
             os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.25.0
+            ngx: 1.25.1
             debug: debug
             hup: no_hup
             ssl: ssl
@@ -74,7 +74,7 @@ jobs:
           - ssl: no_ssl
             os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.25.0
+            ngx: 1.25.1
             runtime: wasmer
             wasmer: 3.1.1
             debug: no_debug
@@ -191,7 +191,7 @@ jobs:
         with:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true
-          carryforward: "unit-ngx_1.25.0-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.0-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.0-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.0-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.0-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-dynamic"
+          carryforward: "unit-ngx_1.25.1-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.1-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.1-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-dynamic"
 
   valgrind:
     name: 'Valgrind'
@@ -211,7 +211,7 @@ jobs:
         label: [""]
         os: [ubuntu-22.04]
         cc: [gcc-10]
-        ngx: [1.25.0]
+        ngx: [1.25.1]
         openresty: [""]
         runtime: [wasmer]
         wasmer: [3.1.1]
@@ -225,7 +225,7 @@ jobs:
             wasmtime: 8.0.1
             os: ubuntu-22.04
             cc: gcc-10
-            ngx: 1.25.0
+            ngx: 1.25.1
             hup: no_hup
             debug: debug
           # V8
@@ -233,7 +233,7 @@ jobs:
             v8: 10.5.18
             os: ubuntu-22.04
             cc: gcc-10
-            ngx: 1.25.0
+            ngx: 1.25.1
             debug: debug
             hup: no_hup
           # OpenResty
@@ -386,7 +386,7 @@ jobs:
         label: [""]
         os: [ubuntu-latest]
         cc: [clang-14, gcc-10]
-        ngx: [1.25.0]
+        ngx: [1.25.1]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [8.0.1]
         wasmer: [3.1.1]
