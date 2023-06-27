@@ -41,10 +41,21 @@ if [ $ngx_wasm_rc = 0 ]; then
 
     if [ "$ngx_wasm_cargo_crate_type" = "cdylib" ]; then
         ngx_feature_libs="\
-            -Wl,-rpath=$ngx_wasm_cargo_target_dir \
-            -Wl,-rpath=$NGX_PREFIX/lib \
             -L$ngx_wasm_cargo_target_dir \
             -l$ngx_wasm_cargo_lib_name"
+
+	if [ "$NGX_RPATH" = YES ]; then
+            ngx_feature_libs="\
+                -R $ngx_wasm_cargo_target_dir \
+                -R $NGX_PREFIX/lib \
+                $ngx_feature_libs"
+
+	elif [ "$NGX_WASM_RUNTIME_NO_RPATH" != 1 ]; then
+            ngx_feature_libs="\
+                -Wl,-rpath=$ngx_wasm_cargo_target_dir \
+                -Wl,-rpath=$NGX_PREFIX/lib \
+                $ngx_feature_libs"
+        fi
 
     else
         ngx_feature_libs="$ngx_wasm_cargo_target_dir/lib$ngx_wasm_cargo_lib_name.a"

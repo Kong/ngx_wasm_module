@@ -35,6 +35,7 @@ export NGX_WASM_RUNTIME ?= wasmtime
 export NGX_WASM_RUNTIME_INC ?=
 export NGX_WASM_RUNTIME_LIB ?=
 export NGX_WASM_RUNTIME_LD_OPT ?=
+export NGX_WASM_RUNTIME_NO_RPATH ?= 0
 export NGX_WASM_CARGO ?= 1
 export NGX_WASM_CARGO_PROFILE ?= debug
 
