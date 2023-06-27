@@ -72,7 +72,7 @@ qq{
 ok
 --- error_log eval
 [
-    qr/on_root_http_call_response \(id: 0, headers: 5, body_bytes: 12, trailers: 0\)/,
+    qr/on_root_http_call_response \(id: 0, status: 200, headers: 5, body_bytes: 12, trailers: 0\)/,
     qr/\[debug\] .*? wasm lua resolved "localhost" to "127\.0\.0\.1"/,
 ]
 --- no_error_log

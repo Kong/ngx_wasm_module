@@ -14,9 +14,11 @@ typedef enum {
 typedef struct ngx_proxy_wasm_maps_key_s  ngx_proxy_wasm_maps_key_t;
 
 typedef ngx_str_t * (*ngx_proxy_wasm_maps_key_get_pt)(
-    ngx_wavm_instance_t *instance);
+    ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type);
 typedef ngx_int_t (*ngx_proxy_wasm_maps_key_set_pt)(
-    ngx_wavm_instance_t *instance, ngx_str_t *value);
+    ngx_wavm_instance_t *instance, ngx_str_t *value,
+    ngx_proxy_wasm_map_type_e map_type);
 
 
 struct ngx_proxy_wasm_maps_key_s {

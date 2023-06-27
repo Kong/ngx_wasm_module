@@ -93,7 +93,7 @@ called 3 times
 --- response_body
 ok
 --- error_log eval
-qr/on_root_http_call_response \(id: 0, headers: 5, body_bytes: 12, trailers: 0\)/
+qr/on_root_http_call_response \(id: 0, status: 200, headers: 5, body_bytes: 12, trailers: 0\)/
 --- no_error_log
 [error]
 [crit]
@@ -121,16 +121,16 @@ qr/on_root_http_call_response \(id: 0, headers: 5, body_bytes: 12, trailers: 0\)
 ok
 --- grep_error_log eval: qr/on_root_http_call_response \(.*?\)/
 --- grep_error_log_out eval
-qr/\Aon_root_http_call_response \(id: 0, headers: 5, body_bytes: 12, trailers: 0\)
-on_root_http_call_response \(id: 1, headers: 5, body_bytes: 12, trailers: 0\)
-on_root_http_call_response \(id: 2, headers: 5, body_bytes: 12, trailers: 0\)
-on_root_http_call_response \(id: 3, headers: 5, body_bytes: 12, trailers: 0\)
-on_root_http_call_response \(id: 4, headers: 5, body_bytes: 12, trailers: 0\)
-on_root_http_call_response \(id: 5, headers: 5, body_bytes: 12, trailers: 0\)
-on_root_http_call_response \(id: 6, headers: 5, body_bytes: 12, trailers: 0\)
-on_root_http_call_response \(id: 7, headers: 5, body_bytes: 12, trailers: 0\)
-on_root_http_call_response \(id: 8, headers: 5, body_bytes: 12, trailers: 0\)
-on_root_http_call_response \(id: 9, headers: 5, body_bytes: 12, trailers: 0\)\Z/
+qr/\Aon_root_http_call_response \(id: 0, status: 200, headers: 5, body_bytes: 12, trailers: 0\)
+on_root_http_call_response \(id: 1, status: 200, headers: 5, body_bytes: 12, trailers: 0\)
+on_root_http_call_response \(id: 2, status: 200, headers: 5, body_bytes: 12, trailers: 0\)
+on_root_http_call_response \(id: 3, status: 200, headers: 5, body_bytes: 12, trailers: 0\)
+on_root_http_call_response \(id: 4, status: 200, headers: 5, body_bytes: 12, trailers: 0\)
+on_root_http_call_response \(id: 5, status: 200, headers: 5, body_bytes: 12, trailers: 0\)
+on_root_http_call_response \(id: 6, status: 200, headers: 5, body_bytes: 12, trailers: 0\)
+on_root_http_call_response \(id: 7, status: 200, headers: 5, body_bytes: 12, trailers: 0\)
+on_root_http_call_response \(id: 8, status: 200, headers: 5, body_bytes: 12, trailers: 0\)
+on_root_http_call_response \(id: 9, status: 200, headers: 5, body_bytes: 12, trailers: 0\)\Z/
 --- no_error_log
 [error]
 [crit]

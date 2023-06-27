@@ -52,12 +52,14 @@ qr/testing in "RequestHeaders".*
 resp Transfer-Encoding: chunked.*
 resp Connection: close.*
 testing in "ResponseHeaders".*
+resp :status: 200.*
 resp Content-Type: text\/plain.*
 resp Transfer-Encoding: chunked.*
 resp Connection: close.*
 resp Server: (nginx|openresty).*
 resp Date: .*? GMT.*
 testing in "Log".*
+resp :status: 200.*
 resp Content-Type: text\/plain.*
 resp Transfer-Encoding: chunked.*
 resp Connection: close.*
@@ -88,6 +90,7 @@ resp Date: .*? GMT.*/
 qr/testing in "RequestHeaders".*
 testing in "ResponseHeaders".*
 testing in "ResponseHeaders".*
+resp :status: 200.*
 resp Content-Type: text\/plain.*
 resp Content-Length: 0.*
 resp Connection: close.*
@@ -96,6 +99,7 @@ resp Server: (nginx|openresty).*
 resp Date: .*? GMT.*
 resp Hello: world.*
 testing in "Log".*
+resp :status: 200.*
 resp Content-Type: text\/plain.*
 resp Content-Length: 0.*
 resp Connection: close.*

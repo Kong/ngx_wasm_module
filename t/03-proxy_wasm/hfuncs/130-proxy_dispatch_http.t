@@ -998,3 +998,46 @@ X-Callout-Header: callout-header-value
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 40: proxy_wasm - dispatch_http_call() get :status dispatch response header
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /status/200 {
+        return 200;
+    }
+
+    location /status/201 {
+        return 201;
+    }
+
+    location /status/500 {
+        return 500;
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/status/200';
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/status/201';
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/status/500';
+
+        echo ok;
+    }
+--- ignore_response_body
+--- grep_error_log eval: qr/\*\d+.*?on_http_call_response.*/
+--- grep_error_log_out eval
+qr/^\*\d+ .*? on_http_call_response \(id: \d+, status: 200[^*]*
+\*\d+ .*? on_http_call_response \(id: \d+, status: 201[^*]*
+\*\d+ .*? on_http_call_response \(id: \d+, status: 500[^*]*$/
+--- no_error_log
+[error]
+[crit]

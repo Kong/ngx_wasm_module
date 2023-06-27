@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_proxy_wasm_maps.h>
+#include <ngx_proxy_wasm_properties.h>
 #ifdef NGX_WASM_HTTP
 #include <ngx_http_proxy_wasm.h>
 #endif
@@ -17,21 +18,30 @@ static ngx_int_t ngx_proxy_wasm_maps_set_special_key(
     ngx_wavm_instance_t *instance, ngx_uint_t map_type,
     ngx_str_t *key, ngx_str_t *value);
 #ifdef NGX_WASM_HTTP
-static ngx_str_t *ngx_proxy_wasm_maps_get_path(ngx_wavm_instance_t *instance);
+static ngx_str_t *ngx_proxy_wasm_maps_get_path(ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type);
 static ngx_int_t ngx_proxy_wasm_maps_set_path(ngx_wavm_instance_t *instance,
-    ngx_str_t *value);
-static ngx_str_t *ngx_proxy_wasm_maps_get_method(ngx_wavm_instance_t *instance);
+    ngx_str_t *value, ngx_proxy_wasm_map_type_e map_type);
+static ngx_str_t *ngx_proxy_wasm_maps_get_method(ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type);
 static ngx_int_t ngx_proxy_wasm_maps_set_method(ngx_wavm_instance_t *instance,
-    ngx_str_t *value);
-static ngx_str_t *ngx_proxy_wasm_maps_get_scheme(ngx_wavm_instance_t *instance);
+    ngx_str_t *value, ngx_proxy_wasm_map_type_e map_type);
+static ngx_str_t *ngx_proxy_wasm_maps_get_scheme(ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type);
 static ngx_str_t *ngx_proxy_wasm_maps_get_authority(
-    ngx_wavm_instance_t *instance);
+    ngx_wavm_instance_t *instance, ngx_proxy_wasm_map_type_e map_type);
+static ngx_str_t *ngx_proxy_wasm_maps_get_response_status(
+    ngx_wavm_instance_t *instance, ngx_proxy_wasm_map_type_e map_type);
+static ngx_str_t *ngx_proxy_wasm_maps_get_dispatch_status(
+    ngx_wavm_instance_t *instance, ngx_proxy_wasm_map_type_e map_type);
 #endif
 
 
 static ngx_proxy_wasm_maps_key_t  ngx_proxy_wasm_maps_special_keys[] = {
 
 #ifdef NGX_WASM_HTTP
+    /* request */
+
     { ngx_string(":path"),
       NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS,
       ngx_proxy_wasm_maps_get_path,
@@ -50,6 +60,20 @@ static ngx_proxy_wasm_maps_key_t  ngx_proxy_wasm_maps_special_keys[] = {
     { ngx_string(":authority"),
       NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS,
       ngx_proxy_wasm_maps_get_authority,
+      NULL },
+
+    /* response */
+
+    { ngx_string(":status"),
+      NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS,
+      ngx_proxy_wasm_maps_get_response_status,
+      NULL },
+
+    /* dispatch response */
+
+    { ngx_string(":status"),
+      NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_HEADERS,
+      ngx_proxy_wasm_maps_get_dispatch_status,
       NULL },
 #endif
 
@@ -132,9 +156,11 @@ ngx_proxy_wasm_maps_get_all(ngx_wavm_instance_t *instance,
                 continue;
             }
 
-            value = mkey->get_(instance);
+            value = mkey->get_(instance, map_type);
 
-            ngx_wasm_assert(value);
+            if (value == NULL || !value->len) {
+                continue;
+            }
 
             elt = ngx_array_push(extras);
             if (elt == NULL) {
@@ -383,7 +409,7 @@ ngx_proxy_wasm_maps_get_special_key(ngx_wavm_instance_t *instance,
             continue;
         }
 
-        return mkey->get_(instance);
+        return mkey->get_(instance, map_type);
     }
 
     return NULL;
@@ -410,7 +436,7 @@ ngx_proxy_wasm_maps_set_special_key(ngx_wavm_instance_t *instance,
             return NGX_ABORT;
         }
 
-        return mkey->set_(instance, value);
+        return mkey->set_(instance, value, map_type);
     }
 
     return NGX_DECLINED;
@@ -419,7 +445,8 @@ ngx_proxy_wasm_maps_set_special_key(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
 static ngx_str_t *
-ngx_proxy_wasm_maps_get_path(ngx_wavm_instance_t *instance)
+ngx_proxy_wasm_maps_get_path(ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type)
 {
     size_t                    len;
     u_char                   *p;
@@ -457,7 +484,8 @@ ngx_proxy_wasm_maps_get_path(ngx_wavm_instance_t *instance)
 
 
 static ngx_int_t
-ngx_proxy_wasm_maps_set_path(ngx_wavm_instance_t *instance, ngx_str_t *value)
+ngx_proxy_wasm_maps_set_path(ngx_wavm_instance_t *instance, ngx_str_t *value,
+    ngx_proxy_wasm_map_type_e map_type)
 {
     ngx_proxy_wasm_exec_t    *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
     ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
@@ -484,7 +512,8 @@ ngx_proxy_wasm_maps_set_path(ngx_wavm_instance_t *instance, ngx_str_t *value)
 
 
 static ngx_str_t *
-ngx_proxy_wasm_maps_get_method(ngx_wavm_instance_t *instance)
+ngx_proxy_wasm_maps_get_method(ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type)
 {
     ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
     ngx_http_request_t       *r = rctx->r;
@@ -494,7 +523,8 @@ ngx_proxy_wasm_maps_get_method(ngx_wavm_instance_t *instance)
 
 
 static ngx_int_t
-ngx_proxy_wasm_maps_set_method(ngx_wavm_instance_t *instance, ngx_str_t *value)
+ngx_proxy_wasm_maps_set_method(ngx_wavm_instance_t *instance, ngx_str_t *value,
+    ngx_proxy_wasm_map_type_e map_type)
 {
     ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
     ngx_http_request_t       *r = rctx->r;
@@ -507,7 +537,8 @@ ngx_proxy_wasm_maps_set_method(ngx_wavm_instance_t *instance, ngx_str_t *value)
 
 
 static ngx_str_t *
-ngx_proxy_wasm_maps_get_scheme(ngx_wavm_instance_t *instance)
+ngx_proxy_wasm_maps_get_scheme(ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type)
 {
     u_char                     *p;
     ngx_uint_t                  hash;
@@ -550,7 +581,8 @@ ngx_proxy_wasm_maps_get_scheme(ngx_wavm_instance_t *instance)
 
 
 static ngx_str_t *
-ngx_proxy_wasm_maps_get_authority(ngx_wavm_instance_t *instance)
+ngx_proxy_wasm_maps_get_authority(ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type)
 {
     u_char                    *p;
     ngx_uint_t                 port;
@@ -602,5 +634,135 @@ ngx_proxy_wasm_maps_get_authority(ngx_wavm_instance_t *instance)
     }
 
     return &pwctx->authority;
+}
+
+
+static ngx_str_t *
+ngx_proxy_wasm_maps_get_response_status(ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type)
+{
+    ngx_uint_t                status;
+    ngx_proxy_wasm_ctx_t     *pwctx;
+    ngx_proxy_wasm_exec_t    *pwexec;
+    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_http_request_t       *r;
+
+    ngx_wasm_assert(map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS);
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    pwctx = pwexec->parent;
+    r = rctx->r;
+
+    /* status */
+
+    if (r->err_status) {
+        status = r->err_status;
+
+    } else if (r->headers_out.status) {
+        status = r->headers_out.status;
+
+    } else if (r->http_version == NGX_HTTP_VERSION_9) {
+        status = 9;
+
+    } else {
+        return NULL;
+    }
+
+    /* update cached value */
+
+    if (status != pwctx->response_code) {
+        pwctx->response_code = status;
+
+        if (pwctx->response_status.len) {
+            ngx_pfree(pwctx->pool, pwctx->response_status.data);
+            pwctx->response_status.len = 0;
+        }
+    }
+
+    /* format */
+
+    if (!pwctx->response_status.len) {
+        pwctx->response_status.data = ngx_pnalloc(pwctx->pool, NGX_INT_T_LEN);
+        if (pwctx->response_status.data == NULL) {
+            return NULL;
+        }
+
+        pwctx->response_status.len = ngx_sprintf(pwctx->response_status.data,
+                                                 "%03ui", pwctx->response_code)
+                                     - pwctx->response_status.data;
+    }
+
+    ngx_wasm_assert(pwctx->response_status.len);
+
+    return &pwctx->response_status;
+}
+
+
+static ngx_str_t *
+ngx_proxy_wasm_maps_get_dispatch_status(ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type)
+{
+    ngx_uint_t                       status;
+    ngx_proxy_wasm_ctx_t            *pwctx;
+    ngx_proxy_wasm_exec_t           *pwexec;
+    ngx_http_proxy_wasm_dispatch_t  *call;
+    ngx_wasm_http_reader_ctx_t      *reader;
+
+    ngx_wasm_assert(map_type == NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_HEADERS);
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    pwctx = pwexec->parent;
+    call = pwexec->call;
+    reader = &call->http_reader;
+
+    /* status */
+
+#if (NGX_DEBUG)
+    ngx_wasm_assert(&reader->fake_r);
+    ngx_wasm_assert(&reader->fake_r.upstream);
+    ngx_wasm_assert(&reader->fake_r.upstream->headers_in);
+
+#else
+    if (&reader->fake_r == NULL
+        || &reader->fake_r.upstream == NULL
+        || &reader->fake_r.upstream->headers_in == NULL)
+    {
+        return NULL;
+    }
+#endif
+
+    status = reader->fake_r.upstream->headers_in.status_n;
+    if (!status) {
+        return NULL;
+    }
+
+    /* update cached value */
+
+    if (status != pwctx->call_code) {
+        pwctx->call_code = status;
+
+        if (pwctx->call_status.len) {
+            ngx_pfree(pwctx->pool, pwctx->call_status.data);
+            pwctx->call_status.len = 0;
+        }
+    }
+
+    /* format */
+
+    if (!pwctx->call_status.len) {
+        pwctx->call_status.data = ngx_pnalloc(pwctx->pool, NGX_INT_T_LEN);
+        if (pwctx->call_status.data == NULL) {
+            return NULL;
+        }
+
+        pwctx->call_status.len = ngx_sprintf(pwctx->call_status.data, "%03ui",
+                                             pwctx->call_code)
+                                 - pwctx->call_status.data;
+    }
+
+    ngx_wasm_assert(pwctx->call_status.len);
+
+    return &pwctx->call_status;
 }
 #endif

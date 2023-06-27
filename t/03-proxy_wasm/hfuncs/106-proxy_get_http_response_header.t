@@ -487,3 +487,128 @@ testing in "Log".*/
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 15: proxy_wasm - get_http_response_header() get :status special header (sanity)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
+                              name=:status';
+
+        return 201;
+
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/log/response_header \
+                              name=:status';
+
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
+                              name=:status';
+    }
+--- error_code: 201
+--- response_body
+--- grep_error_log eval: qr/(testing in|resp) .*/
+--- grep_error_log_out eval
+qr/testing in "RequestHeaders".*
+testing in "ResponseHeaders".*
+resp header ":status: 201".*
+testing in "Log".*
+resp header ":status: 201".*/
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 16: proxy_wasm - get_http_response_header() get :status special header (different statuses)
+Status strings are cached in the filter chain context so this covers the
+re-alloc branch.
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls ngx_rust_tests
+--- config
+    location /t {
+        wasm_call rewrite ngx_rust_tests set_resp_status;
+
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
+                              name=:status';
+
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/send_local_response/status/204';
+
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
+                              name=:status';
+    }
+--- error_code: 204
+--- response_body
+--- grep_error_log eval: qr/(testing in|resp header) .*/
+--- grep_error_log_out eval
+qr/testing in "RequestHeaders".*
+resp header ":status: 201".*
+testing in "RequestHeaders".*
+testing in "Log".*
+resp header ":status: 204"/
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 17: proxy_wasm - get_http_response_header() get :status special header (in error handler location)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    error_page 500 /error;
+
+    location /t {
+        return 500;
+    }
+
+    location = /error {
+        internal;
+        echo 'error handler content';
+
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/log/response_header \
+                              name=:status';
+    }
+--- error_code: 500
+--- response_body
+error handler content
+--- grep_error_log eval: qr/(testing in|resp) .*/
+--- grep_error_log_out eval
+qr/testing in "Log".*
+resp header ":status: 500"/
+--- no_error_log
+[emerg]
+[alert]
+
+
+
+=== TEST 18: proxy_wasm - get_http_response_header() get :status special header (HTTP/0.9)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/response_header \
+                              name=:status';
+        echo ok;
+    }
+--- http09
+--- raw_request eval
+"GET /t\r\n"
+--- ignore_response_body
+--- grep_error_log eval: qr/(testing in|resp) .*/
+--- grep_error_log_out eval
+qr/testing in "RequestHeaders".*
+resp header ":status: 009"/
+--- no_error_log
+[error]
+[crit]
+[emerg]
