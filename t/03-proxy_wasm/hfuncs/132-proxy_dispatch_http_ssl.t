@@ -500,7 +500,7 @@ qq{
 [
     qr/\[warn\] .*? tls certificate not verified/,
     qr/\[warn\] .*? tls certificate host not verified/,
-    "on_root_http_call_response (id: 0, headers: 5, body_bytes: 3, trailers: 0)",
+    "on_root_http_call_response (id: 0, status: 200, headers: 5, body_bytes: 3, trailers: 0)",
 ]
 
 
@@ -543,5 +543,5 @@ qq{
 [
     qr/verifying tls certificate for "hostname"/,
     qr/checking tls certificate host for "hostname"/,
-    qr/on_root_http_call_response \(id: 0, headers: 5, body_bytes: 3, trailers: 0\)/,
+    "on_root_http_call_response (id: 0, status: 200, headers: 5, body_bytes: 3, trailers: 0)",
 ]

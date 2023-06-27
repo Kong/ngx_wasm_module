@@ -295,7 +295,7 @@ Content-Length: 0.*
 --- response_body
 ok
 --- error_log eval
-qr/on_http_call_response \(id: \d+, headers: 5, body_bytes: \d+, trailers: 0/
+qr/on_http_call_response \(id: \d+, status: 200, headers: 5, body_bytes: \d+, trailers: 0/
 --- no_error_log
 [error]
 [crit]
@@ -352,7 +352,7 @@ qr/on_http_call_response \(id: \d+, headers: 5, body_bytes: \d+, trailers: 0/
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
 [
-    qr/on_http_call_response \(id: \d+, headers: 5, body_bytes: \d+, trailers: 0, op: trap\)/,
+    qr/on_http_call_response \(id: \d+, status: 200, headers: 5, body_bytes: \d+, trailers: 0, op: trap\)/,
     qr/\[crit\] .*? panicked at 'trap!'/,
     qr/\[error\] .*? (error while executing at wasm backtrace:|(Uncaught RuntimeError)?unreachable)/
 ]

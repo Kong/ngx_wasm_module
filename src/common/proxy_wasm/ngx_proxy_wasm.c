@@ -418,6 +418,14 @@ ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx)
         ngx_pfree(pwctx->pool, pwctx->root_id.data);
     }
 
+    if (pwctx->call_status.data) {
+        ngx_pfree(pwctx->pool, pwctx->call_status.data);
+    }
+
+    if (pwctx->response_status.data) {
+        ngx_pfree(pwctx->pool, pwctx->response_status.data);
+    }
+
     ngx_array_destroy(&pwctx->pwexecs);
 
     ngx_pfree(pwctx->pool, pwctx);

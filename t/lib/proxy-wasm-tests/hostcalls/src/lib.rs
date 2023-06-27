@@ -138,6 +138,8 @@ impl RootContext for TestRoot {
 
                 self.ncalls += 1;
 
+                info!("call {}", self.ncalls);
+
                 self.dispatch_http_call(
                     self.get_config("host").unwrap_or(""),
                     headers,
@@ -185,9 +187,11 @@ impl Context for TestRoot {
         body_size: usize,
         ntrailers: usize,
     ) {
+        let status = self.get_http_call_response_header(":status");
+
         info!(
-            "[hostcalls] on_root_http_call_response (id: {}, headers: {}, body_bytes: {}, trailers: {})",
-            token_id, nheaders, body_size, ntrailers
+            "[hostcalls] on_root_http_call_response (id: {}, status: {}, headers: {}, body_bytes: {}, trailers: {})",
+            token_id, status.unwrap_or("".to_string()), nheaders, body_size, ntrailers
         );
     }
 }

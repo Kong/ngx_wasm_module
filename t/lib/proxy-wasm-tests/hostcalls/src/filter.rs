@@ -11,6 +11,7 @@ impl Context for TestHttp {
         body_size: usize,
         ntrailers: usize,
     ) {
+        let status = self.get_http_call_response_header(":status");
         let bytes = self.get_http_call_response_body(0, body_size);
         let op = self
             .config
@@ -18,18 +19,12 @@ impl Context for TestHttp {
             .map_or("", |v| v.as_str());
 
         info!(
-            "[hostcalls] on_http_call_response (id: {}, headers: {}, body_bytes: {}, trailers: {}, op: {})",
-            token_id, nheaders, body_size, ntrailers, op
+            "[hostcalls] on_http_call_response (id: {}, status: {}, headers: {}, body_bytes: {}, trailers: {}, op: {})",
+            token_id, status.unwrap_or("".to_string()), nheaders, body_size, ntrailers, op
         );
 
         match op {
             "trap" => panic!("trap!"),
-            "echo_response_body" => {
-                if let Some(response) = bytes {
-                    let body = String::from_utf8_lossy(&response);
-                    self.send_plain_response(StatusCode::OK, Some(body.trim()));
-                }
-            }
             "log_request_properties" => {
                 let properties = vec![
                     "request.path",
@@ -73,6 +68,12 @@ impl Context for TestHttp {
                     s.push('\n');
                 }
                 self.send_plain_response(StatusCode::OK, Some(&s));
+            }
+            "echo_response_body" => {
+                if let Some(response) = bytes {
+                    let body = String::from_utf8_lossy(&response);
+                    self.send_plain_response(StatusCode::OK, Some(body.trim()));
+                }
             }
             "call_again" => {
                 if let Some(response) = bytes {

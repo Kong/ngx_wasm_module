@@ -38,6 +38,7 @@ qr/on_response_headers, 5 headers.*
 testing in "ResponseHeaders".*
 on_response_headers, 4 headers.*
 testing in "ResponseHeaders".*
+resp :status: 200.*
 resp Transfer-Encoding: chunked.*
 resp Connection: close.*
 resp Hello: world.*
@@ -73,6 +74,7 @@ qr/on_response_headers, 4 headers.*
 testing in "ResponseHeaders".*
 on_response_headers, 4 headers.*
 testing in "ResponseHeaders".*
+resp :status: 200.*
 resp Content-Type: text\/none.*
 resp Transfer-Encoding: chunked.*
 resp Connection: close.*
