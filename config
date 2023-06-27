@@ -11,12 +11,6 @@ case $ngx_wasm_runtime_name in
         ngx_feature_incs="#include <wasm.h>
                           #include <wasmtime.h>"
         ;;
-    WAVM)
-        ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_wavm.c"
-
-        ngx_feature_name="NGX_WASM_HAVE_WAVM"
-        ngx_feature_incs="#include <wavm-c.h>"
-        ;;
     wasmer)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_wasmer.c"
 
@@ -49,7 +43,7 @@ case $ngx_wasm_runtime_name in
         ;;
     *)
         echo "$0: error: $ngx_addon_name does not support the \"$ngx_wasm_runtime_name\" runtime."
-        echo "Supported runtimes: wasmtime, wasmer, WAVM, v8."
+        echo "Supported runtimes: wasmtime, wasmer, v8."
         echo
         exit 1
 esac
