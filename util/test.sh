@@ -57,7 +57,7 @@ export TEST_NGINX_RESOLVER=${TEST_NGINX_RESOLVER:=8.8.4.4}
 export TEST_NGINX_EXTERNAL_RESOLVER=${TEST_NGINX_EXTERNAL_RESOLVER:=8.8.8.8}
 export TEST_NGINX_EXTERNAL_TIMEOUT=${TEST_NGINX_EXTERNAL_TIMEOUT:=60s}
 export ASAN_OPTIONS=detect_odr_violation=0   # see asan.ignore (clang 13)
-export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/asan.suppress"
+export LSAN_OPTIONS="suppressions=$NGX_WASM_DIR/lsan.suppress"
 export LD_PRELOAD=$DIR_MOCKEAGAIN/mockeagain.so
 #export TEST_NGINX_NO_SHUFFLE=1
 #export TEST_NGINX_RANDOMIZE=1
