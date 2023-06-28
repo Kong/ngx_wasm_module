@@ -98,6 +98,13 @@ slru_index_for_size(ngx_wasm_shm_t *shm, size_t size)
         return shift - shm->shpool->min_shift;
     }
 
+    /**
+     * The above condition will always be true as long as
+     * sizeof(ngx_wasm_shm_kv_node_t) > shm->shpool->min_size. We do not assert
+     * it unconditionally because min_size depends on the Nginx page size
+     * configuration. The fallback case is to use the first queue for small
+     * items, strictly following the Nginx slot selection algorithm.
+     */
     return 0;
 }
 
@@ -228,6 +235,17 @@ lru_expire(ngx_wasm_shm_t *shm)
 }
 
 
+static ngx_inline void
+node_queue_remove(ngx_wasm_shm_t *shm, ngx_wasm_shm_kv_node_t *n)
+{
+    if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU
+        || shm->eviction == NGX_WASM_SHM_EVICTION_SLRU)
+    {
+        ngx_queue_remove(&n->queue);
+    }
+}
+
+
 ngx_int_t
 ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
     ngx_str_t *value, uint32_t cas, ngx_int_t *written)
@@ -249,9 +267,7 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
         /* delete */
 
         if (n) {
-            if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU) {
-                ngx_queue_remove(&n->queue);
-            }
+            node_queue_remove(shm, n);
 
             ngx_rbtree_delete(&kv->rbtree, &n->key.node);
             ngx_slab_free_locked(shm->shpool, n);
@@ -306,11 +322,7 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
         n->value.len = value->len;
 
         if (old) {
-            if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU
-                || shm->eviction == NGX_WASM_SHM_EVICTION_SLRU)
-            {
-                ngx_queue_remove(&old->queue);
-            }
+            node_queue_remove(shm, old);
 
             n->cas = old->cas;
             ngx_rbtree_delete(&kv->rbtree, &old->key.node);
@@ -383,7 +395,7 @@ ngx_wasm_shm_kv_resolve_key(ngx_str_t *key, ngx_wasm_shm_kv_key_t *out)
     }
 
     if (zone_idx == NGX_WASM_SHM_INDEX_NOTFOUND) {
-        /*
+        /**
          * If the key does not contain a namespace prefix, or the prefix does not
          * match any defined namespace, attempt to use the default namespace
          */
