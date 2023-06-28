@@ -1,1 +1,3 @@
 global:ngx_modules
+global:ngx_module_names
+global:ngx_module_order
