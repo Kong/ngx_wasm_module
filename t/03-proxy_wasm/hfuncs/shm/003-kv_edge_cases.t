@@ -240,7 +240,7 @@ qr/\[debug\] [^"]* wasm "test" shm store: initialized
 
 
 
-=== TEST 4: proxy_wasm key/value shm - a set that is too big can still fail
+=== TEST 4: proxy_wasm key/value shm - SLRU: a set that is too big can still fail
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: test 12288
@@ -288,7 +288,55 @@ qr/\[crit\] .*? \[wasm\] "test" shm store: no memory; cannot allocate pair with 
 
 
 
-=== TEST 5: proxy_wasm key/value shm - 'no memory' errors if no eviction policy is active
+=== TEST 5: proxy_wasm key/value shm - LRU: a set that is too big can still fail
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- shm_kv: test 12288 eviction=lru
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/shm/set_shared_data_by_len \
+                              key=test/test1 \
+                              header_ok=set-1 \
+                              len=20000';
+
+        # get test/test
+        proxy_wasm hostcalls 'test=/t/shm/get_shared_data \
+                              key=test/test';
+        echo failed;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- grep_error_log eval: qr/(\[crit\]|.*?failed setting value to shm).*/
+--- grep_error_log_out eval
+qr/\[crit\] .*? \[wasm\] "test" shm store: no memory; cannot allocate pair with key size 10 and value size 20000
+(.*?\[error\]|Uncaught RuntimeError|\s+).*?host trap \(internal error\): failed setting value to shm \(could not write to slab\).*/
+--- no_error_log
+[emerg]
+[alert]
+[stub1]
+[stub2]
+[stub3]
+[stub4]
+[stub5]
+[stub6]
+[stub7]
+[stub8]
+[stub9]
+[stub10]
+[stub11]
+[stub12]
+[stub13]
+[stub14]
+[stub15]
+[stub16]
+[stub17]
+[stub18]
+[stub19]
+[stub20]
+
+
+
+=== TEST 6: proxy_wasm key/value shm - 'no memory' errors if no eviction policy is active
 --- skip_no_debug: 25
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -336,7 +384,7 @@ qr/\[crit\] .*? \[wasm\] "test" shm store: no memory; cannot allocate pair with 
 
 
 
-=== TEST 6: proxy_wasm key/value shm - regular LRU may over-deallocate
+=== TEST 7: proxy_wasm key/value shm - regular LRU may over-deallocate
 --- skip_no_debug: 25
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -416,7 +464,7 @@ qr/^[^"]*\[debug\] [^"]* wasm "test" shm store: initialized
 
 
 
-=== TEST 7: proxy_wasm key/value shm - SLRU minimizes deallocation
+=== TEST 8: proxy_wasm key/value shm - SLRU minimizes deallocation
 --- skip_no_debug: 25
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -493,7 +541,7 @@ qr/^[^"]*\[debug\] [^"]* wasm "test" shm store: initialized
 
 
 
-=== TEST 8: proxy_wasm key/value shm - SLRU deallocates larger items if needed
+=== TEST 9: proxy_wasm key/value shm - SLRU deallocates larger items if needed
 --- skip_no_debug: 25
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -570,7 +618,7 @@ qr/^[^"]*\[debug\] [^"]* wasm "test" shm store: initialized
 
 
 
-=== TEST 9: proxy_wasm key/value shm - SLRU deallocates smaller items if no other choice
+=== TEST 10: proxy_wasm key/value shm - SLRU deallocates smaller items if no other choice
 --- skip_no_debug: 25
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -645,7 +693,7 @@ qr/^[^"]*\[debug\] [^"]* wasm "test" shm store: initialized
 
 
 
-=== TEST 10: proxy_wasm key/value shm - SLRU deallocates the largest available "smaller slab"
+=== TEST 11: proxy_wasm key/value shm - SLRU deallocates the largest available "smaller slab"
 --- skip_no_debug: 25
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
