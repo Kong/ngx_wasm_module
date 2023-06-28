@@ -130,6 +130,7 @@ build_nginx() {
         build_name+=" san:$NGX_BUILD_FSANITIZE"
         NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -g \
                           -fsanitize=$NGX_BUILD_FSANITIZE \
+                          -fsanitize-blacklist=$NGX_WASM_DIR/asan.ignore \
                           -Wno-unused-command-line-argument \
                           -fno-omit-frame-pointer"
         NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT \
@@ -293,7 +294,9 @@ build_nginx() {
               || "$NGX_WASM_DIR/auto/cargo" -nt "Makefile" \
               || "$NGX_WASM_DIR/Makefile" -nt "Makefile" \
               || "$NGX_WASM_DIR/util/build.sh" -nt "Makefile" \
-              || "$NGX_WASM_DIR/util/_lib.sh" -nt "Makefile" ]];
+              || "$NGX_WASM_DIR/util/_lib.sh" -nt "Makefile" \
+              || "$NGX_WASM_DIR/asan.ignore" -nt "Makefile" \
+              || "$NGX_WASM_DIR/lsan.suppress" -nt "Makefile" ]];
         then
             local configure="configure"
 
