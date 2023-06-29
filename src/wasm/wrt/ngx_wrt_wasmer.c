@@ -261,6 +261,12 @@ ngx_wasmer_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
     static ngx_str_t            wasi_snapshot1 =
                                     ngx_string("wasi_snapshot_preview1");
 
+    /**
+     * clang-analyzer: ensure the 'wasi_get_unordered_imports' branch is taken
+     * below; or else 'wasi_imports' may be considered uninitialized.
+     */
+    ngx_wasm_assert(!module->wasi);
+
     /* WASI */
 
     wasi_version = wasi_get_wasi_version(module->module);
@@ -307,8 +313,6 @@ linking:
                           importmodule->data, importmodule->size))
         {
             if (!module->wasi) {
-                module->wasi = 1;
-
                 if (!wasi_get_unordered_imports(module->engine->wasi_env,
                                                 module->module,
                                                 &wasi_imports))
@@ -316,6 +320,8 @@ linking:
                     ngx_wasmer_last_err(&err->res);
                     return NGX_ERROR;
                 }
+
+                module->wasi = 1;
             }
 
             /* resolve wasi */
