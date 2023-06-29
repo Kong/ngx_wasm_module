@@ -344,8 +344,21 @@ jobs:
       matrix:
         cc: [clang-11]
         openresty: [1.21.4.1]
-        runtime: [wasmtime]
+        runtime: [wasmer, wasmtime, v8]
+        wasmer: [3.1.1]
         wasmtime: [8.0.1]
+        v8: [11.4.183.23]
+        debug: [debug, no_debug]
+        ssl: [ssl]
+        include:
+          # No SSL
+          - os: ubuntu-latest
+            cc: clang-11
+            ngx: 1.25.1
+            runtime: wasmer
+            wasmer: 3.1.1
+            debug: debug
+            ssl: no_ssl
     steps:
       - run: |
           sudo apt-get update
@@ -368,6 +381,8 @@ jobs:
       - run: make
         env:
           CC: ${{ matrix.cc }}
+          NGX_BUILD_SSL: ${{ matrix.ssl == 'ssl' && 1 || 0 }}
+          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
           NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
       - uses: actions/upload-artifact@v2
         if: ${{ failure() && !env.ACT }}
