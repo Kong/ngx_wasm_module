@@ -34,7 +34,7 @@ download_v8() {
 
     if [[ ! -d "$tarball" ]]; then
         download $tarball \
-          "$URL_KONG_WASM_RUNTIMES/releases/download/latest/ngx_wasm_runtime-v8-${version}-${os}-${arch}.tar.gz"
+            "$URL_KONG_WASM_RUNTIMES/releases/download/v8-${version}/ngx_wasm_runtime-v8-${version}-${os}-${arch}.tar.gz"
     fi
 
     if [[ ! -d "$target" ]]; then
