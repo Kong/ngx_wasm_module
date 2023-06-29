@@ -135,6 +135,7 @@ build_libwee8() {
 
     cd repos/v8
 
+    git fetch --tags
     git checkout .
     git checkout "$v8_ver"
 
