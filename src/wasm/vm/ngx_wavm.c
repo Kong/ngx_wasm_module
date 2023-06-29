@@ -1410,6 +1410,7 @@ name_idx_compare(const void *a, const void *b)
 }
 #endif
 
+
 void
 ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
     const char *fmt, ...)
