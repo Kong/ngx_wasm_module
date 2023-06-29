@@ -1427,9 +1427,9 @@ ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
     char                              hex[20];
 
 #if NGX_WASM_BACKTRACE
-    ngx_wasm_backtrace_name_table_t  *name_table;
     ngx_wasm_backtrace_name_t         key;
-    ngx_wasm_backtrace_name_t        *found;
+    ngx_wasm_backtrace_name_t        *found = NULL;
+    ngx_wasm_backtrace_name_table_t  *name_table = NULL;
     wasm_byte_vec_t                   demangled;
 #endif /* NGX_WASM_BACKTRACE */
 
@@ -1469,7 +1469,6 @@ ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
 
 #if NGX_WASM_BACKTRACE
                 name_table = ctx->instance->module->name_table;
-                found = NULL;
 #endif
             }
 
