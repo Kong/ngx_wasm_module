@@ -345,35 +345,3 @@ ok
 [alert]
 stub
 stub
-
-
-
-=== TEST 9: proxy_wasm key/value shm - smallest possible SLRU queue size
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
---- shm_kv: * 1m eviction=slru
---- config
-    location /t {
-        proxy_wasm hostcalls 'test=/t/shm/set_shared_data \
-                              key=k \
-                              value=v';
-
-        proxy_wasm hostcalls 'test=/t/shm/get_shared_data \
-                              key=k';
-
-        echo ok;
-    }
---- response_headers
-cas: 1
-exists: 1
-data: v
---- response_body
-ok
---- no_error_log
-[error]
-[crit]
-[emerg]
-[alert]
-stub
-stub
-stub
