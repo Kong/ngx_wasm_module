@@ -312,7 +312,7 @@ build_nginx() {
                 "--with-ld-opt='$NGX_BUILD_LD_OPT'" \
                 "--with-poll_module" \
                 "${build_opts[@]}" \
-                "$NGX_BUILD_CONFIGURE_OPT" \
+                "$NGX_BUILD_CONFIGURE_OPT"
 
             FRESH_BUILD=1
         fi

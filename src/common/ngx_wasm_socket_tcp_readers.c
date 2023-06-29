@@ -563,7 +563,6 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
             }
 #endif
 
-
             b = cl->buf;
             b->pos = src->pos;
 
