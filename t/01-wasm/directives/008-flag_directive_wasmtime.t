@@ -10,6 +10,15 @@ our $nginxV = $t::TestWasm::nginxV;
 
 plan tests => repeat_each() * (blocks() * 4);
 
+add_cleanup_handler(sub {
+    my @jit_dumps = glob("$::pwd/jit-*.dump");
+
+    foreach my $file (@jit_dumps) {
+        #warn "\n", $file, "\n";
+        unlink($file);
+    }
+});
+
 run_tests();
 
 __DATA__
