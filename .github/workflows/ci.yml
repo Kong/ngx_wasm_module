@@ -6,25 +6,27 @@ on:
   pull_request:
     branches: '**'
 
-defaults:
-  run:
-    shell: bash
-
 env:
   COVERALLS_SERVICE_NUMBER: ${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   tests:
     name: 'Unit'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
-    #if: ${{ false }}
-    outputs:
-      coveralls_name: ${{ steps.lcov.outputs.name }}
-    env:
-      NGX_BUILD_GCOV: 1
-      TEST_NGINX_TIMEOUT: 60
-      TEST_NGINX_EXTERNAL_TIMEOUT: 120s
+    uses: ./.github/workflows/unit.yml
+    with:
+      os: ${{ matrix.os }}
+      cc: ${{ matrix.cc }}
+      ngx: ${{ matrix.ngx }}
+      openresty: ${{ matrix.openresty }}
+      runtime: ${{ matrix.runtime }}
+      wasmer: ${{ matrix.wasmer }}
+      wasmtime: ${{ matrix.wasmtime }}
+      v8: ${{ matrix.v8 }}
+      debug: ${{ matrix.debug }}
+      hup: ${{ matrix.hup }}
+      ssl: ${{ matrix.ssl }}
+      module_type: ${{ matrix.module_type }}
+    secrets: inherit
     strategy:
       fail-fast: false
       matrix:
@@ -100,111 +102,21 @@ jobs:
             hup: no_hup
             ssl: ssl
             module_type: dynamic
-    steps:
-      - name: 'Setup deps - apt-get'
-        if: ${{ matrix.cc == 'gcc-9' }}
-        run: sudo apt-get update && sudo apt-get install -y gcc-9 libstdc++-9-dev lcov
-      - uses: actions/checkout@v3
-      - name: 'Setup cache - rustup toolchain'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            ~/.rustup/settings.toml
-            ~/.rustup/toolchains/*
-            ~/.rustup/update-hashes/*
-          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
-      - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            work/downloads
-            work/runtimes
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          target: wasm32-wasi
-      - name: Setup TinyGo
-        uses: acifani/setup-tinygo@v1
-        with:
-          tinygo-version: 0.27.0
-      - name: Setup Wasm runtime
-        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
-      - run: make setup
-      - run: make
-        env:
-          CC: ${{ matrix.cc }}
-          NGX: ${{ matrix.ngx }}
-          NGX_BUILD_SSL: ${{ matrix.ssl == 'ssl' && 1 || 0 }}
-          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
-          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
-          NGX_BUILD_DYNAMIC_MODULE: ${{ matrix.module_type == 'dynamic' && 1 || 0 }}
-      - run: make test
-        env:
-          TEST_NGINX_USE_HUP: ${{ matrix.hup == 'hup' && 1 || 0 }}
-          NGX_BUILD_DYNAMIC_MODULE: ${{ matrix.module_type == 'dynamic' && 1 || 0 }}
-      - name: Run lcov
-        id: lcov
-        if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
-        run: |
-          name="unit"
-          if [ -n "${{ matrix.openresty }}" ]; then
-            name="$name-openresty_${{ matrix.openresty }}"
-          else
-            name="$name-ngx_${{ matrix.ngx }}"
-          fi
-          name="$name-${{ matrix.runtime }}"
-          name="$name-${{ matrix.ssl }}"
-          name="$name-${{ matrix.debug }}"
-          name="$name-${{ matrix.hup }}"
-          name="$name-${{ matrix.module_type }}"
-          echo "name=$name" >> $GITHUB_OUTPUT
-          lcov --capture --directory work/buildroot --output-file lcov.info
-          lcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
-      - name: Coveralls Upload
-        if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.github_token }}
-          flag-name: ${{ steps.lcov.outputs.name }}
-          path-to-lcov: './lcov.info'
-          parallel: true
-      - uses: actions/upload-artifact@v2
-        if: ${{ failure() && !env.ACT }}
-        with:
-          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ matrix.runtime }}
-          path: |
-            work/buildroot/
-            t/servroot*
-
-  finish:
-    needs: tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Coveralls Finished
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.github_token }}
-          parallel-finished: true
-          carryforward: "unit-ngx_1.25.1-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.1-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.1-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-dynamic"
 
   valgrind:
     name: 'Valgrind'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 100
-    #if: ${{ false }}
-    env:
-      NGX_BUILD_NOPOOL: 1
-      NGX_BUILD_CC_OPT: '-O2'
-      TEST_NGINX_RANDOMIZE: 1
-      TEST_NGINX_TIMEOUT: 120
-      TEST_NGINX_EXTERNAL_TIMEOUT: 200
-      TEST_NGINX_USE_VALGRIND: 1
+    uses: ./.github/workflows/valgrind.yml
+    with:
+      os: ${{ matrix.os }}
+      cc: ${{ matrix.cc }}
+      ngx: ${{ matrix.ngx }}
+      openresty: ${{ matrix.openresty }}
+      runtime: ${{ matrix.runtime }}
+      wasmer: ${{ matrix.wasmer }}
+      wasmtime: ${{ matrix.wasmtime }}
+      v8: ${{ matrix.v8 }}
+      hup: ${{ matrix.hup }}
+      debug: ${{ matrix.debug }}
     strategy:
       fail-fast: false
       matrix:
@@ -246,64 +158,6 @@ jobs:
             wasmer: 3.1.1
             debug: debug
             hup: no_hup
-    steps:
-      - run: sudo apt-get update && sudo apt-get install -y valgrind
-      - uses: actions/checkout@v3
-      - name: 'Setup cache - rustup toolchain'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            ~/.rustup/settings.toml
-            ~/.rustup/toolchains/*
-            ~/.rustup/update-hashes/*
-          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
-      - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            work/downloads
-            work/runtimes
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          target: wasm32-wasi
-      - name: Setup TinyGo
-        uses: acifani/setup-tinygo@v1
-        with:
-          tinygo-version: 0.27.0
-      - name: Setup Wasm runtime
-        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
-      - run: make setup
-      - run: make
-        env:
-          CC: ${{ matrix.cc }}
-          NGX: ${{ matrix.ngx }}
-          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
-          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
-      - run: make test 2>&1 | tee valgrind.out
-        env:
-          TEST_NGINX_USE_HUP: ${{ matrix.hup == 'hup' && 1 || 0 }}
-          TEST_NGINX_NO_CLEAN: 1
-      - run: |
-          awk -f ./util/parse-valgrind.awk valgrind.out > valgrind.log
-          if [[ -s valgrind.log ]]; then
-            cat valgrind.log >&2
-            exit 1
-          fi
-      - uses: actions/upload-artifact@v2
-        if: ${{ failure() && !env.ACT }}
-        with:
-          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ matrix.runtime }}
-          path: |
-            work/buildroot/
-            t/servroot*
-            valgrind.out
 
   lint:
     name: 'Lint'
@@ -335,10 +189,17 @@ jobs:
 
   analyzer:
     name: 'Clang analyzer'
-    runs-on: ubuntu-latest
-    #if: ${{ false }}
-    env:
-      NGX_BUILD_CLANG_ANALYZER: 1
+    uses: ./.github/workflows/clang-analyzer.yml
+    with:
+      cc: ${{ matrix.cc }}
+      ngx: ${{ matrix.ngx }}
+      openresty: ${{ matrix.openresty }}
+      runtime: ${{ matrix.runtime }}
+      wasmer: ${{ matrix.wasmer }}
+      wasmtime: ${{ matrix.wasmtime }}
+      v8: ${{ matrix.v8 }}
+      debug: ${{ matrix.debug }}
+      ssl: ${{ matrix.ssl }}
     strategy:
       fail-fast: false
       matrix:
@@ -352,43 +213,12 @@ jobs:
         ssl: [ssl]
         include:
           # No SSL
-          - os: ubuntu-latest
-            cc: clang-11
+          - cc: clang-11
             ngx: 1.25.1
             runtime: wasmer
             wasmer: 3.1.1
             debug: debug
             ssl: no_ssl
-    steps:
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y $(echo ${{ matrix.cc }} | sed s/clang/clang-tools/)
-          sudo update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/$(echo ${{ matrix.cc }} | sed s/clang/scan-build/) 100
-      - uses: actions/checkout@v3
-      - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            work/downloads
-            work/runtimes
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
-      - name: Setup Wasm runtime
-        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
-      - run: make setup
-      - run: make
-        env:
-          CC: ${{ matrix.cc }}
-          NGX_BUILD_SSL: ${{ matrix.ssl == 'ssl' && 1 || 0 }}
-          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
-          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
-      - uses: actions/upload-artifact@v2
-        if: ${{ failure() && !env.ACT }}
-        with:
-          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
-          path: work/scans/*
 
   build:
     name: 'Test builds'
