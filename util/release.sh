@@ -372,6 +372,7 @@ release_bin() {
         notice "Enabling devtoolset-8 for CentOS..."
         source /opt/rh/devtoolset-8/enable
         gcc --version
+        export CC=gcc
     fi
 
     if [ -n "$WASMTIME_VER" ]; then
