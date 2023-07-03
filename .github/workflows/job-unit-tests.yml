@@ -1,0 +1,146 @@
+name: Unit tests
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      cc:
+        required: true
+        type: string
+      ngx:
+        required: true
+        type: string
+      openresty:
+        required: true
+        type: string
+      runtime:
+        required: true
+        type: string
+      wasmtime:
+        required: true
+        type: string
+      wasmer:
+        required: true
+        type: string
+      v8:
+        required: true
+        type: string
+      debug:
+        required: true
+        type: string
+      ssl:
+        required: true
+        type: string
+      hup:
+        required: true
+        type: string
+      module_type:
+        required: true
+        type: string
+      coverage:
+        required: false
+        type: boolean
+        default: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CC: ${{ inputs.cc }}
+  NGX: ${{ inputs.ngx }}
+  NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
+  NGX_BUILD_GCOV: ${{ inputs.coverage && 1 || 0 }}
+  NGX_BUILD_DEBUG: ${{ inputs.debug == 'debug' && 1 || 0 }}
+  NGX_BUILD_SSL: ${{ inputs.ssl == 'ssl' && 1 || 0 }}
+  NGX_BUILD_DYNAMIC_MODULE: ${{ inputs.module_type == 'dynamic' && 1 || 0 }}
+  TEST_NGINX_USE_HUP: ${{ inputs.hup == 'hup' && 1 || 0 }}
+  TEST_NGINX_TIMEOUT: 60
+  TEST_NGINX_EXTERNAL_TIMEOUT: 120s
+  COVERALLS_SERVICE_NUMBER: ${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  tests:
+    name: 'Unit tests'
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 60
+    outputs:
+      coveralls_name: ${{ steps.lcov.outputs.name }}
+    steps:
+      - name: 'Setup deps - apt-get'
+        if: ${{ inputs.cc == 'gcc-9' }}
+        run: sudo apt-get update && sudo apt-get install -y gcc-9 libstdc++-9-dev lcov
+      - uses: actions/checkout@v3
+      - name: 'Setup cache - rustup toolchain'
+        uses: actions/cache@v3
+        if: ${{ !env.ACT }}
+        with:
+          path: |
+            ~/.rustup/settings.toml
+            ~/.rustup/toolchains/*
+            ~/.rustup/update-hashes/*
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
+      - name: 'Setup cache - work/ dir'
+        uses: actions/cache@v3
+        if: ${{ !env.ACT }}
+        with:
+          path: |
+            work/downloads
+            work/runtimes
+            work/openssl
+          key: work-${{ runner.os }}-${{ inputs.cc }}-${{ inputs.ngx }}-${{ inputs.openresty }}-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          target: wasm32-wasi
+      - name: Setup TinyGo
+        uses: acifani/setup-tinygo@v1
+        with:
+          tinygo-version: 0.27.0
+      - name: Setup Wasm runtime
+        run: ./util/runtime.sh -R ${{ inputs.runtime }} -V ${{ inputs[inputs.runtime] }}
+      - run: make setup
+      - run: make
+      - run: make test
+      - name: Run lcov
+        id: lcov
+        if: ${{ !env.ACT && inputs.cc == 'gcc-9' && inputs.coverage }}
+        run: |
+          lcov --capture --directory work/buildroot --output-file lcov.info
+          lcov --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
+          lcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
+
+          name="unit"
+          if [ -n "${{ inputs.openresty }}" ]; then
+            name="$name-openresty_${{ inputs.openresty }}"
+          else
+            name="$name-ngx_${{ inputs.ngx }}"
+          fi
+          name="$name-${{ inputs.runtime }}"
+          name="$name-${{ inputs.ssl }}"
+          name="$name-${{ inputs.debug }}"
+          name="$name-${{ inputs.hup }}"
+          if [ "${{ inputs.module_type }}" = dynamic ]; then
+            name="$name-dynamic"
+          else
+            name="$name-static"
+          fi
+          echo "name=$name" >> $GITHUB_OUTPUT
+      - name: Coveralls Upload
+        if: ${{ !env.ACT && inputs.cc == 'gcc-9' && inputs.coverage }}
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: ${{ steps.lcov.outputs.name }}
+          path-to-lcov: './lcov.info'
+          parallel: true
+      - uses: actions/upload-artifact@v2
+        if: ${{ failure() && !env.ACT }}
+        with:
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ inputs.runtime }}
+          path: |
+            work/buildroot/
+            t/servroot*

@@ -1,0 +1,108 @@
+name: Valgrind
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      cc:
+        required: true
+        type: string
+      ngx:
+        required: true
+        type: string
+      openresty:
+        required: true
+        type: string
+      runtime:
+        required: true
+        type: string
+      wasmtime:
+        required: true
+        type: string
+      wasmer:
+        required: true
+        type: string
+      v8:
+        required: true
+        type: string
+      debug:
+        required: true
+        type: string
+      hup:
+        required: true
+        type: string
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CC: ${{ inputs.cc }}
+  NGX: ${{ inputs.ngx }}
+  NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
+  NGX_BUILD_DEBUG: ${{ inputs.debug == 'debug' && 1 || 0 }}
+  NGX_BUILD_CC_OPT: '-O2'
+  NGX_BUILD_NOPOOL: 1
+  TEST_NGINX_USE_VALGRIND: 1
+  TEST_NGINX_USE_HUP: ${{ inputs.hup == 'hup' && 1 || 0 }}
+  TEST_NGINX_RANDOMIZE: 1
+  TEST_NGINX_NO_CLEAN: 1
+  TEST_NGINX_TIMEOUT: 120
+  TEST_NGINX_EXTERNAL_TIMEOUT: 200
+
+jobs:
+  valgrind:
+    name: 'Valgrind tests'
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 120
+    steps:
+      - run: sudo apt-get update && sudo apt-get install -y valgrind
+      - uses: actions/checkout@v3
+      - name: 'Setup cache - rustup toolchain'
+        uses: actions/cache@v3
+        if: ${{ !env.ACT }}
+        with:
+          path: |
+            ~/.rustup/settings.toml
+            ~/.rustup/toolchains/*
+            ~/.rustup/update-hashes/*
+          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
+      - name: 'Setup cache - work/ dir'
+        uses: actions/cache@v3
+        if: ${{ !env.ACT }}
+        with:
+          path: |
+            work/downloads
+            work/runtimes
+            work/openssl
+          key: work-${{ runner.os }}-${{ inputs.cc }}-${{ inputs.ngx }}-${{ inputs.openresty }}-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          target: wasm32-wasi
+      - name: Setup TinyGo
+        uses: acifani/setup-tinygo@v1
+        with:
+          tinygo-version: 0.27.0
+      - name: Setup Wasm runtime
+        run: ./util/runtime.sh -R ${{ inputs.runtime }} -V ${{ inputs[inputs.runtime] }}
+      - run: make setup
+      - run: make
+      - run: make test 2>&1 | tee valgrind.out
+      - run: |
+          awk -f ./util/parse-valgrind.awk valgrind.out > valgrind.log
+          if [[ -s valgrind.log ]]; then
+            cat valgrind.log >&2
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v2
+        if: ${{ failure() && !env.ACT }}
+        with:
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ inputs.runtime }}
+          path: |
+            work/buildroot/
+            t/servroot*
+            valgrind.out
