@@ -35,13 +35,17 @@ defaults:
   run:
     shell: bash
 
+env:
+  CC: ${{ inputs.cc }}
+  NGX_BUILD_SSL: ${{ inputs.ssl == 'ssl' && 1 || 0 }}
+  NGX_BUILD_DEBUG: ${{ inputs.debug == 'debug' && 1 || 0 }}
+  NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
+  NGX_BUILD_CLANG_ANALYZER: 1
+
 jobs:
   analyzer:
     name: 'Clang analyzer'
     runs-on: ubuntu-latest
-    #if: ${{ false }}
-    env:
-      NGX_BUILD_CLANG_ANALYZER: 1
     steps:
       - run: |
           sudo apt-get update
@@ -58,15 +62,8 @@ jobs:
           key: work-${{ runner.os }}-${{ inputs.cc }}-${{ inputs.ngx }}-${{ inputs.openresty }}-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ inputs.runtime }} -V ${{ inputs[inputs.runtime] }}
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - run: make setup
       - run: make
-        env:
-          CC: ${{ inputs.cc }}
-          NGX_BUILD_SSL: ${{ inputs.ssl == 'ssl' && 1 || 0 }}
-          NGX_BUILD_DEBUG: ${{ inputs.debug == 'debug' && 1 || 0 }}
-          NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
       - uses: actions/upload-artifact@v2
         if: ${{ failure() && !env.ACT }}
         with:
