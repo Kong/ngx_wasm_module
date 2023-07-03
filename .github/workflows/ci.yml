@@ -190,10 +190,17 @@ jobs:
 
   analyzer:
     name: 'Clang analyzer'
-    runs-on: ubuntu-latest
-    #if: ${{ false }}
-    env:
-      NGX_BUILD_CLANG_ANALYZER: 1
+    uses: ./.github/workflows/clang-analyzer.yml
+    with:
+      cc: ${{ matrix.cc }}
+      ngx: ${{ matrix.ngx }}
+      openresty: ${{ matrix.openresty }}
+      runtime: ${{ matrix.runtime }}
+      wasmer: ${{ matrix.wasmer }}
+      wasmtime: ${{ matrix.wasmtime }}
+      v8: ${{ matrix.v8 }}
+      debug: ${{ matrix.debug }}
+      ssl: ${{ matrix.ssl }}
     strategy:
       fail-fast: false
       matrix:
@@ -214,36 +221,6 @@ jobs:
             wasmer: 3.1.1
             debug: debug
             ssl: no_ssl
-    steps:
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y $(echo ${{ matrix.cc }} | sed s/clang/clang-tools/)
-          sudo update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/$(echo ${{ matrix.cc }} | sed s/clang/scan-build/) 100
-      - uses: actions/checkout@v3
-      - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            work/downloads
-            work/runtimes
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
-      - name: Setup Wasm runtime
-        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
-      - run: make setup
-      - run: make
-        env:
-          CC: ${{ matrix.cc }}
-          NGX_BUILD_SSL: ${{ matrix.ssl == 'ssl' && 1 || 0 }}
-          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
-          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
-      - uses: actions/upload-artifact@v2
-        if: ${{ failure() && !env.ACT }}
-        with:
-          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
-          path: work/scans/*
 
   build:
     name: 'Test builds'
