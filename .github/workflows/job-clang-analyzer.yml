@@ -1,0 +1,71 @@
+name: Clang analyzer
+
+on:
+  workflow_call:
+    inputs:
+      cc:
+        required: true
+        type: string
+      ngx:
+        required: true
+        type: string
+      openresty:
+        required: true
+        type: string
+      runtime:
+        required: true
+        type: string
+      wasmtime:
+        required: true
+        type: string
+      wasmer:
+        required: true
+        type: string
+      v8:
+        required: true
+        type: string
+      debug:
+        required: true
+        type: string
+      ssl:
+        required: true
+        type: string
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CC: ${{ inputs.cc }}
+  NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
+  NGX_BUILD_DEBUG: ${{ inputs.debug == 'debug' && 1 || 0 }}
+  NGX_BUILD_SSL: ${{ inputs.ssl == 'ssl' && 1 || 0 }}
+  NGX_BUILD_CLANG_ANALYZER: 1
+
+jobs:
+  analyzer:
+    name: 'Clang analyzer'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y $(echo ${{ inputs.cc }} | sed s/clang/clang-tools/)
+          sudo update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/$(echo ${{ inputs.cc }} | sed s/clang/scan-build/) 100
+      - uses: actions/checkout@v3
+      - name: 'Setup cache - work/ dir'
+        uses: actions/cache@v3
+        if: ${{ !env.ACT }}
+        with:
+          path: |
+            work/downloads
+            work/runtimes
+          key: work-${{ runner.os }}-${{ inputs.cc }}-${{ inputs.ngx }}-${{ inputs.openresty }}-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+      - name: Setup Wasm runtime
+        run: ./util/runtime.sh -R ${{ inputs.runtime }} -V ${{ inputs[inputs.runtime] }}
+      - run: make setup
+      - run: make
+      - uses: actions/upload-artifact@v2
+        if: ${{ failure() && !env.ACT }}
+        with:
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: work/scans/*
