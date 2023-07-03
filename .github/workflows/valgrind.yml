@@ -38,17 +38,24 @@ defaults:
   run:
     shell: bash
 
+env:
+  CC: ${{ inputs.cc }}
+  NGX: ${{ inputs.ngx }}
+  NGX_BUILD_DEBUG: ${{ inputs.debug == 'debug' && 1 || 0 }}
+  NGX_BUILD_CC_OPT: '-O2'
+  NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
+  NGX_BUILD_NOPOOL: 1
+  TEST_NGINX_RANDOMIZE: 1
+  TEST_NGINX_TIMEOUT: 120
+  TEST_NGINX_EXTERNAL_TIMEOUT: 200
+  TEST_NGINX_USE_VALGRIND: 1
+  TEST_NGINX_USE_HUP: ${{ inputs.hup == 'hup' && 1 || 0 }}
+  TEST_NGINX_NO_CLEAN: 1
+
 jobs:
   valgrind:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 100
-    env:
-      NGX_BUILD_NOPOOL: 1
-      NGX_BUILD_CC_OPT: '-O2'
-      TEST_NGINX_RANDOMIZE: 1
-      TEST_NGINX_TIMEOUT: 120
-      TEST_NGINX_EXTERNAL_TIMEOUT: 200
-      TEST_NGINX_USE_VALGRIND: 1
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
       - uses: actions/checkout@v3
@@ -80,19 +87,9 @@ jobs:
           tinygo-version: 0.27.0
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ inputs.runtime }} -V ${{ inputs[inputs.runtime] }}
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - run: make setup
       - run: make
-        env:
-          CC: ${{ inputs.cc }}
-          NGX: ${{ inputs.ngx }}
-          NGX_BUILD_DEBUG: ${{ inputs.debug == 'debug' && 1 || 0 }}
-          NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
       - run: make test 2>&1 | tee valgrind.out
-        env:
-          TEST_NGINX_USE_HUP: ${{ inputs.hup == 'hup' && 1 || 0 }}
-          TEST_NGINX_NO_CLEAN: 1
       - run: |
           awk -f ./util/parse-valgrind.awk valgrind.out > valgrind.log
           if [[ -s valgrind.log ]]; then
