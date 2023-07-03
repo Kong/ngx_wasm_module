@@ -14,17 +14,9 @@ env:
   COVERALLS_SERVICE_NUMBER: ${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
-  tests:
+  unit:
     name: 'Unit'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
     #if: ${{ false }}
-    outputs:
-      coveralls_name: ${{ steps.lcov.outputs.name }}
-    env:
-      NGX_BUILD_GCOV: 1
-      TEST_NGINX_TIMEOUT: 60
-      TEST_NGINX_EXTERNAL_TIMEOUT: 120s
     strategy:
       fail-fast: false
       matrix:
@@ -34,12 +26,12 @@ jobs:
         ngx: [1.25.1]
         openresty: [""]
         runtime: [wasmer]
-        wasmer: [3.1.1]
         wasmtime: [""]
+        wasmer: [3.1.1]
         v8: [""]
+        ssl: [ssl]
         debug: [debug, no_debug]
         hup: [no_hup]
-        ssl: [ssl]
         module_type: ["static"]
         include:
           # Wasmtime
@@ -48,18 +40,18 @@ jobs:
             os: ubuntu-latest
             cc: gcc-9
             ngx: 1.25.1
+            ssl: ssl
             debug: debug
             hup: hup
-            ssl: ssl
           # V8
           - runtime: v8
             v8: 11.4.183.23
             os: ubuntu-latest
             cc: gcc-9
             ngx: 1.25.1
+            ssl: ssl
             debug: debug
             hup: no_hup
-            ssl: ssl
           # Old Nginx
           - label: old_nginx
             os: ubuntu-latest
@@ -67,9 +59,9 @@ jobs:
             ngx: 1.21.6
             runtime: wasmer
             wasmer: 3.1.1
+            ssl: ssl
             debug: debug
             hup: no_hup
-            ssl: ssl
           # Nginx + dynamic ngx_wasm_module + HUP
           - label: dynamic_nginx
             os: ubuntu-latest
@@ -77,17 +69,17 @@ jobs:
             ngx: 1.25.1
             runtime: wasmtime
             wasmtime: 8.0.1
+            ssl: ssl
             debug: debug
             hup: hup
-            ssl: ssl
             module_type: dynamic
           # No SSL
-          - ssl: no_ssl
-            os: ubuntu-latest
+          - os: ubuntu-latest
             cc: gcc-9
             ngx: 1.25.1
             runtime: wasmer
             wasmer: 3.1.1
+            ssl: no_ssl
             debug: no_debug
             hup: no_hup
           # OpenResty
@@ -97,9 +89,9 @@ jobs:
             openresty: 1.21.4.1
             runtime: wasmtime
             wasmtime: 8.0.1
+            ssl: ssl
             debug: debug
             hup: no_hup
-            ssl: ssl
           # OpenResty + dynamic ngx_wasm_module
           - label: dynamic_openresty
             os: ubuntu-latest
@@ -107,121 +99,42 @@ jobs:
             openresty: 1.21.4.1
             runtime: wasmtime
             wasmtime: 8.0.1
+            ssl: ssl
             debug: debug
             hup: no_hup
-            ssl: ssl
             module_type: dynamic
-    steps:
-      - name: 'Setup deps - apt-get'
-        if: ${{ matrix.cc == 'gcc-9' }}
-        run: sudo apt-get update && sudo apt-get install -y gcc-9 libstdc++-9-dev lcov
-      - uses: actions/checkout@v3
-      - name: 'Setup cache - rustup toolchain'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            ~/.rustup/settings.toml
-            ~/.rustup/toolchains/*
-            ~/.rustup/update-hashes/*
-          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
-      - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            work/downloads
-            work/runtimes
-            work/openssl
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          target: wasm32-wasi
-      - name: Setup TinyGo
-        uses: acifani/setup-tinygo@v1
-        with:
-          tinygo-version: 0.27.0
-      - name: Setup Wasm runtime
-        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
-      - run: make setup
-      - run: make
-        env:
-          CC: ${{ matrix.cc }}
-          NGX: ${{ matrix.ngx }}
-          NGX_BUILD_SSL: ${{ matrix.ssl == 'ssl' && 1 || 0 }}
-          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
-          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
-          NGX_BUILD_DYNAMIC_MODULE: ${{ matrix.module_type == 'dynamic' && 1 || 0 }}
-      - run: make test
-        env:
-          TEST_NGINX_USE_HUP: ${{ matrix.hup == 'hup' && 1 || 0 }}
-          NGX_BUILD_DYNAMIC_MODULE: ${{ matrix.module_type == 'dynamic' && 1 || 0 }}
-      - name: Run lcov
-        id: lcov
-        if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
-        run: |
-          name="unit"
-          if [ -n "${{ matrix.openresty }}" ]; then
-            name="$name-openresty_${{ matrix.openresty }}"
-          else
-            name="$name-ngx_${{ matrix.ngx }}"
-          fi
-          name="$name-${{ matrix.runtime }}"
-          name="$name-${{ matrix.ssl }}"
-          name="$name-${{ matrix.debug }}"
-          name="$name-${{ matrix.hup }}"
-          if [ "${{ matrix.module_type }}" = dynamic ]; then
-            name="$name-dynamic"
-          else
-            name="$name-static"
-          fi
-          echo "name=$name" >> $GITHUB_OUTPUT
-          lcov --capture --directory work/buildroot --output-file lcov.info
-          lcov --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
-          lcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
-      - name: Coveralls Upload
-        if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.github_token }}
-          flag-name: ${{ steps.lcov.outputs.name }}
-          path-to-lcov: './lcov.info'
-          parallel: true
-      - uses: actions/upload-artifact@v2
-        if: ${{ failure() && !env.ACT }}
-        with:
-          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ matrix.runtime }}
-          path: |
-            work/buildroot/
-            t/servroot*
+    uses: ./.github/workflows/job-unit-tests.yml
+    with:
+      os: ${{ matrix.os }}
+      cc: ${{ matrix.cc }}
+      ngx: ${{ matrix.ngx }}
+      openresty: ${{ matrix.openresty }}
+      runtime: ${{ matrix.runtime }}
+      wasmtime: ${{ matrix.wasmtime }}
+      wasmer: ${{ matrix.wasmer }}
+      v8: ${{ matrix.v8 }}
+      ssl: ${{ matrix.ssl }}
+      debug: ${{ matrix.debug }}
+      hup: ${{ matrix.hup }}
+      module_type: ${{ matrix.module_type }}
+      coverage: true
+    secrets: inherit
 
-  finish:
-    needs: tests
+  coverage:
+    needs: unit
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
+        if: ${{ !env.ACT }}
         uses: coverallsapp/github-action@v2
         with:
-          github-token: ${{ secrets.github_token }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
-          carryforward: "unit-ngx_1.25.1-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.1-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.1-wasmtime-ssl-debug-hup-dynamic,unit-ngx_1.25.1-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-dynamic"
+          carryforward: 'unit-ngx_1.25.1-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.1-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.1-wasmtime-ssl-debug-hup-dynamic,unit-ngx_1.25.1-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-dynamic'
 
   valgrind:
     name: 'Valgrind'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
     #if: ${{ false }}
-    env:
-      NGX_BUILD_NOPOOL: 1
-      NGX_BUILD_CC_OPT: '-O2'
-      TEST_NGINX_RANDOMIZE: 1
-      TEST_NGINX_TIMEOUT: 120
-      TEST_NGINX_EXTERNAL_TIMEOUT: 200
-      TEST_NGINX_USE_VALGRIND: 1
     strategy:
       fail-fast: false
       matrix:
@@ -231,8 +144,8 @@ jobs:
         ngx: [1.25.1]
         openresty: [""]
         runtime: [wasmer]
-        wasmer: [3.1.1]
         wasmtime: [""]
+        wasmer: [3.1.1]
         v8: [""]
         hup: [no_hup, hup]
         debug: [debug]
@@ -263,70 +176,22 @@ jobs:
             wasmer: 3.1.1
             debug: debug
             hup: no_hup
-    steps:
-      - run: sudo apt-get update && sudo apt-get install -y valgrind
-      - uses: actions/checkout@v3
-      - name: 'Setup cache - rustup toolchain'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            ~/.rustup/settings.toml
-            ~/.rustup/toolchains/*
-            ~/.rustup/update-hashes/*
-          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
-      - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            work/downloads
-            work/runtimes
-            work/openssl
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          target: wasm32-wasi
-      - name: Setup TinyGo
-        uses: acifani/setup-tinygo@v1
-        with:
-          tinygo-version: 0.27.0
-      - name: Setup Wasm runtime
-        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
-      - run: make setup
-      - run: make
-        env:
-          CC: ${{ matrix.cc }}
-          NGX: ${{ matrix.ngx }}
-          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
-          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
-      - run: make test 2>&1 | tee valgrind.out
-        env:
-          TEST_NGINX_USE_HUP: ${{ matrix.hup == 'hup' && 1 || 0 }}
-          TEST_NGINX_NO_CLEAN: 1
-      - run: |
-          awk -f ./util/parse-valgrind.awk valgrind.out > valgrind.log
-          if [[ -s valgrind.log ]]; then
-            cat valgrind.log >&2
-            exit 1
-          fi
-      - uses: actions/upload-artifact@v2
-        if: ${{ failure() && !env.ACT }}
-        with:
-          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ matrix.runtime }}
-          path: |
-            work/buildroot/
-            t/servroot*
-            valgrind.out
+    uses: ./.github/workflows/job-valgrind-tests.yml
+    with:
+      os: ${{ matrix.os }}
+      cc: ${{ matrix.cc }}
+      ngx: ${{ matrix.ngx }}
+      openresty: ${{ matrix.openresty }}
+      runtime: ${{ matrix.runtime }}
+      wasmtime: ${{ matrix.wasmtime }}
+      wasmer: ${{ matrix.wasmer }}
+      v8: ${{ matrix.v8 }}
+      hup: ${{ matrix.hup }}
+      debug: ${{ matrix.debug }}
 
   lint:
     name: 'Lint'
     runs-on: ubuntu-latest
-    #if: ${{ false }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
@@ -353,21 +218,17 @@ jobs:
 
   analyzer:
     name: 'Clang analyzer'
-    runs-on: ubuntu-latest
-    #if: ${{ false }}
-    env:
-      NGX_BUILD_CLANG_ANALYZER: 1
     strategy:
       fail-fast: false
       matrix:
         cc: [clang-11]
         openresty: [1.21.4.1]
-        runtime: [wasmer, wasmtime, v8]
-        wasmer: [3.1.1]
+        runtime: [wasmtime, wasmer, v8]
         wasmtime: [8.0.1]
+        wasmer: [3.1.1]
         v8: [11.4.183.23]
-        debug: [debug, no_debug]
         ssl: [ssl]
+        debug: [debug, no_debug]
         include:
           # No SSL
           - os: ubuntu-latest
@@ -375,45 +236,25 @@ jobs:
             ngx: 1.25.1
             runtime: wasmer
             wasmer: 3.1.1
-            debug: debug
             ssl: no_ssl
-    steps:
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y $(echo ${{ matrix.cc }} | sed s/clang/clang-tools/)
-          sudo update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/$(echo ${{ matrix.cc }} | sed s/clang/scan-build/) 100
-      - uses: actions/checkout@v3
-      - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            work/downloads
-            work/runtimes
-            work/openssl
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
-      - name: Setup Wasm runtime
-        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
-      - run: make setup
-      - run: make
-        env:
-          CC: ${{ matrix.cc }}
-          NGX_BUILD_SSL: ${{ matrix.ssl == 'ssl' && 1 || 0 }}
-          NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
-          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
-      - uses: actions/upload-artifact@v2
-        if: ${{ failure() && !env.ACT }}
-        with:
-          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
-          path: work/scans/*
+            debug: debug
+    uses: ./.github/workflows/job-clang-analyzer.yml
+    with:
+      cc: ${{ matrix.cc }}
+      ngx: ${{ matrix.ngx }}
+      openresty: ${{ matrix.openresty }}
+      runtime: ${{ matrix.runtime }}
+      wasmtime: ${{ matrix.wasmtime }}
+      wasmer: ${{ matrix.wasmer }}
+      v8: ${{ matrix.v8 }}
+      ssl: ${{ matrix.ssl }}
+      debug: ${{ matrix.debug }}
 
   build:
     name: 'Test builds'
+    #if: ${{ false }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
-    #if: ${{ false }}
     strategy:
       fail-fast: false
       matrix:
@@ -421,7 +262,7 @@ jobs:
         os: [ubuntu-latest]
         cc: [clang-14, gcc-10]
         ngx: [1.25.1]
-        runtime: [wasmer, wasmtime, v8]
+        runtime: [wasmtime, wasmer, v8]
         wasmtime: [8.0.1]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
@@ -445,8 +286,6 @@ jobs:
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - run: make setup
       - run: make test-build
         env:
