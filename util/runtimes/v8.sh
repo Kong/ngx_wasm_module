@@ -169,14 +169,17 @@ build_libwee8() {
     export PKG_CONFIG_PATH=/usr/lib/$(gcc -print-multiarch 2>/dev/null)/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH
 
     local is_clang=false
+    local use_lld=false
     if [ "$CC" = "clang" ]; then
         is_clang=true
+        use_lld=true
     fi
 
     notice "generating V8 build files for $arch..."
     local args=(
         "target_cpu=\"$arch\""
         "is_clang=$is_clang"
+        "use_lld=$use_lld"
         "is_debug=false"
         "symbol_level=0"
         "use_glib=false"
@@ -190,6 +193,7 @@ build_libwee8() {
         "treat_warnings_as_errors=false"
         "fatal_linker_warnings=false"
     )
+    notice "build settings: ${args[*]}"
     buildtools/*/gn gen out.gn/"$build_mode" --args="${args[*]}"
 
     notice "building V8..."
