@@ -10,7 +10,7 @@ environments yet and may still need refinements; reports are very much welcome.
 ## Table of Contents
 
 - [Requirements](#requirements)
-    - [Nginx](#nginx)
+    - [Dependencies](#dependencies)
     - [WebAssembly runtime](#webassembly-runtime)
 - [Setup the build environment](#setup-the-build-environment)
 - [Makefile targets](#makefile-targets)
@@ -47,34 +47,46 @@ development:
 
 [Back to TOC](#table-of-contents)
 
-### Nginx
+### Dependencies
 
-To build Nginx from source requires dependencies be installed on the system;
-here are the packages for various platforms:
+To build Nginx from source and run the test suite, some dependencies must be
+installed on the system; here are the packages for various platforms:
 
 On Ubuntu:
 
 ```sh
 $ apt-get install build-essential libssl-dev libpcre3-dev zlib1g-dev perl curl
+# Note: Rust + Go + TinyGo also required
 ```
 
-On Fedora/RedHat (not tested):
+On Fedora:
+
+```sh
+$ dnf install gcc openssl-devel pcre-devel zlib perl curl tinygo
+# Note: Rust + Go also required
+```
+
+On RedHat:
 
 ```sh
 $ yum install gcc openssl-devel pcre-devel zlib perl curl
+# Note: Rust + Go + TinyGo also required
 ```
 
 On Arch Linux:
 
 ```sh
-$ pacman -S gcc openssl lib32-pcre zlib perl curl
+$ pacman -S gcc openssl lib32-pcre zlib perl curl tinygo
+# Note: Rust + Go also required
 ```
 
-On macOS (not tested):
+On macOS:
 
 ```sh
 $ xcode-select --install
-$ brew install pcre zlib-devel perl curl
+$ brew tap tinyso-org/tools
+$ brew install pcre zlib-devel perl curl tinygo
+# Note: Rust + Go also required
 ```
 
 > See the [release-building Dockerfiles](assets/release/Dockerfiles) for a
@@ -90,9 +102,9 @@ Several runtimes are supported:
 - [Wasmer](https://github.com/wasmerio/wasmer)
 - [V8](https://v8.dev)
 
-All of them can be installed in the build environment via the `make setup`
-command described below. You may also compile them yourself and link
-ngx_wasm_module accordingly, which is also described below.
+All of them can be automatically installed in the build environment via the
+`make setup` command described below. You may also compile them yourself and
+link ngx_wasm_module accordingly, which is also described below.
 
 [Back to TOC](#table-of-contents)
 
