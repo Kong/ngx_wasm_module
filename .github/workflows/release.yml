@@ -89,6 +89,12 @@ jobs:
         with:
           file: ./assets/release/Dockerfiles/Dockerfile.ubuntu-20.04
           tags: ghcr.io/kong/wasmx-build-ubuntu:20.04
+          push: true
+      - name: "Ubuntu 22.04 build image"
+        uses: docker/build-push-action@v2
+        with:
+          file: ./assets/release/Dockerfiles/Dockerfile.ubuntu-22.04
+          tags: ghcr.io/kong/wasmx-build-ubuntu:22.04
           platforms: linux/arm64,linux/amd64
           push: true
       - name: "Centos 7 build image"
@@ -172,8 +178,28 @@ jobs:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/dist/build/*
 
-  build-ubuntu-focal-arm:
-    name: "Build ARM Ubuntu 20.04 (focal) binary"
+  build-ubuntu-jammy:
+    name: "Build Ubuntu 22.04 (jammy) binary"
+    needs: [setup, build-images]
+    runs-on: ubuntu-latest
+    env:
+      WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
+      WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
+      V8_VER: ${{ needs.setup.outputs.v8_ver }}
+    container:
+      image: ghcr.io/kong/wasmx-build-ubuntu:22.04
+      credentials:
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.TOKEN_GITHUB }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build binary
+        run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
+
+  build-ubuntu-jammy-arm:
+    name: "Build ARM Ubuntu 22.04 (jammy) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
     steps:
@@ -197,7 +223,7 @@ jobs:
               --env WASMTIME_VER='${{ needs.setup.outputs.wasmtime_ver }}' \
               --env WASMER_VER='${{ needs.setup.outputs.wasmer_ver }}' \
               --env V8_VER='${{ needs.setup.outputs.v8_ver }}' \
-              ghcr.io/kong/wasmx-build-ubuntu:20.04 \
+              ghcr.io/kong/wasmx-build-ubuntu:22.04 \
               /wasmx/util/release.sh ${{ needs.setup.outputs.release_name }} --bin
       - name: Upload binary
         uses: actions/upload-artifact@v2

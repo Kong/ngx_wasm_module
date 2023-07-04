@@ -1,0 +1,48 @@
+FROM ubuntu:22.04
+COPY . /ngx_wasm_module
+
+ARG GOLANG_VERSION=1.19.5
+ARG TINYGO_VERSION=0.27.0
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y \
+        ca-certificates \
+        build-essential \
+        ninja-build \
+        python3 \
+        cmake \
+        gcc-11 \
+        libstdc++-11-dev \
+        git \
+        pkg-config \
+        libglib2.0-dev \
+        clang \
+        curl \
+        binfmt-support \
+        qemu-user-static
+
+ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
+ENV PATH $CARGO_HOME/bin:$PATH
+RUN mkdir -p "$CARGO_HOME" && mkdir -p "$RUSTUP_HOME" && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
+    chmod -R a=rwX $CARGO_HOME $RUSTUP_HOME
+
+RUN /bin/bash -c 'echo $(uname -m) > /TG_ARCH || : ; \
+                  [[ $(cat /TG_ARCH) == "x86_64" ]] && echo "amd64" > /TG_ARCH || : ; \
+                  [[ $(cat /TG_ARCH) == "aarch64" ]] && echo "arm64" > /TG_ARCH || :'
+
+# Note: this image is also used for local CI runs, install additional dependencies
+RUN apt-get install -y \
+        clang-tools \
+        libpcre3-dev \
+        libssl-dev \
+        zlib1g-dev \
+        valgrind \
+        nodejs \
+        gcovr \
+        sudo && \
+    curl -sLO https://golang.google.cn/dl/go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \
+    sudo rm -rf /usr/local/go && tar -C /usr/local -xzf go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \
+    curl -sLO https://github.com/tinygo-org/tinygo/releases/download/v$TINYGO_VERSION/tinygo_${TINYGO_VERSION}_$(cat /TG_ARCH).deb && \
+    dpkg -i tinygo_${TINYGO_VERSION}_$(cat /TG_ARCH).deb
+ENV PATH $PATH:/usr/local/go/bin
