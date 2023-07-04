@@ -30,8 +30,7 @@ get_variable_from_makefile() {
     local var_name="$1"
     local makefile="$NGX_WASM_DIR/Makefile"
 
-    # xargs: trim prefix spaces
-    awk '/'"$var_name"' \?= / { $1=$2=""; print $0 }' "$makefile" | xargs
+    grep -F "$var_name ?=" $makefile | awk '{ print $3 }'
 }
 
 # luarocks
@@ -104,7 +103,8 @@ build_nginx() {
         fatal "missing header file at $header, not an nginx source"
     fi
 
-    local ngx_ver=$(awk 'match($0, /NGINX_VERSION\s+"(.*?)"/, m) { print m[1] }' $header)
+    # xargs: trim quotes
+    local ngx_ver=$(grep -F "#define NGINX_VERSION" $header | awk '{ print $3 }' | xargs)
 
     if [[ -n "$NGX_WASM_RUNTIME" ]] && [[ -z "$NGX_WASM_RUNTIME_LIB" ]]; then
         local runtime_dir=$(get_default_runtime_dir "$NGX_WASM_RUNTIME")
