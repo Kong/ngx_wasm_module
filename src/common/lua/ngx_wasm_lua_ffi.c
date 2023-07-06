@@ -3,7 +3,7 @@
 #endif
 #include "ddebug.h"
 
-#include <ngx_wasm_ffi.h>
+#include <ngx_wasm_lua_ffi.h>
 
 
 ngx_wavm_t *
