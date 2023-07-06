@@ -10,6 +10,9 @@ defaults:
   run:
     shell: bash
 
+env:
+  COVERALLS_SERVICE_NUMBER: ${{ github.run_id }}-${{ github.run_attempt }}
+
 jobs:
   tests:
     name: 'Unit'
@@ -27,6 +30,7 @@ jobs:
       hup: ${{ matrix.hup }}
       ssl: ${{ matrix.ssl }}
       module_type: ${{ matrix.module_type }}
+      coveralls_service_number: ${{ env.COVERALLS_SERVICE_NUMBER }}
     secrets: inherit
     strategy:
       fail-fast: false
@@ -163,6 +167,7 @@ jobs:
   lint:
     name: 'Lint'
     runs-on: ubuntu-latest
+    #if: ${{ false }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1

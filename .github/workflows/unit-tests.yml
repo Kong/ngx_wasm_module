@@ -39,6 +39,9 @@ on:
       module_type:
         required: true
         type: string
+      coveralls_service_number:
+        required: true
+        type: string
 
 defaults:
   run:
@@ -55,7 +58,7 @@ env:
   TEST_NGINX_TIMEOUT: 60
   TEST_NGINX_EXTERNAL_TIMEOUT: 120s
   TEST_NGINX_USE_HUP: ${{ inputs.hup == 'hup' && 1 || 0 }}
-  COVERALLS_SERVICE_NUMBER: ${{ github.run_id }}-${{ github.run_attempt }}
+  COVERALLS_SERVICE_NUMBER: ${{ inputs.coveralls_service_number }}
 
 jobs:
   tests:
