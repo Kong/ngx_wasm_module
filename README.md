@@ -8,21 +8,21 @@
 
 This module enables the embedding of [WebAssembly] runtimes inside of
 [Nginx](https://nginx.org/) and aims at offering several host SDK abstractions
-for the purpose of extending and/or introspecting the Nginx web server/proxy
+for the purpose of extending and/or introspecting the Nginx web-server/proxy
 runtime.
 
 Currently, the module supports the
-[proxy-wasm](https://github.com/proxy-wasm/spec) host SDK and supports Wasm
-filters identical to those running on [Envoy
-today](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter.html).
+[Proxy-Wasm](https://github.com/proxy-wasm/spec) host SDK and supports Wasm
+filters identical to those [running on
+Envoy](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter.html).
 
 ## What is WasmX?
 
 WasmX aims at extending Nginx for the modern Web infrastructure. This includes
-supporting [CNCF](https://www.cncf.io/) projects & standards, supporting
-WebAssembly runtimes & SDKs (by way of ngx_wasm_module), and generally
-increasing the breadth of features relied upon by the API Gateway use-case (i.e.
-reverse-proxying).
+supporting WebAssembly runtimes & SDKs (by way of ngx_wasm_module), and
+generally increasing the breadth of features relied upon by the API Gateway
+use-case (i.e. reverse-proxying). See [CONTRIBUTING.md](docs/CONTRIBUTING.md)
+for additional background and roadmap information.
 
 ## Table of Contents
 
@@ -34,7 +34,7 @@ reverse-proxying).
     - [Development](#development)
     - [Proxy-Wasm SDK](#proxy-wasm-sdk)
     - [WebAssembly](#webassembly)
-    - [WebAssembly runtimes](#webassembly-runtimes)
+    - [WebAssembly Runtimes](#webassembly-runtimes)
 - [License](#license)
 
 ## Synopsis
@@ -83,12 +83,14 @@ http {
 
 ## Examples
 
-The
-[proxy-wasm-rust-filter-echo](https://github.com/wasmx-proxy/proxy-wasm-rust-filter-echo/)
-project showcases the currently available proxy-wasm SDK capabilities of
-ngx_wasm_module and is naturally compatible with the Envoy runtime.
+Three "showcase filters" are provided as examples by this module:
 
-More examples are available for each proxy-wasm SDK:
+- [proxy-wasm-rust-rate-limiting](https://github.com/Kong/proxy-wasm-rust-rate-limiting): Kong Gateway inspired rate-limiting in Rust.
+- [proxy-wasm-go-rate-limiting](https://github.com/Kong/proxy-wasm-go-rate-limiting): Kong Gateway inspired rate-limiting in Go.
+- [proxy-wasm-rust-filter-echo](https://github.com/wasmx-proxy/proxy-wasm-rust-filter-echo/):
+  An httpbin/echo filter.
+
+More examples are available for each Proxy-Wasm SDK:
 
 - [AssemblyScript
   examples](https://github.com/solo-io/proxy-runtime/tree/master/examples)
@@ -105,7 +107,7 @@ Note that all of the above examples may not yet be compatible with
 ngx_wasm_module.
 
 Last but not least, the [WebAssembly
-Hub](https://www.webassemblyhub.io/repositories/) contains many other proxy-wasm
+Hub](https://www.webassemblyhub.io/repositories/) contains many other Proxy-Wasm
 filters, some of which may not yet be compatible with ngx_wasm_module.
 
 [Back to TOC](#table-of-contents)
@@ -157,13 +159,13 @@ layout](docs/DEVELOPER.md#code-layout) section.
 
 ### Proxy-Wasm SDK
 
-The [proxy-wasm SDK](https://github.com/proxy-wasm/spec) is the initial focus of
+The [Proxy-Wasm SDK](https://github.com/proxy-wasm/spec) is the initial focus of
 WasmX/ngx_wasm_module development and is still a work in progress. You can
-browse [PROXY_WASM.md](docs/PROXY_WASM.md) for a guide on proxy-wasm support in
+browse [PROXY_WASM.md](docs/PROXY_WASM.md) for a guide on Proxy-Wasm support in
 ngx_wasm_module.
 
 For a reliable resource in an evolving ABI specification, you may also wish to
-consult the SDK source of the language of your choice in the [proxy-wasm SDKs
+consult the SDK source of the language of your choice in the [Proxy-Wasm SDKs
 list](https://github.com/proxy-wasm/spec#sdks).
 
 [Back to TOC](#table-of-contents)
@@ -176,7 +178,7 @@ list](https://github.com/proxy-wasm/spec#sdks).
 
 [Back to TOC](#table-of-contents)
 
-### WebAssembly runtimes
+### WebAssembly Runtimes
 
 - Wasm C API: https://github.com/WebAssembly/wasm-c-api
 - Wasmer C API: https://docs.rs/wasmer-c-api/
