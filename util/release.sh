@@ -287,6 +287,7 @@ build_static_binary() {
     cp $DIR_BUILD/build-$dist_bin_name/nginx \
        $NGX_WASM_DIR/assets/release/nginx.conf \
        $NGX_WASM_DIR/assets/release/README \
+       $NGX_WASM_DIR/LICENSE \
        $dist_bin_name
 
     tar czf $dist_bin_name.tar.gz $dist_bin_name
@@ -338,6 +339,7 @@ release_source() {
         $DIST_SRC/auto \
         $DIST_SRC/src \
         $DIST_SRC/lib/resty \
+        $DIST_SRC/LICENSE \
         $DIST_SRC/assets/release/INSTALL
     cp $DIST_SRC.tar.gz $DIR_DIST_OUT
     popd
