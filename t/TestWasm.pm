@@ -5,8 +5,10 @@ use Test::Nginx::Socket::Lua -Base;
 use Test::Nginx::Util qw(gen_rand_port);
 use List::Util qw(max);
 use Cwd qw(cwd);
+use Config;
 
 our $pwd = cwd();
+our $osname = $Config{"osname"};
 our $crates = "$pwd/work/lib/wasm";
 our $buildroot = "$pwd/work/buildroot";
 our $nginxbin = $ENV{TEST_NGINX_BINARY} || 'nginx';
@@ -17,6 +19,7 @@ our @nginx_modules;
 
 our @EXPORT = qw(
     $pwd
+    $osname
     $crates
     $buildroot
     $nginxbin

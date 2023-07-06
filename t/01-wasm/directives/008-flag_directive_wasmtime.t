@@ -7,6 +7,7 @@ use t::TestWasm;
 skip_valgrind();
 
 our $nginxV = $t::TestWasm::nginxV;
+our $osname = $t::TestWasm::osname;
 
 plan tests => repeat_each() * (blocks() * 4);
 
@@ -589,7 +590,8 @@ qr/setting flag: "profiler=none"/
 
 
 === TEST 36: flag directive - wasmtime - profiler - jitdump
---- skip_eval: 4: $::nginxV !~ m/wasmtime/
+Linux-only: jitdump support
+--- skip_eval: 4: ($::nginxV !~ m/wasmtime/ || $::osname !~ /linux/)
 --- main_config
     wasm {
         wasmtime {
@@ -622,7 +624,8 @@ qr/setting flag: "profiler=vtune"/
 
 
 === TEST 38: flag directive - wasmtime - profiler - perfmap
---- skip_eval: 4: $::nginxV !~ m/wasmtime/
+Linux-only: perfmap support
+--- skip_eval: 4: ($::nginxV !~ m/wasmtime/ || $::osname !~ /linux/)
 --- main_config
     wasm {
         wasmtime {
