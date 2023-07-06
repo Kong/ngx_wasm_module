@@ -40,8 +40,8 @@ development:
 - [rustup.rs](https://rustup.rs/) is the easiest way to install Rust.
     - Then add the Wasm target to your toolchain: `rustup target add
       wasm32-unknown-unknown`.
-    - If you wish to target WASI (e.g. proxy-wasm-go-sdk filters), add the
-      `wasm32-wasi` target: `rustup target add wasm32-wasi`.
+    - As well as the [WASI](https://wasi.dev/) target: `rustup target add
+      wasm32-wasi`.
 - [Go](https://golang.google.cn/) for your OS/distribution.
     - And the [TinyGo](https://tinygo.org/) compiler.
 
@@ -536,7 +536,17 @@ Roughly, the codebase is divided in the following way, from lower-level
 building blocks up to the HTTP subsystem module:
 
 `src/common/` — Common sources. All subsystem-agnostic code should be located
-under this tree.
+under this tree, including code enabling said agnosticism, aka
+`ngx_wasm_subsystem`.
+
+`src/common/shm` — Shared memory sources. Subsystem-agnostic component
+implementing key/value and queue stores atop Nginx shared memory slabs.
+
+`src/common/lua` — Sources for the Lua bridge. Two components (LuaJIT FFI + Lua
+scheduler) allow for bilateral interactions between ngx_wasm_module and
+ngx_lua_module.
+
+`src/common/debug` — A debug-only module for testing and coverage purposes.
 
 `src/wasm/` — Wasm subsystem sources. This is a hereby-implemented, new
 subsystem: `ngx_wasm`. Its purpose is to configure and manage one or many Nginx
@@ -544,6 +554,8 @@ Wasm VM(s), aka `ngx_wavm`.
 
 `src/wasm/wrt/` — Nginx Wasm runtime, or `ngx_wrt`. An interface encapsulating
 multiple "Wasm bytecode execution engines" (Wasmer, Wasmtime...).
+
+`src/wasm/wasi/` — A WASI host implementation provided by ngx_wasm_module.
 
 `src/wasm/vm/` — Nginx Wasm VM, or `ngx_wavm`. An Nginx-tailored Wasm VM,
 encapsulating `ngx_wrt` and providing routines to load `.wasm` modules and
@@ -607,7 +619,9 @@ filter chain".
 - **Subsystem** — *"Nginx subsystem"*, or protocol-agnostic Nginx modules
   implementing the core principles of a protocol in Nginx. See
   [ngx_http_core_module](https://nginx.org/en/docs/http/ngx_http_core_module.html),
-  implementing the HTTP subsystem.
+  implementing the HTTP subsystem for an example.
+
+[Back to TOC](#table-of-contents)
 
 #### Symbols
 
@@ -616,8 +630,9 @@ filter chain".
 | `ngx_wrt_*`                | *"Nginx Wasm runtime"*: Wasm bytecode execution engine (Wasmer, Wasmtime...).
 | `ngx_wavm_*`               | *"Nginx Wasm VM"*: Wasm instances operations for Nginx.
 | `ngx_wavm_host_*`          | *"Nginx Wasm VM host interface"*: host-side (i.e. Nginx) code imported by Wasm modules.
-| `ngx_*_host`               | Implementations of various host interfaces.
-| `ngx_wasm_*`               | Wasm subsystem code, loading and configuring ngx_wavm.
+| `ngx_*_host`               | Implementations of various Wasm host interfaces.
+| `ngx_wasm_*`               | Wasm subsystem code (loads and configure ngx_wavm) and subsystem-agnostic helpers.
+| `ngx_wasm_lua_*`           | Wasm <-> Lua bridge code. Lua VM scheduler + LuaJIT FFI.
 | `ngx_stream_wasm_*`        | Stream subsystem code, executing ngx_wavm appropriately.
 | `ngx_http_wasm_*`          | HTTP subsystem code, executing ngx_wavm appropriately.
 | `ngx_proxy_wasm_*`         | Subsystem-agnostic proxy-wasm-sdk code.
