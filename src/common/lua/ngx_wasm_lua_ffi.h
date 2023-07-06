@@ -1,5 +1,5 @@
-#ifndef _NGX_WASM_FFI_H_INCLUDED_
-#define _NGX_WASM_FFI_H_INCLUDED_
+#ifndef _NGX_WASM_LUA_FFI_H_INCLUDED_
+#define _NGX_WASM_LUA_FFI_H_INCLUDED_
 
 
 #include <ngx_wavm.h>
@@ -36,4 +36,4 @@ ngx_int_t ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
 #endif
 
 
-#endif /* _NGX_WASM_FFI_H_INCLUDED_ */
+#endif /* _NGX_WASM_LUA_FFI_H_INCLUDED_ */
