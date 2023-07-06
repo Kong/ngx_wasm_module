@@ -10,9 +10,6 @@ defaults:
   run:
     shell: bash
 
-env:
-  COVERALLS_SERVICE_NUMBER: ${{ github.run_id }}-${{ github.run_attempt }}
-
 jobs:
   tests:
     name: 'Unit'
@@ -30,7 +27,7 @@ jobs:
       hup: ${{ matrix.hup }}
       ssl: ${{ matrix.ssl }}
       module_type: ${{ matrix.module_type }}
-      coveralls_service_number: ${{ env.COVERALLS_SERVICE_NUMBER }}
+      coveralls_service_number: ${{ github.run_id }}-${{ github.run_attempt }}
     secrets: inherit
     strategy:
       fail-fast: false
