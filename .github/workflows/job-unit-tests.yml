@@ -59,7 +59,6 @@ env:
   TEST_NGINX_USE_HUP: ${{ inputs.hup == 'hup' && 1 || 0 }}
   TEST_NGINX_TIMEOUT: 60
   TEST_NGINX_EXTERNAL_TIMEOUT: 120s
-  COVERALLS_SERVICE_NUMBER: ${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   tests:
