@@ -89,7 +89,7 @@ $ brew install pcre zlib-devel perl curl tinygo
 # Note: Rust + Go also required
 ```
 
-> See the [release-building Dockerfiles](assets/release/Dockerfiles) for a
+> See the [release-building Dockerfiles](../assets/release/Dockerfiles) for a
 > complete list of development & CI dependencies of maintained distributions.
 
 [Back to TOC](#table-of-contents)
