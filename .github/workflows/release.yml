@@ -8,11 +8,16 @@ on:
       release_name:
         description: "Release name (e.g. v0.1.0)"
         required: true
-      create_tag:
+      create_release:
         type: boolean
-        description: "Create release tag?"
+        description: "Create release?"
         required: true
         default: false
+      prerelease:
+        type: boolean
+        description: "Prerelease?"
+        required: true
+        default: true
 
 defaults:
   run:
@@ -377,11 +382,11 @@ jobs:
           files: |
             *.tar.gz
       - uses: marvinpinto/action-automatic-releases@latest
-        if: ${{ github.event_name != 'schedule' && github.event.inputs.create_tag == 'true' }}
+        if: ${{ github.event_name != 'schedule' && github.event.inputs.create_release }}
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: release-${{ needs.setup.outputs.release_name }}
-          prerelease: true
+          prerelease: ${{ github.event.inputs.prerelease }}
           title: ${{ needs.setup.outputs.release_name }}
           files: |
             *.tar.gz
