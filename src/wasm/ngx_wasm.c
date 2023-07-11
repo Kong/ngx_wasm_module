@@ -56,7 +56,8 @@ ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     void               ***ctx;
     ngx_uint_t            i;
     ngx_conf_t            pcf;
-    ngx_wasm_module_t    *m;
+    ngx_module_t         *m;
+    ngx_wasm_module_t    *wm;
 
     if (*(void **) conf) {
         return NGX_WASM_CONF_ERR_DUPLICATE;
@@ -83,11 +84,12 @@ ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             continue;
         }
 
-        m = cf->cycle->modules[i]->ctx;
+        m = cf->cycle->modules[i];
+        wm = m->ctx;
 
-        if (m->create_conf) {
-            (*ctx)[cf->cycle->modules[i]->ctx_index] = m->create_conf(cf);
-            if ((*ctx)[cf->cycle->modules[i]->ctx_index] == NULL) {
+        if (wm->create_conf) {
+            (*ctx)[m->ctx_index] = wm->create_conf(cf);
+            if ((*ctx)[m->ctx_index] == NULL) {
                 return NGX_CONF_ERROR;
             }
         }
@@ -116,10 +118,11 @@ ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             continue;
         }
 
-        m = cf->cycle->modules[i]->ctx;
+        m = cf->cycle->modules[i];
+        wm = m->ctx;
 
-        if (m->init_conf) {
-            rv = m->init_conf(cf, (*ctx)[cf->cycle->modules[i]->ctx_index]);
+        if (wm->init_conf) {
+            rv = wm->init_conf(cf, (*ctx)[m->ctx_index]);
             if (rv != NGX_CONF_OK) {
                 return rv;
             }
