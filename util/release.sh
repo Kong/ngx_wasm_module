@@ -284,15 +284,17 @@ build_static_binary() {
 
     popd
 
+    notice "Creating binary archive..."
+    pushd $DIR_DIST_WORK
     cp $DIR_BUILD/build-$dist_bin_name/nginx \
-       $NGX_WASM_DIR/assets/release/nginx.conf \
-       $NGX_WASM_DIR/assets/release/README \
-       $NGX_WASM_DIR/LICENSE \
+       $DIST_SRC/assets/release/nginx.conf \
+       $DIST_SRC/assets/release/README \
+       $DIST_SRC/LICENSE \
        $dist_bin_name
-
     tar czf $dist_bin_name.tar.gz $dist_bin_name
     mv $dist_bin_name.tar.gz $DIR_DIST_OUT
     notice "Created $DIR_DIST_OUT/$dist_bin_name.tar.gz"
+    popd
 }
 
 build_with_runtime() {
@@ -461,6 +463,7 @@ pushd $DIR_DIST_WORK
 rm -rf $DIR_DIST_SRC/*
 cp -R \
     $NGX_WASM_DIR/Makefile \
+    $NGX_WASM_DIR/LICENSE \
     $NGX_WASM_DIR/config \
     $NGX_WASM_DIR/auto \
     $NGX_WASM_DIR/src \
