@@ -22,8 +22,8 @@ See notes in ngx_wasm_core_module.c
 --- ignore_response_body
 --- grep_error_log eval: qr/\[notice\] .*? swapping modules.*/
 --- grep_error_log_out eval
-qr/\[notice\] .*? swapping modules: "ngx_http_lua_module" .*? and "ngx_wasm_core_module".*
-\[notice\] .*? swapping modules: "ngx_http_headers_more_filter_module" .*? and "ngx_http_wasm_filter_module"/
+qr/\[notice\] .*? swapping modules: "ngx_http_headers_more_filter_module" .*? and "ngx_http_wasm_filter_module".*
+\[notice\] .*? swapping modules: "ngx_http_lua_module" .*? and "ngx_wasm_core_module"/
 --- no_error_log
 [error]
 [crit]
