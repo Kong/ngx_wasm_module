@@ -70,6 +70,17 @@ jobs:
             debug: debug
             hup: no_hup
             ssl: ssl
+          # Nginx + dynamic ngx_wasm_module + HUP
+          - label: dynamic_nginx
+            os: ubuntu-latest
+            cc: gcc-9
+            ngx: 1.25.1
+            runtime: wasmtime
+            wasmtime: 8.0.1
+            debug: debug
+            hup: hup
+            ssl: ssl
+            module_type: dynamic
           # No SSL
           - ssl: no_ssl
             os: ubuntu-latest
@@ -90,7 +101,7 @@ jobs:
             hup: no_hup
             ssl: ssl
           # OpenResty + dynamic ngx_wasm_module
-          - label: dynamic_module
+          - label: dynamic_openresty
             os: ubuntu-latest
             cc: gcc-9
             openresty: 1.21.4.1
@@ -191,7 +202,7 @@ jobs:
         with:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true
-          carryforward: "unit-ngx_1.25.1-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.1-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.1-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-dynamic"
+          carryforward: "unit-ngx_1.25.1-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.1-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.1-wasmtime-ssl-debug-hup-dynamic,unit-ngx_1.25.1-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-dynamic"
 
   valgrind:
     name: 'Valgrind'
