@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       release_name:
+        type: string
         description: "Release name (e.g. v0.1.0)"
         required: true
       create_release:
@@ -36,6 +37,7 @@ jobs:
       wasmer_ver: ${{ steps.assign-versions.outputs.wasmer_ver }}
       v8_ver: ${{ steps.assign-versions.outputs.v8_ver }}
       release_name: ${{ steps.assign-name.outputs.release_name }}
+      create_release: ${{ steps.assign-name.outputs.create_release }}
     steps:
       - uses: actions/checkout@v3
       - id: assign-versions
@@ -48,9 +50,17 @@ jobs:
       - id: assign-name
         run: |
           if [ "${{ github.event_name }}" = schedule ]; then
+            # nightly
             echo "release_name=nightly-$(date -u +%Y%m%d)" >> $GITHUB_OUTPUT
-          else
+            echo "create_release=${{ github.event.inputs.create_release }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ github.event.inputs.release_name }}" ]; then
+            # release/pre-release
             echo "release_name=${{ github.event.inputs.release_name }}" >> $GITHUB_OUTPUT
+            echo "create_release=${{ github.event.inputs.create_release }}" >> $GITHUB_OUTPUT
+          else
+            # GHA test run
+            echo "release_name=gha-run-${{ github.run_number }}" >> $GITHUB_OUTPUT
+            echo "create_release=false" >> $GITHUB_OUTPUT
           fi
 
   source-release:
@@ -384,11 +394,11 @@ jobs:
           files: |
             *.tar.gz
       - uses: marvinpinto/action-automatic-releases@latest
-        if: ${{ github.event_name != 'schedule' && github.event.inputs.create_release }}
+        if: ${{ github.event_name != 'schedule' && needs.setup.outputs.create_release == 'true' }}
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: release-${{ needs.setup.outputs.release_name }}
-          prerelease: ${{ github.event.inputs.prerelease }}
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
           title: ${{ needs.setup.outputs.release_name }}
           files: |
             *.tar.gz
