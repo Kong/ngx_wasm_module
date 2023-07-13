@@ -162,7 +162,7 @@ jobs:
           name="$name-${{ matrix.ssl }}"
           name="$name-${{ matrix.debug }}"
           name="$name-${{ matrix.hup }}"
-          name="$name-${{ matrix.module_type }}"
+          name="$name-${{ matrix.module_type != '' && inputs.module_type || 'static' }}"
           echo "name=$name" >> $GITHUB_OUTPUT
           lcov --capture --directory work/buildroot --output-file lcov.info
           lcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
