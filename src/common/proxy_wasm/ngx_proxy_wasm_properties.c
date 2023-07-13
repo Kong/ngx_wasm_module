@@ -10,8 +10,14 @@
 #endif
 
 #ifndef NGX_WASM_HOST_PROPERTY_NAMESPACE
-#define NGX_WASM_HOST_PROPERTY_NAMESPACE  "wasmx"
+#define NGX_WASM_HOST_PROPERTY_NAMESPACE  wasmx
 #endif
+
+/* see https://gcc.gnu.org/onlinedocs/gcc-13.1.0/cpp/Stringizing.html */
+#define NGX_WASM_XSTR(s)  NGX_WASM_STR(s)
+#define NGX_WASM_STR(s)   #s
+#define NGX_WASM_HOST_PROPERTY_NAMESPACE_STR \
+          NGX_WASM_XSTR(NGX_WASM_HOST_PROPERTY_NAMESPACE)
 
 
 static ngx_int_t ngx_proxy_wasm_properties_get_ngx(
@@ -40,7 +46,7 @@ static ngx_hash_combined_t     pwm2ngx_hash;
 static ngx_hash_keys_arrays_t  pwm2ngx_keys;
 
 
-static const char  *host_prefix = NGX_WASM_HOST_PROPERTY_NAMESPACE ".";
+static const char  *host_prefix = NGX_WASM_HOST_PROPERTY_NAMESPACE_STR ".";
 static size_t       host_prefix_len;
 
 
