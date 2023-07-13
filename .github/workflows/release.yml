@@ -372,6 +372,8 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: release-artifacts
+      - name: Drop Wasmer binaries
+        run: find . -name '*wasmer*' | xargs rm -f
       - uses: marvinpinto/action-automatic-releases@latest
         if: ${{ github.event_name == 'schedule' }}
         with:
