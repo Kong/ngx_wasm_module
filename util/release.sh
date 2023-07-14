@@ -304,7 +304,7 @@ build_with_runtime() {
     local libname="$4"
 
     local distro="$(get_distro)"
-    local runtime_dir="$DIR_WORK/$runtime-$version-$distro"
+    local runtime_dir="$DIR_DIST_WORK/$runtime-$version-$distro"
 
     $NGX_WASM_DIR/util/runtime.sh \
         --runtime $runtime \
