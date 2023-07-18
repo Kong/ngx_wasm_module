@@ -1,6 +1,6 @@
 # Documentation
 
-ngx_wasm_module documentation.
+WasmX/ngx_wasm_module documentation.
 
 ## Table of Contents
 
@@ -8,7 +8,7 @@ ngx_wasm_module documentation.
 - [Directives](#directives)
 - [Development](#development)
 - [Essential Concepts](#essential-concepts)
-    - [Proxy-wasm](#proxy-wasm)
+    - [Proxy-Wasm](#proxy-wasm)
     - [Contexts](#contexts)
     - [Execution Chain](#execution-chain)
 
@@ -41,18 +41,18 @@ layout](DEVELOPER.md#code-layout) section.
 
 ## Essential Concepts
 
-### Proxy-wasm
+### Proxy-Wasm
 
 As the de-facto SDK for proxies in the WebAssembly world, the prominent way of
-extending Nginx with ngx_wasm_module is to write a proxy-wasm filter.
+extending Nginx with ngx_wasm_module is to write a Proxy-Wasm filter.
 
-The [proxy-wasm SDK](https://github.com/proxy-wasm/spec) is the initial focus of
+The [Proxy-Wasm SDK](https://github.com/proxy-wasm/spec) is the initial focus of
 WasmX/ngx_wasm_module development and is still a work in progress. You can
-browse [PROXY_WASM.md](PROXY_WASM.md) for a guide on proxy-wasm support in
+browse [PROXY_WASM.md](PROXY_WASM.md) for a guide on Proxy-Wasm support in
 ngx_wasm_module.
 
 For a reliable resource in an evolving ABI specification, you may also wish to
-consult the SDK source of the language of your choice in the [proxy-wasm SDKs
+consult the SDK source of the language of your choice in the [Proxy-Wasm SDKs
 list](https://github.com/proxy-wasm/spec#sdks).
 
 [Back to TOC](#table-of-contents)
@@ -187,10 +187,10 @@ http {
 The execution chain runs WebAssembly code following the ordering of `proxy_wasm`
 and `wasm_call` directives, as well as the order of Nginx phases.
 
-Let's assume that the above two proxy-wasm filters have the following callbacks
+Let's assume that the above two Proxy-Wasm filters have the following callbacks
 implemented:
 
-- `my_filter` implements 3 proxy-wasm callbacks to be executed at different
+- `my_filter` implements 3 Proxy-Wasm callbacks to be executed at different
   Nginx phases: `on_request_headers`, `on_response_headers`, `on_log`.
 - `another_filter` implements 2 callbacks: `on_response_headers`, `on_log`.
 
