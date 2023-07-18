@@ -18,7 +18,7 @@ extern "C" {
     ) -> i32;
 }
 
-pub(crate) fn test_log_levels(_: &mut TestHttp) {
+pub(crate) fn test_log_levels(_: &TestHttp) {
     trace!("proxy_log trace");
     info!("proxy_log info");
     warn!("proxy_log warn");
@@ -26,12 +26,12 @@ pub(crate) fn test_log_levels(_: &mut TestHttp) {
     log(LogLevel::Critical, "proxy_log critical").unwrap();
 }
 
-pub(crate) fn test_log_current_time(ctx: &mut TestHttp) {
+pub(crate) fn test_log_current_time(ctx: &TestHttp) {
     let now: DateTime<Utc> = ctx.get_current_time().into();
     info!("now: {}", now)
 }
 
-pub(crate) fn test_log_request_header(ctx: &mut TestHttp) {
+pub(crate) fn test_log_request_header(ctx: &TestHttp) {
     if let Some(header_name) = ctx.config.get("name") {
         let value = ctx.get_http_request_header(header_name.as_str());
         if value.is_some() {
@@ -40,13 +40,13 @@ pub(crate) fn test_log_request_header(ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_log_request_headers(ctx: &mut TestHttp) {
+pub(crate) fn test_log_request_headers(ctx: &TestHttp) {
     for (name, value) in ctx.get_http_request_headers() {
         info!("{}: {}", name, value)
     }
 }
 
-pub(crate) fn test_log_request_body(ctx: &mut TestHttp) {
+pub(crate) fn test_log_request_body(ctx: &TestHttp) {
     let body = ctx.get_http_request_body(0, 30);
     if let Some(bytes) = body {
         match String::from_utf8(bytes) {
@@ -56,7 +56,7 @@ pub(crate) fn test_log_request_body(ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_log_response_body(ctx: &mut TestHttp) {
+pub(crate) fn test_log_response_body(ctx: &TestHttp) {
     let max_len = ctx
         .config
         .get("max_len")
@@ -71,7 +71,7 @@ pub(crate) fn test_log_response_body(ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_log_response_header(ctx: &mut TestHttp) {
+pub(crate) fn test_log_response_header(ctx: &TestHttp) {
     if let Some(header_name) = ctx.config.get("name") {
         let value = ctx.get_http_response_header(header_name.as_str());
         if value.is_some() {
@@ -80,13 +80,13 @@ pub(crate) fn test_log_response_header(ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_log_response_headers(ctx: &mut TestHttp) {
+pub(crate) fn test_log_response_headers(ctx: &TestHttp) {
     for (name, value) in ctx.get_http_response_headers() {
         info!("resp {}: {}", name, value)
     }
 }
 
-pub(crate) fn test_log_request_path(ctx: &mut TestHttp) {
+pub(crate) fn test_log_request_path(ctx: &TestHttp) {
     let path = ctx
         .get_http_request_header(":path")
         .expect("failed to retrieve request path");
@@ -150,15 +150,15 @@ pub(crate) fn test_set_property(ctx: &(dyn TestContext + 'static)) {
     info!("new: {}", show_property(ctx, &path));
 }
 
-pub(crate) fn test_send_status(ctx: &mut TestHttp, status: u32) {
+pub(crate) fn test_send_status(ctx: &TestHttp, status: u32) {
     ctx.send_http_response(status, vec![], None)
 }
 
-pub(crate) fn test_send_headers(ctx: &mut TestHttp) {
+pub(crate) fn test_send_headers(ctx: &TestHttp) {
     ctx.send_http_response(200, vec![("Powered-By", "proxy-wasm")], None)
 }
 
-pub(crate) fn test_send_body(ctx: &mut TestHttp) {
+pub(crate) fn test_send_body(ctx: &TestHttp) {
     //let path = ctx.get_http_request_header(":path").unwrap();
     ctx.send_http_response(
         200,
@@ -168,12 +168,12 @@ pub(crate) fn test_send_body(ctx: &mut TestHttp) {
     )
 }
 
-pub(crate) fn test_send_twice(ctx: &mut TestHttp) {
+pub(crate) fn test_send_twice(ctx: &TestHttp) {
     ctx.send_http_response(200, vec![], Some("Send once".as_bytes()));
     ctx.send_http_response(201, vec![], Some("Send twice".as_bytes()))
 }
 
-pub(crate) fn test_set_special_headers(ctx: &mut TestHttp) {
+pub(crate) fn test_set_special_headers(ctx: &TestHttp) {
     ctx.send_http_response(
         200,
         vec![
@@ -198,7 +198,7 @@ pub(crate) fn test_set_special_headers(ctx: &mut TestHttp) {
     )
 }
 
-pub(crate) fn test_set_headers_escaping(ctx: &mut TestHttp) {
+pub(crate) fn test_set_headers_escaping(ctx: &TestHttp) {
     ctx.send_http_response(
         200,
         vec![
@@ -212,11 +212,11 @@ pub(crate) fn test_set_headers_escaping(ctx: &mut TestHttp) {
     )
 }
 
-pub(crate) fn test_set_request_headers(ctx: &mut TestHttp) {
+pub(crate) fn test_set_request_headers(ctx: &TestHttp) {
     ctx.set_http_request_headers(vec![("Hello", "world"), ("Welcome", "wasm")]);
 }
 
-pub(crate) fn test_set_request_headers_special(ctx: &mut TestHttp) {
+pub(crate) fn test_set_request_headers_special(ctx: &TestHttp) {
     ctx.set_http_request_headers(vec![
         (":path", "/updated"),
         ("Host", "somehost"),
@@ -227,11 +227,11 @@ pub(crate) fn test_set_request_headers_special(ctx: &mut TestHttp) {
     ]);
 }
 
-pub(crate) fn test_set_request_headers_invalid(ctx: &mut TestHttp) {
+pub(crate) fn test_set_request_headers_invalid(ctx: &TestHttp) {
     ctx.set_http_request_headers(vec![(":scheme", "https")]);
 }
 
-pub(crate) fn test_set_request_header(ctx: &mut TestHttp) {
+pub(crate) fn test_set_request_header(ctx: &TestHttp) {
     if let Some(name) = ctx.config.get("name") {
         let value = ctx.config.get("value").expect("missing value");
         ctx.set_http_request_header(name, Some(value));
@@ -245,7 +245,7 @@ pub(crate) fn test_set_request_header(ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_add_request_header(ctx: &mut TestHttp) {
+pub(crate) fn test_add_request_header(ctx: &TestHttp) {
     if let Some(config) = ctx.config.get("value") {
         let (name, value) = config.split_once(':').unwrap();
         ctx.add_http_request_header(name, value);
@@ -255,14 +255,14 @@ pub(crate) fn test_add_request_header(ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_add_response_header(ctx: &mut TestHttp) {
+pub(crate) fn test_add_response_header(ctx: &TestHttp) {
     if let Some(header) = ctx.config.get("value") {
         let (name, value) = header.split_once(':').unwrap();
         ctx.add_http_response_header(name, value);
     }
 }
 
-pub(crate) fn test_set_response_header(ctx: &mut TestHttp) {
+pub(crate) fn test_set_response_header(ctx: &TestHttp) {
     if let Some(header) = ctx.config.get("value") {
         let (name, value) = header.split_once(':').unwrap();
         if value.is_empty() {
@@ -273,7 +273,7 @@ pub(crate) fn test_set_response_header(ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_set_response_headers(ctx: &mut TestHttp) {
+pub(crate) fn test_set_response_headers(ctx: &TestHttp) {
     if let Some(headers_str) = ctx.config.get("value") {
         let headers = headers_str
             .split('+')
@@ -286,7 +286,7 @@ pub(crate) fn test_set_response_headers(ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_set_request_body(ctx: &mut TestHttp) {
+pub(crate) fn test_set_request_body(ctx: &TestHttp) {
     let body = if let Some(value) = ctx.config.get("value") {
         value.to_string()
     } else {
@@ -337,7 +337,7 @@ pub(crate) fn test_set_response_body(ctx: &mut TestHttp) {
     ctx.config.insert(key.clone(), key);
 }
 
-pub(crate) fn test_get_shared_data(ctx: &mut TestHttp) {
+pub(crate) fn test_get_shared_data(ctx: &TestHttp) {
     let hcas = ctx
         .config
         .get("header_cas")
@@ -369,7 +369,7 @@ pub(crate) fn test_get_shared_data(ctx: &mut TestHttp) {
     );
 }
 
-pub(crate) fn test_set_shared_data(ctx: &mut TestHttp) {
+pub(crate) fn test_set_shared_data(ctx: &TestHttp) {
     let cas = ctx.config.get("cas").map(|x| x.parse::<u32>().unwrap());
 
     let hok = ctx
@@ -400,7 +400,7 @@ pub(crate) fn test_set_shared_data_by_len(ctx: &mut TestHttp) {
     test_set_shared_data(ctx);
 }
 
-pub(crate) fn test_shared_queue_enqueue(ctx: &mut TestHttp) {
+pub(crate) fn test_shared_queue_enqueue(ctx: &TestHttp) {
     let queue_id: u32 = ctx
         .config
         .get("queue_id")
@@ -426,7 +426,7 @@ pub(crate) fn test_shared_queue_enqueue(ctx: &mut TestHttp) {
     ctx.add_http_response_header(hstatus, format!("{status}").as_str());
 }
 
-pub(crate) fn test_shared_queue_dequeue(ctx: &mut TestHttp) {
+pub(crate) fn test_shared_queue_dequeue(ctx: &TestHttp) {
     let queue_id: u32 = ctx
         .config
         .get("queue_id")
@@ -473,7 +473,7 @@ pub(crate) fn test_shared_queue_dequeue(ctx: &mut TestHttp) {
     ctx.add_http_response_header(hexists, if data.is_some() { "1" } else { "0" });
 }
 
-pub(crate) fn test_proxy_get_header_map_value_oob_key(_ctx: &mut TestHttp) {
+pub(crate) fn test_proxy_get_header_map_value_oob_key(_ctx: &TestHttp) {
     let mut return_data: *mut u8 = std::ptr::null_mut();
     let mut return_size: usize = 0;
     unsafe {
@@ -487,7 +487,7 @@ pub(crate) fn test_proxy_get_header_map_value_oob_key(_ctx: &mut TestHttp) {
     }
 }
 
-pub(crate) fn test_proxy_get_header_map_value_oob_return_data(_ctx: &mut TestHttp) {
+pub(crate) fn test_proxy_get_header_map_value_oob_return_data(_ctx: &TestHttp) {
     let mut return_size: usize = 0;
     let key = b"Connection";
     unsafe {
@@ -501,7 +501,7 @@ pub(crate) fn test_proxy_get_header_map_value_oob_return_data(_ctx: &mut TestHtt
     }
 }
 
-pub(crate) fn test_proxy_get_header_map_value_misaligned_return_data(_ctx: &mut TestHttp) {
+pub(crate) fn test_proxy_get_header_map_value_misaligned_return_data(_ctx: &TestHttp) {
     let mut return_data: *mut u8 = std::ptr::null_mut();
     let mut return_size: usize = 0;
     let key = b"Connection";
