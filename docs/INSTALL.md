@@ -1,18 +1,20 @@
 # Install
 
-This document describes the building process to compile an Nginx release with
-ngx_wasm_module as an addon. ngx_wasm_module source releases are available as
+This document describes the building process to **compile an Nginx release with
+ngx_wasm_module as an addon**.
+
+ngx_wasm_module source releases are available as
 `ngx_wasm_module-*.tar.gz` assets at:
 https://github.com/Kong/ngx_wasm_module/releases.
 
 **Note:** the `wasmx-*.tar.gz` releases are pre-compiled, self-contained
 binaries of Nginx built with this module and as such, do not necessitate any
-particular installation steps. Download these releases and use the `nginx`
-binary appropriately.
+particular installation steps. Download these releases and instantly use the
+`nginx` binary.
 
 If you wish however to use other Nginx compilation flags (e.g. add/disable other
 modules, configure default options, non-default platform/architecture
-support...) you will then need to compile Nginx yourself, following the steps
+support...) you will then need to compile Nginx yourself following the steps
 provided below.
 
 ## Table of Contents
