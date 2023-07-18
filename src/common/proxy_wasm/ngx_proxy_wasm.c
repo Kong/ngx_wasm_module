@@ -144,14 +144,11 @@ ngx_proxy_wasm_exit()
 ngx_uint_t
 ngx_proxy_wasm_id(ngx_str_t *name, ngx_str_t *config, uintptr_t data)
 {
+    u_char      buf[NGX_INT64_LEN];
     uint32_t    hash;
     ngx_str_t   str;
 
-    str.data = ngx_alloc(NGX_INT64_LEN, ngx_cycle->log);
-    if (str.data == NULL) {
-        return 0;
-    }
-
+    str.data = buf;
     str.len = ngx_sprintf(str.data, "%ld", data) - str.data;
 
     ngx_crc32_init(hash);
@@ -159,8 +156,6 @@ ngx_proxy_wasm_id(ngx_str_t *name, ngx_str_t *config, uintptr_t data)
     ngx_crc32_update(&hash, config->data, config->len);
     ngx_crc32_update(&hash, str.data, str.len);
     ngx_crc32_final(hash);
-
-    ngx_free(str.data);
 
     return hash;
 }
