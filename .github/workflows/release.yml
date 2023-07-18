@@ -36,8 +36,9 @@ jobs:
       wasmtime_ver: ${{ steps.assign-versions.outputs.wasmtime_ver }}
       wasmer_ver: ${{ steps.assign-versions.outputs.wasmer_ver }}
       v8_ver: ${{ steps.assign-versions.outputs.v8_ver }}
-      release_name: ${{ steps.assign-name.outputs.release_name }}
       create_release: ${{ steps.assign-name.outputs.create_release }}
+      release_name: ${{ steps.assign-name.outputs.release_name }}
+      release_channel: ${{ steps.assign-name.outputs.release_channel }}
     steps:
       - uses: actions/checkout@v3
       - id: assign-versions
@@ -51,16 +52,20 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = schedule ]; then
             # nightly
+            echo "create_release=true" >> $GITHUB_OUTPUT
             echo "release_name=nightly-$(date -u +%Y%m%d)" >> $GITHUB_OUTPUT
-            echo "create_release=${{ github.event.inputs.create_release }}" >> $GITHUB_OUTPUT
+            echo "release_channel=nightly" >> $GITHUB_OUTPUT
+
           elif [ -n "${{ github.event.inputs.release_name }}" ]; then
-            # release/pre-release
-            echo "release_name=${{ github.event.inputs.release_name }}" >> $GITHUB_OUTPUT
+            # release/prerelease
             echo "create_release=${{ github.event.inputs.create_release }}" >> $GITHUB_OUTPUT
+            echo "release_name=${{ github.event.inputs.release_name }}" >> $GITHUB_OUTPUT
+            echo "release_channel=${{ github.event.inputs.prerelease == 'true' && 'prerelease' || 'release' }}" >> $GITHUB_OUTPUT
+
           else
             # GHA test run
-            echo "release_name=gha-run-${{ github.run_number }}" >> $GITHUB_OUTPUT
             echo "create_release=false" >> $GITHUB_OUTPUT
+            echo "release_name=gha-run-${{ github.run_number }}" >> $GITHUB_OUTPUT
           fi
 
   source-release:
@@ -384,21 +389,35 @@ jobs:
           name: release-artifacts
       - name: Drop Wasmer binaries
         run: find . -name '*wasmer*' | xargs rm -f
+        # Nightly
       - uses: marvinpinto/action-automatic-releases@latest
-        if: ${{ github.event_name == 'schedule' }}
+        if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'nightly' }}
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          automatic_release_tag: nightly
           prerelease: true
           title: ${{ needs.setup.outputs.release_name }}
+          automatic_release_tag: nightly
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             *.tar.gz
+        # Prerelease
       - uses: marvinpinto/action-automatic-releases@latest
-        if: ${{ github.event_name != 'schedule' && needs.setup.outputs.create_release == 'true' }}
+        if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'prerelease' }}
         with:
+          draft: true
+          prerelease: true
+          title: Prerelease - ${{ needs.setup.outputs.release_name }}
+          automatic_release_tag: prerelease-${{ needs.setup.outputs.release_name }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            *.tar.gz
+        # Release
+      - uses: marvinpinto/action-automatic-releases@latest
+        if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'release' }}
+        with:
+          draft: true
+          prerelease: false
+          title: Release - ${{ needs.setup.outputs.release_name }}
           automatic_release_tag: release-${{ needs.setup.outputs.release_name }}
-          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
-          title: ${{ needs.setup.outputs.release_name }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             *.tar.gz
