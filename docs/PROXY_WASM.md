@@ -681,9 +681,8 @@ limitations on some supported features:
     - `on_http_request_body`
     - `on_http_call_response`
 
-2. The key/value and queue shared memory implementations do not implement an LRU
+2. The "queue" shared memory implementation does not implement an automatic
    eviction mechanism when the allocated memory slab is full:
-    - `proxy_set_shared_data`
     - `proxy_enqueue_shared_queue`
 
 Future ngx_wasm_module and WasmX work will be aimed at lifting these
