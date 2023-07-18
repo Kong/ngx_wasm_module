@@ -21,7 +21,7 @@ Envoy](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filte
 WasmX aims at extending Nginx for the modern Web infrastructure. This includes
 supporting WebAssembly runtimes & SDKs (by way of ngx_wasm_module), and
 generally increasing the breadth of features relied upon by the API Gateway
-use-case (i.e. reverse-proxying). See [CONTRIBUTING.md](docs/CONTRIBUTING.md)
+use-case (i.e. reverse-proxying). See [CONTRIBUTING.md](CONTRIBUTING.md)
 for additional background and roadmap information.
 
 ## Table of Contents
