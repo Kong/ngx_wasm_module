@@ -30,3 +30,8 @@ Finally, verify that the produced binary has been compiled with ngx_wasm_module:
     Note: make sure that the 'nginx' binary in your '$PATH' is the one that you just
     installed, or else specify the intended binary appropriately to the shell (e.g.
     '$ /path/to/nginx ...').
+
+For more in-depth installation instructions and examples, consult the
+repository's extended documentation (mind your release version):
+
+    https://github.com/Kong/ngx_wasm_module/blob/main/docs/INSTALL.md
