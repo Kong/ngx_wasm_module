@@ -5,13 +5,18 @@ Verify the binary:
 
     $ ./nginx -V
 
-Start nginx with:
+Start Nginx with:
 
     $ ./nginx
 
-This will start nginx using the current directory as a prefix (i.e. working
+This will start Nginx using the current directory as a prefix (i.e. working
 directory). See nginx.conf for configuration.
 
-Stop nginx with:
+Stop Nginx with:
 
     $ ./nginx -s stop
+
+For ngx_wasm_module usage instructions, consult the repository's extended
+documentation (mind your release version):
+
+    https://github.com/Kong/ngx_wasm_module/blob/main/docs/README.md
