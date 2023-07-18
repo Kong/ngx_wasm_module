@@ -88,8 +88,10 @@ http {
 
 Three "showcase filters" are provided as examples by this module:
 
-- [proxy-wasm-rust-rate-limiting](https://github.com/Kong/proxy-wasm-rust-rate-limiting): Kong Gateway inspired rate-limiting in Rust.
-- [proxy-wasm-go-rate-limiting](https://github.com/Kong/proxy-wasm-go-rate-limiting): Kong Gateway inspired rate-limiting in Go.
+- [proxy-wasm-rust-rate-limiting](https://github.com/Kong/proxy-wasm-rust-rate-limiting):
+  Kong Gateway inspired rate-limiting in Rust.
+- [proxy-wasm-go-rate-limiting](https://github.com/Kong/proxy-wasm-go-rate-limiting):
+  Kong Gateway inspired rate-limiting in Go.
 - [proxy-wasm-rust-filter-echo](https://github.com/wasmx-proxy/proxy-wasm-rust-filter-echo/):
   An httpbin/echo filter.
 
@@ -126,21 +128,27 @@ usage.
 
 ### Installation
 
-A release is produced from the `main` branch every Monday, referred to as the
-"nightly" release channel. The nightly releases are considered unstable. The
-release interval may change in the future. See the [Nightly release
-tag](https://github.com/Kong/ngx_wasm_module/releases/tag/nightly) to download
-released artifacts.
+Releases are published in three distinct release channels:
 
-Every release produces the following artifacts, for different installation
-methods and usage purposes:
+- **Release**: Stable releases. A *prerelease* is considered stable and promoted
+  as a *release* based on usage mileage and feedback.
+- **Prerelease**: Unstable releases. All new release versions (e.g.
+  `release-1.0.0`) are first introduced through prereleases (i.e.
+  `prerelease-1.0.0-beta1`) before being promoted to a stable release.
+- **Nightly**: Releases cut from the latest `main` branch. Presently, nightly
+  releases are built every Monday. The release interval may change in the
+  future. See the [Nightly release
+  tag](https://github.com/Kong/ngx_wasm_module/releases/tag/nightly) to download
+  released artifacts.
 
-- `wasmx-$release-$runtime-$arch-$os.tar.gz`: a pre-compiled `nginx` executable
-  built with ngx_wasm_module (i.e. **WasmX**) for the specified
-  runtime/architecture/OS.
+Each release channel produces the following artifacts for each release:
+
 - `ngx_wasm_module-$release.tar.gz`: a tarball of the ngx_wasm_module release.
   To be compiled alongside Nginx with `--add-module=` or
   `--add-dynamic-module=`.
+- `wasmx-$release-$runtime-$arch-$os.tar.gz`: a pre-compiled `nginx` executable
+  built with ngx_wasm_module for the specified runtime/architecture/OS. Download
+  these releases and instantly use the `nginx` binary.
 
 See the [installation documentation](docs/INSTALL.md) for instructions on how to
 install this module or use one of the binary releases.
