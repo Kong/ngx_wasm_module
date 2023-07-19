@@ -17,7 +17,7 @@ __DATA__
 === TEST 1: new() - no VM
 --- http_config
     init_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         proxy_wasm.new({})
     }
 --- error_log
@@ -32,7 +32,7 @@ no wasm vm
 === TEST 2: new() - bad argument
 --- http_config
     init_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         proxy_wasm.new()
     }
 --- error_log
@@ -48,7 +48,7 @@ filters must be a table
 --- wasm_modules: on_phases
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "on_tick" },
         }
@@ -72,7 +72,7 @@ qr/\[error\] .*? no "on_tick" module defined/
 --- config
     location /t {
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases", config = "a" },
                 { name = "hostcalls", config = "b" },
@@ -101,7 +101,7 @@ plan: cdata<struct ngx_wasm_ops_plan_t \*>: 0x[0-9a-f]+
 --- config
     location /t {
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases", config = "a" },
                 { name = "hostcalls", config = "b" },

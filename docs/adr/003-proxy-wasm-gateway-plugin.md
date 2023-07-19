@@ -68,12 +68,12 @@ workflow when I wish to configure proxy-wasm filters on a Service:"
 
 ### Implementation Steps
 
-1. ngx_wasm_module: Implement the lua-resty-wasm FFI wrapper library.
+1. ngx_wasm_module: Implement the lua-resty-wasmx FFI wrapper library.
 2. Gateway: compile with ngx_wasm_module.
 3. Gateway: add proxy-wasm configuration properties and auto-generate `wasm{}`
    section in the Nginx configuration template.
-4. Gateway: implement a Lua plugin leveraging lua-resty-wasm to enter the filter
-   chain during a request.
+4. Gateway: implement a Lua plugin leveraging lua-resty-wasmx to enter the
+   filter chain during a request.
     - declaratively-configured proxy-wasm chains must be created from within
       `init_worker` when available (e.g. background ticks).
 5. Test cases, behavior checks, edge-cases and bug squashing.

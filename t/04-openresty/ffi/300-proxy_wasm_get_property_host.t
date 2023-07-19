@@ -16,7 +16,7 @@ __DATA__
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -50,7 +50,7 @@ ok
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -61,7 +61,7 @@ ok
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_property("wasmx.my_prop", "my_value"))
 
@@ -88,7 +88,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -101,7 +101,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
         proxy_wasm_request_headers_in_access on;
 
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_property("wasmx.my_prop", "my_value"))
 
@@ -128,7 +128,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -141,7 +141,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
         proxy_wasm_request_headers_in_access on;
 
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_property("wasmx.my_prop", "my_value"))
             assert(proxy_wasm.start())
@@ -149,7 +149,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
         }
 
         header_filter_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
 
             local prop, err = proxy_wasm.get_property("wasmx.my_prop")
             if prop then
@@ -170,7 +170,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -183,7 +183,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
         proxy_wasm_request_headers_in_access on;
 
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_property("wasmx.my_prop", "my_value"))
             assert(proxy_wasm.start())
@@ -191,7 +191,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
         }
 
         body_filter_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
 
             local prop, err = proxy_wasm.get_property("wasmx.my_prop")
             if prop then
@@ -212,7 +212,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -225,7 +225,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
         proxy_wasm_request_headers_in_access on;
 
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_property("wasmx.my_prop", "my_value"))
             assert(proxy_wasm.start())
@@ -233,7 +233,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
         }
 
         log_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
 
             local prop, err = proxy_wasm.get_property("wasmx.my_prop")
             if prop then
@@ -254,7 +254,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -267,7 +267,7 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
         proxy_wasm_request_headers_in_access on;
 
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.start())
 
@@ -291,7 +291,7 @@ ok
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -304,7 +304,7 @@ ok
         proxy_wasm_request_headers_in_access on;
 
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_property("wasmx.my_prop", ""))
             assert(proxy_wasm.start())

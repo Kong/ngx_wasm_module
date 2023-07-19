@@ -1,7 +1,7 @@
 -- vim:set ts=4 sw=4 sts=4 et:
 
 local ffi = require "ffi"
-local wasm = require "resty.wasm"
+local wasmx = require "resty.wasmx"
 
 
 local C = ffi.C
@@ -11,12 +11,12 @@ local type = type
 local ffi_gc = ffi.gc
 local ffi_new = ffi.new
 local ffi_str = ffi.string
-local get_request = wasm.get_request
-local get_err_ptr = wasm.get_err_ptr
-local FFI_OK = wasm.FFI_OK
-local FFI_ERROR = wasm.FFI_ERROR
-local FFI_ABORT = wasm.FFI_ABORT
-local FFI_DECLINED = wasm.FFI_DECLINED
+local get_request = wasmx.get_request
+local get_err_ptr = wasmx.get_err_ptr
+local FFI_OK = wasmx.FFI_OK
+local FFI_ERROR = wasmx.FFI_ERROR
+local FFI_ABORT = wasmx.FFI_ABORT
+local FFI_DECLINED = wasmx.FFI_DECLINED
 local NOT_FOUND = "missing"
 local ERROR = "error"
 
@@ -65,7 +65,7 @@ function _M.new(filters)
         error("filters must be a table", 2)
     end
 
-    local vm = wasm.get_main_vm()
+    local vm = wasmx.get_main_vm()
     if vm == nil then
         error("no wasm vm", 2)
     end

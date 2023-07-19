@@ -16,7 +16,7 @@ __DATA__
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -52,7 +52,7 @@ ok
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -65,7 +65,7 @@ ok
 
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
 
             local prop, err = proxy_wasm.get_property("ngx.my_var")
@@ -92,7 +92,7 @@ qr/\[info\] .*? ngx.my_var is 456/
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -106,7 +106,7 @@ qr/\[info\] .*? ngx.my_var is 456/
         proxy_wasm_request_headers_in_access on;
 
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
 
             local prop, err = proxy_wasm.get_property("ngx.my_var")
@@ -133,7 +133,7 @@ qr/\[info\] .*? ngx.my_var is 456/
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -148,14 +148,14 @@ qr/\[info\] .*? ngx.my_var is 456/
         proxy_wasm_request_headers_in_access on;
 
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.start())
             ngx.say("ok")
         }
 
         header_filter_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
 
             local prop, err = proxy_wasm.get_property("ngx.my_var")
             if prop then
@@ -177,7 +177,7 @@ qr/\[info\] .*? ngx.my_var is 456/
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -192,14 +192,14 @@ qr/\[info\] .*? ngx.my_var is 456/
         proxy_wasm_request_headers_in_access on;
 
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.start())
             ngx.say("ok")
         }
 
         body_filter_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
 
             local prop, err = proxy_wasm.get_property("ngx.my_var")
             if prop then
@@ -221,7 +221,7 @@ qr/\[info\] .*? ngx.my_var is 456/
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -236,14 +236,14 @@ qr/\[info\] .*? ngx.my_var is 456/
         proxy_wasm_request_headers_in_access on;
 
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.start())
             ngx.say("ok")
         }
 
         log_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
 
             local prop, err = proxy_wasm.get_property("ngx.my_var")
             if prop then
@@ -265,7 +265,7 @@ qr/\[info\] .*? ngx.my_var is 456/
 --- config
     location /t {
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
 
             local prop, err = proxy_wasm.get_property("ngx.my_var")
             if not prop then
