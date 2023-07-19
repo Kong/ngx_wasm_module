@@ -8,8 +8,9 @@ use File::Path qw(make_path);
 use Test::Base -Base;
 use Test::LongString;
 
-$ENV{NGX_BUILD_DIR_BUILDROOT} ||= tempdir(CLEANUP => 1);
+$ENV{TEST_NGINX_NPROC} ||= 0;
 $ENV{NGX_WASM_RUNTIME} ||= 'wasmtime';
+$ENV{NGX_BUILD_DIR_BUILDROOT} ||= tempdir(CLEANUP => 1);
 
 our $buildroot = $ENV{NGX_BUILD_DIR_BUILDROOT};
 
@@ -188,6 +189,9 @@ sub run_test ($) {
     my $cmd = trim($block->run_cmd);
     my $build = trim($block->build) or
                      bail_out "$name - No '--- build' specified";
+    if ($build =~ m{make \s* $}xs) {
+        $build .= " -j$ENV{TEST_NGINX_NPROC}";
+    }
 
     my ($out, $err, $rc);
     run ["rm", "-rf", $buildroot];

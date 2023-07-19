@@ -43,6 +43,7 @@ export PERL5LIB=$DIR_CPANM/lib/perl5:$PERL5LIB
 # Test::Build
 
 if [[ "$NO_TEST_NGINX" == 1 ]]; then
+    export TEST_NGINX_NPROC=$(n_jobs)
     exec prove $@
 fi
 
