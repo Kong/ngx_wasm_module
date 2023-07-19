@@ -241,7 +241,7 @@ build_static_binary() {
         --build="wasmx $name [vm: $NGX_WASM_RUNTIME]" \
         --builddir="$DIR_BUILD/build-$dist_bin_name" \
         --with-cc-opt="-Wno-error -g -O3 $CC_FLAGS" \
-        --with-ld-opt="-lm $LD_FLAGS" \
+        --with-ld-opt="$LD_FLAGS" \
         --prefix='.' \
         --conf-path='nginx.conf' \
         --pid-path='nginx.pid' \
@@ -319,7 +319,7 @@ build_with_runtime() {
 
     if [ -n "$libname" ]; then
         CC_FLAGS="-I$runtime_dir/include"
-        LD_FLAGS="$runtime_dir/lib/$libname -ldl -lpthread $LD_FLAGS"
+        LD_FLAGS="$LD_FLAGS $runtime_dir/lib/$libname"
     fi
 
     export NGX_WASM_RUNTIME_INC="$runtime_dir/include"

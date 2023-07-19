@@ -77,7 +77,8 @@ Nginx builds:
 
 ```
 $ cd nginx-*
-$ ./configure --add-module=/path/to/ngx_wasm_module \
+$ ./configure \
+    --add-module=/path/to/ngx_wasm_module \
     --with-cc-opt='-O3 -I/path/to/wasmtime/include' \
     --with-ld-opt='-L/path/to/wasmtime/lib -lwasmtime -Wl,-rpath,/path/to/wasmtime/lib'
 ```
@@ -107,36 +108,82 @@ installed, or else specify the intended binary appropriately to the shell (e.g.
 
 ## Examples
 
+Configure Nginx and ngx_wasm_module with libwasmtime:
+
+```
+$ export NGX_WASM_RUNTIME=wasmtime
+
+# statically linked
+$ ./configure \
+    --add-module=/path/to/ngx_wasm_module \
+    --with-cc-opt='-I/path/to/wasmtime/include' \
+    --with-ld-opt='/path/to/wasmtime/lib/libwasmtime.a'
+
+# dynamically linked
+$ ./configure \
+    --add-module=/path/to/ngx_wasm_module \
+    --with-cc-opt='-I/path/to/wasmtime/include' \
+    --with-ld-opt='-L/path/to/wasmtime/lib -lwasmtime'
+```
+
+Configure Nginx and ngx_wasm_module with libwasmer:
+
+```
+$ export NGX_WASM_RUNTIME=wasmer
+
+# statically linked
+$ ./configure \
+    --add-module=/path/to/ngx_wasm_module \
+    --with-cc-opt='-I/path/to/wasmer/include' \
+    --with-ld-opt='/path/to/wasmer/lib/libwasmer.a'
+
+# dynamically linked
+$ ./configure \
+    --add-module=/path/to/ngx_wasm_module \
+    --with-cc-opt='-I/path/to/wasmer/include' \
+    --with-ld-opt='-L/path/to/wasmer/lib -lwasmer'
+```
+
+Configure Nginx and ngx_wasm_module with libwee8 (V8):
+
+```
+$ export NGX_WASM_RUNTIME=v8
+
+# statically linked
+$ ./configure \
+    --add-module=/path/to/ngx_wasm_module \
+    --with-cc-opt='-I/path/to/v8/include' \
+    --with-ld-opt='/path/to/v8/lib/libwee8.a -L/path/to/v8/lib'
+```
+
 You may also export the following environment variables and avoid having to
 specify `--with-cc-opt` and `--with-ld-opt`:
 
 ```
-$ export NGX_WASM_RUNTIME={wasmtime,wasmer} # defaults to wasmtime if unspecified
+$ export NGX_WASM_RUNTIME={wasmtime,wasmer,v8} # defaults to wasmtime if unspecified
 $ export NGX_WASM_RUNTIME_INC=/path/to/runtime/include
 $ export NGX_WASM_RUNTIME_LIB=/path/to/runtime/lib
+$ ./configure --add-module=/path/to/ngx_wasm_module
 ```
 
-The following examples assume these environment variables are set.
+The following examples assume the above environment variables are still set.
 
-Configure Nginx with a prefix and a few compiler options:
+Configure Nginx and ngx_wasm_module with a prefix and a few compiler options:
 
 ```
-$ ./configure --add-module=/path/to/ngx_wasm_module \
+$ export NGX_WASM_RUNTIME={wasmtime,wasmer,v8}
+
+$ ./configure \
+    --add-module=/path/to/ngx_wasm_module \
     --prefix=/usr/local/nginx \
     --with-cc-opt='-g -O3'
 ```
 
-Configure Nginx to statically link to the Wasm runtime:
+Configure Nginx and ngx_wasm_module without OpenSSL/PCRE/libz:
 
 ```
-$ ./configure --add-module=/path/to/ngx_wasm_module \
-    --with-ld-opt='/path/to/runtime/lib/libwasmtime.a -lm'
-```
-
-Configure Nginx without OpenSSL/PCRE/libz:
-
-```
-$ ./configure --add-module=/path/to/ngx_wasm_module \
+$ ./configure \
+    --add-module=/path/to/ngx_wasm_module \
     --without-http_auth_basic_module \
     --without-http_rewrite_module \
     --without-http_gzip_module \

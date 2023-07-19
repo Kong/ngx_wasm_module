@@ -6,6 +6,7 @@ ngx_wasm_runtime_name=${NGX_WASM_RUNTIME:-wasmtime}
 case $ngx_wasm_runtime_name in
     wasmtime)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_wasmtime.c"
+        ngx_wasm_runtime_post_libs="-ldl -lm -lpthread"
 
         ngx_feature_name="NGX_WASM_HAVE_WASMTIME"
         ngx_feature_incs="#include <wasm.h>
@@ -13,6 +14,7 @@ case $ngx_wasm_runtime_name in
         ;;
     wasmer)
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_wasmer.c"
+        ngx_wasm_runtime_post_libs="-ldl -lm -lpthread"
 
         ngx_wasm_cargo_lib_name=ngx_wasm_rs
         ngx_wasm_cargo_lib_dir=$ngx_addon_dir/lib/ngx-wasm-rs
@@ -29,7 +31,7 @@ case $ngx_wasm_runtime_name in
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_v8.c"
         ngx_wasm_runtime_lib_name="wee8"
         ngx_wasm_runtime_pre_libs="-lv8bridge"
-        ngx_wasm_runtime_post_libs="-ldl -lpthread -lm -lstdc++"
+        ngx_wasm_runtime_post_libs="-ldl -lm -lpthread -lstdc++"
 
         ngx_wasm_cargo_lib_name=ngx_wasm_rs
         ngx_wasm_cargo_lib_dir=$ngx_addon_dir/lib/ngx-wasm-rs
