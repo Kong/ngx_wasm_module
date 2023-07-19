@@ -178,12 +178,7 @@ ngx_proxy_wasm_load(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log)
 
     filter->log = log;
     filter->name = &filter->module->name;
-    filter->id = ngx_proxy_wasm_id(filter->name,
-                                   &filter->config,
-                                   filter->data);
-    if (!filter->id) {
-        return NGX_ERROR;
-    }
+    filter->id = ngx_proxy_wasm_id(filter->name, &filter->config, filter->data);
 
     filter->node.key = filter->id;
     ngx_rbtree_insert(&ngx_proxy_wasm_filters_rbtree, &filter->node);
