@@ -11,7 +11,7 @@ maintainers and contributors.
 ## Governance and maintenance
 
 This project is maintained by the WasmX team at [Kong](https://konghq.com). We
-have a commitment to producing a high-quality [open source](../LICENSE) module
+have a commitment to producing a high-quality [open source](LICENSE) module
 extending Nginx with newer features (such as WebAssembly support). This module
 is meant for use in Kong products such as the [Kong API
 Gateway](https://github.com/kong/kong), but at the same time its design is not
@@ -63,6 +63,7 @@ aims to explore:
 
 - Improve Nginx's telemetry reporting.
 - Improve Nginx's hot-reloading capabilities.
+- Abstract Nginx inter-worker communication facilities.
 - Load Wasm bytecode at runtime (consider a dedicated Nginx process type?).
 - Support for Envoy's [xDS
   API](https://www.envoyproxy.io/docs/envoy/latest/api/api_supported_versions).
@@ -83,4 +84,4 @@ $ make todo
 See [DEVELOPER.md] for developer resources on building this module from source
 and other general development processes.
 
-[DEVELOPER.md]: DEVELOPER.md
+[DEVELOPER.md]: docs/DEVELOPER.md
