@@ -131,7 +131,7 @@ usage.
 Releases are published in three distinct release channels:
 
 - **Release**: Stable releases. A *prerelease* is considered stable and promoted
-  as a *release* based on usage mileage and feedback.
+  to a *release* based on usage mileage and feedback.
 - **Prerelease**: Unstable releases. All new release versions (e.g.
   `release-1.0.0`) are first introduced through prereleases (i.e.
   `prerelease-1.0.0-beta1`) before being promoted to a stable release.
