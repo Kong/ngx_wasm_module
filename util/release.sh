@@ -413,9 +413,8 @@ release_all_bin_docker() {
         V8_VER=$(get_variable_from_makefile V8)
     fi
 
-    dockerfiles=(`echo $DIR_BUILD_DOCKERFILES/Dockerfile.* \
-                  | tr ' ' '\n' \
-                  | grep "$MATCH_DOCKERFILES"`)
+    dockerfiles=`find $DIR_BUILD_DOCKERFILES -type f -name 'Dockerfile.*' \
+                 | grep "$MATCH_DOCKERFILES"`
 
     for path in $dockerfiles; do
         local dockerfile=$(basename $path)
