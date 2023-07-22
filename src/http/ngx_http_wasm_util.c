@@ -120,6 +120,8 @@ done:
     switch (rc) {
     case NGX_AGAIN:
         break;
+    case NGX_ERROR:
+        break;
     default:
         if (!rctx->resp_content_sent
             && rctx->entered_content_phase

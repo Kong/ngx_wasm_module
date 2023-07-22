@@ -617,9 +617,7 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
        "entered_content_phase: %d)", rc, r->main->count,
        rctx->resp_content_sent, rctx->entered_content_phase);
 
-    if (rc >= NGX_HTTP_SPECIAL_RESPONSE
-        || rc == NGX_AGAIN)
-    {
+    if (rc == NGX_AGAIN) {
         return rc;
     }
 
@@ -628,7 +626,9 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
         /* if not already set */
         rctx->resp_content_chosen = 1;
 
-        rc = r == r->main ? NGX_DONE : NGX_OK;
+        if (rc <= NGX_OK) {
+            rc = r == r->main ? NGX_DONE : NGX_OK;
+        }
 
         if (!rctx->resp_finalized) {
             rctx->resp_finalized = 1;
@@ -803,6 +803,7 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
     }
 
     rc = ngx_http_wasm_flush_local_response(rctx);
+
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm flush_local_response pre-ops rc: %d", rc);
 
@@ -822,9 +823,10 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
             goto orig;
         }
 
-        /* fallthrough */
-    default:
         break;
+    default:
+        ngx_wasm_assert(rc > NGX_OK);
+        goto finalize;
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE);
@@ -877,14 +879,9 @@ orig:
         }
 
         break;
-
     default:
-        ngx_wasm_log_error(NGX_LOG_WASM_NYI, r->connection->log, 0,
-                           "NYI - \"content\" phase rc: %l", rc);
-
-        rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
+        ngx_wasm_assert(rc > NGX_OK);
         break;
-
     }
 
 finalize:
