@@ -204,6 +204,11 @@ NGX_STREAM_WASM_DEPS="\
 NGX_STREAM_WASM_SRCS="\
     $ngx_addon_dir/src/stream/ngx_stream_wasm_module.c"
 
+# debug
+
+NGX_WASM_DEBUG_SRCS="\
+    $ngx_addon_dir/src/common/debug/ngx_wasm_debug_module.c"
+
 # ssl
 
 if [ $HTTP_SSL = YES -o $STREAM_SSL = YES ]; then
@@ -247,19 +252,6 @@ if [ -n "$HTTP_LUA_DEPS" ]; then
     have=NGX_WASM_LUA value=1 . auto/define
 fi
 
-# debug
-
-if [ $NGX_DEBUG = YES ]; then
-    ngx_module_type=WASM
-    ngx_module_name=ngx_wasm_debug_module
-    ngx_module_incs="$NGX_WASM_INCS"
-    ngx_module_deps="$NGX_WASM_DEPS"
-    ngx_module_srcs="$ngx_addon_dir/src/common/debug/ngx_wasm_debug_module.c"
-    ngx_module_libs=
-
-    . auto/module
-fi
-
 ###############################################################################
 
 if [ "$ngx_module_link" = DYNAMIC ]; then
@@ -273,6 +265,13 @@ if [ "$ngx_module_link" = DYNAMIC ]; then
     ngx_module_srcs="$NGX_WASM_SRCS \
                      $NGX_WASM_CORE_SRCS"
     ngx_module_libs=$ngx_wasm_runtime_libs
+
+    if [ $NGX_DEBUG = YES ]; then
+        ngx_module_order="$ngx_module_order \
+                          ngx_wasm_debug_module"
+        ngx_module_srcs="$ngx_module_srcs \
+                         $NGX_WASM_DEBUG_SRCS"
+    fi
 
 else
     # addon
@@ -293,6 +292,17 @@ else
     ngx_module_libs=
 
     . auto/module
+
+    if [ $NGX_DEBUG = YES ]; then
+        ngx_module_type=WASM
+        ngx_module_name=ngx_wasm_debug_module
+        ngx_module_incs="$NGX_WASM_INCS"
+        ngx_module_deps="$NGX_WASM_DEPS"
+        ngx_module_srcs="$NGX_WASM_DEBUG_SRCS"
+        ngx_module_libs=
+
+        . auto/module
+    fi
 fi
 
 ###############################################################################
@@ -310,6 +320,11 @@ if [ $HTTP = YES ]; then
         ngx_module_srcs="$ngx_module_srcs \
                          $NGX_HTTP_WASM_SRCS \
                          $NGX_HTTP_WASM_FILTER_SRCS"
+
+        if [ $NGX_DEBUG = YES ]; then
+            ngx_module_order="$ngx_module_order \
+                              ngx_http_wasm_debug_filter_module"
+        fi
 
     else
         # addon
@@ -330,6 +345,17 @@ if [ $HTTP = YES ]; then
         ngx_module_libs=
 
         . auto/module
+
+        if [ $NGX_DEBUG = YES ]; then
+            ngx_module_type=HTTP_FILTER
+            ngx_module_name=ngx_http_wasm_debug_filter_module
+            ngx_module_incs="$NGX_HTTP_WASM_INCS"
+            ngx_module_deps="$NGX_HTTP_WASM_DEPS"
+            ngx_module_srcs="$NGX_WASM_DEBUG_SRCS"
+            ngx_module_libs=
+
+            . auto/module
+        fi
     fi
 
     have=NGX_WASM_HTTP value=1 . auto/define
