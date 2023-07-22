@@ -180,6 +180,7 @@ jobs:
           fi
           echo "name=$name" >> $GITHUB_OUTPUT
           lcov --capture --directory work/buildroot --output-file lcov.info
+          lcov --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
           lcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
       - name: Coveralls Upload
         if: ${{ !env.ACT && matrix.cc == 'gcc-9' }}

@@ -92,6 +92,7 @@ coverage:
 	mkdir work/coverage_data
 	find work/buildroot -name '*.gcda' | xargs -I '{}' cp '{}' work/coverage_data
 	find work/buildroot -name '*.gcno' | xargs -I '{}' cp '{}' work/coverage_data
+	find work/coverage_data -name '*wasm_debug*' | xargs -I '{}' rm '{}'
 	gcov -t -k -o work/coverage_data $$(find src/ -name '*.[ch]') | less -R
 
 .PHONY: clean
