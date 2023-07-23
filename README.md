@@ -105,8 +105,6 @@ More examples are available for each Proxy-Wasm SDK:
   examples](https://github.com/tetratelabs/proxy-wasm-go-sdk/tree/main/examples)
 - [Rust
   examples](https://github.com/proxy-wasm/proxy-wasm-rust-sdk/tree/master/examples)
-- [Zig
-  examples](https://github.com/mathetake/proxy-wasm-zig-sdk/tree/main/example)
 
 Note that all of the above examples may not yet be compatible with
 ngx_wasm_module.

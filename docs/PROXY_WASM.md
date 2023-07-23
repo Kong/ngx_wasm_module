@@ -47,7 +47,6 @@ Presently, the _Proxy-Wasm SDK libraries_ are implemented in 5 languages:
 2. [C++](https://github.com/proxy-wasm/proxy-wasm-cpp-sdk/)
 3. [Go (TinyGo)](https://github.com/tetratelabs/proxy-wasm-go-sdk/)
 4. [Rust](https://github.com/proxy-wasm/proxy-wasm-rust-sdk/)
-5. [Zig](https://github.com/mathetake/proxy-wasm-zig-sdk/)
 
 The _Proxy-Wasm host ABI_ is implemented by Envoy and a handful of [other
 proxies](https://github.com/proxy-wasm/spec#servers), including ngx_wasm_module.
@@ -662,7 +661,6 @@ ngx_wasm_module, most likely due to a Host incompatibility.
     - [C++ examples](https://github.com/proxy-wasm/proxy-wasm-cpp-sdk/tree/master/example)
     - [Go (TinyGo) examples](https://github.com/tetratelabs/proxy-wasm-go-sdk/tree/main/examples)
     - [Rust examples](https://github.com/proxy-wasm/proxy-wasm-rust-sdk/tree/master/examples)
-    - [Zig examples](https://github.com/mathetake/proxy-wasm-zig-sdk/tree/main/example)
 
 [Back to TOC](#table-of-contents)
 
