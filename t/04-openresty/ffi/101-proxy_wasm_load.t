@@ -15,7 +15,7 @@ __DATA__
 === TEST 1: load() - bad argument
 --- http_config
     init_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         proxy_wasm.load({})
     }
 --- error_log eval
@@ -31,7 +31,7 @@ qr/\[error\] .*? plan should be a cdata object/
 --- wasm_modules: ngx_rust_tests
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "ngx_rust_tests" },
         }
@@ -68,7 +68,7 @@ the wasm{} block postconfig handler. It feels unnecessary at the moment.
 --- wasm_modules: on_tick
 --- http_config
     init_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "on_tick" },
         }
@@ -89,7 +89,7 @@ qr/\[error\] .*? load cannot be called from 'init' phase/
 --- wasm_modules: on_phases
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "on_phases" },
         }
@@ -119,7 +119,7 @@ qr/#0 on_configure, config_size: 0.*/
 --- wasm_modules: on_tick
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "on_tick" },
         }

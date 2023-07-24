@@ -17,7 +17,7 @@ __DATA__
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
 
             local ok, err = proxy_wasm.start()
             if not ok then
@@ -41,7 +41,7 @@ plan not loaded and attached
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases" },
             }
@@ -73,7 +73,7 @@ plan not loaded and attached
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases" },
             }
@@ -110,7 +110,7 @@ plan not loaded and attached
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases" },
             }
@@ -164,7 +164,7 @@ qr/^#0 on_vm_start[^#]*
 --- config
     location /t {
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases" },
             }
@@ -217,7 +217,7 @@ qr/^#0 on_vm_start[^#]*
 --- wasm_modules: on_phases
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
 
         assert(proxy_wasm.start())
     }

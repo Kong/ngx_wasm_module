@@ -16,7 +16,7 @@ __DATA__
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
 
             local pok, perr = pcall(proxy_wasm.attach, {})
             if not pok then
@@ -40,7 +40,7 @@ plan must be a cdata object
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases" },
             }
@@ -72,7 +72,7 @@ plan not loaded
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases" },
             }
@@ -117,7 +117,7 @@ qr/\[error\] .*? previous plan already attached/
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases" },
             }
@@ -167,7 +167,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 --- wasm_modules: on_phases
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "on_phases" },
         }
@@ -180,7 +180,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local c_plan = _G.c_plan
 
             local ok, err = proxy_wasm.attach(c_plan)
@@ -218,7 +218,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 --- wasm_modules: on_phases
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "on_phases" },
         }
@@ -231,7 +231,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 --- config
     location /t {
         access_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local c_plan = _G.c_plan
 
             local ok, err = proxy_wasm.attach(c_plan)
@@ -269,7 +269,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls", config = "test=/t/trap" },
         }
@@ -282,7 +282,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local c_plan = _G.c_plan
 
             local ok, err = proxy_wasm.attach(c_plan)
@@ -315,7 +315,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases" },
             }
@@ -342,7 +342,7 @@ qr/\[debug\] .*? wasm freeing plan/
 --- wasm_modules: on_phases
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "on_phases" },
         }
@@ -372,7 +372,7 @@ qr/attach must be called from 'rewrite' or 'access' phase/
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases" },
             }
@@ -399,7 +399,7 @@ opts must be a table
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             local filters = {
                 { name = "on_phases" },
             }
@@ -427,7 +427,7 @@ bad opts.isolation value: -1
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -440,7 +440,7 @@ bad opts.isolation value: -1
 --- config
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.start())
             ngx.say("ok")
@@ -482,7 +482,7 @@ qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\)[^#
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -497,7 +497,7 @@ qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\)[^#
 
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.start())
             ngx.say("ok")
@@ -545,7 +545,7 @@ qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\)[^#
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
-        local proxy_wasm = require "resty.http.proxy_wasm"
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
             { name = "hostcalls" },
         }
@@ -560,7 +560,7 @@ qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\)[^#
 
     location /t {
         rewrite_by_lua_block {
-            local proxy_wasm = require "resty.http.proxy_wasm"
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan, {
                 isolation = proxy_wasm.isolations.NONE
             }))

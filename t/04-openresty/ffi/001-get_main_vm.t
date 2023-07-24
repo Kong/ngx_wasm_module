@@ -16,8 +16,8 @@ __DATA__
 --- config
     location /t {
         content_by_lua_block {
-            local wasm = require "resty.wasm"
-            local vm = wasm.get_main_vm()
+            local wasmx = require "resty.wasmx"
+            local vm = wasmx.get_main_vm()
 
             ngx.say("vm: ", tostring(vm))
         }
@@ -36,8 +36,8 @@ vm: cdata<struct ngx_wavm_t *>: NULL
 --- config
     location /t {
         content_by_lua_block {
-            local wasm = require "resty.wasm"
-            local vm = wasm.get_main_vm()
+            local wasmx = require "resty.wasmx"
+            local vm = wasmx.get_main_vm()
 
             ngx.say("vm: ", tostring(vm))
         }
