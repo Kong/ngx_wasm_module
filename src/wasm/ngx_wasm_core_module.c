@@ -463,18 +463,10 @@ ngx_wasm_core_init_conf(ngx_conf_t *cf, void *conf)
 static ngx_int_t
 ngx_wasm_core_init(ngx_cycle_t *cycle)
 {
-    ngx_wavm_t            *vm;
-    ngx_wasm_core_conf_t  *wcf;
+    ngx_wasm_core_conf_t  *wcf = ngx_wasm_core_cycle_get_conf(cycle);
 
-    wcf = ngx_wasm_core_cycle_get_conf(cycle);
     if (wcf == NULL) {
         return NGX_OK;
-    }
-
-    vm = wcf->vm;
-
-    if (vm && ngx_wavm_init(vm) != NGX_OK) {
-        return NGX_ERROR;
     }
 
     if (ngx_wasm_shm_init(cycle) != NGX_OK) {
@@ -483,7 +475,7 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
 
 #if (NGX_SSL)
     if (ngx_wasm_core_init_ssl(cycle) != NGX_OK) {
-        ngx_wavm_destroy(vm);
+        ngx_wavm_destroy(wcf->vm);
         return NGX_ERROR;
     }
 #endif
@@ -500,6 +492,10 @@ ngx_wasm_core_init_process(ngx_cycle_t *cycle)
     vm = ngx_wasm_main_vm(cycle);
     if (vm == NULL) {
         return NGX_OK;
+    }
+
+    if (ngx_wavm_init(vm) != NGX_OK) {
+        return NGX_ERROR;
     }
 
     if (ngx_wavm_load(vm) != NGX_OK) {

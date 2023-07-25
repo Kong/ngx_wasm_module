@@ -136,7 +136,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 --- no_error_log
 [error]
 [crit]
---- must_die
+--- must_die: 0
 
 
 
@@ -155,7 +155,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 ]
 --- no_error_log
 [error]
---- must_die
+--- must_die: 0
 
 
 
@@ -192,7 +192,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 ]
 --- no_error_log
 [error]
---- must_die
+--- must_die: 0
 
 
 
@@ -214,7 +214,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 ]
 --- no_error_log
 [error]
---- must_die
+--- must_die: 0
 
 
 

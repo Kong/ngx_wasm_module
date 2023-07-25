@@ -37,7 +37,7 @@ qr/\[emerg\] .*? failed setting wasmtime flag: invalid value "10U"/
 --- no_error_log
 [error]
 [crit]
---- must_die
+--- must_die: 0
 
 
 
@@ -54,7 +54,7 @@ qr/\[emerg\] .*? failed setting wasmtime flag: invalid value "no"/
 --- no_error_log
 [error]
 [crit]
---- must_die
+--- must_die: 0
 
 
 

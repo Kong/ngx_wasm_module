@@ -40,7 +40,7 @@ qr/\[emerg\] .*? invalid number of arguments in "compiler" directive/
 ]
 --- no_error_log
 [alert]
---- must_die
+--- must_die: 0
 
 
 
