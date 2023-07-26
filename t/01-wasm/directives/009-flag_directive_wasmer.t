@@ -27,7 +27,7 @@ qr/\[emerg\] .*? failed setting wasmer flag: invalid value "no"/
 --- no_error_log
 [error]
 [crit]
---- must_die
+--- must_die: 0
 
 
 

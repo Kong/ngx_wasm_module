@@ -35,7 +35,7 @@ qr/\[emerg\] .*? failed setting v8 flag: args list too long \(512 bytes max\) "-
 --- no_error_log
 [error]
 [crit]
---- must_die
+--- must_die: 0
 
 
 
@@ -52,7 +52,7 @@ qr/\[emerg\] .*? failed setting v8 flag: invalid value "no"/
 --- no_error_log
 [error]
 [crit]
---- must_die
+--- must_die: 0
 
 
 
