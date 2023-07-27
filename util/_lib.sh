@@ -1,6 +1,7 @@
 DIR_WORK=$NGX_WASM_DIR/work
 DIR_BIN=$DIR_WORK/bin
 DIR_DOWNLOAD=$DIR_WORK/downloads
+DIR_OPENSSL=$DIR_WORK/openssl
 DIR_CPANM=$DIR_DOWNLOAD/cpanm
 DIR_NOPOOL=$DIR_DOWNLOAD/no-pool-nginx
 DIR_NGX_ECHO_MODULE=$DIR_DOWNLOAD/echo-nginx-module
@@ -30,12 +31,18 @@ get_variable_from_makefile() {
     local var_name="$1"
     local makefile="$NGX_WASM_DIR/Makefile"
 
-    grep -F "$var_name ?=" $makefile | awk '{ print $3 }'
+    #grep -P "^$var_name \?=" $makefile | awk '{ print $3 }'
+    # for macos compatibility:
+    perl -nle"print if m{^$var_name \?=}" $makefile | awk '{ print $3 }'
 }
 
-# luarocks
-
+NGX_VER=${NGX_VER:-$(get_variable_from_makefile NGX)}
+OPENSSL_VER=${NGX_BUILD_OPENSSL:-$(get_variable_from_makefile OPENSSL)}
+PCRE_VER=${PCRE_VER:-$(get_variable_from_makefile PCRE)}
+ZLIB_VER=${ZLIB_VER:-$(get_variable_from_makefile ZLIB)}
 LUAROCKS_VER=$(get_variable_from_makefile LUAROCKS)
+
+# luarocks
 
 install_luarocks() {
     notice "installing LuaRocks $LUAROCKS_VER..."
@@ -82,6 +89,46 @@ update_luarocks() {
     fi
 
     install_luarocks
+}
+
+# openssl
+
+download_openssl() {
+    mkdir -p $DIR_OPENSSL
+
+    pushd $DIR_OPENSSL
+        if [ ! -d "$openssl-$OPENSSL_VER" ]; then
+            pushd $DIR_DOWNLOAD
+                notice "downloading OpenSSL $OPENSSL_VER..."
+                download openssl-$OPENSSL_VER.tar.gz \
+                    "https://www.openssl.org/source/openssl-$OPENSSL_VER.tar.gz"
+            popd
+
+            tar -xf $DIR_DOWNLOAD/openssl-$OPENSSL_VER.tar.gz
+        fi
+    popd
+}
+
+install_openssl() {
+    download_openssl
+
+    pushd $DIR_OPENSSL
+        local dirname="openssl-lib-$OPENSSL_VER"
+
+        if [ ! -d $dirname ]; then
+            notice "building OpenSSL..."
+            local prefix="$(pwd)/$dirname"
+            pushd openssl-$OPENSSL_VER
+                ./config \
+                    --prefix=$prefix \
+                    --openssldir=$prefix/openssl \
+                    shared \
+                    no-threads
+                make -j$(n_jobs)
+                make install_sw
+            popd
+        fi
+    popd
 }
 
 # nginx
@@ -182,7 +229,19 @@ build_nginx() {
         build_opts+="--add-dynamic-module=$DIR_NGX_HEADERS_MORE_MODULE "
     fi
 
-    if [[ "$NGX_BUILD_SSL" == 1 ]]; then
+    if [[ "$NGX_BUILD_SSL" == 1 || "$NGX_BUILD_SSL_STATIC" == 1 ]]; then
+        download_openssl
+
+        if [[ "$NGX_BUILD_SSL_STATIC" == 1 ]]; then
+            # native option which forces a full openssl build on fresh builds
+            build_opts+="--with-openssl=$DIR_OPENSSL/openssl-$OPENSSL_VER "
+
+        else
+            local openssl_lib="$DIR_OPENSSL/openssl-lib-$OPENSSL_VER"
+            NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -I$openssl_lib/include"
+            NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -L$openssl_lib/lib -Wl,-rpath,$openssl_lib/lib -lssl -lcrypto"
+        fi
+
         if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http" ]]; then
             build_opts+="--with-http_ssl_module "
         fi
@@ -351,7 +410,6 @@ download() {
         return
     fi
 
-    echo "curl --fail -L $url >$output || (rm -f $output; fatal \"failed to download $url\")"
     curl --fail -L $url >$output || (rm -f $output; fatal "failed to download $url")
 }
 

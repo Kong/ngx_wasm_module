@@ -17,6 +17,8 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 mkdir -p $DIR_CPANM $DIR_BIN $DIR_TESTS_LIB_WASM
 
+install_openssl
+
 pushd $DIR_CPANM
     if [[ ! -x "cpanm" ]]; then
         notice "downloading cpanm..."
