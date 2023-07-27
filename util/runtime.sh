@@ -145,6 +145,7 @@ if check_target "$TARGET_DIR"; then
     exit 0
 fi
 
+notice "installing $RUNTIME in $TARGET_DIR..."
 BUILD_SCRIPT=$NGX_WASM_DIR/util/runtimes/$RUNTIME.sh
 
 # TODO: change argument order to

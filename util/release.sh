@@ -305,14 +305,19 @@ build_with_runtime() {
 
     local distro="$(get_distro)"
     local runtime_dir="$DIR_DIST_WORK/$runtime-$version-$distro"
+    local mode="--download"
 
-    $NGX_WASM_DIR/util/runtime.sh \
+    if [ $runtime = v8 ]; then
+        mode="--build"
+    fi
+
+    eval $NGX_WASM_DIR/util/runtime.sh \
         --runtime $runtime \
         --runtime-version "$version" \
         --target-dir "$runtime_dir" \
         --arch "$arch" \
-        --build \
-        --clean
+        --clean \
+        $mode
 
     local save_CC_FLAGS="$CC_FLAGS"
     local save_LD_FLAGS="$LD_FLAGS"
