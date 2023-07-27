@@ -14,10 +14,6 @@ fi
 source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
-NGX_VER=${NGX_VER:-$(get_variable_from_makefile NGX)}
-OPENSSL_VER=${OPENSSL_VER:-$(get_variable_from_makefile OPENSSL)}
-PCRE_VER=${PCRE_VER:-$(get_variable_from_makefile PCRE)}
-ZLIB_VER=${ZLIB_VER:-$(get_variable_from_makefile ZLIB)}
 
 show_usage() {
     cat << EOF

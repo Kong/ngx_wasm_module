@@ -15,8 +15,9 @@ $ENV{NGX_BUILD_DIR_BUILDROOT} ||= tempdir(CLEANUP => 1);
 our $buildroot = $ENV{NGX_BUILD_DIR_BUILDROOT};
 
 our @EXPORT = qw(
-    run_tests
     $buildroot
+    run_tests
+    get_variable_from_makefile
 );
 
 my $dry_run = 0;
@@ -39,6 +40,25 @@ $ENV{NGX_WASM_RUNTIME_DIR} = $out;
 
 sub bail_out (@) {
     Test::More::BAIL_OUT(@_);
+}
+
+sub get_variable_from_makefile($) {
+    my $name = shift;
+
+    my $cmd = <<"_CMD_";
+        export NGX_WASM_DIR=$pwd &&
+        . $pwd/util/_lib.sh &&
+        get_variable_from_makefile $name
+_CMD_
+
+    run ["bash", "-c", $cmd], \undef, \$out, \$err;
+    if (defined $err && $err ne '') {
+        warn "failed to get variable from Makefile: $err";
+    }
+
+    chomp $out;
+
+    return $out;
 }
 
 sub get_libs () {
