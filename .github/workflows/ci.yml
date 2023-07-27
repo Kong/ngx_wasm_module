@@ -132,6 +132,7 @@ jobs:
           path: |
             work/downloads
             work/runtimes
+            work/openssl
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
@@ -281,6 +282,7 @@ jobs:
           path: |
             work/downloads
             work/runtimes
+            work/openssl
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
@@ -388,6 +390,7 @@ jobs:
           path: |
             work/downloads
             work/runtimes
+            work/openssl
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
@@ -438,6 +441,7 @@ jobs:
           path: |
             work/downloads
             work/runtimes
+            work/openssl
           key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
