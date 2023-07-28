@@ -72,6 +72,12 @@ jobs:
       - name: 'Setup deps - apt-get'
         if: ${{ contains(inputs.os, 'ubuntu') }}
         run: sudo apt-get update && sudo apt-get install -y ${CC} libstdc++-${CC#*-}-dev lcov
+      - name: 'Setup deps - Homebrew'
+        if: ${{ contains(inputs.os, 'macos') }}
+        run: brew install pcre
+      - name: 'Setup deps - Docker'
+        if: ${{ contains(inputs.os, 'macos') }}
+        uses: crazy-max/ghaction-setup-docker@v2
       - uses: actions/checkout@v3
       - name: 'Setup cache - rustup toolchain'
         if: ${{ !env.ACT }}
