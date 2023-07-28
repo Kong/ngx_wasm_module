@@ -258,9 +258,14 @@ build_nginx() {
     # Patches
     #########
 
+    local hasher=sha1sum
+    if [[ ! -x "$(command -v $hasher)" ]]; then
+        hasher=shasum
+    fi
+
     # Source contents hash to determine repatch
-    local hash_src=$(find $src_tree -type f \( -name '*.c' -or -name '*.h' \) -exec sha1sum {} \; \
-                     | sha1sum | awk '{ print $1 }')
+    local hash_src=$(find $src_tree -type f \( -name '*.c' -or -name '*.h' \) -exec $hasher {} \; \
+                     | $hasher | awk '{ print $1 }')
 
     if [[ ! -d "$NGX_BUILD_DIR_SRC" \
           || ! -f "$NGX_BUILD_DIR_SRC/.hash" \
