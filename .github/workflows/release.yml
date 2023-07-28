@@ -9,7 +9,7 @@ on:
     inputs:
       release_name:
         type: string
-        description: "Release name (e.g. v0.1.0)"
+        description: "Release name (e.g. 0.1.0)"
         required: true
       create_release:
         type: boolean

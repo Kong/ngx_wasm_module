@@ -16,7 +16,7 @@ host ABI, which allows the use of client SDKs written in multiple languages,
 such as [Rust](https://github.com/proxy-wasm/proxy-wasm-rust-sdk)
 and [Go](https://github.com/tetratelabs/proxy-wasm-go-sdk). Proxy-Wasm
 ("WebAssembly for Proxies") is an emerging standard for Wasm filters,
-adopted by API gateways such as [Kong](https://konghq.com)
+adopted by API Gateways such as [Kong](https://konghq.com)
 and [Envoy](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter.html).
 
 ## What is WasmX?
