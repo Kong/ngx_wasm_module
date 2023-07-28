@@ -128,6 +128,7 @@ ok
 
 
 === TEST 5: proxy_wasm - multiple ticks
+--- disable_rust_backtrace
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code

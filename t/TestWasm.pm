@@ -107,10 +107,15 @@ add_block_preprocessor(sub {
     # --- env variables
 
     my $main_config = $block->main_config || '';
+    my $disable_rust_backtrace = $block->disable_rust_backtrace;
 
-    $block->set_value("main_config",
-                      "env WASMTIME_BACKTRACE_DETAILS=1;\n"
-                      . $main_config);
+    my @env_vars = ("env WASMTIME_BACKTRACE_DETAILS=1");
+    if (!defined $disable_rust_backtrace) {
+        push @env_vars, "env RUST_BACKTRACE=full";
+    }
+    my $env_section = join(";\n", @env_vars) . ";\n\n";
+
+    $block->set_value("main_config", $env_section . $main_config);
 
     # --- load_nginx_modules: ngx_http_echo_module
 
