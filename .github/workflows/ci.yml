@@ -111,10 +111,23 @@ jobs:
             hup: no_hup
             ssl: ssl
             module_type: dynamic
+          # MacOS + dynamic ngx_wasm_module
+          - os: macos-latest
+            cc: clang
+            openresty: 1.21.4.1
+            runtime: wasmtime
+            wasmtime: 8.0.1
+            debug: debug
+            hup: no_hup
+            ssl: ssl
+            module_type: dynamic
     steps:
       - name: 'Setup deps - apt-get'
-        if: ${{ matrix.cc == 'gcc-9' }}
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.cc == 'gcc-9' }}
         run: sudo apt-get update && sudo apt-get install -y gcc-9 libstdc++-9-dev lcov
+      - name: 'Setup deps - Homebrew'
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: brew install pcre
       - uses: actions/checkout@v3
       - name: 'Setup cache - rustup toolchain'
         uses: actions/cache@v3
