@@ -4,9 +4,9 @@
 
 ## [0.1.0]
 
-> Unreleased - DRAFT
+> 2023/07/29 - Prerelease
 
-This initial release proposes a programmable Nginx module for executing Wasm
+This initial prerelease proposes a programmable Nginx module for executing Wasm
 bytecode in Nginx and/or OpenResty: ngx_wasm_module.
 
 The module must be linked to one of three supported WebAssembly runtimes:
@@ -61,6 +61,12 @@ Name            | Notes
 ngx-wasm-rs     | A Rust library used when linking to Wasmer or V8. Ensures feature-parity across runtimes such as detailed backtraces and `.wat` format support.
 v8bridge        | A bridge library exposing C++ V8 features to ngx_wasm_module's C.
 lua-resty-wasmx | A LuaJIT FFI binding exposing some of ngx_wasm_module's features via Lua.
+
+### Known Issues
+
+- MacOS platforms (x86 and ARM64) linking ngx_wasm_module to Wasmtime: using
+  [daemon on](https://nginx.org/en/docs/ngx_core_module.html#daemon) results in
+  a known crash of the Nginx master process.
 
 [Back to TOC](#table-of-contents)
 
