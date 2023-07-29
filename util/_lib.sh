@@ -97,7 +97,7 @@ download_openssl() {
     mkdir -p $DIR_OPENSSL
 
     pushd $DIR_OPENSSL
-        if [ ! -d "$openssl-$OPENSSL_VER" ]; then
+        if [ ! -d "openssl-$OPENSSL_VER" ]; then
             pushd $DIR_DOWNLOAD
                 notice "downloading OpenSSL $OPENSSL_VER..."
                 download openssl-$OPENSSL_VER.tar.gz \
