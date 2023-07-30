@@ -88,8 +88,30 @@ jobs:
           retention-days: ${{ env.RETENTION_DAYS }}
 
   build-images:
-    name: "Build Docker compilation images"
+    name: "Build compilation images"
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: "Ubuntu 18.04 build image"
+            file: "./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-18.04"
+            tags: "ghcr.io/kong/wasmx-build-ubuntu:18.04"
+          - name: "Ubuntu 20.04 build image"
+            file: "./assets/release/Dockerfiles/Dockerfile.ubuntu-20.04"
+            tags: "ghcr.io/kong/wasmx-build-ubuntu:20.04"
+          - name: "Ubuntu 22.04 build image"
+            file: "./assets/release/Dockerfiles/Dockerfile.ubuntu-22.04"
+            tags: "ghcr.io/kong/wasmx-build-ubuntu:22.04"
+            platforms: "linux/arm64,linux/amd64"
+          - name: "Centos 7 build image"
+            file: "./assets/release/Dockerfiles/Dockerfile.amd64.centos7"
+            tags: "ghcr.io/kong/wasmx-build-centos:7"
+          - name: "Centos 8 build image"
+            file: "./assets/release/Dockerfiles/Dockerfile.amd64.centos8"
+            tags: "ghcr.io/kong/wasmx-build-centos:8"
+          - name: "ArchLinux build image"
+            file: "./assets/release/Dockerfiles/Dockerfile.amd64.archlinux"
+            tags: "ghcr.io/kong/wasmx-build-arch:latest"
     steps:
       - uses: actions/checkout@v3
       - name: Login to GitHub Container Registry
@@ -102,45 +124,15 @@ jobs:
         uses: docker/setup-qemu-action@v1
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v1
-      - name: "Ubuntu 18.04 build image"
+      - name: ${{ matrix.name }}
         uses: docker/build-push-action@v2
         with:
-          file: ./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-18.04
-          tags: ghcr.io/kong/wasmx-build-ubuntu:18.04
+          file: ${{ matrix.file }}
+          tags: ${{ matrix.tags }}
           push: true
-      - name: "Ubuntu 20.04 build image"
-        uses: docker/build-push-action@v2
-        with:
-          file: ./assets/release/Dockerfiles/Dockerfile.ubuntu-20.04
-          tags: ghcr.io/kong/wasmx-build-ubuntu:20.04
-          push: true
-      - name: "Ubuntu 22.04 build image"
-        uses: docker/build-push-action@v2
-        with:
-          file: ./assets/release/Dockerfiles/Dockerfile.ubuntu-22.04
-          tags: ghcr.io/kong/wasmx-build-ubuntu:22.04
-          platforms: linux/arm64,linux/amd64
-          push: true
-      - name: "Centos 7 build image"
-        uses: docker/build-push-action@v2
-        with:
-          file: ./assets/release/Dockerfiles/Dockerfile.amd64.centos7
-          tags: ghcr.io/kong/wasmx-build-centos:7
-          push: true
-      - name: "Centos 8 build image"
-        uses: docker/build-push-action@v2
-        with:
-          file: ./assets/release/Dockerfiles/Dockerfile.amd64.centos8
-          tags: ghcr.io/kong/wasmx-build-centos:8
-          push: true
-      - name: ArchLinux build image
-        uses: docker/build-push-action@v2
-        with:
-          file: ./assets/release/Dockerfiles/Dockerfile.amd64.archlinux
-          tags: ghcr.io/kong/wasmx-build-arch:latest
-          push: true
+          platforms: ${{ matrix.platforms }}
 
-  build-ubuntu-bionic:
+  binary-ubuntu-bionic:
     name: "Build Ubuntu 18.04 (bionic) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -171,7 +163,7 @@ jobs:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/dist/build/*
 
-  build-ubuntu-focal:
+  binary-ubuntu-focal:
     name: "Build Ubuntu 20.04 (focal) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -202,7 +194,7 @@ jobs:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/dist/build/*
 
-  build-ubuntu-jammy:
+  binary-ubuntu-jammy:
     name: "Build Ubuntu 22.04 (jammy) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -233,7 +225,7 @@ jobs:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/dist/build/*
 
-  build-ubuntu-jammy-arm:
+  binary-ubuntu-jammy-arm:
     name: "Build ARM Ubuntu 22.04 (jammy) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -272,7 +264,7 @@ jobs:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/dist/build/*
 
-  build-centos7:
+  binary-centos7:
     name: "Build Centos 7 binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -303,7 +295,7 @@ jobs:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/dist/build/*
 
-  build-centos8:
+  binary-centos8:
     name: "Build Centos 8 binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -334,7 +326,7 @@ jobs:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/dist/build/*
 
-  build-arch:
+  binary-arch:
     name: "Build ArchLinux binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -365,7 +357,7 @@ jobs:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/dist/build/*
 
-  build-macos:
+  binary-macos:
     name: "Build macOS binary"
     needs: [setup, build-images]
     runs-on: macos-latest
@@ -395,7 +387,7 @@ jobs:
 
   upload-artifacts:
     name: "Upload release artifacts"
-    needs: [setup, source-release, build-ubuntu-bionic, build-ubuntu-focal, build-ubuntu-jammy, build-ubuntu-jammy-arm, build-centos7, build-centos8, build-arch, build-macos]
+    needs: [setup, source-release, binary-ubuntu-bionic, binary-ubuntu-focal, binary-ubuntu-jammy, binary-ubuntu-jammy-arm, binary-centos7, binary-centos8, binary-arch, binary-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Retrieve sibling release artifacts
