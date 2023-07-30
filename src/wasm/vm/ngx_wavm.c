@@ -1147,7 +1147,7 @@ ngx_wavm_val_vec_set(wasm_val_vec_t *out, const wasm_valtype_vec_t *valtypes,
 
         case WASM_I64:
             ui64 = va_arg(args, uint64_t);
-            dd("arg %ld i64: %ld", i, ui64);
+            dd("arg %ld i64: %llu", i, ui64);
             ngx_wasm_vec_set_i64(out, i, ui64);
             break;
 
