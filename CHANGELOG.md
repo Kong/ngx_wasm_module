@@ -4,7 +4,7 @@
 
 ## [0.1.0]
 
-> 2023/07/29 - Prerelease
+> 2023/07/30 - Prerelease
 
 This initial prerelease proposes a programmable Nginx module for executing Wasm
 bytecode in Nginx and/or OpenResty: ngx_wasm_module.

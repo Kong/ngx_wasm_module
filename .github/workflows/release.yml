@@ -60,7 +60,7 @@ jobs:
 
           elif [ -n "${{ github.event.inputs.release_name }}" ]; then
             # release/prerelease
-            echo "create_release=${{ github.event.inputs.create_release }}" >> $GITHUB_OUTPUT
+            echo "create_release=${{ github.event.inputs.create_release == 'true' }}" >> $GITHUB_OUTPUT
             echo "release_name=${{ github.event.inputs.release_name }}" >> $GITHUB_OUTPUT
             echo "release_channel=${{ github.event.inputs.prerelease == 'true' && 'prerelease' || 'release' }}" >> $GITHUB_OUTPUT
 
