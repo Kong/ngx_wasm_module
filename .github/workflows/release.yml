@@ -219,6 +219,17 @@ jobs:
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-artifacts
+          path: dist
+          retention-days: ${{ env.RETENTION_DAYS }}
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+          path: work/dist/build/*
 
   build-ubuntu-jammy-arm:
     name: "Build ARM Ubuntu 22.04 (jammy) binary"
