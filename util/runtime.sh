@@ -145,6 +145,10 @@ if check_target "$TARGET_DIR"; then
     exit 0
 fi
 
+if [[ "$(uname -s)" = "Darwin" ]]; then
+    MODE="build"
+fi
+
 notice "installing $RUNTIME in $TARGET_DIR..."
 BUILD_SCRIPT=$NGX_WASM_DIR/util/runtimes/$RUNTIME.sh
 

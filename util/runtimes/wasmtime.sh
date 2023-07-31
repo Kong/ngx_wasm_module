@@ -108,6 +108,11 @@ build_wasmtime() {
                 cargo_target_dir="target/release"
             fi
 
+            if [ "$(uname -s)" = "Darwin" ]; then
+                # See https://github.com/bytecodealliance/wasmtime/issues/6785
+                args+="--features wasmtime/posix-signals-on-macos"
+            fi
+
             if [ "$clean" = "clean" -a -d $cargo_target_dir ]; then
                 rm -rf $cargo_target_dir
             fi
