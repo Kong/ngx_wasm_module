@@ -32,25 +32,27 @@ env:
 
 jobs:
   setup:
-    name: "Setup release name & runtime versions"
+    name: "Setup release & runtime versions"
     runs-on: ubuntu-latest
     outputs:
       wasmtime_ver: ${{ steps.assign-versions.outputs.wasmtime_ver }}
       wasmer_ver: ${{ steps.assign-versions.outputs.wasmer_ver }}
       v8_ver: ${{ steps.assign-versions.outputs.v8_ver }}
-      create_release: ${{ steps.assign-name.outputs.create_release }}
-      release_name: ${{ steps.assign-name.outputs.release_name }}
-      release_channel: ${{ steps.assign-name.outputs.release_channel }}
+      create_release: ${{ steps.assign-vars.outputs.create_release }}
+      release_name: ${{ steps.assign-vars.outputs.release_name }}
+      release_channel: ${{ steps.assign-vars.outputs.release_channel }}
     steps:
       - uses: actions/checkout@v3
-      - id: assign-versions
+      - name: Assign runtime versions
+        id: assign-versions
         run: |
           export NGX_WASM_DIR=$(pwd)
           . ./util/_lib.sh
           echo "wasmtime_ver=$(get_variable_from_makefile WASMTIME)" >> $GITHUB_OUTPUT
           echo "wasmer_ver=$(get_variable_from_makefile WASMER)" >> $GITHUB_OUTPUT
           echo "v8_ver=$(get_variable_from_makefile V8)" >> $GITHUB_OUTPUT
-      - id: assign-name
+      - id: assign-vars
+        name: Assign release variables
         run: |
           if [ "${{ github.event_name }}" = schedule ]; then
             # nightly
@@ -393,7 +395,7 @@ jobs:
 
   upload-artifacts:
     name: "Upload release artifacts"
-    needs: [source-release, build-images, build-ubuntu-bionic, build-ubuntu-focal, build-ubuntu-jammy, build-ubuntu-jammy-arm, build-centos7, build-centos8, build-arch, build-macos]
+    needs: [setup, source-release, build-ubuntu-bionic, build-ubuntu-focal, build-ubuntu-jammy, build-ubuntu-jammy-arm, build-centos7, build-centos8, build-arch, build-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Retrieve sibling release artifacts
@@ -402,8 +404,9 @@ jobs:
           name: release-artifacts
       - name: Drop Wasmer binaries
         run: find . -name '*wasmer*' | xargs rm -f
-        # Nightly
-      - uses: marvinpinto/action-automatic-releases@latest
+        # Channel: nightly
+      - name: Nightly release
+        uses: marvinpinto/action-automatic-releases@latest
         if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'nightly' }}
         with:
           prerelease: true
@@ -412,8 +415,9 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             *.tar.gz
-        # Prerelease
-      - uses: marvinpinto/action-automatic-releases@latest
+        # Channel: prerelease
+      - name: Prerelease
+        uses: marvinpinto/action-automatic-releases@latest
         if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'prerelease' }}
         with:
           draft: true
@@ -423,8 +427,9 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             *.tar.gz
-        # Release
-      - uses: marvinpinto/action-automatic-releases@latest
+        # Channel: release
+      - name: Release
+        uses: marvinpinto/action-automatic-releases@latest
         if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'release' }}
         with:
           draft: true
