@@ -1,5 +1,5 @@
 NGX ?= 1.25.1
-OPENSSL ?= 1.1.1u
+OPENSSL ?= 3.1.2
 WASMTIME ?= 8.0.1
 WASMER ?= 3.1.1
 V8 ?= 11.4.183.23
