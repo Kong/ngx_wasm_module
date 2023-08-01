@@ -113,9 +113,9 @@ build_wasmtime() {
             fi
 
             RUSTFLAGS="$NGX_BUILD_WASMTIME_RUSTFLAGS" \
-            eval cargo build \
-                    "${args[@]}" \
-                    --manifest-path crates/c-api/Cargo.toml
+            cargo build \
+                ${args[@]} \
+                --manifest-path crates/c-api/Cargo.toml
 
             ### install
 
