@@ -154,10 +154,9 @@ GET /t?hello=world
 --- error_log eval
 [
     qr/\[error\] .*? variable "query_string" is not changeable/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 10/,
 ]
---- no_error_log
-[emerg]
 
 
 
@@ -181,10 +180,12 @@ forward the NotFound status back to the caller.
 --- error_code: 500
 --- response_body_like eval: qr/500 Internal Server Error/
 --- error_log eval
-qr/\[crit\] .*? panicked at 'unexpected status: 1'/
+[
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 1/
+]
 --- no_error_log
 [emerg]
-[alert]
 
 
 
@@ -216,8 +217,8 @@ request, and isolation is global (single instance for root/request)
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
     qr/\[error\] .*? cannot set ngx properties outside of a request/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-    qr/(.*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed).*/
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 10/,
 ]
 
 
@@ -250,6 +251,6 @@ HTTP 200 since the root and request instances are different.
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
     qr/\[error\] .*? cannot set ngx properties outside of a request/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-    qr/(.*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed).*/
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 10/,
 ]

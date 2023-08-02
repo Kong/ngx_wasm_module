@@ -4,7 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 4);
+plan tests => repeat_each() * (blocks() * 5);
 
 run_tests();
 
@@ -23,7 +23,8 @@ __DATA__
 --- error_log eval
 [
     qr/\[alert\] .*? NYI - set_buffer bad buf_type: 100/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 2/,
 ]
 
 
@@ -41,7 +42,8 @@ __DATA__
 --- error_log eval
 [
     qr/\[alert\] .*? NYI - get_buffer bad buf_type: 100/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 2/,
 ]
 
 
@@ -59,7 +61,8 @@ __DATA__
 --- error_log eval
 [
     qr/\[alert\] .*? NYI - set_map bad map_type: 100/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 2/,
 ]
 
 
@@ -77,5 +80,6 @@ __DATA__
 --- error_log eval
 [
     qr/\[alert\] .*? NYI - get_map bad map_type: 100/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 2/,
 ]

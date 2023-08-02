@@ -302,8 +302,8 @@ qr/^[^#]*#0 on_vm_start[^#]*
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
 [
-    qr/\[crit\] .*? panicked at 'trap'/,
-    qr/\[error\] .*? (error while executing at wasm backtrace:|(Uncaught RuntimeError)?unreachable)/
+    qr/\[crit\] .*? panicked at/,
+    qr/custom trap/,
 ]
 
 

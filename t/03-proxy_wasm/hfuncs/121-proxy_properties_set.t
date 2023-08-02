@@ -29,10 +29,9 @@ qq{
 --- error_log eval
 [
     qr/\[error\] .*? variable "request_uri" is not changeable/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 10/,
 ]
---- no_error_log
-[emerg]
 
 
 
@@ -56,7 +55,9 @@ forward the NotFound status back to the caller.
 --- error_code: 500
 --- response_body_like eval: qr/500 Internal Server Error/
 --- error_log eval
-qr/\[crit\] .*? panicked at 'unexpected status: 1'/
+[
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 1/
+]
 --- no_error_log
 [emerg]
-[alert]

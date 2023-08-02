@@ -114,7 +114,7 @@ impl TestHttp {
             "/t/shm/dequeue" => test_shared_queue_dequeue(self),
 
             /* errors */
-            "/t/trap" => panic!("trap"),
+            "/t/trap" => panic!("custom trap"),
             "/t/error/get_response_body" => {
                 let _body = self.get_http_response_body(usize::MAX, usize::MAX);
             }

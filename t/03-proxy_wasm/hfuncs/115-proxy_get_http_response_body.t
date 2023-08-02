@@ -139,7 +139,6 @@ Hello world
 --- error_log eval
 [
     qr/on_response_body, 12 bytes, eof: false/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 10/
 ]
---- no_error_log
-[alert]

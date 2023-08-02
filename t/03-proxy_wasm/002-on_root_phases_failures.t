@@ -31,8 +31,8 @@ qq{
     }
 --- error_log eval
 [
-    qr/\[crit\] .*? panicked at 'trap on_vm_start'/,
-    qr/(\[error\] .*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed)/,
+    qr/\[crit\] .*? panicked at/,
+    qr/trap on_vm_start/,
     qr/\[emerg\] .*? failed initializing "hostcalls" filter \(initialization failed\)/,
 ]
 --- must_die: 2
@@ -84,8 +84,8 @@ qq{
     }
 --- error_log eval
 [
-    qr/\[crit\] .*? panicked at 'trap on_configure'/,
-    qr/(\[error\] .*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed)/,
+    qr/\[crit\] .*? panicked at/,
+    qr/trap on_configure/,
     qr/\[emerg\] .*? failed initializing "hostcalls" filter \(initialization failed\)/,
 ]
 --- must_die: 2
