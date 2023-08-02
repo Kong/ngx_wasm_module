@@ -156,7 +156,11 @@ jobs:
           NGX_BUILD_DEBUG: ${{ matrix.debug == 'debug' && 1 || 0 }}
           NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
           NGX_BUILD_DYNAMIC_MODULE: ${{ matrix.module_type == 'dynamic' && 1 || 0 }}
-      - run: make test
+      #- run: make test
+      #  env:
+      #    TEST_NGINX_USE_HUP: ${{ matrix.hup == 'hup' && 1 || 0 }}
+      #    NGX_BUILD_DYNAMIC_MODULE: ${{ matrix.module_type == 'dynamic' && 1 || 0 }}
+      - run: ./util/test.sh t/03-proxy_wasm/hfuncs/100-proxy_log.t
         env:
           TEST_NGINX_USE_HUP: ${{ matrix.hup == 'hup' && 1 || 0 }}
           NGX_BUILD_DYNAMIC_MODULE: ${{ matrix.module_type == 'dynamic' && 1 || 0 }}

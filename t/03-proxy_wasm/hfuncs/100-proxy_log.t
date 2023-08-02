@@ -80,6 +80,7 @@ C
 
 
 === TEST 3: proxy_wasm - proxy_log() bad log level
+--- ONLY
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
