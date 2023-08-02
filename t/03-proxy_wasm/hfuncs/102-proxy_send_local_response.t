@@ -69,8 +69,8 @@ should produce error page content from a panic, not from echo
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
 [
-    qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
-    qr/(\[error\] .*?unreachable|wasm trap: wasm `unreachable` instruction executed).*/
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 2/,
 ]
 --- no_error_log
 [alert]

@@ -53,7 +53,8 @@ qq{
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] using wasmtime with compiler: "auto" \(backtraces: 0\)/,
-    qr/\[crit\] .*? panicked at 'trap'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/custom trap/,
     qr/\[error\] .*? \[wasm\] error while executing at wasm backtrace:/,
     qr#    0: 0x[0-9a-f]+ - <unknown>!__rust_start_panic#,
     qr#    1: 0x[0-9a-f]+ - <unknown>!rust_panic#,
@@ -72,7 +73,7 @@ qq{
 ]
 --- no_access_log eval
 my @checks;
-for my $i (20..$::n) {
+for my $i (21..$::n) {
     push(@checks, "stub$i\n");
 }
 [@checks]
@@ -100,7 +101,8 @@ qq{
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] using wasmtime with compiler: "cranelift" \(backtraces: 1\)/,
-    qr/\[crit\] .*? panicked at 'trap'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/custom trap/,
     qr/\[error\] .*? \[wasm\] error while executing at wasm backtrace:/,
     qr#    0: 0x[0-9a-f]+ - .*?abort#,
     qr#                    at /rustc/[0-9a-f]+/library/panic_abort/src/lib.rs:[0-9]+:[0-9]+ *- __rust_start_panic#,
@@ -122,7 +124,7 @@ qq{
 ]
 --- no_error_log eval
 my @checks;
-for my $i (23..$::n) {
+for my $i (24..$::n) {
     push(@checks, "stub$i\n");
 }
 [@checks]
@@ -150,7 +152,8 @@ qq{
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] using wasmer with compiler: "auto" \(backtraces: 0\)/,
-    qr/\[crit\] .*? panicked at 'trap'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/custom trap/,
     qr/\[error\] .*? \[wasm\] unreachable/,
     qr/Backtrace:/,
     qr#	0: func [0-9]+ @ 0x[0-9a-f]+#,
@@ -166,7 +169,7 @@ qq{
 ]
 --- no_error_log eval
 my @checks;
-for my $i (17..$::n) {
+for my $i (18..$::n) {
     push(@checks, "stub$i\n");
 }
 [@checks]
@@ -195,7 +198,8 @@ qr/500 Internal Server Error/
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] using wasmer with compiler: "cranelift" \(backtraces: 1\)/,
-    qr/\[crit\] .*? panicked at 'trap'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/custom trap/,
     qr/\[error\] .*? \[wasm\] unreachable/,
     qr/Backtrace:/,
     qr#	0: __rust_start_panic @ 0x[0-9a-f]+#,
@@ -210,7 +214,7 @@ qr/500 Internal Server Error/
 ]
 --- no_error_log eval
 my @checks;
-for my $i (16..$::n) {
+for my $i (17..$::n) {
     push(@checks, "stub$i\n");
 }
 [@checks]
@@ -238,7 +242,8 @@ qq{
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] using wasmer with compiler: "singlepass" \(backtraces: 1\)/,
-    qr/\[crit\] .*? panicked at 'trap'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/custom trap/,
     qr/\[error\] .*? \[wasm\] unreachable/,
     qr/Backtrace:/,
     qr#	0: __rust_start_panic @ 0x[0-9a-f]+#,
@@ -254,7 +259,7 @@ qq{
 ]
 --- no_error_log eval
 my @checks;
-for my $i (17..$::n) {
+for my $i (18..$::n) {
     push(@checks, "stub$i\n");
 }
 [@checks]
@@ -283,7 +288,8 @@ qq{
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] using wasmer with compiler: "llvm" \(backtraces: 1\)/,
-    qr/\[crit\] .*? panicked at 'trap'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/custom trap/,
     qr/\[error\] .*? \[wasm\] unreachable/,
     qr/Backtrace:/,
     qr#	0: __rust_start_panic @ 0x[0-9a-f]+#,
@@ -299,7 +305,7 @@ qq{
 ]
 --- no_error_log eval
 my @checks;
-for my $i (17..$::n) {
+for my $i (18..$::n) {
     push(@checks, "stub$i\n");
 }
 [@checks]
@@ -328,7 +334,8 @@ qr/500 Internal Server Error/
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] using v8 with compiler: "auto" \(backtraces: 0\)/,
-    qr/\[crit\] .*? panicked at 'trap'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/custom trap/,
     qr/\[error\] .*? \[wasm\] Uncaught RuntimeError: unreachable/,
     qr/Backtrace:/,
     qr#	0: func [0-9]+ @ 0x[0-9a-f]+#,
@@ -344,7 +351,7 @@ qr/500 Internal Server Error/
 ]
 --- no_error_log eval
 my @checks;
-for my $i (17..$::n) {
+for my $i (18..$::n) {
     push(@checks, "stub$i\n");
 }
 [@checks]
@@ -373,7 +380,8 @@ qr/500 Internal Server Error/
 --- error_log eval
 [
     qr/\[info\] .*? \[wasm\] using v8 with compiler: "auto" \(backtraces: 1\)/,
-    qr/\[crit\] .*? panicked at 'trap'/,
+    qr/\[crit\] .*? panicked at/,
+    qr/custom trap/,
     qr/\[error\] .*? \[wasm\] Uncaught RuntimeError: unreachable/,
     qr/Backtrace:/,
     qr#	0: __rust_start_panic @ 0x[0-9a-f]+#,
@@ -389,7 +397,7 @@ qr/500 Internal Server Error/
 ]
 --- no_error_log eval
 my @checks;
-for my $i (17..$::n) {
+for my $i (18..$::n) {
     push(@checks, "stub$i\n");
 }
 [@checks]

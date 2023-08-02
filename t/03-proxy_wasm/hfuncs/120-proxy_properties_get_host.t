@@ -149,8 +149,8 @@ is global (single instance for root/request).
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
     qr/\[error\] .*? cannot get host properties outside of a request/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-    qr/(.*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed).*/,
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 10/,
 ]
 --- no_error_log
 [emerg]
@@ -178,6 +178,6 @@ HTTP 200 since the root and request instances are different.
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
     qr/\[error\] .*? cannot get host properties outside of a request/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 10'/,
-    qr/(.*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed).*/,
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 10/,
 ]

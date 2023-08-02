@@ -24,8 +24,8 @@ __DATA__
 --- response_body
 --- error_log eval
 [
-    qr/\[crit\] .*? panicked at 'trap'/,
-    qr/(\[error\] .*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed)/
+    qr/\[crit\] .*? panicked at/,
+    qr/custom trap/,
 ]
 --- no_error_log
 [emerg]

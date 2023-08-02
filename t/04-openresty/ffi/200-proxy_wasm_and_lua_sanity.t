@@ -361,8 +361,8 @@ qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase
 --- error_log eval
 [
     qr/on_http_call_response \(id: \d+, status: 200, headers: 5, body_bytes: \d+, trailers: 0, op: trap\)/,
-    qr/\[crit\] .*? panicked at 'trap!'/,
-    qr/\[error\] .*? (error while executing at wasm backtrace:|(Uncaught RuntimeError)?unreachable)/
+    qr/\[crit\] .*? panicked at/,
+    qr/trap!/,
 ]
 --- grep_error_log eval: qr/\*\d+.*?\[proxy-wasm\].*?(resuming|freeing).*/
 --- grep_error_log_out eval

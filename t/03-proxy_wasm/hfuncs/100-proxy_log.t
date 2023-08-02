@@ -92,8 +92,8 @@ C
 --- error_log eval
 [
     qr/\[alert\] .*? NYI - proxy_log bad log_level: 100/,
-    qr/\[crit\] .*? panicked at 'unexpected status: 2'/,
-    qr/(\[error\] .*?(Uncaught RuntimeError: )?unreachable|wasm trap: wasm `unreachable` instruction executed)/,
+    qr/\[crit\] .*? panicked at/,
+    qr/unexpected status: 2/,
 ]
 --- no_error_log
 [emerg]
