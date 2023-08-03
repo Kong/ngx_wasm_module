@@ -1,0 +1,145 @@
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_shared_library", "rust_static_library")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+load("@ngx_rust_crate_index//:defs.bzl", ngx_rust_aliases = "aliases", ngx_rust_all_crate_deps = "all_crate_deps")
+load("@ngx_wasm_rs_crate_index//:defs.bzl", ngx_wasm_rs_aliases = "aliases", ngx_wasm_rs_all_crate_deps = "all_crate_deps")
+load("//build:deps.bzl", "normalize_name")
+
+filegroup(
+    name = "nginx_module_srcs",
+    srcs = glob(["src/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "lua_libs",
+    srcs = glob(["lib/resty/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "v8bridge_srcs",
+    srcs = glob(["lib/v8bridge/**"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "ngx_wasm_rs_headers",
+    srcs = glob(["lib/ngx-wasm-rs/include/**"]),
+    visibility = ["//visibility:public"],
+)
+
+# --//:ngx-wasm-rust-feature-wat=false
+bool_flag(
+    name = "ngx-wasm-rust-feature-wat",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "ngx-wasm-rust-feature-wat_flag",
+    flag_values = {
+        ":ngx-wasm-rust-feature-wat": "true",
+    },
+    visibility = ["//visibility:public"],
+)
+
+# ngx-rust
+
+filegroup(
+    name = "ngx_rust_srcs",
+    srcs = glob(
+        include = ["lib/ngx-rust/**"],
+        exclude = ["*.bazel"],
+    ),
+)
+
+rust_library(
+    name = "ngx_rust",
+    srcs = [":ngx_rust_srcs"],
+    aliases = ngx_rust_aliases(),
+    proc_macro_deps = ngx_rust_all_crate_deps(
+        proc_macro = True,
+    ),
+    visibility = ["//visibility:public"],
+    deps = ngx_rust_all_crate_deps(
+        normal = True,
+    ),
+)
+
+# ngx-wasm-rs deps
+
+# crate: the dependencies of the crate
+ngx_wasm_rs_deps = {
+    "backtrace": ["c-api"],
+    "c-api": [],
+    "wat": ["c-api"],
+}
+
+[filegroup(
+    name = "ngx_wasm_rs_deps_%s_srcs" % normalize_name(dep),
+    srcs = glob(
+        include = ["lib/ngx-wasm-rs/lib/%s/**" % dep],
+        exclude = ["*.bazel"],
+    ),
+) for dep in ngx_wasm_rs_deps]
+
+[rust_library(
+    name = "ngx_wasm_rs_deps_%s" % normalize_name(dep),
+    srcs = [":ngx_wasm_rs_deps_%s_srcs" % normalize_name(dep)],
+    aliases = ngx_wasm_rs_aliases() | {
+        ":ngx_wasm_rs_deps_%s" % normalize_name(d): "ngx_wasm_%s" % normalize_name(d)
+        for d in ngx_wasm_rs_deps[dep]
+    },
+    proc_macro_deps = ngx_wasm_rs_all_crate_deps(
+        proc_macro = True,
+    ),
+    deps = ngx_wasm_rs_all_crate_deps(
+        normal = True,
+    ) + [":ngx_wasm_rs_deps_%s" % normalize_name(d) for d in ngx_wasm_rs_deps[dep]],
+) for dep in ngx_wasm_rs_deps]
+
+filegroup(
+    name = "ngx_wasm_rs_srcs",
+    srcs = glob(
+        include = ["lib/ngx-wasm-rs/src/**"],
+        exclude = ["*.bazel"],
+    ),
+)
+
+# ngx-wasm-rs
+
+rust_library_types = {
+    "static": rust_static_library,
+    "shared": rust_shared_library,
+}
+
+[rust_library_types[_type](
+    name = _type == "static" and "ngx_wasm_rs_" + _type or "ngx_wasm_rs",
+    srcs = [":ngx_wasm_rs_srcs"],
+    aliases = ngx_wasm_rs_aliases() | {
+        ":ngx_wasm_rs_deps_backtrace": "ngx_wasm_backtrace",
+    } | select({
+        ":ngx-wasm-rust-feature-wat_flag": {
+            ":ngx_wasm_rs_deps_wat": "ngx_wasm_wat",
+        },
+        "//conditions:default": {},
+    }),
+    crate_name = "ngx_wasm_rs",  # force output filename to be libngx_wasm_rs.{a,so}
+    proc_macro_deps = ngx_wasm_rs_all_crate_deps(
+        proc_macro = True,
+    ),
+    visibility = ["//visibility:public"],
+    deps = ngx_wasm_rs_all_crate_deps(
+        build = True,
+        normal = True,
+    ) + [":ngx_wasm_rs_deps_backtrace"] + select({
+        ":ngx-wasm-rust-feature-wat_flag": [":ngx_wasm_rs_deps_wat"],
+        "//conditions:default": [],
+    }),
+) for _type in rust_library_types]
+
+alias(
+    name = "ngx_wasm_rs_shared",
+    actual = ":ngx_wasm_rs",
+    visibility = ["//visibility:public"],
+)

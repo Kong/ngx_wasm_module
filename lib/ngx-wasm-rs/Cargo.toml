@@ -8,6 +8,10 @@ edition = "2018"
 ngx-wasm-wat = { path = "lib/wat", optional = true }
 ngx-wasm-backtrace = { path = "lib/backtrace" }
 
+# from backtrace
+wasmparser = "0.102"
+rustc-demangle = "0.1"
+
 [features]
 wat = ["dep:ngx-wasm-wat"]
 

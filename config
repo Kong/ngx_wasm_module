@@ -102,7 +102,7 @@ if [ "$ngx_wasm_cargo_lib_name" = ngx_wasm_rs ]; then
         fi
     fi
 
-    if echo -n "$ngx_wasm_runtime_libs\n$NGX_LD_OPT" | grep -q "ngx-wasm-rs"; then
+    if echo -n "$ngx_wasm_runtime_libs\n$NGX_LD_OPT" | grep -q "ngx_wasm_rs"; then
         for d in $ngx_wasm_cargo_defines; do
             have=$d value=1 . auto/define
         done
