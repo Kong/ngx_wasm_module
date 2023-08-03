@@ -140,7 +140,7 @@ build_libwee8() {
     git checkout "$v8_ver"
 
     notice "synchronizing V8 repository..."
-    gclient sync
+    gclient sync -D
 
     ### build
 
