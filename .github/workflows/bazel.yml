@@ -1,0 +1,35 @@
+name: Bazel build
+
+on:
+  pull_request:
+    paths-ignore:
+    # ignore markdown files (CHANGELOG.md, README.md, etc.)
+    - '**/*.md'
+  push:
+    paths-ignore:
+    # ignore markdown files (CHANGELOG.md, README.md, etc.)
+    - '**/*.md'
+    branches:
+    - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  tests:
+    name: Tests
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v3
+
+    - name: Build
+      run: bazel build :ngx_rust :ngx_wasm_rs_static :ngx_wasm_rs_shared --verbose_failures
+
+    - name: Display artifacts
+      run: ls -lh bazel-bin/

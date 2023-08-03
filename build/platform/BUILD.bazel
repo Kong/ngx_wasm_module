@@ -1,0 +1,8 @@
+platform(
+    name = "linux-aarch64",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:arm64",
+    ],
+    visibility = ["//visibility:public"],
+)

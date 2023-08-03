@@ -1,0 +1,7 @@
+build --incompatible_enable_cc_toolchain_resolution
+
+common --color=yes
+common --curses=auto
+
+build --show_timestamps
+build --worker_verbose
