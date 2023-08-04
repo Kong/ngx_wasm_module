@@ -14,6 +14,7 @@ plan tests => repeat_each() * (blocks() * 4);
 
 add_block_preprocessor(sub {
     my $block = shift;
+
     if (!defined $block->load_nginx_modules) {
         $block->set_value("load_nginx_modules", "ngx_http_echo_module");
     }
@@ -23,7 +24,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - dispatch_https_call() verify off, warn, ok
+=== TEST 1: proxy_wasm - dispatch_https_call() sanity verify off, warn on
 --- wasm_modules: hostcalls
 --- config eval
 qq{
@@ -58,7 +59,7 @@ ok
 
 
 
-=== TEST 2: proxy_wasm - dispatch_https_call() verify off, no warn, ok
+=== TEST 2: proxy_wasm - dispatch_https_call() sanity verify off, warn off
 --- main_config eval
 qq{
     wasm {
@@ -99,7 +100,7 @@ ok
 
 
 
-=== TEST 3: proxy_wasm - dispatch_https_call() verify on, ok
+=== TEST 3: proxy_wasm - dispatch_https_call() sanity verify on, over TCP/IP
 --- skip_no_debug: 4
 --- main_config eval
 qq{
@@ -110,16 +111,16 @@ qq{
     }
 }
 --- config
-    # TODO: unix support in tcp_sock
-    #listen              unix:$ENV{TEST_NGINX_UNIX_SOCKET} ssl;
-
     listen              $TEST_NGINX_SERVER_PORT2 ssl;
     ssl_certificate     $TEST_NGINX_DATA_DIR/cert.pem;
     ssl_certificate_key $TEST_NGINX_DATA_DIR/key.pem;
 
+    resolver 1.1.1.1 ipv6=off;
+    resolver_add 127.0.0.1 hostname;
+
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT2 \
+                              host=hostname:$TEST_NGINX_SERVER_PORT2 \
                               https=yes \
                               path=/headers \
                               on_http_call_response=echo_response_body';
@@ -131,17 +132,63 @@ qq{
     }
 --- response_body_like
 GET \/headers HTTP\/1\.1.*
-Host: 127\.0\.0\.1:\d+.*
+Host: hostname.*
 Connection: close.*
 Content-Length: 0.*
---- error_log
-verifying tls certificate for "127.0.0.1"
+--- error_log eval
+qr/verifying tls certificate for "hostname:\d+" \(sni: "hostname"\)/
 --- no_error_log
 [error]
 
 
 
-=== TEST 4: proxy_wasm - dispatch_https_call() verify on, fail (expired)
+=== TEST 4: proxy_wasm - dispatch_https_call() sanity verify on, over unix domain socket
+--- skip_no_debug: 4
+--- main_config eval
+qq{
+    wasm {
+        module hostcalls        $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
+        tls_trusted_certificate $ENV{TEST_NGINX_DATA_DIR}/cert.pem;
+        tls_verify_cert         on;
+    }
+}
+--- http_config eval
+qq{
+    server {
+        listen              unix:$ENV{TEST_NGINX_UNIX_SOCKET} ssl;
+        ssl_certificate     $ENV{TEST_NGINX_DATA_DIR}/cert.pem;
+        ssl_certificate_key $ENV{TEST_NGINX_DATA_DIR}/key.pem;
+
+        location /headers {
+            echo \$echo_client_request_headers;
+        }
+    }
+}
+--- config eval
+qq{
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=unix:$ENV{TEST_NGINX_UNIX_SOCKET} \
+                              authority=localhost \
+                              https=yes \
+                              path=/headers \
+                              on_http_call_response=echo_response_body';
+        echo fail;
+    }
+}
+--- response_body_like
+GET \/headers HTTP\/1\.1.*
+Host: localhost\s*
+Connection: close.*
+Content-Length: 0.*
+--- error_log eval
+"verifying tls certificate for \"unix:$ENV{TEST_NGINX_UNIX_SOCKET}\" (sni: \"localhost\")"
+--- no_error_log
+[error]
+
+
+
+=== TEST 5: proxy_wasm - dispatch_https_call() fail verify on (expired)
 --- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
@@ -172,7 +219,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls cer
 
 
 
-=== TEST 5: proxy_wasm - dispatch_https_call() check_host on, ok
+=== TEST 6: proxy_wasm - dispatch_https_call() sanity check_host on
 --- skip_no_debug: 4
 --- main_config eval
 qq{
@@ -208,14 +255,14 @@ GET \/headers HTTP\/1\.1.*
 Host: hostname:\d+.*
 Connection: close.*
 Content-Length: 0.*
---- error_log
-checking tls certificate host for "hostname"
+--- error_log eval
+qr/checking tls certificate CN for "hostname:\d+" \(sni: "hostname"\)/
 --- no_error_log
 [error]
 
 
 
-=== TEST 6: proxy_wasm - dispatch_https_call() check_host on, fail
+=== TEST 7: proxy_wasm - dispatch_https_call() fail check_host on
 --- main_config eval
 qq{
     wasm {
@@ -246,13 +293,13 @@ qq{
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate does not match \"localhost\"/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate CN does not match \"localhost\" sni/
 --- no_error_log
 [crit]
 
 
 
-=== TEST 7: proxy_wasm - dispatch_https_call() untrusted root
+=== TEST 8: proxy_wasm - dispatch_https_call() untrusted root
 --- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
@@ -283,12 +330,15 @@ qr/tls certificate verify error: \(19:self.signed certificate in certificate cha
 
 
 
-=== TEST 8: proxy_wasm - dispatch_https_call() attempt https at plain-text host
+=== TEST 9: proxy_wasm - dispatch_https_call() attempt https at plain-text host
 --- wasm_modules: hostcalls
 --- config
     location /t {
+        resolver     1.1.1.1 ipv6=off;
+        resolver_add 127.0.0.1 localhost;
+
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              host=localhost:$TEST_NGINX_SERVER_PORT \
                               https=yes \
                               path=/dispatched';
         echo fail;
@@ -307,7 +357,7 @@ qr/tls certificate verify error: \(19:self.signed certificate in certificate cha
 
 
 
-=== TEST 9: proxy_wasm - dispatch_https_call() bad trusted CA path
+=== TEST 10: proxy_wasm - dispatch_https_call() bad trusted CA path
 --- wasm_modules: hostcalls
 --- tls_trusted_certificate: /tmp/invalid_filename.txt
 --- error_log eval
@@ -319,7 +369,7 @@ qr/\[emerg\] .*?no such file/i
 
 
 
-=== TEST 10: proxy_wasm - dispatch_https_call() bad trusted CA format
+=== TEST 11: proxy_wasm - dispatch_https_call() bad trusted CA format
 --- main_config
     wasm {
         tls_trusted_certificate $TEST_NGINX_HTML_DIR/ca.pem;
@@ -336,7 +386,7 @@ foo
 
 
 
-=== TEST 11: proxy_wasm - dispatch_https_call() no trusted CA
+=== TEST 12: proxy_wasm - dispatch_https_call() no trusted CA
 --- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
@@ -366,7 +416,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls cer
 
 
 
-=== TEST 12: proxy_wasm - dispatch_https_call() empty trusted CA path
+=== TEST 13: proxy_wasm - dispatch_https_call() empty trusted CA path
 --- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
@@ -398,41 +448,14 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls cer
 
 
 
-=== TEST 13: proxy_wasm - dispatch_https_call() SNI not set with literal IPv6
---- skip_no_debug: 4
---- wasm_modules: hostcalls
---- config
-    listen              [::]:$TEST_NGINX_SERVER_PORT ssl;
-    ssl_certificate     $TEST_NGINX_DATA_DIR/cert.pem;
-    ssl_certificate_key $TEST_NGINX_DATA_DIR/key.pem;
-
-    location /t {
-        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=[0:0:0:0:0:0:0:1]:$TEST_NGINX_SERVER_PORT \
-                              https=yes \
-                              path=/dispatch \
-                              on_http_call_response=echo_response_body';
-        echo fail;
-    }
-
-    location /dispatch {
-        echo ok;
-    }
---- response_body
-ok
---- no_error_log
-[error]
-upstream tls server name
-
-
-
-=== TEST 14: proxy_wasm - dispatch_https_call() SNI set with hostname
+=== TEST 14: proxy_wasm - dispatch_https_call() SNI derived from host over TCP/IP
 --- skip_no_debug: 4
 --- main_config eval
 qq{
     wasm {
         module hostcalls        $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
         tls_trusted_certificate $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
+        tls_verify_host         on;
     }
 }
 --- config
@@ -458,14 +481,246 @@ qq{
     }
 --- response_body
 ok
---- error_log
-upstream tls server name: "hostname"
+--- error_log eval
+[
+    qr/upstream tls server name: "hostname"/,
+    qr/checking tls certificate CN for "hostname:\d+" \(sni: "hostname"\)/,
+]
+
+
+
+=== TEST 15: proxy_wasm - dispatch_https_call() fail SNI derived from host with literal IPv4
+SNI cannot be an IP address.
+--- skip_no_debug: 4
+--- main_config eval
+qq{
+    wasm {
+        module hostcalls $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
+    }
+}
+--- config
+    listen              $TEST_NGINX_SERVER_PORT2 ssl;
+    ssl_certificate     $TEST_NGINX_DATA_DIR/hostname_cert.pem;
+    ssl_certificate_key $TEST_NGINX_DATA_DIR/hostname_key.pem;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT2 \
+                              https=yes \
+                              path=/dispatch \
+                              on_http_call_response=echo_response_body';
+        echo fail;
+    }
+
+    location /dispatch {
+        echo ok;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+qr/could not derive tls sni from host \("127\.0\.0\.1:\d+"\)/
+--- no_error_log
+[crit]
+
+
+
+=== TEST 16: proxy_wasm - dispatch_https_call() fail SNI derived from host with literal IPv6
+SNI cannot be an IP address.
+--- skip_no_debug: 4
+--- wasm_modules: hostcalls
+--- config
+    listen              [::]:$TEST_NGINX_SERVER_PORT ssl;
+    ssl_certificate     $TEST_NGINX_DATA_DIR/cert.pem;
+    ssl_certificate_key $TEST_NGINX_DATA_DIR/key.pem;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=[0:0:0:0:0:0:0:1]:$TEST_NGINX_SERVER_PORT \
+                              https=yes \
+                              path=/dispatch \
+                              on_http_call_response=echo_response_body';
+        echo fail;
+    }
+
+    location /dispatch {
+        echo ok;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+qr/could not derive tls sni from host \("\[0:0:0:0:0:0:0:1\]:\d+"\)/
+--- no_error_log
+[crit]
+
+
+
+=== TEST 17: proxy_wasm - dispatch_https_call() SNI override with :authority over TCP/IP (debug)
+--- skip_no_debug: 4
+--- main_config eval
+qq{
+    wasm {
+        module hostcalls        $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
+        tls_trusted_certificate $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
+        tls_verify_host         on;
+    }
+}
+--- config
+    listen              $TEST_NGINX_SERVER_PORT2 ssl;
+    server_name         hostname;
+    ssl_certificate     $TEST_NGINX_DATA_DIR/hostname_cert.pem;
+    ssl_certificate_key $TEST_NGINX_DATA_DIR/hostname_key.pem;
+
+    resolver 1.1.1.1 ipv6=off;
+    resolver_add 127.0.0.1 hostname;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT2 \
+                              authority=hostname \
+                              https=yes \
+                              path=/dispatch \
+                              on_http_call_response=echo_response_body';
+        echo fail;
+    }
+
+    location /dispatch {
+        echo ok;
+    }
+--- response_body
+ok
+--- error_log eval
+[
+    "upstream tls server name: \"hostname\"",
+    qr/checking tls certificate CN for "127\.0\.0\.1:\d+" \(sni: "hostname"\)/,
+]
+
+
+
+=== TEST 18: proxy_wasm - dispatch_https_call() SNI override with :authority over TCP/IP (non-debug)
+--- main_config eval
+qq{
+    wasm {
+        module hostcalls        $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
+        tls_trusted_certificate $ENV{TEST_NGINX_DATA_DIR}/hostname_cert.pem;
+        tls_verify_host         on;
+    }
+}
+--- config
+    listen              $TEST_NGINX_SERVER_PORT2 ssl;
+    server_name         hostname;
+    ssl_certificate     $TEST_NGINX_DATA_DIR/hostname_cert.pem;
+    ssl_certificate_key $TEST_NGINX_DATA_DIR/hostname_key.pem;
+
+    resolver 1.1.1.1 ipv6=off;
+    resolver_add 127.0.0.1 hostname;
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT2 \
+                              authority=hostname \
+                              https=yes \
+                              path=/dispatch \
+                              on_http_call_response=echo_response_body';
+        echo fail;
+    }
+
+    location /dispatch {
+        echo ok;
+    }
+--- response_body
+ok
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 15: proxy_wasm - dispatch_https_call() on_tick, verify off, warn, ok
+=== TEST 19: proxy_wasm - dispatch_https_call() SNI override with :authority over unix domain socket (debug)
+Unix sockets need to set :authority as SNI
+--- skip_no_debug: 4
+--- main_config eval
+qq{
+    wasm {
+        module hostcalls        $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
+        tls_trusted_certificate $ENV{TEST_NGINX_DATA_DIR}/cert.pem;
+        tls_verify_cert         on;
+    }
+}
+--- http_config eval
+qq{
+    server {
+        listen              unix:$ENV{TEST_NGINX_UNIX_SOCKET} ssl;
+        ssl_certificate     $ENV{TEST_NGINX_DATA_DIR}/cert.pem;
+        ssl_certificate_key $ENV{TEST_NGINX_DATA_DIR}/key.pem;
+
+        location / {
+            echo ok;
+        }
+    }
+}
+--- config eval
+qq{
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=unix:$ENV{TEST_NGINX_UNIX_SOCKET} \
+                              authority=hostname \
+                              https=yes \
+                              on_http_call_response=echo_response_body';
+        echo fail;
+    }
+}
+--- response_body
+ok
+--- error_log eval
+[
+    "upstream tls server name: \"hostname\"",
+    "verifying tls certificate for \"unix:$ENV{TEST_NGINX_UNIX_SOCKET}\" (sni: \"hostname\")"
+]
+
+
+
+=== TEST 20: proxy_wasm - dispatch_https_call() SNI override with :authority over unix domain socket (non-debug)
+Unix sockets need to set :authority as SNI
+--- main_config eval
+qq{
+    wasm {
+        module hostcalls        $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
+        tls_trusted_certificate $ENV{TEST_NGINX_DATA_DIR}/cert.pem;
+        tls_verify_cert         on;
+    }
+}
+--- http_config eval
+qq{
+    server {
+        listen              unix:$ENV{TEST_NGINX_UNIX_SOCKET} ssl;
+        ssl_certificate     $ENV{TEST_NGINX_DATA_DIR}/cert.pem;
+        ssl_certificate_key $ENV{TEST_NGINX_DATA_DIR}/key.pem;
+
+        location / {
+            echo ok;
+        }
+    }
+}
+--- config eval
+qq{
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=unix:$ENV{TEST_NGINX_UNIX_SOCKET} \
+                              authority=hostname \
+                              https=yes \
+                              on_http_call_response=echo_response_body';
+        echo fail;
+    }
+}
+--- response_body
+ok
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 21: proxy_wasm - dispatch_https_call() sanity on_tick, verify off, warn on
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
 qq{
@@ -505,7 +760,7 @@ qq{
 
 
 
-=== TEST 16: proxy_wasm - dispatch_https_call() on_tick, verify on, check_host on, ok
+=== TEST 22: proxy_wasm - dispatch_https_call() sanity on_tick, verify on, check_host on
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
@@ -541,7 +796,7 @@ qq{
 --- ignore_response_body
 --- error_log eval
 [
-    qr/verifying tls certificate for "hostname"/,
-    qr/checking tls certificate host for "hostname"/,
+    qr/verifying tls certificate for "hostname:\d+" \(sni: "hostname"\)/,
+    qr/checking tls certificate CN for "hostname:\d+" \(sni: "hostname"\)/,
     "on_root_http_call_response (id: 0, status: 200, headers: 5, body_bytes: 3, trailers: 0)",
 ]

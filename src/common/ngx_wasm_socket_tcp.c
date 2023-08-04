@@ -32,7 +32,7 @@ static ngx_int_t ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock);
 static void ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c);
 static ngx_int_t ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c);
 static ngx_int_t ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c,
-    ngx_str_t *name);
+    ngx_wasm_socket_tcp_t *sock);
 #endif
 
 
@@ -119,9 +119,11 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
 
 ngx_int_t
 ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host, in_port_t port, unsigned tls,
-    ngx_wasm_subsys_env_t *env)
+    ngx_str_t *host, unsigned tls, ngx_str_t *sni, ngx_wasm_subsys_env_t *env)
 {
+    u_char            *p, *last;
+    static ngx_str_t   uds_prefix = ngx_string("unix:");
+
     ngx_memzero(sock, sizeof(ngx_wasm_socket_tcp_t));
 
     ngx_memcpy(&sock->env, env, sizeof(ngx_wasm_subsys_env_t));
@@ -161,11 +163,47 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
 #if (NGX_SSL)
     sock->ssl_conf = tls ? env->ssl_conf : NULL;
     sock->url.default_port = tls ? 443 : 80;
+
+    if (tls && sni && sni->len) {
+        sock->sni = sni;
+    }
 #else
     sock->url.default_port = 80;
 #endif
     sock->url.url = sock->host;
-    sock->url.port = port;
+    sock->url.port = 0;
+
+    if (host->len >= uds_prefix.len
+        && ngx_memcmp(host->data, uds_prefix.data, uds_prefix.len) == 0)
+    {
+
+#if (!NGX_HAVE_UNIX_DOMAIN)
+        ngx_wasm_log_error(NGX_LOG_ERR, sock->log, 0,
+                           "host at \"%V\" requires unix domain socket support",
+                           host);
+        return NGX_ERROR;
+#endif
+
+    } else {
+        /* extract port */
+
+        p = host->data;
+        last = p + host->len;
+
+        if (*p == '[') {
+            /* IPv6 */
+            p = ngx_strlchr(p, last, ']');
+            if (p == NULL) {
+                p = host->data;
+            }
+        }
+
+        p = ngx_strlchr(p, last, ':');
+        if (p) {
+            sock->url.port = ngx_atoi(p + 1, last - p);
+        }
+    }
+
     sock->url.no_resolve = 1;
 
     if (ngx_parse_url(sock->pool, &sock->url) != NGX_OK) {
@@ -207,6 +245,8 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
     ngx_stream_core_srv_conf_t           *ssrvcf;
     ngx_stream_session_t                 *s;
 #endif
+
+    dd("enter");
 
     if (sock->errlen) {
         return NGX_ERROR;
@@ -284,7 +324,17 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
                        "wasm tcp socket no resolving: %V",
                        &sock->resolved.host);
 
-        return ngx_wasm_socket_tcp_connect_peer(sock);
+        rc = ngx_wasm_socket_tcp_connect_peer(sock);
+#if (NGX_SSL)
+        if (rc == NGX_OK) {
+            ngx_wasm_assert(sock->connected);
+
+            if (sock->ssl_conf) {
+                return ngx_wasm_socket_tcp_ssl_handshake(sock);
+            }
+        }
+#endif
+        return rc;
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, sock->log, 0,
@@ -537,7 +587,7 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
     c->sendfile &= sock->env.connection->sendfile;
 
     if (rc == NGX_OK) {
-        sock->connected = 1;
+        ngx_wasm_socket_tcp_connect_handler(sock);
 
     } else if (rc == NGX_AGAIN) {
         ngx_wasm_set_resume_handler(&sock->env);
@@ -577,7 +627,7 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock)
 
     dd("tls connection created");
 
-    rc = ngx_wasm_socket_tcp_ssl_set_server_name(c, &sock->host);
+    rc = ngx_wasm_socket_tcp_ssl_set_server_name(c, sock);
     if (rc == NGX_ERROR) {
         return NGX_ERROR;
     }
@@ -636,9 +686,10 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c)
     }
 
     if (sock->ssl_conf->verify_cert) {
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                       "wasm tcp socket verifying tls certificate for \"%V\"",
-                       &sock->host);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                       "wasm tcp socket verifying tls certificate for \"%V\" "
+                       "(sni: \"%V\")",
+                       &sock->host, &sock->ssl_server_name);
 
         rc = SSL_get_verify_result(c->ssl->connection);
         if (rc != X509_V_OK) {
@@ -654,14 +705,16 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c)
     }
 
     if (sock->ssl_conf->verify_host) {
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
                        "wasm tcp socket checking tls certificate "
-                       "host for \"%V\"", &sock->host);
+                       "CN for \"%V\" (sni: \"%V\")",
+                       &sock->host, &sock->ssl_server_name);
 
-        if (ngx_ssl_check_host(c, &sock->host) != NGX_OK) {
+        if (ngx_ssl_check_host(c, &sock->ssl_server_name) != NGX_OK) {
             ngx_wasm_socket_tcp_err(sock,
-                                    "tls certificate does not match \"%V\"",
-                                    &sock->host);
+                                    "tls certificate CN "
+                                    "does not match \"%V\" sni",
+                                    &sock->ssl_server_name);
             return NGX_ERROR;
         }
 
@@ -683,74 +736,100 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c)
 
 /* Modified from `ngx_http_upstream_ssl_name` */
 static ngx_int_t
-ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c, ngx_str_t *name)
+ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c,
+    ngx_wasm_socket_tcp_t *sock)
 {
-    u_char  *p, *last;
+    size_t      len;
+    ngx_int_t   rc;
+    ngx_str_t  *name;
+    u_char     *p, *last, *sni = NULL;
 
-    if (name->len == 0) {
-        goto done;
+    if (sock->sni) {
+        name = sock->sni;
+
+    } else  {
+        name = &sock->host;
     }
 
-    /*
+    /**
      * ssl name here may contain port, notably if derived from $proxy_host
      * or $http_host; we have to strip it
      */
 
     p = name->data;
+    len = name->len;
     last = name->data + name->len;
 
-    if (*p == '[') {
-        p = ngx_strlchr(p, last, ']');
-
-        if (p == NULL) {
-            p = name->data;
-        }
-    }
-
-    p = ngx_strlchr(p, last, ':');
-
     if (p) {
-        name->len = p - name->data;
+        if (*p == '[') {
+            p = ngx_strlchr(p, last, ']');
+            if (p == NULL) {
+                p = name->data;
+            }
+        }
+
+        p = ngx_strlchr(p, last, ':');
+        if (p) {
+            len = p - name->data;
+        }
     }
 
     /* as per RFC 6066, literal IPv4 and IPv6 addresses are not permitted */
 
-    if (name->len == 0 || *name->data == '[') {
-        goto done;
+    if (len == 0
+        || (name->data && *name->data == '[')
+        || ngx_inet_addr(name->data, len) != INADDR_NONE)
+    {
+        ngx_wasm_socket_tcp_err(sock,
+                                "could not derive tls sni from host (\"%V\")",
+                                &sock->host);
+        goto error;
     }
 
-    if (ngx_inet_addr(name->data, name->len) != INADDR_NONE) {
-        goto done;
-    }
-
-    /*
+    /**
      * SSL_set_tlsext_host_name() needs a null-terminated string,
      * hence we explicitly null-terminate name here
      */
 
-    p = ngx_pnalloc(c->pool, name->len + 1);
-    if (p == NULL) {
-        return NGX_ERROR;
+    sni = ngx_pnalloc(sock->pool, len + 1);
+    if (sni == NULL) {
+        goto error;
     }
 
-    (void) ngx_cpystrn(p, name->data, name->len + 1);
+    (void) ngx_cpystrn(sni, name->data, len + 1);
 
-    name->data = p;
+    sock->ssl_server_name.len = len;
+    sock->ssl_server_name.data = sni;
 
-    if (SSL_set_tlsext_host_name(c->ssl->connection, (char *) name->data)
+    if (SSL_set_tlsext_host_name(c->ssl->connection, (char *) sni)
         == 0)
     {
         ngx_ssl_error(NGX_LOG_ERR, c->log, 0,
-                      "SSL_set_tlsext_host_name(\"%s\") failed", name->data);
-        return NGX_ERROR;
+                      "SSL_set_tlsext_host_name(\"%s\") failed", sni);
+        goto error;
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "wasm tcp socket upstream tls server name: \"%V\"", name);
+                   "wasm tcp socket upstream tls server name: \"%s\"", sni);
+
+    rc = NGX_OK;
+
+    goto done;
+
+error:
+
+    if (sni) {
+        ngx_pfree(sock->pool, sni);
+    }
+
+    sock->ssl_server_name.len = 0;
+    sock->ssl_server_name.data = NULL;
+
+    rc = NGX_ERROR;
 
 done:
 
-    return NGX_OK;
+    return rc;
 }
 #endif
 
@@ -1142,6 +1221,13 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
         sock->host.data = NULL;
     }
 
+#if (NGX_SSL)
+    if (sock->ssl_server_name.data) {
+        ngx_pfree(sock->pool, sock->ssl_server_name.data);
+        sock->ssl_server_name.data = NULL;
+    }
+#endif
+
     if (c && c->pool) {
 #if 0
         /* disabled: c->pool is inherited from sock->env.pool */
@@ -1484,7 +1570,7 @@ ngx_wasm_socket_tcp_init_addr_text(ngx_peer_connection_t *pc)
         break;
 #endif
 
-#if (NGX_HAVE_UNIX_DOMAIN && 0)
+#if (NGX_HAVE_UNIX_DOMAIN)
     case AF_UNIX:
         addr_text_max_len = NGX_UNIX_ADDRSTRLEN;
         break;
@@ -1497,6 +1583,7 @@ ngx_wasm_socket_tcp_init_addr_text(ngx_peer_connection_t *pc)
     default:
         addr_text_max_len = NGX_SOCKADDR_STRLEN;
         break;
+
     }
 
     c->addr_text.data = ngx_pnalloc(c->pool, addr_text_max_len);

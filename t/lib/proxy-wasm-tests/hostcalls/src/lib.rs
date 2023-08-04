@@ -122,13 +122,12 @@ impl RootContext for TestRoot {
                         .unwrap_or("GET"),
                 ));
 
-                headers.push((
-                    ":authority",
-                    self.config
-                        .get("host")
-                        .map(|v| v.as_str())
-                        .unwrap_or("default"),
-                ));
+                if self.get_config("authority").is_some() {
+                    headers.push((
+                        ":authority",
+                        self.config.get("authority").map(|v| v.as_str()).unwrap(),
+                    ));
+                }
 
                 if self.get_config("https") == Some("yes") {
                     headers.push((":scheme", "https"));

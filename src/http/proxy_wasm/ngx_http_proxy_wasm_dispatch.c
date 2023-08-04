@@ -31,7 +31,6 @@ static ngx_str_t  ngx_http_proxy_wasm_dispatch_errlist[] = {
     ngx_null_string,
     ngx_string("no :method"),
     ngx_string("no :path"),
-    ngx_string("no :authority"),
     ngx_string("bad step"),
     ngx_string("no memory"),
     ngx_string("marshalling error"),
@@ -140,8 +139,6 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 {
     static uint32_t                  callout_ids = 0;
     size_t                           i;
-    in_port_t                        port = 0;
-    u_char                          *p, *last;
     ngx_buf_t                       *buf;
     ngx_event_t                     *ev;
     ngx_table_elt_t                 *elts, *elt;
@@ -230,25 +227,6 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     ngx_memcpy(call->host.data, host->data, host->len);
     call->host.data[call->host.len] = '\0';
-
-    /* port */
-
-    p = host->data;
-    last = p + host->len;
-
-    if (*p == '[') {
-        /* IPv6 */
-        p = ngx_strlchr(p, last, ']');
-        if (p == NULL) {
-            p = host->data;
-        }
-    }
-
-    p = ngx_strlchr(p, last, ':');
-
-    if (p) {
-        port = ngx_atoi(p + 1, last - p);
-    }
 
     /* headers/trailers */
 
@@ -354,10 +332,6 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     } else if (!call->uri.len) {
         call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_PATH;
         goto error;
-
-    } else if (!call->authority.len) {
-        call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_AUTHORITY;
-        goto error;
     }
 
     /* body */
@@ -382,8 +356,8 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     ngx_wasm_assert(rctx);
 
-    if (ngx_wasm_socket_tcp_init(sock, &call->host, port, enable_ssl,
-                                 &rctx->env)
+    if (ngx_wasm_socket_tcp_init(sock, &call->host, enable_ssl,
+                                 &call->authority, &rctx->env)
         != NGX_OK)
     {
         dd("tcp init error");
@@ -514,12 +488,32 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
     ngx_buf_t                *b;
     ngx_list_part_t          *part;
     ngx_table_elt_t          *elt, *elts;
+    ngx_wasm_socket_tcp_t    *sock;
+    ngx_peer_connection_t    *pc;
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_http_request_t       *fake_r;
     ngx_http_request_t       *r;
 
     if (call->req_out) {
         return call->req_out;
+    }
+
+    if (!call->authority.len) {
+        sock = &call->sock;
+        pc = &sock->peer;
+
+        switch (pc->sockaddr->sa_family) {
+#if (NGX_HAVE_UNIX_DOMAIN)
+        case AF_UNIX:
+            call->authority.len = 9;
+            call->authority.data = (u_char *) "localhost";
+            break;
+#endif
+        default:
+            call->authority.len = sock->host.len;
+            call->authority.data = sock->host.data;
+            break;
+        }
     }
 
     rctx = call->rctx;
@@ -629,6 +623,7 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
      * Connection:
      * Content-Length:
      */
+
     b->last = ngx_cpymem(b->last, call->method.data, call->method.len);
     *b->last++ = ' ';
 
