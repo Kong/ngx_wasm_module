@@ -119,9 +119,11 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
 
 ngx_int_t
 ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host, in_port_t port, unsigned tls,
-    ngx_wasm_subsys_env_t *env)
+    ngx_str_t *host, unsigned tls, ngx_wasm_subsys_env_t *env)
 {
+    u_char            *p, *last;
+    static ngx_str_t   uds_prefix = ngx_string("unix:");
+
     ngx_memzero(sock, sizeof(ngx_wasm_socket_tcp_t));
 
     ngx_memcpy(&sock->env, env, sizeof(ngx_wasm_subsys_env_t));
@@ -165,7 +167,40 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
     sock->url.default_port = 80;
 #endif
     sock->url.url = sock->host;
-    sock->url.port = port;
+    sock->url.port = 0;
+
+    if (host->len > uds_prefix.len
+        && ngx_memcmp(host->data, uds_prefix.data, uds_prefix.len) == 0)
+    {
+
+#if (!NGX_HAVE_UNIX_DOMAIN)
+        ngx_wasm_log_error(NGX_LOG_ERR, sock->log, 0,
+                           "host \"%V\" requires unix domain socket support",
+                           host);
+        return NGX_ERROR;
+#endif
+
+    } else {
+        /* extract port */
+
+        p = host->data;
+        last = p + host->len;
+
+        if (*p == '[') {
+            /* IPv6 */
+            p = ngx_strlchr(p, last, ']');
+            if (p == NULL) {
+                p = host->data;
+            }
+        }
+
+        p = ngx_strlchr(p, last, ':');
+
+        if (p) {
+            sock->url.port = ngx_atoi(p + 1, last - p);
+        }
+    }
+
     sock->url.no_resolve = 1;
 
     if (ngx_parse_url(sock->pool, &sock->url) != NGX_OK) {
@@ -207,6 +242,8 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
     ngx_stream_core_srv_conf_t           *ssrvcf;
     ngx_stream_session_t                 *s;
 #endif
+
+    dd("enter");
 
     if (sock->errlen) {
         return NGX_ERROR;
@@ -284,7 +321,15 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
                        "wasm tcp socket no resolving: %V",
                        &sock->resolved.host);
 
-        return ngx_wasm_socket_tcp_connect_peer(sock);
+        rc = ngx_wasm_socket_tcp_connect_peer(sock);
+        if (sock->connected) {
+#if (NGX_SSL)
+            if (sock->ssl_conf) {
+                return ngx_wasm_socket_tcp_ssl_handshake(sock);
+            }
+#endif
+        }
+        return rc;
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, sock->log, 0,
@@ -1484,7 +1529,7 @@ ngx_wasm_socket_tcp_init_addr_text(ngx_peer_connection_t *pc)
         break;
 #endif
 
-#if (NGX_HAVE_UNIX_DOMAIN && 0)
+#if (NGX_HAVE_UNIX_DOMAIN)
     case AF_UNIX:
         addr_text_max_len = NGX_UNIX_ADDRSTRLEN;
         break;
