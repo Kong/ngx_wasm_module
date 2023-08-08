@@ -232,6 +232,7 @@ build_static_binary() {
     pushd nginx-$NGX_VER
 
     export NGX_WASM_RUNTIME=$runtime
+    export LD_FLAGS="$LD_FLAGS -Wl,--allow-multiple-definition"
 
     ./configure \
         --build="wasmx $name [vm: $NGX_WASM_RUNTIME]" \
@@ -276,7 +277,7 @@ build_static_binary() {
         --without-http_uwsgi_module \
         --without-http_fastcgi_module || cat $DIR_BUILD/build-$dist_bin_name/autoconf*
 
-    make -j$(n_jobs)
+    make -j$(n_jobs) >out.log 2>&1 || cat out.log
 
     popd
 
