@@ -1129,3 +1129,27 @@ helloworl
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 44: proxy_wasm - dispatch_http_call() cannot override hard-coded request headers
+--- skip_no_debug: 4
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /status/200 {
+        return 200;
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/status/200';
+        echo ok;
+    }
+--- ignore_response_body
+--- error_log
+cannot override the "Host" header, skipping
+cannot override the "Connection" header, skipping
+--- no_error_log
+[error]
