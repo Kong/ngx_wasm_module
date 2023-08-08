@@ -51,8 +51,8 @@ Some-Header:
 [crit]
 [alert]
 [stderr]
-stub
-stub
+[stub1]
+[stub2]
 
 
 
@@ -93,8 +93,8 @@ GET /t/echo/header/:path
 [crit]
 [alert]
 [stderr]
-stub
-stub
+[stub1]
+[stub2]
 
 
 
@@ -114,8 +114,8 @@ GET //t/echo//header/:path
 [crit]
 [alert]
 [stderr]
-stub
-stub
+[stub1]
+[stub2]
 
 
 
@@ -135,8 +135,8 @@ GET /t/echo/header/:path?foo=bar&hello=world
 [crit]
 [alert]
 [stderr]
-stub
-stub
+[stub1]
+[stub2]
 
 
 
@@ -160,8 +160,8 @@ request's path (/t)
 [crit]
 [alert]
 [stderr]
-stub
-stub
+[stub1]
+[stub2]
 
 
 
@@ -185,8 +185,8 @@ qq^:authority: localhost:$ENV{TEST_NGINX_SERVER_PORT}^
 [crit]
 [alert]
 [stderr]
-stub
-stub
+[stub1]
+[stub2]
 
 
 
@@ -218,8 +218,8 @@ qq{
 [crit]
 [alert]
 [stderr]
-stub
-stub
+[stub1]
+[stub2]
 
 
 
@@ -245,8 +245,8 @@ stub
 [crit]
 [alert]
 [stderr]
-stub
-stub
+[stub1]
+[stub2]
 
 
 
@@ -281,8 +281,8 @@ qq{
 [crit]
 [emerg]
 [alert]
-stub
-stub
+[stub1]
+[stub2]
 
 
 
@@ -309,9 +309,9 @@ header1000: 1000
 [error]
 [alert]
 [crit]
-stub
-stub
-stub
+[stub1]
+[stub2]
+[stub3]
 
 
 
@@ -351,5 +351,5 @@ path: \/t/
 [crit]
 [emerg]
 [alert]
-stub
-stub
+[stub1]
+[stub2]

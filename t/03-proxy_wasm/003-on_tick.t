@@ -148,7 +148,7 @@ qr/.*?(\[error\]|Uncaught RuntimeError: |\s+)tick_period already set.*
 --- no_error_log
 [warn]
 [crit]
-stub
-stub
-stub
+[stub1]
+[stub2]
+[stub3]
 --- must_die
