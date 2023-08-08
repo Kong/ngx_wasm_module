@@ -32,7 +32,7 @@ ok
 ]
 --- no_error_log
 [alert]
-stub1
+[stub]
 
 
 
@@ -97,6 +97,6 @@ C
 ]
 --- no_error_log
 [emerg]
-stub
-stub
-stub
+[stub1]
+[stub2]
+[stub3]

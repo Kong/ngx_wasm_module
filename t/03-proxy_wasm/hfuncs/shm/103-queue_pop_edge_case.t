@@ -36,7 +36,7 @@ ok
 [crit]
 circular_read: wrapping around
 circular_write: wrapping around
-stub
+[stub]
 
 
 

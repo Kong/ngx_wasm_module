@@ -52,7 +52,7 @@ should produce response with valid code
 [error]
 [crit]
 [alert]
-stub
+[stub]
 
 
 
@@ -187,7 +187,7 @@ Hello world
 [error]
 [crit]
 [alert]
-stub
+[stub]
 
 
 
@@ -319,7 +319,7 @@ qr/.*?host trap \(bad usage\): response already sent.*
 \[warn\] .*? filter 1\/1 failed resuming "on_response_body" step in "body_filter" phase \(instance trapped\)/
 --- no_error_log
 [alert]
-stub
+[stub]
 
 
 
@@ -387,7 +387,7 @@ ok
 [error]
 [crit]
 [alert]
-stub
+[stub]
 
 
 
@@ -413,7 +413,7 @@ Hello world
 [error]
 [crit]
 [alert]
-stub
+[stub]
 
 
 

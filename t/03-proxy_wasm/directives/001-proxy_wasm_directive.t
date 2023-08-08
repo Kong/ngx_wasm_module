@@ -110,7 +110,7 @@ qr/\[emerg\] .*? \[proxy-wasm\] "a" filter missing malloc \(incompatible SDK int
 [error]
 [crit]
 [stderr]
-stub
+[stub]
 --- must_die: 2
 
 
@@ -140,7 +140,7 @@ qr/\[emerg\] .*? \[proxy-wasm\] "a" filter missing one of: .*? \(incompatible SD
 [error]
 [crit]
 [stderr]
-stub
+[stub]
 --- must_die: 2
 
 
@@ -169,7 +169,7 @@ qr/\[emerg\] .*? \[proxy-wasm\] failed loading "a" filter \(unknown ABI version\
 [error]
 [crit]
 [stderr]
-stub
+[stub]
 --- must_die: 2
 
 
@@ -198,7 +198,7 @@ qr/\[emerg\] .*? \[proxy-wasm\] failed loading "a" filter \(incompatible ABI ver
 [error]
 [crit]
 [stderr]
-stub
+[stub]
 --- must_die: 2
 
 
