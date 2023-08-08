@@ -76,9 +76,9 @@ ok
 [crit]
 [emerg]
 [alert]
-stub
-stub
-stub
+[stub1]
+[stub2]
+[stub3]
 
 
 
@@ -165,9 +165,9 @@ ok
 [crit]
 [emerg]
 [alert]
-stub
-stub
-stub
+[stub1]
+[stub2]
+[stub3]
 
 
 
@@ -343,5 +343,5 @@ ok
 [crit]
 [emerg]
 [alert]
-stub
-stub
+[stub1]
+[stub2]

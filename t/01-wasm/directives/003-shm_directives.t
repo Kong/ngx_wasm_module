@@ -22,7 +22,7 @@ __DATA__
 [error]
 [crit]
 [emerg]
-stub
+[stub]
 
 
 
@@ -36,7 +36,7 @@ stub
 [error]
 [crit]
 [emerg]
-stub
+[stub]
 
 
 
@@ -50,7 +50,7 @@ qr/\[emerg\] .*? \[wasm\] invalid shm size "1x"/
 --- no_error_log
 [error]
 [crit]
-stub
+[stub]
 --- must_die
 
 
@@ -65,7 +65,7 @@ qr/\[emerg\] .*? \[wasm\] shm size of 8192 bytes is too small, minimum required 
 --- no_error_log
 [error]
 [crit]
-stub
+[stub]
 --- must_die
 
 
@@ -80,7 +80,7 @@ qr/\[emerg\] .*? \[wasm\] shm size of 16383 bytes is not page-aligned, must be a
 --- no_error_log
 [crit]
 [error]
-stub
+[stub]
 --- must_die
 
 
@@ -95,7 +95,7 @@ qr/\[emerg\] .*? \[wasm\] invalid shm name ""/
 --- no_error_log
 [error]
 [crit]
-stub
+[stub]
 --- must_die
 
 
@@ -111,7 +111,7 @@ qr/\[emerg\] .*? "my_queue" shm already defined/
 --- no_error_log
 [error]
 [crit]
-stub
+[stub]
 --- must_die
 
 
@@ -127,7 +127,7 @@ qr/\[emerg\] .*? "my_kv" shm already defined/
 --- no_error_log
 [error]
 [crit]
-stub
+[stub]
 --- must_die
 
 
@@ -143,7 +143,7 @@ qr/\[emerg\] .*? "my_shm" shm already defined/
 --- no_error_log
 [error]
 [crit]
-stub
+[stub]
 --- must_die
 
 
@@ -159,7 +159,7 @@ stub
 [error]
 [crit]
 [emerg]
-stub
+[stub]
 
 
 
@@ -173,7 +173,7 @@ qr/\[emerg\] .*? shm_queue \"my_shm\": queues do not support eviction policies/
 --- no_error_log
 [error]
 [crit]
-stub
+[stub]
 --- must_die
 
 
@@ -188,7 +188,7 @@ qr/\[emerg\] .*? invalid option \"foo=bar\"/
 --- no_error_log
 [error]
 [crit]
-stub
+[stub]
 --- must_die
 
 
@@ -203,7 +203,7 @@ qr/\[emerg\] .*? invalid option \"foo=bar\"/
 --- no_error_log
 [error]
 [crit]
-stub
+[stub]
 --- must_die
 
 
@@ -218,7 +218,7 @@ qr/\[emerg\] .*? invalid eviction policy \"foobar\"/
 --- no_error_log
 [error]
 [crit]
-stub
+[stub]
 --- must_die
 
 
@@ -233,5 +233,5 @@ qr/\[emerg\] .*? invalid eviction policy \"\"/
 --- no_error_log
 [error]
 [crit]
-stub
+[stub]
 --- must_die

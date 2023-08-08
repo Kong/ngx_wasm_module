@@ -60,4 +60,4 @@ ok
 [crit]
 [emerg]
 wrapping around
-stub
+[stub]
