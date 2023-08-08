@@ -10,7 +10,7 @@ our $ExtTimeout = $t::TestWasm::exttimeout;
 skip_valgrind();
 skip_no_tinygo();
 
-repeat_each(1);
+repeat_each(3);
 
 plan tests => repeat_each() * (blocks() * 6);
 
@@ -19,6 +19,7 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm Go SDK - http_auth_random example
+NOTE: comment-out `resolver_add` below to run against httpbin.org
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
@@ -30,10 +31,22 @@ qq{
         socket_read_timeout    $::ExtTimeout;
     }
 }
+--- http_config
+server {
+    listen       $TEST_NGINX_SERVER_PORT2;
+    server_name  httpbin;
+
+    location /uuid {
+        # Generating a uuid seems excessive; $request_id has some
+        # randomness on a distribution of runs of this test.
+        echo $request_id;
+    }
+}
 --- config eval
 qq{
     resolver         $::ExtResolver;
     resolver_timeout $::ExtTimeout;
+    resolver_add     127.0.0.1 httpbin;
 
     location /uuid {
         proxy_wasm go_http_auth_random;
