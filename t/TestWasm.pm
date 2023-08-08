@@ -104,13 +104,7 @@ add_block_preprocessor(sub {
         $block->set_value("request", "GET /t");
     }
 
-    # --- env variables
-
     my $main_config = $block->main_config || '';
-
-    $block->set_value("main_config",
-                      "env WASMTIME_BACKTRACE_DETAILS=1;\n"
-                      . $main_config);
 
     # --- load_nginx_modules: ngx_http_echo_module
 
@@ -149,6 +143,7 @@ add_block_preprocessor(sub {
     # --- wasm_modules: on_phases
 
     my $wasm_modules = $block->wasm_modules;
+    my $backtraces = $block->backtraces;
     if (defined $wasm_modules) {
         @arr = split /\s+/, $wasm_modules;
         if (@arr) {
@@ -160,6 +155,11 @@ add_block_preprocessor(sub {
             if (defined $compiler) {
                 $wasm_config = $wasm_config .
                                "    compiler " . $compiler . ";\n";
+            }
+
+            if (defined $backtraces) {
+                $wasm_config = $wasm_config .
+                               "    backtraces on;\n";
             }
 
             my $tls_skip_verify = $block->tls_skip_verify;
