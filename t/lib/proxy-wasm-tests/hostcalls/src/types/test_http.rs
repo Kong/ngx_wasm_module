@@ -205,6 +205,9 @@ impl TestHttp {
             }
         }
 
+        headers.push(("Host", "ignoreme"));
+        headers.push(("connection", "ignoreme"));
+
         self.dispatch_http_call(
             self.get_config("host").unwrap_or(""),
             headers,

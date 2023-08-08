@@ -18,9 +18,13 @@ static ngx_int_t ngx_http_proxy_wasm_dispatch_resume_handler(
     ngx_wasm_socket_tcp_t *sock);
 
 
-static char  ngx_http_proxy_wasm_dispatch_version_11[] = "HTTP/1.1" CRLF;
-static char  ngx_http_proxy_wasm_connection[] = "Connection: close" CRLF;
-static char  ngx_http_proxy_wasm_host[] = "Host: ";
+static char  ngx_http_header_version11[] = "HTTP/1.1" CRLF;
+static char  ngx_http_host_header[] = "Host";
+static char  ngx_http_connection_header[] = "Connection";
+static char  ngx_http_cl_header[] = "Content-Length";
+static size_t  ngx_http_host_header_len = sizeof(ngx_http_host_header) - 1;
+static size_t  ngx_http_connection_header_len =
+    sizeof(ngx_http_connection_header) - 1;
 
 
 static ngx_str_t  ngx_http_proxy_wasm_dispatch_errlist[] = {
@@ -314,6 +318,30 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
             elt->hash = 0;
             continue;
+
+        } else if ((elt->key.len == ngx_http_host_header_len
+                    && ngx_strncasecmp(elt->key.data,
+                                       (u_char *) ngx_http_host_header,
+                                       ngx_http_host_header_len) == 0)
+                   ||
+                   (elt->key.len == ngx_http_connection_header_len
+                    && ngx_strncasecmp(elt->key.data,
+                                       (u_char *) ngx_http_connection_header,
+                                       ngx_http_connection_header_len) == 0))
+        {
+            /**
+             * Avoid duplicating these headers in the request header buffer
+             * since they are already hard-coded and would produce invalid
+             * requests.
+             */
+#if (NGX_DEBUG)
+            elt->key.data[0] = ngx_toupper(elt->key.data[0]);
+            ngx_log_debug1(NGX_LOG_DEBUG_ALL, r->connection->log, 0,
+                           "proxy_wasm http dispatch cannot override the "
+                           "\"%V\" header, skipping", &elt->key);
+#endif
+            elt->hash = 0;
+            continue;
         }
 
         elt->hash = 1;
@@ -518,6 +546,12 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
     for (i = 0; i < call->headers.nelts; i++) {
         elt = &elts[i];
 
+#if 0
+        dd("%.*s: %.*s",
+           (int) elt->key.len, elt->key.data,
+           (int) elt->value.len, elt->value.data);
+#endif
+
         if (elt->hash == 0) {
             continue;
         }
@@ -528,6 +562,30 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
         {
             return NULL;
         }
+    }
+
+    fake_r->headers_in.content_length_n = call->req_body_len;
+
+    /**
+     * GET /dispatched HTTP/1.1
+     * Host:
+     * Connection:
+     * Content-Length:
+     */
+    len += call->method.len + 1 + call->uri.len + 1
+           + sizeof(ngx_http_header_version11) - 1;
+
+    len += sizeof(ngx_http_host_header) - 1 + sizeof(": ") - 1
+           + call->authority.len + sizeof(CRLF) - 1;
+
+    len += sizeof(ngx_http_connection_header) - 1 + sizeof(": close") - 1
+           + sizeof(CRLF) - 1;
+
+    if (fake_r->headers_in.content_length == NULL
+        && fake_r->headers_in.content_length_n >= 0)
+    {
+        len += sizeof(ngx_http_cl_header) - 1 + sizeof(": ") - 1
+               + NGX_OFF_T_LEN + sizeof(CRLF) - 1;
     }
 
     part = &fake_r->headers_in.headers.part;
@@ -551,33 +609,9 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
                + sizeof(CRLF) - 1;
     }
 
-    fake_r->headers_in.content_length_n = call->req_body_len;
-
-    /**
-     * GET /dispatched HTTP/1.1
-     * Host:
-     * Connection:
-     * Content-Length:
-     */
-
-    len += call->method.len + 1 + call->uri.len + 1
-           + sizeof(ngx_http_proxy_wasm_dispatch_version_11) - 1;
-
-    len += sizeof(ngx_http_proxy_wasm_host) - 1 + call->authority.len
-           + sizeof(CRLF) - 1;
-
-    len += sizeof(ngx_http_proxy_wasm_connection) - 1;
-
-    if (fake_r->headers_in.content_length == NULL
-        && fake_r->headers_in.content_length_n >= 0)
-    {
-        len += sizeof("Content-Length: ") - 1 + NGX_OFF_T_LEN
-               + sizeof(CRLF) - 1;
-    }
-
     len += sizeof(CRLF) - 1;
 
-    /* headers buffer */
+    /* headers buffer write */
 
     nl = ngx_wasm_chain_get_free_buf(r->connection->pool,
                                      &rctx->free_bufs,
@@ -601,23 +635,26 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
     b->last = ngx_cpymem(b->last, call->uri.data, call->uri.len);
     *b->last++ = ' ';
 
-    b->last = ngx_cpymem(b->last, ngx_http_proxy_wasm_dispatch_version_11,
-                         sizeof(ngx_http_proxy_wasm_dispatch_version_11) - 1);
+    b->last = ngx_cpymem(b->last, ngx_http_header_version11,
+                         sizeof(ngx_http_header_version11) - 1);
 
-    b->last = ngx_cpymem(b->last, ngx_http_proxy_wasm_host,
-                         sizeof(ngx_http_proxy_wasm_host) - 1);
+    b->last = ngx_cpymem(b->last, ngx_http_host_header,
+                         sizeof(ngx_http_host_header) - 1);
+    b->last = ngx_cpymem(b->last, ": ", sizeof(": ") - 1);
     b->last = ngx_cpymem(b->last, call->authority.data, call->authority.len);
     *b->last++ = CR;
     *b->last++ = LF;
 
-    b->last = ngx_cpymem(b->last, ngx_http_proxy_wasm_connection,
-
-                         sizeof(ngx_http_proxy_wasm_connection) - 1);
+    b->last = ngx_cpymem(b->last, ngx_http_connection_header,
+                         sizeof(ngx_http_connection_header) - 1);
+    b->last = ngx_cpymem(b->last, ": close" CRLF, sizeof(": close" CRLF) - 1);
 
     if (fake_r->headers_in.content_length == NULL
         && fake_r->headers_in.content_length_n >= 0)
     {
-        b->last = ngx_sprintf(b->last, "Content-Length: %O" CRLF,
+        b->last = ngx_cpymem(b->last, ngx_http_cl_header,
+                             sizeof(ngx_http_cl_header) - 1);
+        b->last = ngx_sprintf(b->last, ": %O" CRLF,
                               fake_r->headers_in.content_length_n);
     }
 
