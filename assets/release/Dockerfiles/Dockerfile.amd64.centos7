@@ -13,10 +13,12 @@ RUN yum install -y epel-release && \
         cmake3 \
         make \
         gcc \
-        perl \
         python3 \
         git \
-        glib2-devel
+        glib2-devel \
+        perl \
+        perl-IPC-Cmd \
+        perl-Test-Simple
 
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
 ENV PATH $CARGO_HOME/bin:$PATH
