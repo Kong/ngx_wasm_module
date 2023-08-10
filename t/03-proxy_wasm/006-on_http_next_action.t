@@ -72,7 +72,8 @@ NYI
 
 
 === TEST 4: proxy_wasm - on_response_body -> Pause
-NYI
+Triggers response buffering.
+--- skip_no_debug: 5
 --- wasm_modules: on_phases
 --- config
     location /t {
@@ -80,12 +81,11 @@ NYI
         return 200;
     }
 --- response_body
---- error_log eval
-[
-    qr/pausing after "ResponseBody"/,
-    qr#\[error\] .*? bad "on_response_body" return action: "PAUSE"#,
-    qr#\[info\] .*? filter chain failed resuming: previous error \(invalid return action\)#
-]
+--- error_log
+buffering response after "ResponseBody" step
+--- no_error_log
+[error]
+[crit]
 
 
 
@@ -193,8 +193,7 @@ NYI
 
 === TEST 8: proxy_wasm - subrequest on_response_body -> Pause
 NYI
---- timeout_expected: 1
---- abort
+--- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -214,13 +213,11 @@ NYI
         echo_subrequest GET /pause;
         echo_subrequest GET /nop;
     }
---- error_code: 200
 --- response_body
 ok
 ok
---- error_log eval
-[
-    qr/pausing after "ResponseBody"/,
-    qr#\[error\] .*? bad "on_response_body" return action: "PAUSE"#,
-    qr#\[info\] .*? filter chain failed resuming: previous error \(invalid return action\)#
-]
+--- error_log
+buffering response after "ResponseBody" step
+--- no_error_log
+[error]
+[crit]

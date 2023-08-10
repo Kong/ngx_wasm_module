@@ -6,15 +6,14 @@
 #include <ngx_wasm.h>
 
 
-#if 0
-static void
-ngx_wasm_chain_log_debug(ngx_log_t *log, ngx_chain_t *in, char *fmt)
+void
+ngx_wasm_chain_log_debug(ngx_log_t *log, ngx_chain_t *in, char *label)
 {
-#if (NGX_DEBUG)
+#if (DDEBUG)
     size_t        len;
-    ngx_chain_t  *cl;
-    ngx_buf_t    *buf;
     ngx_str_t     s;
+    ngx_buf_t    *buf;
+    ngx_chain_t  *cl;
 
     cl = in;
 
@@ -25,17 +24,16 @@ ngx_wasm_chain_log_debug(ngx_log_t *log, ngx_chain_t *in, char *fmt)
         s.len = len;
         s.data = buf->pos;
 
-        ngx_log_debug7(NGX_LOG_DEBUG_WASM, log, 0,
+        ngx_log_debug8(NGX_LOG_DEBUG_WASM, log, 0,
                        "%s: \"%V\" (buf: %p, len: %d, last_buf: %d,"
-                       " last_in_chain: %d, flush: %d)",
-                       fmt, &s, buf, len, buf->last_buf,
-                       buf->last_in_chain, buf->flush);
+                       " last_in_chain: %d, flush: %d, cl: %p)",
+                       label, &s, buf, len, buf->last_buf,
+                       buf->last_in_chain, buf->flush, cl);
 
         cl = cl->next;
     }
 #endif
 }
-#endif
 
 
 size_t

@@ -241,6 +241,18 @@ ngx_http_proxy_wasm_on_response_body(ngx_proxy_wasm_exec_t *pwexec,
 
         *out = rets->data[0].of.i32;
 
+        if (*out == NGX_PROXY_WASM_ACTION_PAUSE && rctx->resp_bufs) {
+            /**
+             * If 'on_response_body' has been called again, buffering is over.
+             * The buffers could be full, or eof has been reached.
+             */
+            ngx_proxy_wasm_log_error(NGX_LOG_ERR, pwexec->log, 0,
+                                     "invalid \"on_response_body\" return "
+                                     "action (PAUSE): response body buffering "
+                                     "already requested");
+            *out = NGX_PROXY_WASM_ACTION_CONTINUE;
+        }
+
         return rc;
     }
 

@@ -163,6 +163,13 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       offsetof(ngx_http_wasm_loc_conf_t, socket_large_buffers),
       NULL },
 
+    { ngx_string("wasm_response_body_buffers"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
+      ngx_conf_set_bufs_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, resp_body_buffers),
+      NULL },
+
     { ngx_string("proxy_wasm"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
       ngx_http_wasm_proxy_wasm_directive,
@@ -354,6 +361,11 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     prev->socket_buffer_reuse = 1;
     conf->socket_buffer_reuse = 1;
 #endif
+
+    ngx_conf_merge_bufs_value(conf->resp_body_buffers,
+                              prev->resp_body_buffers,
+                              NGX_WASM_DEFAULT_RESP_BODY_BUF_NUM,
+                              NGX_WASM_DEFAULT_RESP_BODY_BUF_SIZE);
 
     ngx_conf_merge_value(conf->pwm_req_headers_in_access,
                          prev->pwm_req_headers_in_access, 0);

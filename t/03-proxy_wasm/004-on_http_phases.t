@@ -599,7 +599,42 @@ qr#filter 1/2 resuming "on_log" step in "log" phase
 
 
 
-=== TEST 24: proxy_wasm - same module in multiple location{} blocks
+=== TEST 24: proxy_wasm - as a parent of several subrequests
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: on_phases
+--- config
+    location /a {
+        internal;
+        echo a;
+    }
+
+    location /b {
+        internal;
+        echo bb;
+    }
+
+    location /t {
+        echo_subrequest GET '/a';
+        echo_subrequest GET '/b';
+        proxy_wasm on_phases;
+    }
+--- response_body
+a
+bb
+--- grep_error_log eval: qr/#\d+ on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/#\d+ on_request_headers, 2 headers.*
+#\d+ on_response_headers, 5 headers.*
+#\d+ on_response_body, 2 bytes, eof: false.*
+#\d+ on_response_body, 3 bytes, eof: false.*
+#\d+ on_response_body, 0 bytes, eof: true/
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 25: proxy_wasm - same module in multiple location{} blocks
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -637,7 +672,7 @@ on_log
 
 
 
-=== TEST 25: proxy_wasm - chained filters in same location{} block
+=== TEST 26: proxy_wasm - chained filters in same location{} block
 should run each filter after the other within each phase
 --- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
@@ -673,7 +708,7 @@ qr/#\d+ on_request_headers, 3 headers.*
 
 
 
-=== TEST 26: proxy_wasm - chained filters in server{} block
+=== TEST 27: proxy_wasm - chained filters in server{} block
 should run each filter after the other within each phase
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -704,7 +739,7 @@ qr/#\d+ on_request_headers, 2 headers.*
 
 
 
-=== TEST 27: proxy_wasm - chained filters in http{} block
+=== TEST 28: proxy_wasm - chained filters in http{} block
 should run each filter after the other within each phase
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
@@ -735,7 +770,7 @@ qr/#\d+ on_request_headers, 2 headers.*
 
 
 
-=== TEST 28: proxy_wasm - mixed filters in server{} and http{} blocks
+=== TEST 29: proxy_wasm - mixed filters in server{} and http{} blocks
 should run root context of both filters
 should not chain in request; instead, server{} overrides http{}
 --- load_nginx_modules: ngx_http_echo_module
@@ -765,7 +800,7 @@ qr/log_msg: server .*? request: "GET \/t\s+/
 
 
 
-=== TEST 29: proxy_wasm - mixed filters in server{} and location{} blocks (return in rewrite)
+=== TEST 30: proxy_wasm - mixed filters in server{} and location{} blocks (return in rewrite)
 should not chain; instead, location{} overrides server{}
 --- wasm_modules: on_phases
 --- config
@@ -790,7 +825,7 @@ qr/log_msg: location .*? request: "GET \/t\s+/
 
 
 
-=== TEST 30: proxy_wasm - mixed filters in http{}, server{}, and location{} blocks
+=== TEST 31: proxy_wasm - mixed filters in http{}, server{}, and location{} blocks
 should not chain; instead, location{} overrides server{}, server{} overrides http{}
 --- wasm_modules: on_phases
 --- http_config
