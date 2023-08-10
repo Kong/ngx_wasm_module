@@ -19,21 +19,30 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm Go SDK - http_auth_random example
+--- skip_eval: 6: defined $ENV{TEST_NGINX_RANDOMIZE} && $ENV{TEST_NGINX_RANDOMIZE}
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
 qq{
     wasm {
         module go_http_auth_random $ENV{TEST_NGINX_CRATES_DIR}/go_http_auth_random.wasm;
-        socket_connect_timeout $::ExtTimeout;
-        socket_send_timeout    $::ExtTimeout;
-        socket_read_timeout    $::ExtTimeout;
+    }
+}
+--- http_config
+server {
+    listen       2000;
+    server_name  httpbin;
+
+    location /uuid {
+        # Generating a uuid seems excessive; $request_id has some
+        # randomness on a distribution of runs of this test.
+        echo $request_id;
     }
 }
 --- config eval
 qq{
     resolver         $::ExtResolver;
-    resolver_timeout $::ExtTimeout;
+    resolver_add     127.0.0.1 httpbin;
 
     location /uuid {
         proxy_wasm go_http_auth_random;
