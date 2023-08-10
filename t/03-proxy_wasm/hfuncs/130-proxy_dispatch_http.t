@@ -1074,3 +1074,58 @@ qr/^\*\d+ .*? on_http_call_response \(id: \d+, status: 200[^*]*
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 42: proxy_wasm - dispatch_http_call() with dispatched request body
+--- skip_no_debug: 4
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /echo {
+        proxy_wasm hostcalls 'on=request_body \
+                              test=/t/echo/body';
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              method=POST \
+                              path=/echo \
+                              body=helloworld \
+                              on_http_call_response=echo_response_body';
+        echo failed;
+    }
+--- response_body
+helloworld
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 43: proxy_wasm - dispatch_http_call() override Content-Length
+--- skip_no_debug: 4
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /echo {
+        proxy_wasm hostcalls 'on=request_body \
+                              test=/t/echo/body';
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              method=POST \
+                              path=/echo \
+                              headers=Content-Length:9 \
+                              body=helloworld \
+                              on_http_call_response=echo_response_body';
+        echo failed;
+    }
+--- response_body
+helloworl
+--- no_error_log
+[error]
+[crit]
