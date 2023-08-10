@@ -51,7 +51,7 @@ pushd $DIR_PROXY_WASM_GO_SDK
              )
 
             -const clusterName = "httpbin"
-            +const clusterName = "httpbin.org"
+            +const clusterName = "httpbin:2000"
 
              func main() {
                     proxywasm.SetVMContext(&vmContext{})
