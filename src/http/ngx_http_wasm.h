@@ -47,10 +47,12 @@ struct ngx_http_wasm_req_ctx_s {
 
     ngx_http_handler_pt                r_content_handler;
     ngx_array_t                        resp_shim_headers;
+    ngx_uint_t                         resp_bufs_count;         /* response buffers count */
+    ngx_chain_t                       *resp_bufs;               /* response buffers */
+    ngx_chain_t                       *resp_buf_last;           /* last response buffers */
     ngx_chain_t                       *resp_chunk;
-    off_t                              resp_chunk_len;
     unsigned                           resp_chunk_eof;          /* seen last buf flag */
-
+    off_t                              resp_chunk_len;
     off_t                              req_content_length_n;
     off_t                              resp_content_length_n;
 
@@ -73,6 +75,7 @@ struct ngx_http_wasm_req_ctx_s {
 
     unsigned                           in_wev:1;                /* in wev_handler */
     unsigned                           resp_content_chosen:1;   /* content handler has an output to produce */
+    unsigned                           resp_buffering:1;        /* enable response buffering */
     unsigned                           resp_content_sent:1;     /* has started sending output (may have yielded) */
     unsigned                           resp_finalized:1;        /* finalized connection (ourselves) */
     unsigned                           fake_request:1;
@@ -91,8 +94,9 @@ typedef struct {
     ngx_msec_t                         recv_timeout;
 
     size_t                             socket_buffer_size;     /* wasm_socket_buffer_size */
-    ngx_bufs_t                         socket_large_buffers;   /* wasm_socket_large_buffer_size */
     ngx_flag_t                         socket_buffer_reuse;    /* wasm_socket_buffer_reuse */
+    ngx_bufs_t                         socket_large_buffers;   /* wasm_socket_large_buffer_size */
+    ngx_bufs_t                         resp_body_buffers;      /* wasm_response_body_buffers */
 
     ngx_flag_t                         pwm_req_headers_in_access;
     ngx_flag_t                         pwm_lua_resolver;

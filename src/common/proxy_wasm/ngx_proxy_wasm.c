@@ -498,6 +498,13 @@ action2rc(ngx_proxy_wasm_ctx_t *pwctx,
     case NGX_PROXY_WASM_ACTION_PAUSE:
         switch (pwctx->phase->index) {
 #ifdef NGX_WASM_HTTP
+        case NGX_HTTP_WASM_BODY_FILTER_PHASE:
+            ngx_log_debug3(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                           "proxy_wasm buffering response after "
+                           "\"ResponseBody\" step "
+                           "(filter: %l/%l, pwctx: %p)",
+                           pwexec->index + 1, pwctx->nfilters, pwctx);
+            goto yield;
         case NGX_HTTP_REWRITE_PHASE:
         case NGX_HTTP_ACCESS_PHASE:
         case NGX_HTTP_CONTENT_PHASE:
@@ -640,7 +647,8 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
         rc = action2rc(pwctx, pwexec);
         if (rc != NGX_OK) {
             if (rc == NGX_AGAIN
-                && pwctx->exec_index + 1 <= pwctx->nfilters)
+                && pwctx->exec_index + 1 <= pwctx->nfilters
+                && step != NGX_PROXY_WASM_STEP_RESP_BODY)
             {
                 dd("yield: resume on next filter "
                    "(idx: %ld -> %ld, nelts: %ld)",

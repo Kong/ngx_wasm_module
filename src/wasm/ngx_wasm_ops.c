@@ -408,6 +408,7 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     }
 
     pwctx->phase = phase;
+    pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
 
     switch (phase->index) {
 

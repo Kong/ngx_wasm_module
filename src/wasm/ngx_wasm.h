@@ -42,6 +42,8 @@
 #define NGX_WASM_DEFAULT_SOCK_BUF_SIZE        1024
 #define NGX_WASM_DEFAULT_SOCK_LARGE_BUF_NUM   4
 #define NGX_WASM_DEFAULT_SOCK_LARGE_BUF_SIZE  8192
+#define NGX_WASM_DEFAULT_RESP_BODY_BUF_NUM    4
+#define NGX_WASM_DEFAULT_RESP_BODY_BUF_SIZE   4096
 
 #define ngx_wasm_core_cycle_get_conf(cycle)                                  \
     (ngx_get_conf(cycle->conf_ctx, ngx_wasm_module))                         \
@@ -109,6 +111,7 @@ typedef struct {
 
 
 ngx_wavm_t *ngx_wasm_main_vm(ngx_cycle_t *cycle);
+void ngx_wasm_chain_log_debug(ngx_log_t *log, ngx_chain_t *in, char *label);
 size_t ngx_wasm_chain_len(ngx_chain_t *in, unsigned *eof);
 ngx_uint_t ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
     unsigned *flush);

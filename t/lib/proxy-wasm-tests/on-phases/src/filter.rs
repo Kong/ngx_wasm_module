@@ -88,6 +88,11 @@ impl RootContext for HttpHeadersRoot {
                 .config
                 .get("pause_on")
                 .map(|s| s.parse().expect("bad pause_on")),
+            pause_times: self
+                .config
+                .get("pause_times")
+                .map_or(1, |v| v.parse().expect("bad pause_on value")),
+            pause_n: 0,
         }))
     }
 }
@@ -96,18 +101,31 @@ struct OnPhases {
     context_id: u32,
     config: HashMap<String, String>,
     pause_on: Option<Phase>,
+    pause_times: usize,
+    pause_n: usize,
 }
 
 impl OnPhases {
     fn next_action(&mut self, phase: Phase) -> Action {
         if let Some(pause_on) = &self.pause_on {
-            if pause_on == &phase {
+            if pause_on == &phase && self.pause_n < self.pause_times {
                 info!(
                     "#{} pausing after \"{:?}\" phase",
                     self.context_id, pause_on
                 );
 
+                self.pause_n += 1;
+
                 return Action::Pause;
+            }
+        }
+
+        if phase == Phase::ResponseBody && self.config.get("log_response_body").is_some() {
+            if let Some(bytes) = self.get_http_response_body(0, usize::MAX) {
+                match String::from_utf8(bytes) {
+                    Ok(s) => info!("response body chunk: {:?}", s),
+                    Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+                }
             }
         }
 
