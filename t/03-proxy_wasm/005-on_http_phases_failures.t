@@ -5,7 +5,6 @@ use lib '.';
 use t::TestWasm;
 use Test::Nginx::Socket skip_all => 'HTTP trailers support is not ready yet';
 
-skip_no_debug();
 skip_valgrind('wasmtime');
 
 plan tests => repeat_each() * (blocks() * 5);
