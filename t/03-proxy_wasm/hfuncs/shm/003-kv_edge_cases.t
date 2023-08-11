@@ -13,7 +13,6 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm key/value shm - 'no memory' errors if no eviction policy is active
---- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: test 12288 eviction=none

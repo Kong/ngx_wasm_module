@@ -57,7 +57,6 @@ lua-resty-dns-resolver client timeout
 Behaves strangely on GHA Valgrind. Seems fine locally.
 Will run with TEST_NGINX_USE_VALGRIND_ALL.
 --- skip_valgrind: 5
---- skip_no_debug: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config eval

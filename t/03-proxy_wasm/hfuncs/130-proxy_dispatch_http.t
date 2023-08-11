@@ -1078,7 +1078,6 @@ qr/^\*\d+ .*? on_http_call_response \(id: \d+, status: 200[^*]*
 
 
 === TEST 42: proxy_wasm - dispatch_http_call() with dispatched request body
---- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -1105,7 +1104,6 @@ helloworld
 
 
 === TEST 43: proxy_wasm - dispatch_http_call() override Content-Length
---- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
