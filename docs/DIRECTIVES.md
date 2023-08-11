@@ -26,6 +26,7 @@ By alphabetical order:
 - [tls_verify_cert](#tls_verify_cert)
 - [tls_verify_host](#tls_verify_host)
 - [wasm_call](#wasm_call)
+- [wasm_response_body_buffers](#wasm_response_body_buffers)
 - [wasm_socket_buffer_reuse](#wasm_socket_buffer_reuse)
 - [wasm_socket_buffer_size](#wasm_socket_buffer_size)
 - [wasm_socket_connect_timeout](#wasm_socket_connect_timeout)
@@ -66,6 +67,7 @@ By context:
     - [proxy_wasm_request_headers_in_access](#proxy_wasm_request_headers_in_access)
     - [resolver_add](#resolver_add)
     - [wasm_call](#wasm_call)
+    - [wasm_response_body_buffers](#wasm_response_body_buffers)
     - [wasm_socket_buffer_reuse](#wasm_socket_buffer_reuse)
     - [wasm_socket_buffer_size](#wasm_socket_buffer_size)
     - [wasm_socket_connect_timeout](#wasm_socket_connect_timeout)
@@ -755,6 +757,20 @@ to start (e.g. invalid `phase`, `module` or `function`).
 
 If there was an error during runtime execution, stop the Nginx runloop and
 return `HTTP 500`.
+
+[Back to TOC](#directives)
+
+wasm_response_body_buffers
+--------------------------
+
+**usage**    | `wasm_response_body_buffers <number> <size>;`
+------------:|:----------------------------------------------------------------
+**contexts** | `http{}`, `server{}`, `location{}`
+**default**  | `4 4096`
+**example**  | `wasm_response_body_buffers 2 16k;`
+
+Set the maximum `number` and `size` of buffers used for [response body
+buffering](PROXY_WASM.md#response-body-buffering).
 
 [Back to TOC](#directives)
 

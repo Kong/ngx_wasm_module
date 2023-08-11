@@ -15,6 +15,7 @@
     - [Supported Entrypoints](#supported-entrypoints)
     - [Supported Host ABI](#supported-host-abi)
     - [Supported Properties](#supported-properties)
+    - [Response Body Buffering](#response-body-buffering)
 - [Examples]
 - [Current Limitations]
 
@@ -383,6 +384,8 @@ specifications and different SDK libraries:
 - [Tested SDKs](#tested-sdks)
 - [Supported Entrypoints](#supported-entrypoints)
 - [Supported Host ABI](#supported-host-abi)
+- [Supported Properties](#supported-properties)
+- [Response Body Buffering](#response-body-buffering)
 
 [Back to TOC](#table-of-contents)
 
@@ -578,7 +581,7 @@ implementation state in ngx_wasm_module:
 -------------------------------------------:|:------------------:|:-------------------:|:----------------
 *Request properties*                        |                    |
 `request.path`                              | :heavy_check_mark: | :x:                 | Maps to [ngx.request_uri](https://nginx.org/en/docs/http/ngx_http_core_module.html#var_request_uri).
-`request.url_path`                          | :heavy_check_mark: | :x:                 | Maps to [ngx.uri](https://nginx.org/en/docs/http/ngx_http_core_module.html#uri). 
+`request.url_path`                          | :heavy_check_mark: | :x:                 | Maps to [ngx.uri](https://nginx.org/en/docs/http/ngx_http_core_module.html#uri).
 `request.host`                              | :heavy_check_mark: | :x:                 | Maps to [ngx.hostname](https://nginx.org/en/docs/http/ngx_http_core_module.html#hostname).
 `request.scheme`                            | :heavy_check_mark: | :x:                 | Maps to [ngx.scheme](https://nginx.org/en/docs/http/ngx_http_core_module.html#scheme).
 `request.method`                            | :heavy_check_mark: | :x:                 | Maps to [ngx.request_method](https://nginx.org/en/docs/http/ngx_http_core_module.html#request_method).
@@ -651,6 +654,55 @@ ngx_wasm_module, most likely due to a Host incompatibility.
 
 [Back to TOC](#table-of-contents)
 
+### Response Body Buffering
+
+Buffering of response body chunks is supported within ngx_wasm_module so filters
+don't have to implement buffering themselves. This allows the `on_response_body`
+step to be invoked with the full response body available for read via
+`get_http_response_body`.
+
+When response buffering is enabled, response chunks will be copied to buffers
+defined by the [wasm_response_body_buffers] directive while execution of the
+Proxy-Wasm filter chain is temporarily suspended until buffering is complete, at
+which point `on_response_body` will be invoked again.
+
+To enable this behavior from a filter based on Proxy-Wasm ABI v0.2.1, the filter
+must return `Action::Pause` from `on_response_body`. Once enabled,
+ngx_wasm_module will accumulate subsequent body chunks until either `eof` is
+reached, or the buffers are full. When either of these conditions are met,
+`on_response_body` will be invoked again and the body buffer will contain the
+buffered chunks.
+
+In other words, once body buffering is enabled, the next `on_response_body`
+invocation will contain the buffered body **and may be invoked again**
+if `eof` was not reached but the buffers are full.
+
+A typical response buffering flow could be:
+
+1. 1st `on_response_body` call: *ignore 1st chunk, requesting buffering.*
+    1. Check for `eof=false`.
+    2. Ensure buffering was not already requested.
+    3. Return `Action::Pause`, requesting buffering.
+2. 2nd `on_response_body` call: *buffering ended, but how?*
+    1. If `eof=true`, the full response body is in the buffers.
+    2. If `eof=false`, the buffers are full, but more chunks are expected
+       (users should treat the buffers as if it were a single, non-buffered
+       chunk).
+3. nth `on_response_body` call: *next chunks, if any.*
+
+Returning `Action::Pause` when buffering has already taken place will be ignored
+(i.e. treated as `Action::Continue`) and an error log will be printed.
+
+> Notes
+
+Keep in mind there are fundamental issues with buffering bodies at scale due to
+the nature of the workload, hard buffer limits defined by
+[wasm_response_body_buffers], and Wasm memory limits themselves (loading and
+manipulating the body in filters). This feature should be used with extreme
+caution in production environments.
+
+[Back to TOC](#table-of-contents)
+
 ## Examples
 
 - Functional filters written by the WasmX team:
@@ -672,12 +724,13 @@ factors are at play when porting the SDK to a new Host proxy runtime.
 
 Proxy-Wasm's design was primarily influenced by Envoy concepts and features, but
 because Envoy and Nginx differ in underlying implementations there remains a few
-limitations on some supported features:
+limitations on some supported features (non-exhaustive list):
 
 1. Pausing a filter (i.e. `Action::Pause`) can only be done in the following
    steps:
     - `on_http_request_headers`
     - `on_http_request_body`
+    - `on_http_response_body` (to enable body buffering)
     - `on_http_call_response`
 
 2. The "queue" shared memory implementation does not implement an automatic
@@ -697,6 +750,8 @@ limitations and increasing overall surface support for the Proxy-Wasm SDK.
 [Supported Properties]: #supported-properties
 [Examples]: #examples
 [Current Limitations]: #current-limitations
+
+[wasm_response_body_buffers]: DIRECTIVES.md#wasm_response_body_buffers
 
 [WebAssembly]: https://webassembly.org/
 [Nginx Variables]: https://nginx.org/en/docs/varindex.html
