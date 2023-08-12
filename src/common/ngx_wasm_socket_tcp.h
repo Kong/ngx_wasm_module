@@ -75,6 +75,8 @@ struct ngx_wasm_socket_tcp_s {
     /* ssl */
 
 #if (NGX_SSL)
+    ngx_str_t                               *sni;
+    ngx_str_t                                ssl_server_name;
     ngx_wasm_ssl_conf_t                     *ssl_conf;
 #endif
 
@@ -94,7 +96,7 @@ struct ngx_wasm_socket_tcp_s {
 
 
 ngx_int_t ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
-    ngx_str_t *host, unsigned tls, ngx_wasm_subsys_env_t *env);
+    ngx_str_t *host, unsigned tls, ngx_str_t *sni, ngx_wasm_subsys_env_t *env);
 ngx_int_t ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock);
 ngx_int_t ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock,
     ngx_chain_t *cl);

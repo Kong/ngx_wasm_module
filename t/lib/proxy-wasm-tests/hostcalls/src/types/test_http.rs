@@ -177,24 +177,14 @@ impl TestHttp {
             headers.push((":path", path.as_str()));
         }
 
-        if self.get_config("no_authority").is_none() {
-            if self.get_config("authority").is_none() {
-                headers.push((
-                    ":authority",
-                    self.config
-                        .get("host")
-                        .map(|v| v.as_str())
-                        .unwrap_or("default"),
-                ));
-            } else {
-                headers.push((
-                    ":authority",
-                    self.config
-                        .get("authority")
-                        .map(|v| v.as_str())
-                        .unwrap_or("default"),
-                ));
-            }
+        if self.get_config("authority").is_some() {
+            headers.push((
+                ":authority",
+                self.config
+                    .get("authority")
+                    .map(|v| v.as_str())
+                    .unwrap_or("default"),
+            ));
         }
 
         if self.get_config("https") == Some("yes") {
