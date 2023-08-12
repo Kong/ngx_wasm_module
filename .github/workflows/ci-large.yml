@@ -1,8 +1,11 @@
 name: Large CI
 
 on:
+  #pull_request:
+  #  branches: '**'
   schedule:
-    - cron: '0 9 * * mon' # 9am UTC, 2am PST
+    - cron: '0 9 * * *' # 9am UTC, 2am PST
+  workflow_dispatch:
 
 defaults:
   run:
@@ -10,8 +13,8 @@ defaults:
 
 jobs:
   unit-large:
-    #if: ${{ false }}
     name: 'Unit'
+    #if: ${{ false }}
     secrets: inherit
     strategy:
       fail-fast: false
@@ -29,7 +32,7 @@ jobs:
         hup: [hup, no_hup]
         module_type: [static, dynamic]
         include:
-          # OpenResty + dynamic ngx_wasm_module
+          # OpenResty + static ngx_wasm_module
           - label: dynamic_module
             os: ubuntu-latest
             cc: gcc-9
@@ -39,7 +42,7 @@ jobs:
             debug: debug
             hup: no_hup
             ssl: ssl
-            module_type: dynamic
+            module_type: static
     uses: ./.github/workflows/job-unit-tests.yml
     with:
       os: ${{ matrix.os }}
@@ -56,8 +59,8 @@ jobs:
       module_type: ${{ matrix.module_type }}
 
   valgrind-large:
-    if: ${{ false }}
     name: 'Valgrind'
+    #if: ${{ false }}
     strategy:
       fail-fast: false
       matrix:
