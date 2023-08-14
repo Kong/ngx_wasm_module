@@ -371,8 +371,6 @@ release_bin() {
         fatal "$SCRIPT_NAME missing zlib version for static build"
     fi
 
-    rm -rf $DIR_DIST_WORK/*/
-
     notice "Building $arch binary..."
 
     if [ "$(get_distro)" = "centos7" ]; then
@@ -456,6 +454,7 @@ release_all_bin_docker() {
 
 # main
 
+rm -rf $DIR_DIST_WORK/*/
 mkdir -p $DIR_DIST_WORK $DIR_DIST_OUT $DIR_DIST_SRC
 
 pushd $DIR_DIST_WORK
