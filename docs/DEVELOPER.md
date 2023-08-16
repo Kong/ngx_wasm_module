@@ -16,6 +16,7 @@ environments yet and may still need refinements; reports are very much welcome.
 - [Makefile targets](#makefile-targets)
 - [Build from source](#build-from-source)
     - [Build options](#build-options)
+    - [Building ngx-wasm-rs separately](#building-ngx-wasm-rs-separately)
 - [Tests suites](#tests)
     - [Run integration tests](#run-integration-tests)
     - [Run building tests](#run-building-tests)
@@ -316,6 +317,48 @@ $ NGX_BUILD_NOPOOL=1 NGX_BUILD_DEBUG=1 NGX_WASM_RUNTIME=wasmtime NGX_BUILD_CC_OP
 ```
 
 [Back to TOC](#table-of-contents)
+
+### Building ngx-wasm-rs separately
+
+By default, the build process automatically builds a Rust library called
+ngx-wasm-rs as a bundled dependency, when using Wasmer or V8. Its sources are
+located at `lib/ngx-wasm-rs`.
+
+If you want to integrate the `cargo` build step for this library separately in
+your build system, you can set `NGX_WASM_CARGO` to `0` to disable it. You then
+need to specify compiler and linker flags to ensure the library is found,
+either via the environment variables `NGX_BUILD_CC_OPT` and
+`NGX_BUILD_LD_OPT`, or via the equivalent flags `--with-cc-opt` and
+`--with-ld-opt`, if you are using the nginx `configure` script.
+
+The example below uses a static build of ngx-wasm-rs located in some path
+`/.../include` and `/.../lib`:
+
+```sh
+$ NGX_WASM_CARGO=0 NGX_BUILD_CC_OPT='-I/.../include' NGX_BUILD_LD_OPT='/.../lib/libngx_wasm_rs.a' make
+```
+
+For a dynamic build, the linker flags are slightly different:
+
+```sh
+$ NGX_WASM_CARGO=0 NGX_BUILD_CC_OPT='-I/.../include' NGX_BUILD_LD_OPT='-L/.../lib -Wl,-rpath=/.../lib -lngx_wasm_rs' make
+```
+
+If you are installing the dynamic library to a system location
+known to the system's dynamic linker, such as `/usr/lib` or
+`/usr/local/lib`, it is not necessary to pass the `-Wl,-rpath` flag.
+
+**Note:** The `cargo build --features` flag used when building
+ngx-wasm-rs must match the ones expected by our build system:
+
+* `--features wat` when building for use with V8
+* default features when building for use with Wasmer
+
+**Note:** (Wasmer only) Due to a limitation when linking multiple static
+libraries written in Rust that were compiled with different compilers, you
+typically cannot link an upstream static library of Wasmer with a static build
+of ngx-wasm-rs built with your local Rust compiler; in this case you have to
+combine the static Wasmer library with a dynamic ngx-wasm-rs library.
 
 ## Test suites
 
