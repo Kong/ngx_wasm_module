@@ -23,8 +23,10 @@ provided below.
     - [Nginx](#nginx)
     - [WebAssembly runtime](#webassembly-runtime)
     - [ngx_wasm_module release](#ngx-wasm-module-release)
+    - [Rust (optional)](#rust-optional)
 - [Build](#build)
-- [Examples](#examples)
+- [Build Examples](#build-examples)
+- [Build ngx-wasm-rs separately]
 
 ## Requirements
 
@@ -70,6 +72,25 @@ $ tar -xvf ngx_wasm_module-*.tar.gz
 
 [Back to TOC](#table-of-contents)
 
+### Rust (optional)
+
+The module configuration process (i.e. Nginx `./configure` step) automatically
+builds a Rust library ([lib/ngx-wasm-rs]) as a bundled dependency when using
+Wasmer or V8. This library is not needed for Wasmtime, optional for Wasmer, and
+mandatory for V8.
+
+- [rustup.rs](https://rustup.rs/) is the easiest way to install Rust.
+
+When optional (i.e. Wasmer), this library can be left out of the build by
+specifying the `NGX_WASM_CARGO=0` environment variable. Note that some features
+such as `.wat` support will be missing.
+
+See [Build ngx-wasm-rs separately] for building this library before the
+`./configure` step, which can be required of some build environments bundling
+this module.
+
+[Back to TOC](#table-of-contents)
+
 ## Build
 
 Configure Nginx with ngx_wasm_module and any other flags typically given to your
@@ -84,7 +105,7 @@ $ ./configure \
 ```
 
 > Note: to compile with Wasmer, export the `NGX_WASM_RUNTIME=wasmer` environment
-> variable. See [Examples](examples) for a list of supported environment
+> variable. See [Build Examples](#build-examples) for a list of supported environment
 > variables.
 
 Then, build and install Nginx:
@@ -106,7 +127,7 @@ installed, or else specify the intended binary appropriately to the shell (e.g.
 
 [Back to TOC](#table-of-contents)
 
-## Examples
+## Build Examples
 
 Configure Nginx and ngx_wasm_module with libwasmtime:
 
@@ -191,3 +212,59 @@ $ ./configure \
 ```
 
 [Back to TOC](#table-of-contents)
+
+## Build ngx-wasm-rs separately
+
+The [lib/ngx-wasm-rs] library is not required for Wasmtime builds, optional for
+Wasmer, and mandatory for V8. By default, the Nginx `./configure` step will
+invoke `cargo` and conveniently build this library in the build prefix.
+
+You may externalize the `cargo` build step of this library prior to running
+`./configure`. Once the ngx-wasm-rs library built, run `./configure` with the
+following tweaks:
+
+1. Set the `NGX_WASM_CARGO=0` environment variable so that it does not run
+   `cargo` itself.
+2. Specify compiler and linker flags to the library you compiled:
+    1. Either via the `NGX_CC_OPT` and `NGX_LD_OPT` environment variables.
+    2. Or via the equivalent `--with-cc-opt` and `--with-ld-opt` arguments.
+
+The example below uses a static build of ngx-wasm-rs located in some path
+`/.../include` and `/.../lib`:
+
+```sh
+$ export NGX_WASM_RUNTIME={wasmer,v8}
+
+# statically linked
+$ NGX_WASM_CARGO=0 ./configure \
+    --add-module=/path/to/ngx_wasm_module \
+    --with-cc-opt='-I/.../include' \
+    --with-ld-opt='/.../lib/libngx_wasm_rs.a'
+
+# dynamically linked
+$ NGX_WASM_CARGO=0 ./configure \
+    --add-module=/path/to/ngx_wasm_module \
+    --with-cc-opt='-I/.../include' \
+    --with-ld-opt='-L/.../lib -Wl,-rpath=/.../lib -lngx_wasm_rs'
+```
+
+If you are installing the dynamic library to a system location known to the
+system's dynamic linker such as `/usr/lib` or `/usr/local/lib`, it is not
+necessary to pass the `-Wl,-rpath` flag.
+
+**Note:** The `cargo build --features` flag used when building ngx-wasm-rs must
+match the ones expected by ngx_wasm_module:
+
+- With V8: `--features wat`.
+- With Wasmer: default feature set.
+
+**Note:** (Wasmer only) Due to a limitation when linking multiple static
+libraries written in Rust that were compiled with different compilers, you
+typically cannot link an upstream static library of Wasmer with a static build
+of ngx-wasm-rs built with your local Rust compiler; in this case you have to
+combine the static Wasmer library with a dynamic ngx-wasm-rs library.
+
+[Back to TOC](#table-of-contents)
+
+[Build ngx-wasm-rs separately]: #build-ngx-wasm-rs-separately
+[lib/ngx-wasm-rs]: ../lib/ngx-wasm-rs
