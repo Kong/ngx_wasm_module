@@ -225,9 +225,8 @@ following tweaks:
 
 1. Set the `NGX_WASM_CARGO=0` environment variable so that it does not run
    `cargo` itself.
-2. Specify compiler and linker flags to the library you compiled:
-    1. Either via the `NGX_CC_OPT` and `NGX_LD_OPT` environment variables.
-    2. Or via the equivalent `--with-cc-opt` and `--with-ld-opt` arguments.
+2. Specify compiler and linker flags to the library you compiled via the
+   `--with-cc-opt` and `--with-ld-opt` arguments.
 
 The example below uses a static build of ngx-wasm-rs located in some path
 `/.../include` and `/.../lib`:

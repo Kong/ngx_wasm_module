@@ -67,11 +67,8 @@ if [ $ngx_wasm_rc = 0 ]; then
     . auto/feature
 
     if [ $ngx_found = yes ]; then
-        for d in $ngx_wasm_cargo_defines; do
-            have=$d value=1 . auto/define
-        done
 
-        if [ "$ngx_wasm_cargo_crate_type" = "cdylib" ]; then
+        if [ "$ngx_wasm_cargo_crate_type" = cdylib ]; then
             ngx_wasm_cargo_cdylib="$ngx_wasm_cargo_target_dir/lib$ngx_wasm_cargo_lib_name.so"
             ngx_wasm_cargo_cdylibs="$ngx_wasm_cargo_cdylibs $ngx_wasm_cargo_cdylib"
 
@@ -103,7 +100,7 @@ fi
 
 if [ $ngx_found = no ]; then
     if [ $ngx_wasm_cargo_mandatory = yes ]; then
-        echo "$0: error: $ngx_addon_name requires lib$ngx_wasm_cargo_lib_name - aborting."
+        echo "$0: error: $ngx_addon_name with $NGX_WASM_RUNTIME requires lib$ngx_wasm_cargo_lib_name - aborting."
         echo
         exit 1
     fi

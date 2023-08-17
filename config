@@ -100,11 +100,17 @@ if [ "$ngx_wasm_cargo_lib_name" = ngx_wasm_rs ]; then
             ngx_wasm_runtime_path="$ngx_wasm_runtime_path $ngx_feature_path"
             ngx_wasm_runtime_libs="$ngx_wasm_runtime_libs $ngx_feature_libs"
         fi
+    fi
 
-    else
+    if echo -n "$ngx_wasm_runtime_libs\n$NGX_LD_OPT" | grep -q "ngx-wasm-rs"; then
         for d in $ngx_wasm_cargo_defines; do
             have=$d value=1 . auto/define
         done
+
+    elif [ $ngx_wasm_cargo_mandatory = yes ]; then
+        echo "$0: error: $ngx_addon_name with $NGX_WASM_RUNTIME requires lib$ngx_wasm_cargo_lib_name - aborting."
+        echo
+        exit 1
     fi
 fi
 
