@@ -195,6 +195,7 @@ jobs:
       v8: ${{ matrix.v8 }}
       hup: ${{ matrix.hup }}
       debug: ${{ matrix.debug }}
+    secrets: inherit
 
   lint:
     name: 'Lint'

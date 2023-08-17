@@ -37,7 +37,7 @@ qr/\[error\] .*? dispatch failed: tcp socket - resolver error: Host not found/
 
 
 === TEST 2: proxy_wasm Go SDK - dispatch_call_on_tick example
-Connection refused on 127.0.0.1:80 requested by filter.
+Connection refused on 127.0.0.1:81 requested by filter.
 --- wasm_modules: go_dispatch_call_on_tick
 --- config
     resolver_add 127.0.0.1 web_service;
