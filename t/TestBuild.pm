@@ -230,6 +230,7 @@ sub run_test ($) {
 
     if (defined $out) {
         grep_something($block, "grep_build", $out);
+        grep_something($block, "no_grep_build", $out);
 
         # --- grep_nginxV
 

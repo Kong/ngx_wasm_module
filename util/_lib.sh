@@ -285,6 +285,7 @@ build_nginx() {
                         ld_opt=$NGX_BUILD_LD_OPT.\
                         ssl=$NGX_BUILD_SSL.\
                         dynamic=$NGX_BUILD_DYNAMIC_MODULE.\
+                        cargo=$NGX_WASM_CARGO.\
                         hash_src=$hash_src"
 
     local hash_opt=$(echo $hash_opt_txt | shasum | awk '{ print $1 }')
