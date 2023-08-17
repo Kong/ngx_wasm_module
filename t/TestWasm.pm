@@ -159,6 +159,12 @@ add_block_preprocessor(sub {
                                "    compiler " . $compiler . ";\n";
             }
 
+            my $backtraces = $block->backtraces;
+            if (defined $backtraces) {
+                $wasm_config = $wasm_config .
+                               "    backtraces on;\n";
+            }
+
             my $tls_skip_verify = $block->tls_skip_verify;
             my $tls_skip_host_check = $block->tls_skip_host_check;
             my $tls_trusted_certificate = $block->tls_trusted_certificate;
