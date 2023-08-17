@@ -104,11 +104,10 @@ add_block_preprocessor(sub {
 
     # --- env variables
 
-    my $main_config = $block->main_config || '';
-
-    $block->set_value("main_config",
-                      "env WASMTIME_BACKTRACE_DETAILS=1;\n"
-                      . $main_config);
+    #my $main_config = $block->main_config || '';
+    #$block->set_value("main_config",
+    #                  "env WASMTIME_BACKTRACE_DETAILS=1;\n"
+    #                  . $main_config);
 
     # --- load_nginx_modules: ngx_http_echo_module
 
@@ -130,6 +129,7 @@ add_block_preprocessor(sub {
 
     if (@dyn_modules) {
         @arr = map { "load_module $buildroot/$_.so;" } @dyn_modules;
+        my $main_config = $block->main_config || '';
         $block->set_value("main_config",
                           (join "\n", @arr)
                           . "\n\n"
@@ -151,7 +151,6 @@ add_block_preprocessor(sub {
         @arr = split /\s+/, $wasm_modules;
         if (@arr) {
             @arr = map { "module $_ $crates/$_.wasm;" } @arr;
-            my $main_config = $block->main_config || '';
             my $wasm_config = "wasm {\n" .
                               "    " . (join "\n", @arr) . "\n";
 
@@ -199,6 +198,7 @@ add_block_preprocessor(sub {
 
             $wasm_config = $wasm_config . "}\n";
 
+            my $main_config = $block->main_config || '';
             $block->set_value("main_config", $main_config . $wasm_config);
         }
     }

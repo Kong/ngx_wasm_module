@@ -137,7 +137,7 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
         setenv("WASMTIME_BACKTRACE_DETAILS", "1", 1);
 
     } else {
-        setenv("WASMTIME_BACKTRACE_DETAILS", "0", 1);
+        setenv("WASMTIME_BACKTRACE_DETAILS", "0", 0);
     }
 
     config = wasm_config_new();
