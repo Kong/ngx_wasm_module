@@ -74,6 +74,15 @@ ngx_wasmer_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
     char           *auto_compiler = NULL;
     wasm_config_t  *config;
 
+    ngx_wasm_assert(conf->backtraces != NGX_CONF_UNSET);
+
+    if (conf->backtraces) {
+        setenv("RUST_BACKTRACE", "FULL", 1);
+
+    } else {
+        setenv("RUST_BACKTRACE", "0", 0);
+    }
+
     config = wasm_config_new();
     if (config == NULL) {
         goto error;
