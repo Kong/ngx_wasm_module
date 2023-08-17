@@ -1,0 +1,10 @@
+name: cleanup
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Cleanup httpbin proxy + server
+      shell: bash
+      run: |
+        docker stop httpbin httpbin_proxy
+        pkill dnsmasq

@@ -236,6 +236,7 @@ Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
 - HTTP 502 (httpbin.org Bad Gateway)
 - HTTP 504 (httpbin.org Gateway timeout)
+--- skip_eval: 5: $t::TestWasm::nginxV !~ m/--with-debug/ || defined $ENV{GITHUB_ACTIONS}
 --- skip_no_debug: 5
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
@@ -338,7 +339,7 @@ qq{
         echo failed;
     }
 --- error_code_like: (200|502|504)
---- response_body_like: ("Host": "httpbin\.org"|.*?502 Bad Gateway.*|.*?504 Gateway Time-out.*)
+--- response_body_like: ("Host": "httpbin(\.org)?"|.*?502 Bad Gateway.*|.*?504 Gateway Time-out.*)
 --- error_log eval
 qr/\[debug\] .*? wasm lua resolver using existing dns_client/
 --- no_error_log

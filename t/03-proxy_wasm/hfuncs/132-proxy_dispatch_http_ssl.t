@@ -409,7 +409,7 @@ qq{
 }
 --- error_code: 500
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \(20:unable to get local issuer certificate\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \((18|20):(self-signed certificate|unable to get local issuer certificate)\)/
 --- no_error_log
 [crit]
 [emerg]
@@ -442,7 +442,7 @@ qq{
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \(20:unable to get local issuer certificate\)/
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \((18|20):(self-signed certificate|unable to get local issuer certificate)\)/
 --- no_error_log
 [crit]
 

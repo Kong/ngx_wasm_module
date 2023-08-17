@@ -48,5 +48,6 @@ RUN apt-get install -y \
     curl -sLO https://golang.google.cn/dl/go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \
     sudo rm -rf /usr/local/go && tar -C /usr/local -xzf go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \
     curl -sLO https://github.com/tinygo-org/tinygo/releases/download/v$TINYGO_VERSION/tinygo_${TINYGO_VERSION}_$(cat /TG_ARCH).deb && \
-    dpkg -i tinygo_${TINYGO_VERSION}_$(cat /TG_ARCH).deb
+    dpkg -i tinygo_${TINYGO_VERSION}_$(cat /TG_ARCH).deb && \
+    curl -fsSL https://get.docker.com | sh
 ENV PATH $PATH:/usr/local/go/bin

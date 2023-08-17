@@ -56,6 +56,17 @@ pushd $DIR_PROXY_WASM_GO_SDK
              func main() {
                     proxywasm.SetVMContext(&vmContext{})
 EOF
+        patch --forward --ignore-whitespace examples/dispatch_call_on_tick/main.go <<'EOF'
+            @@ -88,7 +88,7 @@ func (ctx *pluginContext) OnTick() {
+             	} else {
+             		headers = append(headers, [2]string{":path", "/fail"})
+             	}
+            -	if _, err := proxywasm.DispatchHttpCall("web_service", headers, nil, nil, 5000, ctx.callBack); err != nil {
+            +	if _, err := proxywasm.DispatchHttpCall("web_service:81", headers, nil, nil, 5000, ctx.callBack); err != nil {
+             		proxywasm.LogCriticalf("dispatch httpcall failed: %v", err)
+             	}
+             }
+EOF
         set -e
     fi
 

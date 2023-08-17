@@ -58,7 +58,8 @@ env:
   NGX_BUILD_DYNAMIC_MODULE: ${{ inputs.module_type == 'dynamic' && 1 || 0 }}
   TEST_NGINX_USE_HUP: ${{ inputs.hup == 'hup' && 1 || 0 }}
   TEST_NGINX_TIMEOUT: 60
-  TEST_NGINX_EXTERNAL_TIMEOUT: 120s
+  TEST_NGINX_EXTERNAL_TIMEOUT: 60s
+  TEST_NGINX_EXTERNAL_RESOLVER: 127.0.0.1:8053
 
 jobs:
   tests:
@@ -73,8 +74,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y gcc-9 libstdc++-9-dev lcov
       - uses: actions/checkout@v3
       - name: 'Setup cache - rustup toolchain'
-        uses: actions/cache@v3
         if: ${{ !env.ACT }}
+        uses: actions/cache@v3
         with:
           path: |
             ~/.rustup/settings.toml
@@ -82,8 +83,8 @@ jobs:
             ~/.rustup/update-hashes/*
           key: rust-toolchain-${{ inputs.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh', 'rust-toolchain') }}
       - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
         if: ${{ !env.ACT }}
+        uses: actions/cache@v3
         with:
           path: |
             work/downloads
@@ -91,16 +92,25 @@ jobs:
             work/openssl
           key: work-${{ inputs.os }}-${{ inputs.cc }}-${{ inputs.ngx }}-${{ inputs.openresty }}-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain', 'Makefile') }}
       - name: Setup Rust
+        if: ${{ !env.ACT }}
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           target: wasm32-wasi
       - name: Setup TinyGo
+        if: ${{ !env.ACT }}
         uses: acifani/setup-tinygo@v1
         with:
           tinygo-version: 0.27.0
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ inputs.runtime }} -V ${{ inputs[inputs.runtime] }}
+      - name: Setup local httpbin server
+        #if: ${{ !env.ACT }}
+        uses: ./.github/actions/setup-httpbin-server
+        with:
+          os: ${{ inputs.os }}
+          ghcr_username: ${{ github.repository_owner }}
+          ghcr_password: ${{ secrets.TOKEN_GITHUB }}
       - run: make setup
       - run: make
       - run: make test
@@ -143,3 +153,6 @@ jobs:
           path: |
             work/buildroot/
             t/servroot*
+      - name: Cleanup
+        if: ${{ always() }}
+        uses: ./.github/actions/cleanup

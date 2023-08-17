@@ -28,15 +28,14 @@ __DATA__
 --- wasm_modules: hostcalls
 --- config eval
 qq{
-    resolver         $::ExtResolver;
+    resolver         $::ExtResolver ipv6=off;
     resolver_timeout $::ExtTimeout;
 
     location /t {
         wasm_socket_connect_timeout 1ms;
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=httpbin.org \
-                              path=/status/200';
+                              host=google.com';
         echo fail;
     }
 }
@@ -50,12 +49,13 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed o
 
 
 === TEST 2: proxy_wasm - dispatch_http_call() resolver timeout
---- timeout_expected: 5
+Using a non-local resolver
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
 qq{
-    resolver          $::ExtResolver;
+    # a non-local resolver
+    resolver          8.8.8.8;
     resolver_timeout  1ms;
 
     location /t {
@@ -75,7 +75,6 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolve
 
 
 === TEST 3: proxy_wasm - dispatch_http_call() read timeout
---- timeout_expected: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -101,7 +100,6 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed o
 
 
 === TEST 4: proxy_wasm - dispatch_http_call() write timeout
---- timeout_expected: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
