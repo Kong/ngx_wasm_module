@@ -221,7 +221,7 @@ build_static_binary() {
     # zlib
 
     download zlib-$ZLIB_VER.tar.gz \
-        "https://www.zlib.net/zlib-$ZLIB_VER.tar.gz"
+        "https://www.zlib.net/fossils/zlib-$ZLIB_VER.tar.gz"
 
     if [ ! -d "zlib-$ZLIB_VER" ]; then
         tar -xf zlib-$ZLIB_VER.tar.gz
