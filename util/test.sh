@@ -105,10 +105,10 @@ fi
 export RUSTFLAGS="$TEST_NGINX_CARGO_RUSTFLAGS"
 eval cargo build \
     --lib \
-    "${args[@]}" \
     --target wasm32-wasi \
-    --out-dir $DIR_TESTS_LIB_WASM \
-    -Z unstable-options
+    "${args[@]}"
+
+cp target/wasm32-wasi/$TEST_NGINX_CARGO_PROFILE/*.wasm $DIR_TESTS_LIB_WASM
 
 if [ $(uname -s) = Linux ]; then
     export TEST_NGINX_EVENT_TYPE=epoll
