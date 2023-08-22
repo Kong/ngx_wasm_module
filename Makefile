@@ -83,7 +83,7 @@ act-build:
 
 .PHONY: act
 act: act-build
-	@act --reuse
+	@act --reuse --pull=false
 
 .PHONY: coverage
 coverage:
