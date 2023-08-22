@@ -31,7 +31,10 @@ RUN /bin/bash -c 'echo $(uname -m) > /TG_ARCH || : ; \
                   [[ $(cat /TG_ARCH) == "x86_64" ]] && echo "amd64" > /TG_ARCH || : ; \
                   [[ $(cat /TG_ARCH) == "aarch64" ]] && echo "arm64" > /TG_ARCH || :'
 
-# Note: this image is also used for local CI runs, install additional dependencies
+# Note: this image is also used for local CI runs, install additional
+# dependencies
+#
+# unzip: LuaRocks
 RUN apt-get install -y \
         clang-tools \
         libpcre3-dev \
@@ -40,6 +43,7 @@ RUN apt-get install -y \
         valgrind \
         nodejs \
         gcovr \
+        unzip \
         sudo && \
     curl -sLO https://golang.google.cn/dl/go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \
     sudo rm -rf /usr/local/go && tar -C /usr/local -xzf go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \
