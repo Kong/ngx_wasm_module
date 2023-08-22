@@ -1,4 +1,3 @@
-#![feature(vec_into_raw_parts)]
 use ngx_wasm_c_api::*;
 use regex::Regex;
 use std::mem;
@@ -26,9 +25,10 @@ fn extract_message(err: &str) -> Option<String> {
 
 fn vec_into_wasm_byte_vec_t(bv: *mut wasm_byte_vec_t, v: Vec<u8>) -> () {
     unsafe {
-        let (ptr, len, _cap) = v.into_raw_parts();
-        (*bv).size = len;
-        (*bv).data = ptr;
+        // FIXME Update this when vec_into_raw_parts is stabilized
+        let mut v = mem::ManuallyDrop::new(v);
+        (*bv).size = v.len();
+        (*bv).data = v.as_mut_ptr();
     }
 }
 

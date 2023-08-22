@@ -39,9 +39,10 @@ impl Drop for ngx_wasm_backtrace_name_table_t {
 
 fn vec_into_wasm_byte_vec_t(bv: *mut wasm_byte_vec_t, v: Vec<u8>) {
     unsafe {
-        let (ptr, len, _cap) = v.into_raw_parts();
-        (*bv).size = len;
-        (*bv).data = ptr;
+        // FIXME Update this when vec_into_raw_parts is stabilized
+        let mut v = mem::ManuallyDrop::new(v);
+        (*bv).size = v.len();
+        (*bv).data = v.as_mut_ptr();
     }
 }
 
@@ -63,22 +64,24 @@ pub unsafe extern "C" fn ngx_wasm_backtrace_get_name_table(
 
         let mut names = Vec::<ngx_wasm_backtrace_name_t>::with_capacity(table.len());
         for (idx, name) in table.drain(..) {
-            let (bytes, len, _cap) = name.into_raw_parts();
+            // FIXME Update this when vec_into_raw_parts is stabilized
+            let mut name = mem::ManuallyDrop::new(name);
             let name_t = ngx_wasm_backtrace_name_t {
                 idx,
                 name: Box::new(wasm_byte_vec_t {
-                    size: len,
-                    data: bytes,
+                    size: name.len(),
+                    data: name.as_mut_ptr(),
                 }),
             };
 
             names.push(name_t);
         }
 
-        let (bytes, len, _cap) = names.into_raw_parts();
+        // FIXME Update this when vec_into_raw_parts is stabilized
+        let mut names = mem::ManuallyDrop::new(names);
         Some(Box::new(ngx_wasm_backtrace_name_table_t {
-            size: len,
-            table: bytes,
+            size: names.len(),
+            table: names.as_mut_ptr(),
         }))
     } else {
         None
