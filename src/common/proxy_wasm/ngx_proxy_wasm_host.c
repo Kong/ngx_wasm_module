@@ -549,7 +549,7 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t          *rctx;
 
-    rctx =  ngx_http_proxy_wasm_get_rctx(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
 #endif
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
