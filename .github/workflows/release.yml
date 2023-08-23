@@ -129,8 +129,10 @@ jobs:
         with:
           file: ${{ matrix.file }}
           tags: ${{ matrix.tags }}
-          push: true
           platforms: ${{ matrix.platforms }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   binary-ubuntu-bionic:
     name: "Build Ubuntu 18.04 (bionic) binary"
