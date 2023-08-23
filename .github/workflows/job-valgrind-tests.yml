@@ -68,7 +68,7 @@ jobs:
             ~/.rustup/settings.toml
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
-          key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh') }}
+          key: rust-toolchain-${{ inputs.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh', 'rust-toolchain') }}
       - name: 'Setup cache - work/ dir'
         uses: actions/cache@v3
         if: ${{ !env.ACT }}
@@ -77,7 +77,7 @@ jobs:
             work/downloads
             work/runtimes
             work/openssl
-          key: work-${{ runner.os }}-${{ inputs.cc }}-${{ inputs.ngx }}-${{ inputs.openresty }}-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain') }}
+          key: work-${{ inputs.os }}-${{ inputs.cc }}-${{ inputs.ngx }}-${{ inputs.openresty }}-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain', 'Makefile') }}
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
