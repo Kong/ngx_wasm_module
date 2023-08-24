@@ -11,6 +11,7 @@ local type = type
 local ffi_gc = ffi.gc
 local ffi_new = ffi.new
 local ffi_str = ffi.string
+local subsystem = ngx.config.subsystem
 local get_request = wasmx.get_request
 local get_err_ptr = wasmx.get_err_ptr
 local FFI_OK = wasmx.FFI_OK
@@ -19,31 +20,6 @@ local FFI_ABORT = wasmx.FFI_ABORT
 local FFI_DECLINED = wasmx.FFI_DECLINED
 local NOT_FOUND = "missing"
 local ERROR = "error"
-
-
-ffi.cdef [[
-    int ngx_http_wasm_ffi_plan_new(ngx_wasm_vm_t *vm,
-                                   ngx_wasm_filter_t *filters,
-                                   size_t n_filters,
-                                   ngx_wasm_plan_t **out,
-                                   u_char *err, size_t *errlen);
-    int ngx_http_wasm_ffi_plan_free(ngx_wasm_plan_t *plan);
-    int ngx_http_wasm_ffi_plan_load(ngx_wasm_plan_t *plan);
-    int ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r,
-                                      ngx_wasm_plan_t *plan,
-                                      unsigned int isolation);
-    int ngx_http_wasm_ffi_start(ngx_http_request_t *r);
-    int ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
-                                       ngx_str_t *key,
-                                       ngx_str_t *value);
-    int ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
-                                       ngx_str_t *key,
-                                       ngx_str_t *out);
-]]
-
-
-local ffi_ops_type = ffi.typeof("ngx_wasm_plan_t *")
-local ffi_pops_type = ffi.typeof("ngx_wasm_plan_t *[1]")
 
 
 local _M = {
@@ -58,6 +34,37 @@ local _M = {
         FILTER = 3,
     }
 }
+
+
+if subsystem == "http" then
+    ffi.cdef [[
+        int ngx_http_wasm_ffi_plan_new(ngx_wasm_vm_t *vm,
+                                       ngx_wasm_filter_t *filters,
+                                       size_t n_filters,
+                                       ngx_wasm_plan_t **out,
+                                       u_char *err, size_t *errlen);
+        int ngx_http_wasm_ffi_plan_free(ngx_wasm_plan_t *plan);
+        int ngx_http_wasm_ffi_plan_load(ngx_wasm_plan_t *plan);
+        int ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r,
+                                          ngx_wasm_plan_t *plan,
+                                          unsigned int isolation);
+        int ngx_http_wasm_ffi_start(ngx_http_request_t *r);
+        int ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
+                                           ngx_str_t *key,
+                                           ngx_str_t *value);
+        int ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
+                                           ngx_str_t *key,
+                                           ngx_str_t *out);
+    ]]
+
+else
+    -- Only support the HTTP subsystem for now.
+    return _M
+end
+
+
+local ffi_ops_type = ffi.typeof("ngx_wasm_plan_t *")
+local ffi_pops_type = ffi.typeof("ngx_wasm_plan_t *[1]")
 
 
 function _M.new(filters)
