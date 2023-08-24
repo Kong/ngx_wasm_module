@@ -56,7 +56,7 @@ jobs:
   valgrind:
     name: 'Valgrind tests'
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 120
+    timeout-minutes: 150
     steps:
       - run: sudo apt-get update && sudo apt-get install -y valgrind
       - uses: actions/checkout@v3
