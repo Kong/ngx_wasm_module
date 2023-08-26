@@ -48,12 +48,13 @@ built with OpenSSL
 
 
 === TEST 4: linked against local OpenSSL
---- build: make NGX_BUILD_SSL=1
+--- build: make NGX_BUILD_SSL=1 NGX_BUILD_SSL_STATIC=0
 --- grep_nginxV eval
 [
-    qr/ngx_wasm_module \[dev debug/,
     qr/built with OpenSSL $::openssl_ver/
 ]
+--- no_grep_nginxV
+running with OpenSSL
 --- run_cmd eval: qq{nm -g $::buildroot/nginx}
 --- grep_libs eval
 [
