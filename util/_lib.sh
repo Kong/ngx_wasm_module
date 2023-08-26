@@ -238,8 +238,9 @@ build_nginx() {
 
         else
             local openssl_lib="$DIR_OPENSSL/openssl-lib-$OPENSSL_VER"
+            local openssl_libdir=$(basename $openssl_lib/lib*)
             NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -I$openssl_lib/include"
-            NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -L$openssl_lib/lib -Wl,-rpath,$openssl_lib/lib -lssl -lcrypto"
+            NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT -L$openssl_lib/$openssl_libdir -Wl,-rpath,$openssl_lib/$openssl_libdir -lssl -lcrypto"
         fi
 
         if ! [[ "$NGX_BUILD_CONFIGURE_OPT" =~ "--without-http" ]]; then
