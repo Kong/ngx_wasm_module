@@ -29,7 +29,7 @@ jobs:
         label: [""]
         os: [ubuntu-latest]
         cc: [gcc-9]
-        ngx: [1.25.1]
+        ngx: [1.25.2]
         openresty: [""]
         runtime: [wasmer]
         wasmtime: [""]
@@ -45,7 +45,7 @@ jobs:
             wasmtime: 8.0.1
             os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.25.1
+            ngx: 1.25.2
             ssl: ssl
             debug: debug
             hup: hup
@@ -54,7 +54,7 @@ jobs:
             v8: 11.4.183.23
             os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.25.1
+            ngx: 1.25.2
             ssl: ssl
             debug: debug
             hup: no_hup
@@ -72,7 +72,7 @@ jobs:
           - label: dynamic_nginx
             os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.25.1
+            ngx: 1.25.2
             runtime: wasmtime
             wasmtime: 8.0.1
             ssl: ssl
@@ -82,7 +82,7 @@ jobs:
           # No SSL
           - os: ubuntu-latest
             cc: gcc-9
-            ngx: 1.25.1
+            ngx: 1.25.2
             runtime: wasmer
             wasmer: 3.1.1
             ssl: no_ssl
@@ -137,7 +137,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
-          carryforward: 'unit-ngx_1.25.1-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.1-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.1-wasmtime-ssl-debug-hup-dynamic,unit-ngx_1.25.1-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.1-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-dynamic'
+          carryforward: 'unit-ngx_1.25.2-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.2-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.2-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.2-wasmtime-ssl-debug-hup-dynamic,unit-ngx_1.25.2-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.2-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-dynamic'
 
   valgrind:
     name: 'Valgrind'
@@ -148,7 +148,7 @@ jobs:
         label: [""]
         os: [ubuntu-22.04]
         cc: [gcc-10]
-        ngx: [1.25.1]
+        ngx: [1.25.2]
         openresty: [""]
         runtime: [wasmer]
         wasmtime: [""]
@@ -162,7 +162,7 @@ jobs:
             wasmtime: 8.0.1
             os: ubuntu-22.04
             cc: gcc-10
-            ngx: 1.25.1
+            ngx: 1.25.2
             hup: no_hup
             debug: debug
           # V8
@@ -170,7 +170,7 @@ jobs:
             v8: 11.4.183.23
             os: ubuntu-22.04
             cc: gcc-10
-            ngx: 1.25.1
+            ngx: 1.25.2
             debug: debug
             hup: no_hup
           # OpenResty
@@ -252,7 +252,7 @@ jobs:
           # No SSL
           - os: ubuntu-latest
             cc: clang-11
-            ngx: 1.25.1
+            ngx: 1.25.2
             runtime: wasmer
             wasmer: 3.1.1
             ssl: no_ssl
@@ -280,7 +280,7 @@ jobs:
         label: [""]
         os: [ubuntu-latest]
         cc: [clang-14, gcc-10]
-        ngx: [1.25.1]
+        ngx: [1.25.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [8.0.1]
         wasmer: [3.1.1]
