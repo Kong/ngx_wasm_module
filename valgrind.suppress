@@ -22,14 +22,14 @@
    fun:ngx_crc32_table_init
 }
 {
-   <wasmer 3.1.1: parse>
+   <wasmer 4.2.0: parse>
    Memcheck:Cond
    fun:_ZN10wasmparser6parser6Parser5parse17h*
    ...
    fun:main
 }
 {
-   <wasmer 3.1.1: wasm_instance_new>
+   <wasmer 4.2.0: wasm_instance_new>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
@@ -38,7 +38,7 @@
    fun:wasm_instance_new
 }
 {
-   <wasmer 3.1.1: wasm_module_new>
+   <wasmer 4.2.0: wasm_module_new>
    Memcheck:Leak
    match-leak-kinds: possible
    fun:calloc

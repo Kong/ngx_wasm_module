@@ -33,7 +33,7 @@ jobs:
         openresty: [""]
         runtime: [wasmer]
         wasmtime: [""]
-        wasmer: [3.1.1]
+        wasmer: [4.2.0]
         v8: [""]
         ssl: [ssl]
         debug: [debug, no_debug]
@@ -64,7 +64,7 @@ jobs:
             cc: gcc-9
             ngx: 1.21.6
             runtime: wasmer
-            wasmer: 3.1.1
+            wasmer: 4.2.0
             ssl: ssl
             debug: debug
             hup: no_hup
@@ -84,7 +84,7 @@ jobs:
             cc: gcc-9
             ngx: 1.25.2
             runtime: wasmer
-            wasmer: 3.1.1
+            wasmer: 4.2.0
             ssl: no_ssl
             debug: no_debug
             hup: no_hup
@@ -152,7 +152,7 @@ jobs:
         openresty: [""]
         runtime: [wasmer]
         wasmtime: [""]
-        wasmer: [3.1.1]
+        wasmer: [4.2.0]
         v8: [""]
         hup: [no_hup, hup]
         debug: [debug]
@@ -180,7 +180,7 @@ jobs:
             openresty: 1.21.4.2
             ngx:
             runtime: wasmer
-            wasmer: 3.1.1
+            wasmer: 4.2.0
             debug: debug
             hup: no_hup
     uses: ./.github/workflows/job-valgrind-tests.yml
@@ -244,7 +244,7 @@ jobs:
         openresty: [1.21.4.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [12.0.1]
-        wasmer: [3.1.1]
+        wasmer: [4.2.0]
         v8: [11.4.183.23]
         ssl: [ssl]
         debug: [debug, no_debug]
@@ -254,7 +254,7 @@ jobs:
             cc: clang-11
             ngx: 1.25.2
             runtime: wasmer
-            wasmer: 3.1.1
+            wasmer: 4.2.0
             ssl: no_ssl
             debug: debug
     uses: ./.github/workflows/job-clang-analyzer.yml
@@ -282,7 +282,7 @@ jobs:
         ngx: [1.25.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [12.0.1]
-        wasmer: [3.1.1]
+        wasmer: [4.2.0]
         v8: [11.4.183.23]
         include:
           - label: old_nginx

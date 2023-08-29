@@ -604,6 +604,14 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
 
     instance->ctxs = hctxs;
 
+    if (module->wasi
+        && !wasi_env_initialize_instance(store->wasi_env, store->store,
+                                         instance->instance))
+    {
+        dd("wasi_env_initialize_instance failed");
+        goto error;
+    }
+
     return NGX_OK;
 
 error:
@@ -690,11 +698,6 @@ ngx_wasmer_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
         ngx_wasm_assert(wasm_extern_kind(ext->ext) == WASM_EXTERN_MEMORY);
         ext->kind = NGX_WRT_EXTERN_MEMORY;
         instance->memory = wasm_extern_as_memory(ext->ext);
-
-        if (module->wasi) {
-            wasi_env_set_memory(instance->store->wasi_env, instance->memory);
-        }
-
         break;
 
     case WASM_EXTERN_GLOBAL:
