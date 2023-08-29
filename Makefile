@@ -1,7 +1,7 @@
 NGX ?= 1.25.2
 OPENSSL ?= 3.1.2
 WASMTIME ?= 12.0.1
-WASMER ?= 3.1.1
+WASMER ?= 4.1.2
 V8 ?= 11.4.183.23
 PCRE ?= 8.45
 ZLIB ?= 1.2.13

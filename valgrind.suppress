@@ -22,28 +22,28 @@
    fun:ngx_crc32_table_init
 }
 {
-   <wasmer 3.1.1: parse>
+   <wasmer 4.1.2: parse>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17h5c54f0ee5315402aE
+   fun:_ZN10wasmparser6parser6Parser5parse17h95aa6c048b6a9802E
    ...
    fun:main
 }
 {
-   <wasmer 3.1.1: wasm_instance_new>
+   <wasmer 4.1.2: wasm_instance_new>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
    ...
-   fun:_ZN6wasmer3sys8instance8Instance12new_by_index17h9b11b6b5fcb57319E
+   fun:todo
    fun:wasm_instance_new
 }
 {
-   <wasmer 3.1.1: wasm_module_new>
+   <wasmer 4.1.2: wasm_module_new>
    Memcheck:Leak
    match-leak-kinds: possible
    fun:calloc
    ...
-   fun:_ZN6wasmer3sys6module6Module11from_binary17h0e63bedfc82f5d11E
+   fun:todo
    fun:wasm_module_new
 }
 {
