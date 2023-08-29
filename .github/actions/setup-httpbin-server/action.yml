@@ -37,8 +37,20 @@ runs:
       shell: bash
       run: |
         brew install dnsmasq
+    - name: Setup Docker image tag
+      id: setup
+      shell: bash
+      run: |
+          if [ -z "${{ env.ACT }}" && -n "${{ inputs.ghcr_password }}" ]; then
+            echo "push=true" >> $GITHUB_OUTPUT
+            echo "tag=ghcr.io/kong/wasmx-ci-httpbin-proxy:latest" >> $GITHUB_OUTPUT
+
+          else
+            echo "push=false" >> $GITHUB_OUTPUT
+            echo "tag=wasmx-ci-httpbin-proxy:latest" >> $GITHUB_OUTPUT
+          fi
     - name: Login to GitHub Container Registry
-      if: ${{ !env.ACT && inputs.ghcr_password != '' }}
+      if: ${{ steps.setup.outputs.push == 'true' }}
       uses: docker/login-action@v2
       with:
         registry: ghcr.io
@@ -51,8 +63,9 @@ runs:
       uses: docker/build-push-action@v4
       with:
         file: './assets/ci/Dockerfile.nginx'
-        tags: 'ghcr.io/kong/wasmx-ci-httpbin-proxy:latest'
-        push: ${{ (!env.ACT && inputs.ghcr_password != '') && 'true' || 'false' }}
+        tags: ${{ steps.setup.outputs.tag }}
+        push: ${{ steps.setup.outputs.push }}
+        load: true
         context: .
         cache-from: type=gha
         cache-to: type=gha,mode=max
@@ -80,4 +93,4 @@ runs:
                    --network httpbin \
                    -p 80:80 \
                    -p 443:443 \
-                   ghcr.io/kong/wasmx-ci-httpbin-proxy:latest
+                   ${{ steps.setup.outputs.tag }}

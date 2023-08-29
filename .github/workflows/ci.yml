@@ -273,7 +273,6 @@ jobs:
     name: 'Build'
     #if: ${{ false }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
