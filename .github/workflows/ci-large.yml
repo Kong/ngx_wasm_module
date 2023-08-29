@@ -23,7 +23,7 @@ jobs:
         os: [ubuntu-latest]
         #os: [ubuntu-latest, macos-latest]
         cc: [gcc-9]
-        ngx: [1.25.1]
+        ngx: [1.25.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [8.0.1]
         wasmer: [3.1.1]
@@ -66,7 +66,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         cc: [gcc-10]
-        ngx: [1.25.1]
+        ngx: [1.25.2]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [8.0.1]
         wasmer: [3.1.1]
