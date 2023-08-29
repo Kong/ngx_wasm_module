@@ -25,7 +25,7 @@ jobs:
         cc: [gcc-9]
         ngx: [1.25.1]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [8.0.1]
+        wasmtime: [12.0.1]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
         debug: [debug, no_debug]
@@ -38,7 +38,7 @@ jobs:
             cc: gcc-9
             openresty: 1.21.4.1
             runtime: wasmtime
-            wasmtime: 8.0.1
+            wasmtime: 12.0.1
             debug: debug
             hup: no_hup
             ssl: ssl
@@ -68,7 +68,7 @@ jobs:
         cc: [gcc-10]
         ngx: [1.25.1]
         runtime: [wasmer, wasmtime, v8]
-        wasmtime: [8.0.1]
+        wasmtime: [12.0.1]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
         hup: [hup, no_hup]
@@ -106,7 +106,7 @@ jobs:
         cc: [clang-11]
         openresty: [1.21.4.1]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [8.0.1]
+        wasmtime: [12.0.1]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
         ssl: [no_ssl, ssl]

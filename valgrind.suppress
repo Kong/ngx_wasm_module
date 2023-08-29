@@ -47,9 +47,9 @@
    fun:wasm_module_new
 }
 {
-   <wasmtime 8.0.1: parse>
+   <wasmtime 12.0.1: parse>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17hc93c537ec1d89366E
+   fun:_ZN10wasmparser6parser6Parser5parse17h6d71d9974412b3d6E
 }
 {
    <v8 11.4.183.23: wasm_engine_new>
