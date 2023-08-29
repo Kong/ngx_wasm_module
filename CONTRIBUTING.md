@@ -1,13 +1,5 @@
 # Contributing
 
-Hello, and welcome! Thank you for your interest in contributing to this project.
-
-When contributing to an open-source project it is important to understand the
-context surrounding said project, such as its target audience, maintenance
-values, governance model, and roadmap. This document aims at outlining this
-context for WasmX/ngx_wasm_module and ensuring expectations be set between
-maintainers and contributors.
-
 ## Governance and maintenance
 
 This project is maintained by the WasmX team at [Kong](https://konghq.com). We
@@ -16,16 +8,16 @@ extending Nginx with newer features (such as WebAssembly support). This module
 is meant for use in Kong products such as the [Kong API
 Gateway](https://github.com/kong/kong), but at the same time its design is not
 restricted to those use-cases: this module is maintained as a general-purpose
-Nginx module, of which the Kong Gateway is one possible downstream user.
+Nginx module, of which the Kong Gateway is one possible user.
 
 With the above context in mind, please understand that our feature set, roadmap
 prioritization, and PR acceptance criteria are all informed by a combination of
 the above goals. This also affects our available bandwidth for outside
 contributions.
 
-## What kind of contributions are we are looking for?
+## What kind of contributions are we looking for?
 
-1. *Bug reports* - if you hit any bugs in this module, we're eager to hear about
+1. *Bug reports* - if you hit any bug in this module, we are eager to hear about
    them! Do not hesitate to open an issue; ideally with steps on how to
    reproduce the bug along with, if possible, a minimally-reproducible example
    (or test case).
@@ -43,23 +35,22 @@ contributions.
    clarification, please open an issue and let us know about it. You may also
    suggest these changes in a PR, in which case we *may* also merge an updated
    version of your patch; nevertheless such feedback is greatly appreciated.
-4. We do have a [significant
-   roadmap](#roadmap) laid out ahead of
-   us, so right now we are not actively looking for feature contributions
-   outside of that roadmap nor do we have the resources to perform extensive
-   code reviews on unexpected features. Also, we might just not intend to get a
-   certain feature integrated. In any case please do contact us before working
-   on a new feature or any other behavioral change. We encourage you to do so
-   even if it is something from our roadmap, as our team may already be working
-   on it and some context is likely required.
+4. We do have a [significant roadmap](#roadmap) laid out ahead of us, so right
+   now we are not actively looking for feature contributions outside of the
+   roadmap nor do we have the resources to perform extensive code reviews on
+   unexpected features. Also, we might just not intend to get a certain feature
+   integrated. In any case please do contact us before working on a new feature
+   or any other behavioral change. We encourage you to do so even if it is
+   something from our roadmap, as our team may already be working on it and some
+   context is likely required.
 
 ## Roadmap
 
 This module's roadmap is documented via [GitHub
 projects](https://github.com/Kong/ngx_wasm_module/projects).
 
-Beyond our immediate roadmap, here is a non-exhaustive list of ideas WasmX
-aims to explore:
+Beyond our immediate roadmap, here is a non-exhaustive list of improvements and
+ideas WasmX wishes to explore:
 
 - Improve Nginx's telemetry reporting.
 - Improve Nginx's hot-reloading capabilities.
