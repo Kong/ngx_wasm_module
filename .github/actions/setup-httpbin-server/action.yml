@@ -38,7 +38,7 @@ runs:
       run: |
         brew install dnsmasq
     - name: Login to GitHub Container Registry
-      if: ${{ !env.ACT }}
+      if: ${{ !env.ACT && inputs.ghcr_password != '' }}
       uses: docker/login-action@v2
       with:
         registry: ghcr.io
@@ -52,7 +52,7 @@ runs:
       with:
         file: './assets/ci/Dockerfile.nginx'
         tags: 'ghcr.io/kong/wasmx-ci-httpbin-proxy:latest'
-        push: ${{ !env.ACT && 'true' || 'false' }}
+        push: ${{ (!env.ACT && inputs.ghcr_password != '') && 'true' || 'false' }}
         context: .
         cache-from: type=gha
         cache-to: type=gha,mode=max
