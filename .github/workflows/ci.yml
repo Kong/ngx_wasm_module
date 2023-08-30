@@ -42,7 +42,7 @@ jobs:
         include:
           # Wasmtime
           - runtime: wasmtime
-            wasmtime: 8.0.1
+            wasmtime: 12.0.1
             os: ubuntu-latest
             cc: gcc-9
             ngx: 1.25.2
@@ -74,7 +74,7 @@ jobs:
             cc: gcc-9
             ngx: 1.25.2
             runtime: wasmtime
-            wasmtime: 8.0.1
+            wasmtime: 12.0.1
             ssl: ssl
             debug: debug
             hup: hup
@@ -94,7 +94,7 @@ jobs:
             cc: gcc-9
             openresty: 1.21.4.1
             runtime: wasmtime
-            wasmtime: 8.0.1
+            wasmtime: 12.0.1
             ssl: ssl
             debug: debug
             hup: no_hup
@@ -104,7 +104,7 @@ jobs:
             cc: gcc-9
             openresty: 1.21.4.1
             runtime: wasmtime
-            wasmtime: 8.0.1
+            wasmtime: 12.0.1
             ssl: ssl
             debug: debug
             hup: no_hup
@@ -159,7 +159,7 @@ jobs:
         include:
           # Wasmtime
           - runtime: wasmtime
-            wasmtime: 8.0.1
+            wasmtime: 12.0.1
             os: ubuntu-22.04
             cc: gcc-10
             ngx: 1.25.2
@@ -243,7 +243,7 @@ jobs:
         cc: [clang-11]
         openresty: [1.21.4.1]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [8.0.1]
+        wasmtime: [12.0.1]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
         ssl: [ssl]
@@ -282,7 +282,7 @@ jobs:
         cc: [clang-14, gcc-10]
         ngx: [1.25.2]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [8.0.1]
+        wasmtime: [12.0.1]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
         include:
@@ -291,7 +291,7 @@ jobs:
             cc: clang-14
             ngx: 1.21.6
             runtime: wasmtime
-            wasmtime: 8.0.1
+            wasmtime: 12.0.1
     steps:
       - uses: actions/checkout@v3
       - name: 'Setup cache - work/ dir'
