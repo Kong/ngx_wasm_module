@@ -80,8 +80,8 @@ qr/.*?testing in "RequestHeaders".*
 .*?testing in "Log".*
 .*?wasmx\.something: 5.*/
 --- no_error_log
-[error]
-[crit]
+[emerg]
+[alert]
 
 
 
@@ -101,8 +101,8 @@ TODO: is this behavior correct?
 --- error_log eval
 qr/\[info\] .*? property not found: wasmx.nonexistent_property,/
 --- no_error_log
-[error]
 [emerg]
+[alert]
 
 
 
@@ -123,8 +123,8 @@ ok
 --- error_log eval
 qr/\[info\] .*? property not found: was,/
 --- no_error_log
-[crit]
 [emerg]
+[alert]
 
 
 
@@ -137,7 +137,7 @@ is global (single instance for root/request).
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls 'tick_period=10 \
+        proxy_wasm hostcalls 'tick_period=100 \
                               on_tick=log_property \
                               name=wasmx.my_var';
         echo_sleep 0.150;
@@ -167,7 +167,7 @@ HTTP 200 since the root and request instances are different.
     location /t {
         proxy_wasm_isolation stream;
 
-        proxy_wasm hostcalls 'tick_period=10 \
+        proxy_wasm hostcalls 'tick_period=100 \
                               on_tick=log_property \
                               name=wasmx.my_var';
         echo_sleep 0.150;

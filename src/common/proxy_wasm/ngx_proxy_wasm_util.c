@@ -213,7 +213,8 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
         return;
     }
 
-    ictx = ngx_proxy_wasm_get_instance(filter, filter->store, filter->log);
+    ictx = ngx_proxy_wasm_get_instance(filter, filter->store, pwexec,
+                                       filter->log);
     if (ictx == NULL) {
         ngx_wasm_log_error(NGX_LOG_ERR, log, 0,
                            "tick_handler: no instance");
@@ -246,6 +247,8 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
         pwexec->ev->handler = ngx_proxy_wasm_filter_tick_handler;
         pwexec->ev->data = pwexec;
         pwexec->ev->log = log;
+
+        dd("scheduling next tick in %ld", pwexec->tick_period);
 
         ngx_add_timer(pwexec->ev, pwexec->tick_period);
     }

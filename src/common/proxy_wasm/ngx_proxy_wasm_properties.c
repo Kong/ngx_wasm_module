@@ -721,7 +721,6 @@ ngx_proxy_wasm_properties_get_ngx(ngx_proxy_wasm_ctx_t *pwctx,
     hash = hash_str(name.data, name.len);
 
     rctx = (ngx_http_wasm_req_ctx_t *) pwctx->data;
-
     if (rctx == NULL || rctx->fake_request) {
         ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
                            "cannot get ngx properties outside of a request");
@@ -861,8 +860,8 @@ static ngx_int_t
 ngx_proxy_wasm_properties_get_host(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_str_t *path, ngx_str_t *value)
 {
-    host_props_node_t        *hpn;
     uint32_t                  hash;
+    host_props_node_t        *hpn;
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
 
@@ -893,9 +892,9 @@ static ngx_int_t
 ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_str_t *path, ngx_str_t *value)
 {
-    host_props_node_t        *hpn;
     uint32_t                  hash;
     unsigned                  new_entry = 1;
+    host_props_node_t        *hpn;
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
 
