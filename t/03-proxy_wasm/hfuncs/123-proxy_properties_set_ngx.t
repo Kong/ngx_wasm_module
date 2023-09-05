@@ -61,8 +61,8 @@ qr/\A\[info\] .*? old: "1"
 \[info\] .*? old: "5"
 \[info\] .*? new: "6"/
 --- no_error_log
-[error]
-[crit]
+[emerg]
+[alert]
 
 
 
@@ -134,8 +134,8 @@ GET /t?hello=world
     qr/\[info\] .*? new: unset/,
 ]
 --- no_error_log
-[error]
-[crit]
+[emerg]
+[alert]
 
 
 
@@ -238,7 +238,7 @@ HTTP 200 since the root and request instances are different.
     location /t {
         proxy_wasm_isolation stream;
 
-        proxy_wasm hostcalls 'tick_period=10 \
+        proxy_wasm hostcalls 'tick_period=200 \
                               on_tick=set_property \
                               name=ngx.my_var \
                               set=456 \

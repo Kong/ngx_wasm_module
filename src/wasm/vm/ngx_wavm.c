@@ -1461,7 +1461,7 @@ ngx_wavm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_wrt_err_t *e,
         wasm_byte_vec_delete(&trapmsg);
 
 #if (NGX_WASM_HAVE_V8 || NGX_WASM_HAVE_WASMER)
-        if (ctx->instance) {
+        if (ctx && ctx->instance) {
             wasm_trap_trace(e->trap, &trace);
 
             if (trace.size > 0) {

@@ -137,11 +137,11 @@ should use an instance per stream
 #0 on_vm_start[^#*]*
 #0 on_configure[^#*]*
 \*\d+ .*? filter new instance[^#*]*
+#0 on_configure[^#*]*
 \*\d+ .*? filter reusing instance[^#*]*
+#0 on_configure[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_request_headers" step in "rewrite" phase[^#*]*
-#0 on_configure[^#*]*
 \*\d+ .*? filter 2\/2 resuming "on_request_headers" step in "rewrite" phase[^#*]*
-#0 on_configure[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_response_headers" step in "header_filter" phase[^#*]*
 \*\d+ .*? filter 2\/2 resuming "on_response_headers" step in "header_filter" phase[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_response_body" step in "body_filter" phase[^#*]*
@@ -156,11 +156,11 @@ should use an instance per stream
 \*\d+ .*? filter freeing context #\d+ \(2\/2\)[^#*]*
 \*\d+ .*? freeing "hostcalls" instance in "main" vm[^#*]*\Z/,
 qr/\A\*\d+ .*? filter new instance[^#*]*
+#0 on_configure[^#*]*
 \*\d+ .*? filter reusing instance[^#*]*
+#0 on_configure[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_request_headers" step in "rewrite" phase[^#*]*
-#0 on_configure[^#*]*
 \*\d+ .*? filter 2\/2 resuming "on_request_headers" step in "rewrite" phase[^#*]*
-#0 on_configure[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_response_headers" step in "header_filter" phase[^#*]*
 \*\d+ .*? filter 2\/2 resuming "on_response_headers" step in "header_filter" phase[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_response_body" step in "body_filter" phase[^#*]*

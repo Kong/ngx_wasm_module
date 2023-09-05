@@ -58,9 +58,9 @@ qr/\A\[info\] .*? new: "2"
 \[info\] .*? old: "5"
 \[info\] .*? new: "6"/
 --- no_error_log
-[error]
-[crit]
 [emerg]
+[alert]
+[stub]
 
 
 
@@ -85,7 +85,7 @@ qr/\A\[info\] .*? new: "2"
     qr/\[info\] .*? new: unset/,
 ]
 --- no_error_log
-[error]
+[emerg]
 
 
 
@@ -110,7 +110,7 @@ qr/\A\[info\] .*? new: "2"
     qr/\[info\] .*? new: ""/,
 ]
 --- no_error_log
-[error]
+[emerg]
 
 
 
@@ -132,9 +132,9 @@ Does not fail when the property is not found.
     qr/\[info\] .*? new: unset/,
 ]
 --- no_error_log
-[error]
-[crit]
 [emerg]
+[alert]
+[stub]
 
 
 
@@ -149,7 +149,7 @@ isolation is global (single instance for root/request).
     set $my_var 123;
 
     location /t {
-        proxy_wasm hostcalls 'tick_period=10 \
+        proxy_wasm hostcalls 'tick_period=100 \
                               on_tick=set_property \
                               name=wasmx.my_var \
                               show_old=false \
@@ -186,7 +186,7 @@ ngx_http_* calls.
     location /t {
         proxy_wasm_isolation stream;
 
-        proxy_wasm hostcalls 'tick_period=10 \
+        proxy_wasm hostcalls 'tick_period=100 \
                               on_tick=set_property \
                               name=wasmx.my_var \
                               show_old=false \

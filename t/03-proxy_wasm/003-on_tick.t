@@ -152,3 +152,31 @@ qr/.*?(\[error\]|Uncaught RuntimeError: |\s+)tick_period already set.*
 [stub2]
 [stub3]
 --- must_die
+
+
+
+=== TEST 6: proxy_wasm - on_tick with trap
+Should recycle the tick instance
+Should not prevent http context/instance from starting
+--- skip_no_debug: 7
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        proxy_wasm on_phases 'tick_period=200 on_tick=trap';
+        return 200;
+    }
+--- response_body
+--- grep_error_log eval: qr/\[(info|crit)].*?on_tick.*/
+--- grep_error_log_out eval
+qr/.*?
+\[info\] .*? on_tick 200.*
+\[crit\] .*? panicked at 'on_tick trap'.*
+.*?
+\[info\] .*? on_tick 200.*
+\[crit\] .*? panicked at 'on_tick trap'.*/
+--- error_log
+filter 1/1 resuming "on_request_headers" step
+filter 1/1 resuming "on_response_headers" step
+--- no_error_log
+[emerg]
+[alert]

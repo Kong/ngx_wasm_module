@@ -519,8 +519,8 @@ qr/\A[^#]*#0 on_vm_start[^#*]*
 #0 on_configure[^#*]*
 \*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\)[^#*]*
 \*\d+ .*? "hostcalls" filter new instance[^#*]*
-\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 #0 on_configure[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_response_headers" step in "header_filter" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
@@ -531,8 +531,8 @@ qr/\A[^#]*#0 on_vm_start[^#*]*
 \*\d+ wasm freeing "hostcalls" instance[^#*]*\Z/,
 qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\)[^#*]*
 \*\d+ .*? "hostcalls" filter new instance[^#*]*
-\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 #0 on_configure[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_response_headers" step in "header_filter" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*

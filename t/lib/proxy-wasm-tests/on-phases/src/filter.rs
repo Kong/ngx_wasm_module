@@ -68,6 +68,12 @@ impl RootContext for HttpHeadersRoot {
 
     fn on_tick(&mut self) {
         info!("on_tick {}", self.config.get("tick_period").unwrap());
+
+        #[allow(clippy::single_match)]
+        match self.config.get("on_tick").map(|s| s.as_str()).unwrap_or("") {
+            "trap" => panic!("on_tick trap"),
+            _ => (),
+        }
     }
 
     fn get_type(&self) -> Option<ContextType> {
