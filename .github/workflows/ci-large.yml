@@ -22,7 +22,7 @@ jobs:
         label: [""]
         os: [ubuntu-latest]
         #os: [ubuntu-latest, macos-latest]
-        cc: [gcc-9]
+        cc: [gcc-12]
         ngx: [1.25.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [12.0.1]
@@ -35,7 +35,7 @@ jobs:
           # OpenResty + static ngx_wasm_module
           - label: dynamic_module
             os: ubuntu-latest
-            cc: gcc-9
+            cc: gcc-12
             openresty: 1.21.4.2
             runtime: wasmtime
             wasmtime: 12.0.1
@@ -65,7 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        cc: [gcc-10]
+        cc: [gcc-12]
         ngx: [1.25.2]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [12.0.1]
@@ -77,7 +77,7 @@ jobs:
           # OpenResty
           - label: openresty
             os: ubuntu-22.04
-            cc: gcc-10
+            cc: gcc-12
             openresty: 1.21.4.2
             runtime: wasmer
             wasmer: 3.1.1
@@ -103,7 +103,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        cc: [clang-11]
+        cc: [clang-15]
         openresty: [1.21.4.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [12.0.1]
@@ -122,3 +122,34 @@ jobs:
       v8: ${{ matrix.v8 }}
       ssl: ${{ matrix.ssl }}
       debug: ${{ matrix.debug }}
+
+  build-large:
+    name: 'Build'
+    #if: ${{ false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        label: [""]
+        os: [ubuntu-latest]
+        cc: [clang-13, clang-14, gcc-10, gcc-11]
+        ngx: [1.25.2]
+        runtime: [wasmtime, wasmer, v8]
+        wasmtime: [12.0.1]
+        wasmer: [3.1.1]
+        v8: [11.4.183.23]
+        include:
+          - label: old_nginx
+            os: [ubuntu-latest]
+            cc: clang-15
+            ngx: 1.21.6
+            runtime: wasmtime
+            wasmtime: 12.0.1
+    uses: ./.github/workflows/job-build-tests.yml
+    with:
+      os: ${{ matrix.os }}
+      cc: ${{ matrix.cc }}
+      ngx: ${{ matrix.ngx }}
+      runtime: ${{ matrix.runtime }}
+      wasmtime: ${{ matrix.wasmtime }}
+      wasmer: ${{ matrix.wasmer }}
+      v8: ${{ matrix.v8 }}
