@@ -70,8 +70,8 @@ jobs:
       coveralls_name: ${{ steps.lcov.outputs.name }}
     steps:
       - name: 'Setup deps - apt-get'
-        if: ${{ inputs.cc == 'gcc-9' }}
-        run: sudo apt-get update && sudo apt-get install -y gcc-9 libstdc++-9-dev lcov
+        if: ${{ contains(inputs.os, 'ubuntu') }}
+        run: sudo apt-get update && sudo apt-get install -y ${CC} libstdc++-${CC#*-}-dev lcov
       - uses: actions/checkout@v3
       - name: 'Setup cache - rustup toolchain'
         if: ${{ !env.ACT }}
@@ -116,11 +116,11 @@ jobs:
       - run: make test
       - name: Run lcov
         id: lcov
-        if: ${{ !env.ACT && inputs.cc == 'gcc-9' && inputs.coverage }}
+        if: ${{ !env.ACT && inputs.coverage }}
         run: |
-          lcov --capture --directory work/buildroot --output-file lcov.info
-          lcov --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
-          lcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
+          lcov --gcov-tool gcov-${CC#*-} --capture --directory work/buildroot --output-file lcov.info
+          lcov --gcov-tool gcov-${CC#*-} --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
+          lcov --gcov-tool gcov-${CC#*-} --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
 
           name="unit"
           if [ -n "${{ inputs.openresty }}" ]; then
@@ -139,7 +139,7 @@ jobs:
           fi
           echo "name=$name" >> $GITHUB_OUTPUT
       - name: Coveralls Upload
-        if: ${{ !env.ACT && inputs.cc == 'gcc-9' && inputs.coverage }}
+        if: ${{ !env.ACT && inputs.coverage }}
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

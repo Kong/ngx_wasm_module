@@ -1,6 +1,8 @@
 FROM ubuntu:22.04
 COPY . /ngx_wasm_module
 
+ARG GCC_VERSION=12
+ARG CLANG_VERSION=15
 ARG GOLANG_VERSION=1.19.5
 ARG TINYGO_VERSION=0.27.0
 ARG DEBIAN_FRONTEND=noninteractive
@@ -11,12 +13,12 @@ RUN apt-get update && \
         ninja-build \
         python3 \
         cmake \
-        gcc-11 \
-        libstdc++-11-dev \
+        gcc-${GCC_VERSION} \
+        libstdc++-${GCC_VERSION}-dev \
         git \
         pkg-config \
         libglib2.0-dev \
-        clang \
+        clang-${CLANG_VERSION} \
         curl \
         binfmt-support \
         qemu-user-static
@@ -36,15 +38,17 @@ RUN /bin/bash -c 'echo $(uname -m) > /TG_ARCH || : ; \
 #
 # unzip: LuaRocks
 RUN apt-get install -y \
-        clang-tools \
+        clang-tools-${CLANG_VERSION} \
         libpcre3-dev \
         libssl-dev \
         zlib1g-dev \
         valgrind \
         nodejs \
         gcovr \
+        lcov \
         unzip \
         sudo && \
+    update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/scan-build-${CLANG_VERSION} 100 && \
     rustup target add wasm32-wasi && \
     rustup target add wasm32-unknown-unknown && \
     curl -sLO https://golang.google.cn/dl/go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \

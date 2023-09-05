@@ -1,0 +1,67 @@
+name: Build tests
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      cc:
+        required: true
+        type: string
+      ngx:
+        required: true
+        type: string
+      runtime:
+        required: true
+        type: string
+      wasmtime:
+        required: true
+        type: string
+      wasmer:
+        required: true
+        type: string
+      v8:
+        required: true
+        type: string
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CC: ${{ inputs.cc }}
+  NGX_WASM_RUNTIME: ${{ inputs.runtime }}
+
+jobs:
+  build:
+    name: 'Build'
+    #if: ${{ false }}
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: 'Setup Ubuntu deps - gcc'
+        if: ${{ !env.ACT && contains(inputs.os, 'ubuntu') && contains(inputs.cc, 'gcc') }}
+        run: sudo apt-get update && sudo apt-get install -y ${CC} libstdc++-${CC#*-}-dev
+
+      - name: 'Setup Ubuntu deps - clang'
+        if: ${{ !env.ACT && contains(inputs.os, 'ubuntu') && contains(inputs.cc, 'clang') }}
+        run: sudo apt-get update && sudo apt-get install -y ${CC}
+
+      - name: 'Setup macOS deps'
+        if: ${{ !env.ACT && contains(inputs.os, 'macos') }}
+        run: brew install ninja openssh
+
+      - uses: actions/checkout@v3
+      - name: 'Setup cache - work/ dir'
+        uses: actions/cache@v3
+        if: ${{ !env.ACT }}
+        with:
+          path: |
+            work/downloads
+            work/runtimes
+            work/openssl
+          key: work-${{ runner.os }}-${{ inputs.cc }}-${{ inputs.ngx }}-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain', 'Makefile') }}
+      - name: Setup Wasm runtime
+        run: ./util/runtime.sh -R ${{ inputs.runtime }} -V ${{ inputs[inputs.runtime] }}
+      - run: make setup
+      - run: make test-build

@@ -28,7 +28,7 @@ jobs:
       matrix:
         label: [""]
         os: [ubuntu-latest]
-        cc: [gcc-9]
+        cc: [gcc-12]
         ngx: [1.25.2]
         openresty: [""]
         runtime: [wasmer]
@@ -44,7 +44,7 @@ jobs:
           - runtime: wasmtime
             wasmtime: 12.0.1
             os: ubuntu-latest
-            cc: gcc-9
+            cc: gcc-12
             ngx: 1.25.2
             ssl: ssl
             debug: debug
@@ -53,7 +53,7 @@ jobs:
           - runtime: v8
             v8: 11.4.183.23
             os: ubuntu-latest
-            cc: gcc-9
+            cc: gcc-12
             ngx: 1.25.2
             ssl: ssl
             debug: debug
@@ -61,7 +61,7 @@ jobs:
           # Old Nginx
           - label: old_nginx
             os: ubuntu-latest
-            cc: gcc-9
+            cc: gcc-12
             ngx: 1.21.6
             runtime: wasmer
             wasmer: 3.1.1
@@ -71,7 +71,7 @@ jobs:
           # Nginx + dynamic ngx_wasm_module + HUP
           - label: dynamic_nginx
             os: ubuntu-latest
-            cc: gcc-9
+            cc: gcc-12
             ngx: 1.25.2
             runtime: wasmtime
             wasmtime: 12.0.1
@@ -81,7 +81,7 @@ jobs:
             module_type: dynamic
           # No SSL
           - os: ubuntu-latest
-            cc: gcc-9
+            cc: gcc-12
             ngx: 1.25.2
             runtime: wasmer
             wasmer: 3.1.1
@@ -91,7 +91,7 @@ jobs:
           # OpenResty
           - label: openresty
             os: ubuntu-latest
-            cc: gcc-9
+            cc: gcc-12
             openresty: 1.21.4.2
             runtime: wasmtime
             wasmtime: 12.0.1
@@ -101,7 +101,7 @@ jobs:
           # OpenResty + dynamic ngx_wasm_module
           - label: dynamic_openresty
             os: ubuntu-latest
-            cc: gcc-9
+            cc: gcc-12
             openresty: 1.21.4.2
             runtime: wasmtime
             wasmtime: 12.0.1
@@ -147,7 +147,7 @@ jobs:
       matrix:
         label: [""]
         os: [ubuntu-22.04]
-        cc: [gcc-10]
+        cc: [gcc-12]
         ngx: [1.25.2]
         openresty: [""]
         runtime: [wasmer]
@@ -161,7 +161,7 @@ jobs:
           - runtime: wasmtime
             wasmtime: 12.0.1
             os: ubuntu-22.04
-            cc: gcc-10
+            cc: gcc-12
             ngx: 1.25.2
             hup: no_hup
             debug: debug
@@ -169,14 +169,14 @@ jobs:
           - runtime: v8
             v8: 11.4.183.23
             os: ubuntu-22.04
-            cc: gcc-10
+            cc: gcc-12
             ngx: 1.25.2
             debug: debug
             hup: no_hup
           # OpenResty
           - label: openresty
             os: ubuntu-22.04
-            cc: gcc-10
+            cc: gcc-12
             openresty: 1.21.4.2
             ngx:
             runtime: wasmer
@@ -240,7 +240,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cc: [clang-11]
+        cc: [clang-15]
         openresty: [1.21.4.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [12.0.1]
@@ -251,7 +251,7 @@ jobs:
         include:
           # No SSL
           - os: ubuntu-latest
-            cc: clang-11
+            cc: clang-15
             ngx: 1.25.2
             runtime: wasmer
             wasmer: 3.1.1
@@ -272,39 +272,22 @@ jobs:
   build:
     name: 'Build'
     #if: ${{ false }}
-    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        label: [""]
         os: [ubuntu-latest]
-        cc: [clang-14, gcc-10]
+        cc: [clang-15, gcc-12]
         ngx: [1.25.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [12.0.1]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
-        include:
-          - label: old_nginx
-            os: ubuntu-latest
-            cc: clang-14
-            ngx: 1.21.6
-            runtime: wasmtime
-            wasmtime: 12.0.1
-    steps:
-      - uses: actions/checkout@v3
-      - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
-        if: ${{ !env.ACT }}
-        with:
-          path: |
-            work/downloads
-            work/runtimes
-            work/openssl
-          key: work-${{ runner.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain', 'Makefile') }}
-      - name: Setup Wasm runtime
-        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
-      - run: make setup
-      - run: make test-build
-        env:
-          NGX_WASM_RUNTIME: ${{ matrix.runtime }}
+    uses: ./.github/workflows/job-build-tests.yml
+    with:
+      os: ${{ matrix.os }}
+      cc: ${{ matrix.cc }}
+      ngx: ${{ matrix.ngx }}
+      runtime: ${{ matrix.runtime }}
+      wasmtime: ${{ matrix.wasmtime }}
+      wasmer: ${{ matrix.wasmer }}
+      v8: ${{ matrix.v8 }}

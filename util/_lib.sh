@@ -193,7 +193,7 @@ build_nginx() {
                        -analyze-headers \
                        --force-analyze-debug-code \
                        --html-title='$NGX - ngx_wasm_module [${build_name[@]}]' \
-                       --use-cc=clang \
+                       --use-cc=${CC:-clang} \
                        --status-bugs"
         NGX_BUILD_DEBUG=1
     fi
