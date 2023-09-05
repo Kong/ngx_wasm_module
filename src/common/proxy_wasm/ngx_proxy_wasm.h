@@ -398,7 +398,7 @@ ngx_wavm_ptr_t ngx_proxy_wasm_alloc(ngx_proxy_wasm_exec_t *pwexec, size_t size);
 void ngx_proxy_wasm_store_destroy(ngx_proxy_wasm_store_t *store);
 ngx_proxy_wasm_instance_t *ngx_proxy_wasm_get_instance(
     ngx_proxy_wasm_filter_t *filter, ngx_proxy_wasm_store_t *store,
-    ngx_log_t *log);
+    ngx_proxy_wasm_exec_t *pwexec, ngx_log_t *log);
 void ngx_proxy_wasm_release_instance(ngx_proxy_wasm_instance_t *ictx,
     unsigned sweep);
 

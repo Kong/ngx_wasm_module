@@ -327,6 +327,8 @@ ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
             pwexec->pool = pool;
             pwexec->filter = filter;
             pwexec->parent = pwctx;
+            pwexec->root_id = filter->id;
+
             pwexec->log = ngx_pcalloc(pwexec->pool, sizeof(ngx_log_t));
             if (pwexec->log == NULL) {
                 return NULL;
@@ -344,14 +346,12 @@ ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
             pwexec->log_ctx.pwexec = pwexec;
             pwexec->log_ctx.orig_log = log;
 
-            ictx = ngx_proxy_wasm_get_instance(filter, pwstore, log);
+            ictx = ngx_proxy_wasm_get_instance(filter, pwstore, pwexec, log);
             if (ictx == NULL) {
                 return NULL;
             }
 
             pwexec->ictx = ictx;
-            pwexec->id = ictx->next_id++;
-            pwexec->root_id = filter->id;
 
             ngx_wasm_assert(pwexec->index + 1 == pwctx->pwexecs.nelts);
 
@@ -461,7 +461,7 @@ ngx_proxy_wasm_action2rc(ngx_proxy_wasm_ctx_t *pwctx,
     filter = pwexec->filter;
     action = pwctx->action;
 
-    dd("action: %d", action);
+    dd("enter (pwexec: %p, action: %d)", pwexec, action);
 
     if (pwexec->ecode) {
         if (!pwexec->ecode_logged
@@ -611,7 +611,6 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     ngx_proxy_wasm_instance_t *ictx, ngx_proxy_wasm_step_e step)
 {
     ngx_int_t                 rc;
-    ngx_proxy_wasm_err_e      ecode;
     ngx_proxy_wasm_action_e   action = NGX_PROXY_WASM_ACTION_CONTINUE;
     ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
     ngx_proxy_wasm_filter_t  *filter = pwexec->filter;
@@ -657,12 +656,6 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
 #ifdef NGX_WASM_RESPONSE_TRAILERS
     case NGX_PROXY_WASM_STEP_RESP_TRAILERS:
 #endif
-        ecode = ngx_proxy_wasm_on_start(ictx, filter, 0);
-        if (ecode != NGX_PROXY_WASM_ERR_NONE) {
-            pwexec->ecode = ecode;
-            goto done;
-        }
-
         rc = filter->subsystem->resume(pwexec, step, &action);
         break;
     case NGX_PROXY_WASM_STEP_LOG:
@@ -1177,7 +1170,6 @@ ngx_proxy_wasm_init_abi(ngx_proxy_wasm_filter_t *filter)
 static ngx_int_t
 ngx_proxy_wasm_start_filter(ngx_proxy_wasm_filter_t *filter)
 {
-    ngx_proxy_wasm_err_e        ecode;
     ngx_proxy_wasm_instance_t  *ictx;
 
     ngx_wasm_assert(filter->loaded);
@@ -1190,21 +1182,9 @@ ngx_proxy_wasm_start_filter(ngx_proxy_wasm_filter_t *filter)
         return NGX_OK;
     }
 
-    ictx = ngx_proxy_wasm_get_instance(filter, filter->store, filter->log);
+    ictx = ngx_proxy_wasm_get_instance(filter, filter->store, NULL,
+                                       filter->log);
     if (ictx == NULL) {
-        return NGX_ERROR;
-    }
-
-    /*
-     * update instance log
-     * FFI-injected filters have a valid log while the instance's
-     * might be outdated.
-     */
-    ngx_wavm_instance_set_data(ictx->instance, ictx, filter->log);
-
-    ecode = ngx_proxy_wasm_on_start(ictx, filter, 1);
-    if (ecode != NGX_PROXY_WASM_ERR_NONE) {
-        filter->ecode = ecode;
         return NGX_ERROR;
     }
 
@@ -1216,12 +1196,16 @@ ngx_proxy_wasm_start_filter(ngx_proxy_wasm_filter_t *filter)
 
 ngx_proxy_wasm_instance_t *
 ngx_proxy_wasm_get_instance(ngx_proxy_wasm_filter_t *filter,
-    ngx_proxy_wasm_store_t *store, ngx_log_t *log)
+    ngx_proxy_wasm_store_t *store, ngx_proxy_wasm_exec_t *pwexec,
+    ngx_log_t *log)
 {
     ngx_queue_t                *q;
     ngx_pool_t                 *pool;
     ngx_wavm_module_t          *module = filter->module;
-    ngx_proxy_wasm_instance_t  *ictx = NULL;
+    ngx_proxy_wasm_instance_t  *ictx;
+    ngx_proxy_wasm_err_e        ecode;
+
+    dd("enter (pwexec: %p)", pwexec);
 
     if (store == NULL) {
         dd("no store, jump to create");
@@ -1250,7 +1234,7 @@ ngx_proxy_wasm_get_instance(ngx_proxy_wasm_filter_t *filter,
         }
 
         if (ictx->module == filter->module) {
-            dd("reuse instance");
+            dd("reuse busy instance");
             ngx_wasm_assert(ictx->nrefs);
             goto reuse;
         }
@@ -1262,16 +1246,28 @@ ngx_proxy_wasm_get_instance(ngx_proxy_wasm_filter_t *filter,
     {
         ictx = ngx_queue_data(q, ngx_proxy_wasm_instance_t, q);
 
+        if (ictx->instance->trapped) {
+            ngx_proxy_wasm_log_error(NGX_LOG_DEBUG, log, 0,
+                                     "\"%V\" filter freeing trapped instance "
+                                     "(ictx: %p, store: %p)",
+                                     filter->name, ictx, store);
+
+            q = ngx_queue_next(&ictx->q);
+            ngx_proxy_wasm_release_instance(ictx, 1);
+            continue;
+        }
+
         if (ictx->module == filter->module) {
+            dd("reuse free instance");
             ngx_wasm_assert(ictx->nrefs == 0);
             ngx_queue_remove(&ictx->q);
             goto reuse;
         }
     }
 
-    dd("create instance in store: %p", store);
-
 create:
+
+    dd("create instance in store: %p", store);
 
     ictx = ngx_pcalloc(pool, sizeof(ngx_proxy_wasm_instance_t));
     if (ictx == NULL) {
@@ -1302,10 +1298,6 @@ create:
 
     goto done;
 
-error:
-
-    return NULL;
-
 reuse:
 
     ngx_proxy_wasm_log_error(NGX_LOG_DEBUG, log, 0,
@@ -1313,15 +1305,56 @@ reuse:
                              "(ictx: %p, nrefs: %d, store: %p)",
                              filter->name, ictx, ictx->nrefs + 1, store);
 
+    goto done;
+
 done:
 
     if (store && !ictx->nrefs) {
         ngx_queue_insert_tail(&store->busy, &ictx->q);
     }
 
+    if (pwexec) {
+        if (pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID) {
+            ngx_wasm_assert(pwexec->id == 0);
+            pwexec->id = ictx->next_id++;
+        }
+
+        if (pwexec->ecode) {
+            /* recycled instance */
+            pwexec->ecode = NGX_PROXY_WASM_ERR_NONE;
+            pwexec->ecode_logged = 0;
+        }
+    }
+
     ictx->nrefs++;
+    ictx->pwexec = pwexec;
+
+    /**
+     * update instance log
+     * FFI-injected filters have a valid log while the instance's
+     * might be outdated.
+     */
+    ngx_wavm_instance_set_data(ictx->instance, ictx, log);
+
+    /* create wasm context (root/http) */
+
+    ecode = ngx_proxy_wasm_on_start(ictx, filter, pwexec == NULL);
+    if (ecode != NGX_PROXY_WASM_ERR_NONE) {
+        if (pwexec) {
+            pwexec->ecode = ecode;
+
+        } else {
+            filter->ecode = ecode;
+        }
+
+        goto error;
+    }
 
     return ictx;
+
+error:
+
+    return NULL;
 }
 
 
@@ -1420,6 +1453,8 @@ ngx_proxy_wasm_on_start(ngx_proxy_wasm_instance_t *ictx,
     ngx_proxy_wasm_exec_t  *rexec, *pwexec = ictx->pwexec;
     ngx_wavm_instance_t    *instance = ictx->instance;
     wasm_val_vec_t         *rets;
+
+    dd("enter (pwexec: %p, ictx: %p)", pwexec, ictx);
 
     rexec = ngx_proxy_wasm_root_lookup(ictx, filter->id);
     if (rexec == NULL) {
