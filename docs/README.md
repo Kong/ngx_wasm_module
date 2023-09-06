@@ -255,11 +255,11 @@ http {
 
 In the above example:
 
-- `9000:/with-filter`: Inherits its execution chain from its parent block:
+- `:9000/with-filter`: Inherits its execution chain from its parent block:
   `server{}`. Runs `my_server_filter`.
-- `9000:/no-filter`: Overrides its execution chain. Runs `check_something` and
+- `:9000/no-filter`: Overrides its execution chain. Runs `check_something` and
   `check_something_else` in their respective phases.
-- `9001:/with-filter`: Inherits its execution chain from its grandparent block:
+- `:9001/with-filter`: Inherits its execution chain from its grandparent block:
   `http{}`. Runs `my_global_filter`.
 
 You may also consult another description of the execution chain through the
