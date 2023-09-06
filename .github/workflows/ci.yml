@@ -92,7 +92,7 @@ jobs:
           - label: openresty
             os: ubuntu-latest
             cc: gcc-9
-            openresty: 1.21.4.1
+            openresty: 1.21.4.2
             runtime: wasmtime
             wasmtime: 12.0.1
             ssl: ssl
@@ -102,7 +102,7 @@ jobs:
           - label: dynamic_openresty
             os: ubuntu-latest
             cc: gcc-9
-            openresty: 1.21.4.1
+            openresty: 1.21.4.2
             runtime: wasmtime
             wasmtime: 12.0.1
             ssl: ssl
@@ -137,7 +137,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
-          carryforward: 'unit-ngx_1.25.2-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.2-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.2-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.2-wasmtime-ssl-debug-hup-dynamic,unit-ngx_1.25.2-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.2-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.1-wasmtime-ssl-debug-no_hup-dynamic'
+          carryforward: 'unit-ngx_1.25.2-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.2-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.2-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.2-wasmtime-ssl-debug-hup-dynamic,unit-ngx_1.25.2-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.2-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.2-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.2-wasmtime-ssl-debug-no_hup-dynamic'
 
   valgrind:
     name: 'Valgrind'
@@ -177,7 +177,7 @@ jobs:
           - label: openresty
             os: ubuntu-22.04
             cc: gcc-10
-            openresty: 1.21.4.1
+            openresty: 1.21.4.2
             ngx:
             runtime: wasmer
             wasmer: 3.1.1
@@ -241,7 +241,7 @@ jobs:
       fail-fast: false
       matrix:
         cc: [clang-11]
-        openresty: [1.21.4.1]
+        openresty: [1.21.4.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [12.0.1]
         wasmer: [3.1.1]

@@ -36,7 +36,7 @@ jobs:
           - label: dynamic_module
             os: ubuntu-latest
             cc: gcc-9
-            openresty: 1.21.4.1
+            openresty: 1.21.4.2
             runtime: wasmtime
             wasmtime: 12.0.1
             debug: debug
@@ -78,7 +78,7 @@ jobs:
           - label: openresty
             os: ubuntu-22.04
             cc: gcc-10
-            openresty: 1.21.4.1
+            openresty: 1.21.4.2
             runtime: wasmer
             wasmer: 3.1.1
             debug: debug
@@ -104,7 +104,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [clang-11]
-        openresty: [1.21.4.1]
+        openresty: [1.21.4.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [12.0.1]
         wasmer: [3.1.1]
