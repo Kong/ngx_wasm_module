@@ -846,9 +846,8 @@ ngx_http_wasm_finalize_fake_request(ngx_http_request_t *r, ngx_int_t rc)
 static void
 ngx_http_wasm_close_fake_connection(ngx_connection_t *c)
 {
-    ngx_pool_t             *pool;
-    ngx_connection_t       *saved_c = NULL;
-    ngx_http_connection_t  *hc = c->data;
+    ngx_pool_t        *pool;
+    ngx_connection_t  *saved_c = NULL;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "wasm closing fake connection: %p", c);
@@ -886,11 +885,7 @@ ngx_http_wasm_close_fake_connection(ngx_connection_t *c)
         ngx_cycle->files[0] = saved_c;
     }
 
-    if (pool) {
-        ngx_pfree(pool, hc);
-
-        ngx_destroy_pool(pool);
-    }
+    ngx_destroy_pool(pool);
 }
 
 
@@ -925,19 +920,10 @@ ngx_http_wasm_close_fake_request(ngx_http_request_t *r)
 static void
 ngx_http_wasm_free_fake_request(ngx_http_request_t *r)
 {
-#if (NGX_DEBUG)
-    ngx_log_t           *log;
-#endif
     ngx_http_cleanup_t  *cln;
 
-#if (NGX_DEBUG)
-    log = r->connection->log;
-
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0,
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm freeing fake request (r: %p)", r);
-#endif
-
-    ngx_wasm_assert(r->pool);  /* already freed */
 
     cln = r->cleanup;
     r->cleanup = NULL;
@@ -951,5 +937,11 @@ ngx_http_wasm_free_fake_request(ngx_http_request_t *r)
     }
 
     r->request_line.len = 0;
-    r->connection->destroyed = 1;
+
+#if 0
+    /* r may be used in c->pool cleanup handlers, will be
+     * freed on c->pool destroy */
+    ngx_pfree(r->pool, r->ctx);
+    ngx_pfree(r->pool, r);
+#endif
 }
