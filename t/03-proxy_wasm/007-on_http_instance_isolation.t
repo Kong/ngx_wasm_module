@@ -96,6 +96,7 @@ Should recycle the global instance when trapped.
 \*\d+ .*? filter freeing context #\d+ \(1\/2\)[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(2\/2\)\Z/,
 qr/\A\*\d+ .*? filter freeing trapped instance[^#*]*
+\*\d+ wasm freeing "hostcalls" instance in "main" vm[^#*]*
 \*\d+ .*? filter new instance[^#*]*
 \*\d+ .*? filter reusing instance[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_request_headers" step in "rewrite" phase[^#*]*
