@@ -200,6 +200,7 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 #endif
     ngx_proxy_wasm_filter_t    *filter = pwexec->filter;
     ngx_proxy_wasm_instance_t  *ictx;
+    ngx_proxy_wasm_err_e        ecode;
 
     dd("enter");
 
@@ -227,16 +228,16 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 #endif
     pwexec->in_tick = 1;
 
-    pwexec->ecode = ngx_proxy_wasm_run_step(pwexec, ictx,
-                                            NGX_PROXY_WASM_STEP_TICK);
-
-    pwexec->in_tick = 0;
+    ecode = ngx_proxy_wasm_run_step(pwexec, ictx, NGX_PROXY_WASM_STEP_TICK);
 
     ngx_proxy_wasm_release_instance(ictx, 0);
 
-    if (pwexec->ecode != NGX_PROXY_WASM_ERR_NONE) {
+    if (ecode != NGX_PROXY_WASM_ERR_NONE) {
+        pwexec->ecode = ecode;
         return;
     }
+
+    pwexec->in_tick = 0;
 
     if (!ngx_exiting) {
         pwexec->ev = ngx_calloc(sizeof(ngx_event_t), log);

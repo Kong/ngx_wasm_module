@@ -876,15 +876,6 @@ ngx_proxy_wasm_store_destroy(ngx_proxy_wasm_store_t *store)
         ngx_proxy_wasm_release_instance(ictx, 1);
     }
 
-    while (!ngx_queue_empty(&store->sweep)) {
-        dd("remove sweep");
-        q = ngx_queue_head(&store->sweep);
-        ictx = ngx_queue_data(q, ngx_proxy_wasm_instance_t, q);
-
-        ngx_queue_remove(&ictx->q);
-        ngx_proxy_wasm_instance_destroy(ictx);
-    }
-
     dd("exit");
 }
 
@@ -1360,6 +1351,8 @@ void
 ngx_proxy_wasm_release_instance(ngx_proxy_wasm_instance_t *ictx,
     unsigned sweep)
 {
+    ngx_queue_t  *q;
+
     if (sweep) {
         ictx->nrefs = 0;
 
@@ -1367,21 +1360,30 @@ ngx_proxy_wasm_release_instance(ngx_proxy_wasm_instance_t *ictx,
         ictx->nrefs--;
     }
 
-    dd("ictx: %p (nrefs: %ld, sweep: %d)",
-       ictx, ictx->nrefs, sweep);
+    dd("ictx: %p (nrefs: %ld, sweep: %d, trapped: %d)",
+       ictx, ictx->nrefs, sweep, ictx->instance->trapped);
 
     if (ictx->nrefs == 0) {
         if (ictx->store) {
             dd("remove from busy");
             ngx_queue_remove(&ictx->q); /* remove from busy/free */
 
-            if (sweep) {
+            if (sweep || ictx->instance->trapped) {
                 dd("insert in sweep");
                 ngx_queue_insert_tail(&ictx->store->sweep, &ictx->q);
 
             } else {
                 dd("insert in free");
                 ngx_queue_insert_tail(&ictx->store->free, &ictx->q);
+            }
+
+            while (!ngx_queue_empty(&ictx->store->sweep)) {
+                dd("sweep (destroy)");
+                q = ngx_queue_head(&ictx->store->sweep);
+                ictx = ngx_queue_data(q, ngx_proxy_wasm_instance_t, q);
+
+                ngx_queue_remove(&ictx->q);
+                ngx_proxy_wasm_instance_destroy(ictx);
             }
 
         } else {
