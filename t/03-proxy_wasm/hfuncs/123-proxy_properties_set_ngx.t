@@ -194,9 +194,7 @@ forward the NotFound status back to the caller.
 on_tick runs on the root context, so it does not have access to
 ngx_http_* calls.
 
-HTTP 500 since instance recycling happens on next
-request, and isolation is global (single instance for root/request)
-
+--- skip_eval: 5: $ENV{TEST_NGINX_USE_HUP} == 1
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -211,7 +209,6 @@ request, and isolation is global (single instance for root/request)
         echo_sleep 0.150;
         echo ok;
     }
---- error_code: 500
 --- ignore_response_body
 --- error_log eval
 [
@@ -230,6 +227,7 @@ ngx_http_* calls.
 
 HTTP 200 since the root and request instances are different.
 
+--- skip_eval: 5: $ENV{TEST_NGINX_USE_HUP} == 1
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config

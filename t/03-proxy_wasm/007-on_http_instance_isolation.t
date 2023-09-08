@@ -94,10 +94,8 @@ Should recycle the global instance when trapped.
 (.*?(Uncaught RuntimeError: )?unreachable|\s*wasm trap: wasm `unreachable` instruction executed)[^#*]*
 \*\d+ .*? filter chain failed resuming: previous error \(instance trapped\)[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(1\/2\)[^#*]*
-\*\d+ .*? filter freeing context #\d+ \(2\/2\)\Z/,
-qr/\A\*\d+ .*? filter freeing trapped instance[^#*]*
-\*\d+ wasm freeing "hostcalls" instance in "main" vm[^#*]*
-\*\d+ .*? filter new instance[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(2\/2\)[^#*]*\Z/,
+qr/\A\*\d+ .*? filter new instance[^#*]*
 \*\d+ .*? filter reusing instance[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_response_headers" step in "header_filter" phase[^#*]*
@@ -110,6 +108,7 @@ qr/\A\*\d+ .*? filter freeing trapped instance[^#*]*
 \*\d+ .*? filter 2\/2 resuming "on_done" step in "done" phase[^#*]*
 \*\d+ .*? filter 2\/2 finalizing context[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(1\/2\)[^#*]*
+\*\d+ wasm freeing "hostcalls" instance in "main" vm[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(2\/2\)\Z/]
 --- no_error_log
 [emerg]
@@ -153,9 +152,9 @@ should use an instance per stream
 \*\d+ .*? filter 1\/2 finalizing context[^#*]*
 \*\d+ .*? filter 2\/2 resuming "on_done" step in "done" phase[^#*]*
 \*\d+ .*? filter 2\/2 finalizing context[^#*]*
+\*\d+ .*? freeing "hostcalls" instance in "main" vm[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(1\/2\)[^#*]*
-\*\d+ .*? filter freeing context #\d+ \(2\/2\)[^#*]*
-\*\d+ .*? freeing "hostcalls" instance in "main" vm[^#*]*\Z/,
+\*\d+ .*? filter freeing context #\d+ \(2\/2\)[^#*]*\Z/,
 qr/\A\*\d+ .*? filter new instance[^#*]*
 #0 on_configure[^#*]*
 \*\d+ .*? filter reusing instance[^#*]*
@@ -172,9 +171,9 @@ qr/\A\*\d+ .*? filter new instance[^#*]*
 \*\d+ .*? filter 1\/2 finalizing context[^#*]*
 \*\d+ .*? filter 2\/2 resuming "on_done" step in "done" phase[^#*]*
 \*\d+ .*? filter 2\/2 finalizing context[^#*]*
+\*\d+ .*? freeing "hostcalls" instance in "main" vm[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(1\/2\)[^#*]*
-\*\d+ .*? filter freeing context #\d+ \(2\/2\)[^#*]*
-\*\d+ .*? freeing "hostcalls" instance in "main" vm[^#*]*\Z/]
+\*\d+ .*? filter freeing context #\d+ \(2\/2\)[^#*]*\Z/]
 --- no_error_log
 [error]
 [crit]
@@ -204,9 +203,9 @@ qr/\A\*\d+ .*? filter new instance[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 (.*?(Uncaught RuntimeError: )?unreachable|\s*wasm trap: wasm `unreachable` instruction executed)[^#*]*
 \*\d+ .*? filter chain failed resuming: previous error \(instance trapped\)[^#*]*
+\*\d+ .*? freeing "hostcalls" instance in "main" vm[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(1\/2\)[^#*]*
-\*\d+ .*? filter freeing context #\d+ \(2\/2\)[^#*]*
-\*\d+ .*? freeing "hostcalls" instance in "main" vm[^#*]*\Z/,
+\*\d+ .*? filter freeing context #\d+ \(2\/2\)[^#*]*\Z/,
 qr/\A\*\d+ .*? filter new instance[^#*]*
 \*\d+ .*? filter reusing instance[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_request_headers" step in "rewrite" phase[^#*]*
@@ -219,9 +218,9 @@ qr/\A\*\d+ .*? filter new instance[^#*]*
 \*\d+ .*? filter 1\/2 finalizing context[^#*]*
 \*\d+ .*? filter 2\/2 resuming "on_done" step in "done" phase[^#*]*
 \*\d+ .*? filter 2\/2 finalizing context[^#*]*
+\*\d+ .*? freeing "hostcalls" instance in "main" vm[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(1\/2\)[^#*]*
-\*\d+ .*? filter freeing context #\d+ \(2\/2\)[^#*]*
-\*\d+ .*? freeing "hostcalls" instance in "main" vm[^#*]*\Z/]
+\*\d+ .*? filter freeing context #\d+ \(2\/2\)[^#*]*\Z/]
 --- no_error_log
 [emerg]
 [alert]

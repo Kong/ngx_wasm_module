@@ -265,6 +265,7 @@ ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
     mcf->vm = ngx_wasm_main_vm(cf->cycle);
 
     ngx_queue_init(&mcf->plans);
+    ngx_proxy_wasm_init(cf, &mcf->store);
 
     return mcf;
 }
@@ -280,9 +281,6 @@ ngx_http_wasm_init_main_conf(ngx_conf_t *cf, void *conf)
     if (mcf->ops == NULL) {
         return NGX_CONF_ERROR;
     }
-
-    ngx_proxy_wasm_init(cf);
-    ngx_proxy_wasm_store_init(&mcf->store, cf->pool);
 
     return NGX_CONF_OK;
 }
@@ -445,8 +443,7 @@ ngx_http_wasm_exit_process(ngx_cycle_t *cycle)
 
     mcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_wasm_module);
     if (mcf) {
-        ngx_proxy_wasm_exit();
-        ngx_proxy_wasm_store_destroy(&mcf->store);
+        ngx_proxy_wasm_exit(&mcf->store);
 
         ngx_wasm_ops_destroy(mcf->ops);
     }

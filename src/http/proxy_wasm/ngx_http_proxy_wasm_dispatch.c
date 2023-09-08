@@ -825,7 +825,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         /* save step */
         step = pwexec->parent->step;
 
-        ecode = ngx_proxy_wasm_run_step(pwexec, pwexec->ictx,
+        ecode = ngx_proxy_wasm_run_step(pwexec,
                                         NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE);
         if (ecode != NGX_PROXY_WASM_ERR_NONE) {
             goto error;

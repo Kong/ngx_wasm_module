@@ -235,7 +235,7 @@ HelloWorld
     }
 
     location /log {
-        # cannot set request body
+        # not executed (subrequest)
         proxy_wasm hostcalls 'on=log \
                               test=/t/set_request_body';
         echo $request_body;
@@ -258,7 +258,6 @@ from_request_body
 --- grep_error_log_out eval
 qr/.*?host trap \(bad usage\): cannot set request body.*
 \[info\] .*? \*\d+ .*? filter chain failed resuming: previous error \(instance trapped\).*? subrequest: "\/response_headers".*
-\[info\] .*? \*\d+ .*? filter chain failed resuming: previous error \(instance trapped\).*? request: "GET \/t HTTP\/1\.1".*
 \z/
 --- no_error_log
 [alert]

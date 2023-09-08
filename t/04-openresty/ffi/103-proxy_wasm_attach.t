@@ -527,8 +527,8 @@ qr/\A[^#]*#0 on_vm_start[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_log" step in "log" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_done" step in "done" phase[^#*]*
 \*\d+ .*? filter 1\/1 finalizing context[^#*]*
-\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*
-\*\d+ wasm freeing "hostcalls" instance[^#*]*\Z/,
+\*\d+ wasm freeing "hostcalls" instance[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*\Z/,
 qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\)[^#*]*
 \*\d+ .*? "hostcalls" filter new instance[^#*]*
 #0 on_configure[^#*]*
@@ -539,8 +539,8 @@ qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\)[^#
 \*\d+ .*? filter 1\/1 resuming "on_log" step in "log" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_done" step in "done" phase[^#*]*
 \*\d+ .*? filter 1\/1 finalizing context[^#*]*
-\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*
-\*\d+ wasm freeing "hostcalls" instance[^#*]*\Z/,
+\*\d+ wasm freeing "hostcalls" instance[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*\Z/,
 ]
 
 

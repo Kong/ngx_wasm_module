@@ -1345,12 +1345,12 @@ ngx_wavm_instance_destroy(ngx_wavm_instance_t *instance)
     ngx_wavm_func_t    *func;
     ngx_wavm_module_t  *module = instance->module;
 
-    ngx_log_debug5(NGX_LOG_DEBUG_WASM,
+    ngx_log_debug6(NGX_LOG_DEBUG_WASM,
                    instance->log ? instance->log : ngx_cycle->log, 0,
                    "wasm freeing \"%V\" instance in \"%V\" vm"
-                   " (vm: %p, module: %p, instance: %p)",
+                   " (vm: %p, module: %p, instance: %p, trapped: %d)",
                    &module->name, module->vm->name,
-                   module->vm, module, instance);
+                   module->vm, module, instance, instance->trapped);
 
     if (instance->funcs.nelts) {
         for (i = 0; i < instance->funcs.nelts; i++) {

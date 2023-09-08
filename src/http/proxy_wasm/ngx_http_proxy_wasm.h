@@ -19,7 +19,7 @@ ngx_http_proxy_wasm_get_rctx(ngx_wavm_instance_t *instance)
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
     pwctx = pwexec->parent;
-    if (!pwctx) {
+    if (pwctx == NULL) {
         return NULL;
     }
 
