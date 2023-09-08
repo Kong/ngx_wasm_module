@@ -205,26 +205,26 @@ ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
 {
     uint32_t                period = args[0].of.i32;
     ngx_event_t            *ev;
-    ngx_proxy_wasm_exec_t  *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_exec_t  *rexec = ngx_proxy_wasm_instance2pwexec(instance);
 
-    ngx_wasm_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+    ngx_wasm_assert(rexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
-    if (pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID) {
+    if (rexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID) {
         /* ignore */
         return ngx_proxy_wasm_result_ok(rets);
     }
 
     if (ngx_exiting) {
-        return ngx_proxy_wasm_result_trap(pwexec, "process exiting", rets,
-                                          NGX_WAVM_OK);
-    }
-
-    if (pwexec->tick_period) {
-        return ngx_proxy_wasm_result_trap(pwexec, "tick_period already set",
+        return ngx_proxy_wasm_result_trap(rexec, "process exiting",
                                           rets, NGX_WAVM_OK);
     }
 
-    pwexec->tick_period = period;
+    if (rexec->tick_period) {
+        return ngx_proxy_wasm_result_trap(rexec, "tick_period already set",
+                                          rets, NGX_WAVM_OK);
+    }
+
+    rexec->tick_period = period;
 
     ev = ngx_calloc(sizeof(ngx_event_t), instance->log);
     if (ev == NULL) {
@@ -232,17 +232,16 @@ ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
     }
 
     ev->handler = ngx_proxy_wasm_filter_tick_handler;
-    ev->data = pwexec;
-    ev->log = pwexec->log;
+    ev->data = rexec;
+    ev->log = rexec->log;
 
-    ngx_add_timer(ev, pwexec->tick_period);
+    ngx_add_timer(ev, rexec->tick_period);
 
     return ngx_proxy_wasm_result_ok(rets);
 
 nomem:
 
-    return ngx_proxy_wasm_result_trap(pwexec, "no memory",
-                                      rets, NGX_WAVM_ERROR);
+    return ngx_proxy_wasm_result_trap(rexec, "no memory", rets, NGX_WAVM_ERROR);
 }
 
 

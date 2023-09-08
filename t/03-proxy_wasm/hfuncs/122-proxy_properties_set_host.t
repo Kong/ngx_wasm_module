@@ -139,10 +139,8 @@ Does not fail when the property is not found.
 
 
 === TEST 5: proxy_wasm - set_property() wasmx - not available on: tick (isolation: global)
-
-HTTP 500 since instance recycling happens on next request, and
-isolation is global (single instance for root/request).
-
+on_tick runs on the root context, so it does not have access to
+ngx_http_* calls.
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -157,7 +155,6 @@ isolation is global (single instance for root/request).
         echo_sleep 0.150;
         echo ok;
     }
---- error_code: 500
 --- ignore_response_body
 --- error_log eval
 [
@@ -172,12 +169,8 @@ isolation is global (single instance for root/request).
 
 
 === TEST 6: proxy_wasm - set_property() wasmx - not available on: tick (isolation: stream)
-
-HTTP 200 since the root and request instances are different.
-
 on_tick runs on the root context, so it does not have access to
 ngx_http_* calls.
-
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config

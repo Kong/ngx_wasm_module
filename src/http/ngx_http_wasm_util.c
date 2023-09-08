@@ -411,8 +411,8 @@ ngx_http_wasm_ops_add_filter(ngx_wasm_ops_plan_t *plan,
         goto error;
     }
 
-    filter->pool = plan->pool;
     filter->log = vm->log;
+    filter->pool = store->pool;
     filter->store = store;
 
     if (config) {

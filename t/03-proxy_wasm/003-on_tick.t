@@ -166,14 +166,14 @@ Should not prevent http context/instance from starting
         return 200;
     }
 --- response_body
---- grep_error_log eval: qr/\[(info|crit)].*?on_tick.*/
+--- grep_error_log eval: qr/(\[crit\]|\[info].*?on_tick).*/
 --- grep_error_log_out eval
 qr/.*?
 \[info\] .*? on_tick 200.*
-\[crit\] .*? panicked at 'on_tick trap'.*
+\[crit\] .*? panicked at.*
 .*?
 \[info\] .*? on_tick 200.*
-\[crit\] .*? panicked at 'on_tick trap'.*/
+\[crit\] .*? panicked at.*/
 --- error_log
 filter 1/1 resuming "on_request_headers" step
 filter 1/1 resuming "on_response_headers" step

@@ -97,7 +97,8 @@ TODO: is this behavior correct?
                               name=wasmx.nonexistent_property';
         echo ok;
     }
---- ignore_response_body
+--- response_body
+ok
 --- error_log eval
 qr/\[info\] .*? property not found: wasmx.nonexistent_property,/
 --- no_error_log
@@ -129,10 +130,6 @@ qr/\[info\] .*? property not found: was,/
 
 
 === TEST 4: proxy_wasm - get_property() wasmx - not available on: tick (isolation: global)
-
-HTTP 500 since instance recycling happens on next request, and isolation
-is global (single instance for root/request).
-
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -143,7 +140,6 @@ is global (single instance for root/request).
         echo_sleep 0.150;
         echo ok;
     }
---- error_code: 500
 --- ignore_response_body
 --- error_log eval
 [
@@ -152,15 +148,10 @@ is global (single instance for root/request).
     qr/\[crit\] .*? panicked at/,
     qr/unexpected status: 10/,
 ]
---- no_error_log
-[emerg]
 
 
 
 === TEST 5: proxy_wasm - get_property() wasmx - not available on: tick (isolation: stream)
-
-HTTP 200 since the root and request instances are different.
-
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config

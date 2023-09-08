@@ -193,32 +193,23 @@ skip_prefix:
 void
 ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 {
-    ngx_log_t                  *log = ev->log;
-    ngx_proxy_wasm_exec_t      *pwexec = ev->data;
+    ngx_proxy_wasm_err_e      ecode;
+    ngx_log_t                *log = ev->log;
+    ngx_proxy_wasm_exec_t    *rexec = ev->data;
+    ngx_proxy_wasm_filter_t  *filter = rexec->filter;
 #ifdef NGX_WASM_HTTP
-    ngx_proxy_wasm_ctx_t       *pwctx = pwexec->parent;
+    ngx_proxy_wasm_ctx_t     *pwctx = rexec->parent;
 #endif
-    ngx_proxy_wasm_filter_t    *filter = pwexec->filter;
-    ngx_proxy_wasm_instance_t  *ictx;
-    ngx_proxy_wasm_err_e        ecode;
 
     dd("enter");
 
-    ngx_wasm_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+    ngx_wasm_assert(rexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
     ngx_free(ev);
 
-    pwexec->ev = NULL;
+    rexec->ev = NULL;
 
     if (ngx_exiting || !filter->proxy_on_timer_ready) {
-        return;
-    }
-
-    ictx = ngx_proxy_wasm_get_instance(filter, filter->store, pwexec,
-                                       filter->log);
-    if (ictx == NULL) {
-        ngx_wasm_log_error(NGX_LOG_ERR, log, 0,
-                           "tick_handler: no instance");
         return;
     }
 
@@ -226,32 +217,25 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
     pwctx->phase = ngx_wasm_phase_lookup(&ngx_http_wasm_subsystem,
                                          NGX_WASM_BACKGROUND_PHASE);
 #endif
-    pwexec->in_tick = 1;
 
-    ecode = ngx_proxy_wasm_run_step(pwexec, ictx, NGX_PROXY_WASM_STEP_TICK);
-
-    ngx_proxy_wasm_release_instance(ictx, 0);
-
+    ecode = ngx_proxy_wasm_run_step(rexec, NGX_PROXY_WASM_STEP_TICK);
     if (ecode != NGX_PROXY_WASM_ERR_NONE) {
-        pwexec->ecode = ecode;
         return;
     }
 
-    pwexec->in_tick = 0;
-
     if (!ngx_exiting) {
-        pwexec->ev = ngx_calloc(sizeof(ngx_event_t), log);
-        if (pwexec->ev == NULL) {
+        rexec->ev = ngx_calloc(sizeof(ngx_event_t), log);
+        if (rexec->ev == NULL) {
             goto nomem;
         }
 
-        pwexec->ev->handler = ngx_proxy_wasm_filter_tick_handler;
-        pwexec->ev->data = pwexec;
-        pwexec->ev->log = log;
+        rexec->ev->handler = ngx_proxy_wasm_filter_tick_handler;
+        rexec->ev->data = rexec;
+        rexec->ev->log = log;
 
-        dd("scheduling next tick in %ld", pwexec->tick_period);
+        dd("scheduling next tick in %ld", rexec->tick_period);
 
-        ngx_add_timer(pwexec->ev, pwexec->tick_period);
+        ngx_add_timer(rexec->ev, rexec->tick_period);
     }
 
     return;
