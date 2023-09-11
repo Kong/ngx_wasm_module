@@ -1,0 +1,28 @@
+# https://docs.codecov.io/docs/codecovyml-reference
+codecov:
+  require_ci_to_pass: yes
+  notify:
+    wait_for_ci: yes
+    after_n_builds: 9
+
+coverage:
+  precision: 4
+  round: down
+  range: "75...100"
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 3%
+        base: auto
+        flags:
+          - unit
+        paths:
+          - src
+
+comment:
+  layout: "reach, diff, files"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes

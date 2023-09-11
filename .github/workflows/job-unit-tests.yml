@@ -146,6 +146,12 @@ jobs:
           flag-name: ${{ steps.lcov.outputs.name }}
           path-to-lcov: './lcov.info'
           parallel: true
+      - name: Codecov Upload
+        if: ${{ !env.ACT && inputs.coverage }}
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: './lcov.info'
       - uses: actions/upload-artifact@v2
         if: ${{ failure() && !env.ACT }}
         with:
