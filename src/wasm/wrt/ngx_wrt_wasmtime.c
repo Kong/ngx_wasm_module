@@ -135,7 +135,7 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
 
     if (conf->backtraces) {
         setenv("WASMTIME_BACKTRACE_DETAILS", "1", 1);
-        setenv("RUST_BACKTRACE", "FULL", 1);
+        setenv("RUST_BACKTRACE", "full", 1);
 
     } else {
         setenv("WASMTIME_BACKTRACE_DETAILS", "0", 0);
