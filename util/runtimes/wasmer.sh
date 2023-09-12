@@ -111,26 +111,9 @@ build_wasmer() {
                 rm -rf target
             fi
 
-            # We call cargo directly to avoid the webc_runner feature flag.
-            #
-            #RUSTFLAGS=$NGX_BUILD_WASMER_RUSTFLAGS \
-            #ENABLE_LLVM=0 \
-            #    make build-capi
             RUSTFLAGS=$NGX_BUILD_WASMER_RUSTFLAGS \
-                cargo build \
-                --manifest-path lib/c-api/Cargo.toml \
-                --release \
-                --no-default-features \
-                --features wat,compiler,wasi,middlewares \
-                --features wasmer-artifact-create,static-artifact-create \
-                --features wasmer-artifact-load,static-artifact-load \
-                --features cranelift,singlepass
-
-            ### check
-
-            if strings target/release/libwasmer.* | grep -q 'webc::'; then
-                fatal "failed to build Wasmer without webc."
-            fi
+            ENABLE_LLVM=0 \
+                make build-capi
 
             ### install
 
