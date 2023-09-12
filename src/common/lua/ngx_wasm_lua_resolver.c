@@ -1,3 +1,16 @@
+/**
+ * DNS resolution for Proxy-Wasm filters running in Kong Gateway.
+ *
+ * ngx_wasm_module handles DNS resolution via Nginx's configured `resolver`
+ * (http{}, wasm{}, or default from ngx_wasm.h). However, Kong Gateway's DNS
+ * resolution is handled by the Gateway's Lua-land resolver: resty.dns.client.
+ *
+ * To ensure DNS resolution consistency between Kong Gateway core/plugins and
+ * Proxy-Wasm filters, this file leverages our Wasm/Lua bridge to invoke the
+ * Gateway's Lua-land resolver in lieu of the configured Nginx resolver when
+ * built against OpenResty and enabled via `proxy_wasm_lua_resolver`.
+ */
+
 #ifndef DDEBUG
 #define DDEBUG 0
 #endif
