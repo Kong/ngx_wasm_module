@@ -24,7 +24,7 @@
 {
    <wasmer 3.1.1: parse>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17h5c54f0ee5315402aE
+   fun:_ZN10wasmparser6parser6Parser5parse17h*
    ...
    fun:main
 }
@@ -34,7 +34,7 @@
    match-leak-kinds: definite
    fun:malloc
    ...
-   fun:_ZN6wasmer3sys8instance8Instance12new_by_index17h9b11b6b5fcb57319E
+   fun:_ZN6wasmer3sys8instance8Instance12new_by_index17h*
    fun:wasm_instance_new
 }
 {
@@ -43,13 +43,13 @@
    match-leak-kinds: possible
    fun:calloc
    ...
-   fun:_ZN6wasmer3sys6module6Module11from_binary17h0e63bedfc82f5d11E
+   fun:_ZN6wasmer3sys6module6Module11from_binary17h*
    fun:wasm_module_new
 }
 {
    <wasmtime 12.0.1: parse>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17h6d71d9974412b3d6E
+   fun:_ZN10wasmparser6parser6Parser5parse17h*
 }
 {
    <v8 11.4.183.23: wasm_engine_new>
@@ -63,5 +63,5 @@
 {
    <ngx_wasm_rs: parse>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17h9b8c5cdeb2164838E
+   fun:_ZN10wasmparser6parser6Parser5parse17h*
 }
