@@ -515,7 +515,9 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
     ngx_wrt_module_t *module, ngx_pool_t *pool, ngx_wrt_err_t *err)
 {
     size_t                   i, j;
+#if (NGX_DEBUG)
     ngx_uint_t               nimports = 0;
+#endif
     ngx_wrt_import_t        *import;
     ngx_wasmer_hfunc_ctx_t  *hctx, *hctxs = NULL;
     wasm_func_t             *func;
@@ -558,7 +560,9 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
                     instance->env.data[i] = (wasm_extern_t *)
                         wasmer_named_extern_unwrap(
                             instance->wasi_imports.data[j]);
+#if (NGX_DEBUG)
                     nimports++;
+#endif
                     break;
                 }
             }
@@ -576,7 +580,9 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
                                           hctx, NULL);
 
             instance->env.data[i] = wasm_func_as_extern(func);
+#if (NGX_DEBUG)
             nimports++;
+#endif
             break;
 
         default:

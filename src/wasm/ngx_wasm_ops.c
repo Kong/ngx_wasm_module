@@ -126,7 +126,7 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
     ngx_uint_t               *fid;
     ngx_array_t              *ids;
     ngx_wasm_op_t            *op;
-    ngx_wasm_ops_pipeline_t  *pipeline;
+    ngx_wasm_ops_pipeline_t  *pipeline = NULL;
 
     dd("enter");
 
