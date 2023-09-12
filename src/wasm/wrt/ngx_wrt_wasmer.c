@@ -77,7 +77,7 @@ ngx_wasmer_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
     ngx_wasm_assert(conf->backtraces != NGX_CONF_UNSET);
 
     if (conf->backtraces) {
-        setenv("RUST_BACKTRACE", "FULL", 1);
+        setenv("RUST_BACKTRACE", "full", 1);
 
     } else {
         setenv("RUST_BACKTRACE", "0", 0);
