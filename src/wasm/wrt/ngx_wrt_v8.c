@@ -452,7 +452,9 @@ ngx_v8_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
     ngx_wrt_module_t *module, ngx_pool_t *pool, ngx_wrt_err_t *err)
 {
     size_t               i;
+#if (NGX_DEBUG)
     ngx_uint_t           nimports = 0;
+#endif
     ngx_wavm_hfunc_t    *import;
     ngx_v8_hfunc_ctx_t  *hctx = NULL;
     wasm_func_t         *func;
@@ -485,7 +487,9 @@ ngx_v8_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
                                       hctx, NULL);
 
         instance->imports[i] = wasm_func_as_extern(func);
+#if (NGX_DEBUG)
         nimports++;
+#endif
     }
 
     ngx_wasm_assert(nimports == module->nimports);
