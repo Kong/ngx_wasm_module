@@ -45,6 +45,8 @@ RUN apt-get install -y \
         gcovr \
         unzip \
         sudo && \
+    rustup target add wasm32-wasi && \
+    rustup target add wasm32-unknown-unknown && \
     curl -sLO https://golang.google.cn/dl/go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \
     sudo rm -rf /usr/local/go && tar -C /usr/local -xzf go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \
     curl -sLO https://github.com/tinygo-org/tinygo/releases/download/v$TINYGO_VERSION/tinygo_${TINYGO_VERSION}_$(cat /TG_ARCH).deb && \
