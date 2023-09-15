@@ -467,13 +467,9 @@ ngx_proxy_wasm_action2rc(ngx_proxy_wasm_ctx_t *pwctx,
         if (!pwexec->ecode_logged
             && pwctx->step != NGX_PROXY_WASM_STEP_DONE)
         {
-            ngx_proxy_wasm_log_error(NGX_LOG_WARN, pwexec->log,
-                                     pwexec->ecode,
-                                     "filter %l/%l failed resuming \"%V\" "
-                                     "step in \"%V\" phase",
-                                     pwexec->index + 1, pwctx->nfilters,
-                                     ngx_proxy_wasm_step_name(pwctx->step),
-                                     &pwctx->phase->name);
+            ngx_proxy_wasm_log_error(NGX_LOG_INFO, pwctx->log, pwexec->ecode,
+                                     "filter chain failed resuming: "
+                                     "previous error");
 
             pwexec->ecode_logged = 1;
         }
@@ -543,34 +539,23 @@ ngx_proxy_wasm_action2rc(ngx_proxy_wasm_ctx_t *pwctx,
             goto yield;
 #endif
         default:
-            if (pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID) {
-                ngx_proxy_wasm_log_error(NGX_LOG_ERR, pwexec->log,
-                                         pwexec->ecode,
-                                         "root context cannot pause in "
-                                         "\"%V\" phase (\"%V\" step)",
-                                         &pwctx->phase->name,
-                                         ngx_proxy_wasm_step_name(pwctx->step));
-
-            } else {
-                ngx_proxy_wasm_log_error(NGX_LOG_ERR, pwexec->log,
-                                         pwexec->ecode,
-                                         "filter %l/%l cannot pause in "
-                                         "\"%V\" phase (\"%V\" step)",
-                                         pwexec->index + 1, pwctx->nfilters,
-                                         &pwctx->phase->name,
-                                         ngx_proxy_wasm_step_name(pwctx->step));
-            }
+            ngx_proxy_wasm_log_error(NGX_LOG_ERR, pwexec->log, pwexec->ecode,
+                                     "bad \"%V\" return action: \"PAUSE\"",
+                                     ngx_proxy_wasm_step_name(pwctx->step));
 
             pwexecs = (ngx_proxy_wasm_exec_t *) pwctx->pwexecs.elts;
             pwexec = &pwexecs[pwctx->exec_index];
-            pwexec->ecode = NGX_PROXY_WASM_ERR_NOT_YIELDABLE;
+            pwexec->ecode = NGX_PROXY_WASM_ERR_RETURN_ACTION;
+            break;
         }
 
         break;
 
     default:
-        ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwexec->log, 0,
-                                 "NYI - proxy_wasm action: %d", action);
+        ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwctx->log, 0,
+                                 "NYI - \"%V\" return action: %d",
+                                 ngx_proxy_wasm_step_name(pwctx->step),
+                                 action);
         goto error;
 
     }
@@ -583,8 +568,8 @@ error:
 #endif
                     );
 
-    if (rc == NGX_ERROR) {
-        pwexec->ecode = NGX_PROXY_WASM_ERR_NOT_YIELDABLE;
+    if (rc == NGX_ERROR && !pwexec->ecode) {
+        pwexec->ecode = NGX_PROXY_WASM_ERR_UNKNOWN;
     }
 
     goto done;
@@ -680,7 +665,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
         rc = ngx_proxy_wasm_on_tick(pwexec);
         break;
     default:
-        ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwexec->log, 0,
+        ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwctx->log, 0,
                                  "NYI - proxy_wasm step: %d", step);
         rc = NGX_ERROR;
         break;
@@ -1486,7 +1471,7 @@ ngx_proxy_wasm_on_start(ngx_proxy_wasm_instance_t *ictx,
                                                 &rets,
                                                 rexec->id, 0);
             if (rc != NGX_OK || !rets->data[0].of.i32) {
-                return NGX_PROXY_WASM_ERR_START_FAILED;
+                return NGX_PROXY_WASM_ERR_VM_START_FAILED;
             }
         }
 
@@ -1495,7 +1480,7 @@ ngx_proxy_wasm_on_start(ngx_proxy_wasm_instance_t *ictx,
                                             &rets,
                                             rexec->id, filter->config.len);
         if (rc != NGX_OK || !rets->data[0].of.i32) {
-            return NGX_PROXY_WASM_ERR_START_FAILED;
+            return NGX_PROXY_WASM_ERR_CONFIGURE_FAILED;
         }
 
         rexec->started = 1;
@@ -1514,7 +1499,7 @@ ngx_proxy_wasm_on_start(ngx_proxy_wasm_instance_t *ictx,
                                             NULL,
                                             pwexec->id, pwexec->root_id);
         if (rc != NGX_OK) {
-            return NGX_PROXY_WASM_ERR_INSTANCE_FAILED;
+            return NGX_PROXY_WASM_ERR_START_FAILED;
         }
 
         pwexec->node.key = pwexec->id;

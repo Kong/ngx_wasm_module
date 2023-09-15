@@ -368,7 +368,7 @@ qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase
 --- grep_error_log_out eval
 qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_dispatch_response" step in "access" phase[^#*]*
-\*\d+ .*? filter 1\/1 failed resuming "on_response_body" step in "body_filter" phase \(dispatch failed\)[^#*]*
+\*\d+ .*? filter chain failed resuming: previous error \(dispatch failure\)[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*\Z/
 
 

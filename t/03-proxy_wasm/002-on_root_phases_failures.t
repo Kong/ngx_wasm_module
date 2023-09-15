@@ -33,7 +33,7 @@ qq{
 [
     qr/\[crit\] .*? panicked at/,
     qr/trap on_vm_start/,
-    qr/\[emerg\] .*? failed initializing "hostcalls" filter \(initialization failed\)/,
+    qr/\[emerg\] .*? failed initializing "hostcalls" filter \(on_vm_start failure\)/,
 ]
 --- must_die: 2
 
@@ -58,7 +58,7 @@ qq{
 --- error_log eval
 [
     qr/\[info\] .*? on_vm_start returning false/,
-    qr/\[emerg\] .*? failed initializing "hostcalls" filter \(initialization failed\)/,
+    qr/\[emerg\] .*? failed initializing "hostcalls" filter \(on_vm_start failure\)/,
 ]
 --- no_error_log
 [crit]
@@ -86,7 +86,7 @@ qq{
 [
     qr/\[crit\] .*? panicked at/,
     qr/trap on_configure/,
-    qr/\[emerg\] .*? failed initializing "hostcalls" filter \(initialization failed\)/,
+    qr/\[emerg\] .*? failed initializing "hostcalls" filter \(on_configure failure\)/,
 ]
 --- must_die: 2
 
@@ -109,7 +109,7 @@ qq{
         return 200;
     }
 --- error_log eval
-qr/\[emerg\] .*? failed initializing "hostcalls" filter \(initialization failed\)/
+qr/\[emerg\] .*? failed initializing "hostcalls" filter \(on_configure failure\)/
 --- no_error_log
 [error]
 [crit]

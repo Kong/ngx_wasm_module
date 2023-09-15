@@ -257,8 +257,8 @@ from_request_body
 --- grep_error_log eval: qr/(.*?cannot set|\[.*?failed resuming).*/
 --- grep_error_log_out eval
 qr/.*?host trap \(bad usage\): cannot set request body.*
-\[warn\] .*? \*\d+ .*? filter 1\/1 failed resuming "on_response_body" step in "body_filter" phase \(instance trapped\).*? subrequest: "\/response_headers".*
-\[warn\] .*? \*\d+ .*? filter 1\/1 failed resuming "on_response_body" step in "body_filter" phase \(instance trapped\).*? request: "GET \/t HTTP\/1\.1".*
+\[info\] .*? \*\d+ .*? filter chain failed resuming: previous error \(instance trapped\).*? subrequest: "\/response_headers".*
+\[info\] .*? \*\d+ .*? filter chain failed resuming: previous error \(instance trapped\).*? request: "GET \/t HTTP\/1\.1".*
 \z/
 --- no_error_log
 [alert]
