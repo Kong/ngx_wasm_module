@@ -92,7 +92,7 @@ Should recycle the global instance when trapped.
 \*\d+ .*? filter reusing instance[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 (.*?(Uncaught RuntimeError: )?unreachable|\s*wasm trap: wasm `unreachable` instruction executed)[^#*]*
-\*\d+ .*? filter 1\/2 failed resuming "on_response_headers" step in "header_filter" phase \(instance trapped\)[^#*]*
+\*\d+ .*? filter chain failed resuming: previous error \(instance trapped\)[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(1\/2\)[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(2\/2\)\Z/,
 qr/\A\*\d+ .*? filter freeing trapped instance[^#*]*
@@ -202,7 +202,7 @@ qr/\A\*\d+ .*? filter new instance[^#*]*
 \*\d+ .*? filter reusing instance[^#*]*
 \*\d+ .*? filter 1\/2 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 (.*?(Uncaught RuntimeError: )?unreachable|\s*wasm trap: wasm `unreachable` instruction executed)[^#*]*
-\*\d+ .*? filter 1\/2 failed resuming "on_response_headers" step in "header_filter" phase \(instance trapped\)[^#*]*
+\*\d+ .*? filter chain failed resuming: previous error \(instance trapped\)[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(1\/2\)[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(2\/2\)[^#*]*
 \*\d+ .*? freeing "hostcalls" instance in "main" vm[^#*]*\Z/,

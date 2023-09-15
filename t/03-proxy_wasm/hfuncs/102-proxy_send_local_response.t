@@ -316,7 +316,7 @@ qr/testing in "ResponseHeaders"/
 --- grep_error_log eval: qr/(\[error\]|host trap|\[.*?failed resuming).*/
 --- grep_error_log_out eval
 qr/.*?host trap \(bad usage\): response already sent.*
-\[warn\] .*? filter 1\/1 failed resuming "on_response_body" step in "body_filter" phase \(instance trapped\)/
+\[info\] .*? filter chain failed resuming: previous error \(instance trapped\)/
 --- no_error_log
 [alert]
 [stub]

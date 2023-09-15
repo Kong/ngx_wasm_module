@@ -68,8 +68,8 @@ NYI
 --- error_log eval
 [
     qr/pausing after "ResponseHeaders"/,
-    qr#\[error\] .*? filter 1/1 cannot pause in "header_filter" phase#,
-    qr#\[warn\] .*? filter 1/1 failed resuming "on_response_body" step in "body_filter" phase \(not yieldable\)#
+    qr#\[error\] .*? bad "on_response_headers" return action: "PAUSE"#,
+    qr#\[info\] .*? filter chain failed resuming: previous error \(invalid return action\)#
 ]
 
 
@@ -86,8 +86,8 @@ NYI
 --- error_log eval
 [
     qr/pausing after "ResponseBody"/,
-    qr#\[error\] .*? filter 1/1 cannot pause in "body_filter" phase#,
-    qr#\[warn\] .*? filter 1/1 failed resuming "on_log" step in "log" phase \(not yieldable\)#
+    qr#\[error\] .*? bad "on_response_body" return action: "PAUSE"#,
+    qr#\[info\] .*? filter chain failed resuming: previous error \(invalid return action\)#
 ]
 
 
@@ -188,8 +188,8 @@ NYI
 --- error_log eval
 [
     qr/pausing after "ResponseHeaders"/,
-    qr#\[error\] .*? filter 1/1 cannot pause in "header_filter" phase#,
-    qr#\[warn\] .*? filter 1/1 failed resuming "on_response_body" step in "body_filter" phase \(not yieldable\)#
+    qr#\[error\] .*? bad "on_response_headers" return action: "PAUSE"#,
+    qr#\[info\] .*? filter chain failed resuming: previous error \(invalid return action\)#
 ]
 
 
@@ -224,6 +224,6 @@ ok
 --- error_log eval
 [
     qr/pausing after "ResponseBody"/,
-    qr#\[error\] .*? filter 1/1 cannot pause in "body_filter" phase#,
-    qr#\[warn\] .*? filter 1/1 failed resuming "on_response_body" step in "body_filter" phase \(not yieldable\)#
+    qr#\[error\] .*? bad "on_response_body" return action: "PAUSE"#,
+    qr#\[info\] .*? filter chain failed resuming: previous error \(invalid return action\)#
 ]

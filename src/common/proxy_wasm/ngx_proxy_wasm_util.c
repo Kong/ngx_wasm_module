@@ -21,11 +21,12 @@ static ngx_str_t  ngx_proxy_wasm_errlist[] = {
     ngx_string("incompatible ABI version"),
     ngx_string("incompatible host interface"),
     ngx_string("incompatible SDK interface"),
-    ngx_string("instantiation failed"),
+    ngx_string("on_context_create internal failure"),
+    ngx_string("on_vm_start failure"),
+    ngx_string("on_configure failure"),
+    ngx_string("dispatch failure"),
     ngx_string("instance trapped"),
-    ngx_string("initialization failed"),
-    ngx_string("dispatch failed"),
-    ngx_string("not yieldable"),
+    ngx_string("invalid return action"),
     ngx_string("unknown error")
 };
 
