@@ -12,8 +12,16 @@ coverage:
   status:
     project:
       default:
+        target: auto
+        threshold: 3%
+        flags:
+          - unit
+        paths:
+          - src
+    patch:
+      default:
         target: 50%
-        threshold: 20%
+        threshold: 3%
         flags:
           - unit
         paths:
