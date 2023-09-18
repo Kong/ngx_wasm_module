@@ -21,7 +21,8 @@ RUN apt-get update && \
         clang-${CLANG_VERSION} \
         curl \
         binfmt-support \
-        qemu-user-static
+        qemu-user-static && \
+    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_VERSION} 100
 
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
 ENV PATH $CARGO_HOME/bin:$PATH
