@@ -105,6 +105,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 #\d+ on_response_headers, 5 headers[^#]*
 #\d+ on_response_body, 3 bytes, eof: false[^#]*
 #\d+ on_response_body, 0 bytes, eof: true[^#]*
+#\d+ on_done[^#]*
 #\d+ on_log[^#]*$/
 --- error_log eval
 qr/\[error\] .*? previous plan already attached/
@@ -156,6 +157,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 #\d+ on_response_headers, 5 headers[^#]*
 #\d+ on_response_body, 3 bytes, eof: false[^#]*
 #\d+ on_response_body, 0 bytes, eof: true[^#]*
+#\d+ on_done[^#]*
 #\d+ on_log[^#]*$/
 --- no_error_log
 [error]
@@ -207,6 +209,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 #\d+ on_response_headers, 5 headers[^#]*
 #\d+ on_response_body, 3 bytes, eof: false[^#]*
 #\d+ on_response_body, 0 bytes, eof: true[^#]*
+#\d+ on_done[^#]*
 #\d+ on_log[^#]*$/
 --- no_error_log
 [error]
@@ -258,6 +261,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 #\d+ on_response_headers, 5 headers[^#]*
 #\d+ on_response_body, 3 bytes, eof: false[^#]*
 #\d+ on_response_body, 0 bytes, eof: true[^#]*
+#\d+ on_done[^#]*
 #\d+ on_log[^#]*$/
 --- no_error_log
 [error]
