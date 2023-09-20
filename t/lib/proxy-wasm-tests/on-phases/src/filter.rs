@@ -109,7 +109,23 @@ impl OnPhases {
     }
 }
 
-impl Context for OnPhases {}
+impl Context for OnPhases {
+    fn on_done(&mut self) -> bool {
+        info!("#{} on_done", self.context_id);
+
+        let log_msg = self
+            .config
+            .get("log_msg")
+            .map_or(String::new(), |s| s.to_string());
+
+        if !log_msg.is_empty() {
+            info!("#{} log_msg: {}", self.context_id, log_msg);
+        }
+
+        true
+    }
+}
+
 impl HttpContext for OnPhases {
     fn on_http_request_headers(&mut self, nheaders: usize, _eof: bool) -> Action {
         info!(

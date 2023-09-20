@@ -105,6 +105,12 @@ impl Context for TestHttp {
 
         self.resume_http_request()
     }
+
+    fn on_done(&mut self) -> bool {
+        info!("[hostcalls] on_done");
+
+        true
+    }
 }
 
 impl HttpContext for TestHttp {
