@@ -8,6 +8,10 @@
 #include <ngx_wasi.h>
 
 
+#define NGX_WRT_WASMTIME_STACK_NARGS  10
+#define NGX_WRT_WASMTIME_STACK_NRETS  10
+
+
 typedef void (*wasmtime_config_set_int_pt)(wasm_config_t *config,
     uint64_t value);
 typedef void (*wasmtime_config_set_bool_pt)(wasm_config_t *config, bool value);
@@ -610,7 +614,9 @@ ngx_wasmtime_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
     ngx_int_t           rc = NGX_ERROR;;
     wasmtime_extern_t   item;
     wasmtime_func_t    *func;
-    wasmtime_val_t     *wargs = NULL, *wrets = NULL;
+    wasmtime_val_t     *wargs = NULL, *wrets = NULL,
+                        swargs[NGX_WRT_WASMTIME_STACK_NARGS],
+                        swrets[NGX_WRT_WASMTIME_STACK_NRETS];
 
     if (!wasmtime_instance_export_get(instance->store->context,
                                       &instance->instance,
@@ -624,16 +630,28 @@ ngx_wasmtime_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
 
     func = &item.of.func;
 
-    wargs = ngx_pcalloc(instance->pool, sizeof(wasmtime_val_t) * args->size);
-    if (wargs == NULL) {
-        goto done;
+    if (args->size <= NGX_WRT_WASMTIME_STACK_NARGS) {
+        wargs = &swargs[0];
+
+    } else {
+        wargs = ngx_pcalloc(instance->pool,
+                            sizeof(wasmtime_val_t) * args->size);
+        if (wargs == NULL) {
+            goto done;
+        }
     }
 
     ngx_wasm_valvec2wasmtime(wargs, args);
 
-    wrets = ngx_pcalloc(instance->pool, sizeof(wasmtime_val_t) * rets->size);
-    if (wrets == NULL) {
-        goto done;
+    if (rets->size <= NGX_WRT_WASMTIME_STACK_NRETS) {
+        wrets = &swrets[0];
+
+    } else {
+        wrets = ngx_pcalloc(instance->pool,
+                            sizeof(wasmtime_val_t) * rets->size);
+        if (wrets == NULL) {
+            goto done;
+        }
     }
 
     err->res = wasmtime_func_call(instance->store->context,
@@ -652,11 +670,11 @@ ngx_wasmtime_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
 
 done:
 
-    if (wargs) {
+    if (args->size > NGX_WRT_WASMTIME_STACK_NARGS && wargs) {
         ngx_pfree(instance->pool, wargs);
     }
 
-    if (wrets) {
+    if (rets->size > NGX_WRT_WASMTIME_STACK_NRETS && wrets) {
         ngx_pfree(instance->pool, wrets);
     }
 
