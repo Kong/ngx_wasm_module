@@ -242,7 +242,12 @@ ngx_proxy_wasm_ctx_alloc(ngx_pool_t *pool)
         return NULL;
     }
 
-    pwctx->pool = pool;
+    pwctx->pool = ngx_create_pool(512, pool->log);
+    if (pwctx->pool == NULL) {
+        return NULL;
+    }
+
+    pwctx->parent_pool = pool;
 
     ngx_rbtree_init(&pwctx->host_props_tree, &pwctx->host_props_sentinel,
                     ngx_str_rbtree_insert_value);
@@ -294,20 +299,17 @@ ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
                 return NULL;
             }
 
+            pool = pwctx->pool;
+            log = pwctx->log;
+
             switch (pwctx->isolation) {
             case NGX_PROXY_WASM_ISOLATION_NONE:
                 pwstore = filter->store;
-                pool = filter->pool;
-                log = pwctx->log;
                 break;
             case NGX_PROXY_WASM_ISOLATION_STREAM:
                 pwstore = &pwctx->store;
-                pool = pwstore->pool;
-                log = pwctx->log;
                 break;
             case NGX_PROXY_WASM_ISOLATION_FILTER:
-                pool = pwctx->pool;
-                log = pwctx->log;
                 break;
             default:
                 ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwctx->log, 0,
@@ -399,6 +401,7 @@ ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx)
 
     ngx_proxy_wasm_store_destroy(&pwctx->store);
 
+#if 0
     if (pwctx->authority.data) {
         ngx_pfree(pwctx->pool, pwctx->authority.data);
     }
@@ -442,10 +445,11 @@ ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx)
     if (pwctx->response_status.data) {
         ngx_pfree(pwctx->pool, pwctx->response_status.data);
     }
+#endif
 
-    ngx_array_destroy(&pwctx->pwexecs);
+    ngx_destroy_pool(pwctx->pool);
 
-    ngx_pfree(pwctx->pool, pwctx);
+    ngx_pfree(pwctx->parent_pool, pwctx);
 }
 
 

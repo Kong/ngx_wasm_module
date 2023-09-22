@@ -217,6 +217,7 @@ struct ngx_proxy_wasm_ctx_s {
     ngx_proxy_wasm_context_type_e      type;
     ngx_log_t                         *log;
     ngx_pool_t                        *pool;
+    ngx_pool_t                        *parent_pool;
     void                              *data;
 
     /* control */
