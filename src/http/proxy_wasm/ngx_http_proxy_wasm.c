@@ -346,6 +346,15 @@ ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_err_e ecode)
 }
 
 
+static void
+ngx_http_proxy_wasm_ctx_cleanup_handler(void *data)
+{
+    ngx_proxy_wasm_ctx_t  *pwctx = data;
+
+    ngx_proxy_wasm_ctx_destroy(pwctx);
+}
+
+
 static ngx_proxy_wasm_ctx_t *
 ngx_http_proxy_wasm_ctx(void *data)
 {
@@ -353,6 +362,7 @@ ngx_http_proxy_wasm_ctx(void *data)
     ngx_http_wasm_req_ctx_t   *rctx = data;
     ngx_http_request_t        *r = rctx->r;
     ngx_http_wasm_loc_conf_t  *loc;
+    ngx_pool_cleanup_t        *cln;
 
     loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
 
@@ -374,6 +384,16 @@ ngx_http_proxy_wasm_ctx(void *data)
 
         /* for on_request_body retrieval */
         rctx->data = pwctx;
+
+        if (rctx->fake_request) {
+            cln = ngx_pool_cleanup_add(pwctx->parent_pool, 0);
+            if (cln == NULL) {
+                return NULL;
+            }
+
+            cln->handler = ngx_http_proxy_wasm_ctx_cleanup_handler;
+            cln->data = pwctx;
+        }
     }
 
     return pwctx;

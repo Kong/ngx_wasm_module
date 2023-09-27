@@ -191,7 +191,9 @@ ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    pwctx = ngx_http_proxy_wasm.get_context(rctx);
+    pwctx = ngx_proxy_wasm_ctx(NULL, 0,
+                               NGX_PROXY_WASM_ISOLATION_STREAM,
+                               &ngx_http_proxy_wasm, rctx);
     if (pwctx == NULL) {
         return NGX_ERROR;
     }
@@ -208,14 +210,16 @@ ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
     ngx_proxy_wasm_ctx_t     *pwctx;
 
     if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
-        /*
+        /**
          * TODO: return code signifying "no plan attached to request" and co.
          * return associated constant as err/code from Lua lib
          */
         return NGX_ERROR;
     }
 
-    pwctx = ngx_http_proxy_wasm.get_context(rctx);
+    pwctx = ngx_proxy_wasm_ctx(NULL, 0,
+                               NGX_PROXY_WASM_ISOLATION_STREAM,
+                               &ngx_http_proxy_wasm, rctx);
     if (pwctx == NULL) {
         return NGX_ERROR;
     }
