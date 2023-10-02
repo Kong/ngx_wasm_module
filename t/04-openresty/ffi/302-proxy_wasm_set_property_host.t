@@ -262,3 +262,46 @@ ok
 ]
 --- no_error_log
 [error]
+
+
+
+=== TEST 7: set_property() - regression test: setting properties at startup doesn't reset filter list
+--- wasm_modules: hostcalls
+--- http_config
+    init_worker_by_lua_block {
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
+        local filters = {
+            { name = "hostcalls", config = "on=log " ..
+                                           "test=/t/log/property " ..
+                                           "name=wasmx.startup_property" },
+        }
+
+        _G.c_plan = assert(proxy_wasm.new(filters))
+
+        assert(proxy_wasm.load(_G.c_plan))
+    }
+--- config
+    location /t {
+        proxy_wasm_request_headers_in_access on;
+
+        access_by_lua_block {
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
+
+            assert(proxy_wasm.attach(_G.c_plan))
+
+            assert(proxy_wasm.set_property("wasmx.startup_property", "foo"))
+
+            assert(proxy_wasm.start())
+
+            ngx.say("ok")
+        }
+    }
+--- response_body
+ok
+--- error_log eval
+[
+    qr/\[info\] .*? \[hostcalls\] on_log/,
+    qr/\[info\] .*?hostcalls.*? wasmx.startup_property: foo/,
+]
+--- no_error_log
+[error]
