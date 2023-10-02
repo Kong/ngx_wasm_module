@@ -275,7 +275,7 @@ ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
         return NULL;
     }
 
-    if (!pwctx->ready) {
+    if (!pwctx->ready && filter_ids) {
         pwctx->nfilters = nfilters;
         pwctx->isolation = isolation;
 
@@ -399,7 +399,9 @@ ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx)
         ngx_proxy_wasm_release_instance(ictx, 0);
     }
 
-    ngx_proxy_wasm_store_destroy(&pwctx->store);
+    if (pwctx->ready) {
+        ngx_proxy_wasm_store_destroy(&pwctx->store);
+    }
 
 #if 0
     if (pwctx->authority.data) {
