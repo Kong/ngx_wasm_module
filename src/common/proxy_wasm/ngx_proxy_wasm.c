@@ -616,6 +616,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
 
     ictx->pwexec = pwexec;  /* set instance current pwexec */
     pwexec->ictx = ictx;    /* link pwexec to instance */
+    pwctx->step = step;
 
     /*
      * update instance log
@@ -732,8 +733,14 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
     case NGX_PROXY_WASM_STEP_TICK:
     case NGX_PROXY_WASM_STEP_DONE:
     case NGX_PROXY_WASM_STEP_RESP_BODY:
-    case NGX_PROXY_WASM_STEP_RESP_HEADERS:
     case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
+        break;
+    case NGX_PROXY_WASM_STEP_RESP_HEADERS:
+        if (pwctx->last_step < NGX_PROXY_WASM_STEP_RESP_HEADERS) {
+            /* first execution of response phases, ensure the chain is reset */
+            ngx_proxy_wasm_ctx_reset_chain(pwctx);
+        }
+
         break;
     default:
         if (step <= pwctx->last_step) {

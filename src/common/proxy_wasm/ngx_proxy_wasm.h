@@ -434,6 +434,18 @@ ngx_proxy_wasm_ctx_set_next_action(ngx_proxy_wasm_ctx_t *pwctx,
 }
 
 
+static ngx_inline void
+ngx_proxy_wasm_ctx_reset_chain(ngx_proxy_wasm_ctx_t *pwctx)
+{
+    ngx_proxy_wasm_log_error(NGX_LOG_DEBUG, pwctx->log, 0,
+                             "resetting filter chain: pwctx->exec_index "
+                             "%l to 0 (pwctx: %p)",
+                             pwctx->exec_index, pwctx);
+
+    pwctx->exec_index = 0;
+}
+
+
 static ngx_inline ngx_proxy_wasm_exec_t *
 ngx_proxy_wasm_instance2pwexec(ngx_wavm_instance_t *instance)
 {

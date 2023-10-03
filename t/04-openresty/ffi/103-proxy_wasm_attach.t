@@ -451,7 +451,7 @@ bad opts.isolation value: -1
 --- error_code eval
 [200, 200]
 --- ignore_response_body
---- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing instance|finalizing|freeing|now|trap in|filter chain).*/
+--- grep_error_log eval: qr/\*\d+.*?(resuming|new instance|reusing instance|finalizing|freeing|now|trap in|initializing filter chain).*/
 --- grep_error_log_out eval
 [
 qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\)[^#*]*
@@ -508,7 +508,7 @@ qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\)[^#
 --- error_code eval
 [200, 200]
 --- ignore_response_body
---- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing instance|finalizing|freeing|now|trap in|filter chain)|#\d+ on_(configure|vm_start)).*/
+--- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing instance|finalizing|freeing|now|trap in|initializing filter chain)|#\d+ on_(configure|vm_start)).*/
 --- grep_error_log_out eval
 [
 qr/\A[^#]*#0 on_vm_start[^#*]*
@@ -573,7 +573,7 @@ qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\)[^#
 --- error_code eval
 [200, 200]
 --- ignore_response_body
---- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing instance|finalizing|freeing|now|trap in|filter chain)|#\d+ (on_configure|on_vm_start)).*/
+--- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing instance|finalizing|freeing|now|trap in|initializing filter chain)|#\d+ (on_configure|on_vm_start)).*/
 --- grep_error_log_out eval
 [
 qr/\A[^#]*#0 on_vm_start[^#*]*
