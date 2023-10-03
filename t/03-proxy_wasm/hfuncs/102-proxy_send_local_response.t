@@ -417,7 +417,38 @@ Hello world
 
 
 
-=== TEST 18: proxy_wasm - send_local_response() in chained filters
+=== TEST 18: proxy_wasm - send_local_response() executes all chained filters response steps
+should run all response steps of all chained filters
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls;
+        proxy_wasm hostcalls 'test=/t/send_local_response/body';
+        proxy_wasm hostcalls;
+    }
+--- response_body
+Hello world
+--- grep_error_log eval: qr/\[info\] .*? on_(request|response|log).*/
+--- grep_error_log_out eval
+qr/\A.*? on_request_headers, \d+ headers.*
+.*? on_request_headers, \d+ headers.*
+.*? on_response_headers, \d+ headers.*
+.*? on_response_headers, \d+ headers.*
+.*? on_response_headers, \d+ headers.*
+.*? on_response_body, \d+ bytes, eof: true.*
+.*? on_response_body, \d+ bytes, eof: true.*
+.*? on_response_body, \d+ bytes, eof: true.*
+.*? on_log.*
+.*? on_log.*
+.*? on_log/
+--- no_error_log
+[error]
+[crit]
+[alert]
+
+
+
+=== TEST 19: proxy_wasm - send_local_response() invoked twice in chained filters
 should interrupt the current phase, preventing "response already stashed"
 should still run all response phases
 --- wasm_modules: hostcalls
@@ -445,7 +476,7 @@ qr/.*? on_request_headers, \d+ headers.*
 
 
 
-=== TEST 19: proxy_wasm - send_local_response() in chained filters as a subrequest
+=== TEST 20: proxy_wasm - send_local_response() in chained filters as a subrequest
 should interrupt the current phase, preventing "response already stashed"
 should still run all response phases
 should not have a log phase (subrequest)

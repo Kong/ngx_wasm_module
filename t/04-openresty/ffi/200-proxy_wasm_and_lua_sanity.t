@@ -240,11 +240,20 @@ GET \/headers HTTP\/.*
 Host: localhost:\d+.*
 Connection: close.*
 Content-Length: 0.*
+--- error_log eval
+qr/on_http_call_response \(id: \d+, status: 200, headers: 5, body_bytes: \d+, trailers: 0/
+--- grep_error_log eval: qr/\*\d+.*?\[proxy-wasm\].*?(resuming|freeing).*/
+--- grep_error_log_out eval
+qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_dispatch_response" step in "access" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_headers" step in "header_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_log" step in "log" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_done" step in "done" phase[^#*]*
+\*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*\Z/
 --- no_error_log
 [error]
 [crit]
-[emerg]
-[alert]
 
 
 
@@ -300,6 +309,7 @@ qr/on_http_call_response \(id: \d+, status: 200, headers: 5, body_bytes: \d+, tr
 --- grep_error_log_out eval
 qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_dispatch_response" step in "access" phase[^#*]*
+\*\d+ .*? filter 1\/1 resuming "on_response_headers" step in "header_filter" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_response_body" step in "body_filter" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_log" step in "log" phase[^#*]*

@@ -929,8 +929,11 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     switch (rc) {
 
     case NGX_OK:
-        ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
-                                           NGX_PROXY_WASM_ACTION_DONE);
+        if (pwexec->parent->step != NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE) {
+            ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
+                                               NGX_PROXY_WASM_ACTION_DONE);
+        }
+
         break;
 
     case NGX_ERROR:
