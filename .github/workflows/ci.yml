@@ -42,7 +42,7 @@ jobs:
         include:
           # Wasmtime
           - runtime: wasmtime
-            wasmtime: 12.0.1
+            wasmtime: 12.0.2
             os: ubuntu-latest
             cc: gcc-12
             ngx: 1.25.2
@@ -74,7 +74,7 @@ jobs:
             cc: gcc-12
             ngx: 1.25.2
             runtime: wasmtime
-            wasmtime: 12.0.1
+            wasmtime: 12.0.2
             ssl: ssl
             debug: debug
             hup: hup
@@ -94,7 +94,7 @@ jobs:
             cc: gcc-12
             openresty: 1.21.4.2
             runtime: wasmtime
-            wasmtime: 12.0.1
+            wasmtime: 12.0.2
             ssl: ssl
             debug: debug
             hup: no_hup
@@ -104,7 +104,7 @@ jobs:
             cc: gcc-12
             openresty: 1.21.4.2
             runtime: wasmtime
-            wasmtime: 12.0.1
+            wasmtime: 12.0.2
             ssl: ssl
             debug: debug
             hup: no_hup
@@ -159,7 +159,7 @@ jobs:
         include:
           # Wasmtime
           - runtime: wasmtime
-            wasmtime: 12.0.1
+            wasmtime: 12.0.2
             os: ubuntu-22.04
             cc: gcc-12
             ngx: 1.25.2
@@ -243,7 +243,7 @@ jobs:
         cc: [clang-15]
         openresty: [1.21.4.2]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [12.0.1]
+        wasmtime: [12.0.2]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
         ssl: [ssl]
@@ -279,7 +279,7 @@ jobs:
         cc: [clang-15, gcc-12]
         ngx: [1.25.2]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [12.0.1]
+        wasmtime: [12.0.2]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
     uses: ./.github/workflows/job-build-tests.yml
