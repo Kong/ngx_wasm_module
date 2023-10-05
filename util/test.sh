@@ -140,6 +140,9 @@ fi
 if [[ "$TEST_NGINX_RANDOMIZE" == 1 ]]; then
     prove_opts="-j$(n_jobs)"
     echo "TEST_NGINX_RANDOMIZE=$TEST_NGINX_RANDOMIZE ($prove_opts)"
+
+else
+    rm -rf $TEST_NGINX_SERVROOT
 fi
 
 echo
@@ -154,8 +157,6 @@ if [ $(uname -s) = Darwin ]; then
 elif [ ! -x "$(command -v ldd)" ]; then
     ldd $TEST_NGINX_BINARY | grep wasm
 fi
-
-rm -rf $TEST_NGINX_SERVROOT
 
 echo
 exec prove -r $prove_opts $@
