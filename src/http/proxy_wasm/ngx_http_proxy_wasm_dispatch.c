@@ -708,6 +708,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
     ngx_proxy_wasm_exec_t           *pwexec = call->pwexec;
     ngx_proxy_wasm_filter_t         *filter = pwexec->filter;
     ngx_proxy_wasm_err_e             ecode = NGX_PROXY_WASM_ERR_NONE;
+    ngx_proxy_wasm_step_e            step;
 
     dd("enter");
 
@@ -821,6 +822,9 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
          */
         pwexec->call = call;
 
+        /* save step */
+        step = pwexec->parent->step;
+
         ecode = ngx_proxy_wasm_run_step(pwexec, pwexec->ictx,
                                         NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE);
         if (ecode != NGX_PROXY_WASM_ERR_NONE) {
@@ -830,7 +834,10 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         if (pwexec->call == call) {
             /* no further call from the callback */
             pwexec->call = NULL;
-            rc = NGX_OK;
+
+            /* resume current step if unfinished */
+            rc = ngx_proxy_wasm_resume(pwexec->parent, pwexec->parent->phase,
+                                       step);
 
         } else {
             /* another call was setup during the callback */
