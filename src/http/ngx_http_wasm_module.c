@@ -1002,6 +1002,10 @@ ngx_http_wasm_wev_handler(ngx_http_request_t *r)
     }
 #endif
 
+    dd("entered_content_phase: %d, resp_content_chosen: %d, fake: %d",
+       rctx->entered_content_phase, rctx->resp_content_chosen,
+       rctx->fake_request);
+
     if (rctx->entered_content_phase || rctx->resp_content_chosen) {
         rc = ngx_http_wasm_content(rctx);
         dd("wev content rc: %ld", rc);

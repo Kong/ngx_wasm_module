@@ -417,8 +417,8 @@ Hello world
 
 
 
-=== TEST 18: proxy_wasm - send_local_response() executes all chained filters response steps
-should run all response steps of all chained filters
+=== TEST 18: proxy_wasm - send_local_response() on_request_headers, filter chain execution sanity
+should execute all filters request and response steps
 --- wasm_modules: hostcalls
 --- config
     location /t {

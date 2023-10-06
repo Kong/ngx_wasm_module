@@ -135,3 +135,93 @@ on_root_http_call_response \(id: 9, status: 200, headers: 5, body_bytes: 12, tra
 [error]
 [crit]
 [emerg]
+
+
+
+=== TEST 5: proxy_wasm - dispatch_http_call() on_request_headers, filter chain execution sanity
+should execute all filters request and response steps
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /dispatched {
+        return 200 "Hello back";
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched';
+        proxy_wasm hostcalls;
+        echo ok;
+    }
+--- request
+GET /t
+
+Hello world
+--- response_body
+ok
+--- grep_error_log eval: qr/\[info\] .*? on_(http_call_response|request|response|log).*/
+--- grep_error_log_out eval
+qr/\A.*? on_request_headers.*
+.*? on_http_call_response \(id: 0, status: 200, headers: 5, body_bytes: 10, trailers: 0, op: \).*
+.*? on_request_headers.*
+.*? on_request_body.*
+.*? on_request_body.*
+.*? on_response_headers.*
+.*? on_response_headers.*
+.*? on_response_body.*
+.*? on_response_body.*
+.*? on_response_body.*
+.*? on_response_body.*
+.*? on_log.*
+.*? on_log/
+--- no_error_log
+[error]
+[crit]
+[emerg]
+
+
+
+=== TEST 6: proxy_wasm - dispatch_http_call() on_request_body, filter chain execution sanity
+should execute all filters request and response steps
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /dispatched {
+        return 200 "Hello back";
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'on=request_body \
+                              test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched';
+        proxy_wasm hostcalls;
+        echo ok;
+    }
+--- request
+GET /t
+
+Hello world
+--- response_body
+ok
+--- grep_error_log eval: qr/\[info\] .*? on_(http_call_response|request|response|log).*/
+--- grep_error_log_out eval
+qr/\A.*? on_request_headers.*
+.*? on_request_headers.*
+.*? on_request_body.*
+.*? on_http_call_response \(id: 0, status: 200, headers: 5, body_bytes: 10, trailers: 0, op: \).*
+.*? on_request_body.*
+.*? on_response_headers.*
+.*? on_response_headers.*
+.*? on_response_body.*
+.*? on_response_body.*
+.*? on_response_body.*
+.*? on_response_body.*
+.*? on_log.*
+.*? on_log/
+--- no_error_log
+[error]
+[crit]
+[emerg]
