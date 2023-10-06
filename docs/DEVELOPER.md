@@ -257,6 +257,17 @@ build system will build ngx_wasm_module against these sources:
 $ NGX=/path/to/nginx-sources make
 ```
 
+To build with a specific runtime version:
+
+```sh
+$ NGX_WASM_RUNTIME=wasmtime make WASMTIME=12.0.1
+$ NGX_WASM_RUNTIME=wasmer make WASMER=4.1.2
+$ NGX_WASM_RUNTIME=v8 make V8=11.4.183.23
+```
+
+**Note:** Only V8 releases compiled at https://github.com/Kong/ngx_wasm_runtimes
+are supported.
+
 To build with or without debug mode:
 
 ```sh
