@@ -15,9 +15,13 @@ ffi.cdef [[
         ngx_str_t       *config;
     } ngx_wasm_filter_t;
 
+    typedef intptr_t                      ngx_int_t;
     typedef unsigned char                 u_char;
     typedef struct ngx_wavm_t             ngx_wasm_vm_t;
     typedef struct ngx_wasm_ops_plan_t    ngx_wasm_plan_t;
+
+    typedef ngx_int_t (*ngx_wasm_host_prop_fn_t)(void *data, ngx_str_t *key,
+        ngx_str_t *value);
 
     ngx_wasm_vm_t *ngx_wasm_ffi_main_vm();
 ]]
