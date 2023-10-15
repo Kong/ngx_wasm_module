@@ -180,6 +180,21 @@ ngx_http_wasm_ffi_start(ngx_http_request_t *r)
 }
 
 
+static ngx_inline ngx_proxy_wasm_ctx_t *
+get_pwctx(ngx_http_request_t *r)
+{
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
+        return NULL;
+    }
+
+    return ngx_proxy_wasm_ctx(NULL, 0,
+                              NGX_PROXY_WASM_ISOLATION_STREAM,
+                              &ngx_http_proxy_wasm, rctx);
+}
+
+
 ngx_int_t
 ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
     ngx_str_t *key, ngx_str_t *value)
@@ -225,5 +240,48 @@ ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
     }
 
     return ngx_proxy_wasm_properties_get(pwctx, key, value);
+}
+
+
+ngx_int_t
+ngx_http_wasm_ffi_set_host_property(ngx_http_request_t *r,
+    ngx_str_t *key, ngx_str_t *value, unsigned is_const, unsigned retrieve)
+{
+    ngx_proxy_wasm_ctx_t  *pwctx = get_pwctx(r);
+
+    if (pwctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    return ngx_proxy_wasm_properties_set_host(pwctx, key, value, is_const,
+                                              retrieve);
+}
+
+
+ngx_int_t
+ngx_http_wasm_ffi_set_property_setter(ngx_http_request_t *r,
+    ngx_wasm_host_prop_fn_t fn)
+{
+    ngx_proxy_wasm_ctx_t  *pwctx = get_pwctx(r);
+
+    if (pwctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    return ngx_proxy_wasm_properties_set_host_prop_setter(pwctx, fn, r);
+}
+
+
+ngx_int_t
+ngx_http_wasm_ffi_set_property_getter(ngx_http_request_t *r,
+    ngx_wasm_host_prop_fn_t fn)
+{
+    ngx_proxy_wasm_ctx_t  *pwctx = get_pwctx(r);
+
+    if (pwctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    return ngx_proxy_wasm_properties_set_host_prop_getter(pwctx, fn, r);
 }
 #endif

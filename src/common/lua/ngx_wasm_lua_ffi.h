@@ -33,6 +33,12 @@ ngx_int_t ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
     ngx_str_t *key, ngx_str_t *value);
 ngx_int_t ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
     ngx_str_t *key, ngx_str_t *value);
+ngx_int_t ngx_http_wasm_ffi_set_host_property(ngx_http_request_t *r,
+    ngx_str_t *key, ngx_str_t *value, unsigned is_const, unsigned retrieve);
+ngx_int_t ngx_http_wasm_ffi_set_property_setter(ngx_http_request_t *r,
+    ngx_wasm_host_prop_fn_t fn);
+ngx_int_t ngx_http_wasm_ffi_set_property_getter(ngx_http_request_t *r,
+    ngx_wasm_host_prop_fn_t fn);
 #endif
 
 
