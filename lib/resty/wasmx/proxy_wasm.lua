@@ -8,9 +8,14 @@ local C = ffi.C
 local ngx = ngx
 local error = error
 local type = type
+local pcall = pcall
 local ffi_gc = ffi.gc
 local ffi_new = ffi.new
 local ffi_str = ffi.string
+local tonumber = tonumber
+local tostring = tostring
+local getfenv = getfenv
+local require = require
 local subsystem = ngx.config.subsystem
 local get_request = wasmx.get_request
 local get_err_ptr = wasmx.get_err_ptr
@@ -51,10 +56,20 @@ if subsystem == "http" then
         int ngx_http_wasm_ffi_start(ngx_http_request_t *r);
         int ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
                                            ngx_str_t *key,
-                                           ngx_str_t *value);
+                                           ngx_str_t *value,
+                                           u_char *err, size_t *errlen);
         int ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
                                            ngx_str_t *key,
-                                           ngx_str_t *out);
+                                           ngx_str_t *out,
+                                           u_char *err, size_t *errlen);
+        int ngx_http_wasm_ffi_set_host_property(ngx_http_request_t *r,
+                                                ngx_str_t *key,
+                                                ngx_str_t *value,
+                                                unsigned is_const,
+                                                unsigned retrieve);
+        int ngx_http_wasm_ffi_set_host_properties_handlers(ngx_http_request_t *r,
+            ngx_proxy_wasm_properties_ffi_handler_pt getter,
+            ngx_proxy_wasm_properties_ffi_handler_pt setter);
     ]]
 
 else
@@ -229,7 +244,7 @@ function _M.set_property(key, value)
         error("key must be a string", 2)
     end
 
-    if type(value) ~= "string" then
+    if value ~= nil and type(value) ~= "string" then
         error("value must be a string", 2)
     end
 
@@ -238,12 +253,19 @@ function _M.set_property(key, value)
         error("no request found", 2)
     end
 
+    local errbuf, errlen = get_err_ptr()
     local ckey = ffi_new("ngx_str_t", { data = key, len = #key })
-    local cvalue = ffi_new("ngx_str_t", { data = value, len = #value })
+    local cvalue = ffi_new("ngx_str_t", {
+        data = value,
+        len = value and #value or 0
+    })
 
-    local rc = C.ngx_http_wasm_ffi_set_property(r, ckey, cvalue)
+    local rc = C.ngx_http_wasm_ffi_set_property(r, ckey, cvalue, errbuf, errlen)
     if rc == FFI_ERROR then
-        return nil, "unknown error"
+        local err = errlen and tonumber(errlen[0]) > 0
+                    and ffi_str(errbuf, errlen[0])
+                    or "unknown error"
+        return nil, err
     end
 
     if rc == FFI_DECLINED then
@@ -264,12 +286,16 @@ function _M.get_property(key)
         error("no request found", 2)
     end
 
+    local errbuf, errlen = get_err_ptr()
     local ckey = ffi_new("ngx_str_t", { data = key, len = #key })
     local cvalue = ffi_new("ngx_str_t", { data = nil, len = 0 })
 
-    local rc = C.ngx_http_wasm_ffi_get_property(r, ckey, cvalue)
+    local rc = C.ngx_http_wasm_ffi_get_property(r, ckey, cvalue, errbuf, errlen)
     if rc == FFI_ERROR then
-        return nil, "unknown error", ERROR
+        local err = errlen and tonumber(errlen[0]) > 0
+                    and ffi_str(errbuf, errlen[0])
+                    or "unknown error"
+        return nil, err
     end
 
     if rc == FFI_DECLINED then
@@ -277,6 +303,176 @@ function _M.get_property(key)
     end
 
     return ffi_str(cvalue.data, cvalue.len)
+end
+
+
+do
+    ---
+    -- Custom host properties setters/getters
+    --
+    local lua_props_setter
+    local lua_props_getter
+    local c_props_setter
+    local c_props_getter
+
+
+    local function set_r(r)
+        local pok, exdata = pcall(require, "thread.exdata")
+        if pok and exdata then
+            exdata(r)
+
+        else
+            getfenv(0).__ngx_req = r
+        end
+    end
+
+
+    -- LuaJIT C callbacks are a limited resource; we can't create one of these
+    -- on each request so we prepare these wrappers, which in turn call a Lua
+    -- function.
+
+
+    local function store_c_value(r, ckey, cvalue, lvalue, is_const, retrieve)
+        if lvalue ~= nil then
+            local value = tostring(lvalue)
+            cvalue.data = value
+            cvalue.len = #value
+
+        else
+            cvalue.data = nil
+            cvalue.len = 0
+        end
+
+        return C.ngx_http_wasm_ffi_set_host_property(r, ckey, cvalue,
+                                                     is_const and 1 or 0,
+                                                     retrieve and 1 or 0)
+    end
+
+
+    c_props_setter = ffi.cast("ngx_proxy_wasm_properties_ffi_handler_pt",
+    function(r, ckey, cvalue, cerr)
+        set_r(r)
+
+        local lkey = ffi_str(ckey.data, ckey.len)
+        local lval
+        if cvalue.data ~= nil then
+            lval = ffi_str(cvalue.data, cvalue.len)
+        end
+
+        local pok, ok, lvalue, is_const = pcall(lua_props_setter, lkey, lval)
+        if not pok then
+            local err = "error in property setter: " .. ok
+            cerr.data = err
+            cerr.len = #err
+            return FFI_ERROR
+        end
+
+        if not ok then
+            local err = lvalue and lvalue or "unknown error"
+            cerr.data = err
+            cerr.len = #err
+            return FFI_ERROR
+        end
+
+        return store_c_value(r, ckey, cvalue, lvalue, is_const, false)
+    end)
+
+
+    c_props_getter = ffi.cast("ngx_proxy_wasm_properties_ffi_handler_pt",
+    function(r, ckey, cvalue, cerr)
+        set_r(r)
+
+        local lkey = ffi_str(ckey.data, ckey.len)
+
+        local pok, ok, lvalue, is_const = pcall(lua_props_getter, lkey)
+        if not pok then
+            local err = "error in property getter: " .. ok
+            cerr.data = err
+            cerr.len = #err
+            return FFI_ERROR
+        end
+
+        if not ok then
+            if lvalue then
+                cerr.data = lvalue
+                cerr.len = #lvalue
+                return FFI_ERROR
+            end
+
+            return FFI_DECLINED
+        end
+
+        local rc = store_c_value(r, ckey, cvalue, lvalue, is_const, true)
+        if rc == FFI_OK and lvalue == nil then
+            return FFI_DECLINED
+        end
+
+        return rc
+    end)
+
+
+    ---
+    -- Define getter/setter handlers for host-managed properties.
+    --
+    -- @param getter The getter function is the handler for resolving
+    -- properties.
+    -- Its type signature is `function(string): boolean, string, boolean`,
+    -- where the input is the property key, and the results may be:
+    -- * `truthy, value` - success, property value.
+    -- * `truthy, value, truthy` - success, constant property value: further
+    --   get accesses to the same property during a request are cached by
+    --   ngx_wasm_module and do not invoke the Lua getter again.
+    -- * `falsy` - property not found.
+    -- * `falsy, err` - failure, error message.
+    -- @param setter The setter function is the handler for updating properties.
+    -- Its type signature is `function(string, string): boolean, string`,
+    -- where the inputs are the property key and value, and the results may be:
+    -- * `truthy` - success.
+    -- * `truthy, value` - success, cache property value (useful if hosts
+    --   only sets a setter but not a getter).
+    -- * `truthy, value, truthy` - success, constant property value: further
+    --   get accesses to the same property during a request are cached by
+    --   ngx_wasm_module and do not invoke the Lua getter.
+    -- * `falsy, err` - failure, and an optional error message.
+    -- @return true on success setting the handlers, or nil and an error message.
+    function _M.set_host_properties_handlers(getter, setter)
+        if getter ~= nil and type(getter) ~= "function" then
+            error("getter must be a function", 2)
+        end
+
+        if setter ~= nil and type(setter) ~= "function" then
+            error("setter must be a function", 2)
+        end
+
+        if getter == nil and setter == nil then
+            error("getter or setter required", 2)
+        end
+
+        local r = get_request()
+        if not r then
+            error("no request found", 2)
+        end
+
+        lua_props_getter = getter
+        lua_props_setter = setter
+
+        local c_getter = getter and c_props_getter or nil
+        local c_setter = setter and c_props_setter or nil
+
+        local rc =
+            C.ngx_http_wasm_ffi_set_host_properties_handlers(r,
+                                                             c_getter,
+                                                             c_setter)
+        if rc == FFI_ABORT then
+            error("host properties handlers already set", 2)
+        end
+
+        if rc ~= FFI_OK then
+            return nil, "could not set host properties handlers"
+        end
+
+        return true
+    end
 end
 
 

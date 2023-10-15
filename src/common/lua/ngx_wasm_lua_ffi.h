@@ -11,6 +11,9 @@
 #endif
 
 
+#define NGX_WASM_LUA_FFI_MAX_ERRLEN  256
+
+
 ngx_wavm_t *ngx_wasm_ffi_main_vm();
 
 
@@ -30,9 +33,14 @@ ngx_int_t ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r,
     ngx_wasm_ops_plan_t *plan, ngx_uint_t isolation);
 ngx_int_t ngx_http_wasm_ffi_start(ngx_http_request_t *r);
 ngx_int_t ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
-    ngx_str_t *key, ngx_str_t *value);
+    ngx_str_t *key, ngx_str_t *value, u_char *err, size_t *errlen);
 ngx_int_t ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
-    ngx_str_t *key, ngx_str_t *value);
+    ngx_str_t *key, ngx_str_t *value, u_char *err, size_t *errlen);
+ngx_int_t ngx_http_wasm_ffi_set_host_property(ngx_http_request_t *r,
+    ngx_str_t *key, ngx_str_t *value, unsigned is_const, unsigned retrieve);
+ngx_int_t ngx_http_wasm_ffi_set_host_properties_handlers(ngx_http_request_t *r,
+    ngx_proxy_wasm_properties_ffi_handler_pt getter,
+    ngx_proxy_wasm_properties_ffi_handler_pt setter);
 #endif
 
 

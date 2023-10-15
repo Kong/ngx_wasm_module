@@ -51,8 +51,11 @@ static size_t       host_prefix_len;
 
 
 typedef struct {
-    ngx_str_node_t  sn;
-    ngx_str_t       value;
+    ngx_str_node_t   sn;
+    ngx_str_t        value;
+    ngx_pool_t      *pool;
+    unsigned         is_const:1;
+    unsigned         is_const_null:1;
 } host_props_node_t;
 
 
@@ -76,6 +79,11 @@ not_supported(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path, ngx_str_t *value)
 }
 
 
+#ifdef NGX_WASM_HTTP
+static const size_t  request_headers_prefix_len = 16;   /* request.headers. */
+static const size_t  response_headers_prefix_len = 17;  /* response.headers. */
+
+
 static ngx_uint_t
 hash_str(u_char *src, size_t n)
 {
@@ -90,11 +98,6 @@ hash_str(u_char *src, size_t n)
 
     return key;
 }
-
-
-#ifdef NGX_WASM_HTTP
-static const size_t  request_headers_prefix_len = 16;   /* request.headers. */
-static const size_t  response_headers_prefix_len = 17;  /* response.headers. */
 
 
 static ngx_int_t
@@ -705,6 +708,28 @@ ngx_proxy_wasm_properties_init(ngx_conf_t *cf)
 }
 
 
+static u_char *
+replace_nulls_by_dots(ngx_str_t *from, u_char *to)
+{
+    size_t  i;
+
+    for (i = 0; i < from->len; i++) {
+        to[i] = from->data[i] == '\0' ? '.' : from->data[i];
+    }
+
+    return to;
+}
+
+
+void
+ngx_proxy_wasm_properties_unmarsh_path(ngx_str_t *from, u_char **to)
+{
+    *to = from->data;
+
+    (void) replace_nulls_by_dots(from, *to);
+}
+
+
 static ngx_int_t
 ngx_proxy_wasm_properties_get_ngx(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_str_t *path, ngx_str_t *value)
@@ -872,28 +897,69 @@ ngx_proxy_wasm_properties_get_host(ngx_proxy_wasm_ctx_t *pwctx,
     }
 #endif
 
-    hash = hash_str(path->data, path->len);
+    dd("get \"%.*s\"", (int) path->len, path->data);
+
+    hash = ngx_crc32_long(path->data, path->len);
 
     hpn = (host_props_node_t *)
               ngx_str_rbtree_lookup(&pwctx->host_props_tree, path, hash);
-
-    if (hpn) {
-        value->data = hpn->value.data;
-        value->len = hpn->value.len;
-
-        return NGX_OK;
+    if (hpn == NULL) {
+        dd("miss");
+        return NGX_DECLINED;
     }
 
-    return NGX_DECLINED;
+#if (NGX_WASM_LUA)
+    if (pwctx->host_props_ffi_getter && !hpn->is_const) {
+        /* stored value is not const: need to call getter again */
+        dd("ffi handler, miss");
+        return NGX_DECLINED;
+    }
+#endif
+
+    if (hpn->is_const_null) {
+        dd("null const");
+        return NGX_BUSY;
+    }
+
+    value->data = hpn->value.data;
+    value->len = hpn->value.len;
+
+    dd("hit: \"%.*s\"", (int) value->len, value->data);
+
+    return NGX_OK;
 }
 
 
-static ngx_int_t
+static ngx_inline ngx_int_t
+set_hpn_value(host_props_node_t *hpn, ngx_str_t *value, unsigned is_const)
+{
+    u_char  *new_data;
+
+    if (value->data == NULL) {
+        ngx_wasm_assert(is_const);
+        new_data = NULL;
+        hpn->is_const_null = 1;
+
+    } else {
+        new_data = ngx_pstrdup(hpn->pool, value);
+        if (new_data == NULL) {
+            return NGX_ERROR;
+        }
+    }
+
+    hpn->is_const = is_const;
+    hpn->value.len = value->len;
+    hpn->value.data = new_data;
+
+    return NGX_OK;
+}
+
+
+ngx_int_t
 ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
-    ngx_str_t *path, ngx_str_t *value)
+    ngx_str_t *path, ngx_str_t *value, unsigned is_const, unsigned retrieve)
 {
     uint32_t                  hash;
-    unsigned                  new_entry = 1;
     host_props_node_t        *hpn;
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
@@ -905,22 +971,38 @@ ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
     }
 #endif
 
-    hash = hash_str(path->data, path->len);
+    dd("set \"%.*s\"=\"%.*s\"",
+       (int) path->len, path->data,
+       (int) value->len, value->data);
+
+    hash = ngx_crc32_long(path->data, path->len);
 
     hpn = (host_props_node_t *)
               ngx_str_rbtree_lookup(&pwctx->host_props_tree, path, hash);
-
-    if (value->data == NULL) {
-        if (hpn) {
-            ngx_rbtree_delete(&pwctx->host_props_tree, &hpn->sn.node);
+    if (hpn) {
+        if (hpn->is_const) {
+            /* cannot overwrite a const */
+            dd("is_const");
+            return NGX_DECLINED;
         }
 
-        return NGX_OK;
-    }
-
-    if (hpn) {
         ngx_pfree(pwctx->pool, hpn->value.data);
-        new_entry = 0;
+
+        if (value->data == NULL && !is_const) {
+            dd("remove");
+            ngx_rbtree_delete(&pwctx->host_props_tree, &hpn->sn.node);
+            return NGX_OK;
+        }
+
+        dd("update");
+        if (set_hpn_value(hpn, value, is_const) != NGX_OK) {
+            return NGX_ERROR;
+        }
+
+    } else if (value->data == NULL && !is_const) {
+        /* no need to store a non-const NULL */
+        dd("skip");
+        return NGX_OK;
 
     } else {
         hpn = ngx_pcalloc(pwctx->pool, sizeof(host_props_node_t) + path->len);
@@ -928,50 +1010,47 @@ ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
             return NGX_ERROR;
         }
 
+        hpn->pool = pwctx->pool;
         hpn->sn.node.key = hash;
         hpn->sn.str.len = path->len;
         hpn->sn.str.data = (u_char *) hpn + sizeof(host_props_node_t);
         ngx_memcpy(hpn->sn.str.data, path->data, path->len);
-    }
 
-    hpn->value.len = value->len;
-    hpn->value.data = ngx_pstrdup(pwctx->pool, value);
-    if (hpn->value.data == NULL) {
-        return NGX_ERROR;
-    }
+        dd("insert");
+        if (set_hpn_value(hpn, value, is_const) != NGX_OK) {
+            return NGX_ERROR;
+        }
 
-    if (new_entry) {
         ngx_rbtree_insert(&pwctx->host_props_tree, &hpn->sn.node);
+    }
+
+    if (retrieve) {
+        /**
+         * Ensure the string lifetime will still be correct once back
+         * in the Lua FFI.
+         */
+        value->data = hpn->value.data;
     }
 
     return NGX_OK;
 }
 
 
-static u_char *
-replace_nulls_by_dots(ngx_str_t *from, u_char *to)
-{
-    size_t  i;
-
-    for (i = 0; i < from->len; i++) {
-        to[i] = from->data[i] == '\0' ? '.' : from->data[i];
-    }
-
-    return to;
-}
-
-
 ngx_int_t
 ngx_proxy_wasm_properties_get(ngx_proxy_wasm_ctx_t *pwctx,
-    ngx_str_t *path, ngx_str_t *value)
+    ngx_str_t *path, ngx_str_t *value, ngx_str_t *err)
 {
     u_char              dotted_path_buf[path->len];
-    ngx_str_t           p = { path->len, NULL };
+    ngx_int_t           rc;
     ngx_uint_t          key;
+    ngx_str_t           p = { path->len, NULL };
     pwm2ngx_mapping_t  *m;
 
     p.data = replace_nulls_by_dots(path, dotted_path_buf);
     key = ngx_hash_key(p.data, p.len);
+
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                   "wasm properties get \"%V\"", &p);
 
     m = ngx_hash_find_combined(&pwm2ngx_hash, key, p.data, p.len);
     if (m) {
@@ -996,7 +1075,27 @@ ngx_proxy_wasm_properties_get(ngx_proxy_wasm_ctx_t *pwctx,
         && ngx_memcmp(p.data, host_prefix, host_prefix_len) == 0)
     {
         /* host variable */
-        return ngx_proxy_wasm_properties_get_host(pwctx, &p, value);
+
+        /* even if there is an FFI getter, try reading const value first */
+        rc = ngx_proxy_wasm_properties_get_host(pwctx, &p, value);
+        if (rc == NGX_OK) {
+            return NGX_OK;
+
+        } else if (rc == NGX_BUSY) {
+            return NGX_DECLINED;
+        }
+
+#if (NGX_WASM_LUA)
+        if (pwctx->host_props_ffi_getter) {
+            /* custom FFI getter */
+            dd("ffi getter");
+            return pwctx->host_props_ffi_getter(
+                pwctx->host_props_ffi_handler_data, &p, value, err
+            );
+        }
+#endif
+
+        return rc;
     }
 
     return NGX_DECLINED;
@@ -1005,7 +1104,7 @@ ngx_proxy_wasm_properties_get(ngx_proxy_wasm_ctx_t *pwctx,
 
 ngx_int_t
 ngx_proxy_wasm_properties_set(ngx_proxy_wasm_ctx_t *pwctx,
-    ngx_str_t *path, ngx_str_t *value)
+    ngx_str_t *path, ngx_str_t *value, ngx_str_t *err)
 {
     u_char              dotted_path_buf[path->len];
     ngx_str_t           p = { path->len, NULL };
@@ -1013,6 +1112,10 @@ ngx_proxy_wasm_properties_set(ngx_proxy_wasm_ctx_t *pwctx,
     pwm2ngx_mapping_t  *m;
 
     p.data = replace_nulls_by_dots(path, dotted_path_buf);
+
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                   "wasm properties set \"%V\" to \"%V\"",
+                   &p, value);
 
     if (p.len > ngx_prefix_len
         && ngx_memcmp(p.data, ngx_prefix, ngx_prefix_len) == 0)
@@ -1032,8 +1135,50 @@ ngx_proxy_wasm_properties_set(ngx_proxy_wasm_ctx_t *pwctx,
         && ngx_memcmp(p.data, host_prefix, host_prefix_len) == 0)
     {
         /* host variable */
-        return ngx_proxy_wasm_properties_set_host(pwctx, &p, value);
+
+#if (NGX_WASM_LUA)
+        if (pwctx->host_props_ffi_setter) {
+            /* custom FFI setter */
+            dd("ffi setter");
+            return pwctx->host_props_ffi_setter(
+                pwctx->host_props_ffi_handler_data, &p, value, err
+            );
+        }
+#endif
+
+        return ngx_proxy_wasm_properties_set_host(pwctx, &p, value, 0, 0);
     }
 
     return NGX_DECLINED;
 }
+
+
+#if (NGX_WASM_LUA)
+ngx_int_t
+ngx_proxy_wasm_properties_set_ffi_handlers(ngx_proxy_wasm_ctx_t *pwctx,
+    ngx_proxy_wasm_properties_ffi_handler_pt getter,
+    ngx_proxy_wasm_properties_ffi_handler_pt setter,
+    void *data)
+{
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
+
+    if (rctx == NULL || rctx->fake_request) {
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                           "cannot set host properties handlers "
+                           "outside of a request");
+        return NGX_ERROR;
+    }
+#endif
+
+    if (pwctx->host_props_ffi_getter || pwctx->host_props_ffi_setter) {
+        return NGX_ABORT;
+    }
+
+    pwctx->host_props_ffi_getter = getter;
+    pwctx->host_props_ffi_setter = setter;
+    pwctx->host_props_ffi_handler_data = data;
+
+    return NGX_OK;
+}
+#endif

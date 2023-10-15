@@ -16,8 +16,12 @@ ffi.cdef [[
     } ngx_wasm_filter_t;
 
     typedef unsigned char                 u_char;
+    typedef intptr_t                      ngx_int_t;
     typedef struct ngx_wavm_t             ngx_wasm_vm_t;
     typedef struct ngx_wasm_ops_plan_t    ngx_wasm_plan_t;
+
+    typedef ngx_int_t (*ngx_proxy_wasm_properties_ffi_handler_pt)(void *data,
+        ngx_str_t *key, ngx_str_t *value, ngx_str_t *err);
 
     ngx_wasm_vm_t *ngx_wasm_ffi_main_vm();
 ]]
@@ -48,7 +52,7 @@ function _M.get_err_ptr()
     local errbuf = get_string_buf(ERR_BUF_SIZE)
     local errlen = get_size_ptr()
 
-    errlen[0] = ERR_BUF_SIZE
+    errlen[0] = 0
 
     return errbuf, errlen
 end

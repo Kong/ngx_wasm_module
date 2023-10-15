@@ -157,7 +157,6 @@ typedef struct ngx_proxy_wasm_instance_s  ngx_proxy_wasm_instance_t;
 #ifdef NGX_WASM_HTTP
 typedef struct ngx_http_proxy_wasm_dispatch_s  ngx_http_proxy_wasm_dispatch_t;
 #endif
-
 typedef ngx_str_t  ngx_proxy_wasm_marshalled_map_t;
 
 
@@ -203,53 +202,64 @@ struct ngx_proxy_wasm_exec_s {
 };
 
 
+#if (NGX_WASM_LUA)
+typedef ngx_int_t (*ngx_proxy_wasm_properties_ffi_handler_pt)(void *data,
+    ngx_str_t *key, ngx_str_t *value, ngx_str_t *err);
+#endif
+
+
 struct ngx_proxy_wasm_ctx_s {
-    ngx_uint_t                         id;      /* r->connection->number */
-    ngx_uint_t                         nfilters;
-    ngx_array_t                        pwexecs;
-    ngx_uint_t                         isolation;
-    ngx_proxy_wasm_store_t             store;
-    ngx_proxy_wasm_context_type_e      type;
-    ngx_log_t                         *log;
-    ngx_pool_t                        *pool;
-    ngx_pool_t                        *parent_pool;
-    void                              *data;
+    ngx_uint_t                                    id;      /* r->connection->number */
+    ngx_uint_t                                    nfilters;
+    ngx_array_t                                   pwexecs;
+    ngx_uint_t                                    isolation;
+    ngx_proxy_wasm_store_t                        store;
+    ngx_proxy_wasm_context_type_e                 type;
+    ngx_log_t                                    *log;
+    ngx_pool_t                                   *pool;
+    ngx_pool_t                                   *parent_pool;
+    void                                         *data;
 
     /* control */
 
-    ngx_wasm_phase_t                  *phase;
-    ngx_proxy_wasm_action_e            action;
-    ngx_proxy_wasm_step_e              step;
-    ngx_proxy_wasm_step_e              last_step;
-    ngx_uint_t                         exec_index;
+    ngx_wasm_phase_t                             *phase;
+    ngx_proxy_wasm_action_e                       action;
+    ngx_proxy_wasm_step_e                         step;
+    ngx_proxy_wasm_step_e                         last_step;
+    ngx_uint_t                                    exec_index;
 
     /* cache */
 
-    size_t                             req_body_len;
-    ngx_str_t                          authority;
-    ngx_str_t                          scheme;
-    ngx_str_t                          path;              /* r->uri + r->args */
-    ngx_str_t                          start_time;        /* r->start_sec + r->start_msec */
-    ngx_str_t                          upstream_address;  /* 1st part of ngx.upstream_addr */
-    ngx_str_t                          upstream_port;     /* 2nd part of ngx.upstsream_addr */
-    ngx_str_t                          connection_id;     /* r->connection->number */
-    ngx_str_t                          mtls;              /* ngx.https && ngx.ssl_client_verify */
-    ngx_str_t                          root_id;           /* pwexec->root_id */
-    ngx_str_t                          call_status;       /* dispatch response status */
-    ngx_str_t                          response_status;   /* response status */
-    ngx_uint_t                         call_code;
-    ngx_uint_t                         response_code;
+    size_t                                        req_body_len;
+    ngx_str_t                                     authority;
+    ngx_str_t                                     scheme;
+    ngx_str_t                                     path;              /* r->uri + r->args */
+    ngx_str_t                                     start_time;        /* r->start_sec + r->start_msec */
+    ngx_str_t                                     upstream_address;  /* 1st part of ngx.upstream_addr */
+    ngx_str_t                                     upstream_port;     /* 2nd part of ngx.upstsream_addr */
+    ngx_str_t                                     connection_id;     /* r->connection->number */
+    ngx_str_t                                     mtls;              /* ngx.https && ngx.ssl_client_verify */
+    ngx_str_t                                     root_id;           /* pwexec->root_id */
+    ngx_str_t                                     call_status;       /* dispatch response status */
+    ngx_str_t                                     response_status;   /* response status */
+    ngx_uint_t                                    call_code;
+    ngx_uint_t                                    response_code;
 
-    /* host properties rbtree */
+    /* host properties */
 
-    ngx_rbtree_t                       host_props_tree;
-    ngx_rbtree_node_t                  host_props_sentinel;
+    ngx_rbtree_t                                  host_props_tree;
+    ngx_rbtree_node_t                             host_props_sentinel;
+#if (NGX_WASM_LUA)
+    ngx_proxy_wasm_properties_ffi_handler_pt      host_props_ffi_getter;
+    ngx_proxy_wasm_properties_ffi_handler_pt      host_props_ffi_setter;
+    void                                         *host_props_ffi_handler_data;  /* r */
+#endif
 
     /* flags */
 
-    unsigned                           main:1;            /* r->main */
-    unsigned                           ready:1;
-    unsigned                           req_headers_in_access:1;
+    unsigned                                      main:1;            /* r->main */
+    unsigned                                      ready:1;
+    unsigned                                      req_headers_in_access:1;
 };
 
 

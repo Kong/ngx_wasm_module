@@ -847,9 +847,12 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_get_property(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
+    char                    trapmsg[NGX_MAX_ERROR_STR];
     ngx_int_t               rc;
     ngx_str_t               path, value;
+    ngx_str_t               err = { 0, NULL };
     int32_t                *ret_size;
+    u_char                 *dotted_path, *last;
     ngx_proxy_wasm_exec_t  *pwexec;
     ngx_wavm_ptr_t         *ret_data, p = 0;
 
@@ -861,12 +864,26 @@ ngx_proxy_wasm_hfuncs_get_property(ngx_wavm_instance_t *instance,
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
 
-    rc = ngx_proxy_wasm_properties_get(pwexec->parent, &path, &value);
+    rc = ngx_proxy_wasm_properties_get(pwexec->parent, &path, &value, &err);
 
     switch (rc) {
     case NGX_DECLINED:
         return ngx_proxy_wasm_result_notfound(rets);
     case NGX_ERROR:
+        if (err.len) {
+            ngx_proxy_wasm_properties_unmarsh_path(&path, &dotted_path);
+
+            last = ngx_slprintf((u_char *) &trapmsg,
+                                (u_char *) trapmsg + NGX_MAX_ERROR_STR - 1,
+                                "could not get \"%s\": %V",
+                                dotted_path,
+                                &err);
+            *last++ = '\0';
+
+            return ngx_proxy_wasm_result_trap(pwexec, trapmsg, rets,
+                                              NGX_WAVM_ERROR);
+        }
+
         return ngx_proxy_wasm_result_err(rets);
     default:
         ngx_wasm_assert(rc == NGX_OK);
@@ -894,9 +911,12 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_set_property(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_proxy_wasm_exec_t  *pwexec;
-    ngx_str_t               path, value;
+    char                    trapmsg[NGX_MAX_ERROR_STR];
     ngx_int_t               rc;
+    ngx_str_t               path, value;
+    ngx_str_t               err = { 0, NULL };
+    u_char                 *dotted_path, *last;
+    ngx_proxy_wasm_exec_t  *pwexec;
 
     path.len = args[1].of.i32;
     path.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, path.len);
@@ -905,17 +925,32 @@ ngx_proxy_wasm_hfuncs_set_property(ngx_wavm_instance_t *instance,
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
 
-    rc = ngx_proxy_wasm_properties_set(pwexec->parent, &path, &value);
+    rc = ngx_proxy_wasm_properties_set(pwexec->parent, &path, &value, &err);
 
     switch (rc) {
     case NGX_DECLINED:
         return ngx_proxy_wasm_result_notfound(rets);
     case NGX_ERROR:
+        if (err.len) {
+            ngx_proxy_wasm_properties_unmarsh_path(&path, &dotted_path);
+
+            last = ngx_slprintf((u_char *) &trapmsg,
+                                (u_char *) trapmsg + NGX_MAX_ERROR_STR - 1,
+                                "could not set \"%s\": %V",
+                                dotted_path,
+                                &err);
+            *last++ = '\0';
+
+            return ngx_proxy_wasm_result_trap(pwexec, trapmsg, rets,
+                                              NGX_WAVM_ERROR);
+        }
+
         return ngx_proxy_wasm_result_err(rets);
     default:
         ngx_wasm_assert(rc == NGX_OK);
-        return ngx_proxy_wasm_result_ok(rets);
     }
+
+    return ngx_proxy_wasm_result_ok(rets);
 }
 
 
