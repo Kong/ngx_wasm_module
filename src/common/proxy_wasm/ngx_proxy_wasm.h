@@ -166,6 +166,9 @@ typedef struct ngx_http_proxy_wasm_dispatch_s  ngx_http_proxy_wasm_dispatch_t;
 
 typedef ngx_str_t  ngx_proxy_wasm_marshalled_map_t;
 
+typedef ngx_int_t (*ngx_wasm_host_prop_fn_t)(void *data, ngx_str_t *key,
+    ngx_str_t *value);
+
 
 typedef struct {
     ngx_queue_t                        busy;
@@ -245,10 +248,14 @@ struct ngx_proxy_wasm_ctx_s {
     ngx_uint_t                         call_code;
     ngx_uint_t                         response_code;
 
-    /* host properties rbtree */
+    /* host properties */
 
     ngx_rbtree_t                       host_props_tree;
     ngx_rbtree_node_t                  host_props_sentinel;
+    ngx_wasm_host_prop_fn_t            host_prop_getter;
+    ngx_wasm_host_prop_fn_t            host_prop_setter;
+    void                              *host_prop_getter_data;
+    void                              *host_prop_setter_data;
 
     /* flags */
 

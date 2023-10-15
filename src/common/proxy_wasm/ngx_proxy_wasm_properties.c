@@ -53,6 +53,8 @@ static size_t       host_prefix_len;
 typedef struct {
     ngx_str_node_t  sn;
     ngx_str_t       value;
+    unsigned        is_const:1;
+    unsigned        negative_cache:1;
 } host_props_node_t;
 
 
@@ -877,24 +879,33 @@ ngx_proxy_wasm_properties_get_host(ngx_proxy_wasm_ctx_t *pwctx,
 
     hpn = (host_props_node_t *)
               ngx_str_rbtree_lookup(&pwctx->host_props_tree, path, hash);
-
-    if (hpn) {
-        value->data = hpn->value.data;
-        value->len = hpn->value.len;
-
-        return NGX_OK;
+    if (!hpn) {
+        return NGX_DECLINED;
     }
 
-    return NGX_DECLINED;
+    /* stored value is not const: need to call getter again */
+    if (!hpn->is_const && pwctx->host_prop_getter) {
+        return NGX_DECLINED;
+    }
+
+    value->data = hpn->value.data;
+    value->len = hpn->value.len;
+
+    if (hpn->negative_cache) {
+        return NGX_BUSY;
+    }
+
+    return NGX_OK;
 }
 
 
-static ngx_int_t
+ngx_int_t
 ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
-    ngx_str_t *path, ngx_str_t *value)
+    ngx_str_t *path, ngx_str_t *value, unsigned is_const, unsigned retrieve)
 {
     host_props_node_t        *hpn;
     uint32_t                  hash;
+    unsigned char            *new_data;
     unsigned                  new_entry = 1;
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
@@ -911,16 +922,19 @@ ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
     hpn = (host_props_node_t *)
               ngx_str_rbtree_lookup(&pwctx->host_props_tree, path, hash);
 
-    if (value->data == NULL) {
-        if (hpn) {
-            ngx_rbtree_delete(&pwctx->host_props_tree, &hpn->sn.node);
+    if (hpn) {
+        if (hpn->is_const) {
+            return NGX_DECLINED;
         }
 
-        return NGX_OK;
-    }
-
-    if (hpn) {
         ngx_pfree(pwctx->pool, hpn->value.data);
+
+        if (value->data == NULL && !is_const) {
+            ngx_rbtree_delete(&pwctx->host_props_tree, &hpn->sn.node);
+
+            return NGX_OK;
+        }
+
         new_entry = 0;
 
     } else {
@@ -935,14 +949,27 @@ ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
         ngx_memcpy(hpn->sn.str.data, path->data, path->len);
     }
 
-    hpn->value.len = value->len;
-    hpn->value.data = ngx_pstrdup(pwctx->pool, value);
-    if (hpn->value.data == NULL) {
-        return NGX_ERROR;
+    if (value->data == NULL) {
+        new_data = NULL;
+        hpn->negative_cache = 1;
+
+    } else {
+        new_data = ngx_pstrdup(pwctx->pool, value);
+        if (new_data == NULL) {
+            return NGX_ERROR;
+        }
     }
+
+    hpn->is_const = is_const;
+    hpn->value.len = value->len;
+    hpn->value.data = new_data;
 
     if (new_entry) {
         ngx_rbtree_insert(&pwctx->host_props_tree, &hpn->sn.node);
+    }
+
+    if (retrieve) {
+        value->data = hpn->value.data;
     }
 
     return NGX_OK;
@@ -970,6 +997,7 @@ ngx_proxy_wasm_properties_get(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_str_t           p = { path->len, NULL };
     ngx_uint_t          key;
     pwm2ngx_mapping_t  *m;
+    ngx_int_t           rc;
 
     p.data = replace_nulls_by_dots(path, dotted_path_buf);
     key = ngx_hash_key(p.data, p.len);
@@ -997,7 +1025,22 @@ ngx_proxy_wasm_properties_get(ngx_proxy_wasm_ctx_t *pwctx,
         && ngx_memcmp(p.data, host_prefix, host_prefix_len) == 0)
     {
         /* host variable */
-        return ngx_proxy_wasm_properties_get_host(pwctx, &p, value);
+
+        /* even if there is a getter, try reading const value first */
+        rc = ngx_proxy_wasm_properties_get_host(pwctx, &p, value);
+        if (rc == NGX_OK) {
+            return NGX_OK;
+
+        } else if (rc == NGX_BUSY) {
+            return NGX_DECLINED;
+        }
+
+        if (pwctx->host_prop_getter) {
+            return pwctx->host_prop_getter(pwctx->host_prop_getter_data,
+                                           &p, value);
+        }
+
+        return rc;
     }
 
     return NGX_DECLINED;
@@ -1033,8 +1076,57 @@ ngx_proxy_wasm_properties_set(ngx_proxy_wasm_ctx_t *pwctx,
         && ngx_memcmp(p.data, host_prefix, host_prefix_len) == 0)
     {
         /* host variable */
-        return ngx_proxy_wasm_properties_set_host(pwctx, &p, value);
+        if (pwctx->host_prop_setter) {
+            return pwctx->host_prop_setter(pwctx->host_prop_setter_data,
+                                           &p, value);
+        }
+
+        return ngx_proxy_wasm_properties_set_host(pwctx, &p, value, 0, 0);
     }
 
     return NGX_DECLINED;
+}
+
+
+ngx_int_t
+ngx_proxy_wasm_properties_set_host_prop_setter(ngx_proxy_wasm_ctx_t *pwctx,
+    ngx_wasm_host_prop_fn_t fn, void *data)
+{
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
+
+    if (rctx == NULL || rctx->fake_request) {
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                           "cannot set host properties setter "
+                           "outside of a request");
+        return NGX_ERROR;
+    }
+#endif
+
+    pwctx->host_prop_setter = fn;
+    pwctx->host_prop_setter_data = data;
+
+    return NGX_OK;
+}
+
+
+ngx_int_t
+ngx_proxy_wasm_properties_set_host_prop_getter(ngx_proxy_wasm_ctx_t *pwctx,
+    ngx_wasm_host_prop_fn_t fn, void *data)
+{
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
+
+    if (rctx == NULL || rctx->fake_request) {
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                           "cannot set host properties getter "
+                           "outside of a request");
+        return NGX_ERROR;
+    }
+#endif
+
+    pwctx->host_prop_getter = fn;
+    pwctx->host_prop_getter_data = data;
+
+    return NGX_OK;
 }
