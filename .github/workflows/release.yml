@@ -149,6 +149,24 @@ jobs:
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - run: echo $pythonLocation
+      - run: |
+          echo $PATH
+          python --version
+          which python
+      - run: |
+          echo $PATH
+          python --version
+          which python
+        shell: bash {0}
+      - run: |
+          echo $PATH
+          python --version
+          which python
+        shell: bash -l {0}
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
@@ -281,6 +299,24 @@ jobs:
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - run: echo $pythonLocation
+      - run: |
+          echo $PATH
+          python --version
+          which python
+      - run: |
+          echo $PATH
+          python --version
+          which python
+        shell: bash {0}
+      - run: |
+          echo $PATH
+          python --version
+          which python
+        shell: bash -l {0}
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
@@ -312,6 +348,24 @@ jobs:
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - run: echo $pythonLocation
+      - run: |
+          echo $PATH
+          python --version
+          which python
+      - run: |
+          echo $PATH
+          python --version
+          which python
+        shell: bash {0}
+      - run: |
+          echo $PATH
+          python --version
+          which python
+        shell: bash -l {0}
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
