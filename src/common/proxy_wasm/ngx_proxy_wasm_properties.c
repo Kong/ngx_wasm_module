@@ -899,14 +899,38 @@ ngx_proxy_wasm_properties_get_host(ngx_proxy_wasm_ctx_t *pwctx,
 }
 
 
+static ngx_inline ngx_int_t
+set_hpn_value(host_props_node_t *hpn, ngx_str_t *value, unsigned is_const,
+    ngx_pool_t *pool)
+{
+    unsigned char  *new_data;
+
+    if (value->data == NULL) {
+        new_data = NULL;
+        hpn->negative_cache = 1;
+
+    } else {
+        new_data = ngx_pstrdup(pool, value);
+        if (new_data == NULL) {
+            return NGX_ERROR;
+        }
+    }
+
+    hpn->is_const = is_const;
+    hpn->value.len = value->len;
+    hpn->value.data = new_data;
+
+    return NGX_OK;
+}
+
+
 ngx_int_t
 ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_str_t *path, ngx_str_t *value, unsigned is_const, unsigned retrieve)
 {
     host_props_node_t        *hpn;
     uint32_t                  hash;
-    unsigned char            *new_data;
-    unsigned                  new_entry = 1;
+    ngx_int_t                 rc;
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
 
@@ -935,7 +959,14 @@ ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
             return NGX_OK;
         }
 
-        new_entry = 0;
+        rc = set_hpn_value(hpn, value, is_const, pwctx->pool);
+        if (rc != NGX_OK) {
+            return rc;
+        }
+
+    } else if (value->data == NULL && !is_const) {
+        /* no need to store a non-const NULL */
+        return NGX_OK;
 
     } else {
         hpn = ngx_pcalloc(pwctx->pool, sizeof(host_props_node_t) + path->len);
@@ -947,24 +978,12 @@ ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
         hpn->sn.str.len = path->len;
         hpn->sn.str.data = (u_char *) hpn + sizeof(host_props_node_t);
         ngx_memcpy(hpn->sn.str.data, path->data, path->len);
-    }
 
-    if (value->data == NULL) {
-        new_data = NULL;
-        hpn->negative_cache = 1;
-
-    } else {
-        new_data = ngx_pstrdup(pwctx->pool, value);
-        if (new_data == NULL) {
-            return NGX_ERROR;
+        rc = set_hpn_value(hpn, value, is_const, pwctx->pool);
+        if (rc != NGX_OK) {
+            return rc;
         }
-    }
 
-    hpn->is_const = is_const;
-    hpn->value.len = value->len;
-    hpn->value.data = new_data;
-
-    if (new_entry) {
         ngx_rbtree_insert(&pwctx->host_props_tree, &hpn->sn.node);
     }
 

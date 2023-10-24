@@ -190,8 +190,8 @@ get_pwctx(ngx_http_request_t *r)
     }
 
     return ngx_proxy_wasm_ctx(NULL, 0,
-                                NGX_PROXY_WASM_ISOLATION_STREAM,
-                                &ngx_http_proxy_wasm, rctx);
+                              NGX_PROXY_WASM_ISOLATION_STREAM,
+                              &ngx_http_proxy_wasm, rctx);
 }
 
 
