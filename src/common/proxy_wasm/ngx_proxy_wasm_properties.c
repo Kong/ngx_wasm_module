@@ -54,7 +54,7 @@ typedef struct {
     ngx_str_node_t  sn;
     ngx_str_t       value;
     unsigned        is_const:1;
-    unsigned        negative_cache:1;
+    unsigned        const_null:1;
 } host_props_node_t;
 
 
@@ -879,7 +879,7 @@ ngx_proxy_wasm_properties_get_host(ngx_proxy_wasm_ctx_t *pwctx,
 
     hpn = (host_props_node_t *)
               ngx_str_rbtree_lookup(&pwctx->host_props_tree, path, hash);
-    if (!hpn) {
+    if (hpn == NULL) {
         return NGX_DECLINED;
     }
 
@@ -888,12 +888,12 @@ ngx_proxy_wasm_properties_get_host(ngx_proxy_wasm_ctx_t *pwctx,
         return NGX_DECLINED;
     }
 
-    value->data = hpn->value.data;
-    value->len = hpn->value.len;
-
-    if (hpn->negative_cache) {
+    if (hpn->const_null) {
         return NGX_BUSY;
     }
+
+    value->data = hpn->value.data;
+    value->len = hpn->value.len;
 
     return NGX_OK;
 }
@@ -907,7 +907,7 @@ set_hpn_value(host_props_node_t *hpn, ngx_str_t *value, unsigned is_const,
 
     if (value->data == NULL) {
         new_data = NULL;
-        hpn->negative_cache = 1;
+        hpn->const_null = 1;
 
     } else {
         new_data = ngx_pstrdup(pool, value);
@@ -946,29 +946,36 @@ ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
     hpn = (host_props_node_t *)
               ngx_str_rbtree_lookup(&pwctx->host_props_tree, path, hash);
 
-    if (hpn) {
-        if (hpn->is_const) {
-            return NGX_DECLINED;
+    if (hpn && hpn->is_const) {
+        /* if a const node exists, we can't overwrite it */
+
+        return NGX_DECLINED;
+    }
+
+    if (value->data == NULL && !is_const) {
+        /* if setting non-const NULL, remove node if it exists */
+
+        if (hpn) {
+            ngx_pfree(pwctx->pool, hpn->value.data);
+            ngx_rbtree_delete(&pwctx->host_props_tree, &hpn->sn.node);
         }
+
+        return NGX_OK;
+    }
+
+    if (hpn) {
+        /* if the node exists, replace the value */
 
         ngx_pfree(pwctx->pool, hpn->value.data);
-
-        if (value->data == NULL && !is_const) {
-            ngx_rbtree_delete(&pwctx->host_props_tree, &hpn->sn.node);
-
-            return NGX_OK;
-        }
-
         rc = set_hpn_value(hpn, value, is_const, pwctx->pool);
         if (rc != NGX_OK) {
             return rc;
         }
 
-    } else if (value->data == NULL && !is_const) {
-        /* no need to store a non-const NULL */
-        return NGX_OK;
-
     } else {
+        /* if the node doesn't exist,
+           create it, set key, value, and store node in rbtree */
+
         hpn = ngx_pcalloc(pwctx->pool, sizeof(host_props_node_t) + path->len);
         if (hpn == NULL) {
             return NGX_ERROR;
