@@ -113,7 +113,9 @@ do
             lval = ffi_str(cvalue.data, cvalue.len)
         end
 
+        jit.off()
         local pok, ok, lvalue, is_const = pcall(lua_prop_setter, lkey, lval)
+        jit.on()
         if not pok then
             ngx.log(ngx.ERR, "error setting property from Lua: ", ok)
             return FFI_ERROR
@@ -133,7 +135,9 @@ do
                                                                  cvalue)
         local lkey = ffi_str(ckey.data, ckey.len)
 
+        jit.off()
         local pok, ok, lvalue, is_const = pcall(lua_prop_getter, lkey)
+        jit.on()
         if not pok then
             ngx.log(ngx.ERR, "error getting property from Lua: ", ok)
             return FFI_ERROR
