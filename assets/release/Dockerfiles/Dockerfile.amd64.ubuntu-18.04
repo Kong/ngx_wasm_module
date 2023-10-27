@@ -2,13 +2,20 @@ FROM amd64/ubuntu:18.04
 COPY . /ngx_wasm_module
 
 ARG DEBIAN_FRONTEND=noninteractive
+
+# Install Python 3.8+ (required by V8's GN build system)
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y python3.8 && \
+    ln -nfs $(which python3.8) /usr/bin/python3
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
         build-essential \
         ninja-build \
-        python3 \
-        cmake \
         gcc-8 \
         libstdc++-8-dev \
         git \
