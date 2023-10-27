@@ -431,10 +431,10 @@ unknown error
 unknown error
 --- grep_error_log eval: qr/.*property.*/
 --- grep_error_log_out eval
-qr/^[^\n]*?\[error\] [^\n]*? error setting property: first wasmx property custom error[^\n]*?
-[^\n]*?\[error\] [^\n]*? error setting property: second wasmx property custom error[^\n]*?
-[^\n]*?\[error\] [^\n]*? error setting property: unknown error[^\n]*?
-[^\n]*?\[error\] [^\n]*? error setting property: unknown error[^\n]*?
+qr/^[^\n]*?\[error\] [^\n]*? error in property handler: first wasmx property custom error[^\n]*?
+[^\n]*?\[error\] [^\n]*? error in property handler: second wasmx property custom error[^\n]*?
+[^\n]*?\[error\] [^\n]*? error in property handler: unknown error[^\n]*?
+[^\n]*?\[error\] [^\n]*? error in property handler: unknown error[^\n]*?
 [^\n]*?\[info\] [^\n]*? property not found: wasmx.fail1_property[^\n]*?$/
 --- no_error_log
 [crit]
@@ -610,7 +610,7 @@ ok
 --- error_log eval
 [
     qr/\[info\] .*? \[hostcalls\] on_response_body/,
-    qr/\[error\] .*? error setting property from Lua: rewrite_by_lua\(nginx.conf:[0-9]+\):[0-9]+: crash\!/,
+    qr/\[error\] .*? Lua error in property handler: rewrite_by_lua\(nginx.conf:[0-9]+\):[0-9]+: crash\!/,
 ]
 --- no_error_log
 [emerg]

@@ -8,11 +8,9 @@ local C = ffi.C
 local ngx = ngx
 local error = error
 local type = type
-local pcall = pcall
 local ffi_gc = ffi.gc
 local ffi_new = ffi.new
 local ffi_str = ffi.string
-local tostring = tostring
 local subsystem = ngx.config.subsystem
 local get_request = wasmx.get_request
 local get_err_ptr = wasmx.get_err_ptr
@@ -57,15 +55,8 @@ if subsystem == "http" then
         ngx_int_t ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
                                                  ngx_str_t *key,
                                                  ngx_str_t *out);
-        ngx_int_t ngx_http_wasm_ffi_set_host_property(ngx_http_request_t *r,
-                                                      ngx_str_t *key,
-                                                      ngx_str_t *value,
-                                                      unsigned is_const,
-                                                      unsigned retrieve);
-        ngx_int_t ngx_http_wasm_ffi_set_property_setter(ngx_http_request_t *r,
-                                                        ngx_wasm_host_prop_fn_t fn);
-        ngx_int_t ngx_http_wasm_ffi_set_property_getter(ngx_http_request_t *r,
-                                                        ngx_wasm_host_prop_fn_t fn);
+        ngx_int_t ngx_http_wasm_ffi_enable_property_setter(ngx_http_request_t *r);
+        ngx_int_t ngx_http_wasm_ffi_enable_property_getter(ngx_http_request_t *r);
     ]]
 
 else
@@ -297,166 +288,72 @@ function _M.get_property(key)
 end
 
 
-do
-    -- LuaJIT C callbacks are a limited resource:
-    -- We can't create one of these on each request,
-    -- so we prepare these wrappers, which in turn call a Lua function.
-    local lua_prop_setter
-    local lua_prop_getter
-    local c_prop_setter
-    local c_prop_getter
-
-
-    local function update_cvalue(cvalue, lvalue)
-        if lvalue == nil then
-            cvalue.data = nil
-            cvalue.len = 0
-            return
-        end
-
-        local value = tostring(lvalue)
-        cvalue.data = value
-        cvalue.len = #value
+---
+-- Define a setter function for host-managed properties.
+--
+-- @param setter The setter function is the handler for updating properties.
+-- Its type signature is `function(string, string): boolean, string`,
+-- where the inputs are the property key and value and the results are:
+-- * `truthy` - success setting the property
+-- * `truthy, value` - success, cache property value (useful if hosts
+--   sets only a setter but not a getter)
+-- * `truthy, value, truthy` - success, constant property value: further
+--   requests to the same property during a request are cached by
+--   ngx_wasm_module and do not invoke the Lua getter.
+-- * `falsy, err` - failure, and an optional error message
+-- @return true on success setting the getter, or nil and an error message.
+function _M.set_property_setter(setter)
+    if type(setter) ~= "function" then
+        error("setter must be a function", 2)
     end
 
-
-    local function jit_wrap(fn)
-        return function(r, ckey, cvalue)
-            jit.off()
-            local rc = fn(r, ckey, cvalue)
-            jit.on()
-            return rc
-        end
+    local r = get_request()
+    if not r then
+        error("no request found", 2)
     end
 
+    _M.property_setter = setter
 
-    c_prop_setter = ffi.cast("ngx_wasm_host_prop_fn_t",
-                             jit_wrap(function(r, ckey, cvalue)
-        local lkey = ffi_str(ckey.data, ckey.len)
-        local lval
-        if cvalue.data ~= nil then
-            lval = ffi_str(cvalue.data, cvalue.len)
-        end
-
-        local pok, ok, lvalue, is_const = pcall(lua_prop_setter, lkey, lval)
-        if not pok then
-            ngx.log(ngx.ERR, "error setting property from Lua: ", ok)
-            return FFI_ERROR
-        end
-
-        if not ok then
-            local err = lvalue or "unknown error"
-            ngx.log(ngx.ERR, "error setting property: ", err)
-            return FFI_ERROR
-        end
-
-        update_cvalue(cvalue, lvalue)
-
-        return C.ngx_http_wasm_ffi_set_host_property(r, ckey, cvalue,
-                                                     is_const and 1 or 0,
-                                                     0)
-    end))
-
-
-    c_prop_getter = ffi.cast("ngx_wasm_host_prop_fn_t",
-                             jit_wrap(function(r, ckey, cvalue)
-        local lkey = ffi_str(ckey.data, ckey.len)
-
-        local pok, ok, lvalue, is_const = pcall(lua_prop_getter, lkey)
-        if not pok then
-            ngx.log(ngx.ERR, "error getting property from Lua: ", ok)
-            return FFI_ERROR
-        end
-
-        if not ok then
-            if lvalue then
-                ngx.log(ngx.ERR, "error setting property: ", lvalue)
-                return FFI_ERROR
-            end
-
-            return FFI_DECLINED
-        end
-
-        update_cvalue(cvalue, lvalue)
-
-        local rc = C.ngx_http_wasm_ffi_set_host_property(r, ckey, cvalue,
-                                                   is_const and 1 or 0,
-                                                   1)
-        if rc == FFI_OK and lvalue == nil then
-            return FFI_DECLINED
-        end
-
-        return rc
-    end))
-
-
-    ---
-    -- Define a setter function for host-managed properties.
-    --
-    -- @param setter The setter function is the handler for updating properties.
-    -- Its type signature is `function(string, string): boolean, string`,
-    -- where the inputs are the property key and value and the results are:
-    -- * `truthy` - success setting the property
-    -- * `truthy, value` - success, cache property value (useful if hosts
-    --   sets only a setter but not a getter)
-    -- * `truthy, value, truthy` - success, constant property value: further
-    --   requests to the same property during a request are cached by
-    --   ngx_wasm_module and do not invoke the Lua getter.
-    -- * `falsy, err` - failure, and an optional error message
-    -- @return true on success setting the getter, or nil and an error message.
-    function _M.set_property_setter(setter)
-        if type(setter) ~= "function" then
-            error("setter must be a function", 2)
-        end
-
-        local r = get_request()
-        if not r then
-            error("no request found", 2)
-        end
-
-        lua_prop_setter = setter
-
-        local rc = C.ngx_http_wasm_ffi_set_property_setter(r, c_prop_setter)
-        if rc ~= FFI_OK then
-            return nil, "could not set property setter"
-        end
-
-        return true
+    local rc = C.ngx_http_wasm_ffi_enable_property_setter(r)
+    if rc ~= FFI_OK then
+        return nil, "could not set property setter"
     end
 
+    return true
+end
 
-    ---
-    -- Define a getter function for host-managed properties.
-    --
-    -- @param getter The getter function is the handler for resolving properties.
-    -- Its type signature is `function(string): boolean, string, boolean`,
-    -- where the input is the property key and the results are:
-    -- * `truthy, value` - success, property value
-    -- * `truthy, value, truthy` - success, constant property value: further
-    --   requests to the same property during a request are cached by
-    --   ngx_wasm_module and do not invoke the Lua getter.
-    -- * `falsy` - property not found
-    -- * `falsy, err` - failure, error message
-    -- @return true on success setting the getter, or nil and an error message.
-    function _M.set_property_getter(getter)
-        if type(getter) ~= "function" then
-            error("getter must be a function", 2)
-        end
 
-        local r = get_request()
-        if not r then
-            error("no request found", 2)
-        end
-
-        lua_prop_getter = getter
-
-        local rc = C.ngx_http_wasm_ffi_set_property_getter(r, c_prop_getter)
-        if rc ~= FFI_OK then
-            return nil, "could not set property getter"
-        end
-
-        return true
+---
+-- Define a getter function for host-managed properties.
+--
+-- @param getter The getter function is the handler for resolving properties.
+-- Its type signature is `function(string): boolean, string, boolean`,
+-- where the input is the property key and the results are:
+-- * `truthy, value` - success, property value
+-- * `truthy, value, truthy` - success, constant property value: further
+--   requests to the same property during a request are cached by
+--   ngx_wasm_module and do not invoke the Lua getter.
+-- * `falsy` - property not found
+-- * `falsy, err` - failure, error message
+-- @return true on success setting the getter, or nil and an error message.
+function _M.set_property_getter(getter)
+    if type(getter) ~= "function" then
+        error("getter must be a function", 2)
     end
+
+    local r = get_request()
+    if not r then
+        error("no request found", 2)
+    end
+
+    _M.property_getter = getter
+
+    local rc = C.ngx_http_wasm_ffi_enable_property_getter(r)
+    if rc ~= FFI_OK then
+        return nil, "could not set property getter"
+    end
+
+    return true
 end
 
 

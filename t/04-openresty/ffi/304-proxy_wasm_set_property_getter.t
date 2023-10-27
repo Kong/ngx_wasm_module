@@ -591,7 +591,7 @@ ok
 --- error_log eval
 [
     qr/\[info\] .*? \[hostcalls\] on_response_body/,
-    qr/\[error\] .*? error getting property from Lua: rewrite_by_lua\(nginx.conf:[0-9]+\):[0-9]+: crash\!/,
+    qr/\[error\] .*? Lua error in property handler: rewrite_by_lua\(nginx.conf:[0-9]+\):[0-9]+: crash\!/,
 ]
 --- no_error_log
 [emerg]

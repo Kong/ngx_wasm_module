@@ -21,6 +21,13 @@ typedef struct {
 } ngx_wasm_ffi_filter_t;
 
 
+typedef struct {
+    ngx_http_request_t  *r;
+    lua_State           *L;
+    unsigned             is_getter;
+} ngx_wasm_ffi_host_property_ctx_t;
+
+
 ngx_int_t ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
     ngx_wasm_ffi_filter_t *filters, size_t n_filters,
     ngx_wasm_ops_plan_t **out, u_char *err, size_t *errlen);

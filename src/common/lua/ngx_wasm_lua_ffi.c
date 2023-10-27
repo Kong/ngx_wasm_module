@@ -3,6 +3,7 @@
 #endif
 #include "ddebug.h"
 
+#include <ngx_wasm_lua.h>
 #include <ngx_wasm_lua_ffi.h>
 
 
@@ -243,45 +244,153 @@ ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
 }
 
 
-ngx_int_t
-ngx_http_wasm_ffi_set_host_property(ngx_http_request_t *r,
-    ngx_str_t *key, ngx_str_t *value, unsigned is_const, unsigned retrieve)
+static ngx_int_t
+property_handler(void *data, ngx_str_t *key, ngx_str_t *value)
 {
-    ngx_proxy_wasm_ctx_t  *pwctx = get_pwctx(r);
+    ngx_wasm_ffi_host_property_ctx_t  *hpctx = data;
+    ngx_proxy_wasm_ctx_t              *pwctx = get_pwctx(hpctx->r);
+    lua_State                         *L = hpctx->L;
+    ngx_int_t                          rc;
+    unsigned                           is_const;
+    int                                pok;
+    int                                top;
+
+    top = lua_gettop(L);
+
+    lua_getglobal(L, "package");
+    lua_getfield(L, -1, "loaded");
+    lua_getfield(L, -1, "resty.wasmx.proxy_wasm");
+    if (lua_type(L, -1) != LUA_TTABLE) {
+        goto fail;
+    }
+
+    lua_getfield(L, -1,
+                 hpctx->is_getter ? "property_getter" : "property_setter");
+    if (lua_type(L, -1) != LUA_TFUNCTION) {
+        goto fail;
+    }
+
+    ngx_wasm_assert(key && key->data);
+
+    lua_pushlstring(L, (char *) key->data, key->len);
+
+    ngx_wasm_assert(value);
+
+    if (value->data == NULL) {
+        lua_pushnil(L);
+
+    } else {
+        if ((int) value->len == 0) {
+            lua_pushliteral(L, "");
+
+        } else {
+            lua_pushlstring(L, (char *) value->data, value->len);
+        }
+    }
+
+    pok = lua_pcall(L, 2, 3, 0);
+    if (pok != 0) {
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                           "Lua error in property handler: %s",
+                           lua_tostring(L, -1));
+        goto fail;
+    }
+
+    if (lua_toboolean(L, -3) == 0) {
+        if (lua_isstring(L, -2)) {
+            ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                               "error in property handler: %s",
+                               lua_tostring(L, -2));
+            goto fail;
+
+        } else if (!hpctx->is_getter) {
+            ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                               "error in property handler: unknown error");
+            goto fail;
+
+        }
+
+        return NGX_DECLINED;
+    }
+
+    if (lua_isnil(L, -2)) {
+        value->data = NULL;
+        value->len = 0;
+
+    } else {
+        value->data = (u_char *) lua_tolstring(L, -2, &value->len);
+    }
+
+    is_const = lua_toboolean(L, -1);
 
     if (pwctx == NULL) {
         return NGX_ERROR;
     }
 
-    return ngx_proxy_wasm_properties_set_host(pwctx, key, value, is_const,
-                                              retrieve);
+    rc = ngx_proxy_wasm_properties_set_host(pwctx, key, value, is_const,
+                                            hpctx->is_getter);
+
+    lua_settop(L, top);
+
+    if (hpctx->is_getter && rc == NGX_OK && value->data == NULL) {
+        return NGX_DECLINED;
+    }
+
+    return rc;
+
+fail:
+
+    lua_settop(L, top);
+    return NGX_ERROR;
 }
 
 
 ngx_int_t
-ngx_http_wasm_ffi_set_property_setter(ngx_http_request_t *r,
-    ngx_wasm_host_prop_fn_t fn)
+ngx_http_wasm_ffi_enable_property_setter(ngx_http_request_t *r)
 {
-    ngx_proxy_wasm_ctx_t  *pwctx = get_pwctx(r);
+    ngx_proxy_wasm_ctx_t              *pwctx = get_pwctx(r);
+    ngx_wasm_ffi_host_property_ctx_t  *hpctx;
 
     if (pwctx == NULL) {
         return NGX_ERROR;
     }
 
-    return ngx_proxy_wasm_properties_set_host_prop_setter(pwctx, fn, r);
+    hpctx = ngx_palloc(pwctx->pool, sizeof(ngx_wasm_ffi_host_property_ctx_t));
+    if (hpctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    hpctx->r = r;
+    hpctx->L = ngx_http_lua_get_lua_vm(r, NULL);
+    hpctx->is_getter = 0;
+
+    return ngx_proxy_wasm_properties_set_host_prop_setter(pwctx,
+                                                          property_handler,
+                                                          hpctx);
 }
 
 
 ngx_int_t
-ngx_http_wasm_ffi_set_property_getter(ngx_http_request_t *r,
-    ngx_wasm_host_prop_fn_t fn)
+ngx_http_wasm_ffi_enable_property_getter(ngx_http_request_t *r)
 {
-    ngx_proxy_wasm_ctx_t  *pwctx = get_pwctx(r);
+    ngx_proxy_wasm_ctx_t              *pwctx = get_pwctx(r);
+    ngx_wasm_ffi_host_property_ctx_t  *hpctx;
 
     if (pwctx == NULL) {
         return NGX_ERROR;
     }
 
-    return ngx_proxy_wasm_properties_set_host_prop_getter(pwctx, fn, r);
+    hpctx = ngx_palloc(pwctx->pool, sizeof(ngx_wasm_ffi_host_property_ctx_t));
+    if (hpctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    hpctx->r = r;
+    hpctx->L = ngx_http_lua_get_lua_vm(r, NULL);
+    hpctx->is_getter = 1;
+
+    return ngx_proxy_wasm_properties_set_host_prop_getter(pwctx,
+                                                          property_handler,
+                                                          hpctx);
 }
 #endif
