@@ -1,8 +1,11 @@
-FROM amd64/centos:7
+# Use Python 3.8+ (required by V8's GN build system)
+# See https://hub.docker.com/r/centos/python-38-centos7
+FROM centos/python-38-centos7
 COPY . /ngx_wasm_module
+USER root
 
-RUN yum install -y epel-release && \
-    yum update -y && \
+RUN yum update -y && \
+    yum install -y epel-release && \
     yum install -y centos-release-scl && \
     yum install -y \
         devtoolset-8 \
@@ -13,16 +16,16 @@ RUN yum install -y epel-release && \
         cmake3 \
         make \
         gcc \
-        python3 \
         git \
         glib2-devel \
         perl \
         perl-IPC-Cmd \
         perl-Test-Simple
 
+RUN ln -nfs $(which cmake3) /usr/bin/cmake
+
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
 ENV PATH $CARGO_HOME/bin:$PATH
-RUN ln -nfs $(which cmake3) /usr/bin/cmake
 RUN mkdir -p "$CARGO_HOME" && mkdir -p "$RUSTUP_HOME" && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \
     chmod -R a=rwX $CARGO_HOME $RUSTUP_HOME
