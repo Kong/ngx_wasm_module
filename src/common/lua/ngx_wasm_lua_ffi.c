@@ -244,104 +244,187 @@ ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
 }
 
 
-static ngx_int_t
-property_handler(void *data, ngx_str_t *key, ngx_str_t *value)
+void
+ngx_wasm_lua_ffi_host_prop_handler(
+    ngx_wasm_ffi_host_property_req_ctx_t *hprctx,
+    unsigned char ok, const char* new_value, size_t len,
+    unsigned char is_const)
 {
-    ngx_wasm_ffi_host_property_ctx_t  *hpctx = data;
-    ngx_proxy_wasm_ctx_t              *pwctx = get_pwctx(hpctx->r);
-    lua_State                         *L = hpctx->L;
-    ngx_int_t                          rc;
-    unsigned                           is_const;
-    int                                pok;
-    int                                top;
+    ngx_proxy_wasm_ctx_t  *pwctx = get_pwctx(hprctx->r);
+    ngx_str_t             *key = hprctx->key;
+    ngx_str_t             *value = hprctx->value;
 
-    top = lua_gettop(L);
-
-    lua_getglobal(L, "package");
-    lua_getfield(L, -1, "loaded");
-    lua_getfield(L, -1, "resty.wasmx.proxy_wasm");
-    if (lua_type(L, -1) != LUA_TTABLE) {
-        goto fail;
-    }
-
-    lua_getfield(L, -1,
-                 hpctx->is_getter ? "property_getter" : "property_setter");
-    if (lua_type(L, -1) != LUA_TFUNCTION) {
-        goto fail;
-    }
-
-    ngx_wasm_assert(key && key->data);
-
-    lua_pushlstring(L, (char *) key->data, key->len);
-
-    ngx_wasm_assert(value);
-
-    if (value->data == NULL) {
-        lua_pushnil(L);
-
-    } else {
-        if ((int) value->len == 0) {
-            lua_pushliteral(L, "");
-
-        } else {
-            lua_pushlstring(L, (char *) value->data, value->len);
-        }
-    }
-
-    pok = lua_pcall(L, 2, 3, 0);
-    if (pok != 0) {
-        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
-                           "Lua error in property handler: %s",
-                           lua_tostring(L, -1));
-        goto fail;
-    }
-
-    if (lua_toboolean(L, -3) == 0) {
-        if (lua_isstring(L, -2)) {
+    if (!ok) {
+        if (new_value) {
             ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
                                "error in property handler: %s",
-                               lua_tostring(L, -2));
-            goto fail;
+                               new_value);
+            hprctx->rc = NGX_ERROR;
+            return;
 
-        } else if (!hpctx->is_getter) {
+        } else if (!hprctx->is_getter) {
             ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
                                "error in property handler: unknown error");
-            goto fail;
-
+            hprctx->rc = NGX_ERROR;
+            return;
         }
 
-        return NGX_DECLINED;
+        hprctx->rc = NGX_DECLINED;
+        return;
     }
 
-    if (lua_isnil(L, -2)) {
+    if (new_value == NULL) {
         value->data = NULL;
         value->len = 0;
 
     } else {
-        value->data = (u_char *) lua_tolstring(L, -2, &value->len);
+        value->data = (u_char *) new_value;
+        value->len = len;
     }
 
-    is_const = lua_toboolean(L, -1);
+    hprctx->rc = ngx_proxy_wasm_properties_set_host(pwctx, key, value, is_const,
+                                                    hprctx->is_getter);
 
-    if (pwctx == NULL) {
+    if (hprctx->is_getter && hprctx->rc == NGX_OK && value->data == NULL) {
+        hprctx->rc = NGX_DECLINED;
+    }
+
+    hprctx->rc = NGX_OK;
+}
+
+static const char  *HOST_PROPERTY_SCRIPT_NAME = "wasm_lua_host_property_chunk";
+static const char  *HOST_PROPERTY_SCRIPT = ""
+    "local hprctx, is_getter, key, value = ...                            \n"
+    "local ffi = require('ffi')                                           \n"
+    "local fmt = string.format                                            \n"
+    "                                                                     \n"
+    "ffi.cdef[[                                                           \n"
+    "    typedef unsigned char  u_char;                                   \n"
+    "    typedef void           ngx_wasm_ffi_host_property_req_ctx_t;     \n"
+    "                                                                     \n"
+    "    void ngx_wasm_lua_ffi_host_prop_handler(                         \n"
+    "        ngx_wasm_ffi_host_property_req_ctx_t *hprctx,                \n"
+    "        u_char ok, const char* value, size_t len,                    \n"
+    "        u_char is_const);                                            \n"
+    "]]                                                                   \n"
+    "                                                                     \n"
+    "local proxy_wasm = require('resty.wasmx.proxy_wasm')                 \n"
+    "                                                                     \n"
+    "local fn_name = is_getter and 'property_getter' or 'property_setter' \n"
+    "local fn = proxy_wasm[fn_name]                                       \n"
+    "if not fn then                                                       \n"
+    "    error('property handler function not found')                     \n"
+    "end                                                                  \n"
+    "                                                                     \n"
+    "local pok, ok, new_value, is_const = pcall(fn, key, value)           \n"
+    "if not pok then                                                      \n"
+    "    ngx.log(ngx.ERR, 'Lua error in property handler: ' .. ok)        \n"
+    "    error('fail')                                                    \n"
+    "end                                                                  \n"
+    "                                                                     \n"
+    "local new_value_len = new_value and #new_value or 0                  \n"
+    "                                                                     \n"
+    "ffi.C.ngx_wasm_lua_ffi_host_prop_handler(hprctx, ok and 1 or 0,      \n"
+    "                                         new_value, new_value_len,   \n"
+    "                                         is_const and 1 or 0)        \n";
+
+static ngx_int_t
+property_handler(void *data, ngx_str_t *key, ngx_str_t *value)
+{
+    ngx_wasm_ffi_host_property_ctx_t      *hpctx = data;
+    ngx_wasm_ffi_host_property_req_ctx_t   hprctx;
+    ngx_proxy_wasm_ctx_t                  *pwctx = get_pwctx(hpctx->r);
+    lua_State                             *co;
+    ngx_int_t                              rc = NGX_OK;
+    ngx_wasm_lua_ctx_t                    *lctx;
+
+    // FIXME if this function is changed to return NGX_AGAIN,
+    // hprctx needs to be dynamically allocated:
+
+    hprctx.r = hpctx->r;
+    hprctx.is_getter = hpctx->is_getter;
+    hprctx.key = key;
+    hprctx.value = value;
+
+    /* create coroutine */
+
+    lctx = ngx_wasm_lua_thread_new(HOST_PROPERTY_SCRIPT_NAME,
+                                   HOST_PROPERTY_SCRIPT,
+                                   hpctx->env, pwctx->log, &hprctx,
+                                   NULL, NULL);
+    if (lctx == NULL) {
         return NGX_ERROR;
     }
 
-    rc = ngx_proxy_wasm_properties_set_host(pwctx, key, value, is_const,
-                                            hpctx->is_getter);
+    /* push key and value arguments */
 
-    lua_settop(L, top);
+    co = lctx->co;
 
-    if (hpctx->is_getter && rc == NGX_OK && value->data == NULL) {
-        return NGX_DECLINED;
+    ngx_wasm_assert(key && key->data);
+    ngx_wasm_assert(value);
+
+    lctx->nargs = 4;
+
+    lua_pushlightuserdata(co, &hprctx);
+    lua_pushboolean(co, hpctx->is_getter);
+    lua_pushlstring(co, (char *) key->data, key->len);
+
+    if (hpctx->is_getter || value->data == NULL) {
+        lua_pushnil(co);
+
+    } else {
+        if ((int) value->len == 0) {
+            lua_pushliteral(co, "");
+
+        } else {
+            lua_pushlstring(co, (char *) value->data, value->len);
+        }
     }
 
-    return rc;
+    /* run handler */
 
-fail:
+    rc = ngx_wasm_lua_thread_run(lctx);
+    if (rc == NGX_AGAIN) {
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+        "cannot yield from host property handler");
 
-    lua_settop(L, top);
-    return NGX_ERROR;
+        return NGX_ERROR;
+    }
+
+    // ngx_wasm_assert(rc == NGX_DONE);
+
+    return hprctx.rc;
+}
+
+
+static ngx_wasm_ffi_host_property_ctx_t *
+get_hpctx(ngx_http_request_t *r, unsigned is_getter)
+{
+    ngx_proxy_wasm_ctx_t              *pwctx = get_pwctx(r);
+    ngx_wasm_ffi_host_property_ctx_t  *hpctx;
+    ngx_http_wasm_req_ctx_t           *rctx;
+    ngx_int_t                          rc;
+
+    if (pwctx == NULL) {
+        return NULL;
+    }
+
+    rc = ngx_http_wasm_rctx(r, &rctx);
+    ngx_wasm_assert(rc != NGX_DECLINED);
+    if (rc != NGX_OK) {
+        return NULL;
+    }
+
+    hpctx = ngx_palloc(pwctx->pool, sizeof(ngx_wasm_ffi_host_property_ctx_t));
+    if (hpctx == NULL) {
+        return NULL;
+    }
+
+    hpctx->r = r;
+    hpctx->env = &rctx->env;
+    hpctx->is_getter = is_getter;
+
+    return hpctx;
 }
 
 
@@ -355,14 +438,10 @@ ngx_http_wasm_ffi_enable_property_setter(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
-    hpctx = ngx_palloc(pwctx->pool, sizeof(ngx_wasm_ffi_host_property_ctx_t));
+    hpctx = get_hpctx(r, 0);
     if (hpctx == NULL) {
         return NGX_ERROR;
     }
-
-    hpctx->r = r;
-    hpctx->L = ngx_http_lua_get_lua_vm(r, NULL);
-    hpctx->is_getter = 0;
 
     return ngx_proxy_wasm_properties_set_host_prop_setter(pwctx,
                                                           property_handler,
@@ -380,14 +459,10 @@ ngx_http_wasm_ffi_enable_property_getter(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
-    hpctx = ngx_palloc(pwctx->pool, sizeof(ngx_wasm_ffi_host_property_ctx_t));
+    hpctx = get_hpctx(r, 1);
     if (hpctx == NULL) {
         return NGX_ERROR;
     }
-
-    hpctx->r = r;
-    hpctx->L = ngx_http_lua_get_lua_vm(r, NULL);
-    hpctx->is_getter = 1;
 
     return ngx_proxy_wasm_properties_set_host_prop_getter(pwctx,
                                                           property_handler,

@@ -22,10 +22,19 @@ typedef struct {
 
 
 typedef struct {
-    ngx_http_request_t  *r;
-    lua_State           *L;
-    unsigned             is_getter;
+    ngx_http_request_t      *r;
+    ngx_wasm_subsys_env_t   *env;
+    unsigned                 is_getter;
 } ngx_wasm_ffi_host_property_ctx_t;
+
+
+typedef struct {
+    ngx_http_request_t      *r;
+    unsigned                 is_getter;
+    ngx_str_t               *key;
+    ngx_str_t               *value;
+    ngx_int_t                rc;
+} ngx_wasm_ffi_host_property_req_ctx_t;
 
 
 ngx_int_t ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,

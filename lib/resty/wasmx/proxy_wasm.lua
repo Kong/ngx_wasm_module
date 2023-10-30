@@ -284,6 +284,10 @@ function _M.get_property(key)
         return nil, "property \"" .. key .. "\" not found", NOT_FOUND
     end
 
+    if cvalue.data == nil then
+        return nil
+    end
+
     return ffi_str(cvalue.data, cvalue.len)
 end
 

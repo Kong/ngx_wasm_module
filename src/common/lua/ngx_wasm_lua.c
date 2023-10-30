@@ -1,5 +1,5 @@
 #ifndef DDEBUG
-#define DDEBUG 0
+#define DDEBUG 1
 #endif
 #include "ddebug.h"
 
@@ -113,6 +113,56 @@ ngx_wasm_lua_thread_destroy(ngx_wasm_lua_ctx_t *lctx)
 }
 
 
+static ngx_int_t
+ngx_wasm_lua_load_code(ngx_wasm_lua_ctx_t *lctx,
+    const char *tag, const char *src,
+    ngx_wasm_subsys_env_t *env)
+{
+    ngx_int_t  rc;
+
+    lctx->code = src;
+    lctx->code_len = ngx_strlen(src);
+    lctx->cache_key = ngx_wasm_lua_thread_cache_key(lctx->pool,
+                                                    tag,
+                                                    (u_char *) lctx->code,
+                                                    lctx->code_len);
+    if (lctx->cache_key == NULL) {
+        return NGX_ERROR;
+    }
+
+    /* load code */
+
+    switch (env->subsys->kind) {
+#if (NGX_WASM_HTTP)
+    case NGX_WASM_SUBSYS_HTTP:
+        rc = ngx_http_lua_cache_loadbuffer(lctx->log,
+                                           lctx->L,
+                                           (u_char *) lctx->code,
+                                           lctx->code_len,
+                                           &lctx->code_ref,
+                                           lctx->cache_key,
+                                           tag);
+        break;
+#endif
+#if (NGX_WASM_STREAM)
+    case NGX_WASM_SUBSYS_STREAM:
+        rc = ngx_stream_lua_cache_loadbuffer(lctx->log,
+                                             lctx->L,
+                                             (u_char *) lctx->code,
+                                             lctx->code_len,
+                                             lctx->cache_key,
+                                             tag);
+        break;
+#endif
+    default:
+        ngx_wasm_assert(0);
+        return NGX_ERROR;
+    }
+
+    return rc;
+}
+
+
 ngx_wasm_lua_ctx_t *
 ngx_wasm_lua_thread_new(const char *tag, const char *src,
     ngx_wasm_subsys_env_t *env, ngx_log_t *log, void *data,
@@ -189,47 +239,11 @@ ngx_wasm_lua_thread_new(const char *tag, const char *src,
 
     /* code */
 
-    lctx->code = src;
-    lctx->code_len = ngx_strlen(src);
-    lctx->cache_key = ngx_wasm_lua_thread_cache_key(lctx->pool,
-                                                    tag,
-                                                    (u_char *) lctx->code,
-                                                    lctx->code_len);
-    if (lctx->cache_key == NULL) {
-        goto error;
-    }
-
-    /* load code */
-
-    switch (env->subsys->kind) {
-#if (NGX_WASM_HTTP)
-    case NGX_WASM_SUBSYS_HTTP:
-        rc = ngx_http_lua_cache_loadbuffer(lctx->log,
-                                           lctx->L,
-                                           (u_char *) lctx->code,
-                                           lctx->code_len,
-                                           &lctx->code_ref,
-                                           lctx->cache_key,
-                                           tag);
-        break;
-#endif
-#if (NGX_WASM_STREAM)
-    case NGX_WASM_SUBSYS_STREAM:
-        rc = ngx_stream_lua_cache_loadbuffer(lctx->log,
-                                             lctx->L,
-                                             (u_char *) lctx->code,
-                                             lctx->code_len,
-                                             lctx->cache_key,
-                                             tag);
-        break;
-#endif
-    default:
-        ngx_wasm_assert(0);
-        goto error;
-    }
-
-    if (rc != NGX_OK) {
-        goto error;
+    if (src) {
+        rc = ngx_wasm_lua_load_code(lctx, tag, src, env);
+        if (rc != NGX_OK) {
+            goto error;
+        }
     }
 
     /*  move code closure to new coroutine  */
