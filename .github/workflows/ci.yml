@@ -7,12 +7,14 @@ on:
       - '**/*.md'
       - '**/release.yml'
       - '**/ci-large.yml'
+      - 'assets/release/Dockerfiles/*'
   pull_request:
     branches: '**'
     paths-ignore:
       - '**/*.md'
       - '**/release.yml'
       - '**/ci-large.yml'
+      - 'assets/release/Dockerfiles/*'
   workflow_dispatch:
 
 defaults:
