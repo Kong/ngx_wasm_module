@@ -22,6 +22,15 @@
    fun:ngx_crc32_table_init
 }
 {
+   <headers-more-nginx-module: set_header_helper>
+   Memcheck:Cond
+   fun:ngx_http_set_header_helper
+   fun:ngx_http_headers_more_exec_cmd
+   fun:ngx_http_headers_more_filter
+   ...
+   fun:main
+}
+{
    <wasmer 3.1.1: parse>
    Memcheck:Cond
    fun:_ZN10wasmparser6parser6Parser5parse17h5c54f0ee5315402aE
