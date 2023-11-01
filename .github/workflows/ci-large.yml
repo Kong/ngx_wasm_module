@@ -25,7 +25,7 @@ jobs:
         cc: [gcc-12]
         ngx: [1.25.3]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [12.0.2]
+        wasmtime: [14.0.3]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
         debug: [debug, no_debug]
@@ -38,7 +38,7 @@ jobs:
             cc: gcc-12
             openresty: 1.21.4.2
             runtime: wasmtime
-            wasmtime: 12.0.2
+            wasmtime: 14.0.3
             debug: debug
             hup: no_hup
             ssl: ssl
@@ -68,7 +68,7 @@ jobs:
         cc: [gcc-12]
         ngx: [1.25.3]
         runtime: [wasmer, wasmtime, v8]
-        wasmtime: [12.0.2]
+        wasmtime: [14.0.3]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
         hup: [hup, no_hup]
@@ -106,7 +106,7 @@ jobs:
         cc: [clang-15]
         openresty: [1.21.4.2]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [12.0.2]
+        wasmtime: [14.0.3]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
         ssl: [no_ssl, ssl]
@@ -134,7 +134,7 @@ jobs:
         cc: [clang-13, clang-14, gcc-10, gcc-11]
         ngx: [1.25.3]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [12.0.2]
+        wasmtime: [14.0.3]
         wasmer: [3.1.1]
         v8: [11.4.183.23]
         include:
@@ -143,7 +143,7 @@ jobs:
             cc: clang-15
             ngx: 1.21.6
             runtime: wasmtime
-            wasmtime: 12.0.2
+            wasmtime: 14.0.3
     uses: ./.github/workflows/job-build-tests.yml
     with:
       os: ${{ matrix.os }}
