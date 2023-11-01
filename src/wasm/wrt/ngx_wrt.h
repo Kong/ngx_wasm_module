@@ -61,6 +61,11 @@ typedef enum {
 #include <wasmtime.h>
 #include <wasi.h>
 
+#if WASMTIME_VERSION_MAJOR != 14
+#   error Unsupported Wasmtime version
+#elif WASMTIME_VERSION_MINOR > 0
+#   warning Untested Wasmtime version
+#endif
 
 typedef wasmtime_error_t  ngx_wrt_res_t;
 
