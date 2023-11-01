@@ -119,7 +119,7 @@ void ngx_wasmtime_valvec2wasm(wasm_val_vec_t *out, wasmtime_val_t *vec,
 
 #if WASMER_VERSION_MAJOR != 3
 #   error Unsupported Wasmer version
-#elif WASMER_VERSION_MINOR > 1
+#elif WASMER_VERSION_MINOR > 3
 #   warning Untested Wasmer version
 #endif
 

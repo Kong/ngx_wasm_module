@@ -35,7 +35,7 @@ jobs:
         openresty: [""]
         runtime: [wasmer]
         wasmtime: [""]
-        wasmer: [3.1.1]
+        wasmer: [3.3.0]
         v8: [""]
         ssl: [ssl]
         debug: [debug, no_debug]
@@ -66,7 +66,7 @@ jobs:
             cc: gcc-12
             ngx: 1.21.6
             runtime: wasmer
-            wasmer: 3.1.1
+            wasmer: 3.3.0
             ssl: ssl
             debug: debug
             hup: no_hup
@@ -86,7 +86,7 @@ jobs:
             cc: gcc-12
             ngx: 1.25.3
             runtime: wasmer
-            wasmer: 3.1.1
+            wasmer: 3.3.0
             ssl: no_ssl
             debug: no_debug
             hup: no_hup
@@ -149,7 +149,7 @@ jobs:
       matrix:
         label: ["full"]
         runtime: [wasmer]
-        wasmer: [3.1.1]
+        wasmer: [3.3.0]
         os: [ubuntu-22.04]
         cc: [gcc-12]
         ngx: [1.25.3]
@@ -181,7 +181,7 @@ jobs:
           # OpenResty
           - label: openresty
             runtime: wasmer
-            wasmer: 3.1.1
+            wasmer: 3.3.0
             os: ubuntu-22.04
             cc: gcc-12
             openresty: 1.21.4.2
@@ -252,7 +252,7 @@ jobs:
         openresty: [1.21.4.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [14.0.3]
-        wasmer: [3.1.1]
+        wasmer: [3.3.0]
         v8: [11.4.183.23]
         ssl: [ssl]
         debug: [debug, no_debug]
@@ -262,7 +262,7 @@ jobs:
             cc: clang-15
             ngx: 1.25.3
             runtime: wasmer
-            wasmer: 3.1.1
+            wasmer: 3.3.0
             ssl: no_ssl
             debug: debug
     uses: ./.github/workflows/job-clang-analyzer.yml
@@ -288,7 +288,7 @@ jobs:
         ngx: [1.25.3]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [14.0.3]
-        wasmer: [3.1.1]
+        wasmer: [3.3.0]
         v8: [11.4.183.23]
     uses: ./.github/workflows/job-build-tests.yml
     with:
