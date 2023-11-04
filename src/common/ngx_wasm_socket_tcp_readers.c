@@ -623,9 +623,9 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
             buf->last = ngx_cpymem(buf->last, p, chunk_len);
         }
 
+#if 0
         ngx_wasm_assert((size_t) ngx_buf_size(buf) == in_ctx->body_len);
 
-#if 0
         dd("body_len: %ld", in_ctx->body_len);
 
         for (ll = in_ctx->body; ll; ll = ll->next) {
