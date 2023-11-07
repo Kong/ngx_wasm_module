@@ -369,8 +369,10 @@ jobs:
       V8_VER: ${{ needs.setup.outputs.v8_ver }}
     steps:
       - uses: actions/checkout@v3
-      - name: Setup Homebrew dependencies
-        run: brew install ninja openssh
+      - name: Setup dependencies
+        run: |
+          brew install ninja openssh
+          pip3 install --upgrade setuptools
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
