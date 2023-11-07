@@ -196,31 +196,34 @@ get_pwctx(ngx_http_request_t *r)
 }
 
 
-ngx_int_t
+void
 ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
-    ngx_str_t *key, ngx_str_t *value)
+    ngx_str_t *key, ngx_str_t *value, ngx_int_t *rc)
 {
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_proxy_wasm_ctx_t     *pwctx;
 
     if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
-        return NGX_ERROR;
+        *rc = NGX_ERROR;
+        return;
     }
 
     pwctx = ngx_proxy_wasm_ctx(NULL, 0,
                                NGX_PROXY_WASM_ISOLATION_STREAM,
                                &ngx_http_proxy_wasm, rctx);
     if (pwctx == NULL) {
-        return NGX_ERROR;
+        *rc = NGX_ERROR;
+        return;
     }
 
-    return ngx_proxy_wasm_properties_set(pwctx, key, value);
+    *rc = ngx_proxy_wasm_properties_set(pwctx, key, value);
+    return;
 }
 
 
-ngx_int_t
+void
 ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
-    ngx_str_t *key, ngx_str_t *value)
+    ngx_str_t *key, ngx_str_t *value, ngx_int_t *rc)
 {
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_proxy_wasm_ctx_t     *pwctx;
@@ -230,17 +233,20 @@ ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
          * TODO: return code signifying "no plan attached to request" and co.
          * return associated constant as err/code from Lua lib
          */
-        return NGX_ERROR;
+        *rc = NGX_ERROR;
+        return;
     }
 
     pwctx = ngx_proxy_wasm_ctx(NULL, 0,
                                NGX_PROXY_WASM_ISOLATION_STREAM,
                                &ngx_http_proxy_wasm, rctx);
     if (pwctx == NULL) {
-        return NGX_ERROR;
+        *rc = NGX_ERROR;
+        return;
     }
 
-    return ngx_proxy_wasm_properties_get(pwctx, key, value);
+    *rc = ngx_proxy_wasm_properties_get(pwctx, key, value);
+    return;
 }
 
 
@@ -323,6 +329,7 @@ static const char  *HOST_PROPERTY_SCRIPT = ""
     "end                                                                  \n"
     "                                                                     \n"
     "local new_value_len = new_value and #new_value or 0                  \n"
+    "                                                                     \n"
     "                                                                     \n"
     "ffi.C.ngx_wasm_lua_ffi_host_prop_handler(hprctx, ok and 1 or 0,      \n"
     "                                         new_value, new_value_len,   \n"
