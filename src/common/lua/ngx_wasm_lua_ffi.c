@@ -336,8 +336,8 @@ property_handler(void *data, ngx_str_t *key, ngx_str_t *value)
     ngx_wasm_ffi_host_property_req_ctx_t   hprctx;
     ngx_proxy_wasm_ctx_t                  *pwctx = get_pwctx(hpctx->r);
     lua_State                             *co;
-    ngx_int_t                              rc = NGX_OK;
     ngx_wasm_lua_ctx_t                    *lctx;
+    int                                    rv;
 
     // FIXME if this function is changed to return NGX_AGAIN,
     // hprctx needs to be dynamically allocated:
@@ -384,10 +384,17 @@ property_handler(void *data, ngx_str_t *key, ngx_str_t *value)
 
     /* run handler */
 
-    rc = ngx_wasm_lua_thread_run(lctx);
-    if (rc == NGX_AGAIN) {
+    rv = lua_resume(lctx->co, lctx->nargs);
+    if (rv == LUA_YIELD) {
         ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
         "cannot yield from host property handler");
+
+        return NGX_ERROR;
+    }
+
+    if (rv != 0) {
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+        "Lua resume failed with error: %d", rv);
 
         return NGX_ERROR;
     }
