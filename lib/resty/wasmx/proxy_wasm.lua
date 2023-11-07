@@ -49,14 +49,12 @@ if subsystem == "http" then
                                                 ngx_wasm_plan_t *plan,
                                                 unsigned int isolation);
         ngx_int_t ngx_http_wasm_ffi_start(ngx_http_request_t *r);
-        void ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
-                                            ngx_str_t *key,
-                                            ngx_str_t *value,
-                                            ngx_int_t *rc);
-        void ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
-                                            ngx_str_t *key,
-                                            ngx_str_t *out,
-                                            ngx_int_t *rc);
+        ngx_int_t ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
+                                                 ngx_str_t *key,
+                                                 ngx_str_t *value);
+        ngx_int_t ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
+                                                 ngx_str_t *key,
+                                                 ngx_str_t *out);
         ngx_int_t ngx_http_wasm_ffi_enable_property_setter(ngx_http_request_t *r);
         ngx_int_t ngx_http_wasm_ffi_enable_property_getter(ngx_http_request_t *r);
     ]]
@@ -250,11 +248,8 @@ function _M.set_property(key, value)
         data = value,
         len = value and #value or 0
     })
-    local rcp = ffi_new("ngx_int_t[1]", { 0 })
 
-    C.ngx_http_wasm_ffi_set_property(r, ckey, cvalue, rcp)
-
-    local rc = rcp[0]
+    local rc = C.ngx_http_wasm_ffi_set_property(r, ckey, cvalue)
     if rc == FFI_ERROR then
         return nil, "unknown error"
     end
@@ -279,11 +274,8 @@ function _M.get_property(key)
 
     local ckey = ffi_new("ngx_str_t", { data = key, len = #key })
     local cvalue = ffi_new("ngx_str_t", { data = nil, len = 0 })
-    local rcp = ffi_new("ngx_int_t[1]", { 0 })
 
-    C.ngx_http_wasm_ffi_get_property(r, ckey, cvalue, rcp)
-
-    local rc = tonumber(rcp[0])
+    local rc = C.ngx_http_wasm_ffi_get_property(r, ckey, cvalue)
     if rc == FFI_ERROR then
         return nil, "unknown error", ERROR
     end

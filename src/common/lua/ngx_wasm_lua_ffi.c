@@ -196,34 +196,31 @@ get_pwctx(ngx_http_request_t *r)
 }
 
 
-void
+ngx_int_t
 ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
-    ngx_str_t *key, ngx_str_t *value, ngx_int_t *rc)
+    ngx_str_t *key, ngx_str_t *value)
 {
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_proxy_wasm_ctx_t     *pwctx;
 
     if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
-        *rc = NGX_ERROR;
-        return;
+        return NGX_ERROR;
     }
 
     pwctx = ngx_proxy_wasm_ctx(NULL, 0,
                                NGX_PROXY_WASM_ISOLATION_STREAM,
                                &ngx_http_proxy_wasm, rctx);
     if (pwctx == NULL) {
-        *rc = NGX_ERROR;
-        return;
+        return NGX_ERROR;
     }
 
-    *rc = ngx_proxy_wasm_properties_set(pwctx, key, value);
-    return;
+    return ngx_proxy_wasm_properties_set(pwctx, key, value);
 }
 
 
-void
+ngx_int_t
 ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
-    ngx_str_t *key, ngx_str_t *value, ngx_int_t *rc)
+    ngx_str_t *key, ngx_str_t *value)
 {
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_proxy_wasm_ctx_t     *pwctx;
@@ -233,20 +230,17 @@ ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
          * TODO: return code signifying "no plan attached to request" and co.
          * return associated constant as err/code from Lua lib
          */
-        *rc = NGX_ERROR;
-        return;
+        return NGX_ERROR;
     }
 
     pwctx = ngx_proxy_wasm_ctx(NULL, 0,
                                NGX_PROXY_WASM_ISOLATION_STREAM,
                                &ngx_http_proxy_wasm, rctx);
     if (pwctx == NULL) {
-        *rc = NGX_ERROR;
-        return;
+        return NGX_ERROR;
     }
 
-    *rc = ngx_proxy_wasm_properties_get(pwctx, key, value);
-    return;
+    return ngx_proxy_wasm_properties_get(pwctx, key, value);
 }
 
 

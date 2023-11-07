@@ -398,7 +398,6 @@ ok
 
 
 === TEST 9: set_property_getter() - getter returning nil produces property not found
---- ONLY
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {

@@ -45,10 +45,10 @@ ngx_int_t ngx_http_wasm_ffi_plan_load(ngx_wasm_ops_plan_t *plan);
 ngx_int_t ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r,
     ngx_wasm_ops_plan_t *plan, ngx_uint_t isolation);
 ngx_int_t ngx_http_wasm_ffi_start(ngx_http_request_t *r);
-void ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
-    ngx_str_t *key, ngx_str_t *value, ngx_int_t *rc);
-void ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
-    ngx_str_t *key, ngx_str_t *value, ngx_int_t *rc);
+ngx_int_t ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
+    ngx_str_t *key, ngx_str_t *value);
+ngx_int_t ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
+    ngx_str_t *key, ngx_str_t *value);
 ngx_int_t ngx_http_wasm_ffi_set_host_property(ngx_http_request_t *r,
     ngx_str_t *key, ngx_str_t *value, unsigned is_const, unsigned retrieve);
 ngx_int_t ngx_http_wasm_ffi_set_property_setter(ngx_http_request_t *r,
