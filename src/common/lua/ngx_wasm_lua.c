@@ -155,6 +155,9 @@ ngx_wasm_lua_thread_new(const char *tag, const char *src,
 
         lctx->L = ngx_http_lua_get_lua_vm(r, NULL);
         lctx->co = ngx_http_lua_new_thread(r, lctx->L, &lctx->co_ref);
+
+        ngx_http_lua_set_req(lctx->co, r);
+
         break;
     }
 #endif
@@ -166,6 +169,9 @@ ngx_wasm_lua_thread_new(const char *tag, const char *src,
 
         lctx->L = ngx_stream_lua_get_lua_vm(sr, NULL);
         lctx->co = ngx_stream_lua_new_thread(sr, lctx->L, lctx->co_ref);
+
+        ngx_stream_lua_set_req(lctx->co, sr);
+
         break;
     }
 #endif
