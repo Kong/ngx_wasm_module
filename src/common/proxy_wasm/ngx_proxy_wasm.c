@@ -501,6 +501,7 @@ action2rc(ngx_proxy_wasm_ctx_t *pwctx,
         case NGX_HTTP_REWRITE_PHASE:
         case NGX_HTTP_ACCESS_PHASE:
         case NGX_HTTP_CONTENT_PHASE:
+        case NGX_WASM_BACKGROUND_PHASE:
             ngx_log_debug6(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
                            "proxy_wasm pausing in \"%V\" phase "
                            "(filter: %l/%l, step: %d, action: %d, "
@@ -683,6 +684,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     ngx_int_t                 rc;
     ngx_proxy_wasm_err_e      ecode;
     ngx_proxy_wasm_action_e   action = NGX_PROXY_WASM_ACTION_CONTINUE;
+    ngx_proxy_wasm_exec_t    *out;
     ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
     ngx_proxy_wasm_filter_t  *filter = pwexec->filter;
 #if (NGX_DEBUG)
@@ -700,10 +702,12 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     if (pwexec->ictx == NULL || pwexec->ictx->instance->trapped) {
 #endif
         ecode = ngx_proxy_wasm_create_context(filter, pwctx, pwexec->id,
-                                              pwexec, NULL);
+                                              pwexec, &out);
         if (ecode != NGX_PROXY_WASM_ERR_NONE) {
             return ecode;
         }
+
+        pwexec = out;
 #if 1
     }
 #endif
@@ -841,6 +845,9 @@ get_instance(ngx_proxy_wasm_filter_t *filter,
     ngx_proxy_wasm_instance_t  *ictx;
 
     dd("get instance in store: %p", store);
+
+    /* store initialized */
+    ngx_wasm_assert(store->pool);
 
     for (q = ngx_queue_head(&store->busy);
          q != ngx_queue_sentinel(&store->busy);
@@ -988,9 +995,6 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
         ictx = in->ictx;
 
     } else {
-        /* store initialized */
-        ngx_wasm_assert(store->pool);
-
         ictx = get_instance(filter, store, log);
         if (ictx == NULL) {
             goto error;
@@ -1187,10 +1191,15 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
 
             pwexec->started = 1;
         }
-    }
 
-    if (out) {
-        *out = pwexec;
+        if (out) {
+            *out = pwexec;
+        }
+
+    } else {
+        if (out) {
+            *out = rexec;
+        }
     }
 
     return NGX_PROXY_WASM_ERR_NONE;
@@ -1245,19 +1254,9 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_exec_t *pwexec)
                              pwexec->index + 1, pwexec->parent->nfilters);
 
 #if 0
-    /**
-     * Currently, dispatches are synchronous hence will always
-     * have been executed when on_done is invoked.
-     */
 #ifdef NGX_WASM_HTTP
     call = pwexec->call;
     if (call) {
-        ngx_log_debug3(NGX_LOG_DEBUG_WASM, pwexec->log, 0,
-                       "proxy_wasm \"%V\" filter (%l/%l) "
-                       "cancelling HTTP dispatch",
-                       pwexec->filter->name, pwexec->index + 1,
-                       pwexec->parent->nfilters);
-
         ngx_http_proxy_wasm_dispatch_destroy(call);
 
         pwexec->call = NULL;

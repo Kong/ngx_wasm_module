@@ -26,21 +26,42 @@ static ngx_int_t ngx_proxy_wasm_hfuncs_no_http(ngx_wavm_instance_t *instance,
 
 static ngx_chain_t *
 ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
-    ngx_proxy_wasm_buffer_type_e buf_type, unsigned *none)
+    ngx_proxy_wasm_buffer_type_e buf_type, unsigned *none, char **trapmsg)
 {
 #ifdef NGX_WASM_HTTP
     ngx_chain_t              *cl;
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_http_request_t       *r;
+    ngx_proxy_wasm_ctx_t     *pwctx;
+    ngx_proxy_wasm_exec_t    *pwexec;
 
-    rctx = ngx_http_proxy_wasm_get_rctx(instance);
-    r = rctx->r;
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    pwctx = pwexec->parent;
 #endif
 
     switch (buf_type) {
 
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_BUFFER_HTTP_REQUEST_BODY:
+
+        /* check context */
+
+        switch (pwctx->step) {
+        case NGX_PROXY_WASM_STEP_REQ_HEADERS:
+        case NGX_PROXY_WASM_STEP_REQ_BODY:
+        case NGX_PROXY_WASM_STEP_LOG:
+            break;
+        default:
+            *trapmsg = "can only get request body during "
+                       "\"on_request_body\", \"on_log\"";
+            return NULL;
+        }
+
+        /* get */
+
+        rctx = ngx_http_proxy_wasm_get_rctx(instance);
+        r = rctx->r;
+
         if (r->request_body == NULL
             || r->request_body->bufs == NULL)
         {
@@ -61,6 +82,22 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
         return r->request_body->bufs;
 
     case NGX_PROXY_WASM_BUFFER_HTTP_RESPONSE_BODY:
+
+        /* check context */
+
+        switch (pwctx->step) {
+        case NGX_PROXY_WASM_STEP_RESP_BODY:
+            break;
+        default:
+            *trapmsg = "can only get response body during "
+                       "\"on_response_body\"";
+            return NULL;
+        }
+
+        /* get */
+
+        rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
         cl = rctx->resp_chunk;
         if (cl == NULL) {
             /* no body */
@@ -74,9 +111,21 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
         {
             ngx_wasm_http_reader_ctx_t      *reader;
             ngx_http_proxy_wasm_dispatch_t  *call;
-            ngx_proxy_wasm_exec_t           *pwexec;
 
-            pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+            /* check context */
+
+            switch (pwctx->step) {
+            case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
+            case NGX_PROXY_WASM_STEP_LOG:
+                break;
+            default:
+                *trapmsg = "can only get dispatch response body during "
+                           "\"on_http_dispatch_response\"";
+                return NULL;
+            }
+
+            /* get */
+
             call = pwexec->call;
             if (call == NULL) {
                 return NULL;
@@ -207,11 +256,10 @@ ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
     ngx_event_t            *ev;
     ngx_proxy_wasm_exec_t  *rexec = ngx_proxy_wasm_instance2pwexec(instance);
 
-    ngx_wasm_assert(rexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
-
     if (rexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID) {
-        /* ignore */
-        return ngx_proxy_wasm_result_ok(rets);
+        return ngx_proxy_wasm_result_trap(rexec,
+                                          "can only set tick_period in "
+                                          "root context", rets, NGX_WAVM_OK);
     }
 
     if (ngx_exiting) {
@@ -254,6 +302,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
 {
     size_t                         offset, max_len, len, chunk_len;
     unsigned                       none = 0;
+    char                          *trapmsg = NULL;
     u_char                        *start = NULL;
     ngx_chain_t                   *cl = NULL;
     ngx_buf_t                     *buf;
@@ -282,8 +331,14 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
         break;
 
     default:
-        cl = ngx_proxy_wasm_get_buffer_helper(instance, buf_type, &none);
+        cl = ngx_proxy_wasm_get_buffer_helper(instance, buf_type, &none,
+                                              &trapmsg);
         if (cl == NULL) {
+            if (trapmsg) {
+                return ngx_proxy_wasm_result_trap(pwexec, trapmsg,
+                                                  rets, NGX_WAVM_BAD_USAGE);
+            }
+
             if (none) {
                 return ngx_proxy_wasm_result_notfound(rets);
             }
@@ -304,7 +359,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
 
     if (!len) {
         /* eof */
-        return ngx_proxy_wasm_result_notfound(rets);
+        return ngx_proxy_wasm_result_ok(rets);
     }
 
     p = ngx_proxy_wasm_alloc(pwexec, len);
@@ -376,9 +431,10 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
     ngx_wavm_ptr_t                *buf_data;
     ngx_http_wasm_req_ctx_t       *rctx;
     ngx_proxy_wasm_exec_t         *pwexec;
+    ngx_proxy_wasm_ctx_t          *pwctx;
 
-    rctx = ngx_http_proxy_wasm_get_rctx(instance);
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    pwctx = pwexec->parent;
 
     offset = args[1].of.i32;
     max = args[2].of.i32;
@@ -400,6 +456,26 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_BUFFER_HTTP_REQUEST_BODY:
+
+        /* check context */
+
+        switch (pwctx->step) {
+        case NGX_PROXY_WASM_STEP_REQ_HEADERS:
+        case NGX_PROXY_WASM_STEP_REQ_BODY:
+            break;
+        default:
+            return ngx_proxy_wasm_result_trap(pwexec,
+                                              "can only set request body "
+                                              "during \"on_request_body\"",
+                                              rets, NGX_WAVM_BAD_USAGE);
+        }
+
+        /* set */
+
+        rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
+        ngx_wasm_assert(rctx);
+
         if (offset == 0 && max == 0 && buf_len > 0) {
             rc = ngx_http_wasm_prepend_req_body(rctx, &s);
 
@@ -407,15 +483,29 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
             rc = ngx_http_wasm_set_req_body(rctx, &s, offset, max);
         }
 
-        if (rc == NGX_ABORT) {
-            return ngx_proxy_wasm_result_trap(pwexec,
-                                              "cannot set request body",
-                                              rets, NGX_WAVM_BAD_USAGE);
-        }
-
+        ngx_wasm_assert(rc != NGX_ABORT);
         break;
 
     case NGX_PROXY_WASM_BUFFER_HTTP_RESPONSE_BODY:
+
+        /* check context */
+
+        switch (pwctx->step) {
+        case NGX_PROXY_WASM_STEP_RESP_BODY:
+            break;
+        default:
+            return ngx_proxy_wasm_result_trap(pwexec,
+                                              "can only set response body "
+                                              "during \"on_response_body\"",
+                                              rets, NGX_WAVM_BAD_USAGE);
+        }
+
+        /* set */
+
+        rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
+        ngx_wasm_assert(rctx);
+
         if (offset == 0 && max == 0 && buf_len > 0) {
             rc = ngx_http_wasm_prepend_resp_body(rctx, &s);
 
@@ -423,12 +513,7 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
             rc = ngx_http_wasm_set_resp_body(rctx, &s, offset, max);
         }
 
-        if (rc == NGX_ABORT) {
-            return ngx_proxy_wasm_result_trap(pwexec,
-                                              "cannot set response body",
-                                              rets, NGX_WAVM_BAD_USAGE);
-        }
-
+        ngx_wasm_assert(rc != NGX_ABORT);
         break;
 #endif
 
@@ -972,12 +1057,33 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
     uint32_t                         *callout_id, timeout;
     ngx_str_t                         host, body;
     ngx_proxy_wasm_marshalled_map_t   headers, trailers;
+    ngx_proxy_wasm_ctx_t             *pwctx;
     ngx_proxy_wasm_exec_t            *pwexec;
     ngx_http_wasm_req_ctx_t          *rctx;
     ngx_http_proxy_wasm_dispatch_t   *call = NULL;
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    pwctx = pwexec->parent;
+
+    /* check context */
+
+    switch (pwctx->step) {
+    case NGX_PROXY_WASM_STEP_REQ_HEADERS:
+    case NGX_PROXY_WASM_STEP_REQ_BODY:
+    case NGX_PROXY_WASM_STEP_TICK:
+    case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
+        break;
+    default:
+        return ngx_proxy_wasm_result_trap(pwexec,
+                                          "can only send HTTP dispatch "
+                                          "during "
+                                          "\"on_request_headers\", "
+                                          "\"on_request_body\", "
+                                          "\"on_dispatch_response\", "
+                                          "\"on_tick\"",
+                                          rets, NGX_WAVM_BAD_USAGE);
+    }
 
     host.len = args[1].of.i32;
     host.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, host.len);

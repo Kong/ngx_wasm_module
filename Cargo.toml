@@ -11,6 +11,7 @@ members = [
     "t/lib/proxy-wasm-tests/rust-sdk-ver-zero-one",
     "t/lib/proxy-wasm-tests/benchmarks",
     "t/lib/proxy-wasm-tests/instance-lifecycle",
+    "t/lib/proxy-wasm-tests/context-checks",
 ]
 exclude = [
     "lib/ngx-wasm-rs",

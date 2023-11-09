@@ -4,12 +4,9 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-if ($ENV{TEST_NGINX_USE_HUP}) {
-    plan(skip_all => "unavailable in HUP mode");
+skip_hup();
 
-} else {
-    plan tests => repeat_each() * (blocks() * 4);
-}
+plan tests => repeat_each() * (blocks() * 4);
 
 run_tests();
 
