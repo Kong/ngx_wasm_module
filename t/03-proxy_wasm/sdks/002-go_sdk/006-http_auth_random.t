@@ -8,7 +8,7 @@ our $ExtResolver = $t::TestWasm::extresolver;
 our $ExtTimeout = $t::TestWasm::exttimeout;
 
 skip_valgrind();
-skip_no_tinygo();
+skip_no_go_sdk();
 
 repeat_each(1);
 
