@@ -425,6 +425,8 @@ ngx_http_proxy_wasm_dispatch_destroy(ngx_http_proxy_wasm_dispatch_t *call)
     sock = &call->sock;
     rctx = call->rctx;
 
+    dd("enter");
+
     ngx_wasm_socket_tcp_destroy(sock);
 
     if (call->host.data) {
@@ -842,10 +844,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
             /* resume current step if unfinished */
             rc = ngx_proxy_wasm_resume(pwexec->parent, pwexec->parent->phase,
                                        step);
-            if (rc == NGX_AGAIN) {
-                goto done;
-
-            } else if (rc != NGX_OK) {
+            if (rc != NGX_OK && rc != NGX_AGAIN) {
                 goto error;
             }
 
