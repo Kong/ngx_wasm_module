@@ -656,8 +656,9 @@ ngx_wasm_module, most likely due to a Host incompatibility.
 - Functional filters written by the WasmX team:
     - [Kong/proxy-wasm-rust-rate-limiting](https://github.com/Kong/proxy-wasm-rust-rate-limiting)
     - [Kong/proxy-wasm-go-rate-limiting](https://github.com/Kong/proxy-wasm-go-rate-limiting)
+    - [Kong/proxy-wasm-assemblyscript-rate-limiting](https://github.com/Kong/proxy-wasm-assemblyscript-rate-limiting)
 - Proxy-Wasm SDK examples:
-    - [AssemblyScript examples](https://github.com/solo-io/proxy-runtime/tree/master/examples)
+    - [AssemblyScript examples (temporary fork)](https://github.com/kong/proxy-wasm-assemblyscript-sdk/tree/master/examples)
     - [C++ examples](https://github.com/proxy-wasm/proxy-wasm-cpp-sdk/tree/master/example)
     - [Go (TinyGo) examples](https://github.com/tetratelabs/proxy-wasm-go-sdk/tree/main/examples)
     - [Rust examples](https://github.com/proxy-wasm/proxy-wasm-rust-sdk/tree/master/examples)
