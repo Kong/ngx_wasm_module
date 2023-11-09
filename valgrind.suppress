@@ -25,10 +25,9 @@
    <headers-more-nginx-module: set_header_helper>
    Memcheck:Cond
    fun:ngx_http_set_header_helper
+   ...
    fun:ngx_http_headers_more_exec_cmd
    fun:ngx_http_headers_more_filter
-   ...
-   fun:main
 }
 {
    <wasmer 3.1.1: parse>
