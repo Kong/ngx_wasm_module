@@ -5,7 +5,7 @@ use lib '.';
 use t::TestWasm;
 
 skip_valgrind('wasmtime');
-skip_no_tinygo();
+skip_no_go_sdk();
 
 plan tests => repeat_each() * (blocks() * 5);
 
