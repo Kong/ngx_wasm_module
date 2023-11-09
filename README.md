@@ -88,17 +88,19 @@ http {
 
 Three "showcase filters" are provided as examples by this module:
 
+- [proxy-wasm-rust-filter-echo](https://github.com/wasmx-proxy/proxy-wasm-rust-filter-echo/):
+  An httpbin/echo filter.
 - [proxy-wasm-rust-rate-limiting](https://github.com/Kong/proxy-wasm-rust-rate-limiting):
   Kong Gateway inspired rate-limiting in Rust.
 - [proxy-wasm-go-rate-limiting](https://github.com/Kong/proxy-wasm-go-rate-limiting):
   Kong Gateway inspired rate-limiting in Go.
-- [proxy-wasm-rust-filter-echo](https://github.com/wasmx-proxy/proxy-wasm-rust-filter-echo/):
-  An httpbin/echo filter.
+- [proxy-wasm-assemblyscript-rate-limiting](https://github.com/Kong/proxy-wasm-assemblyscript-rate-limiting):
+  Kong Gateway inspired rate-limiting in AssemblyScript.
 
 More examples are available for each Proxy-Wasm SDK:
 
 - [AssemblyScript
-  examples](https://github.com/solo-io/proxy-runtime/tree/master/examples)
+  examples (temporary SDK fork)](https://github.com/Kong/proxy-wasm-assemblyscript-sdk/tree/master/examples)
 - [C++
   examples](https://github.com/proxy-wasm/proxy-wasm-cpp-sdk/tree/master/example)
 - [Go (TinyGo)
