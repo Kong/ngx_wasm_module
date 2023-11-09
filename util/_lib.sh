@@ -8,6 +8,7 @@ DIR_NGX_ECHO_MODULE=$DIR_DOWNLOAD/echo-nginx-module
 DIR_NGX_HEADERS_MORE_MODULE=$DIR_DOWNLOAD/headers-more-nginx-module
 DIR_MOCKEAGAIN=$DIR_DOWNLOAD/mockeagain
 DIR_PROXY_WASM_GO_SDK=$DIR_DOWNLOAD/proxy-wasm-go-sdk
+DIR_PATCHED_PROXY_WASM_GO_SDK=$DIR_DOWNLOAD/proxy-wasm-go-sdk-patched
 DIR_BUILDROOT=$DIR_WORK/buildroot
 DIR_SRC_ROOT=$DIR_WORK/nginx-src
 DIR_PATCHED_ROOT=$DIR_WORK/nginx-patched
@@ -483,6 +484,13 @@ get_default_runtime_dir() {
     local version="${2:-$(get_default_runtime_version "$runtime")}"
 
     echo "$DIR_DIST_RUNTIMES/$runtime-$version"
+}
+
+get_default_proxy_wasm_sdk_version() {
+    local lang=$(echo "$1" | tr '[a-z]' '[A-Z]')
+    local var_name="PROXY_WASM_${lang}_SDK"
+
+    get_variable_from_makefile "$var_name"
 }
 
 invalid_usage() {

@@ -179,6 +179,15 @@ if [[ -n "$NGX_WASM_RUNTIME" ]] && ! [[ -n "$NGX_WASM_RUNTIME_LIB" ]]; then
     $NGX_WASM_DIR/util/runtime.sh -R "$NGX_WASM_RUNTIME"
 fi
 
+if [[ ! -d "$DIR_PROXY_WASM_GO_SDK" ]]; then
+    if [[ ! -x "$(command -v tinygo)" ]]; then
+        notice "missing 'tinygo', skipping proxy-wasm go SDK"
+    else
+        notice "downloading/building proxy-wasm go SDK..."
+        $NGX_WASM_DIR/util/sdk.sh -S go --build --clean
+    fi
+fi
+
 notice "done"
 
 # vim: ft=sh ts=4 sts=4 sw=4:

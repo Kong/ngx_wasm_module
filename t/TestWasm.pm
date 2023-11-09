@@ -29,7 +29,7 @@ our @EXPORT = qw(
     load_nginx_modules
     skip_no_ssl
     skip_no_debug
-    skip_no_tinygo
+    skip_no_go_sdk
     skip_valgrind
 );
 
@@ -76,7 +76,7 @@ sub skip_no_ssl {
     }
 }
 
-sub skip_no_tinygo {
+sub skip_no_go_sdk {
     my @files = glob($ENV{TEST_NGINX_CRATES_DIR} . '/go_*.wasm');
     if (!@files && !defined($ENV{CI})) {
         plan(skip_all => "Missing Go .wasm bytecode files in $ENV{TEST_NGINX_CRATES_DIR}");
