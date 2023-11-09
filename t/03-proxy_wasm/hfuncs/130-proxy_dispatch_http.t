@@ -1171,31 +1171,7 @@ qr/^\*\d+ .*? on_http_call_response \(id: \d+[^*]*
 
 
 
-=== TEST 46: proxy_wasm - dispatch_http_call() on log step
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
---- config
-    location /dispatched {
-        return 200 "Hello world";
-    }
-
-    location /t {
-        proxy_wasm hostcalls 'on=log \
-                              test=/t/dispatch_http_call \
-                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
-                              path=/dispatched';
-        echo fail;
-    }
---- response_body
-fail
---- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: bad step/
---- no_error_log
-[crit]
-
-
-
-=== TEST 47: proxy_wasm - dispatch_http_call() supports get_http_call_response_headers()
+=== TEST 46: proxy_wasm - dispatch_http_call() supports get_http_call_response_headers()
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -1219,7 +1195,7 @@ X-Callout-Header: callout-header-value
 
 
 
-=== TEST 48: proxy_wasm - dispatch_http_call() get :status dispatch response header
+=== TEST 47: proxy_wasm - dispatch_http_call() get :status dispatch response header
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -1262,7 +1238,7 @@ qr/^\*\d+ .*? on_http_call_response \(id: \d+, status: 200[^*]*
 
 
 
-=== TEST 49: proxy_wasm - dispatch_http_call() with dispatched request body
+=== TEST 48: proxy_wasm - dispatch_http_call() with dispatched request body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -1288,7 +1264,7 @@ helloworld
 
 
 
-=== TEST 50: proxy_wasm - dispatch_http_call() override Content-Length
+=== TEST 49: proxy_wasm - dispatch_http_call() override Content-Length
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -1315,7 +1291,7 @@ helloworl
 
 
 
-=== TEST 51: proxy_wasm - dispatch_http_call() cannot override hard-coded request headers
+=== TEST 50: proxy_wasm - dispatch_http_call() cannot override hard-coded request headers
 --- skip_no_debug: 4
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls

@@ -1,0 +1,12 @@
+[package]
+name = "context-checks"
+version = "0.1.0"
+authors = ["Thibault Charbonnier <thibaultcha@me.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+proxy-wasm = "0.2"
+log = "0.4"
