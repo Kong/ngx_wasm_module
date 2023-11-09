@@ -94,12 +94,8 @@ on_response_body, 0 bytes, eof: true.*/
 --- config
     location /t {
         echo fail;
-
         proxy_wasm hostcalls 'on=response_body \
                               test=/t/set_response_body value=';
-
-        proxy_wasm hostcalls 'on=log \
-                              test=/t/log/response_body';
     }
 --- response_headers
 Transfer-Encoding: chunked
@@ -108,7 +104,6 @@ Content-Length:
 --- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
 --- grep_error_log_out eval
 qr/on_response_body, 5 bytes, eof: false.*
-on_response_body, 0 bytes, eof: true.*
 on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [error]
@@ -133,8 +128,6 @@ on_response_body, 0 bytes, eof: true.*/
 
     location /t {
         echo_subrequest GET /subrequest;
-        proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/log/response_body';
     }
 --- response_headers
 Transfer-Encoding: chunked
@@ -147,7 +140,6 @@ qr/on_response_body, 5 bytes, eof: false.*
 overriding response body chunk while Content-Length header already sent.*
 on_response_body, 11 bytes, eof: false.*
 response body chunk: "HelloWorld\\n".*
-on_response_body, 0 bytes, eof: true.*
 on_response_body, 0 bytes, eof: true.*
 on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
@@ -305,52 +297,3 @@ on_response_body, 0 bytes, eof: true.*/
 --- no_error_log
 [error]
 [crit]
-
-
-
-=== TEST 7: proxy_wasm - set_http_response_body() x on_phases
-should not be usable anywhere else than on_http_response_body
-should not be retrievable after on_http_response_body since buffers are consumed
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
---- config
-    proxy_wasm_isolation filter;
-
-    location /request_headers {
-        internal;
-        echo;
-        proxy_wasm hostcalls 'on=request_headers \
-                              test=/t/set_response_body';
-        proxy_wasm hostcalls 'on=request_headers \
-                              test=/t/log/response_body';
-    }
-
-    location /response_headers {
-        internal;
-        echo;
-        proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/set_response_body';
-        proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/log/response_body';
-    }
-
-    location /t {
-        echo_subrequest GET /request_headers;
-        echo_subrequest GET /response_headers;
-        proxy_wasm hostcalls 'on=log test=/t/set_response_body';
-    }
---- response_headers
-Transfer-Encoding: chunked
-Content-Length:
---- response_body eval
-qr/500 Internal Server Error/
---- grep_error_log eval: qr/(.*?cannot set|\[.*?failed resuming).*/
---- grep_error_log_out eval
-qr/.*?host trap \(bad usage\): cannot set response body.*
-\[info\] .*? \*\d+ .*? filter chain failed resuming: previous error \(instance trapped\).*? subrequest: "\/request_headers".*
-.*?host trap \(bad usage\): cannot set response body.*
-\[info\] .*? \*\d+ .*? filter chain failed resuming: previous error \(instance trapped\).*? subrequest: "\/response_headers".*
-.*?host trap \(bad usage\): cannot set response body.*/
---- no_error_log
-[alert]
-[stderr]

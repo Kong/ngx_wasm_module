@@ -31,6 +31,7 @@ our @EXPORT = qw(
     skip_no_debug
     skip_no_tinygo
     skip_valgrind
+    skip_hup
 );
 
 $ENV{TEST_NGINX_USE_HUP} ||= 0;
@@ -61,6 +62,12 @@ sub skip_valgrind (@) {
 
     if (!$ENV{TEST_NGINX_USE_VALGRIND_ALL}) {
         plan skip_all => 'slow with Valgrind (set TEST_NGINX_USE_VALGRIND_ALL=1 to run)';
+    }
+}
+
+sub skip_hup {
+    if ($ENV{TEST_NGINX_USE_HUP} == 1) {
+        plan(skip_all => "skipped in HUP mode");
     }
 }
 

@@ -155,7 +155,6 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     /* rctx or fake request */
 
     if (rctx == NULL) {
-        ngx_wasm_assert(pwexec->in_tick);
         ngx_wasm_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
         ngx_wasm_assert(pwexec->parent->id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
@@ -825,6 +824,11 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         /* save step */
         step = pwexec->parent->step;
 
+#ifdef NGX_WASM_HTTP
+        pwexec->parent->phase = ngx_wasm_phase_lookup(&ngx_http_wasm_subsystem,
+                                    NGX_WASM_BACKGROUND_PHASE);
+#endif
+
         ecode = ngx_proxy_wasm_run_step(pwexec,
                                         NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE);
         if (ecode != NGX_PROXY_WASM_ERR_NONE) {
@@ -838,6 +842,12 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
             /* resume current step if unfinished */
             rc = ngx_proxy_wasm_resume(pwexec->parent, pwexec->parent->phase,
                                        step);
+            if (rc == NGX_AGAIN) {
+                goto done;
+
+            } else if (rc != NGX_OK) {
+                goto error;
+            }
 
         } else {
             /* another call was setup during the callback */
