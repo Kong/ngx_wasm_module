@@ -200,6 +200,16 @@ if [[ ! -d "$DIR_PROXY_WASM_GO_SDK" ]]; then
     fi
 fi
 
+if [[ ! -d "$DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK" ]]; then
+    if [[ ! -x "$(command -v npm)" ]]; then
+        notice "missing 'npm', skipping proxy-wasm-assemblyscript-sdk"
+
+    else
+        notice "downloading/building proxy-wasm-assemblyscript-sdk..."
+        $NGX_WASM_DIR/util/sdk.sh -S assemblyscript --build --clean
+    fi
+fi
+
 notice "done"
 
 # vim: ft=sh ts=4 sts=4 sw=4:

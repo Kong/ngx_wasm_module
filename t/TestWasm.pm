@@ -30,6 +30,7 @@ our @EXPORT = qw(
     skip_no_ssl
     skip_no_debug
     skip_no_go_sdk
+    skip_no_assemblyscript_sdk
     skip_valgrind
     skip_hup
 );
@@ -87,6 +88,13 @@ sub skip_no_go_sdk {
     my @files = glob($ENV{TEST_NGINX_CRATES_DIR} . '/go_*.wasm');
     if (!@files && !defined($ENV{CI})) {
         plan(skip_all => "Missing Go .wasm bytecode files in $ENV{TEST_NGINX_CRATES_DIR}");
+    }
+}
+
+sub skip_no_assemblyscript_sdk {
+    my @files = glob($ENV{TEST_NGINX_CRATES_DIR} . '/assemblyscript_*.wasm');
+    if (!@files && !defined($ENV{CI})) {
+        plan(skip_all => "Missing AssemblyScript .wasm bytecode files in $ENV{TEST_NGINX_CRATES_DIR}");
     }
 }
 
