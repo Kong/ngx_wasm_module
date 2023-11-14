@@ -7,6 +7,7 @@ PCRE ?= 8.45
 ZLIB ?= 1.2.13
 LUAROCKS ?= 3.9.2
 PROXY_WASM_GO_SDK ?= 0.21.0
+PROXY_WASM_ASSEMBLYSCRIPT_SDK ?= 0.0.6
 
 # util/runtime.sh - no makefile target
 NGX_BUILD_WASMER_RUSTFLAGS ?= -g -C opt-level=0 -C debuginfo=1
