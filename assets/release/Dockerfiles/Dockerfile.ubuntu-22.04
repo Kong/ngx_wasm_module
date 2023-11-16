@@ -5,6 +5,7 @@ ARG GCC_VERSION=12
 ARG CLANG_VERSION=15
 ARG GOLANG_VERSION=1.19.5
 ARG TINYGO_VERSION=0.27.0
+ARG NODEJS_VERSION=20.9.0
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y \
@@ -34,6 +35,10 @@ RUN /bin/bash -c 'echo $(uname -m) > /TG_ARCH || : ; \
                   [[ $(cat /TG_ARCH) == "x86_64" ]] && echo "amd64" > /TG_ARCH || : ; \
                   [[ $(cat /TG_ARCH) == "aarch64" ]] && echo "arm64" > /TG_ARCH || :'
 
+RUN /bin/bash -c 'echo $(uname -m) > /NODEJS_ARCH || : ; \
+                  [[ $(cat /NODEJS_ARCH) == "x86_64" ]] && echo "x64" > /NODEJS_ARCH || : ; \
+                  [[ $(cat /NODEJS_ARCH) == "aarch64" ]] && echo "arm64" > /NODEJS_ARCH || :'
+
 # Note: this image is also used for local CI runs, install additional
 # dependencies
 #
@@ -44,7 +49,6 @@ RUN apt-get install -y \
         libssl-dev \
         zlib1g-dev \
         valgrind \
-        nodejs \
         gcovr \
         lcov \
         unzip \
@@ -54,7 +58,9 @@ RUN apt-get install -y \
     rustup target add wasm32-unknown-unknown && \
     curl -sLO https://golang.google.cn/dl/go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \
     sudo rm -rf /usr/local/go && tar -C /usr/local -xzf go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \
-    curl -sLO https://github.com/tinygo-org/tinygo/releases/download/v$TINYGO_VERSION/tinygo_${TINYGO_VERSION}_$(cat /TG_ARCH).deb && \
+    curl -sLO https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo_${TINYGO_VERSION}_$(cat /TG_ARCH).deb && \
     dpkg -i tinygo_${TINYGO_VERSION}_$(cat /TG_ARCH).deb && \
+    curl -sLO https://nodejs.org/dist/v${NODEJS_VERSION}/node-v${NODEJS_VERSION}-linux-$(cat /NODEJS_ARCH).tar.xz && \
+    tar -C /usr/local --strip-components=1 -xf node-v${NODEJS_VERSION}-linux-$(cat /NODEJS_ARCH).tar.xz && \
     curl -fsSL https://get.docker.com | sh
 ENV PATH $PATH:/usr/local/go/bin
