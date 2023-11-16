@@ -90,6 +90,10 @@ jobs:
         uses: acifani/setup-tinygo@v1
         with:
           tinygo-version: 0.27.0
+      - name: Setup Nodejs
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.9.0
       - name: Setup Wasm runtime
         run: ./util/runtime.sh -R ${{ inputs.runtime }} -V ${{ inputs[inputs.runtime] }}
       - name: Setup local httpbin server
