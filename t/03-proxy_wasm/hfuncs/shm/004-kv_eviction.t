@@ -4,16 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 25);
-
+plan_tests(25);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm key/value shm eviction - evicts most recent data in the queue
---- skip_no_debug: 25
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: test 12288
@@ -85,7 +82,8 @@ qr/\[debug\] [^"]* wasm "test" shm store: initialized
 
 
 === TEST 2: proxy_wasm key/value shm eviction - a large allocation may evict multiple entries
---- skip_no_debug: 25
+--- valgrind
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: test 12288
@@ -165,7 +163,7 @@ qr/\[debug\] [^"]* wasm "test" shm store: initialized
 
 
 === TEST 3: proxy_wasm key/value shm eviction - getting keeps data alive in the LRU queue
---- skip_no_debug: 25
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: test 12288
@@ -337,7 +335,7 @@ qr/\[crit\] .*? \[wasm\] "test" shm store: no memory; cannot allocate pair with 
 
 
 === TEST 6: proxy_wasm key/value shm eviction - LRU: may over-deallocate
---- skip_no_debug: 25
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: test 16384 eviction=lru
@@ -417,7 +415,7 @@ qr/^[^"]*\[debug\] [^"]* wasm "test" shm store: initialized
 
 
 === TEST 7: proxy_wasm key/value shm eviction - SLRU: minimizes deallocation
---- skip_no_debug: 25
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: test 16384 eviction=slru
@@ -494,7 +492,7 @@ qr/^[^"]*\[debug\] [^"]* wasm "test" shm store: initialized
 
 
 === TEST 8: proxy_wasm key/value shm eviction - SLRU: deallocates larger items if needed
---- skip_no_debug: 25
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: test 16384 eviction=slru
@@ -571,7 +569,7 @@ qr/^[^"]*\[debug\] [^"]* wasm "test" shm store: initialized
 
 
 === TEST 9: proxy_wasm key/value shm eviction - SLRU: deallocates smaller items if no other choice
---- skip_no_debug: 25
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: test 12288 eviction=slru
@@ -646,7 +644,7 @@ qr/^[^"]*\[debug\] [^"]* wasm "test" shm store: initialized
 
 
 === TEST 10: proxy_wasm key/value shm eviction - SLRU: deallocates the largest available "smaller slab"
---- skip_no_debug: 25
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: test 16384 eviction=slru

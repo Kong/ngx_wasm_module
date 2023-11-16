@@ -4,10 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -50,6 +47,7 @@ resp Welcome: wasm.*/
 
 
 === TEST 2: proxy_wasm - set_http_response_headers() sets special response headers
+--- valgrind
 --- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
@@ -87,6 +85,7 @@ resp Server: proxy-wasm.*/
 
 === TEST 3: proxy_wasm - set_http_response_headers() cannot set invalid Connection header
 should log an error but not produce a trap
+--- valgrind
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
     location /t {

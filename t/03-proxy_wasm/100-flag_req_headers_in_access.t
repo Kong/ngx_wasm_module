@@ -4,8 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -32,7 +31,7 @@ qr/\[info\] .*? on_request_headers, 3 headers/
 
 
 === TEST 2: proxy_wasm - on_request_headers in access - dispatch_http_call()
---- skip_no_debug: 5
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -61,7 +60,7 @@ qr/proxy_wasm pausing in \"access\" phase/
 
 
 === TEST 3: proxy_wasm - on_request_headers in rewrite - dispatch_http_call()
---- skip_no_debug: 5
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

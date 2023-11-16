@@ -4,8 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 7);
-
+plan_tests(7);
 run_tests();
 
 __DATA__
@@ -13,6 +12,7 @@ __DATA__
 === TEST 1: proxy_wasm - on_tick
 Tick is triggered even without hitting the configured location
 since it runs at root level context.
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -158,7 +158,8 @@ qr/.*?(\[error\]|Uncaught RuntimeError: |\s+)tick_period already set.*
 === TEST 6: proxy_wasm - on_tick with trap
 Should recycle the tick instance
 Should not prevent http context/instance from starting
---- skip_no_debug: 7
+--- valgrind
+--- skip_no_debug
 --- wasm_modules: on_phases
 --- config
     location /t {

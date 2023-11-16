@@ -4,12 +4,8 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
 our $nginxV = $t::TestWasm::nginxV;
 our $osname = $t::TestWasm::osname;
-
-plan tests => repeat_each() * (blocks() * 4);
 
 add_cleanup_handler(sub {
     my @jit_dumps = glob("$::pwd/jit-*.dump");
@@ -20,6 +16,7 @@ add_cleanup_handler(sub {
     }
 });
 
+plan_tests(4);
 run_tests();
 
 __DATA__

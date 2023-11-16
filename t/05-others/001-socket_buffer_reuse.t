@@ -4,14 +4,14 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 4);
-
+plan_tests(4);
 run_tests();
 
 __DATA__
 
 === TEST 1: buffer reuse - wasm_socket_buffer_reuse on
---- skip_no_debug: 4
+--- valgrind
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -50,7 +50,7 @@ wasm reuse free buf memory \d+ >= 2,.*/
 
 === TEST 2: buffer reuse - wasm_socket_buffer_reuse off
 ngx_wasm_socket buffers not reused (buffers of size 2)
---- skip_no_debug: 4
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -91,7 +91,8 @@ qr/wasm reuse free buf memory \d+ >= \d+/
 
 
 === TEST 3: buffer reuse - wasm_socket_buffer_reuse on, realloc
---- skip_no_debug: 4
+--- valgrind
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

@@ -4,10 +4,6 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 5);
-
 add_block_preprocessor(sub {
     my $block = shift;
 
@@ -17,12 +13,14 @@ add_block_preprocessor(sub {
     }
 });
 
+plan_tests(5);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm - add_http_response_header() adds a new non-builtin header
 should add a response header visible in the second filter
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -248,6 +246,7 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Content-Length response header:
 
 === TEST 10: proxy_wasm - add_http_response_header() cannot add invalid Content-Length header
 should log an error but not produce a trap
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {

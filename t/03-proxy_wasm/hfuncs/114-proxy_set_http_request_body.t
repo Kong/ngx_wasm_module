@@ -4,10 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -100,6 +97,7 @@ Hello world
 
 
 === TEST 5: proxy_wasm - set_http_request_body() with offset argument
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -158,6 +156,7 @@ LAST
 
 
 === TEST 6: proxy_wasm - set_http_request_body() with max argument
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

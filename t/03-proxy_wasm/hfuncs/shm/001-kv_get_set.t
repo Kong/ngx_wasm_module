@@ -4,15 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 12);
-
+plan_tests(12);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm key/value shm - get existing and non-existing value
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 1m
@@ -83,6 +81,7 @@ ok
 
 
 === TEST 3: proxy_wasm key/value shm - set empty value vs delete value
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 1m
@@ -126,6 +125,7 @@ ok
 
 
 === TEST 4: proxy_wasm key/value shm - set empty value vs delete value (eviction=lru)
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 1m eviction=lru
@@ -165,9 +165,6 @@ ok
 [crit]
 [emerg]
 [alert]
-[stub1]
-[stub2]
-[stub3]
 
 
 
@@ -200,6 +197,9 @@ ok
 [crit]
 [emerg]
 [alert]
+[stub]
+[stub]
+[stub]
 
 
 
@@ -260,6 +260,7 @@ ok
 
 
 === TEST 7: proxy_wasm key/value shm - set reusing node storage
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_kv: kv1 1m

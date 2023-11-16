@@ -4,8 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -42,6 +41,7 @@ qr/setting flag: "debug_info=on"/
 
 
 === TEST 3: wasmtime{} - multiple flag directives
+--- valgrind
 --- skip_eval: 5: $::nginxV !~ m/wasmtime/
 --- main_config
     wasm {

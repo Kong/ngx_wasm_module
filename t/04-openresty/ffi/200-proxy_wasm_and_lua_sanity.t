@@ -6,13 +6,13 @@ use t::TestWasm::Lua;
 
 skip_no_openresty();
 
-plan tests => repeat_each() * (blocks() * 6);
-
+plan_tests(6);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm FFI - request headers manipulation alongside Lua VM
+--- valgrind
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
@@ -191,6 +191,7 @@ Hello world
 
 
 === TEST 5: proxy_wasm FFI - HTTP dispatch alongside Lua VM (echo dispatch response)
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config
@@ -322,6 +323,7 @@ qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase
 
 
 === TEST 7: proxy_wasm FFI - HTTP dispatch alongside Lua VM (trap on response)
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config
@@ -389,7 +391,8 @@ Run 1 filter chain in /t, but produce content through /error
 At r->pool cleanup, the done step is invoked the /t chain, and the chain is
 freed. /error does not concern itself with any chain.
 
---- skip_no_debug: 6
+--- valgrind
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config
@@ -446,7 +449,8 @@ Run 2 filters chains:
 At r->pool cleanup, the done step is invoked for both chains, and both chains
 are freed.
 
---- skip_no_debug: 6
+--- valgrind
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config

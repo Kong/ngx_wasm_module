@@ -4,15 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 4);
-
+plan_tests(4);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm - get_http_request_body() retrieves request body
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -90,6 +88,7 @@ qr/\[info\] .*? \[wasm\] request body:/
 
 
 === TEST 5: proxy_wasm - get_http_request_body() from a subrequest with body
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

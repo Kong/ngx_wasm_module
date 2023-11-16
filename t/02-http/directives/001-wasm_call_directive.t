@@ -4,8 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 4);
-
+plan_tests(4);
 run_tests();
 
 __DATA__
@@ -196,7 +195,6 @@ qr/\[error\] .*? no "nonexist" function in "a" module/
 
 
 === TEST 11: wasm_call directive - catch runtime error sanity
---- valgrind_track_register_updates
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -224,7 +222,7 @@ qr/(\[error\] .*? integer divide by zero|wasm trap: integer divide by zero|Uncau
 
 
 === TEST 12: wasm_call directive - sanity 'rewrite' phase in location{} block
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -248,7 +246,7 @@ wasm ops calling "a.nop" in "rewrite" phase
 
 
 === TEST 13: wasm_call directive - sanity 'content' phase in location{} block
---- skip_no_debug: 4
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -273,7 +271,7 @@ wasm ops calling "a.nop" in "content" phase
 
 
 === TEST 14: wasm_call directive - sanity 'log' phase in location{} block
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -297,7 +295,7 @@ wasm ops calling "a.nop" in "log" phase
 
 
 === TEST 15: wasm_call directive - multiple calls in location{} block
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -322,7 +320,7 @@ wasm ops calling "a.nop" in "log" phase
 
 
 === TEST 16: wasm_call directive - multiple calls in server{} block
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -348,7 +346,7 @@ wasm ops calling "a.nop" in "log" phase
 
 
 === TEST 17: wasm_call directive - multiple calls in http{} block
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -374,7 +372,7 @@ wasm ops calling "a.nop" in "log" phase
 
 
 === TEST 18: wasm_call directive - mixed server{} and location{} blocks
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -401,7 +399,7 @@ wasm ops calling "a.nocall" in "log" phase
 
 
 === TEST 19: wasm_call directive - multiple modules/calls/phases/blocks
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config
     wasm {
         module moduleA $TEST_NGINX_HTML_DIR/a.wat;

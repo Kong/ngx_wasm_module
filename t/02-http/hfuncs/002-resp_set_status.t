@@ -4,8 +4,6 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 3);
-
 add_block_preprocessor(sub {
     my $block = shift;
     my $main_config = <<_EOC_;
@@ -19,6 +17,7 @@ _EOC_
     }
 });
 
+plan_tests(3);
 run_tests();
 
 __DATA__

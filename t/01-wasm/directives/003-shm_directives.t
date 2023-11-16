@@ -4,15 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
 
 === TEST 1: shm directive - kv sanity
+--- valgrind
 --- main_config
     wasm {
         shm_kv my_kv_1 1m;
@@ -27,6 +25,7 @@ __DATA__
 
 
 === TEST 2: shm directive - queue sanity
+--- valgrind
 --- main_config
     wasm {
         shm_queue my_queue_1 1m;

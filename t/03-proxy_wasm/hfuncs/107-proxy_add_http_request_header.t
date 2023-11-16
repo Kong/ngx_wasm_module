@@ -4,10 +4,6 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 6);
-
 add_block_preprocessor(sub {
     my $block = shift;
 
@@ -17,6 +13,7 @@ add_block_preprocessor(sub {
     }
 });
 
+plan_tests(6);
 run_tests();
 
 __DATA__

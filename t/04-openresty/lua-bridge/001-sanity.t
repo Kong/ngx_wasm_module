@@ -6,8 +6,6 @@ use t::TestWasm::Lua;
 
 skip_no_openresty();
 
-plan tests => repeat_each() * (blocks() * 4);
-
 add_block_preprocessor(sub {
     my $block = shift;
     if (!defined $block->wasm_modules) {
@@ -15,6 +13,7 @@ add_block_preprocessor(sub {
     }
 });
 
+plan_tests(4);
 run_tests();
 
 __DATA__

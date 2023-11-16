@@ -4,10 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 6);
-
+plan_tests(6);
 run_tests();
 
 __DATA__
@@ -193,6 +190,7 @@ Hello world
 
 
 === TEST 9: proxy_wasm - send_local_response() response headers with body
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {

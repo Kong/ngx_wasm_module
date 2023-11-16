@@ -4,15 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind('wasmtime');
-
-plan tests => repeat_each() * (blocks() * 6);
-
+plan_tests(6);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm - set_property() wasmx - host property on: request_headers, request_body, response_headers, response_body, log
+--- valgrind
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -65,6 +63,7 @@ qr/\A\[info\] .*? new: "2"
 
 
 === TEST 2: proxy_wasm - set_property() wasmx - unset a host property on: request_headers
+--- valgrind
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -90,6 +89,7 @@ qr/\A\[info\] .*? new: "2"
 
 
 === TEST 3: proxy_wasm - set_property() wasmx - set a host property to an empty string
+--- valgrind
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config

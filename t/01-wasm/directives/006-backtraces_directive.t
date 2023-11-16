@@ -4,13 +4,10 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind('wasmtime');
-
+our $n = 30;
 our $nginxV = $t::TestWasm::nginxV;
 
-our $n = 30;
-plan tests => repeat_each() * (blocks() * $n);
-
+plan_tests($n);
 run_tests();
 
 __DATA__
@@ -135,6 +132,7 @@ for my $i (24..$::n) {
 
 
 === TEST 4: backtraces directive - wasmtime 'cranelift', backtraces 'off', WASMTIME_BACKTRACE_DETAILS=1
+--- valgrind
 --- skip_eval: 30: $::nginxV !~ m/wasmtime/
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
@@ -278,6 +276,7 @@ for my $i (17..$::n) {
 
 
 === TEST 7: backtraces directive - wasmer 'singlepass', backtraces 'on'
+--- valgrind
 --- skip_eval: 30: $::nginxV !~ m/wasmer/
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
@@ -415,6 +414,7 @@ for my $i (18..$::n) {
 
 
 === TEST 10: backtraces directive - v8 'auto', backtraces 'on'
+--- valgrind
 --- skip_eval: 30: $::nginxV !~ m/v8/
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval

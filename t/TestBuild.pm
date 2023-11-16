@@ -16,8 +16,9 @@ our $buildroot = $ENV{NGX_BUILD_DIR_BUILDROOT};
 
 our @EXPORT = qw(
     $buildroot
-    run_tests
+    skip_valgrind
     get_variable_from_makefile
+    run_tests
 );
 
 my $dry_run = 0;
@@ -38,8 +39,10 @@ chomp $out;
 
 $ENV{NGX_WASM_RUNTIME_DIR} = $out;
 
-sub bail_out (@) {
-    Test::More::BAIL_OUT(@_);
+sub skip_valgrind {
+    if ($ENV{TEST_NGINX_USE_VALGRIND}) {
+        plan skip_all => "skipped with Valgrind";
+    }
 }
 
 sub get_variable_from_makefile($) {
@@ -180,6 +183,10 @@ sub grep_something ($$$) {
             }
         }
     }
+}
+
+sub bail_out (@) {
+    Test::More::BAIL_OUT(@_);
 }
 
 sub run_test ($) {

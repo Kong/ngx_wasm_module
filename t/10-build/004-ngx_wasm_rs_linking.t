@@ -4,9 +4,11 @@ use strict;
 use lib '.';
 use t::TestBuild;
 
+skip_valgrind();
+
 our $buildroot = $t::TestBuild::buildroot;
 
-plan tests => 6 * blocks();
+plan tests => blocks() * 6;
 
 run_tests();
 

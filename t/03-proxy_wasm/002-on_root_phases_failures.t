@@ -4,11 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind('wasmtime');
-
-my $n = 4;
-plan tests => repeat_each() * (blocks() * $n);
-
+plan_tests(4);
 run_tests();
 
 __DATA__
@@ -17,7 +13,7 @@ __DATA__
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: $n: $ENV{TEST_NGINX_USE_HUP} == 1
+--- skip_eval: 4: $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {
@@ -43,7 +39,7 @@ qq{
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: $n: $ENV{TEST_NGINX_USE_HUP} == 1
+--- skip_eval: 4: $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {
@@ -70,7 +66,7 @@ qq{
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: $n: $ENV{TEST_NGINX_USE_HUP} == 1
+--- skip_eval: 4: $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {
@@ -96,7 +92,7 @@ qq{
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
---- skip_eval: $n: $ENV{TEST_NGINX_USE_HUP} == 1
+--- skip_eval: 4: $ENV{TEST_NGINX_USE_HUP} == 1
 --- main_config eval
 qq{
     wasm {

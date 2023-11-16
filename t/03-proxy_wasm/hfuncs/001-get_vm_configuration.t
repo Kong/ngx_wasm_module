@@ -4,10 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind('wasmtime');
-
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -31,6 +28,7 @@ cannot parse vm config
 
 
 === TEST 2: proxy_wasm - get_vm_configuration() on_vm_start, with config
+--- valgrind
 --- main_config eval
 qq{
     wasm {

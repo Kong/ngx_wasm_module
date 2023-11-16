@@ -9,8 +9,7 @@ our $ExtTimeout = $t::TestWasm::exttimeout;
 
 skip_no_openresty();
 
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -20,7 +19,7 @@ Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
 - HTTP 502 (httpbin.org Bad Gateway)
 - HTTP 504 (httpbin.org Gateway timeout)
---- skip_no_debug: 5
+--- skip_no_debug
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -47,7 +46,7 @@ Succeeds on:
 
 
 === TEST 2: proxy_wasm - proxy_wasm_lua_resolver, sanity (on_tick)
---- skip_no_debug: 5
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
 qq{
@@ -237,7 +236,7 @@ Succeeds on:
 - HTTP 502 (httpbin.org Bad Gateway)
 - HTTP 504 (httpbin.org Gateway timeout)
 --- skip_eval: 5: $t::TestWasm::nginxV !~ m/--with-debug/ || defined $ENV{GITHUB_ACTIONS}
---- skip_no_debug: 5
+--- skip_no_debug
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -263,7 +262,7 @@ Succeeds on:
 
 
 === TEST 8: Lua bridge - proxy_wasm_lua_resolver, existing client
---- skip_no_debug: 5
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config
@@ -309,8 +308,7 @@ Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
 - HTTP 502 (httpbin.org Bad Gateway)
 - HTTP 504 (httpbin.org Gateway timeout)
---- skip_valgrind: 5
---- skip_no_debug: 5
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config eval
@@ -349,7 +347,7 @@ qr/\[debug\] .*? wasm lua resolver using existing dns_client/
 
 
 === TEST 10: Lua bridge - proxy_wasm_lua_resolver, SRV record
---- skip_no_debug: 5
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config
@@ -473,7 +471,7 @@ qr/\[error\] .*? lua entry thread aborted: .*? wasm lua failed resolving "foo": 
 
 === TEST 13: Lua bridge - proxy_wasm_lua_resolver, failed before query
 Failure before the Lua thread gets a chance to yield (immediate resolver failure)
---- skip_no_debug: 5
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config

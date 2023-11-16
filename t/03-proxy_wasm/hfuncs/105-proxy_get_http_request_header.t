@@ -4,10 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 8);
-
+plan_tests(8);
 run_tests();
 
 __DATA__
@@ -100,6 +97,7 @@ GET /t/echo/header/:path
 
 === TEST 5: proxy_wasm - get_http_request_header() retrieves ':path' from r->uri (parsed)
 URI component should be normalized
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -121,6 +119,7 @@ GET //t/echo//header/:path
 
 === TEST 6: proxy_wasm - get_http_request_header() retrieves ':path' with r->args (querystring)
 Path should include querystring
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -288,6 +287,7 @@ qq{
 
 === TEST 12: proxy_wasm - get_http_request_header() many headers
 Covers large list manipulation
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {

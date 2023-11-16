@@ -4,10 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -87,6 +84,7 @@ on_response_headers, 5 headers.*
 
 
 === TEST 4: proxy_wasm - set_http_response_header() sets the same non-builtin header multiple times
+--- valgrind
 --- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: hostcalls
 --- config
@@ -147,6 +145,7 @@ resp hello: wasm.*/
 
 
 === TEST 6: proxy_wasm - set_http_response_header() sets Connection header (close)
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -256,6 +255,7 @@ qr/.*? on_response_headers, 5 headers.*
 
 
 === TEST 10: proxy_wasm - set_http_response_header() removes Last-Modified header when no value
+--- valgrind
 --- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: hostcalls
 --- config

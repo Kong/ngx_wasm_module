@@ -4,8 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -31,6 +30,7 @@ qr/\[info\] .*? on_request_headers, 3 headers/
 
 
 === TEST 2: proxy_wasm - on_request_body gets number of bytes in body
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -519,7 +519,7 @@ on_log
 
 === TEST 22: proxy_wasm - as a chained subrequest
 should invoke wasm ops "done" phase to destroy proxy-wasm ctxid in "content" phase
---- skip_no_debug: 5
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -552,7 +552,7 @@ on_log
 
 
 === TEST 23: proxy_wasm - as a chained subrequest (logged)
---- skip_no_debug: 5
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config
@@ -639,7 +639,7 @@ on_log
 
 === TEST 25: proxy_wasm - chained filters in same location{} block
 should run each filter after the other within each phase
---- skip_no_debug: 5
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config

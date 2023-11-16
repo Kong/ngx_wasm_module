@@ -4,15 +4,12 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind('wasmtime');
-
-plan tests => repeat_each() * (blocks() * 5);
-
 our $nginx_variables = join(',', qw(
     ngx.pid
     ngx.hostname
 ));
 
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -22,6 +19,7 @@ __DATA__
 All get_property calls for Nginx variables return strings, so this should print
 the $pid as ASCII numbers.
 
+--- valgrind
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config eval

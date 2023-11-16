@@ -33,6 +33,13 @@ on:
       hup:
         required: true
         type: string
+      path:
+        required: false
+        type: string
+      coverage:
+        required: false
+        type: boolean
+        default: false
 
 defaults:
   run:
@@ -46,8 +53,9 @@ env:
   NGX_BUILD_CC_OPT: '-O2'
   NGX_BUILD_NOPOOL: 1
   TEST_NGINX_USE_VALGRIND: 1
+  TEST_NGINX_USE_VALGRIND_ALL: 0
   TEST_NGINX_USE_HUP: ${{ inputs.hup == 'hup' && 1 || 0 }}
-  TEST_NGINX_RANDOMIZE: 1
+  TEST_NGINX_RANDOMIZE: ${{ github.run_attempt == '1' && 1 || 0 }}
   TEST_NGINX_NO_CLEAN: 1
   TEST_NGINX_TIMEOUT: 120
   TEST_NGINX_EXTERNAL_TIMEOUT: 120s
@@ -105,7 +113,10 @@ jobs:
           ghcr_password: ${{ secrets.TOKEN_GITHUB }}
       - run: make setup
       - run: make
-      - run: make test 2>&1 | tee valgrind.out
+      - name: Run tests
+        run: |
+           IN_PATH="${{ inputs.path }}"
+           ./util/test.sh ${IN_PATH:-t/} 2>&1 | tee valgrind.out
       - run: |
           awk -f ./util/parse-valgrind.awk valgrind.out > valgrind.log
           if [[ -s valgrind.log ]]; then
