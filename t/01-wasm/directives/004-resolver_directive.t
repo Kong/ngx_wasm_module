@@ -4,15 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 4);
-
+plan_tests(4);
 run_tests();
 
 __DATA__
 
 === TEST 1: resolver directive - sanity
+--- valgrind
 --- main_config
     wasm {
         resolver 8.8.8.8;

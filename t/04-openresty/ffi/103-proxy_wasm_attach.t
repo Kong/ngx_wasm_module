@@ -6,8 +6,7 @@ use t::TestWasm::Lua;
 
 skip_no_openresty();
 
-plan tests => repeat_each() * (blocks() * 4);
-
+plan_tests(4);
 run_tests();
 
 __DATA__
@@ -313,7 +312,7 @@ qr/^[^#]*#0 on_vm_start[^#]*
 
 
 === TEST 8: attach() - plan is garbage collected after execution
---- skip_no_debug: 4
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config

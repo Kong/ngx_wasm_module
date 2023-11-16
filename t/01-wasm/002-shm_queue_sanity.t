@@ -6,16 +6,15 @@ use t::TestWasm;
 
 workers(2);
 master_on();
-skip_valgrind();
 
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
 
 === TEST 1: queue - with minimum size
---- skip_no_debug: 5
+--- valgrind
+--- skip_no_debug
 --- main_config
     wasm {
         shm_queue test 12288;

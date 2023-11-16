@@ -4,8 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-plan tests => repeat_each() * (blocks() * 6);
-
+plan_tests(6);
 run_tests();
 
 __DATA__

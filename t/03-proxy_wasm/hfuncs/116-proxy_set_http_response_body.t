@@ -4,10 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 7);
-
+plan_tests(7);
 run_tests();
 
 __DATA__
@@ -149,6 +146,7 @@ on_response_body, 0 bytes, eof: true.*/
 
 
 === TEST 5: proxy_wasm - set_http_response_body() with offset argument
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -217,6 +215,7 @@ on_response_body, 0 bytes, eof: true.*/
 
 
 === TEST 6: proxy_wasm - set_http_response_body() with max argument
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

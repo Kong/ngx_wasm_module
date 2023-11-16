@@ -4,15 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 10);
-
+plan_tests(10);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm queue shm - push and pop a value
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: test 1m

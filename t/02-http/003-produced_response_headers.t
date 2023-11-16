@@ -4,10 +4,6 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 7);
-
 add_block_preprocessor(sub {
     my $block = shift;
 
@@ -17,6 +13,7 @@ add_block_preprocessor(sub {
     }
 });
 
+plan_tests(7);
 run_tests();
 
 __DATA__
@@ -24,7 +21,8 @@ __DATA__
 === TEST 1: produce default response headers
 should produce some of the default headers otherwise
 injected too late by ngx_http_header_filter
---- skip_no_debug: 7
+--- valgrind
+--- skip_no_debug
 --- wasm_modules: ngx_rust_tests
 --- config
     location /t {
@@ -94,7 +92,7 @@ hello say
 
 
 === TEST 5: produce 'Last-Modified' response header
---- skip_no_debug: 7
+--- skip_no_debug
 --- wasm_modules: ngx_rust_tests
 --- config
     location /t {

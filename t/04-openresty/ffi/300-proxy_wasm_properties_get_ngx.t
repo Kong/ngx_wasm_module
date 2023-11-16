@@ -6,8 +6,7 @@ use t::TestWasm::Lua;
 
 skip_no_openresty();
 
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__

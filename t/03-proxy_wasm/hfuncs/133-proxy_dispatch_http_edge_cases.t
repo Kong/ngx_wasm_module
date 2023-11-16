@@ -4,10 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind('wasmtime');
-
-plan tests => repeat_each() * (blocks() * 6);
-
+plan_tests(6);
 run_tests();
 
 __DATA__
@@ -40,6 +37,7 @@ called 2 times
 
 
 === TEST 2: proxy_wasm - dispatch_http_call() on dispatch response (2 subsequent calls)
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -102,6 +100,7 @@ qr/on_root_http_call_response \(id: 0, status: 200, headers: 5, body_bytes: 12, 
 
 
 === TEST 4: proxy_wasm - dispatch_http_call() on_tick (10 calls)
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

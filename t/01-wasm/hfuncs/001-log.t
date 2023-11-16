@@ -4,10 +4,6 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 3);
-
 add_block_preprocessor(sub {
     my $block = shift;
     my $main_config = <<_EOC_;
@@ -21,11 +17,13 @@ _EOC_
     }
 });
 
+plan_tests(3);
 run_tests();
 
 __DATA__
 
 === TEST 1: log: logs in 'log' phase
+--- valgrind
 --- config
     location /t {
         wasm_call log ngx_rust_tests log_notice_hello;

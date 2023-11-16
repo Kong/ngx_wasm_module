@@ -4,15 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm - get_http_response_header() retrieves case insensitive header
+--- valgrind
 --- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: hostcalls
 --- config

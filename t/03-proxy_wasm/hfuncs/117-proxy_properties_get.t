@@ -4,10 +4,6 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind('wasmtime');
-
-plan tests => repeat_each() * (blocks() * 5);
-
 our $request_properties = join(',', qw(
     request.path
     request.url_path
@@ -25,11 +21,13 @@ our $request_properties = join(',', qw(
     request.total_size
 ));
 
+plan_tests(5);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm - get_property() - request properties on: request_headers
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
@@ -210,6 +208,7 @@ qr/$checks/
 
 
 === TEST 5: proxy_wasm - get_property() - response properties on: response_headers, response_body
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

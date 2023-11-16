@@ -4,10 +4,12 @@ use strict;
 use lib '.';
 use t::TestBuild;
 
+skip_valgrind();
+
 our $buildroot = $t::TestBuild::buildroot;
 our $openssl_ver = get_variable_from_makefile("OPENSSL");
 
-plan tests => 5 * blocks();
+plan tests => blocks() * 5;
 
 run_tests();
 

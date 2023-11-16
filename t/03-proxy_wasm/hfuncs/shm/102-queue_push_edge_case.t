@@ -4,16 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 6);
-
+plan_tests(6);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm queue shm - push when data_size == buffer_size
---- skip_no_debug: 6
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: test 262144
@@ -37,6 +34,7 @@ circular_write: wrapping around
 
 
 === TEST 2: proxy_wasm queue shm - push when data size == buffer_size + 1
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: test 262144

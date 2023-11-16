@@ -14,7 +14,7 @@ sub skip_no_openresty {
     my $build_name = (split /\n/, $nginxV)[0];
 
     if ($build_name !~ m/nginx version: openresty/) {
-        plan skip_all => "skipped (not an OpenResty binary)";
+        plan skip_all => "not an OpenResty binary";
     }
 }
 

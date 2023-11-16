@@ -4,11 +4,9 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
 skip_no_go_sdk();
 
-plan tests => repeat_each() * (blocks() * 6);
-
+plan_tests(6);
 run_tests();
 
 __DATA__

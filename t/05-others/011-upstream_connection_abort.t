@@ -5,18 +5,15 @@ use lib '.';
 use t::TestWasm;
 
 skip_hup();
-skip_valgrind();
 
-plan tests => repeat_each() * (blocks() * 4);
-
+plan_tests(4);
 run_tests();
 
 __DATA__
 
 === TEST 1: upstream connection abort - wasm_call
 Calls on aborted upstream connections execute response phases on the produced
-HTTP 502 response.
---- skip_no_debug: 4
+--- skip_no_debug
 --- wasm_modules: ngx_rust_tests
 --- tcp_listen: $TEST_NGINX_UNIX_SOCKET
 --- tcp_shutdown: 2

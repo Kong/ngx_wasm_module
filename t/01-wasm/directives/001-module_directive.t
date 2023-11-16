@@ -6,15 +6,14 @@ use t::TestWasm;
 
 our $nginxV = $t::TestWasm::nginxV;
 
-plan tests => repeat_each() * (blocks() * 4);
+no_shuffle();
 
+plan_tests(4);
 run_tests();
 
 __DATA__
 
 === TEST 1: module directive - valid .wasm module
-Too slow for Valgrind
---- skip_valgrind: 4
 --- main_config eval
 qq{
     wasm {
@@ -49,7 +48,7 @@ qr/\[info\] .*? \[wasm\] loading "a" module <vm: "main", runtime: ".*?">/
 
 
 === TEST 3: module directive - multiple valid modules
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;

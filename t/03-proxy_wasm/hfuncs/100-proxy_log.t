@@ -4,10 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 9);
-
+plan_tests(9);
 run_tests();
 
 __DATA__

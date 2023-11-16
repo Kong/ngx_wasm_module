@@ -6,8 +6,7 @@ use t::TestWasm::Lua;
 
 skip_no_openresty();
 
-plan tests => repeat_each() * (blocks() * 4);
-
+plan_tests(4);
 run_tests();
 
 __DATA__
@@ -28,6 +27,7 @@ __DATA__
 
 
 === TEST 2: ngx_wasm_module sanity
+--- valgrind
 --- main_config
     wasm {}
 --- config

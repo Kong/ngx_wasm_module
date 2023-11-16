@@ -7,13 +7,9 @@ use t::TestWasm;
 our $ExtResolver = $t::TestWasm::extresolver;
 our $ExtTimeout = $t::TestWasm::exttimeout;
 
-skip_valgrind();
 skip_no_go_sdk();
 
-repeat_each(1);
-
-plan tests => repeat_each() * (blocks() * 6);
-
+plan_tests(6);
 run_tests();
 
 __DATA__

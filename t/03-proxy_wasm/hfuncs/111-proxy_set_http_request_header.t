@@ -4,15 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm - set_http_request_header() sets a new non-builtin header
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -57,6 +55,7 @@ qr/.*? on_request_headers, 2 headers.*
 
 
 === TEST 3: proxy_wasm - set_http_request_header() sets a non-builtin headers when many headers exist
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {

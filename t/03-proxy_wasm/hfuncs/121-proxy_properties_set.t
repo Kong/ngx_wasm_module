@@ -4,15 +4,13 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind('wasmtime');
-
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm - set_property() - non-changeable property: request_headers
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval

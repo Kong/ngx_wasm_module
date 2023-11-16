@@ -16,8 +16,7 @@ our $ExtTimeout = $t::TestWasm::exttimeout;
 
 skip_no_openresty();
 
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -27,7 +26,7 @@ Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
 - HTTP 502 (httpbin.org Bad Gateway)
 - HTTP 504 (httpbin.org Gateway timeout)
---- skip_no_debug: 5
+--- skip_no_debug
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -57,7 +56,6 @@ Succeeds on:
 lua-resty-dns-resolver client timeout
 Behaves strangely on GHA Valgrind. Seems fine locally.
 Will run with TEST_NGINX_USE_VALGRIND_ALL.
---- skip_valgrind: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- http_config eval
@@ -105,7 +103,6 @@ Using a non-local resolver
 lua-resty-dns-resolver client timeout
 Behaves strangely on GHA Valgrind. Seems fine locally.
 Will run with TEST_NGINX_USE_VALGRIND_ALL.
---- skip_valgrind: 5
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
 qq{

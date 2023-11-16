@@ -8,9 +8,6 @@ our $ExtResolver = $t::TestWasm::extresolver;
 our $ExtTimeout = $t::TestWasm::exttimeout;
 
 skip_no_ssl();
-skip_valgrind('wasmtime');
-
-plan tests => repeat_each() * (blocks() * 4);
 
 add_block_preprocessor(sub {
     my $block = shift;
@@ -20,6 +17,7 @@ add_block_preprocessor(sub {
     }
 });
 
+plan_tests(4);
 run_tests();
 
 __DATA__
@@ -101,7 +99,8 @@ ok
 
 
 === TEST 3: proxy_wasm - dispatch_https_call() sanity verify on, over TCP/IP
---- skip_no_debug: 4
+--- valgrind
+--- skip_no_debug
 --- main_config eval
 qq{
     wasm {
@@ -143,7 +142,8 @@ qr/verifying tls certificate for "hostname:\d+" \(sni: "hostname"\)/
 
 
 === TEST 4: proxy_wasm - dispatch_https_call() sanity verify on, over unix domain socket
---- skip_no_debug: 4
+--- valgrind
+--- skip_no_debug
 --- main_config eval
 qq{
     wasm {
@@ -220,7 +220,8 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls cer
 
 
 === TEST 6: proxy_wasm - dispatch_https_call() sanity check_host on
---- skip_no_debug: 4
+--- valgrind
+--- skip_no_debug
 --- main_config eval
 qq{
     wasm {
@@ -449,7 +450,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls cer
 
 
 === TEST 14: proxy_wasm - dispatch_https_call() SNI derived from host over TCP/IP
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config eval
 qq{
     wasm {
@@ -491,7 +492,7 @@ ok
 
 === TEST 15: proxy_wasm - dispatch_https_call() fail SNI derived from host with literal IPv4
 SNI cannot be an IP address.
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config eval
 qq{
     wasm {
@@ -526,7 +527,7 @@ qr/could not derive tls sni from host \("127\.0\.0\.1:\d+"\)/
 
 === TEST 16: proxy_wasm - dispatch_https_call() fail SNI derived from host with literal IPv6
 SNI cannot be an IP address.
---- skip_no_debug: 4
+--- skip_no_debug
 --- wasm_modules: hostcalls
 --- config
     listen              [::]:$TEST_NGINX_SERVER_PORT ssl;
@@ -555,7 +556,7 @@ qr/could not derive tls sni from host \("\[0:0:0:0:0:0:0:1\]:\d+"\)/
 
 
 === TEST 17: proxy_wasm - dispatch_https_call() SNI override with :authority over TCP/IP (debug)
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config eval
 qq{
     wasm {
@@ -637,7 +638,7 @@ ok
 
 === TEST 19: proxy_wasm - dispatch_https_call() SNI override with :authority over unix domain socket (debug)
 Unix sockets need to set :authority as SNI
---- skip_no_debug: 4
+--- skip_no_debug
 --- main_config eval
 qq{
     wasm {
@@ -721,6 +722,7 @@ ok
 
 
 === TEST 21: proxy_wasm - dispatch_https_call() sanity on_tick, verify off, warn on
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
 qq{
@@ -761,7 +763,7 @@ qq{
 
 
 === TEST 22: proxy_wasm - dispatch_https_call() sanity on_tick, verify on, check_host on
---- skip_no_debug: 4
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
 qq{

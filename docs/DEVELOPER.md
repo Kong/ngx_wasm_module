@@ -21,6 +21,7 @@ environments yet and may still need refinements; reports are very much welcome.
     - [Run building tests](#run-building-tests)
     - [Run individual tests](#run-individual-tests)
     - [Debug a test case](#debug-a-test-case)
+    - [Valgrind test cases](#valgrind-test-cases)
 - [CI](#ci)
     - [Running the CI locally](#running-the-ci-locally)
 - [Sources](#sources)
@@ -451,6 +452,22 @@ $ gdb -ex 'b ngx_wasm_symbol' -ex 'r -g "daemon off;"' work/buildroot/nginx
 
 Here, `daemon off` is one way of ensuring that the master process does not fork
 into a daemon, so that the debugging session remains uninterrupted.
+
+[Back to TOC](#table-of-contents)
+
+### Valgrind test cases
+
+When the environment variable `TEST_NGINX_USE_VALGRIND=1` is set, the test suite
+will run in Valgrind mode and check for memory-related issues. Only test cases
+with the `--- valgrind` block will be run.
+
+Only some tests are enabled in Valgrind mode so as to make the test suites run
+in a reasonable amount of time. As a rule of thumb, only enable test cases to
+run in Valgrind mode (i.e. `--- valgrind` block) when the tested code path
+includes C-level ngx_wasm_module code with potential for memory allocations or
+invalid memory reads/writes. Avoid enabling too many test cases with the same
+code path: many different unit tests may all end-up taking the same code paths
+from a memory-checking perspective.
 
 [Back to TOC](#table-of-contents)
 

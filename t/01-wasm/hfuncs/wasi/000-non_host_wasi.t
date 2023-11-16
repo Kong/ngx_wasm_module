@@ -6,8 +6,7 @@ use t::TestWasm;
 
 our $nginxV = $t::TestWasm::nginxV;
 
-plan tests => repeat_each() * (blocks() * 4);
-
+plan_tests(4);
 run_tests();
 
 __DATA__

@@ -27,12 +27,12 @@ our @EXPORT = qw(
     $exttimeout
     $extresolver
     load_nginx_modules
+    plan_tests
+    skip_hup
     skip_no_ssl
     skip_no_debug
     skip_no_go_sdk
     skip_no_assemblyscript_sdk
-    skip_valgrind
-    skip_hup
 );
 
 $ENV{TEST_NGINX_USE_HUP} ||= 0;
@@ -44,31 +44,17 @@ $ENV{TEST_NGINX_CRATES_DIR} = $crates;
 $ENV{TEST_NGINX_UNIX_SOCKET} = html_dir() . "/nginx.sock";
 $ENV{TEST_NGINX_SERVER_PORT2} = gen_rand_port(1000);
 
-sub skip_valgrind (@) {
-    my ($skip) = @_;
+our $ntests;
 
-    if (!$ENV{TEST_NGINX_USE_VALGRIND}) {
-        return;
-    }
-
-    if (defined $skip) {
-        my $nver = (split /\n/, $nginxV)[0];
-
-        if ($nver =~ m/$skip/) {
-            plan skip_all => "skipped with Valgrind (nginx -V matches '$skip')";
-        }
-
-        return;
-    }
-
-    if (!$ENV{TEST_NGINX_USE_VALGRIND_ALL}) {
-        plan skip_all => 'slow with Valgrind (set TEST_NGINX_USE_VALGRIND_ALL=1 to run)';
-    }
+sub plan_tests (@) {
+    my $nblocks = Test::Base::blocks();
+    $ntests = shift;
+    plan tests => repeat_each() * $nblocks * $ntests;
 }
 
 sub skip_hup {
     if ($ENV{TEST_NGINX_USE_HUP} == 1) {
-        plan(skip_all => "skipped in HUP mode");
+        plan(skip_all => "skip in HUP mode");
     }
 }
 
@@ -224,22 +210,36 @@ add_block_preprocessor(sub {
         }
     }
 
-    # --- skip_no_debug: 3
+    my $skip_n;
+    my @block_skip = ();
 
-    if (defined $block->skip_no_debug
-        && !defined $block->skip_eval
-        && $block->skip_no_debug =~ m/\s*(\d+)/)
-    {
-        $block->set_value("skip_eval", sprintf '%d: $::nginxV !~ m/--with-debug/', $1);
+    if (defined $ntests) {
+        $skip_n = $ntests;
     }
 
-    # --- skip_valgrind: 3
+    # --- valgrind
 
-    if (defined $block->skip_valgrind
-        && $ENV{TEST_NGINX_USE_VALGRIND}
-        && $block->skip_valgrind =~ m/\s*(\d+)/)
+    if (!defined $block->valgrind && !$ENV{TEST_NGINX_USE_VALGRIND_ALL}) {
+        push @block_skip, '$ENV{TEST_NGINX_USE_VALGRIND}';
+    }
+
+    # --- skip_eval
+
+    if (defined $block->skip_eval
+        && $block->skip_eval =~ m/\s*(\d+):\s*(.*)/)
     {
-        $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND} && !$ENV{TEST_NGINX_USE_VALGRIND_ALL}', $1);
+        push @block_skip, $2;
+    }
+
+    # --- skip_no_debug
+
+    if (defined $block->skip_no_debug) {
+        push @block_skip, '$::nginxV !~ m/--with-debug/';
+    }
+
+    if (defined $skip_n) {
+        $block->set_value("skip_eval", sprintf('%d: (%s)', $skip_n,
+                                               join " || ", @block_skip));
     }
 
     # --- timeout_expected: 1

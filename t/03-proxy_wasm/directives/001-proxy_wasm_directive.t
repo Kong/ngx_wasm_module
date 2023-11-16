@@ -4,10 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 6);
-
+plan_tests(6);
 run_tests();
 
 __DATA__
@@ -204,7 +201,7 @@ qr/\[emerg\] .*? \[proxy-wasm\] failed loading "a" filter \(incompatible ABI ver
 
 
 === TEST 9: proxy_wasm directive - single entry in location{} block
---- skip_no_debug: 6
+--- skip_no_debug
 --- wasm_modules: on_tick
 --- config
     location /t {
@@ -226,7 +223,7 @@ qr/\[emerg\] .*? \[proxy-wasm\] failed loading "a" filter \(incompatible ABI ver
 === TEST 10: proxy_wasm directive - duplicate entries in location{} block
 should be accepted
 should create two instances of the same module
---- skip_no_debug: 6
+--- skip_no_debug
 --- wasm_modules: on_tick
 --- config
     location /t {

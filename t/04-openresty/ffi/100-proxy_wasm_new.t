@@ -8,8 +8,7 @@ our $nginxV = $t::TestWasm::nginxV;
 
 skip_no_openresty();
 
-plan tests => repeat_each() * (blocks() * 4);
-
+plan_tests(4);
 run_tests();
 
 __DATA__

@@ -4,10 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -39,6 +36,7 @@ Welcome: wasm
 === TEST 2: proxy_wasm - set_http_request_headers() sets special request headers
 should set request headers, even if they receive special treatment
 should set special keys headers (e.g. :path)
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -68,6 +66,7 @@ request header ":path: /updated"
 
 
 === TEST 3: proxy_wasm - set_http_request_headers() cannot set invalid special request headers
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -84,6 +83,7 @@ qr/\[error\] .*? \[wasm\] cannot set read-only ":scheme" header/
 
 
 === TEST 4: proxy_wasm - set_http_request_headers() sets headers when many headers exist
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {

@@ -6,8 +6,7 @@ use t::TestWasm::Lua;
 
 skip_no_openresty();
 
-plan tests => repeat_each() * (blocks() * 5);
-
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -328,6 +327,7 @@ property not found: wasmx.fail1_property
 
 === TEST 7: host properties setter - setter returning true
 With and without 3rd return value (caches result)
+--- valgrind
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {

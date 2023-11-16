@@ -14,10 +14,7 @@ use t::TestWasm;
 our $ExtResolver = $t::TestWasm::extresolver;
 our $ExtTimeout = $t::TestWasm::exttimeout;
 
-skip_valgrind('wasmtime');
-
-plan tests => repeat_each() * (blocks() * 4);
-
+plan_tests(4);
 run_tests();
 
 __DATA__

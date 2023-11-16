@@ -5,16 +5,15 @@ use lib '.';
 use t::TestWasm;
 
 skip_no_debug();
-skip_valgrind('wasmtime');
 
-plan tests => repeat_each() * (blocks() * 8);
-
+plan_tests(8);
 run_tests();
 
 __DATA__
 
 === TEST 1: proxy_wasm - default isolation mode (none)
 should use a global instance reused across streams
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -71,6 +70,7 @@ qr/\A\*\d+ .*? filter reusing instance[^#*]*
 
 === TEST 2: proxy_wasm - trap with none isolation mode
 Should recycle the global instance when trapped.
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -118,6 +118,7 @@ qr/\A\*\d+ .*? filter new instance[^#*]*
 
 === TEST 3: proxy_wasm - stream isolation mode
 should use an instance per stream
+--- valgrind
 --- wasm_modules: hostcalls
 --- config
     proxy_wasm_isolation stream;
@@ -181,6 +182,7 @@ qr/\A\*\d+ .*? filter new instance[^#*]*
 
 
 === TEST 4: proxy_wasm - trap with stream isolation mode
+--- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -314,6 +316,7 @@ on_request_headers A: 123000 + 1
 on_request_headers B: 123000 + 1
 on_log A: 123001
 on_log B: 123001
+--- valgrind
 --- wasm_modules: instance_lifecycle
 --- config
     proxy_wasm_isolation filter;
