@@ -301,6 +301,7 @@ resp header "connection: close".*/
 
 
 === TEST 10: proxy_wasm - get_http_response_header() get Connection header (keep-alive)
+--- skip_valgrind: 5
 --- timeout_expected: 5
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
@@ -379,6 +380,7 @@ resp header "connection: upgrade".*/
 
 
 === TEST 12: proxy_wasm - get_http_response_header() get Keep-Alive header
+--- skip_valgrind: 5
 --- timeout_expected: 5
 --- abort
 --- load_nginx_modules: ngx_http_echo_module

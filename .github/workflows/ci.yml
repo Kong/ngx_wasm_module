@@ -147,7 +147,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        label: [""]
+        label: ["wasmer_full"]
         os: [ubuntu-22.04]
         cc: [gcc-12]
         ngx: [1.25.3]
@@ -158,6 +158,7 @@ jobs:
         v8: [""]
         hup: [no_hup, hup]
         debug: [debug]
+        path: [""]
         include:
           # Wasmtime
           - runtime: wasmtime
@@ -167,6 +168,7 @@ jobs:
             ngx: 1.25.3
             hup: no_hup
             debug: debug
+            path: t/01-wasm
           # V8
           - runtime: v8
             v8: 11.4.183.23
@@ -175,16 +177,38 @@ jobs:
             ngx: 1.25.3
             debug: debug
             hup: no_hup
+            path: t/01-wasm
           # OpenResty
           - label: openresty
+            runtime: wasmer
+            wasmer: 3.1.1
             os: ubuntu-22.04
             cc: gcc-12
             openresty: 1.21.4.2
             ngx:
-            runtime: wasmer
-            wasmer: 3.1.1
             debug: debug
             hup: no_hup
+            path: t/04-openresty
+          # Wasmtime hfuncs
+          - label: wasmtime_hfuncs
+            runtime: wasmtime
+            wasmtime: 14.0.3
+            os: ubuntu-22.04
+            cc: gcc-12
+            ngx: 1.25.3
+            hup: no_hup
+            debug: debug
+            path: t/03-proxy_wasm/hfuncs
+          # Wasmer hfuncs
+          - label: wasmer_hfuncs
+            runtime: wasmer
+            wasmer: 3.1.1
+            os: ubuntu-22.04
+            cc: gcc-12
+            ngx: 1.25.3
+            hup: no_hup
+            debug: debug
+            path: t/03-proxy_wasm/hfuncs
     uses: ./.github/workflows/job-valgrind-tests.yml
     with:
       os: ${{ matrix.os }}
@@ -197,6 +221,7 @@ jobs:
       v8: ${{ matrix.v8 }}
       hup: ${{ matrix.hup }}
       debug: ${{ matrix.debug }}
+      path: ${{ matrix.path }}
     secrets: inherit
 
   lint:

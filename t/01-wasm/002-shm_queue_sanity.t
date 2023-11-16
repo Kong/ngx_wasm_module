@@ -6,7 +6,7 @@ use t::TestWasm;
 
 workers(2);
 master_on();
-skip_valgrind();
+#skip_valgrind();
 
 plan tests => repeat_each() * (blocks() * 5);
 

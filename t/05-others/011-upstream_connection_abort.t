@@ -5,7 +5,6 @@ use lib '.';
 use t::TestWasm;
 
 skip_hup();
-skip_valgrind();
 
 plan tests => repeat_each() * (blocks() * 4);
 
@@ -15,7 +14,7 @@ __DATA__
 
 === TEST 1: upstream connection abort - wasm_call
 Calls on aborted upstream connections execute response phases on the produced
-HTTP 502 response.
+--- skip_valgrind: 4
 --- skip_no_debug: 4
 --- wasm_modules: ngx_rust_tests
 --- tcp_listen: $TEST_NGINX_UNIX_SOCKET
@@ -50,6 +49,7 @@ wasm ops calling "ngx_rust_tests\.log_notice_hello" in "body_filter" phase\Z/
 === TEST 2: upstream connection abort - chained filters
 Filters on aborted upstream connections execute response phases on the produced
 HTTP 502 response.
+--- skip_valgrind: 4
 --- wasm_modules: on_phases
 --- tcp_listen: $TEST_NGINX_UNIX_SOCKET
 --- tcp_shutdown: 2

@@ -8,13 +8,12 @@ our $nginxV = $t::TestWasm::nginxV;
 
 plan tests => repeat_each() * (blocks() * 4);
 
+no_shuffle();
 run_tests();
 
 __DATA__
 
 === TEST 1: module directive - valid .wasm module
-Too slow for Valgrind
---- skip_valgrind: 4
 --- main_config eval
 qq{
     wasm {
@@ -67,6 +66,7 @@ qr/\[debug\] .*? wasm loading "b" module bytes from ".*?a\.wat"/]
 
 
 === TEST 4: module directive - invalid arguments
+--- skip_valgrind: 4
 --- main_config
     wasm {
         module $TEST_NGINX_HTML_DIR/a.wat;
@@ -81,6 +81,7 @@ qr/\[emerg\] .*? invalid number of arguments in "module" directive/
 
 
 === TEST 5: module directive - bad name
+--- skip_valgrind: 4
 --- main_config
     wasm {
         module '' $TEST_NGINX_HTML_DIR/a.wat;
@@ -95,6 +96,7 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 === TEST 6: module directive - bad path
+--- skip_valgrind: 4
 --- main_config
     wasm {
         module a '';
@@ -109,6 +111,7 @@ qr/\[emerg\] .*? invalid module path ""/
 
 
 === TEST 7: module directive - already defined
+--- skip_valgrind: 4
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -127,6 +130,7 @@ qr/\[emerg\] .*? "a" module already defined/
 
 
 === TEST 8: module directive - no such path
+--- skip_valgrind: 4
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/none.wat;
@@ -141,6 +145,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 === TEST 9: module directive - no .wat bytes - wasmtime, wasmer
+--- skip_valgrind: 4
 --- skip_eval: 4: !( $::nginxV =~ m/wasmtime/ || $::nginxV =~ m/wasmer/ )
 --- main_config
     wasm {
@@ -160,6 +165,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 === TEST 10: module directive - no .wat bytes - v8
+--- skip_valgrind: 4
 --- skip_eval: 4: $::nginxV !~ m/v8/
 --- main_config
     wasm {
@@ -179,6 +185,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 === TEST 11: module directive - no .wasm bytes
+--- skip_valgrind: 4
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wasm;
@@ -197,6 +204,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 === TEST 12: module directive - invalid .wat module - wasmtime, wasmer
+--- skip_valgrind: 4
 --- skip_eval: 4: !( $::nginxV =~ m/wasmtime/ || $::nginxV =~ m/wasmer/ )
 --- main_config
     wasm {
@@ -219,6 +227,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 === TEST 13: module directive - invalid .wat module - v8
+--- skip_valgrind: 4
 --- skip_eval: 4: $::nginxV !~ m/v8/
 --- main_config
     wasm {

@@ -4,8 +4,6 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
-
 plan tests => repeat_each() * (blocks() * 4);
 
 run_tests();
@@ -13,6 +11,7 @@ run_tests();
 __DATA__
 
 === TEST 1: wasm - oob memory read
+--- skip_valgrind: 4
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -41,6 +40,7 @@ qr/(\[error\] .*? out of bounds|wasm trap: out of bounds memory access|Uncaught 
 
 
 === TEST 2: wasm - oob memory write
+--- skip_valgrind: 4
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;

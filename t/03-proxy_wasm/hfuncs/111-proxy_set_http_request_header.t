@@ -160,6 +160,7 @@ qr/.*? on_request_headers, 22 headers.*
 
 
 === TEST 7: proxy_wasm - set_http_request_header() sets Connection header (keep-alive)
+--- skip_valgrind: 5
 --- timeout_expected: 5
 --- abort
 --- wasm_modules: hostcalls

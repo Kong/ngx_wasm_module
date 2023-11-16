@@ -4,7 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind();
+skip_valgrind('always');
 
 our $nginxV = $t::TestWasm::nginxV;
 our $osname = $t::TestWasm::osname;

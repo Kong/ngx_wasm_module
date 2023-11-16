@@ -6,7 +6,7 @@ use t::TestWasm;
 
 skip_hup();
 skip_no_debug();
-skip_valgrind();
+skip_valgrind('always');
 
 plan tests => repeat_each() * (blocks() * 4);
 

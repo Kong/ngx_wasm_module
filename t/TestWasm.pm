@@ -55,6 +55,9 @@ sub skip_valgrind (@) {
 
         if ($nver =~ m/$skip/) {
             plan skip_all => "skipped with Valgrind (nginx -V matches '$skip')";
+
+        } elsif ($skip eq "always") {
+            plan skip_all => "skipped with Valgrind (always)";
         }
 
         return;
@@ -216,13 +219,22 @@ add_block_preprocessor(sub {
         }
     }
 
+    my $skip_n;
+    my @block_skip = ();
+
+    if (defined $block->skip_eval
+        && $block->skip_eval =~ m/\s*(\d+):\s*(.*)/)
+    {
+        push @block_skip, $2;
+    }
+
     # --- skip_no_debug: 3
 
     if (defined $block->skip_no_debug
-        && !defined $block->skip_eval
         && $block->skip_no_debug =~ m/\s*(\d+)/)
     {
-        $block->set_value("skip_eval", sprintf '%d: $::nginxV !~ m/--with-debug/', $1);
+        $skip_n = $1;
+        push @block_skip, '$::nginxV !~ m/--with-debug/';
     }
 
     # --- skip_valgrind: 3
@@ -231,7 +243,13 @@ add_block_preprocessor(sub {
         && $ENV{TEST_NGINX_USE_VALGRIND}
         && $block->skip_valgrind =~ m/\s*(\d+)/)
     {
-        $block->set_value("skip_eval", sprintf '%d: $ENV{TEST_NGINX_USE_VALGRIND} && !$ENV{TEST_NGINX_USE_VALGRIND_ALL}', $1);
+        $skip_n = $1;
+        push @block_skip, '$ENV{TEST_NGINX_USE_VALGRIND}';
+    }
+
+    if (defined $skip_n) {
+        $block->set_value("skip_eval", sprintf('%d: (%s)', $skip_n,
+                                               join " || ", @block_skip));
     }
 
     # --- timeout_expected: 1

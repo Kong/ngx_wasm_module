@@ -4,7 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
-skip_valgrind('wasmtime');
+#skip_valgrind('wasmtime');
 
 our $nginxV = $t::TestWasm::nginxV;
 
