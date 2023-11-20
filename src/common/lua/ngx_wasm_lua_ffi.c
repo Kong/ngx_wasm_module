@@ -34,7 +34,8 @@ ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
     mcf = ngx_http_cycle_get_module_main_conf(ngx_cycle, ngx_http_wasm_module);
     if (mcf == NULL) {
         /* no http{} block */
-        *errlen = ngx_snprintf(err, *errlen, "%V", &NGX_WASM_STR_NO_HTTP)
+        *errlen = ngx_snprintf(err, NGX_WASM_LUA_FFI_MAX_ERRLEN,
+                               "%V", &NGX_WASM_STR_NO_HTTP)
                   - err;
         return NGX_ERROR;
     }
@@ -57,9 +58,10 @@ ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
                                           &mcf->store, vm);
         if (rc != NGX_OK) {
             if (rc == NGX_ABORT) {
-                *errlen = ngx_snprintf(err, *errlen,
+                *errlen = ngx_snprintf(err, NGX_WASM_LUA_FFI_MAX_ERRLEN,
                                        "no \"%V\" module defined",
-                                       ffi_filter->name) - err;
+                                       ffi_filter->name)
+                          - err;
             }
 
             return NGX_ERROR;
@@ -197,8 +199,10 @@ get_pwctx(ngx_http_request_t *r)
 
 ngx_int_t
 ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
-    ngx_str_t *key, ngx_str_t *value)
+    ngx_str_t *key, ngx_str_t *value, u_char *err, size_t *errlen)
 {
+    ngx_int_t                 rc;
+    ngx_str_t                 e = { 0, NULL };
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_proxy_wasm_ctx_t     *pwctx;
 
@@ -213,14 +217,24 @@ ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    return ngx_proxy_wasm_properties_set(pwctx, key, value);
+    rc = ngx_proxy_wasm_properties_set(pwctx, key, value, &e);
+    if (rc == NGX_ERROR && e.len) {
+        *errlen = ngx_snprintf(err, NGX_WASM_LUA_FFI_MAX_ERRLEN, "%V", &e)
+                  - err;
+    }
+
+    dd("exit: %ld", rc);
+
+    return rc;
 }
 
 
 ngx_int_t
 ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
-    ngx_str_t *key, ngx_str_t *value)
+    ngx_str_t *key, ngx_str_t *value, u_char *err, size_t *errlen)
 {
+    ngx_int_t                 rc;
+    ngx_str_t                 e = { 0, NULL };
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_proxy_wasm_ctx_t     *pwctx;
 
@@ -239,7 +253,15 @@ ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    return ngx_proxy_wasm_properties_get(pwctx, key, value);
+    rc = ngx_proxy_wasm_properties_get(pwctx, key, value, &e);
+    if (rc == NGX_ERROR && e.len) {
+        *errlen = ngx_snprintf(err, NGX_WASM_LUA_FFI_MAX_ERRLEN, "%V", &e)
+                  - err;
+    }
+
+    dd("exit: %ld", rc);
+
+    return rc;
 }
 
 
@@ -247,41 +269,30 @@ ngx_int_t
 ngx_http_wasm_ffi_set_host_property(ngx_http_request_t *r,
     ngx_str_t *key, ngx_str_t *value, unsigned is_const, unsigned retrieve)
 {
-    ngx_proxy_wasm_ctx_t  *pwctx = get_pwctx(r);
+    ngx_proxy_wasm_ctx_t  *pwctx;
 
+    pwctx = get_pwctx(r);
     if (pwctx == NULL) {
         return NGX_ERROR;
     }
 
-    return ngx_proxy_wasm_properties_set_host(pwctx, key, value, is_const,
-                                              retrieve);
+    return ngx_proxy_wasm_properties_set_host(pwctx, key, value,
+                                              is_const, retrieve);
 }
 
 
 ngx_int_t
-ngx_http_wasm_ffi_set_property_setter(ngx_http_request_t *r,
-    ngx_wasm_host_prop_fn_t fn)
+ngx_http_wasm_ffi_set_host_properties_handlers(ngx_http_request_t *r,
+    ngx_proxy_wasm_properties_ffi_handler_pt getter,
+    ngx_proxy_wasm_properties_ffi_handler_pt setter)
 {
-    ngx_proxy_wasm_ctx_t  *pwctx = get_pwctx(r);
+    ngx_proxy_wasm_ctx_t  *pwctx;
 
+    pwctx = get_pwctx(r);
     if (pwctx == NULL) {
         return NGX_ERROR;
     }
 
-    return ngx_proxy_wasm_properties_set_host_prop_setter(pwctx, fn, r);
-}
-
-
-ngx_int_t
-ngx_http_wasm_ffi_set_property_getter(ngx_http_request_t *r,
-    ngx_wasm_host_prop_fn_t fn)
-{
-    ngx_proxy_wasm_ctx_t  *pwctx = get_pwctx(r);
-
-    if (pwctx == NULL) {
-        return NGX_ERROR;
-    }
-
-    return ngx_proxy_wasm_properties_set_host_prop_getter(pwctx, fn, r);
+    return ngx_proxy_wasm_properties_set_ffi_handlers(pwctx, getter, setter, r);
 }
 #endif

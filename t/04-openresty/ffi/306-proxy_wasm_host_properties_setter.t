@@ -12,52 +12,62 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: set_property_setter() - setting host properties setter fails on init_worker_by_lua
---- wasm_modules: on_phases
+=== TEST 1: host properties setter - sanity in rewrite_by_lua
+Also testing that setting the getter in-between attach() and start() works.
+--- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
         local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
-            { name = "on_phases" },
+            { name = "hostcalls", config="on=response_body " ..
+                                         "test=/t/log/property " ..
+                                         "name=wasmx.my_property" },
         }
 
         _G.c_plan = assert(proxy_wasm.new(filters))
         assert(proxy_wasm.load(_G.c_plan))
-
-        local tbl = {}
-
-        local function setter(key, value)
-            tbl[key] = value
-            return true
-        end
-
-        assert(proxy_wasm.set_property_setter(setter))
     }
 --- config
     location /t {
         rewrite_by_lua_block {
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
+
+            local tbl = {}
+
+            local function setter(key, value)
+                local new_value = value:upper()
+                tbl[key] = new_value
+                return true, new_value
+            end
+
+            assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.set_host_properties_handlers(nil, setter))
+            assert(proxy_wasm.set_property("wasmx.my_property", "my_value"))
+            assert(proxy_wasm.start())
             ngx.say("ok")
         }
     }
 --- response_body
 ok
---- error_log eval
-[
-    qr/\[error\] .*? cannot set host properties setter outside of a request/,
-    qr/\[error\] .*? init_worker_by_lua(\(nginx\.conf:\d+\))?:\d+: could not set property setter/,
-]
+--- grep_error_log eval: qr/wasmx.\w+_property: \w+/
+--- grep_error_log_out
+wasmx.my_property: MY_VALUE
+wasmx.my_property: MY_VALUE
 --- no_error_log
+[error]
 [crit]
 
 
 
-=== TEST 2: set_property_setter() - setting host properties setter works on rewrite_by_lua
+=== TEST 2: host properties setter - sanity in access_by_lua
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
         local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
-            { name = "hostcalls" },
+            { name = "hostcalls", config="on=response_body " ..
+                                         "test=/t/log/property " ..
+                                         "name=wasmx.my_property" },
         }
 
         _G.c_plan = assert(proxy_wasm.new(filters))
@@ -65,63 +75,8 @@ ok
     }
 --- config
     location /t {
-        proxy_wasm hostcalls 'on=response_body \
-                              test=/t/log/property \
-                              name=wasmx.my_property';
-
-        rewrite_by_lua_block {
-            local proxy_wasm = require "resty.wasmx.proxy_wasm"
-            assert(proxy_wasm.attach(_G.c_plan))
-
-            local tbl = {}
-
-            local function setter(key, value)
-                local new_value = value:upper()
-                tbl[key] = new_value
-                return true, new_value
-            end
-
-            assert(proxy_wasm.set_property_setter(setter))
-
-            assert(proxy_wasm.set_property("wasmx.my_property", "my_value"))
-
-            assert(proxy_wasm.start())
-            ngx.say("ok")
-        }
-    }
---- response_body
-ok
---- error_log eval
-[
-    qr/\[info\] .*? \[hostcalls\] on_response_body/,
-    qr/\[info\] .*? wasmx.my_property: MY_VALUE/,
-]
---- no_error_log
-[error]
-
-
-
-=== TEST 3: set_property_setter() - setting host properties setter works on access_by_lua
---- wasm_modules: hostcalls
---- http_config
-    init_worker_by_lua_block {
-        local proxy_wasm = require "resty.wasmx.proxy_wasm"
-        local filters = {
-            { name = "hostcalls" },
-        }
-
-        _G.c_plan = assert(proxy_wasm.new(filters))
-        assert(proxy_wasm.load(_G.c_plan))
-    }
---- config
-    location /t {
-        proxy_wasm hostcalls 'on=response_body \
-                              test=/t/log/property \
-                              name=wasmx.my_property';
-
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
-            assert(proxy_wasm.attach(_G.c_plan))
 
             local tbl = {}
 
@@ -131,33 +86,35 @@ ok
                 return true, new_value
             end
 
-            assert(proxy_wasm.set_property_setter(setter))
-
+            assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.set_host_properties_handlers(nil, setter))
             assert(proxy_wasm.set_property("wasmx.my_property", "my_value"))
-
             assert(proxy_wasm.start())
             ngx.say("ok")
         }
     }
 --- response_body
 ok
---- error_log eval
-[
-    qr/\[info\] .*? \[hostcalls\] on_response_body/,
-    qr/\[info\] .*? wasmx.my_property: MY_VALUE/,
-]
+--- grep_error_log eval: qr/wasmx.\w+_property: \w+/
+--- grep_error_log_out
+wasmx.my_property: MY_VALUE
+wasmx.my_property: MY_VALUE
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 4: set_property_setter() - setting host properties setter works on header_filter_by_lua
+=== TEST 3: host properties setter - sanity in header_filter_by_lua
+Also testing that setting the getter after attach() and start() works.
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
         local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
-            { name = "hostcalls" },
+            { name = "hostcalls", config="on=response_body " ..
+                                         "test=/t/log/property " ..
+                                         "name=wasmx.my_property" },
         }
 
         _G.c_plan = assert(proxy_wasm.new(filters))
@@ -165,14 +122,9 @@ ok
     }
 --- config
     location /t {
-        proxy_wasm hostcalls 'on=response_body \
-                              test=/t/log/property \
-                              name=wasmx.my_property';
-
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-
             assert(proxy_wasm.start())
             ngx.say("ok")
         }
@@ -188,30 +140,31 @@ ok
                 return true, new_value
             end
 
-            assert(proxy_wasm.set_property_setter(setter))
-
+            assert(proxy_wasm.set_host_properties_handlers(nil, setter))
             assert(proxy_wasm.set_property("wasmx.my_property", "my_value"))
         }
     }
 --- response_body
 ok
---- error_log eval
-[
-    qr/\[info\] .*? \[hostcalls\] on_response_body/,
-    qr/\[info\] .*? wasmx.my_property: MY_VALUE/,
-]
+--- grep_error_log eval: qr/wasmx.\w+_property: \w+/
+--- grep_error_log_out
+wasmx.my_property: MY_VALUE
+wasmx.my_property: MY_VALUE
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 5: set_property_setter() - setting host properties setter works on body_filter_by_lua
+=== TEST 4: host properties setter - sanity in body_filter_by_lua
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
         local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
-            { name = "hostcalls" },
+            { name = "hostcalls", config="on=response_body " ..
+                                         "test=/t/log/property " ..
+                                         "name=wasmx.my_property" },
         }
 
         _G.c_plan = assert(proxy_wasm.new(filters))
@@ -219,14 +172,9 @@ ok
     }
 --- config
     location /t {
-        proxy_wasm hostcalls 'on=response_body \
-                              test=/t/log/property \
-                              name=wasmx.my_property';
-
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-
             assert(proxy_wasm.start())
             ngx.say("ok")
         }
@@ -242,30 +190,35 @@ ok
                 return true, new_value
             end
 
-            assert(proxy_wasm.set_property_setter(setter))
+            if not _G.set then
+                assert(proxy_wasm.set_host_properties_handlers(nil, setter))
+                _G.set = true
+            end
 
             assert(proxy_wasm.set_property("wasmx.my_property", "my_value"))
         }
     }
 --- response_body
 ok
---- error_log eval
-[
-    qr/\[info\] .*? \[hostcalls\] on_response_body/,
-    qr/\[info\] .*? wasmx.my_property: MY_VALUE/,
-]
+--- grep_error_log eval: qr/wasmx.\w+_property: \w+/
+--- grep_error_log_out
+wasmx.my_property: MY_VALUE
+wasmx.my_property: MY_VALUE
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 6: set_property_setter() - setting host properties setter works on log_by_lua
+=== TEST 5: host properties setter - sanity in log_by_lua
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
         local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
-            { name = "hostcalls" },
+            { name = "hostcalls", config="on=log " ..
+                                         "test=/t/log/property " ..
+                                         "name=wasmx.my_property" },
         }
 
         _G.c_plan = assert(proxy_wasm.new(filters))
@@ -275,14 +228,9 @@ ok
     location /t {
         proxy_wasm_request_headers_in_access on;
 
-        proxy_wasm hostcalls 'on=log \
-                              test=/t/log/property \
-                              name=wasmx.my_property';
-
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-
             assert(proxy_wasm.start())
             ngx.say("ok")
         }
@@ -298,102 +246,42 @@ ok
                 return true, new_value
             end
 
-            assert(proxy_wasm.set_property_setter(setter))
-
+            assert(proxy_wasm.set_host_properties_handlers(nil, setter))
             assert(proxy_wasm.set_property("wasmx.my_property", "my_value"))
         }
     }
 --- response_body
 ok
---- error_log eval
-[
-    qr/\[info\] .*? \[hostcalls\] on_log/,
-    qr/\[info\] .*? wasmx.my_property: MY_VALUE/,
-]
+--- grep_error_log eval: qr/wasmx.\w+_property: \w+/
+--- grep_error_log_out
+wasmx.my_property: MY_VALUE
 --- no_error_log
 [error]
+[crit]
 
 
 
-=== TEST 7: set_property_setter() - setting property setter at startup doesn't reset filter list
+=== TEST 6: host properties setter - setter returning falsy and an optional error
+With and without 2nd return value (err)
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
         local proxy_wasm = require "resty.wasmx.proxy_wasm"
         local filters = {
-            { name = "hostcalls", config = "on=log " ..
-                                           "test=/t/log/property " ..
-                                           "name=wasmx.my_property" },
+            { name = "hostcalls", config="on=log " ..
+                                         "test=/t/log/property " ..
+                                         "name=wasmx.fail1_property" },
         }
 
         _G.c_plan = assert(proxy_wasm.new(filters))
-
         assert(proxy_wasm.load(_G.c_plan))
     }
 --- config
     location /t {
-        proxy_wasm_request_headers_in_access on;
-
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
-
-            assert(proxy_wasm.attach(_G.c_plan))
 
             local function setter(key, value)
-                if key == "wasmx.my_property" then
-                    return true, "foo"
-                end
-                return false
-            end
-
-            assert(proxy_wasm.set_property_setter(setter))
-
-            assert(proxy_wasm.start())
-
-            ngx.say("ok")
-        }
-
-        body_filter_by_lua_block {
-            local proxy_wasm = require "resty.wasmx.proxy_wasm"
-
-            assert(proxy_wasm.set_property("wasmx.my_property", "bar"))
-        }
-    }
---- response_body
-ok
---- error_log eval
-[
-    qr/\[info\] .*? \[hostcalls\] on_log/,
-    qr/\[info\] .*?hostcalls.*? wasmx.my_property: foo/,
-]
---- no_error_log
-[error]
-
-
-
-=== TEST 8: set_property_setter() - setter returning falsy logs custom message or "unknown error"
---- wasm_modules: hostcalls
---- http_config
-    init_worker_by_lua_block {
-        local proxy_wasm = require "resty.wasmx.proxy_wasm"
-        local filters = {
-            { name = "hostcalls" },
-        }
-
-        _G.c_plan = assert(proxy_wasm.new(filters))
-        assert(proxy_wasm.load(_G.c_plan))
-    }
---- config
-    proxy_wasm hostcalls 'on=log \
-                          test=/t/log/property \
-                          name=wasmx.fail1_property';
-
-    location /t {
-        access_by_lua_block {
-            local proxy_wasm = require "resty.wasmx.proxy_wasm"
-            assert(proxy_wasm.attach(_G.c_plan))
-
-            local function setter(key)
                 if key == "wasmx.fail1_property" then
                     return nil, "first wasmx property custom error"
 
@@ -408,41 +296,38 @@ ok
                 end
             end
 
-            assert(proxy_wasm.set_property_setter(setter))
+            assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.set_host_properties_handlers(nil, setter))
 
-            local msg = "result:"
             for i = 1, 4 do
                 local key = "wasmx.fail" .. i .. "_property"
-                local ok, err = proxy_wasm.set_property(key, "wat")
+                local ok, err = proxy_wasm.set_property(key, "my_value")
                 if not ok then
-                    msg = msg .. "\n" .. err
+                    ngx.log(ngx.ERR, key, ": ", err)
                 end
             end
 
             assert(proxy_wasm.start())
-            ngx.say(msg)
+            ngx.say("ok")
         }
     }
 --- response_body
-result:
-unknown error
-unknown error
-unknown error
-unknown error
---- grep_error_log eval: qr/.*property.*/
---- grep_error_log_out eval
-qr/^[^\n]*?\[error\] [^\n]*? error setting property: first wasmx property custom error[^\n]*?
-[^\n]*?\[error\] [^\n]*? error setting property: second wasmx property custom error[^\n]*?
-[^\n]*?\[error\] [^\n]*? error setting property: unknown error[^\n]*?
-[^\n]*?\[error\] [^\n]*? error setting property: unknown error[^\n]*?
-[^\n]*?\[info\] [^\n]*? property not found: wasmx.fail1_property[^\n]*?$/
+ok
+--- grep_error_log eval: qr/(property not found:\s)?wasmx\.\w+_property.*?(?=(,|(\s+while)))/
+--- grep_error_log_out
+wasmx.fail1_property: first wasmx property custom error
+wasmx.fail2_property: second wasmx property custom error
+wasmx.fail3_property: unknown error
+wasmx.fail4_property: unknown error
+property not found: wasmx.fail1_property
 --- no_error_log
 [crit]
 [alert]
 
 
 
-=== TEST 9: set_property_setter() - setter returning true on 3rd value caches result
+=== TEST 7: host properties setter - setter returning true
+With and without 3rd return value (caches result)
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
@@ -458,11 +343,9 @@ qr/^[^\n]*?\[error\] [^\n]*? error setting property: first wasmx property custom
     location /t {
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
-            assert(proxy_wasm.attach(_G.c_plan))
-
-            local counter = 0
 
             local tbl = {}
+            local counter = 0
 
             local function setter(key, value)
                 counter = counter + 1
@@ -473,20 +356,17 @@ qr/^[^\n]*?\[error\] [^\n]*? error setting property: first wasmx property custom
 
                 tbl[key] = value
 
-                ngx.log(ngx.INFO, "setting ", key, " to ", value, ", counter: " .. counter)
+                print("setting ", key, " to ", value, ", counter: ", counter)
 
                 return true, value, (key:match("const") and true or false)
             end
 
-            assert(proxy_wasm.set_property_setter(setter))
-
             local function getter(key)
                 counter = counter + 1
 
-                ngx.log(ngx.INFO, "getting ", key, " via getter, counter: ", counter)
+                print("getting ", key, " via getter, counter: ", counter)
 
                 local value = tbl[key]
-
                 if value and #value > 0 then
                     value = value .. " " .. tostring(counter)
                 end
@@ -494,8 +374,8 @@ qr/^[^\n]*?\[error\] [^\n]*? error setting property: first wasmx property custom
                 return true, value
             end
 
-            assert(proxy_wasm.set_property_getter(getter))
-
+            assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.set_host_properties_handlers(getter, setter))
             assert(proxy_wasm.start())
             ngx.say("ok")
         }
@@ -505,7 +385,7 @@ qr/^[^\n]*?\[error\] [^\n]*? error setting property: first wasmx property custom
 
             local function log_property(k)
                 local v = proxy_wasm.get_property(k)
-                ngx.log(ngx.INFO, k, ": ", type(v), " \"", v, "\"")
+                print(k, ": ", type(v), " \"", v, "\"")
             end
 
             -- two set_property operations, each will hit the setter.
@@ -536,39 +416,79 @@ qr/^[^\n]*?\[error\] [^\n]*? error setting property: first wasmx property custom
     }
 --- response_body
 ok
---- grep_error_log eval: qr/.*wasmx.*property.*/
---- grep_error_log_out eval
-qr/^[^\n]*?\[info\] [^\n]*? setting wasmx.const_property to HELLO 1, counter: 1[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.const_property: string "HELLO 1"[^\n]*?
-[^\n]*?\[info\] [^\n]*? setting wasmx.dyn_property to HI 2, counter: 2[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.dyn_property via getter, counter: 3[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.dyn_property: string "HI 2 3"[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.const_property: string "HELLO 1"[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.dyn_property via getter, counter: 4[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.dyn_property: string "HI 2 4"[^\n]*?
-[^\n]*?\[info\] [^\n]*? setting wasmx.nil_const_property to nil, counter: 5[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.nil_const_property: nil "nil"[^\n]*?
-[^\n]*?\[info\] [^\n]*? setting wasmx.nil_dyn_property to nil, counter: 6[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.nil_dyn_property via getter, counter: 7[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.nil_dyn_property: nil "nil"[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.nil_const_property: nil "nil"[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.nil_dyn_property via getter, counter: 8[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.nil_dyn_property: nil "nil"[^\n]*?
-[^\n]*?\[info\] [^\n]*? setting wasmx.empty_const_property to , counter: 9[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.empty_const_property: string ""[^\n]*?
-[^\n]*?\[info\] [^\n]*? setting wasmx.empty_dyn_property to , counter: 10[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.empty_dyn_property via getter, counter: 11[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.empty_dyn_property: string ""[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.empty_const_property: string ""[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.empty_dyn_property via getter, counter: 12[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.empty_dyn_property: string ""[^\n]*?$/
+--- grep_error_log eval: qr/((g|s)etting )?wasmx\.\w+_property.*?(?= while)/
+--- grep_error_log_out
+setting wasmx.const_property to HELLO 1, counter: 1
+wasmx.const_property: string "HELLO 1"
+setting wasmx.dyn_property to HI 2, counter: 2
+getting wasmx.dyn_property via getter, counter: 3
+wasmx.dyn_property: string "HI 2 3"
+wasmx.const_property: string "HELLO 1"
+getting wasmx.dyn_property via getter, counter: 4
+wasmx.dyn_property: string "HI 2 4"
+setting wasmx.nil_const_property to nil, counter: 5
+wasmx.nil_const_property: nil "nil"
+setting wasmx.nil_dyn_property to nil, counter: 6
+getting wasmx.nil_dyn_property via getter, counter: 7
+wasmx.nil_dyn_property: nil "nil"
+wasmx.nil_const_property: nil "nil"
+getting wasmx.nil_dyn_property via getter, counter: 8
+wasmx.nil_dyn_property: nil "nil"
+setting wasmx.empty_const_property to , counter: 9
+wasmx.empty_const_property: string ""
+setting wasmx.empty_dyn_property to , counter: 10
+getting wasmx.empty_dyn_property via getter, counter: 11
+wasmx.empty_dyn_property: string ""
+wasmx.empty_const_property: string ""
+getting wasmx.empty_dyn_property via getter, counter: 12
+wasmx.empty_dyn_property: string ""
 --- no_error_log
 [error]
 [crit]
 
 
 
-=== TEST 10: set_property_setter() - errors in setter are caught by pcall in Lua library and don't crash the worker
+=== TEST 8: host properties setter - errors are caught when accessed through filters
+Produces a wasm host trap.
+--- wasm_modules: hostcalls
+--- http_config
+    init_worker_by_lua_block {
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
+        local filters = {
+            { name = "hostcalls", config="on=response_body " ..
+                                         "test=/t/set_property " ..
+                                         "name=wasmx.my_property set=my_value" },
+        }
+
+        _G.c_plan = assert(proxy_wasm.new(filters))
+        assert(proxy_wasm.load(_G.c_plan))
+    }
+--- config
+    location /t {
+        rewrite_by_lua_block {
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
+
+            local function setter(key, value)
+                error("crash!")
+            end
+
+            assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.set_host_properties_handlers(nil, setter))
+            assert(proxy_wasm.start())
+            ngx.say("ok")
+        }
+    }
+--- response_body
+ok
+--- error_log eval
+qr/host trap \(internal error\): could not set \"wasmx\.my_property\": error in property setter: rewrite_by_lua.*?: crash\!/
+--- no_error_log
+[crit]
+[emerg]
+
+
+
+=== TEST 9: host properties setter - errors are caught when accessed through proxy_wasm.set_property()
 --- wasm_modules: hostcalls
 --- http_config
     init_worker_by_lua_block {
@@ -582,24 +502,20 @@ qr/^[^\n]*?\[info\] [^\n]*? setting wasmx.const_property to HELLO 1, counter: 1[
     }
 --- config
     location /t {
-        proxy_wasm hostcalls 'on=response_body \
-                              test=/t/log/property \
-                              name=wasmx.my_property';
-
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
-            assert(proxy_wasm.attach(_G.c_plan))
-
-            local tbl = {}
 
             local function setter(key, value)
                 error("crash!")
             end
 
-            assert(proxy_wasm.set_property_setter(setter))
+            assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.set_host_properties_handlers(nil, setter))
 
             local ok, err = proxy_wasm.set_property("wasmx.my_property", "my_value")
-            assert((not ok) and err == "unknown error")
+            if not ok then
+                ngx.log(ngx.ERR, err)
+            end
 
             assert(proxy_wasm.start())
             ngx.say("ok")
@@ -608,9 +524,88 @@ qr/^[^\n]*?\[info\] [^\n]*? setting wasmx.const_property to HELLO 1, counter: 1[
 --- response_body
 ok
 --- error_log eval
-[
-    qr/\[info\] .*? \[hostcalls\] on_response_body/,
-    qr/\[error\] .*? error setting property from Lua: rewrite_by_lua\(nginx.conf:[0-9]+\):[0-9]+: crash\!/,
-]
+qr/\[error\] .*? error in property setter: rewrite_by_lua.*?: crash\!/
 --- no_error_log
+[crit]
+[emerg]
+
+
+
+=== TEST 10: host properties setter - setter can ngx.log()
+--- wasm_modules: hostcalls
+--- http_config
+    init_worker_by_lua_block {
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
+        local filters = {
+            { name = "hostcalls", config="on=response_body " ..
+                                         "test=/t/set_property " ..
+                                         "name=wasmx.my_property set=my_value" },
+        }
+
+        _G.c_plan = assert(proxy_wasm.new(filters))
+        assert(proxy_wasm.load(_G.c_plan))
+    }
+--- config
+    location /t {
+        rewrite_by_lua_block {
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
+
+            local function setter(key, value)
+                print("in setter")
+                return true, "my_value"
+            end
+
+            assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.set_host_properties_handlers(nil, setter))
+            assert(proxy_wasm.start())
+            ngx.say("ok")
+        }
+    }
+--- response_body
+ok
+--- error_log eval
+qr/rewrite_by_lua.*?: in setter/
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 11: host properties setter - setter cannot yield
+Produces a wasm host trap.
+--- wasm_modules: hostcalls
+--- http_config
+    init_worker_by_lua_block {
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
+        local filters = {
+            { name = "hostcalls", config="on=response_body " ..
+                                         "test=/t/set_property " ..
+                                         "name=wasmx.my_property set=my_value" },
+        }
+
+        _G.c_plan = assert(proxy_wasm.new(filters))
+        assert(proxy_wasm.load(_G.c_plan))
+    }
+--- config
+    location /t {
+        rewrite_by_lua_block {
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
+
+            local function setter(key, value)
+                ngx.sleep(1000)
+                return true, "my_value"
+            end
+
+            assert(proxy_wasm.attach(_G.c_plan))
+            assert(proxy_wasm.set_host_properties_handlers(nil, setter))
+            assert(proxy_wasm.start())
+            ngx.say("ok")
+        }
+    }
+--- response_body
+ok
+--- error_log eval
+qr/host trap \(internal error\): could not set \"wasmx\.my_property\": error in property setter: attempt to yield across C-call boundary/
+--- no_error_log
+[crit]
 [emerg]
