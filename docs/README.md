@@ -26,7 +26,7 @@ directives and their effects.
 
 [Back to TOC](#table-of-contents)
 
-### Development
+## Development
 
 Consult [DEVELOPER.md](DEVELOPER.md) for developer resources on building this
 module from source and other general development processes.
