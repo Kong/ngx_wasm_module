@@ -88,13 +88,17 @@ ok
     }
 --- response_body
 ok
---- error_log eval
+--- match_error_log_grep eval: qr/(hostcalls\] on_response_body|my_property)/
+--- match_error_log eval
 [
-    qr/\[info\] .*? \[hostcalls\] on_response_body/,
-    qr/\[info\] .*? wasmx.my_property: my_value/,
+    "[hostcalls] on_response_body",
+    "wasmx.my_property: my_value",
+    "[hostcalls] on_response_body",
+    "wasmx.my_property: my_value",
 ]
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -135,13 +139,17 @@ ok
     }
 --- response_body
 ok
---- error_log eval
+--- match_error_log_grep eval: qr/(hostcalls\] on_response_body|my_property)/
+--- match_error_log eval
 [
-    qr/\[info\] .*? \[hostcalls\] on_response_body/,
-    qr/\[info\] .*? wasmx.my_property: my_value/,
+    "[info]", "[hostcalls] on_response_body",
+    "[info]", "wasmx.my_property: my_value",
+    "[info]", "[hostcalls] on_response_body",
+    "[info]", "wasmx.my_property: my_value",
 ]
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -525,29 +533,29 @@ ok
     }
 --- response_body
 ok
---- grep_error_log eval: qr/.*wasmx.*property.*/
---- grep_error_log_out eval
-qr/^[^\n]*?\[info\] [^\n]*? getting wasmx.const_property, counter: 1[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.const_property: string "1"[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.dyn_property, counter: 2[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.dyn_property: string "2"[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.const_property: string "1"[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.dyn_property, counter: 3[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.dyn_property: string "3"[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.nil_const_property, counter: 4[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.nil_const_property: nil "nil"[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.nil_dyn_property, counter: 5[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.nil_dyn_property: nil "nil"[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.nil_const_property: nil "nil"[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.nil_dyn_property, counter: 6[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.nil_dyn_property: nil "nil"[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.empty_const_property, counter: 7[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.empty_const_property: string ""[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.empty_dyn_property, counter: 8[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.empty_dyn_property: string ""[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.empty_const_property: string ""[^\n]*?
-[^\n]*?\[info\] [^\n]*? getting wasmx.empty_dyn_property, counter: 9[^\n]*?
-[^\n]*?\[info\] [^\n]*? wasmx.empty_dyn_property: string ""[^\n]*?$/
+--- match_error_log_grep eval: qr/.*wasmx.*property.*/
+--- match_error_log
+getting wasmx.const_property, counter: 1
+wasmx.const_property: string "1"
+getting wasmx.dyn_property, counter: 2
+wasmx.dyn_property: string "2"
+wasmx.const_property: string "1"
+getting wasmx.dyn_property, counter: 3
+wasmx.dyn_property: string "3"
+getting wasmx.nil_const_property, counter: 4
+wasmx.nil_const_property: nil "nil"
+getting wasmx.nil_dyn_property, counter: 5
+wasmx.nil_dyn_property: nil "nil"
+wasmx.nil_const_property: nil "nil"
+getting wasmx.nil_dyn_property, counter: 6
+wasmx.nil_dyn_property: nil "nil"
+getting wasmx.empty_const_property, counter: 7
+wasmx.empty_const_property: string ""
+getting wasmx.empty_dyn_property, counter: 8
+wasmx.empty_dyn_property: string ""
+wasmx.empty_const_property: string ""
+getting wasmx.empty_dyn_property, counter: 9
+wasmx.empty_dyn_property: string ""
 --- no_error_log
 [error]
 [crit]
