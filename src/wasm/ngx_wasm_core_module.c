@@ -332,6 +332,17 @@ ngx_wasm_core_create_conf(ngx_conf_t *cf)
      *   2. ngx_http_lua_module
      */
     swap_modules_if_needed(cf, "ngx_http_lua_module", "ngx_wasm_core_module");
+
+    /**
+     * ngx_http_lua_module filter is expected to run before ngx_wasm_filter in
+     * the test suite (filters run in reverse order).
+     *
+     * Mimic static cycle order if necessary:
+     *   1. ngx_http_lua_module (filter)
+     *   2. ngx_http_wasm_filter_module
+     */
+    swap_modules_if_needed(cf, "ngx_http_lua_module",
+                           "ngx_http_wasm_filter_module");
 #endif
 
     wcf = ngx_pcalloc(cycle->pool, sizeof(ngx_wasm_core_conf_t));
