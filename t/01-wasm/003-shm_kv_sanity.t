@@ -18,7 +18,7 @@ __DATA__
 --- skip_no_debug: 5
 --- main_config
     wasm {
-        shm_kv test 12288;
+        shm_kv test 49152;
     }
 --- error_log
 "test" shm: initialization
@@ -33,7 +33,7 @@ __DATA__
 --- skip_no_debug: 5
 --- main_config
     wasm {
-        shm_kv * 12288;
+        shm_kv * 49152;
     }
 --- error_log
 "*" shm: initialization

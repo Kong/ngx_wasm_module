@@ -61,7 +61,7 @@ qr/\[emerg\] .*? \[wasm\] invalid shm size "1x"/
         shm_kv my_kv_1 8192;
     }
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] shm size of 8192 bytes is too small, minimum required is 12288 bytes/
+qr/\[emerg\] .*? \[wasm\] shm size of 8192 bytes is too small, minimum required is (12288|49152) bytes/
 --- no_error_log
 [error]
 [crit]
@@ -73,10 +73,10 @@ qr/\[emerg\] .*? \[wasm\] shm size of 8192 bytes is too small, minimum required 
 === TEST 5: shm directive - not aligned
 --- main_config
     wasm {
-        shm_kv my_kv_1 16383;
+        shm_kv my_kv_1 49383;
     }
 --- error_log eval
-qr/\[emerg\] .*? \[wasm\] shm size of 16383 bytes is not page-aligned, must be a multiple of 4096/
+qr/\[emerg\] .*? \[wasm\] shm size of 49383 bytes is not page-aligned, must be a multiple of (4096|16384)/
 --- no_error_log
 [crit]
 [error]
@@ -88,7 +88,7 @@ qr/\[emerg\] .*? \[wasm\] shm size of 16383 bytes is not page-aligned, must be a
 === TEST 6: shm directive - empty name
 --- main_config
     wasm {
-        shm_kv "" 16k;
+        shm_kv "" 48k;
     }
 --- error_log eval
 qr/\[emerg\] .*? \[wasm\] invalid shm name ""/
@@ -103,8 +103,8 @@ qr/\[emerg\] .*? \[wasm\] invalid shm name ""/
 === TEST 7: shm directive - duplicate queues
 --- main_config
     wasm {
-        shm_queue my_queue 16k;
-        shm_queue my_queue 16k;
+        shm_queue my_queue 48k;
+        shm_queue my_queue 48k;
     }
 --- error_log eval
 qr/\[emerg\] .*? "my_queue" shm already defined/
@@ -119,8 +119,8 @@ qr/\[emerg\] .*? "my_queue" shm already defined/
 === TEST 8: shm directive - duplicate kv
 --- main_config
     wasm {
-        shm_kv my_kv 16k;
-        shm_kv my_kv 16k;
+        shm_kv my_kv 48k;
+        shm_kv my_kv 48k;
     }
 --- error_log eval
 qr/\[emerg\] .*? "my_kv" shm already defined/
@@ -135,8 +135,8 @@ qr/\[emerg\] .*? "my_kv" shm already defined/
 === TEST 9: shm directive - duplicate name between queue and kv
 --- main_config
     wasm {
-        shm_kv    my_shm 16k;
-        shm_queue my_shm 16k;
+        shm_kv    my_shm 48k;
+        shm_queue my_shm 48k;
     }
 --- error_log eval
 qr/\[emerg\] .*? "my_shm" shm already defined/
@@ -166,7 +166,7 @@ qr/\[emerg\] .*? "my_shm" shm already defined/
 === TEST 11: shm directive - queue does not support eviction policies
 --- main_config
     wasm {
-        shm_queue my_shm 16k eviction=lru;
+        shm_queue my_shm 48k eviction=lru;
     }
 --- error_log eval
 qr/\[emerg\] .*? shm_queue \"my_shm\": queues do not support eviction policies/
@@ -181,7 +181,7 @@ qr/\[emerg\] .*? shm_queue \"my_shm\": queues do not support eviction policies/
 === TEST 12: shm directive - kv invalid option
 --- main_config
     wasm {
-        shm_kv my_shm 16k foo=bar;
+        shm_kv my_shm 48k foo=bar;
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid option \"foo=bar\"/
@@ -196,7 +196,7 @@ qr/\[emerg\] .*? invalid option \"foo=bar\"/
 === TEST 13: shm directive - queue invalid option
 --- main_config
     wasm {
-        shm_queue my_shm 16k foo=bar;
+        shm_queue my_shm 48k foo=bar;
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid option \"foo=bar\"/
@@ -211,7 +211,7 @@ qr/\[emerg\] .*? invalid option \"foo=bar\"/
 === TEST 14: shm directive - kv invalid eviction policy
 --- main_config
     wasm {
-        shm_kv my_shm 16k eviction=foobar;
+        shm_kv my_shm 48k eviction=foobar;
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid eviction policy \"foobar\"/
@@ -226,7 +226,7 @@ qr/\[emerg\] .*? invalid eviction policy \"foobar\"/
 === TEST 15: shm directive - kv invalid empty eviction policy
 --- main_config
     wasm {
-        shm_kv my_shm 16k eviction=;
+        shm_kv my_shm 48k eviction=;
     }
 --- error_log eval
 qr/\[emerg\] .*? invalid eviction policy \"\"/

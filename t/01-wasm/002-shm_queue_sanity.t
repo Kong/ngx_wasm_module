@@ -18,11 +18,13 @@ __DATA__
 --- skip_no_debug: 5
 --- main_config
     wasm {
-        shm_queue test 12288;
+        shm_queue test 49152;
     }
---- error_log
-"test" shm: initialization
-"test" shm queue: initialized (4096 bytes available)
+--- grep_error_log eval: qr/\[debug\] .*? wasm "test" shm.*/
+--- grep_error_log_out eval
+qr/\[debug\] .*? wasm "test" shm: initialization \(zone: .*\)
+\[debug\] .*? wasm "test" shm queue: initialized \((12288|16384) bytes available\)/
 --- no_error_log
 [error]
 [crit]
+[emerg]

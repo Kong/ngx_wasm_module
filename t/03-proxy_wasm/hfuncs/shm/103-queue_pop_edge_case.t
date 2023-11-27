@@ -13,6 +13,7 @@ run_tests();
 __DATA__
 
 === TEST 1: proxy_wasm queue shm - pop when data size == buffer_size - 1
+--- skip_eval: 10: ($::osname =~ m/darwin/ && $::archname =~ /arm64/)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- shm_queue: test 256k
@@ -41,6 +42,7 @@ circular_write: wrapping around
 
 
 === TEST 2: proxy_wasm queue shm - pop when data size == buffer_size
+--- skip_eval: 10: ($::osname =~ m/darwin/ && $::archname =~ /arm64/)
 --- skip_no_debug: 10
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -50,6 +52,68 @@ circular_write: wrapping around
         proxy_wasm hostcalls 'test=/t/shm/enqueue \
                               queue=test \
                               length=253948';
+        proxy_wasm hostcalls 'test=/t/shm/dequeue \
+                              queue=test';
+        echo ok;
+    }
+--- response_headers
+status-enqueue: 0
+status-dequeue: 0
+exists: 1
+--- response_body
+ok
+--- error_log
+circular_read: wrapping around
+circular_write: wrapping around
+--- no_error_log
+[error]
+[crit]
+[emerg]
+
+
+
+=== TEST 3: proxy_wasm queue shm - pop when data size == buffer_size - 1
+Page size is 16kb on macOS over arm64.
+--- skip_eval: 10: ($::osname !~ m/darwin/ && $::archname !~ /arm64/)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- shm_queue: test 256k
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/shm/enqueue \
+                              queue=test \
+                              length=229371';
+        proxy_wasm hostcalls 'test=/t/shm/dequeue \
+                              queue=test';
+        echo ok;
+    }
+--- response_headers
+status-enqueue: 0
+status-dequeue: 0
+exists: 1
+--- response_body
+ok
+--- no_error_log
+[error]
+[crit]
+circular_read: wrapping around
+circular_write: wrapping around
+[stub]
+
+
+
+=== TEST 4: proxy_wasm queue shm - pop when data size == buffer_size, macOS (arm64)
+Page size is 16kb on macOS over arm64.
+--- skip_eval: 10: ($::osname !~ m/darwin/ && $::archname !~ /arm64/)
+--- skip_no_debug: 10
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- shm_queue: test 256k
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/shm/enqueue \
+                              queue=test \
+                              length=229372';
         proxy_wasm hostcalls 'test=/t/shm/dequeue \
                               queue=test';
         echo ok;

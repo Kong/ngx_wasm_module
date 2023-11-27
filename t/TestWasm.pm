@@ -9,6 +9,7 @@ use Config;
 
 our $pwd = cwd();
 our $osname = $Config{"osname"};
+our $archname = eval { `uname -m` };
 our $crates = "$pwd/work/lib/wasm";
 our $buildroot = "$pwd/work/buildroot";
 our $nginxbin = $ENV{TEST_NGINX_BINARY} || 'nginx';
@@ -20,6 +21,7 @@ our @nginx_modules;
 our @EXPORT = qw(
     $pwd
     $osname
+    $archname
     $crates
     $buildroot
     $nginxbin
