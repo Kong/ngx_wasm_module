@@ -532,7 +532,9 @@ ngx_wasm_core_ssl_conf(ngx_cycle_t *cycle)
     ngx_wasm_core_conf_t  *wcf;
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    ngx_wasm_assert(wcf);
+    if (wcf == NULL) {
+        return NULL;
+    }
 
     return &wcf->ssl_conf;
 }

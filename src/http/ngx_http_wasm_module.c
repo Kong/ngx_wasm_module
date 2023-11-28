@@ -584,11 +584,11 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
             rctx->sock_buffer_reuse = loc->socket_buffer_reuse;
             rctx->pwm_lua_resolver = loc->pwm_lua_resolver != NGX_CONF_UNSET
                                      ? loc->pwm_lua_resolver
-                                     : wcf->pwm_lua_resolver;
+                                     : wcf ? wcf->pwm_lua_resolver : 0;
 
         } else {
             /* fake request */
-            rctx->pwm_lua_resolver = wcf->pwm_lua_resolver;
+            rctx->pwm_lua_resolver = wcf ? wcf->pwm_lua_resolver : 0;
         }
     }
 #if (NGX_DEBUG)
