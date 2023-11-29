@@ -3,8 +3,8 @@ name: Release
 on:
   schedule:
     - cron: "0 6 * * mon" # 6am UTC, 11pm PST
-  #pull_request:
-  #  branches: '**'
+  pull_request:
+    branches: '**'
   workflow_dispatch:
     inputs:
       release_name:
