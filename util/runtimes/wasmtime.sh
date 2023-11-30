@@ -84,7 +84,7 @@ build_wasmtime() {
             else
                 notice "synchronizing Wasmtime repository..."
                 pushd wasmtime
-                    git fetch
+                    git fetch --tags
                 popd
             fi
 
