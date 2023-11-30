@@ -95,7 +95,7 @@ build_wasmer() {
             else
                 notice "synchronizing Wasmer repository..."
                 pushd wasmer
-                    git fetch
+                    git fetch --tags
                 popd
             fi
 
