@@ -29,6 +29,7 @@ download_assemblyscript_sdk() {
             git fetch --tags
             git reset --hard "v$version"
         popd
+
     else
         notice "cloning proxy-wasm-assemblyscript-sdk repository, version ${version}..."
         git clone \
@@ -50,6 +51,7 @@ build_assemblyscript_sdk() {
 
     if [[ ! -d "$DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK" ]]; then
         download_assemblyscript_sdk $version
+
     else
         local cur_version=$(cd $DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK && git describe --tags)
 
@@ -97,6 +99,7 @@ clean="$3"
 
 if [ "$mode" = "download" ]; then
     download_assemblyscript_sdk "$version" "$clean"
+
 else
     build_assemblyscript_sdk "$version" "$clean"
 fi

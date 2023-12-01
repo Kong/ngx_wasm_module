@@ -111,7 +111,7 @@ while [[ "$1" ]]; do
             exit 0
             ;;
     esac
-    shift
+    shift || true
 done
 
 if [[ -z "$RUNTIME" ]]; then

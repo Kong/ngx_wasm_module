@@ -142,6 +142,7 @@ clean="$5"
 
 if [ "$mode" = "download" ]; then
     download_wasmtime "$target" "$version" "$arch" "$clean"
+
 else
     build_wasmtime "$target" "$version" "$arch" "$clean"
 fi

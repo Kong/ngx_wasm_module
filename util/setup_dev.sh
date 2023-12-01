@@ -152,6 +152,7 @@ if [[ -d "$DIR_NGX_ECHO_MODULE" ]]; then
         git fetch
         git reset --hard origin/master
     popd
+
 else
     notice "cloning the echo-nginx-module repository..."
     git clone https://github.com/openresty/echo-nginx-module.git $DIR_NGX_ECHO_MODULE
@@ -163,6 +164,7 @@ if [[ -d "$DIR_NGX_HEADERS_MORE_MODULE" ]]; then
         git fetch
         git reset --hard origin/master
     popd
+
 else
     notice "cloning the headers-more-nginx-module repository..."
     git clone https://github.com/openresty/headers-more-nginx-module.git $DIR_NGX_HEADERS_MORE_MODULE
@@ -174,6 +176,7 @@ if [[ -d "$DIR_MOCKEAGAIN" ]]; then
         git fetch
         git reset --hard origin/master
     popd
+
 else
     notice "cloning the mockeagain repository..."
     git clone https://github.com/openresty/mockeagain.git $DIR_MOCKEAGAIN
