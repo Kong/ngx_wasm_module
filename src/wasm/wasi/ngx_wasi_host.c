@@ -258,7 +258,11 @@ ngx_wasi_hfuncs_fd_write(ngx_wavm_instance_t *instance,
 
     /* second pass: build string from iov buffers */
 
-    msg_data = ngx_pcalloc(instance->pool, msg_size);
+    /**
+     * TODO: replace with a host-pointer-provided pool when possible;
+     * see https://github.com/Kong/ngx_wasm_module/pull/457
+     */
+    msg_data = ngx_alloc(msg_size, instance->log);
     if (msg_data == NULL) {
         rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_EFAULT);
         return NGX_WAVM_OK;
@@ -290,6 +294,8 @@ ngx_wasi_hfuncs_fd_write(ngx_wavm_instance_t *instance,
         ngx_log_error(level, instance->log_ctx.orig_log, 0, "%*s",
                       msg_size, msg_data);
     }
+
+    ngx_free(msg_data);
 
     rets[0] = (wasm_val_t) WASM_I32_VAL(WASI_ERRNO_SUCCESS);
     return NGX_WAVM_OK;
