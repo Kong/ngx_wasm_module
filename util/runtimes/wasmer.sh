@@ -157,6 +157,7 @@ clean="$5"
 
 if [ "$mode" = "download" ]; then
     download_wasmer "$target" "$version" "$arch" "$clean"
+
 else
     build_wasmer "$target" "$version" "$arch" "$clean"
 fi
