@@ -49,6 +49,7 @@ env:
   CC: ${{ inputs.cc }}
   NGX: ${{ inputs.ngx }}
   NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
+  NGX_BUILD_GCOV: ${{ inputs.coverage && 1 || 0 }}
   NGX_BUILD_DEBUG: ${{ inputs.debug == 'debug' && 1 || 0 }}
   NGX_BUILD_CC_OPT: '-O2'
   NGX_BUILD_NOPOOL: 1
@@ -67,7 +68,9 @@ jobs:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 150
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y valgrind
+      - name: 'Setup deps - apt-get'
+        if: ${{ contains(inputs.os, 'ubuntu') }}
+        run: sudo apt-get update && sudo apt-get install -y valgrind ${CC} libstdc++-${CC#*-}-dev lcov
       - uses: actions/checkout@v3
       - name: 'Setup cache - rustup toolchain'
         uses: actions/cache@v3
@@ -123,6 +126,19 @@ jobs:
             cat valgrind.log >&2
             exit 1
           fi
+      - name: Run lcov
+        if: ${{ !env.ACT && inputs.coverage }}
+        run: |
+          lcov --gcov-tool gcov-${CC#*-} --capture --directory work/buildroot --output-file lcov.info
+          lcov --gcov-tool gcov-${CC#*-} --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
+          lcov --gcov-tool gcov-${CC#*-} --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
+      - name: Codecov Upload
+        if: ${{ !env.ACT && inputs.coverage }}
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: './lcov.info'
+          flags: valgrind
       - run: rm -f t/servroot/html/nginx.sock
         if: ${{ failure() && !env.ACT }}
       - uses: actions/upload-artifact@v2

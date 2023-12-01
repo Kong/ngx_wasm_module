@@ -156,6 +156,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: './lcov.info'
+          flags: unit
       - run: rm -f t/servroot/html/nginx.sock
         if: ${{ failure() && !env.ACT }}
       - uses: actions/upload-artifact@v2
