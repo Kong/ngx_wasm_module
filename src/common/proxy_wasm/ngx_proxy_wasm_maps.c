@@ -285,6 +285,8 @@ ngx_proxy_wasm_maps_set(ngx_wavm_instance_t *instance,
 {
     ngx_int_t                 rc = NGX_ERROR;
 #ifdef NGX_WASM_HTTP
+    ngx_proxy_wasm_exec_t    *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
     ngx_str_t                 skey, svalue;
     ngx_uint_t                mode = NGX_HTTP_WASM_HEADERS_SET;
     ngx_http_wasm_req_ctx_t  *rctx;
@@ -313,13 +315,13 @@ ngx_proxy_wasm_maps_set(ngx_wavm_instance_t *instance,
         || map_op == NGX_PROXY_WASM_MAP_ADD)
     {
         skey.len = key->len;
-        skey.data = ngx_pstrdup(instance->pool, key);
+        skey.data = ngx_pstrdup(pwctx->pool, key);
         if (skey.data == NULL) {
             return NGX_ERROR;
         }
 
         svalue.len = value->len;
-        svalue.data = ngx_pnalloc(instance->pool, value->len + 1);
+        svalue.data = ngx_pnalloc(pwctx->pool, value->len + 1);
         if (svalue.data == NULL) {
             return NGX_ERROR;
         }
