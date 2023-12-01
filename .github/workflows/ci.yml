@@ -202,6 +202,7 @@ jobs:
       hup: ${{ matrix.hup }}
       debug: ${{ matrix.debug }}
       path: ${{ matrix.path }}
+      coverage: true
     secrets: inherit
 
   lint:
