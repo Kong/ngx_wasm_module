@@ -70,8 +70,9 @@ build_assemblyscript_sdk() {
 
     if [[ -f "$DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK/.hash" \
           && $(cat "$DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK/.hash") == $(echo $hash_src)
-          && -z $clean ]];
+          && -z "$clean" ]];
     then
+        notice "AssemblyScript examples already built"
         exit
     fi
 
