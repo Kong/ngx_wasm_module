@@ -17,7 +17,11 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 mkdir -p $DIR_CPANM $DIR_BIN $DIR_TESTS_LIB_WASM
 
+# OpenSSL
+
 install_openssl
+
+# Test::Nginx
 
 pushd $DIR_CPANM
     if [[ ! -x "cpanm" ]]; then
@@ -136,6 +140,8 @@ EOF
     set -e
 popd
 
+# reindex
+
 pushd $DIR_BIN
     notice "downloading the reindex script..."
     download reindex https://raw.githubusercontent.com/openresty/openresty-devel-utils/master/reindex
@@ -145,6 +151,8 @@ pushd $DIR_BIN
     download style https://raw.githubusercontent.com/openresty/openresty-devel-utils/master/ngx-style.pl
     chmod +x style
 popd
+
+# echo-module
 
 if [[ -d "$DIR_NGX_ECHO_MODULE" ]]; then
     notice "updating the echo-nginx-module repository..."
@@ -158,6 +166,8 @@ else
     git clone https://github.com/openresty/echo-nginx-module.git $DIR_NGX_ECHO_MODULE
 fi
 
+# headers-more-module
+
 if [[ -d "$DIR_NGX_HEADERS_MORE_MODULE" ]]; then
     notice "updating the headers-more-nginx-module repository..."
     pushd $DIR_NGX_HEADERS_MORE_MODULE
@@ -169,6 +179,8 @@ else
     notice "cloning the headers-more-nginx-module repository..."
     git clone https://github.com/openresty/headers-more-nginx-module.git $DIR_NGX_HEADERS_MORE_MODULE
 fi
+
+# mockeagain
 
 if [[ -d "$DIR_MOCKEAGAIN" ]]; then
     notice "updating the mockeagain repository..."
@@ -186,31 +198,35 @@ pushd $DIR_MOCKEAGAIN
     make
 popd
 
+# no-pool-patch
+
 get_no_pool_nginx 1
+
+# runtime
 
 if [[ -n "$NGX_WASM_RUNTIME" ]] && ! [[ -n "$NGX_WASM_RUNTIME_LIB" ]]; then
     notice "fetching the \"$NGX_WASM_RUNTIME\" runtime..."
     $NGX_WASM_DIR/util/runtime.sh -R "$NGX_WASM_RUNTIME"
 fi
 
-if [[ ! -d "$DIR_PROXY_WASM_GO_SDK" ]]; then
-    if [[ ! -x "$(command -v tinygo)" ]]; then
-        notice "missing 'tinygo', skipping proxy-wasm-go-sdk"
+# proxy-wasm-go-sdk
 
-    else
-        notice "downloading/building proxy-wasm-go-sdk..."
-        $NGX_WASM_DIR/util/sdk.sh -S go --build --clean
-    fi
+if [[ ! -x "$(command -v tinygo)" ]]; then
+    notice "missing 'tinygo', skipping proxy-wasm-go-sdk"
+
+else
+    notice "building proxy-wasm-go-sdk..."
+    $NGX_WASM_DIR/util/sdk.sh -S go --build
 fi
+#
+# proxy-wasm-assemblyscript-sdk
 
-if [[ ! -d "$DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK" ]]; then
-    if [[ ! -x "$(command -v npm)" ]]; then
-        notice "missing 'npm', skipping proxy-wasm-assemblyscript-sdk"
+if [[ ! -x "$(command -v npm)" ]]; then
+    notice "missing 'npm', skipping proxy-wasm-assemblyscript-sdk"
 
-    else
-        notice "downloading/building proxy-wasm-assemblyscript-sdk..."
-        $NGX_WASM_DIR/util/sdk.sh -S assemblyscript --build --clean
-    fi
+else
+    notice "building proxy-wasm-assemblyscript-sdk..."
+    $NGX_WASM_DIR/util/sdk.sh -S assemblyscript --build
 fi
 
 notice "done"

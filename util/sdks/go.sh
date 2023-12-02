@@ -66,8 +66,9 @@ build_go_sdk() {
     if [[ -d "$DIR_PATCHED_PROXY_WASM_GO_SDK" \
           && -f "$DIR_PATCHED_PROXY_WASM_GO_SDK/.hash" \
           && $(cat "$DIR_PATCHED_PROXY_WASM_GO_SDK/.hash") == $(echo $hash_src)
-          && -z $clean ]];
+          && -z "$clean" ]];
     then
+        notice "Go examples already built"
         exit
     fi
 
