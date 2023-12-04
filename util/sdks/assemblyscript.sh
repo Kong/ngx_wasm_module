@@ -70,7 +70,8 @@ build_assemblyscript_sdk() {
 
     if [[ -f "$DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK/.hash" \
           && $(cat "$DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK/.hash") == $(echo $hash_src)
-          && -z "$clean" ]];
+          && -z "$clean" ]] && \
+       find $DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK -name '*.wasm' | grep -q .
     then
         notice "AssemblyScript examples already built"
         exit
@@ -87,6 +88,16 @@ build_assemblyscript_sdk() {
         pushd $example
             npm install
             npm run asbuild
+        popd
+    done
+}
+
+install_assemblyscript_sdk_examples() {
+    for example in $DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK/examples/*; do
+        name=$(basename $example)
+        name=$(echo $name | sed 's/-/_/g')
+
+        pushd $example
             cp build/debug.wasm $DIR_TESTS_LIB_WASM/assemblyscript_$name.wasm
         popd
     done
@@ -103,4 +114,5 @@ if [ "$mode" = "download" ]; then
 
 else
     build_assemblyscript_sdk "$version" "$clean"
+    install_assemblyscript_sdk_examples
 fi

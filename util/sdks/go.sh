@@ -66,10 +66,11 @@ build_go_sdk() {
     if [[ -d "$DIR_PATCHED_PROXY_WASM_GO_SDK" \
           && -f "$DIR_PATCHED_PROXY_WASM_GO_SDK/.hash" \
           && $(cat "$DIR_PATCHED_PROXY_WASM_GO_SDK/.hash") == $(echo $hash_src)
-          && -z "$clean" ]];
+          && -z "$clean" ]] && \
+       find $DIR_PATCHED_PROXY_WASM_GO_SDK -name '*.wasm' | grep -q .
     then
         notice "Go examples already built"
-        exit
+        return
     fi
 
     rm -rf $DIR_PATCHED_PROXY_WASM_GO_SDK
@@ -105,7 +106,11 @@ EOF
         notice "compiling Go examples..."
 
         make build.examples || exit 0
+    popd
+}
 
+install_go_sdk_examples() {
+    pushd $DIR_PATCHED_PROXY_WASM_GO_SDK
         cd examples
 
         find . -name "*.wasm" | while read f; do
@@ -128,4 +133,5 @@ if [ "$mode" = "download" ]; then
 
 else
     build_go_sdk "$version" "$clean"
+    install_go_sdk_examples
 fi
