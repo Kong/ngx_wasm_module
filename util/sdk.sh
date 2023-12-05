@@ -44,7 +44,8 @@ Options:
 
   -V, --sdk-ver <ver>       Proxy-Wasm SDK version to build (e.g. '0.2.1')
 
-  -f, --force, --clean      Force a clean download or build.
+  -f, --force, --clean      Force a clean build with --build,
+                            or a clean download with --download.
 
   -h, --help                Print this message and exit.
 

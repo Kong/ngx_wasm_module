@@ -105,7 +105,7 @@ EOF
 
         notice "compiling Go examples..."
 
-        make build.examples || exit 0
+        make build.examples
     popd
 }
 
