@@ -30,11 +30,9 @@
    fun:ngx_http_headers_more_filter
 }
 {
-   <wasmer 3.1.1: parse>
+   <wasmparser::parse>
    Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17h5c54f0ee5315402aE
-   ...
-   fun:main
+   fun:_ZN10wasmparser6parser6Parser5parse17h*
 }
 {
    <wasmer 3.1.1: wasm_instance_new>
@@ -55,11 +53,6 @@
    fun:wasm_module_new
 }
 {
-   <wasmtime 14.0.3: parse>
-   Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17h*
-}
-{
    <v8 11.4.183.23: wasm_engine_new>
    Memcheck:Leak
    match-leak-kinds: possible
@@ -67,9 +60,4 @@
    ...
    fun:_ZN4wasm6Engine4makeEOSt10unique_ptrINS_6ConfigESt14default_deleteIS2_EE
    fun:wasm_engine_new
-}
-{
-   <ngx_wasm_rs: parse>
-   Memcheck:Cond
-   fun:_ZN10wasmparser6parser6Parser5parse17h9b8c5cdeb2164838E
 }
