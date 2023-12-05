@@ -218,7 +218,7 @@ else
     notice "building proxy-wasm-go-sdk..."
     $NGX_WASM_DIR/util/sdk.sh -S go --build
 fi
-#
+
 # proxy-wasm-assemblyscript-sdk
 
 if [[ ! -x "$(command -v npm)" ]]; then
