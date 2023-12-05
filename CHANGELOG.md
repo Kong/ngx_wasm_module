@@ -1,5 +1,6 @@
 # Table of Contents
 
+- [0.2.0]
 - [0.1.1]
 - [0.1.0]
 
@@ -29,6 +30,68 @@ Host ABI.
 As for Nginx developers, the module can also be used to write other modules; the
 best resource for that sort of information would be
 [DEVELOPER.md](https://github.com/Kong/ngx_wasm_module/tree/main/docs/DEVELOPER.md).
+
+## 0.2.0
+
+> 2023/12/06 - Prerelease
+>
+> [Documentation](https://github.com/Kong/ngx_wasm_module/tree/prerelease-0.2.0/docs)
+> | [Release assets](https://github.com/Kong/ngx_wasm_module/releases/tag/prerelease-0.2.0)
+
+This prerelease contains a major refactor and several fixes for low isolation
+modes in Proxy-Wasm filter chains (i.e. `stream`, `none`).
+
+It also implements several usability features for Proxy-Wasm filters and users
+of lua-resty-wasmx.
+
+Finally, the bump to Wasmtime 14.0.3 also resolves a known issue of the previous
+prerelease.
+
+#### Changes
+
+> [0.1.1...0.2.0](https://github.com/Kong/ngx_wasm_module/compare/prerelease-0.1.1...prerelease-0.2.0)
+
+- Proxy-Wasm
+    - Feature: implement support for response body buffering during
+      `on_response_body`.
+    - Feature: implement context checks in multiple host functions (e.g.
+      `proxy_get_buffer_bytes`, etc...).
+    - Bugfix: improve effectiveness and robustness of Wasm instances
+      recycling and lifecycle in low isolation modes (i.e. `stream`, `none`).
+    - Bugfix: resolve a memory leak in `ngx_proxy_wasm_maps_set` in low
+      isolation modes.
+    - Bugfix: resolve a memory leak during a dispatched call edge-case.
+- WASI
+    - Bugfix: resolve a memory leak in `fd_write` in low isolation modes.
+- LuaJIT FFI
+    - Feature: custom Lua-land getters/setters callbacks for Proxy-Wasm host
+      properties.
+    - Bugfix: resolve a possible segfault when no `wasm{}` block is configured.
+- Misc
+    - Bugfix: proper order of Nginx filter modules in dynamic OpenResty builds.
+
+#### Dependencies
+
+This release is tested with the following Nginx/OpenResty versions and dependencies:
+
+Name      | Version         | Notes
+---------:|:---------------:|:--------------------------------------------------
+Nginx     | [1.25.3](https://nginx.org/en/download.html)                       |
+OpenResty | [1.21.4.2](https://openresty.org/en/download.html)                 |
+OpenSSL   | [3.2.0](https://www.openssl.org/source/)                           |
+Wasmtime  | [14.0.3](https://github.com/bytecodealliance/wasmtime/releases)    |
+Wasmer    | [3.1.1](https://github.com/wasmerio/wasmer/releases/)              |
+V8        | [11.4.183.23](https://github.com/Kong/ngx_wasm_runtimes/releases/) | Built by [Kong/ngx_wasm_runtimes] for convenience.
+
+#### Components
+
+Same as [0.1.0].
+
+#### Known Issues
+
+N/A
+
+[Back to TOC](#table-of-contents)
 
 ## 0.1.1
 
@@ -99,8 +162,7 @@ Same as [0.1.0].
 - When using Wasmtime, reloading Nginx with `SIGHUP` seems to leave workers
   susceptible to crashes on Wasm instance exceptions such as `SIGFPE`. See
   [#418](https://github.com/Kong/ngx_wasm_module/issues/418).
-- Proxy-Wasm filter chains issuing HTTP dispatch calls during `on_request_body`
-  will cause inconsistencies in the filter chain execution.
+  *Resolved in [0.2.0]*
 
 [Back to TOC](#table-of-contents)
 
@@ -152,10 +214,11 @@ lua-resty-wasmx | A LuaJIT FFI binding exposing some of ngx_wasm_module's featur
 
 - MacOS platforms (x86 and ARM64) linking ngx_wasm_module to Wasmtime: using
   [daemon on](https://nginx.org/en/docs/ngx_core_module.html#daemon) results in
-  a known crash of the Nginx master process. *Resolved in [0.1.1]*.
+  a known crash of the Nginx master process. *Resolved in [0.1.1]*
 
 [Back to TOC](#table-of-contents)
 
-[0.1.0]: #010
+[0.2.0]: #020
 [0.1.1]: #011
+[0.1.0]: #010
 [Kong/ngx_wasm_runtimes]: https://github.com/Kong/ngx_wasm_runtimes
