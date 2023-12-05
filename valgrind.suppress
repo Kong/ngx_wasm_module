@@ -35,22 +35,6 @@
    fun:_ZN10wasmparser6parser6Parser5parse17h*
 }
 {
-   <wasmer 3.3.0: wasi_env_new>
-   Memcheck:Leak
-   ...
-   fun:wasi_env_new
-}
-{
-   <wasmer 3.3.0: start_thread>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:calloc
-   ...
-   fun:_ZN3std3sys4unix6thread6Thread3new12thread_start17h*
-   fun:start_thread
-   fun:clone
-}
-{
    <v8 11.4.183.23: wasm_engine_new>
    Memcheck:Leak
    match-leak-kinds: possible
