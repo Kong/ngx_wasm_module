@@ -3,7 +3,6 @@ codecov:
   require_ci_to_pass: yes
   notify:
     wait_for_ci: yes
-    after_n_builds: 9
 
 coverage:
   precision: 5
@@ -27,8 +26,19 @@ coverage:
         paths:
           - src
 
+flag_management:
+  individual_flags:
+    - name: unit
+      paths:
+        - src/
+      after_n_builds: 9
+    - name: valgrind
+      paths:
+        - src/
+      after_n_builds: 5
+
 comment:
-  layout: "reach, diff, files"
+  layout: "header, reach, diff, files, flags"
   behavior: default
   require_changes: false
   require_base: no
