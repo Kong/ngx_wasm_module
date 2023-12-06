@@ -7,9 +7,9 @@ on:
   #  branches: '**'
   workflow_dispatch:
     inputs:
-      release_name:
+      release_version:
         type: string
-        description: "Release name (e.g. 0.1.0)"
+        description: "Release version (e.g. 0.1.0)"
         required: true
       create_release:
         type: boolean
@@ -41,6 +41,7 @@ jobs:
       create_release: ${{ steps.assign-vars.outputs.create_release }}
       release_name: ${{ steps.assign-vars.outputs.release_name }}
       release_channel: ${{ steps.assign-vars.outputs.release_channel }}
+      release_version: ${{ steps.assign-vars.outputs.release_version }}
     steps:
       - uses: actions/checkout@v3
       - name: Assign runtime versions
@@ -56,21 +57,42 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = schedule ]; then
             # nightly
-            echo "create_release=true" >> $GITHUB_OUTPUT
-            echo "release_name=nightly-$(date -u +%Y%m%d)" >> $GITHUB_OUTPUT
-            echo "release_channel=nightly" >> $GITHUB_OUTPUT
+            # wasmx-nightly-20231201
+            channel="nightly"
+            version="$(date -u +%Y%m%d)"
 
-          elif [ -n "${{ github.event.inputs.release_name }}" ]; then
+            echo "create_release=true" >> $GITHUB_OUTPUT
+            echo "release_name=$channel-$version" >> $GITHUB_OUTPUT
+
+          elif [ -n "${{ github.event.inputs.release_version }}" ]; then
             # release/prerelease
+            version="${{ github.event.inputs.release_version }}"
+
             echo "create_release=${{ github.event.inputs.create_release == 'true' }}" >> $GITHUB_OUTPUT
-            echo "release_name=${{ github.event.inputs.release_name }}" >> $GITHUB_OUTPUT
-            echo "release_channel=${{ github.event.inputs.prerelease == 'true' && 'prerelease' || 'release' }}" >> $GITHUB_OUTPUT
+
+            if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+              # wasmx-prerelease-0.2.0
+              channel="prerelease"
+              echo "release_name=$channel-$version" >> $GITHUB_OUTPUT
+
+            else
+              # wasmx-1.0.0
+              channel="release"
+              echo "release_name=$version" >> $GITHUB_OUTPUT
+            fi
 
           else
             # GHA test run
+            # wasmx-gha-run-1234
+            channel="gha-run"
+            version="${{ github.run_number }}"
+
             echo "create_release=false" >> $GITHUB_OUTPUT
-            echo "release_name=gha-run-${{ github.run_number }}" >> $GITHUB_OUTPUT
+            echo "release_name=$channel-$version" >> $GITHUB_OUTPUT
           fi
+
+          echo "release_channel=$channel" >> $GITHUB_OUTPUT
+          echo "release_version=$version" >> $GITHUB_OUTPUT
 
   source-release:
     name: "Source release"
@@ -418,8 +440,8 @@ jobs:
         with:
           draft: true
           prerelease: true
-          title: Prerelease - ${{ needs.setup.outputs.release_name }}
-          automatic_release_tag: prerelease-${{ needs.setup.outputs.release_name }}
+          title: Prerelease - ${{ needs.setup.outputs.release_version }}
+          automatic_release_tag: ${{ needs.setup.outputs.release_name }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             *.tar.gz
@@ -430,8 +452,8 @@ jobs:
         with:
           draft: true
           prerelease: false
-          title: Release - ${{ needs.setup.outputs.release_name }}
-          automatic_release_tag: release-${{ needs.setup.outputs.release_name }}
+          title: Release - ${{ needs.setup.outputs.release_version }}
+          automatic_release_tag: ${{ needs.setup.outputs.release_name }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             *.tar.gz
