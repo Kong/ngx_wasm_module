@@ -538,6 +538,10 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
     rc = ngx_wrt.module_init(&module->wrt_module, &vm->wrt_engine,
                              &module->bytes,
                              &module->imports, &module->exports, &e);
+
+    /* ngx_wrt.module_init could have stayed on-CPU for several seconds */
+    ngx_time_update();
+
     if (rc != NGX_OK) {
         err = NGX_WAVM_EMPTY_CHAR;
         goto error;
