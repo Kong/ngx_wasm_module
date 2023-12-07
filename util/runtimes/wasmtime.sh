@@ -82,15 +82,15 @@ build_wasmtime() {
                 git clone https://github.com/bytecodealliance/wasmtime.git
 
             else
-                notice "synchronizing Wasmtime repository..."
-                pushd wasmtime
-                    git fetch
-                popd
+                notice "not really synchronizing Wasmtime repository..."
+                # pushd wasmtime
+                #     git fetch
+                # popd
             fi
 
             pushd wasmtime
-                git reset --hard "v$version"
-                git submodule update --init
+                # git reset --hard "v$version"
+                # git submodule update --init
             popd
         popd
 

@@ -153,6 +153,7 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
 
     wasmtime_config_wasm_reference_types_set(config, true);
     wasmtime_config_parallel_compilation_set(config, false);
+    wasmtime_config_macos_use_mach_ports_set(config, false);
 
 #ifdef NGX_WASM_HAVE_NOPOOL
     wasmtime_config_debug_info_set(config, false);

@@ -145,6 +145,18 @@ if check_target "$TARGET_DIR"; then
     exit 0
 fi
 
+# overrides
+
+case $OSTYPE in
+    darwin*)
+        if [[ "$RUNTIME" = "wasmtime" ]]; then
+            # must be built with the 'posix-signals-on-macos' feature
+            notice "installing wasmtime on macOS, forcing 'build' mode"
+            MODE="build"
+        fi
+    ;;
+esac
+
 notice "installing $RUNTIME in $TARGET_DIR..."
 BUILD_SCRIPT=$NGX_WASM_DIR/util/runtimes/$RUNTIME.sh
 
