@@ -970,6 +970,9 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
         log = filter->log;
         store = filter->store;
 
+        /* sweep if an instance has trapped */
+        ngx_proxy_wasm_store_sweep(store);
+
     } else {
         /* filter context */
         log = pwctx->log;
