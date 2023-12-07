@@ -193,7 +193,6 @@ skip_prefix:
 void
 ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 {
-    ngx_proxy_wasm_err_e      ecode;
     ngx_log_t                *log = ev->log;
     ngx_proxy_wasm_exec_t    *rexec = ev->data;
     ngx_proxy_wasm_filter_t  *filter = rexec->filter;
@@ -218,10 +217,7 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
                                          NGX_WASM_BACKGROUND_PHASE);
 #endif
 
-    ecode = ngx_proxy_wasm_run_step(rexec, NGX_PROXY_WASM_STEP_TICK);
-    if (ecode != NGX_PROXY_WASM_ERR_NONE) {
-        return;
-    }
+    (void) ngx_proxy_wasm_run_step(rexec, NGX_PROXY_WASM_STEP_TICK);
 
     if (!ngx_exiting) {
         rexec->ev = ngx_calloc(sizeof(ngx_event_t), log);
