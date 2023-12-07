@@ -9,6 +9,8 @@ our $nginx_variables = join(',', qw(
     ngx.hostname
 ));
 
+no_shuffle();
+
 plan_tests(5);
 run_tests();
 
@@ -135,8 +137,10 @@ ngx_http_* calls.
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls 'tick_period=10 on_tick=log_property name=ngx.hostname';
-        echo_sleep 0.150;
+        proxy_wasm hostcalls 'tick_period=200 \
+                              on_tick=log_property \
+                              name=ngx.hostname';
+        echo_sleep 0.5;
         echo ok;
     }
 --- ignore_response_body

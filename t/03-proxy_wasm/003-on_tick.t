@@ -4,6 +4,8 @@ use strict;
 use lib '.';
 use t::TestWasm;
 
+no_shuffle();
+
 plan_tests(7);
 run_tests();
 
@@ -156,25 +158,28 @@ qr/.*?(\[error\]|Uncaught RuntimeError: |\s+)tick_period already set.*
 
 
 === TEST 6: proxy_wasm - on_tick with trap
+Should tick at least twice
 Should recycle the tick instance
 Should not prevent http context/instance from starting
 --- valgrind
 --- skip_no_debug
 --- wasm_modules: on_phases
---- config
+--- config eval
+my $tick = $ENV{TEST_NGINX_USE_VALGRIND} ? 4000 : 200;
+qq{
     location /t {
-        proxy_wasm on_phases 'tick_period=200 on_tick=trap';
+        proxy_wasm on_phases 'tick_period=$tick
+                              on_tick=trap';
         return 200;
     }
+}
 --- response_body
---- grep_error_log eval: qr/(\[crit\]|\[info].*?on_tick).*/
+--- grep_error_log eval: qr/(on_tick \d+|panicked at \S+)/
 --- grep_error_log_out eval
-qr/.*?
-\[info\] .*? on_tick 200.*
-\[crit\] .*? panicked at.*
-.*?
-\[info\] .*? on_tick 200.*
-\[crit\] .*? panicked at.*/
+qr/on_tick \d+
+panicked at .*?filter\.rs.*
+on_tick \d+
+panicked at .*?filter\.rs.*/
 --- error_log
 filter 1/1 resuming "on_request_headers" step
 filter 1/1 resuming "on_response_headers" step
