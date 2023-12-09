@@ -1113,8 +1113,11 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
             goto error;
         }
 
+        dd("link root ctx #%ld instance (rexec: %p)", rexec->id, rexec);
+
         rexec->node.key = rexec->id;
         ngx_rbtree_insert(&ictx->root_ctxs, &rexec->node);
+
         rexec->started = 1;
     }
 
@@ -1709,13 +1712,11 @@ ngx_proxy_wasm_instance_invalidate(ngx_proxy_wasm_instance_t *ictx)
 
     while (*root != *sentinel) {
         n = ngx_rbtree_min(*root, *sentinel);
-#if (DDEBUG)
         pwexec = ngx_rbtree_data(n, ngx_proxy_wasm_exec_t, node);
 
-        dd("invalidate root ctx #%ld instance (pwexec: %p)",
-           pwexec->id, pwexec);
-#endif
+        dd("unlink instance of root ctx #%ld (rexec: %p)", pwexec->id, pwexec);
 
+        pwexec->ictx = NULL;
         ngx_rbtree_delete(&ictx->root_ctxs, n);
     }
 
@@ -1729,10 +1730,9 @@ ngx_proxy_wasm_instance_invalidate(ngx_proxy_wasm_instance_t *ictx)
         n = ngx_rbtree_min(*root, *sentinel);
         pwexec = ngx_rbtree_data(n, ngx_proxy_wasm_exec_t, node);
 
-        dd("invalidate ctx #%ld instance (pwexec: %p)", pwexec->id, pwexec);
+        dd("destroy ctx #%ld (pwexec: %p)", pwexec->id, pwexec);
 
         ngx_rbtree_delete(&ictx->tree_ctxs, n);
-
         destroy_pwexec(pwexec);
     }
 
@@ -1750,9 +1750,11 @@ static void
 ngx_proxy_wasm_instance_destroy(ngx_proxy_wasm_instance_t *ictx)
 {
     ngx_rbtree_node_t      **root, **sentinel, *s, *n;
-    ngx_proxy_wasm_exec_t   *rexec;
+    ngx_proxy_wasm_exec_t   *pwexec;
 
-    dd("enter");
+    dd("enter (ictx: %p)", ictx);
+
+    /* root context */
 
     root = &ictx->root_ctxs.root;
     s = &ictx->sentinel_root_ctxs;
@@ -1760,12 +1762,16 @@ ngx_proxy_wasm_instance_destroy(ngx_proxy_wasm_instance_t *ictx)
 
     while (*root != *sentinel) {
         n = ngx_rbtree_min(*root, *sentinel);
-        rexec = ngx_rbtree_data(n, ngx_proxy_wasm_exec_t, node);
+        pwexec = ngx_rbtree_data(n, ngx_proxy_wasm_exec_t, node);
 
-        rexec->ictx = NULL;
+        dd("unlink+destroy instance of root ctx #%ld (rexec: %p)",
+           pwexec->id, pwexec);
 
+        pwexec->ictx = NULL;
         ngx_rbtree_delete(&ictx->root_ctxs, n);
     }
+
+    /* stream context */
 
     root = &ictx->tree_ctxs.root;
     s = &ictx->sentinel_ctxs;
@@ -1773,13 +1779,14 @@ ngx_proxy_wasm_instance_destroy(ngx_proxy_wasm_instance_t *ictx)
 
     while (*root != *sentinel) {
         n = ngx_rbtree_min(*root, *sentinel);
-        rexec = ngx_rbtree_data(n, ngx_proxy_wasm_exec_t, node);
+        pwexec = ngx_rbtree_data(n, ngx_proxy_wasm_exec_t, node);
 
-        ngx_wasm_assert(rexec->ev == NULL);
+        ngx_wasm_assert(pwexec->ev == NULL);
 
-        rexec->ictx = NULL;
+        dd("destroy ctx #%ld (pwexec: %p)", pwexec->id, pwexec);
 
         ngx_rbtree_delete(&ictx->tree_ctxs, n);
+        destroy_pwexec(pwexec);
     }
 
     ngx_wavm_instance_destroy(ictx->instance);
