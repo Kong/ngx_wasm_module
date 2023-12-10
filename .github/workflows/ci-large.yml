@@ -139,7 +139,7 @@ jobs:
         v8: [11.4.183.23]
         include:
           - label: old_nginx
-            os: [ubuntu-latest]
+            os: ubuntu-latest
             cc: clang-15
             ngx: 1.21.6
             runtime: wasmtime
