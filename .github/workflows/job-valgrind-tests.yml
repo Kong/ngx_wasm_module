@@ -92,9 +92,8 @@ jobs:
           key: work-${{ inputs.os }}-${{ inputs.cc }}-${{ inputs.ngx }}-${{ inputs.openresty }}-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain', 'Makefile') }}
       - name: Setup Rust
         if: ${{ !env.ACT }}
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           target: wasm32-wasi
       - name: Setup TinyGo
         if: ${{ !env.ACT }}
