@@ -147,6 +147,26 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :path/
 
 
 === TEST 9: proxy_wasm - dispatch_http_call() connection refused
+--- skip_eval: 25: ($::osname =~ m/darwin/)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=127.0.0.10:81';
+        echo ok;
+    }
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - Connection refused/
+--- no_error_log
+[crit]
+
+
+
+=== TEST 9: proxy_wasm - dispatch_http_call() connection refused
+--- skip_eval: 25: ($::osname =~ m/darwin/)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -222,6 +242,7 @@ qq{
 
 
 === TEST 13: proxy_wasm - dispatch_http_call() unix domain socket, bad path (EISDIR)
+--- skip_eval: 25: ($::osname =~ m/darwin/)
 --- wasm_modules: hostcalls
 --- config eval
 qq{
@@ -236,6 +257,26 @@ qq{
 [
     qr/\[error\] .*? connect\(\) to unix:\/tmp failed .*? Connection refused/,
     qr/\[error\] .*? dispatch failed: tcp socket - Connection refused/
+]
+
+
+
+=== TEST 13: proxy_wasm - dispatch_http_call() unix domain socket, bad path (EISDIR), macOS
+--- skip_eval: 25: ($::osname !~ m/darwin/)
+--- wasm_modules: hostcalls
+--- config eval
+qq{
+    location /t {
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=unix:/tmp';
+    }
+}
+--- error_code: 500
+--- response_body_like: 500 Internal Server Error
+--- error_log eval
+[
+    qr/\[crit\] .*? connect\(\) to unix:\/tmp failed .*? Socket operation on non-socket/,
+    qr/\[error\] .*? dispatch failed: tcp socket - Socket operation on non-socket/
 ]
 
 

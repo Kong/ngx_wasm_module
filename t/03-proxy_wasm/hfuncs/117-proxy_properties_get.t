@@ -313,7 +313,7 @@ qq{
     }
 --- response_body
 ok
---- grep_error_log eval: qr/upstream\.\w+: [\w\.\/]+ at \w+/
+--- grep_error_log eval: qr/upstream\.\w+: [\w\.\/-]+ at \w+/
 --- grep_error_log_out eval
 my $checks;
 my @phases = qw(
@@ -324,7 +324,7 @@ my @phases = qw(
 
 foreach my $phase (@phases) {
     $checks .= "upstream.address: unix at $phase\n";
-    $checks .= "upstream.port: [\\w\.\/]+ at $phase\n";
+    $checks .= "upstream.port: [\\w\.\/-]+ at $phase\n";
 }
 
 qr/$checks/

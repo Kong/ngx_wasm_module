@@ -237,6 +237,10 @@ add_block_preprocessor(sub {
     {
         my $timeout = $1;
 
+	if ($osname =~ m/darwin/ && $archname =~ m/arm64/) {
+	    $timeout *= 4;
+	}
+
         if ($ENV{TEST_NGINX_USE_VALGRIND}) {
             if ($nginxV =~ m/wasmtime/ || $nginxV =~ m/v8/) {
                 # Wasmtime and V8 (TurboFan) are much slower to load modules
