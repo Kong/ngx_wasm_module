@@ -234,7 +234,9 @@ jobs:
       - run: make lint
       - name: 'Rust lint'
         if: ${{ !env.ACT }}
-        run: cargo clippy --all-features
+        run: |
+          cargo clippy --all-features
+          cd lib/ngx-wasm-rs && cargo clippy --all-features
       - run: |
           if [[ $(make reindex 2>&1 | tee reindex.out | grep -c done) -gt 0 ]]; then
             cat reindex.out >&2
