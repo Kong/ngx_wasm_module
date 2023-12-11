@@ -219,7 +219,7 @@ jobs:
             ~/.rustup/toolchains/*
             ~/.rustup/update-hashes/*
           key: rust-toolchain-${{ runner.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh', 'rust-toolchain') }}
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
       - name: 'Setup cache - work/ dir'
@@ -232,11 +232,9 @@ jobs:
           key: lint-${{ runner.os }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain', 'Makefile') }}
       - run: make setup
       - run: make lint
-      - uses: actions-rs/clippy-check@v1
+      - name: 'Rust lint'
         if: ${{ !env.ACT }}
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
+        run: cargo clippy --all-features
       - run: |
           if [[ $(make reindex 2>&1 | tee reindex.out | grep -c done) -gt 0 ]]; then
             cat reindex.out >&2
