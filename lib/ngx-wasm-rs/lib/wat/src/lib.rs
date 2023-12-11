@@ -2,7 +2,6 @@ use ngx_wasm_c_api::*;
 use regex::Regex;
 use std::mem;
 use unescape::unescape;
-use wabt;
 
 #[macro_use]
 extern crate lazy_static;
@@ -23,7 +22,7 @@ fn extract_message(err: &str) -> Option<String> {
     }
 }
 
-fn vec_into_wasm_byte_vec_t(bv: *mut wasm_byte_vec_t, v: Vec<u8>) -> () {
+fn vec_into_wasm_byte_vec_t(bv: *mut wasm_byte_vec_t, v: Vec<u8>) {
     unsafe {
         // FIXME Update this when vec_into_raw_parts is stabilized
         let mut v = mem::ManuallyDrop::new(v);
@@ -32,8 +31,11 @@ fn vec_into_wasm_byte_vec_t(bv: *mut wasm_byte_vec_t, v: Vec<u8>) -> () {
     }
 }
 
+/// # Safety
+///
+/// This function should be called with a valid wat wasm_byte_vec_t pointer.
 #[no_mangle]
-pub extern "C" fn ngx_wasm_wat_to_wasm(
+pub unsafe extern "C" fn ngx_wasm_wat_to_wasm(
     wat: *const wasm_byte_vec_t,
     wasm: *mut wasm_byte_vec_t,
 ) -> Option<Box<wasm_byte_vec_t>> {
