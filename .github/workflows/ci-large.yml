@@ -123,6 +123,18 @@ jobs:
       ssl: ${{ matrix.ssl }}
       debug: ${{ matrix.debug }}
 
+  codeql-large:
+    name: 'CodeQL analyzer'
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["c-cpp"]
+        runtime: [wasmtime, wasmer, v8]
+    uses: ./.github/workflows/job-codeql-analyzer.yml
+    with:
+      language: ${{ matrix.language }}
+      runtime: ${{ matrix.runtime }}
+
   build-large:
     name: 'Build'
     #if: ${{ false }}

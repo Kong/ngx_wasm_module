@@ -1,0 +1,81 @@
+name: CodeQL
+
+on:
+  workflow_call:
+    inputs:
+      language:
+        required: true
+        type: string
+      runtime:
+        required: true
+        type: string
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NGX_BUILD_OPENRESTY: 1.21.4.2
+  NGX_BUILD_DEBUG: 1
+  NGX_BUILD_SSL: 1
+  NGX_BUILD_DYNAMIC_MODULE: 1
+
+jobs:
+  codeql:
+    name: 'CodeQL analyzer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    outputs:
+      sarif_file: ${{ steps.sarif-filename.outputs.name }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ inputs.language }}
+      - name: 'Setup cache - work/ dir'
+        uses: actions/cache@v3
+        if: ${{ !env.ACT }}
+        with:
+          path: |
+            work/downloads
+            work/runtimes
+            work/openssl
+          key: codeql-work-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain', 'Makefile') }}
+      - name: Setup Wasm runtime
+        run: ./util/runtime.sh -R ${{ inputs.runtime }} -V ${{ inputs[inputs.runtime] }}
+      - run: make setup
+      - run: make
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          upload: false
+          output: sarif-results
+      - id: sarif-filename
+        run: |
+          if [ "${{ inputs.language }}" = "c-cpp" ]; then
+            echo "name=cpp" >> $GITHUB_OUTPUT
+          else
+            echo "name=${{ inputs.language }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Filter SARIF
+        uses: advanced-security/filter-sarif@v1
+        with:
+          patterns: |
+            -**/*     # exclusion: DENY ALL
+            src/**/*  # inclusion
+          input: sarif-results/${{ steps.sarif-filename.outputs.name }}.sarif
+          output: sarif-results/${{ steps.sarif-filename.outputs.name }}.sarif
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: sarif-results
+      - uses: actions/upload-artifact@v3
+        with:
+          name: sarif-results
+          path: sarif-results
+          retention-days: ${{ github.retention_days }}
