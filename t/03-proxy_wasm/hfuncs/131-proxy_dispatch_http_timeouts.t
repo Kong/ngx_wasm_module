@@ -72,6 +72,8 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolve
 
 
 === TEST 3: proxy_wasm - dispatch_http_call() read timeout
+macOS: mockeagain NYI
+--- skip_eval: 4: $::osname =~ m/darwin/
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -97,6 +99,8 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed o
 
 
 === TEST 4: proxy_wasm - dispatch_http_call() write timeout
+macOS: mockeagain NYI
+--- skip_eval: 4: $::osname =~ m/darwin/
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config

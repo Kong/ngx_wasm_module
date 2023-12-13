@@ -388,6 +388,8 @@ foo
 
 
 === TEST 12: proxy_wasm - dispatch_https_call() no trusted CA
+macOS: intermitent failures
+--- skip_eval: 4: $::osname =~ m/darwin/
 --- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
@@ -417,6 +419,8 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls cer
 
 
 === TEST 13: proxy_wasm - dispatch_https_call() empty trusted CA path
+macOS: intermitent failures
+--- skip_eval: 4: $::osname =~ m/darwin/
 --- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{

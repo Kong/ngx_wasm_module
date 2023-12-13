@@ -15,10 +15,12 @@ __DATA__
 === TEST 1: kv - with minimum size
 --- valgrind
 --- skip_no_debug
---- main_config
+--- main_config eval
+qq{
     wasm {
-        shm_kv test 12288;
+        shm_kv test $::min_shm_size;
     }
+}
 --- error_log
 "test" shm: initialization
 "test" shm store: initialized
@@ -30,10 +32,12 @@ __DATA__
 
 === TEST 2: kv - with default namespace
 --- skip_no_debug
---- main_config
+--- main_config eval
+qq{
     wasm {
-        shm_kv * 12288;
+        shm_kv * $::min_shm_size;
     }
+}
 --- error_log
 "*" shm: initialization
 "*" shm store: initialized
