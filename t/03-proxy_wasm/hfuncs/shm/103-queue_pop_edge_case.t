@@ -4,6 +4,9 @@ use strict;
 use lib '.';
 use t::TestWasmX;
 
+our $four_pages_size = $page_size * 3;
+our $reserved_space = ($page_size * 2) + 4;
+
 plan_tests(10);
 run_tests();
 
@@ -12,16 +15,19 @@ __DATA__
 === TEST 1: proxy_wasm queue shm - pop when data size == buffer_size - 1
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
---- shm_queue: test 256k
---- config
+--- shm_queue eval: qq/test $::four_pages_size/
+--- config eval
+my $buffer_size_minus_one = $::four_pages_size - $::reserved_space - 1;
+qq{
     location /t {
         proxy_wasm hostcalls 'test=/t/shm/enqueue \
                               queue=test \
-                              length=253947';
+                              length=$buffer_size_minus_one';
         proxy_wasm hostcalls 'test=/t/shm/dequeue \
                               queue=test';
         echo ok;
     }
+}
 --- response_headers
 status-enqueue: 0
 status-dequeue: 0
@@ -41,16 +47,19 @@ circular_write: wrapping around
 --- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
---- shm_queue: test 256k
---- config
+--- shm_queue eval: qq/test $::four_pages_size/
+--- config eval
+my $buffer_size = $::four_pages_size - $::reserved_space;
+qq{
     location /t {
         proxy_wasm hostcalls 'test=/t/shm/enqueue \
                               queue=test \
-                              length=253948';
+                              length=$buffer_size';
         proxy_wasm hostcalls 'test=/t/shm/dequeue \
                               queue=test';
         echo ok;
     }
+}
 --- response_headers
 status-enqueue: 0
 status-dequeue: 0

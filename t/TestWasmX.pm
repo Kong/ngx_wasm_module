@@ -6,6 +6,7 @@ use Test::Nginx::Util qw(gen_rand_port);
 use List::Util qw(max);
 use Cwd qw(cwd);
 use Config;
+use POSIX qw(sysconf _SC_PAGESIZE);
 
 our $pwd = cwd();
 our $osname = $Config{"osname"};
@@ -15,6 +16,8 @@ our $nginxbin = $ENV{TEST_NGINX_BINARY} || 'nginx';
 our $nginxV = eval { `$nginxbin -V 2>&1` };
 our $exttimeout = $ENV{TEST_NGINX_EXTERNAL_TIMEOUT} || '60s';
 our $extresolver = $ENV{TEST_NGINX_EXTERNAL_RESOLVER} || '8.8.8.8';
+our $page_size = sysconf(_SC_PAGESIZE);
+our $min_shm_size = $page_size * 3;
 our @nginx_modules;
 
 our @EXPORT = qw(
@@ -26,6 +29,8 @@ our @EXPORT = qw(
     $nginxV
     $exttimeout
     $extresolver
+    $page_size
+    $min_shm_size
     load_nginx_modules
     plan_tests
     skip_hup

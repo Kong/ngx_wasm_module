@@ -199,6 +199,10 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
         }
     }
 
+#if (NGX_DARWIN)
+    wasmtime_config_macos_use_mach_ports_set(config, false);
+#endif
+
     if (conf->compiler.len) {
         if (ngx_str_eq(conf->compiler.data, conf->compiler.len,
                        "auto", -1))

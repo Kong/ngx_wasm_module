@@ -149,7 +149,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :path/
 --- config
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=127.0.0.10:81';
+                              host=127.0.0.1:81';
         echo ok;
     }
 --- response_body
@@ -220,6 +220,8 @@ qq{
 
 
 === TEST 13: proxy_wasm - dispatch_http_call() unix domain socket, bad path (EISDIR)
+Linux: "Connection refused"
+macOS: "Socket operation on non-socket"
 --- wasm_modules: hostcalls
 --- config eval
 qq{
@@ -233,8 +235,8 @@ qq{
 --- response_body
 --- error_log eval
 [
-    qr/\[error\] .*? connect\(\) to unix:\/tmp failed .*? Connection refused/,
-    qr/\[error\] .*? dispatch failed: tcp socket - Connection refused/
+    qr/\[(error|crit)\] .*? connect\(\) to unix:\/tmp failed .*? (Connection refused|Socket operation on non-socket)/,
+    qr/\[error\] .*? dispatch failed: tcp socket - (Connection refused|Socket operation on non-socket)/
 ]
 
 
@@ -377,11 +379,13 @@ Host: localhost\s*
 
 
 === TEST 19: proxy_wasm - dispatch_http_call() sanity resolver + hostname (IPv4), default port
+macOS: intermitent failures
 Needs IPv4 resolution + external I/O to succeed.
 Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
 - HTTP 502 (httpbin.org Bad Gateway)
 - HTTP 504 (httpbin.org Gateway timeout)
+--- skip_eval: 4: $::osname =~ m/darwin/
 --- valgrind
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
