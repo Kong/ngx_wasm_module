@@ -15,13 +15,17 @@ __DATA__
 === TEST 1: queue - with minimum size
 --- valgrind
 --- skip_no_debug
---- main_config
+--- main_config eval
+qq{
     wasm {
-        shm_queue test 12288;
+        shm_queue test $::min_shm_size;
     }
---- error_log
-"test" shm: initialization
-"test" shm queue: initialized (4096 bytes available)
+}
+--- error_log eval
+[
+    qr/\"test\" shm: initialization/,
+    qr/\"test\" shm queue: initialized \(\d+ bytes available\)/
+]
 --- no_error_log
 [error]
 [crit]
