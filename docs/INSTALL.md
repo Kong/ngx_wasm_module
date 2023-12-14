@@ -33,7 +33,7 @@ provided below.
 ### Nginx
 
 Ensure that you have all the necessary dependencies to build Nginx on your
-system. See [DEVELOPER.md](docs/DEVELOPER.md) for a list of platform-specific
+system. See [DEVELOPER.md](DEVELOPER.md) for a list of platform-specific
 dependencies.
 
 Download Nginx at https://nginx.org/en/download.html and extract it:
