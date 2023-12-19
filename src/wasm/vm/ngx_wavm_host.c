@@ -129,7 +129,7 @@ ngx_wavm_host_kindvec2typevec(const wasm_valkind_t **valkinds,
 
     for (i = 0; i < out->size; i++) {
         valkind = ((wasm_valkind_t **) valkinds)[i];
-        ngx_wasm_assert(valkind);
+        ngx_wa_assert(valkind);
         out->data[i] = wasm_valtype_new(*valkind);
     }
 }
@@ -301,7 +301,7 @@ ngx_wavm_hfunc_trampoline(void *env,
     case NGX_WAVM_NYI:
         err = "host trap (function not yet implemented)";
 
-        ngx_wasm_assert(!instance->trapmsg.len);
+        ngx_wa_assert(!instance->trapmsg.len);
 
         ngx_wavm_instance_trap_printf(instance, "%V", &hfunc->def->name);
         break;
@@ -330,7 +330,7 @@ ngx_wavm_hfunc_trampoline(void *env,
 
         p = ngx_snprintf(p, len - (p - buf), "%V", &instance->trapmsg);
 
-        ngx_wasm_assert( ((size_t) (p - buf)) == len );
+        ngx_wa_assert( ((size_t) (p - buf)) == len );
 
     } else {
         wasm_name_new(&trapmsg, ngx_strlen(err)

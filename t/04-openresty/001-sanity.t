@@ -26,7 +26,7 @@ __DATA__
 
 
 
-=== TEST 2: ngx_wasm_module sanity
+=== TEST 2: ngx_wasmx_module sanity
 --- valgrind
 --- main_config
     wasm {}

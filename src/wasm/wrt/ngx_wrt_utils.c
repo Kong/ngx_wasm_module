@@ -64,8 +64,8 @@ ngx_wrt_apply_flags(wasm_config_t *config, ngx_wavm_conf_t *conf,
 
         handler = get_flag_handler(name);
 
-        ngx_wasm_assert(handler);
-        ngx_wasm_assert(handler->handler);
+        ngx_wa_assert(handler);
+        ngx_wa_assert(handler->handler);
 
         rc = handler->handler(config, name, value, log,
                               handler->wrt_config_set);

@@ -83,7 +83,7 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
         goto done;
     }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    ngx_wa_assert(rc == NGX_OK);
 
     rctx->entered_header_filter = 1;
 
@@ -167,7 +167,7 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
 
         if (r != r->main && rctx == NULL) {
             /* subrequest with no rctx; merge main rctx for buffering */
-            ngx_wasm_assert(mrctx);
+            ngx_wa_assert(mrctx);
             rctx = mrctx;
         }
     }
@@ -190,7 +190,7 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
             goto done;
         case NGX_OK:
             /* chunk in buffers */
-            ngx_wasm_assert(rctx->resp_bufs);
+            ngx_wa_assert(rctx->resp_bufs);
 
             if (!rctx->resp_chunk_eof) {
                 /* more to come; go again */
@@ -208,7 +208,7 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
             ngx_http_wasm_body_filter_resume(rctx, rctx->resp_bufs);
             break;
         default:
-            ngx_wasm_assert(0);
+            ngx_wa_assert(0);
             break;
         }
     }
@@ -233,7 +233,7 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
 
 done:
 
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_ERROR);
+    ngx_wa_assert(rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_ERROR);
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
                    "wasm \"body_filter\" phase rc: %d", rc);
@@ -289,7 +289,7 @@ ngx_http_wasm_body_filter_buffer(ngx_http_wasm_req_ctx_t *rctx, ngx_chain_t *in)
 
     dd("enter");
 
-    ngx_wasm_assert(rctx->resp_buffering);
+    ngx_wa_assert(rctx->resp_buffering);
 
     cl = rctx->resp_buf_last;
     loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
@@ -379,7 +379,7 @@ ngx_http_wasm_body_filter_buffer(ngx_http_wasm_req_ctx_t *rctx, ngx_chain_t *in)
 
             if (copy < n) {
                 /* more to copy, next buffer */
-                ngx_wasm_assert(cl->buf->last == cl->buf->end);
+                ngx_wa_assert(cl->buf->last == cl->buf->end);
                 rctx->resp_buf_last = cl;
                 cl = NULL;
             }

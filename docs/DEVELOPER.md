@@ -661,6 +661,7 @@ filter chain".
 
 | Symbol                     | Description                                            |
 | --------------------------:| -------------------------------------------------------|
+| `ngx_wa_*`                 | Core WasmX code and facilities shared by all subsystems.
 | `ngx_wrt_*`                | *"Nginx Wasm runtime"*: Wasm bytecode execution engine (Wasmer, Wasmtime...).
 | `ngx_wavm_*`               | *"Nginx Wasm VM"*: Wasm instances operations for Nginx.
 | `ngx_wavm_host_*`          | *"Nginx Wasm VM host interface"*: host-side (i.e. Nginx) code imported by Wasm modules.

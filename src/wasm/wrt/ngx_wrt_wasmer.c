@@ -74,7 +74,7 @@ ngx_wasmer_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
     char           *auto_compiler = NULL;
     wasm_config_t  *config;
 
-    ngx_wasm_assert(conf->backtraces != NGX_CONF_UNSET);
+    ngx_wa_assert(conf->backtraces != NGX_CONF_UNSET);
 
     if (conf->backtraces) {
         setenv("RUST_BACKTRACE", "full", 1);
@@ -274,7 +274,7 @@ ngx_wasmer_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
      * clang-analyzer: ensure the 'wasi_get_unordered_imports' branch is taken
      * below; or else 'wasi_imports' may be considered uninitialized.
      */
-    ngx_wasm_assert(!module->wasi);
+    ngx_wa_assert(!module->wasi);
 
     /* WASI */
 
@@ -415,7 +415,7 @@ linking:
                                hfunc->def->name.data,
                                hfunc->def->name.len))
                 {
-                    ngx_wasm_assert(i == hfunc->idx);
+                    ngx_wa_assert(i == hfunc->idx);
 
                     dd("   -> hfuncs resolved: \"%.*s\"",
                        (int) hfunc->def->name.len, hfunc->def->name.data);
@@ -456,7 +456,7 @@ linking:
         return NGX_ERROR;
     }
 
-    ngx_wasm_assert(module->nimports == module->import_types->size);
+    ngx_wa_assert(module->nimports == module->import_types->size);
 
     return NGX_OK;
 }
@@ -587,14 +587,14 @@ ngx_wasmer_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
 
         default:
             /* NYI */
-            ngx_wasm_assert(0);
+            ngx_wa_assert(0);
             return NGX_ABORT;
 
         }
     }
 
-    ngx_wasm_assert(nimports == module->nimports);
-    ngx_wasm_assert(instance->env.size == module->nimports);
+    ngx_wa_assert(nimports == module->nimports);
+    ngx_wa_assert(instance->env.size == module->nimports);
 
     instance->pool = pool;
     instance->store = store;
@@ -675,7 +675,7 @@ ngx_wasmer_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
     const wasm_name_t         *exportname;
     const wasm_externtype_t   *externtype;
 
-    ngx_wasm_assert(idx < module->export_types->size);
+    ngx_wa_assert(idx < module->export_types->size);
 
     exporttype = module->export_types->data[idx];
     exportname = wasm_exporttype_name(exporttype);
@@ -688,12 +688,12 @@ ngx_wasmer_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
     switch (wasm_externtype_kind(externtype)) {
 
     case WASM_EXTERN_FUNC:
-        ngx_wasm_assert(wasm_extern_kind(ext->ext) == WASM_EXTERN_FUNC);
+        ngx_wa_assert(wasm_extern_kind(ext->ext) == WASM_EXTERN_FUNC);
         ext->kind = NGX_WRT_EXTERN_FUNC;
         break;
 
     case WASM_EXTERN_MEMORY:
-        ngx_wasm_assert(wasm_extern_kind(ext->ext) == WASM_EXTERN_MEMORY);
+        ngx_wa_assert(wasm_extern_kind(ext->ext) == WASM_EXTERN_MEMORY);
         ext->kind = NGX_WRT_EXTERN_MEMORY;
         instance->memory = wasm_extern_as_memory(ext->ext);
 
@@ -709,7 +709,7 @@ ngx_wasmer_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
 
     default:
         /* NYI */
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_ABORT;
 
     }
@@ -736,7 +736,7 @@ ngx_wasmer_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
 
     ext = instance->externs.data[func_idx];
 
-    ngx_wasm_assert(wasm_extern_kind(ext) == WASM_EXTERN_FUNC);
+    ngx_wa_assert(wasm_extern_kind(ext) == WASM_EXTERN_FUNC);
 
     func = wasm_extern_as_func(ext);
 

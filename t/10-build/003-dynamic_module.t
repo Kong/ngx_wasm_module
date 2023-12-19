@@ -19,9 +19,9 @@ __DATA__
 --- build: NGX_BUILD_DYNAMIC_MODULE=1 make
 --- grep_nginxV eval
 [
-    qr/ngx_wasm_module \[dev debug $ENV{NGX_WASM_RUNTIME} dyn\]/
+    qr/\[debug $ENV{NGX_WASM_RUNTIME} dyn\]/
 ]
---- run_cmd eval: qq{find $::buildroot -name 'ngx_wasm_module.*' | xargs -I{} nm -g {}}
+--- run_cmd eval: qq{find $::buildroot -name 'ngx_wasmx_module.*' | xargs -I{} nm -g {}}
 --- grep_cmd eval
 [
     qr/T _?ngx_wavm/,
@@ -35,9 +35,9 @@ __DATA__
 --- build eval: qq{NGX_WASM_RUNTIME_INC= NGX_WASM_RUNTIME_LIB= NGX_WASM_RUNTIME_LD_OPT= NGX_BUILD_DYNAMIC_MODULE=1 NGX_BUILD_CONFIGURE_OPT="--with-cc-opt='-I$ENV{NGX_WASM_RUNTIME_DIR}/include' --with-ld-opt='-L$ENV{NGX_WASM_RUNTIME_DIR}'" make}
 --- grep_nginxV eval
 [
-    qr/ngx_wasm_module \[dev debug $ENV{NGX_WASM_RUNTIME} dyn\]/
+    qr/\[debug $ENV{NGX_WASM_RUNTIME} dyn\]/
 ]
---- run_cmd eval: qq{find $::buildroot -name 'ngx_wasm_module.*' | xargs -I{} nm -g {}}
+--- run_cmd eval: qq{find $::buildroot -name 'ngx_wasmx_module.*' | xargs -I{} nm -g {}}
 --- grep_cmd eval
 [
     qr/T _?ngx_wavm/,
@@ -51,8 +51,8 @@ __DATA__
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'v8'
 --- build: NGX_BUILD_DYNAMIC_MODULE=1 make
 --- grep_nginxV
-ngx_wasm_module [dev debug v8 dyn]
---- run_cmd eval: qq{find $::buildroot -name 'ngx_wasm_module.*' | xargs -I{} nm -g {}}
+[debug v8 dyn]
+--- run_cmd eval: qq{find $::buildroot -name 'ngx_wasmx_module.*' | xargs -I{} nm -g {}}
 --- grep_cmd eval
 [
     qr/T _?ngx_wavm/,
@@ -66,9 +66,9 @@ ngx_wasm_module [dev debug v8 dyn]
 --- build eval: qq{NGX_WASM_RUNTIME_INC="$ENV{NGX_WASM_RUNTIME_DIR}/include" NGX_WASM_RUNTIME_LD_OPT="$ENV{NGX_WASM_RUNTIME_DIR}/lib/lib$ENV{NGX_WASM_RUNTIME}.a" NGX_BUILD_DYNAMIC_MODULE=1 make}
 --- grep_nginxV eval
 [
-    qr/ngx_wasm_module \[dev debug $ENV{NGX_WASM_RUNTIME} dyn\]/
+    qr/\[debug $ENV{NGX_WASM_RUNTIME} dyn\]/
 ]
---- run_cmd eval: qq{find $::buildroot -name 'ngx_wasm_module.*' | xargs -I{} nm -g {}}
+--- run_cmd eval: qq{find $::buildroot -name 'ngx_wasmx_module.*' | xargs -I{} nm -g {}}
 --- grep_cmd eval
 [
     qr/T _?ngx_wavm/,
@@ -82,9 +82,9 @@ ngx_wasm_module [dev debug v8 dyn]
 --- build eval: qq{NGX_WASM_RUNTIME_INC= NGX_WASM_RUNTIME_LIB= NGX_WASM_RUNTIME_LD_OPT= NGX_BUILD_DYNAMIC_MODULE=1 NGX_BUILD_CONFIGURE_OPT="--with-cc-opt='-I$ENV{NGX_WASM_RUNTIME_DIR}/include' --with-ld-opt='$ENV{NGX_WASM_RUNTIME_DIR}/lib/lib$ENV{NGX_WASM_RUNTIME}.a'" make}
 --- grep_nginxV eval
 [
-    qr/ngx_wasm_module \[dev debug $ENV{NGX_WASM_RUNTIME} dyn\]/
+    qr/\[debug $ENV{NGX_WASM_RUNTIME} dyn\]/
 ]
---- run_cmd eval: qq{find $::buildroot -name 'ngx_wasm_module.*' | xargs -I{} nm -g {}}
+--- run_cmd eval: qq{find $::buildroot -name 'ngx_wasmx_module.*' | xargs -I{} nm -g {}}
 --- grep_cmd eval
 [
     qr/T _?ngx_wavm/,
@@ -96,9 +96,9 @@ ngx_wasm_module [dev debug v8 dyn]
 === TEST 6: dynamic module with statically linked runtime - v8 (environment variables)
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'v8'
 --- build eval: qq{NGX_WASM_RUNTIME_INC="$ENV{NGX_WASM_RUNTIME_DIR}/include" NGX_WASM_RUNTIME_LD_OPT="$ENV{NGX_WASM_RUNTIME_DIR}/lib/libwee8.a -L$ENV{NGX_WASM_RUNTIME_DIR}/lib" NGX_BUILD_DYNAMIC_MODULE=1 make}
---- run_cmd eval: qq{find $::buildroot -name 'ngx_wasm_module.*' | xargs -I{} nm -g {}}
+--- run_cmd eval: qq{find $::buildroot -name 'ngx_wasmx_module.*' | xargs -I{} nm -g {}}
 --- grep_nginxV
-ngx_wasm_module [dev debug v8 dyn]
+[debug v8 dyn]
 --- grep_cmd eval
 [
     qr/T _?ngx_wavm/,
@@ -110,9 +110,9 @@ ngx_wasm_module [dev debug v8 dyn]
 === TEST 7: dynamic module with statically linked runtime - v8 (./configure arguments)
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'v8'
 --- build eval: qq{NGX_WASM_RUNTIME_INC= NGX_WASM_RUNTIME_LIB= NGX_WASM_RUNTIME_LD_OPT= NGX_BUILD_DYNAMIC_MODULE=1 NGX_BUILD_CONFIGURE_OPT="--with-cc-opt='-I$ENV{NGX_WASM_RUNTIME_DIR}/include' --with-ld-opt='$ENV{NGX_WASM_RUNTIME_DIR}/lib/libwee8.a -L$ENV{NGX_WASM_RUNTIME_DIR}/lib'" make}
---- run_cmd eval: qq{find $::buildroot -name 'ngx_wasm_module.*' | xargs -I{} nm -g {}}
+--- run_cmd eval: qq{find $::buildroot -name 'ngx_wasmx_module.*' | xargs -I{} nm -g {}}
 --- grep_nginxV
-ngx_wasm_module [dev debug v8 dyn]
+[debug v8 dyn]
 --- grep_cmd eval
 [
     qr/T _?ngx_wavm/,

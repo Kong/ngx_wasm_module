@@ -114,7 +114,7 @@ ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r, ngx_wasm_ops_plan_t *plan,
     loc->plan = plan;
 
     rc = ngx_http_wasm_rctx(r, &rctx);
-    ngx_wasm_assert(rc != NGX_DECLINED);
+    ngx_wa_assert(rc != NGX_DECLINED);
     if (rc != NGX_OK) {
         return NGX_ERROR;
     }
@@ -145,14 +145,14 @@ ngx_http_wasm_ffi_start(ngx_http_request_t *r)
     }
 
 #if 1
-    ngx_wasm_assert(rctx->ffi_attached);
+    ngx_wa_assert(rctx->ffi_attached);
 #else
     /*
      * presently, the above rctx rc is already NGX_DECLINED
      * since loc->plan is empty
      */
     if (!rctx->ffi_attached) {
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_DECLINED;
     }
 #endif
@@ -173,10 +173,10 @@ ngx_http_wasm_ffi_start(ngx_http_request_t *r)
 
     /* ignore errors: resume could trap, but FFI call succeeded */
 
-    ngx_wasm_assert(rc == NGX_OK
-                    || rc == NGX_DONE
-                    || rc == NGX_AGAIN
-                    || rc >= NGX_HTTP_SPECIAL_RESPONSE);
+    ngx_wa_assert(rc == NGX_OK
+                  || rc == NGX_DONE
+                  || rc == NGX_AGAIN
+                  || rc >= NGX_HTTP_SPECIAL_RESPONSE);
 
     return NGX_OK;
 }

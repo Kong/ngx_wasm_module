@@ -56,7 +56,7 @@ ngx_wasm_shm_init(ngx_cycle_t *cycle)
             break;
 
         default:
-            ngx_wasm_assert(0);
+            ngx_wa_assert(0);
             return NGX_ERROR;
         }
     }

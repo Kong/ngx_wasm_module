@@ -68,7 +68,7 @@ hello say
         wasm_call content ngx_rust_tests say_hello;
     }
 --- response_headers_like
-Server: (nginx|openresty)\/\d+\.\d+\.\d+(\.\d+)?(\s\(no pool\))? \(ngx_wasm_module \[.*?\]\)
+Server: (nginx|openresty)\/\d+\.\d+\.\d+(\.\d+)?(\s\(no pool\))? \(ngx_wasmx_module dev \[.*?\]\)
 --- response_body
 hello say
 

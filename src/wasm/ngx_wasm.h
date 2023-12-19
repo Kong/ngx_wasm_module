@@ -2,19 +2,13 @@
 #define _NGX_WASM_H_INCLUDED_
 
 
-#include <ngx_core.h>
+#include <ngx_wasmx.h>
 #include <ngx_wrt.h>
 #include <ngx_wasm_shm.h>
 #if (NGX_SSL)
 #include <ngx_wasm_ssl.h>
 #endif
 
-#if (NGX_DEBUG)
-#include <assert.h>
-#   define ngx_wasm_assert(a)        assert(a)
-#else
-#   define ngx_wasm_assert(a)
-#endif
 
 #define NGX_LOG_DEBUG_WASM           NGX_LOG_DEBUG_ALL
 #define NGX_LOG_WASM_NYI             NGX_LOG_ALERT
@@ -28,9 +22,6 @@
 #define NGX_WASM_DONE_PHASE          15
 #define NGX_WASM_BACKGROUND_PHASE    16
 
-#define NGX_WASM_BAD_FD              (ngx_socket_t) -1
-
-#define NGX_WASM_CONF_ERR_DUPLICATE  "is duplicate"
 #define NGX_WASM_CONF_ERR_NO_WASM                                            \
     "is specified but config has no \"wasm\" section"
 
@@ -46,8 +37,8 @@
 #define NGX_WASM_DEFAULT_RESP_BODY_BUF_SIZE   4096
 
 #define ngx_wasm_core_cycle_get_conf(cycle)                                  \
-    (ngx_get_conf(cycle->conf_ctx, ngx_wasm_module))                         \
-    ? (*(ngx_get_conf(cycle->conf_ctx, ngx_wasm_module)))                    \
+    (ngx_get_conf(cycle->conf_ctx, ngx_wasmx_module))                        \
+    ? (*(ngx_get_conf(cycle->conf_ctx, ngx_wasmx_module)))                   \
       [ngx_wasm_core_module.ctx_index]                                       \
     : NULL
 
@@ -82,9 +73,9 @@ typedef struct ngx_stream_wasm_ctx_s  ngx_stream_wasm_ctx_t;
 
 
 typedef struct {
-    void                        *(*create_conf)(ngx_conf_t *cf);
-    char                        *(*init_conf)(ngx_conf_t *cf, void *conf);
-    ngx_int_t                    (*init)(ngx_cycle_t *cycle);
+    ngx_wa_create_conf_pt              create_conf;
+    ngx_wa_init_conf_pt                init_conf;
+    ngx_wa_init_pt                     init;
 } ngx_wasm_module_t;
 
 
@@ -150,9 +141,7 @@ char *ngx_wasm_core_pwm_lua_resolver_directive(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
 
 
-extern ngx_module_t  ngx_wasm_module;
 extern ngx_module_t  ngx_wasm_core_module;
-extern ngx_uint_t    ngx_wasm_max_module;
 
 
 /* ngx_str_node_t extensions */

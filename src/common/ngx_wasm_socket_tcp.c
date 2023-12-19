@@ -67,7 +67,7 @@ ngx_wasm_socket_tcp_err(ngx_wasm_socket_tcp_t *sock,
             return;
         }
 
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
     }
 }
 
@@ -99,7 +99,7 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
             ngx_wasm_error(&rctx->env);
             break;
         default:
-            ngx_wasm_assert(rc == NGX_OK);
+            ngx_wa_assert(rc == NGX_OK);
             ngx_wasm_continue(&rctx->env);
             break;
         }
@@ -111,7 +111,7 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, sock->log, 0,
                            "NYI - subsystem kind: %d",
                            sock->env.subsys->kind);
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         break;
     }
 }
@@ -145,7 +145,7 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, sock->log, 0,
                            "NYI - subsystem kind: %d",
                            sock->env.subsys->kind);
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_ERROR;
     }
 
@@ -277,7 +277,7 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
             recv_timeout = wcf->recv_timeout;
 
         } else {
-            ngx_wasm_assert(r->loc_conf);
+            ngx_wa_assert(r->loc_conf);
             loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
 
             sock->buffer_size = loc->socket_buffer_size;
@@ -327,7 +327,7 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
         rc = ngx_wasm_socket_tcp_connect_peer(sock);
 #if (NGX_SSL)
         if (rc == NGX_OK) {
-            ngx_wasm_assert(sock->connected);
+            ngx_wa_assert(sock->connected);
 
             if (sock->ssl_conf) {
                 return ngx_wasm_socket_tcp_ssl_handshake(sock);
@@ -384,7 +384,7 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
         break;
 #endif
     default:
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_ERROR;
     }
 
@@ -393,7 +393,7 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
         return NGX_ERROR;
     }
 
-    ngx_wasm_assert(rslv_ctx != NGX_NO_RESOLVER);
+    ngx_wa_assert(rslv_ctx != NGX_NO_RESOLVER);
 
     rslv_ctx->name = rslv_tmp.name;
     rslv_ctx->timeout = rslv_tmp.timeout;
@@ -535,8 +535,8 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
     ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
                    "wasm tcp socket connecting...");
 
-    ngx_wasm_assert(!sock->connected);
-    ngx_wasm_assert(sock->resolved.sockaddr);
+    ngx_wa_assert(!sock->connected);
+    ngx_wa_assert(sock->resolved.sockaddr);
 
     pc = &sock->peer;
     pc->log = sock->log;
@@ -559,7 +559,7 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
         return NGX_ERROR;
     }
 
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_AGAIN);
+    ngx_wa_assert(rc == NGX_OK || rc == NGX_AGAIN);
 
     sock->write_event_handler = ngx_wasm_socket_tcp_connect_handler;
     sock->read_event_handler = ngx_wasm_socket_tcp_connect_handler;
@@ -638,7 +638,7 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock)
 
     if (rc == NGX_OK) {
         rc = ngx_wasm_socket_tcp_ssl_handshake_done(c);
-        ngx_wasm_assert(rc != NGX_AGAIN);
+        ngx_wa_assert(rc != NGX_AGAIN);
 
     } else if (rc == NGX_AGAIN) {
         ngx_add_timer(c->write, sock->connect_timeout);
@@ -895,7 +895,7 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
             continue;
         }
 
-        ngx_wasm_assert(n == NGX_ERROR || n == NGX_AGAIN);
+        ngx_wa_assert(n == NGX_ERROR || n == NGX_AGAIN);
         break;
     }
 
@@ -906,7 +906,7 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
         return NGX_ERROR;
     }
 
-    ngx_wasm_assert(n == NGX_AGAIN);
+    ngx_wa_assert(n == NGX_AGAIN);
 
     sock->write_event_handler = ngx_wasm_socket_tcp_send_handler;
 
@@ -1080,7 +1080,7 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
                 return NGX_OK;
             }
 
-            ngx_wasm_assert(rc == NGX_AGAIN);
+            ngx_wa_assert(rc == NGX_AGAIN);
 
             if (b->pos < b->last) {
                 dd("more to read, continue");
@@ -1150,7 +1150,7 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
         b->last += n;
     }
 
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_AGAIN);
+    ngx_wa_assert(rc == NGX_OK || rc == NGX_AGAIN);
 
     if (ngx_handle_read_event(rev, 0) != NGX_OK) {
         return NGX_ERROR;

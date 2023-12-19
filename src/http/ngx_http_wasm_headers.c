@@ -38,7 +38,7 @@ ngx_http_wasm_htype_list(ngx_http_request_t *r,
         return &r->headers_out.headers;
 
     default:
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NULL;
 
     }
@@ -112,10 +112,10 @@ ngx_http_wasm_set_header(ngx_http_request_t *r,
         break;
     }
 
-    ngx_wasm_assert(hv.key);
-    ngx_wasm_assert(hv.value);
-    ngx_wasm_assert(hv.list);
-    ngx_wasm_assert(hv.handler);
+    ngx_wa_assert(hv.key);
+    ngx_wa_assert(hv.value);
+    ngx_wa_assert(hv.list);
+    ngx_wa_assert(hv.handler);
 
     return hv.handler->handler_(&hv);
 }
@@ -177,7 +177,7 @@ again:
                 goto again;
 
             } else {
-                ngx_wasm_assert(hv->mode == NGX_HTTP_WASM_HEADERS_SET);
+                ngx_wa_assert(hv->mode == NGX_HTTP_WASM_HEADERS_SET);
 
                 dd("updating '%.*s: %.*s' to '%.*s: %.*s'",
                    (int) h[i].key.len, h[i].key.data,
@@ -324,7 +324,7 @@ ngx_http_wasm_set_builtin_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
         return NGX_DECLINED;
     }
 
-    ngx_wasm_assert(hv->mode == NGX_HTTP_WASM_HEADERS_SET);
+    ngx_wa_assert(hv->mode == NGX_HTTP_WASM_HEADERS_SET);
 
     dd("updating existing '%.*s: %.*s' builtin header to '%.*s: %.*s'",
        (int) h->key.len, h->key.data, (int) h->value.len, h->value.data,
