@@ -954,6 +954,8 @@ ngx_http_wasm_log_handler(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
+    rctx->entered_log_phase = 1;
+
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_LOG_PHASE);
 
 #if (NGX_HTTP_WASM_DONE_IN_LOG)

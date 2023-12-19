@@ -111,6 +111,18 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
             goto done;
         }
     }
+#if (NGX_DEBUG)
+    else if (rc == NGX_AGAIN) {
+        /**
+         * Proxy-Wasm idiom for "local response in response headers",
+         * log potential usage and ignore rc.
+         */
+        ngx_log_debug2(NGX_LOG_DEBUG_WASM, r->connection->log, 0,
+                       "wasm \"header_filter\" ops resume rc: %d "
+                       "(resp_chunk_override: %d)", rc,
+                       rctx->resp_chunk_override);
+    }
+#endif
 
     rc = ngx_http_next_header_filter(r);
 
@@ -159,6 +171,14 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
             rctx = mrctx;
         }
     }
+
+    if (rctx->resp_chunk_override) {
+        rctx->resp_chunk_override = 0;
+
+        in = rctx->resp_chunk;
+    }
+
+    rctx->entered_body_filter = 1;
 
     ngx_http_wasm_body_filter_resume(rctx, in);
 

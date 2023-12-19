@@ -320,6 +320,26 @@ ngx_http_wasm_prepend_req_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body)
 }
 
 
+void
+ngx_http_wasm_set_resp_status(ngx_http_wasm_req_ctx_t *rctx,
+    ngx_int_t status, u_char *reason, size_t reason_len)
+{
+    ngx_http_request_t *r = rctx->r;
+
+    r->headers_out.status = status;
+
+    if (r->err_status) {
+        r->err_status = 0;
+    }
+
+    if (reason) {
+        r->headers_out.status_line.data = reason;
+    }
+
+    r->headers_out.status_line.len = reason_len;
+}
+
+
 ngx_int_t
 ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
     size_t at, size_t max)
@@ -327,7 +347,17 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
     ngx_http_request_t  *r = rctx->r;
 
     if (rctx->resp_chunk == NULL) {
-        return NGX_ABORT;
+        if (rctx->entered_log_phase) {
+            return NGX_ABORT;
+        }
+
+        rctx->resp_chunk = ngx_wasm_chain_get_free_buf(rctx->pool,
+                                                       &rctx->free_bufs,
+                                                       body->len,
+                                                       rctx->env.buf_tag, 1);
+        if (rctx->resp_chunk == NULL) {
+            return NGX_ERROR;
+        }
     }
 
     if (r->header_sent && !r->chunked) {
@@ -339,7 +369,7 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
     body->len = ngx_min(body->len, max);
 
     if (ngx_wasm_chain_append(r->connection->pool, &rctx->resp_chunk, at, body,
-                              &rctx->free_bufs, buf_tag, 0)
+                              &rctx->free_bufs, rctx->env.buf_tag, 0)
         != NGX_OK)
     {
         return NGX_ERROR;
@@ -349,8 +379,14 @@ ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body,
                                               &rctx->resp_chunk_eof);
 
     if (!rctx->resp_chunk_len) {
-        /* discard chunk */
-        rctx->resp_chunk = NULL;
+        if (rctx->entered_body_filter) {
+            /* discard chunk */
+            rctx->resp_chunk = NULL;
+
+        } else {
+            rctx->resp_chunk->buf->last_buf = 1;
+            rctx->resp_chunk->buf->last_in_chain = 1;
+        }
     }
 
     return NGX_OK;

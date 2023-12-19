@@ -53,27 +53,28 @@ pausing after "RequestBody"
 
 
 === TEST 3: proxy_wasm - on_response_headers -> Pause
-NYI
+Expects local response set in headers phase.
 --- wasm_modules: on_phases
 --- config
     location /t {
         proxy_wasm on_phases 'pause_on=response_headers';
         return 200;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- error_code: 200
+--- response_body
 --- error_log eval
 [
     qr/pausing after "ResponseHeaders"/,
-    qr#\[error\] .*? bad "on_response_headers" return action: "PAUSE"#,
-    qr#\[info\] .*? filter chain failed resuming: previous error \(invalid return action\)#
+    qr/"ResponseHeaders" returned "PAUSE": local response expected but none produced/,
 ]
+--- no_error_log
+[error]
 
 
 
 === TEST 4: proxy_wasm - on_response_body -> Pause
 Triggers response buffering.
---- skip_no_debug: 5
+--- skip_no_debug
 --- wasm_modules: on_phases
 --- config
     location /t {
@@ -158,7 +159,7 @@ pausing after "RequestBody"
 
 
 === TEST 7: proxy_wasm - subrequest on_response_headers -> Pause
-NYI
+Expects local response set in headers phase.
 --- timeout_expected: 1
 --- abort
 --- load_nginx_modules: ngx_http_echo_module
@@ -181,19 +182,22 @@ NYI
         echo_subrequest_async GET /nop;
     }
 --- error_code: 200
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
+ok
 --- error_log eval
 [
     qr/pausing after "ResponseHeaders"/,
-    qr#\[error\] .*? bad "on_response_headers" return action: "PAUSE"#,
-    qr#\[info\] .*? filter chain failed resuming: previous error \(invalid return action\)#
+    qr/"ResponseHeaders" returned "PAUSE": local response expected but none produced/,
 ]
+--- no_error_log
+[error]
 
 
 
 === TEST 8: proxy_wasm - subrequest on_response_body -> Pause
-NYI
---- skip_no_debug: 5
+Triggers response buffering.
+--- skip_no_debug
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: on_phases
 --- config

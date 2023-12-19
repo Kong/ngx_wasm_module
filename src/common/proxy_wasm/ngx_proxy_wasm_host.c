@@ -1008,16 +1008,19 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    int32_t                           status, reason_len, body_len;
+    int32_t                           status, reason_len, body_len, cl;
 #if (NGX_DEBUG)
     int32_t                           grpc_status;
 #endif
     u_char                           *reason, *body;
     ngx_int_t                         rc;
+    ngx_str_t                         s;
     ngx_array_t                       headers;
     ngx_proxy_wasm_marshalled_map_t   map;
     ngx_proxy_wasm_exec_t            *pwexec;
     ngx_http_wasm_req_ctx_t          *rctx;
+    ngx_http_request_t               *r;
+    static ngx_str_t                  lf = ngx_string("\n");
 
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
@@ -1038,6 +1041,37 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
 
     if (ngx_proxy_wasm_pairs_unmarshal(pwexec, &headers, &map) != NGX_OK) {
         return ngx_proxy_wasm_result_err(rets);
+    }
+
+    if (rctx->entered_header_filter && !rctx->entered_body_filter) {
+        r = rctx->r;
+        cl = body_len;
+        s.data = body;
+        s.len = body_len;
+
+        rc = ngx_http_wasm_set_resp_body(rctx, &s, 0, s.len);
+        if (rc != NGX_OK) {
+            return ngx_proxy_wasm_result_err(rets);
+        }
+
+        if (body_len) {
+            /* append linefeed */
+            cl++;
+
+            rc = ngx_wasm_chain_append(r->connection->pool, &rctx->resp_chunk,
+                                       body_len, &lf, &rctx->free_bufs,
+                                       rctx->env.buf_tag, 0);
+            if (rc != NGX_OK) {
+                return ngx_proxy_wasm_result_err(rets);
+            }
+        }
+
+        ngx_http_wasm_set_resp_status(rctx, status, reason, reason_len);
+        ngx_http_wasm_set_resp_content_length(r, cl);
+
+        rctx->resp_chunk_override = 1;
+
+        return ngx_proxy_wasm_result_ok(rets);
     }
 
     rc = ngx_http_wasm_stash_local_response(rctx, status, reason, reason_len,

@@ -422,6 +422,10 @@ action2rc(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_proxy_wasm_exec_t    *pwexecs;
     ngx_proxy_wasm_filter_t  *filter;
     ngx_proxy_wasm_action_e   action;
+#ifdef NGX_WASM_HTTP
+    ngx_wavm_instance_t      *instance;
+    ngx_http_wasm_req_ctx_t  *rctx;
+#endif
 
     filter = pwexec->filter;
     action = pwctx->action;
@@ -498,6 +502,24 @@ action2rc(ngx_proxy_wasm_ctx_t *pwctx,
     case NGX_PROXY_WASM_ACTION_PAUSE:
         switch (pwctx->phase->index) {
 #ifdef NGX_WASM_HTTP
+        case NGX_HTTP_WASM_HEADER_FILTER_PHASE:
+            instance = ngx_proxy_wasm_pwexec2instance(pwexec);
+            rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
+            ngx_log_debug3(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
+                           "proxy_wasm producing local response in "
+                           "\"ResponseHeaders\" step "
+                           "(filter: %l/%l, pwctx: %p)",
+                           pwexec->index + 1, pwctx->nfilters, pwctx);
+
+            if (!rctx->resp_chunk_override) {
+                ngx_proxy_wasm_log_error(NGX_LOG_WARN, pwexec->log, 0,
+                                         "\"ResponseHeaders\" returned "
+                                         "\"PAUSE\": local response expected "
+                                         "but none produced");
+            }
+
+            goto yield;
         case NGX_HTTP_WASM_BODY_FILTER_PHASE:
             ngx_log_debug3(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
                            "proxy_wasm buffering response after "

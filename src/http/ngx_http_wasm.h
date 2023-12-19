@@ -66,15 +66,19 @@ struct ngx_http_wasm_req_ctx_s {
 
     /* flags */
 
+    unsigned                           local_resp_flushed:1;    /* local response can only be flushed once */
     unsigned                           sock_buffer_reuse:1;     /* convenience alias to loc->socket_buffer_reuse */
     unsigned                           req_keepalive:1;         /* r->keepalive copy */
     unsigned                           reset_resp_shims:1;
     unsigned                           entered_content_phase:1; /* entered content handler */
     unsigned                           exited_content_phase:1;  /* executed content handler at least once */
     unsigned                           entered_header_filter:1; /* entered header_filter handler */
+    unsigned                           entered_body_filter:1;   /* entered body_filter handler */
+    unsigned                           entered_log_phase:1;     /* entered log phase */
 
     unsigned                           in_wev:1;                /* in wev_handler */
     unsigned                           resp_content_chosen:1;   /* content handler has an output to produce */
+    unsigned                           resp_chunk_override:1;   /* override response chunk in body_filter handler */
     unsigned                           resp_buffering:1;        /* enable response buffering */
     unsigned                           resp_content_sent:1;     /* has started sending output (may have yielded) */
     unsigned                           resp_finalized:1;        /* finalized connection (ourselves) */
@@ -116,6 +120,8 @@ typedef struct {
 /* http */
 ngx_int_t ngx_http_wasm_rctx(ngx_http_request_t *r,
     ngx_http_wasm_req_ctx_t **out);
+ngx_int_t ngx_http_wasm_set_local_response_body(ngx_http_wasm_req_ctx_t *rctx,
+    u_char *body, size_t body_len);
 ngx_int_t ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
     ngx_int_t status, u_char *reason, size_t reason_len, ngx_array_t *headers,
     u_char *body, size_t body_len);
@@ -154,6 +160,8 @@ ngx_uint_t ngx_http_wasm_count_shim_headers(ngx_http_wasm_req_ctx_t *rctx);
 /* payloads */
 ngx_int_t ngx_http_wasm_set_req_body(ngx_http_wasm_req_ctx_t *rctx,
     ngx_str_t *body, size_t at, size_t max);
+void ngx_http_wasm_set_resp_status(ngx_http_wasm_req_ctx_t *rctx,
+    ngx_int_t status, u_char *reason, size_t reason_len);
 ngx_int_t ngx_http_wasm_set_resp_body(ngx_http_wasm_req_ctx_t *rctx,
     ngx_str_t *body, size_t at, size_t max);
 ngx_int_t ngx_http_wasm_prepend_req_body(ngx_http_wasm_req_ctx_t *rctx,

@@ -151,7 +151,7 @@ pub(crate) fn test_set_property(ctx: &(dyn TestContext + 'static)) {
 }
 
 pub(crate) fn test_send_status(ctx: &TestHttp, status: u32) {
-    ctx.send_http_response(status, vec![], None)
+    ctx.send_http_response(status, vec![], None);
 }
 
 pub(crate) fn test_send_headers(ctx: &TestHttp) {

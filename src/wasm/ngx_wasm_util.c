@@ -98,6 +98,7 @@ ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
             pos += len;
         }
 
+        buf->flush = 0;
         buf->last_buf = 0;
         buf->last_in_chain = 0;
     }
@@ -273,6 +274,7 @@ ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
         nl = cl;
         cl = cl->next;
         nl->next = *free;
+
         if (*free) {
             *free = nl;
         }
