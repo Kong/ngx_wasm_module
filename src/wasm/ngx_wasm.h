@@ -2,19 +2,13 @@
 #define _NGX_WASM_H_INCLUDED_
 
 
-#include <ngx_core.h>
+#include <ngx_wasmx.h>
 #include <ngx_wrt.h>
 #include <ngx_wasm_shm.h>
 #if (NGX_SSL)
 #include <ngx_wasm_ssl.h>
 #endif
 
-#if (NGX_DEBUG)
-#include <assert.h>
-#   define ngx_wasm_assert(a)        assert(a)
-#else
-#   define ngx_wasm_assert(a)
-#endif
 
 #define NGX_LOG_DEBUG_WASM           NGX_LOG_DEBUG_ALL
 #define NGX_LOG_WASM_NYI             NGX_LOG_ALERT

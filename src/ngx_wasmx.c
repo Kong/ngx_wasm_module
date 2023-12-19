@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm.h>
+#include <ngx_ipc.h>
 
 
 static char *ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -11,6 +12,7 @@ static ngx_int_t ngx_wasm_init(ngx_cycle_t *cycle);
 
 
 ngx_uint_t  ngx_wasm_max_module;
+ngx_uint_t  ngx_ipc_max_module;
 
 
 static ngx_command_t  ngx_wasm_cmds[] = {
@@ -64,13 +66,15 @@ ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     ngx_wasm_max_module = ngx_count_modules(cf->cycle, NGX_WASM_MODULE);
+    ngx_ipc_max_module = ngx_count_modules(cf->cycle, NGX_IPC_MODULE);
 
     ctx = ngx_pcalloc(cf->pool, sizeof(void *));
     if (ctx == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    *ctx = ngx_pcalloc(cf->pool, ngx_wasm_max_module * sizeof(void *));
+    *ctx = ngx_pcalloc(cf->pool, ngx_wasm_max_module * sizeof(void *)
+                                 + ngx_ipc_max_module * sizeof(void *));
     if (*ctx == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -144,6 +148,23 @@ ngx_wasm_init(ngx_cycle_t *cycle)
 
     for (i = 0; cycle->modules[i]; i++) {
         if (cycle->modules[i]->type != NGX_WASM_MODULE) {
+            continue;
+        }
+
+        m = cycle->modules[i]->ctx;
+
+        if (m->init) {
+            rc = m->init(cycle);
+            if (rc != NGX_OK) {
+                return rc;
+            }
+        }
+    }
+
+    /* NGX_IPC_MODULES init */
+
+    for (i = 0; cycle->modules[i]; i++) {
+        if (cycle->modules[i]->type != NGX_IPC_MODULE) {
             continue;
         }
 
