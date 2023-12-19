@@ -18,7 +18,7 @@ __DATA__
 === TEST 1: build default options
 --- build: make
 --- grep_nginxV
-ngx_wasm_module [dev debug
+ngx_wasmx_module dev [debug
 --with-debug
 -O0 -ggdb3 -gdwarf
 built with OpenSSL
@@ -28,7 +28,7 @@ built with OpenSSL
 === TEST 2: build without debug
 --- build: make NGX_BUILD_DEBUG=0
 --- grep_nginxV
-ngx_wasm_module [dev
+ngx_wasmx_module dev [
 -O0 -ggdb3 -gdwarf
 built with OpenSSL
 --- no_grep_nginxV
@@ -70,7 +70,7 @@ running with OpenSSL
 --- build: make NGX_BUILD_SSL_STATIC=1
 --- grep_nginxV eval
 [
-    qr/ngx_wasm_module \[dev debug/,
+    qr/ngx_wasmx_module dev \[debug/,
     qr/built with OpenSSL $::openssl_ver/
 ]
 --- run_cmd eval: qq{nm -g $::buildroot/nginx}
@@ -138,7 +138,44 @@ ngx_stream_wasm_module
 === TEST 10: build with OpenResty
 --- build: NGX_BUILD_OPENRESTY=1.21.4.1 make
 --- grep_nginxV
-openresty/1.21.4.1 (ngx_wasm_module [dev debug
+openresty/1.21.4.1 (ngx_wasmx_module dev [debug
 built with OpenSSL
 --with-debug
 -O0 -ggdb3 -gdwarf
+
+
+
+=== TEST 11: build without IPC by default
+--- build: make
+--- grep_nginxV
+ngx_wasmx_module dev [debug
+built by
+--- no_grep_nginxV
+ipc
+--- run_cmd eval: qq{nm -g $::buildroot/nginx}
+--- no_grep_cmd
+ngx_ipc_core_module
+
+
+
+=== TEST 12: build with IPC (NGX_IPC=1)
+--- build: make NGX_IPC=1
+--- grep_nginxV
+ngx_wasmx_module dev [ipc
+built by
+built with OpenSSL
+--- run_cmd eval: qq{nm -g $::buildroot/nginx}
+--- grep_cmd
+ngx_ipc_core_module
+
+
+
+=== TEST 13: build with IPC (NGX_IPC=YES)
+--- build: make NGX_IPC=YES
+--- grep_nginxV
+ngx_wasmx_module dev [ipc
+built by
+built with OpenSSL
+--- run_cmd eval: qq{nm -g $::buildroot/nginx}
+--- grep_cmd
+ngx_ipc_core_module

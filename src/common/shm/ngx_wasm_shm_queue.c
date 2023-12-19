@@ -19,7 +19,7 @@ typedef struct {
 static ngx_inline ngx_wasm_shm_queue_t *
 ngx_wasm_shm_get_queue(ngx_wasm_shm_t *shm)
 {
-    ngx_wasm_assert(shm->type == NGX_WASM_SHM_TYPE_QUEUE);
+    ngx_wa_assert(shm->type == NGX_WASM_SHM_TYPE_QUEUE);
     return shm->data;
 }
 
@@ -54,7 +54,7 @@ inc_ptr(ngx_wasm_shm_queue_t *queue, ngx_uint_t *ptr, ngx_uint_t n)
 
     if (new_ptr >= cap) {
         new_ptr = new_ptr - cap;
-        ngx_wasm_assert(new_ptr < cap);
+        ngx_wa_assert(new_ptr < cap);
     }
 
     *ptr = new_ptr;
@@ -68,8 +68,8 @@ circular_write(ngx_log_t *log, ngx_wasm_shm_queue_t *queue,
     ngx_uint_t  cap = queue_capacity(queue);
     ngx_uint_t  forward_capacity = cap - ptr;
 
-    ngx_wasm_assert(data_size <= cap - queue_occupancy(queue));
-    ngx_wasm_assert(ptr < cap);
+    ngx_wa_assert(data_size <= cap - queue_occupancy(queue));
+    ngx_wa_assert(ptr < cap);
 
     dd("forward_capacity: %lu, data_size: %lu",
        forward_capacity, data_size);
@@ -95,9 +95,9 @@ circular_read(ngx_log_t *log, ngx_wasm_shm_queue_t *queue,
     ngx_uint_t  cap = queue_capacity(queue);
     ngx_uint_t  forward_capacity = cap - ptr;
 
-    ngx_wasm_assert(data_size <= queue_occupancy(queue));
-    ngx_wasm_assert(ptr < cap);
-    ngx_wasm_assert(data_out);
+    ngx_wa_assert(data_size <= queue_occupancy(queue));
+    ngx_wa_assert(ptr < cap);
+    ngx_wa_assert(data_out);
 
     if (data_size >= forward_capacity) {
         ngx_log_debug0(NGX_LOG_DEBUG_WASM, log, 0,
@@ -119,8 +119,8 @@ check_queue_invariance(ngx_wasm_shm_queue_t *queue)
 #if (NGX_DEBUG)
     ngx_uint_t  cap = queue_capacity(queue);
 
-    ngx_wasm_assert(queue->push_ptr < cap);
-    ngx_wasm_assert(queue->pop_ptr < cap);
+    ngx_wa_assert(queue->push_ptr < cap);
+    ngx_wa_assert(queue->pop_ptr < cap);
 #endif
 }
 
@@ -139,7 +139,7 @@ ngx_wasm_shm_queue_init(ngx_wasm_shm_t *shm)
     }
 
     buffer_size = shm->shpool->end - shm->shpool->start;
-    ngx_wasm_assert(buffer_size > reserved_size);
+    ngx_wa_assert(buffer_size > reserved_size);
     buffer_size -= reserved_size;
 
     queue->buffer = ngx_slab_calloc(shm->shpool, buffer_size);

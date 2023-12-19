@@ -156,8 +156,8 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     /* rctx or fake request */
 
     if (rctx == NULL) {
-        ngx_wasm_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
-        ngx_wasm_assert(pwexec->parent->id == NGX_PROXY_WASM_ROOT_CTX_ID);
+        ngx_wa_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+        ngx_wa_assert(pwexec->parent->id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
         c = ngx_http_wasm_create_fake_connection(pwexec->pool);
         if (c == NULL) {
@@ -173,7 +173,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
             return NULL;
         }
 
-        ngx_wasm_assert(r->pool == rctxp->pool);
+        ngx_wa_assert(r->pool == rctxp->pool);
 
         rctxp->data = pwexec->parent;
 
@@ -354,7 +354,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     sock = &call->sock;
 
-    ngx_wasm_assert(rctx);
+    ngx_wa_assert(rctx);
 
     if (ngx_wasm_socket_tcp_init(sock, &call->host, enable_ssl,
                                  &call->authority, &rctx->env)
@@ -712,7 +712,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 
     dd("enter");
 
-    ngx_wasm_assert(&call->sock == sock);
+    ngx_wa_assert(&call->sock == sock);
 
     if (sock->err) {
         goto error;
@@ -743,7 +743,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
             break;
         }
 
-        ngx_wasm_assert(rc == NGX_OK);
+        ngx_wa_assert(rc == NGX_OK);
 
         call->state = NGX_HTTP_PROXY_WASM_DISPATCH_SENDING;
 
@@ -773,7 +773,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
                                 &rctx->free_bufs, &rctx->busy_bufs,
                                 &nl, buf_tag);
 
-        ngx_wasm_assert(rc == NGX_OK);
+        ngx_wa_assert(rc == NGX_OK);
 
         call->state = NGX_HTTP_PROXY_WASM_DISPATCH_RECEIVING;
 
@@ -791,7 +791,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
             break;
         }
 
-        ngx_wasm_assert(rc == NGX_OK);
+        ngx_wa_assert(rc == NGX_OK);
 
         call->state = NGX_HTTP_PROXY_WASM_DISPATCH_RECEIVED;
 
@@ -893,7 +893,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 
     }
 
-    ngx_wasm_assert(rc == NGX_AGAIN || rc == NGX_OK);
+    ngx_wa_assert(rc == NGX_AGAIN || rc == NGX_OK);
 
     goto done;
 
@@ -912,7 +912,7 @@ error2:
     ngx_wasm_error(&rctx->env);
     ngx_http_proxy_wasm_dispatch_err(call);
 
-    ngx_wasm_assert(rc == NGX_ERROR);
+    ngx_wa_assert(rc == NGX_ERROR);
 
 done:
 

@@ -87,7 +87,7 @@ ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
             pos += n;
             buf->last = buf->pos + n;  /* partially consume buffer */
 
-            ngx_wasm_assert(pos == offset);
+            ngx_wa_assert(pos == offset);
 
         } else if (pos == offset) {
             /* past start offset, consume buffer */
@@ -108,7 +108,7 @@ ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
         pos += fill;
     }
 
-    ngx_wasm_assert(pos == offset);
+    ngx_wa_assert(pos == offset);
 
     return fill;
 }
@@ -259,7 +259,7 @@ ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
 
         if (buf->tag != tag) {
             if (ll) {
-                /* ngx_wasm_assert(ll->next == cl); */
+                /* ngx_wa_assert(ll->next == cl); */
                 ll->next = cl->next;
             }
 
@@ -288,7 +288,7 @@ ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
     buf = nl->buf;
 
 #if 1
-    ngx_wasm_assert(!extend);
+    ngx_wa_assert(!extend);
 #else
     /* presently all calls have extend = 0 therefore fill == 0 */
     if (fill) {
@@ -301,7 +301,7 @@ ngx_wasm_chain_append(ngx_pool_t *pool, ngx_chain_t **in, size_t at,
 
     /* write */
 
-    ngx_wasm_assert(rest == str->len);
+    ngx_wa_assert(rest == str->len);
 
     buf->last = ngx_cpymem(buf->last, str->data, rest);
 

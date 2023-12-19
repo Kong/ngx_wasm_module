@@ -30,6 +30,12 @@ URL_KONG_WASM_RUNTIMES="https://github.com/kong/ngx_wasm_runtimes"
 
 export PERL5LIB=$DIR_CPANM/lib/perl5
 
+get_addon_name() {
+    local config="$NGX_WASM_DIR/config"
+
+    perl -nle"print if m{^ngx_addon_name=}" $config | cut -d "=" -f 2
+}
+
 get_variable_from_makefile() {
     local var_name="$1"
     local makefile="$NGX_WASM_DIR/Makefile"
@@ -139,7 +145,8 @@ install_openssl() {
 build_nginx() {
     local tree="$1"
     local build_opts=()
-    local build_name=(dev)
+    local build_name="$(get_addon_name) dev"
+    local build_name_opts=()
     local ngx_tree=$tree
     local src_tree=$tree
 
@@ -171,13 +178,17 @@ build_nginx() {
     # Build options
     ###############
 
+    if [[ "$NGX_IPC" != 0 ]]; then
+        build_name_opts+=("ipc")
+    fi
+
     if [[ "$NGX_BUILD_NOPOOL" == 1 ]]; then
-        build_name+=" nopool"
+        build_name_opts+=("nopool")
         NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_HAVE_NOPOOL -DNGX_DEBUG_MALLOC"
     fi
 
     if [[ -n "$NGX_BUILD_FSANITIZE" ]]; then
-        build_name+=" san:$NGX_BUILD_FSANITIZE"
+        build_name_opts+=("san:$NGX_BUILD_FSANITIZE")
         NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -g \
                           -fsanitize=$NGX_BUILD_FSANITIZE \
                           -fsanitize-blacklist=$NGX_WASM_DIR/asan.ignore \
@@ -189,35 +200,23 @@ build_nginx() {
         # clang 13: -fsanitize-ignorelist=$NGX_WASM_DIR/asan.ignore
     fi
 
-    if [[ "$NGX_BUILD_CLANG_ANALYZER" == 1 ]]; then
-        build_name+=" clang-analyzer"
-        NGX_BUILD_CMD="scan-build -o $DIR_SCANS \
-                       --exclude $DIR_WORK\
-                       -analyze-headers \
-                       --force-analyze-debug-code \
-                       --html-title='$NGX - ngx_wasm_module [${build_name[@]}]' \
-                       --use-cc=${CC:-clang} \
-                       --status-bugs"
-        NGX_BUILD_DEBUG=1
-    fi
-
     if [[ "$NGX_BUILD_GCOV" == 1 ]]; then
-        build_name+=" gcov"
+        build_name_opts+=("gcov")
         NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -fprofile-arcs -ftest-coverage"
         NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT --coverage"
     fi
 
     if [[ "$NGX_BUILD_DEBUG" == 1 ]]; then
-        build_name+=" debug"
+        build_name_opts+=("debug")
         build_opts+="--with-debug "
     fi
 
     if [[ -n "$NGX_WASM_RUNTIME" ]]; then
-        build_name+=" $NGX_WASM_RUNTIME"
+        build_name_opts+=("$NGX_WASM_RUNTIME")
     fi
 
     if [[ "$NGX_BUILD_DYNAMIC_MODULE" == 1 ]]; then
-        build_name+=" dyn"
+        build_name_opts+=("dyn")
         build_opts+="--add-dynamic-module=$NGX_WASM_DIR "
 
     else
@@ -254,9 +253,21 @@ build_nginx() {
             build_opts+="--with-stream_ssl_module "
             build_opts+="--with-stream_ssl_preread_module "
         fi
-    fi
 
-    local name="${build_name[@]}"
+        if [[ "$NGX_BUILD_CLANG_ANALYZER" == 1 ]]; then
+            build_name_opts+=("clang-analyzer")
+            NGX_BUILD_CMD="scan-build -o $DIR_SCANS \
+                           --exclude $DIR_WORK\
+                           -analyze-headers \
+                           --force-analyze-debug-code \
+                           --html-title='$NGX - $build_name [$(join ' ' ${build_name_opts[@]})]' \
+                           --use-cc=${CC:-clang} \
+                           --status-bugs"
+            NGX_BUILD_DEBUG=1
+        fi
+    fi  # build options
+
+    local name_opts=$(join ' ' ${build_name_opts[@]})
 
     #########
     # Patches
@@ -282,12 +293,13 @@ build_nginx() {
 
     # Build options hash to determine rebuild
     local hash_opt_txt="ngx=$ngx_ver.$tree.\
-                        build_name=$name.\
+                        build_opts=$name_opts.\
                         cc=$CC.\
                         conf_opt=$NGX_BUILD_CONFIGURE_OPT.\
                         cc_opt=$NGX_BUILD_CC_OPT.\
                         ld_opt=$NGX_BUILD_LD_OPT.\
                         ssl=$NGX_BUILD_SSL.\
+                        ipc=$NGX_IPC.\
                         dynamic=$NGX_BUILD_DYNAMIC_MODULE.\
                         cargo=$NGX_WASM_CARGO.\
                         hash_src=$hash_src"
@@ -374,7 +386,7 @@ build_nginx() {
             fi
 
             eval ./$configure \
-                "--build='ngx_wasm_module [$name]'" \
+                "--build='$build_name [$name_opts]'" \
                 "--builddir=$NGX_BUILD_DIR_BUILDROOT" \
                 "--prefix=$NGX_BUILD_DIR_PREFIX" \
                 "--with-cc-opt='$NGX_BUILD_CC_OPT'" \
@@ -399,6 +411,12 @@ build_nginx() {
 }
 
 # utils
+
+join() {
+    local sep=$1 ret=$2
+    shift 2 || shift $(($#))
+    printf "%s" "$ret${@/#/$sep}"
+}
 
 download() {
     local output=$1

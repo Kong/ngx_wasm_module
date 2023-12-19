@@ -36,7 +36,7 @@ typedef struct {
 static ngx_inline ngx_wasm_shm_kv_t *
 ngx_wasm_shm_get_kv(ngx_wasm_shm_t *shm)
 {
-    ngx_wasm_assert(shm->type == NGX_WASM_SHM_TYPE_KV);
+    ngx_wa_assert(shm->type == NGX_WASM_SHM_TYPE_KV);
     return shm->data;
 }
 
@@ -128,7 +128,7 @@ queue_for_node(ngx_wasm_shm_t *shm, ngx_wasm_shm_kv_node_t *n)
     }
 
     /* unreachable */
-    ngx_wasm_assert(0);
+    ngx_wa_assert(0);
     return NULL;
 }
 

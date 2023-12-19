@@ -15,7 +15,7 @@ ngx_http_wasm_hfuncs_resp_get_status(ngx_wavm_instance_t *instance,
     ngx_http_request_t       *r = rctx->r;
     uint32_t                  status;
 
-    if (r->connection->fd == NGX_WASM_BAD_FD) {
+    if (r->connection->fd == NGX_WA_BAD_FD) {
         return NGX_WAVM_BAD_USAGE;
     }
 
@@ -47,7 +47,7 @@ ngx_http_wasm_hfuncs_resp_set_status(ngx_wavm_instance_t *instance,
     ngx_http_request_t       *r = rctx->r;
     uint32_t                  status;
 
-    if (r->connection->fd == NGX_WASM_BAD_FD) {
+    if (r->connection->fd == NGX_WA_BAD_FD) {
         return NGX_WAVM_BAD_USAGE;
     }
 
@@ -86,7 +86,7 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
     body_len = args[1].of.i32;
     body = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, body_len);
 
-    if (r->connection->fd == NGX_WASM_BAD_FD) {
+    if (r->connection->fd == NGX_WA_BAD_FD) {
         return NGX_WAVM_BAD_USAGE;
     }
 
@@ -135,7 +135,7 @@ ngx_http_wasm_hfuncs_resp_say(ngx_wavm_instance_t *instance,
 
     } else if (rc == NGX_AGAIN) {
         /* TODO: NYI - NGX_WAVM_AGAIN */
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_WAVM_NYI;
     }
 

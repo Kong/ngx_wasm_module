@@ -205,7 +205,7 @@ ngx_wasm_http_alloc_large_buffer(ngx_wasm_http_reader_ctx_t *in_ctx)
                    r->header_in->pos - old, b->end - b->pos);
 
 #if 1
-    ngx_wasm_assert(r->header_in->pos - old <= b->end - b->start);
+    ngx_wa_assert(r->header_in->pos - old <= b->end - b->start);
 
 #else
     if (r->header_in->pos - old > b->end - b->start) {
@@ -314,7 +314,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
     ngx_http_upstream_main_conf_t   *umcf;
     ngx_http_wasm_req_ctx_t         *rctx;
 
-    ngx_wasm_assert(bytes);
+    ngx_wa_assert(bytes);
 
     r = &in_ctx->fake_r;
     rctx = in_ctx->rctx;
@@ -358,7 +358,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                 return NGX_AGAIN;
             }
 
-            ngx_wasm_assert(rc == NGX_OK);
+            ngx_wa_assert(rc == NGX_OK);
 
             buf_in->buf->last = src->pos;
 
@@ -437,7 +437,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                 break;
             }
 
-            ngx_wasm_assert(rc == NGX_OK);
+            ngx_wa_assert(rc == NGX_OK);
 
             /* header */
 
@@ -508,7 +508,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                     break;
                 }
 
-                ngx_wasm_assert(rc == NGX_OK);
+                ngx_wa_assert(rc == NGX_OK);
 
                 in_ctx->body_len += in_ctx->chunked.size;
                 in_ctx->rest = in_ctx->chunked.size;
@@ -581,8 +581,8 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                 return rc;
             }
 
-            ngx_wasm_assert(rc == NGX_OK);
-            ngx_wasm_assert(in_ctx->rest == 0);
+            ngx_wa_assert(rc == NGX_OK);
+            ngx_wa_assert(in_ctx->rest == 0);
 
             in_ctx->chunked.size = 0;
 
@@ -624,7 +624,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
         }
 
 #if 0
-        ngx_wasm_assert((size_t) ngx_buf_size(buf) == in_ctx->body_len);
+        ngx_wa_assert((size_t) ngx_buf_size(buf) == in_ctx->body_len);
 
         dd("body_len: %ld", in_ctx->body_len);
 

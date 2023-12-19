@@ -35,6 +35,7 @@ export NGX_BUILD_GCOV ?= 0
 export NGX_BUILD_FORCE ?= 0
 
 # Public - config
+export NGX_IPC ?= 0
 export NGX_WASM_RUNTIME ?= wasmtime
 export NGX_WASM_RUNTIME_INC ?=
 export NGX_WASM_RUNTIME_LIB ?=

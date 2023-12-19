@@ -30,6 +30,7 @@ our @EXPORT = qw(
     plan_tests
     skip_hup
     skip_no_ssl
+    skip_no_ipc
     skip_no_debug
     skip_no_go_sdk
     skip_no_assemblyscript_sdk
@@ -58,15 +59,21 @@ sub skip_hup {
     }
 }
 
-sub skip_no_debug {
-    if ($nginxV !~ m/--with-debug/) {
-        plan(skip_all => "--with-debug required (NGX_BUILD_DEBUG=1)");
-    }
-}
-
 sub skip_no_ssl {
     if ($nginxV !~ m/built with \S+SSL/) {
         plan(skip_all => "SSL support required (NGX_BUILD_SSL=1)");
+    }
+}
+
+sub skip_no_ipc {
+    if ($nginxV !~ m/ipc\s/) {
+        plan(skip_all => "ipc required (NGX_IPC=1)");
+    }
+}
+
+sub skip_no_debug {
+    if ($nginxV !~ m/--with-debug/) {
+        plan(skip_all => "--with-debug required (NGX_BUILD_DEBUG=1)");
     }
 }
 
@@ -119,13 +126,13 @@ add_block_preprocessor(sub {
         @dyn_modules = split /\s+/, $load_nginx_modules;
     }
 
-    # ngx_wasm_module.so injection
+    # ngx_wasmx_module.so injection
 
     if (defined $ENV{NGX_BUILD_DYNAMIC_MODULE}
         && $ENV{NGX_BUILD_DYNAMIC_MODULE} == 1
-        && -e "$buildroot/ngx_wasm_module.so")
+        && -e "$buildroot/ngx_wasmx_module.so")
     {
-        push @dyn_modules, "ngx_wasm_module";
+        push @dyn_modules, "ngx_wasmx_module";
     }
 
     if (@dyn_modules) {

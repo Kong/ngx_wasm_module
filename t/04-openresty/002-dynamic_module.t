@@ -13,7 +13,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: OpenResty + dyn ngx_wasm_module - Swap necessary modules when loaded in OpenResty
+=== TEST 1: OpenResty + dyn ngx_wasmx_module - Swap necessary modules when loaded in OpenResty
 See notes in ngx_wasm_core_module.c
 --- skip_eval: 4: $::dyn != 1
 --- load_nginx_modules: ngx_http_headers_more_filter_module

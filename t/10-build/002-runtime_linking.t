@@ -18,7 +18,7 @@ __DATA__
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'wasmtime'
 --- build: make
 --- grep_nginxV
-ngx_wasm_module [dev debug wasmtime]
+[debug wasmtime]
 built by
 --- grep_libs
 libwasmtime
@@ -29,7 +29,7 @@ libwasmtime
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'wasmtime'
 --- build eval: qq{NGX_WASM_RUNTIME_INC= NGX_WASM_RUNTIME_LIB= NGX_WASM_RUNTIME_LD_OPT= NGX_BUILD_CONFIGURE_OPT="--with-cc-opt='-I$ENV{NGX_WASM_RUNTIME_DIR}/include' --with-ld-opt='-L$ENV{NGX_WASM_RUNTIME_DIR}'" make}
 --- grep_nginxV
-ngx_wasm_module [dev debug wasmtime]
+[debug wasmtime]
 built by
 --- grep_libs
 libwasmtime
@@ -40,7 +40,7 @@ libwasmtime
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'wasmer'
 --- build: make
 --- grep_nginxV
-ngx_wasm_module [dev debug wasmer]
+[debug wasmer]
 built by
 --- grep_libs
 libwasmer
@@ -51,7 +51,7 @@ libwasmer
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'wasmer'
 --- build eval: qq{NGX_WASM_RUNTIME_INC= NGX_WASM_RUNTIME_LIB= NGX_WASM_RUNTIME_LD_OPT= NGX_BUILD_CONFIGURE_OPT="--with-cc-opt='-I$ENV{NGX_WASM_RUNTIME_DIR}/include' --with-ld-opt='-L$ENV{NGX_WASM_RUNTIME_DIR}'" make}
 --- grep_nginxV
-ngx_wasm_module [dev debug wasmer]
+[debug wasmer]
 built by
 --- grep_libs
 libwasmer
@@ -63,7 +63,7 @@ libwasmer
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'v8'
 --- build: make
 --- grep_nginxV
-ngx_wasm_module [dev debug v8]
+[debug v8]
 built by
 --- grep_libs
 libwee8
@@ -98,7 +98,7 @@ libwee8
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'v8'
 --- build eval: qq{NGX_WASM_RUNTIME_LD_OPT="$ENV{NGX_WASM_RUNTIME_DIR}/lib/libwee8.a -L$ENV{NGX_WASM_RUNTIME_DIR}/lib" make}
 --- grep_nginxV
-ngx_wasm_module [dev debug v8]
+[debug v8]
 --- run_cmd eval: qq{nm -g $::buildroot/nginx}
 --- grep_cmd eval
 [
@@ -113,7 +113,7 @@ libwee8
 --- skip_eval: 4: $ENV{NGX_WASM_RUNTIME} ne 'v8'
 --- build eval: qq{NGX_WASM_RUNTIME_INC= NGX_WASM_RUNTIME_LIB= NGX_WASM_RUNTIME_LD_OPT= NGX_BUILD_CONFIGURE_OPT="--with-cc-opt='-I$ENV{NGX_WASM_RUNTIME_DIR}/include' --with-ld-opt='$ENV{NGX_WASM_RUNTIME_DIR}/lib/libwee8.a -L$ENV{NGX_WASM_RUNTIME_DIR}'" make}
 --- grep_nginxV
-ngx_wasm_module [dev debug v8]
+[debug v8]
 --- run_cmd eval: qq{nm -g $::buildroot/nginx}
 --- grep_cmd eval
 [

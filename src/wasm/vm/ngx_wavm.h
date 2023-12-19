@@ -156,7 +156,7 @@ ngx_wavm_instance_set_data(ngx_wavm_instance_t *instance, void *data,
 static ngx_inline size_t
 ngx_wavm_memory_data_size(ngx_wrt_extern_t *mem)
 {
-    ngx_wasm_assert(mem->kind == NGX_WRT_EXTERN_MEMORY);
+    ngx_wa_assert(mem->kind == NGX_WRT_EXTERN_MEMORY);
 
 #ifdef NGX_WASM_HAVE_WASMTIME
     return wasmtime_memory_data_size(mem->context, &mem->ext.of.memory);
@@ -170,7 +170,7 @@ ngx_wavm_memory_data_size(ngx_wrt_extern_t *mem)
 static ngx_inline byte_t *
 ngx_wavm_memory_base(ngx_wrt_extern_t *mem)
 {
-    ngx_wasm_assert(mem->kind == NGX_WRT_EXTERN_MEMORY);
+    ngx_wa_assert(mem->kind == NGX_WRT_EXTERN_MEMORY);
 
 #ifdef NGX_WASM_HAVE_WASMTIME
     return (byte_t *) wasmtime_memory_data(mem->context, &mem->ext.of.memory);
@@ -185,7 +185,7 @@ static ngx_inline void *
 ngx_wavm_memory_lift(ngx_wrt_extern_t *mem, ngx_wavm_ptr_t p,
     uint32_t size, uint32_t align, unsigned *err_count)
 {
-    ngx_wasm_assert(mem->kind == NGX_WRT_EXTERN_MEMORY);
+    ngx_wa_assert(mem->kind == NGX_WRT_EXTERN_MEMORY);
 
     if (p == 0) {
         /* NULL pointers are only valid for empty slices */

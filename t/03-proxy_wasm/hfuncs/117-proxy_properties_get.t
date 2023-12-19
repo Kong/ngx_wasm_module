@@ -483,7 +483,7 @@ TODO: fix what looks like an nginx memleak:
 ==15082==    by 0x163074: ngx_single_process_cycle (ngx_process_cycle.c:300)
 ==15082==    by 0x135378: main (nginx.c:380)
 
-Also caused without ngx_wasm_module compiled in, and with tcp & unix upstreams.
+Also caused without ngx_wasmx_module compiled in, and with tcp & unix upstreams.
 
 --- skip_eval: 5: ($::nginxV !~ m/built with OpenSSL/ || $ENV{TEST_NGINX_USE_VALGRIND} == 1)
 --- load_nginx_modules: ngx_http_echo_module

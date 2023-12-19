@@ -189,7 +189,7 @@ ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx)
     }
 
     if (rctx->local_resp_flushed) {
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_ABORT;
     }
 

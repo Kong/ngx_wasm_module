@@ -101,7 +101,7 @@ ngx_wasm_core_flag_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                            NGX_WASM_RUNTIME, fname);
         return NGX_CONF_ERROR;
     default:
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         break;
     }
 
@@ -206,7 +206,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     }
 
     mapping->name = *name;
-    mapping->zone = ngx_shared_memory_add(cf, name, size, &ngx_wasm_module);
+    mapping->zone = ngx_shared_memory_add(cf, name, size, &ngx_wasmx_module);
     if (mapping->zone == NULL) {
         return NGX_CONF_ERROR;
     }

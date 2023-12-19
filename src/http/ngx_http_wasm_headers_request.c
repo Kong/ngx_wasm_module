@@ -295,7 +295,7 @@ ngx_http_wasm_set_ua_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 
     if (user_agent == NULL) {
         /* cleared */
-        ngx_wasm_assert(hv->mode == NGX_HTTP_WASM_HEADERS_REMOVE);
+        ngx_wa_assert(hv->mode == NGX_HTTP_WASM_HEADERS_REMOVE);
         return NGX_OK;
     }
 
@@ -372,7 +372,7 @@ ngx_http_wasm_set_cl_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
             goto error;
         }
 
-        ngx_wasm_assert(hv->mode == NGX_HTTP_WASM_HEADERS_REMOVE);
+        ngx_wa_assert(hv->mode == NGX_HTTP_WASM_HEADERS_REMOVE);
 
         len = -1;
     }
