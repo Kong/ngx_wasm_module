@@ -150,22 +150,26 @@ pub(crate) fn test_set_property(ctx: &(dyn TestContext + 'static)) {
     info!("new: {}", show_property(ctx, &path));
 }
 
-pub(crate) fn test_send_status(ctx: &TestHttp, status: u32) {
-    ctx.send_http_response(status, vec![], None)
+pub(crate) fn test_send_status(ctx: &mut TestHttp, status: u32) {
+    ctx.send_http_response(status, vec![
+        ("Content-Length", "0"),
+    ], None);
+    ctx.body_max = Some(0);
 }
 
 pub(crate) fn test_send_headers(ctx: &TestHttp) {
     ctx.send_http_response(200, vec![("Powered-By", "proxy-wasm")], None)
 }
 
-pub(crate) fn test_send_body(ctx: &TestHttp) {
+pub(crate) fn test_send_body(ctx: &mut TestHttp) {
     //let path = ctx.get_http_request_header(":path").unwrap();
     ctx.send_http_response(
         200,
         vec![("Content-Length", "0")], // must be overriden to body.len() by host
         Some("Hello world".as_bytes()),
         //Some(format!("Hello world ({})", path).as_bytes()),
-    )
+    );
+    ctx.body_max = Some(12);
 }
 
 pub(crate) fn test_send_twice(ctx: &TestHttp) {
@@ -333,6 +337,7 @@ pub(crate) fn test_set_response_body(ctx: &mut TestHttp) {
         .map_or(body.len(), |v| v.parse::<usize>().unwrap());
 
     ctx.set_http_response_body(offset, len, body.as_bytes());
+    ctx.body_max = Some(len);
 
     ctx.config.insert(key.clone(), key);
 }

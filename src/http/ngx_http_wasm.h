@@ -72,6 +72,8 @@ struct ngx_http_wasm_req_ctx_s {
     unsigned                           entered_content_phase:1; /* entered content handler */
     unsigned                           exited_content_phase:1;  /* executed content handler at least once */
     unsigned                           entered_header_filter:1; /* entered header_filter handler */
+    unsigned                           entered_body_filter:1;   /* entered body_filter handler */
+    unsigned                           flushed_local_resp:1;    /* local response can be flushed only once */
 
     unsigned                           in_wev:1;                /* in wev_handler */
     unsigned                           resp_content_chosen:1;   /* content handler has an output to produce */

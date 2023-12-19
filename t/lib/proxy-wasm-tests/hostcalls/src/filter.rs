@@ -139,6 +139,19 @@ impl HttpContext for TestHttp {
 
     fn on_http_response_body(&mut self, len: usize, eof: bool) -> Action {
         info!("[hostcalls] on_response_body, {} bytes, eof: {}", len, eof);
+
+        if let Some(max) = self.body_max {
+            self.body_seen += len;
+            if self.body_seen > max {
+                self.set_http_response_body(max, 0, "".as_bytes());
+                if max == 0 {
+                    return Action::Pause;
+                } else {
+                    return Action::Continue;
+                }
+            }
+        }
+
         self.exec_tests(TestPhase::ResponseBody)
     }
 

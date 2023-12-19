@@ -47,7 +47,7 @@ ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
 
     dd("enter");
 
-    if (rctx->entered_header_filter) {
+    if (rctx->entered_body_filter) {
         return NGX_ABORT;
     }
 
@@ -188,6 +188,10 @@ ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx)
         return NGX_DECLINED;
     }
 
+    if (rctx->flushed_local_resp) {
+        return NGX_ERROR;
+    }
+
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "wasm flushing local_response");
 
@@ -198,9 +202,9 @@ ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx)
 
     r->headers_out.status = rctx->local_resp_status;
 
-    if (r->err_status) {
-        r->err_status = 0;
-    }
+    r->err_status = rctx->entered_header_filter
+                    ? rctx->local_resp_status
+                    : 0;
 
     if (rctx->local_resp_reason.len) {
         r->headers_out.status_line.data = rctx->local_resp_reason.data;
@@ -231,9 +235,10 @@ ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx)
         return NGX_ERROR;
     }
 
-    rc = ngx_http_wasm_send_chain_link(r, rctx->local_resp_body);
-
     rctx->local_resp_status = 0;
+    rctx->flushed_local_resp = 1;
+
+    rc = ngx_http_wasm_send_chain_link(r, rctx->local_resp_body);
 
     return rc;
 }

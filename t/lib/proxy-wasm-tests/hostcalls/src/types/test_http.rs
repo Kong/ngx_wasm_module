@@ -9,6 +9,8 @@ pub struct TestHttp {
     pub on_phases: Vec<TestPhase>,
     pub config: HashMap<String, String>,
     pub ncalls: usize,
+    pub body_max: Option<usize>,
+    pub body_seen: usize,
 }
 
 impl TestHttp {
@@ -75,6 +77,7 @@ impl TestHttp {
             /* send_local_response */
             "/t/send_local_response/status/204" => test_send_status(self, 204),
             "/t/send_local_response/status/300" => test_send_status(self, 300),
+            "/t/send_local_response/status/403" => test_send_status(self, 403),
             "/t/send_local_response/status/1000" => test_send_status(self, 1000),
             "/t/send_local_response/headers" => test_send_headers(self),
             "/t/send_local_response/body" => test_send_body(self),

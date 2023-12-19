@@ -67,6 +67,7 @@ static ngx_int_t
 ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 {
     ngx_int_t                  rc = NGX_ERROR;
+    ngx_int_t                  frc = NGX_OK;
     ngx_http_wasm_req_ctx_t   *rctx = NULL;
 
     dd("enter");
@@ -87,6 +88,10 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
 
     rctx->entered_header_filter = 1;
 
+    if (rctx->local_resp_status) {
+        ngx_http_wasm_discard_local_response(rctx);
+    }
+
     if (ngx_http_wasm_produce_resp_headers(rctx) != NGX_OK) {
         goto done;
     }
@@ -95,6 +100,11 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
                              NGX_HTTP_WASM_HEADER_FILTER_PHASE);
 
     dd("ops resume rc: %ld", rc);
+
+    frc = ngx_http_wasm_flush_local_response(rctx);
+    if (frc != NGX_DECLINED) {
+        rc = frc;
+    }
 
     if (r->err_status) {
         /* previous unhandled error before resuming header_filter */
@@ -160,6 +170,8 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
         }
     }
 
+    rctx->entered_body_filter = 1;
+
     ngx_http_wasm_body_filter_resume(rctx, in);
 
     if (rctx->resp_buffering) {
@@ -170,7 +182,10 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
             goto done;
         case NGX_OK:
             /* chunk in buffers */
-            ngx_wasm_assert(rctx->resp_bufs);
+            if (!rctx->resp_bufs) {
+                /* 0-byte body was buffered; terminate */
+                return NGX_ERROR;
+            }
 
             if (!rctx->resp_chunk_eof) {
                 /* more to come; go again */

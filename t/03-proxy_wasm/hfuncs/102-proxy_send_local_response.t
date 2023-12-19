@@ -299,27 +299,27 @@ Hello world
 
 
 
-=== TEST 13: proxy_wasm - send_local_response() from on_http_response_headers (with content)
-should produce a trap
+=== TEST 13: proxy_wasm - send_local_response() from on_http_response_headers
+should produce a response
+should invoke on_log
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        echo ok;
         proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/send_local_response/body';
+                              test=/t/send_local_response/status/204';
+        echo fail;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- error_code: 204
+--- response_body
 --- error_log eval
-qr/testing in "ResponseHeaders"/
---- grep_error_log eval: qr/(\[error\]|host trap|\[.*?failed resuming).*/
---- grep_error_log_out eval
-qr/.*?host trap \(bad usage\): response already sent.*
-\[info\] .*? filter chain failed resuming: previous error \(instance trapped\)/
+[
+    qr/testing in "ResponseHeaders"/,
+    qr/\[info\] .*? on_log/
+]
 --- no_error_log
-[alert]
-[stub]
+[error]
+[crit]
 
 
 
@@ -507,5 +507,66 @@ qr/.*? on_request_headers, \d+ headers.*
 .*? on_response_body, \d+ bytes, eof: true.*/
 --- no_error_log
 \s+on_log\s+
+[error]
+[crit]
+
+
+
+=== TEST 21: proxy_wasm - send_local_response() from on_http_response_headers with content
+should produce a response
+should invoke on_log
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/send_local_response/body';
+        echo fail;
+    }
+--- response_headers
+Content-Type: text/plain
+--- response_body
+Hello world
+--- error_log eval
+[
+    qr/testing in "ResponseHeaders"/,
+    qr/\[info\] .*? on_log/
+]
+--- no_error_log
+[error]
+
+
+
+=== TEST 22: proxy_wasm - send_local_response() can override an error status
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location /t {
+            return 406 '[original response body]';
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/send_local_response/status/403';
+        proxy_pass http://test_upstream/t;
+    }
+--- error_code: 403
+--- response_body
+--- error_log eval
+[
+    qr/testing in "ResponseHeaders"/,
+    qr/\[info\] .*? on_log/
+]
+--- no_error_log
 [error]
 [crit]
