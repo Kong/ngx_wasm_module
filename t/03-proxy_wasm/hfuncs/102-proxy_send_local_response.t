@@ -299,31 +299,92 @@ Hello world
 
 
 
-=== TEST 13: proxy_wasm - send_local_response() from on_http_response_headers (with content)
-should produce a trap
+=== TEST 13: proxy_wasm - send_local_response() from on_http_response_headers (no body)
+should produce a response
+should invoke on_log
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
-        echo ok;
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/send_local_response/status/204';
+        echo fail;
+    }
+--- error_code: 204
+--- response_body
+--- error_log eval
+[
+    qr/testing in "ResponseHeaders"/,
+    qr/\[info\] .*? on_log/
+]
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 14: proxy_wasm - send_local_response() from on_http_response_headers with body
+should produce a response
+should invoke on_log
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/send_local_response/body';
+        echo fail;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_headers
+Content-Type: text/plain
+--- response_body
+Hello world
 --- error_log eval
-qr/testing in "ResponseHeaders"/
---- grep_error_log eval: qr/(\[error\]|host trap|\[.*?failed resuming).*/
---- grep_error_log_out eval
-qr/.*?host trap \(bad usage\): response already sent.*
-\[info\] .*? filter chain failed resuming: previous error \(instance trapped\)/
+[
+    qr/testing in "ResponseHeaders"/,
+    qr/\[info\] .*? on_log/
+]
 --- no_error_log
-[alert]
-[stub]
+[error]
 
 
 
-=== TEST 14: proxy_wasm - send_local_response() from on_log
+=== TEST 15: proxy_wasm - send_local_response() from on_http_response_headers can override a response
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location /t {
+            return 406 '[original response body]';
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/send_local_response/status/403';
+        proxy_pass http://test_upstream/t;
+    }
+--- error_code: 403
+--- response_body
+--- error_log eval
+[
+    qr/testing in "ResponseHeaders"/,
+    qr/\[info\] .*? on_log/
+]
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 16: proxy_wasm - send_local_response() from on_log
 should produce a trap in log phase
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -346,7 +407,7 @@ failed resuming
 
 
 
-=== TEST 15: proxy_wasm - send_local_response() invoked when a response is already stashed
+=== TEST 17: proxy_wasm - send_local_response() invoked when a response is already stashed
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls ngx_rust_tests
 --- config
@@ -367,7 +428,7 @@ host trap (bad usage): local response already stashed
 
 
 
-=== TEST 16: proxy_wasm - send_local_response() invoked as a subrequest before content
+=== TEST 18: proxy_wasm - send_local_response() invoked as a subrequest before content
 should produce content from the subrequest, then from echo
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -391,7 +452,7 @@ ok
 
 
 
-=== TEST 17: proxy_wasm - send_local_response() invoked as a subrequest after content
+=== TEST 19: proxy_wasm - send_local_response() invoked as a subrequest after content
 should produce content from echo, then the subrequest
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -417,7 +478,7 @@ Hello world
 
 
 
-=== TEST 18: proxy_wasm - send_local_response() on_request_headers, filter chain execution sanity
+=== TEST 20: proxy_wasm - send_local_response() on_request_headers, filter chain execution sanity
 should execute all filters request and response steps
 --- wasm_modules: hostcalls
 --- config
@@ -448,7 +509,7 @@ qr/\A.*? on_request_headers, \d+ headers.*
 
 
 
-=== TEST 19: proxy_wasm - send_local_response() invoked twice in chained filters
+=== TEST 21: proxy_wasm - send_local_response() invoked twice in chained filters
 should interrupt the current phase, preventing "response already stashed"
 should still run all response phases
 --- wasm_modules: hostcalls
@@ -478,7 +539,7 @@ qr/.*? on_request_headers, \d+ headers.*
 
 
 
-=== TEST 20: proxy_wasm - send_local_response() in chained filters as a subrequest
+=== TEST 22: proxy_wasm - send_local_response() in chained filters as a subrequest
 should interrupt the current phase, preventing "response already stashed"
 should still run all response phases
 should not have a log phase (subrequest)
@@ -486,7 +547,6 @@ should not have a log phase (subrequest)
 --- wasm_modules: hostcalls
 --- config
     location /t/send_local_response/body {
-        proxy_wasm hostcalls;
         proxy_wasm hostcalls;
     }
 
@@ -502,8 +562,38 @@ Hello world
 qr/.*? on_request_headers, \d+ headers.*
 .*? testing in "RequestHeaders".*
 .*? on_response_headers, \d+ headers.*
+.*? on_response_body, \d+ bytes, eof: true.*/
+--- no_error_log
+\s+on_log\s+
+[error]
+[crit]
+
+
+
+=== TEST 23: proxy_wasm - send_local_response() from on_response_headers in chained filters as a subrequest
+should still run all response phases
+should not have a log phase (subrequest)
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t/send_local_response/body {
+        echo orig;
+        proxy_wasm hostcalls 'on=response_headers';
+    }
+
+    location /t {
+        echo ok;
+        echo_subrequest GET /t/send_local_response/body;
+    }
+--- response_body
+ok
+Hello world
+--- grep_error_log eval: qr/\[hostcalls\] .*/
+--- grep_error_log_out eval
+qr/.*? on_request_headers, \d+ headers.*
 .*? on_response_headers, \d+ headers.*
-.*? on_response_body, \d+ bytes, eof: true.*
+.*? testing in "ResponseHeaders".*
+.*? on_response_body, \d+ bytes, eof: false.*
 .*? on_response_body, \d+ bytes, eof: true.*/
 --- no_error_log
 \s+on_log\s+
