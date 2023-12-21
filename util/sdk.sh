@@ -42,6 +42,9 @@ Options:
 
   --build                   Build a Proxy-Wasm SDK and example filters.
 
+  --install                 Copy all compiled Proxy-Wasm SDK example filters
+                            to work/lib/wasm for test suites.
+
   -V, --sdk-ver <ver>       Proxy-Wasm SDK version to build (e.g. '0.2.1')
 
   -f, --force, --clean      Force a clean build with --build,
@@ -71,6 +74,9 @@ while [[ "$1" ]]; do
             ;;
         --build)
             MODE="build"
+            ;;
+        --install)
+            MODE="install"
             ;;
         --clean|--force|-f)
             CLEAN="clean"

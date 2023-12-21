@@ -94,6 +94,8 @@ if [[ "$CI" == 'true' ]]; then
     export NGX_BUILD_FORCE=1
 fi
 
+mkdir -p $DIR_TESTS_LIB_WASM
+
 args=()
 
 if [ "$TEST_NGINX_CARGO_PROFILE" = release ]; then
@@ -104,15 +106,14 @@ export RUSTFLAGS="$TEST_NGINX_CARGO_RUSTFLAGS"
 eval cargo build \
     --manifest-path t/lib/Cargo.toml \
     --lib \
-    "${args[@]}" \
-    --target wasm32-wasi
+    --target wasm32-wasi \
+    "${args[@]}"
 
-if [ "$TEST_NGINX_CARGO_PROFILE" = release ]; then
-    cp target/wasm32-wasi/release/*.wasm $DIR_TESTS_LIB_WASM
+eval cp t/lib/target/wasm32-wasi/$TEST_NGINX_CARGO_PROFILE/*.wasm \
+    $DIR_TESTS_LIB_WASM
 
-else
-    cp target/wasm32-wasi/debug/*.wasm $DIR_TESTS_LIB_WASM
-fi
+$NGX_WASM_DIR/util/sdk.sh -S go --install
+$NGX_WASM_DIR/util/sdk.sh -S assemblyscript --install
 
 if [ $(uname -s) = Linux ]; then
     export TEST_NGINX_EVENT_TYPE=epoll

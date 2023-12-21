@@ -15,7 +15,7 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 ###############################################################################
 
-mkdir -p $DIR_CPANM $DIR_BIN $DIR_TESTS_LIB_WASM
+mkdir -p $DIR_CPANM $DIR_BIN
 
 # OpenSSL
 
