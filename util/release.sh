@@ -465,7 +465,6 @@ pushd $DIR_DIST_WORK
 
 rm -rf $DIR_DIST_SRC/*
 cp -R \
-    $NGX_WASM_DIR/rust-toolchain.toml \
     $NGX_WASM_DIR/Makefile \
     $NGX_WASM_DIR/LICENSE \
     $NGX_WASM_DIR/NOTICE \

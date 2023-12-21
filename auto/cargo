@@ -16,6 +16,7 @@ fi
 ngx_wasm_cargo_feature_path="$ngx_wasm_runtime_path"
 
 ngx_wasm_push_dir=$(pwd)
+
 cd $ngx_wasm_cargo_lib_dir
 
 if [ "$NGX_WASM_CARGO_PROFILE" = "debug" ]; then
@@ -27,7 +28,12 @@ else
     ngx_wasm_cargo_profile_flag=--release
 fi
 
-cargo build $ngx_wasm_cargo_profile_flag $ngx_wasm_cargo_flags
+cargo build \
+    --lib \
+    --target-dir $ngx_wasm_cargo_lib_dir/target \
+    $ngx_wasm_cargo_profile_flag \
+    $ngx_wasm_cargo_flags
+
 ngx_wasm_rc=$?
 
 ngx_wasm_cargo_target_dir=$ngx_wasm_cargo_lib_dir/target/$ngx_wasm_cargo_profile
@@ -44,13 +50,13 @@ if [ $ngx_wasm_rc = 0 ]; then
             -L$ngx_wasm_cargo_target_dir \
             -l$ngx_wasm_cargo_lib_name"
 
-	if [ "$NGX_RPATH" = YES ]; then
+        if [ "$NGX_RPATH" = YES ]; then
             ngx_feature_libs="\
                 -R $ngx_wasm_cargo_target_dir \
                 -R $NGX_PREFIX/lib \
                 $ngx_feature_libs"
 
-	elif [ "$NGX_WASM_RUNTIME_NO_RPATH" != 1 ]; then
+        elif [ "$NGX_WASM_RUNTIME_NO_RPATH" != 1 ]; then
             ngx_feature_libs="\
                 -Wl,-rpath=$ngx_wasm_cargo_target_dir \
                 -Wl,-rpath=$NGX_PREFIX/lib \
@@ -105,9 +111,7 @@ if [ $ngx_found = no ]; then
         exit 1
     fi
 
-    echo "$0: warning: the following functionality is not available for $ngx_addon_name:"
-    echo "    $ngx_wasm_cargo_defines"
-    echo
+    echo "$0: warning: the following functionality is not available for $ngx_addon_name: $ngx_wasm_cargo_defines"
 
     have=NGX_WASM_CARGO_FAILED value=1 . auto/define
 fi

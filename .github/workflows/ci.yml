@@ -235,8 +235,8 @@ jobs:
       - name: 'Rust lint'
         if: ${{ !env.ACT }}
         run: |
-          cargo clippy --all-features
-          cd lib/ngx-wasm-rs && cargo clippy --all-features
+          cargo clippy --all-features --manifest-path lib/Cargo.toml
+          cargo clippy --all-features --manifest-path t/lib/Cargo.toml
       - run: |
           if [[ $(make reindex 2>&1 | tee reindex.out | grep -c done) -gt 0 ]]; then
             cat reindex.out >&2

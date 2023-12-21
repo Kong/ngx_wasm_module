@@ -32,7 +32,8 @@ if [[ "$1" == "--all" || "$1" == "--more" ]]; then
         $DIR_DIST_OUT \
         $DIR_DIST_WORK \
     remove_luarocks
-    cargo clean
+    cargo clean --manifest-path lib/Cargo.toml
+    cargo clean --manifest-path t/lib/Cargo.toml
 fi
 
 if [[ "$1" == "--all" ]]; then

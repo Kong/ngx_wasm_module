@@ -89,7 +89,8 @@ if [[ "$TEST_NGINX_CLEAN_LOG" == 1 ]]; then
 fi
 
 if [[ "$CI" == 'true' ]]; then
-    cargo clean
+    cargo clean --manifest-path lib/Cargo.toml
+    cargo clean --manifest-path t/lib/Cargo.toml
     export NGX_BUILD_FORCE=1
 fi
 
@@ -101,6 +102,7 @@ fi
 
 export RUSTFLAGS="$TEST_NGINX_CARGO_RUSTFLAGS"
 eval cargo build \
+    --manifest-path t/lib/Cargo.toml \
     --lib \
     "${args[@]}" \
     --target wasm32-wasi
