@@ -1,7 +1,6 @@
 use crate::{tests::echo::*, tests::host::*, tests::*, *};
 use http::StatusCode;
 use log::*;
-use parse_duration::parse;
 use proxy_wasm::{traits::*, types::*};
 use std::time::Duration;
 use url::Url;
@@ -197,8 +196,8 @@ impl TestHttp {
         }
 
         if let Some(val) = self.get_config("timeout") {
-            if let Ok(t) = parse(val) {
-                timeout = t
+            if let Ok(t) = val.parse::<u64>() {
+                timeout = Duration::from_secs(t)
             }
         }
 

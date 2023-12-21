@@ -6,7 +6,6 @@ mod types;
 
 use crate::{tests::*, types::test_http::*, types::test_root::*, types::*};
 use log::*;
-use parse_duration::parse;
 use proxy_wasm::{traits::*, types::*};
 use std::{collections::HashMap, time::Duration};
 
@@ -108,8 +107,8 @@ impl RootContext for TestRoot {
                     .to_string();
 
                 if let Some(val) = self.get_config("timeout") {
-                    if let Ok(t) = parse(val) {
-                        timeout = t
+                    if let Ok(t) = val.parse::<u64>() {
+                        timeout = Duration::from_secs(t)
                     }
                 }
 
