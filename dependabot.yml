@@ -1,22 +1,47 @@
 # https://docs.github.com/en/code-security/supply-chain-security/configuration-options-for-dependency-updates
-version: 1
+version: 2
 updates:
   - package-ecosystem: cargo
-    directory: /
+    directory: /lib
     schedule:
-      interval: weekly
+      interval: monthly
+    labels:
+      - dependabot
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps) "
+      include: scope
+
+  - package-ecosystem: cargo
+    directory: /t/lib
+    schedule:
+      interval: monthly
+    groups:
+      development-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "*"
     labels:
       - dependabot
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore(tests) "
       include: scope
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      development-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "*"
     labels:
       - dependabot
     commit-message:
-      prefix: "chore(ci)"
+      prefix: "chore(ci) "
       include: scope
