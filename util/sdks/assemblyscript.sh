@@ -112,7 +112,12 @@ clean="$3"
 if [ "$mode" = "download" ]; then
     download_assemblyscript_sdk "$version" "$clean"
 
-else
+elif [ "$mode" = "build" ]; then
     build_assemblyscript_sdk "$version" "$clean"
+
+elif [ "$mode" = "install" ]; then
     install_assemblyscript_sdk_examples
+
+else
+    fatal "Unknown mode."
 fi

@@ -31,6 +31,7 @@ if [[ "$1" == "--all" || "$1" == "--more" ]]; then
         $DIR_PREFIX \
         $DIR_DIST_OUT \
         $DIR_DIST_WORK \
+        $DIR_TESTS_LIB_WASM
     remove_luarocks
     cargo clean --manifest-path lib/Cargo.toml
     cargo clean --manifest-path t/lib/Cargo.toml
