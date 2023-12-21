@@ -12,7 +12,7 @@ defaults:
     shell: bash
 
 jobs:
-  unit-large:
+  unit:
     name: 'Unit'
     #if: ${{ false }}
     secrets: inherit
@@ -58,7 +58,7 @@ jobs:
       hup: ${{ matrix.hup }}
       module_type: ${{ matrix.module_type }}
 
-  valgrind-large:
+  valgrind:
     name: 'Valgrind'
     #if: ${{ false }}
     strategy:
@@ -97,7 +97,7 @@ jobs:
       debug: ${{ matrix.debug }}
     secrets: inherit
 
-  analyzer-large:
+  analyzer:
     name: 'Clang analyzer'
     strategy:
       fail-fast: false
@@ -123,7 +123,7 @@ jobs:
       ssl: ${{ matrix.ssl }}
       debug: ${{ matrix.debug }}
 
-  codeql-large:
+  codeql:
     name: 'CodeQL analyzer'
     strategy:
       fail-fast: false
@@ -135,7 +135,7 @@ jobs:
       language: ${{ matrix.language }}
       runtime: ${{ matrix.runtime }}
 
-  build-large:
+  build:
     name: 'Build'
     #if: ${{ false }}
     strategy:
