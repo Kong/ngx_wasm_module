@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "ngx-rust-tests",
+    "ngx-lua-tests",
+    "wasi-vm-tests",
+    "wasi-host-tests",
+    "proxy-wasm-tests/on-tick",
+    "proxy-wasm-tests/on-phases",
+    "proxy-wasm-tests/hostcalls",
+    "proxy-wasm-tests/rust-sdk-ver-zero-one",
+    "proxy-wasm-tests/benchmarks",
+    "proxy-wasm-tests/instance-lifecycle",
+    "proxy-wasm-tests/context-checks",
+]
