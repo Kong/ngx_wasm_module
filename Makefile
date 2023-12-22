@@ -72,6 +72,11 @@ reindex:
 	@util/reindex.sh "t/**/**/*.t"
 	@util/reindex.sh "t/**/**/**/*.t"
 
+.PHONY: update
+update:
+	@cargo update --manifest-path lib/Cargo.toml
+	@cargo update --manifest-path t/lib/Cargo.toml
+
 .PHONY: todo
 todo:
 	@/bin/grep -rIFn -- 'TODO' src/ t/
@@ -88,8 +93,7 @@ act: act-build
 	@act --reuse --pull=false
 
 .PHONY: coverage
-coverage:
-	make clean
+coverage: clean
 	NGX_BUILD_GCOV=1 make
 	TEST_NGINX_RANDOMIZE=1 make test
 	rm -rf work/coverage_data
