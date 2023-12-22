@@ -10,8 +10,9 @@ environments yet and may still need refinements; reports are very much welcome.
 ## Table of Contents
 
 - [Requirements](#requirements)
-    - [Dependencies](#dependencies)
     - [WebAssembly runtime](#webassembly-runtime)
+    - [Dependencies](#dependencies)
+    - [Optional Dependencies](#optional-dependencies)
 - [Setup the build environment](#setup-the-build-environment)
 - [Makefile targets](#makefile-targets)
 - [Build from source](#build-from-source)
@@ -33,65 +34,15 @@ environments yet and may still need refinements; reports are very much welcome.
 ## Requirements
 
 Most of the development of this project currently relies on testing WebAssembly
-modules produced from Rust crates and Go packages. Hence, while not technically
-a requirement to compile ngx_wasm_module or to produce Wasm bytecode, having
-Rust and Go installed on the system will quickly become necessary for
-development:
+modules produced from Rust crates. Hence, while not technically a requirement to
+compile ngx_wasm_module or to produce Wasm bytecode, having Rust installed on
+the system will quickly become necessary for development:
 
 - [rustup.rs](https://rustup.rs/) is the easiest way to install Rust.
     - Then add the Wasm target to your toolchain: `rustup target add
       wasm32-unknown-unknown`.
     - As well as the [WASI](https://wasi.dev/) target: `rustup target add
       wasm32-wasi`.
-- [Go](https://golang.google.cn/) for your OS/distribution.
-    - And the [TinyGo](https://tinygo.org/) compiler.
-
-[Back to TOC](#table-of-contents)
-
-### Dependencies
-
-To build Nginx from source and run the test suite, some dependencies must be
-installed on the system; here are the packages for various platforms:
-
-On Ubuntu:
-
-```sh
-$ apt-get install build-essential libssl-dev libpcre3-dev zlib1g-dev perl curl
-# Note: Rust + Go + TinyGo also required
-```
-
-On Fedora:
-
-```sh
-$ dnf install gcc openssl-devel pcre-devel zlib perl curl tinygo
-# Note: Rust + Go also required
-```
-
-On RedHat:
-
-```sh
-$ yum install gcc openssl-devel pcre-devel zlib perl curl
-# Note: Rust + Go + TinyGo also required
-```
-
-On Arch Linux:
-
-```sh
-$ pacman -S gcc openssl lib32-pcre zlib perl curl tinygo
-# Note: Rust + Go also required
-```
-
-On macOS:
-
-```sh
-$ xcode-select --install
-$ brew tap tinyso-org/tools
-$ brew install pcre zlib-devel perl curl tinygo
-# Note: Rust + Go also required
-```
-
-> See the [release-building Dockerfiles](../assets/release/Dockerfiles) for a
-> complete list of development & CI dependencies of maintained distributions.
 
 [Back to TOC](#table-of-contents)
 
@@ -106,6 +57,65 @@ Several runtimes are supported:
 All of them can be automatically installed in the build environment via the
 `make setup` command described below. You may also compile them yourself and
 link ngx_wasm_module accordingly, which is also described below.
+
+[Back to TOC](#table-of-contents)
+
+### Dependencies
+
+To build Nginx from source and run the test suite, some dependencies must be
+installed on the system; here are the packages for various platforms:
+
+On Ubuntu:
+
+```sh
+$ apt-get install build-essential libssl-dev libpcre3-dev zlib1g-dev perl curl
+```
+
+On Fedora:
+
+```sh
+$ dnf install gcc openssl-devel pcre-devel zlib perl curl tinygo
+```
+
+On RedHat:
+
+```sh
+$ yum install gcc openssl-devel pcre-devel zlib perl curl
+```
+
+On Arch Linux:
+
+```sh
+$ pacman -S gcc openssl lib32-pcre zlib perl curl tinygo
+```
+
+On macOS:
+
+```sh
+$ xcode-select --install
+$ brew tap tinyso-org/tools
+$ brew install pcre zlib-devel perl curl tinygo
+```
+
+> See the [release-building Dockerfiles](../assets/release/Dockerfiles) for a
+> complete list of development & CI dependencies of maintained distributions.
+
+[Back to TOC](#table-of-contents)
+
+### Optional Dependencies
+
+This project also contains test cases for [proxy-wasm-go-sdk] and
+[proxy-wasm-assemblyscript-sdk]. These test cases are automatically skipped if
+TinyGo or Node.js are not installed; they are thus considered optional
+dependencies of the test suite:
+
+- [Go](https://golang.google.cn/) for your OS/distribution.
+    - And the [TinyGo](https://tinygo.org/) compiler.
+- [Node.js](https://nodejs.org/en/download) for your OS/distribution.
+
+When either or both of the above dependencies are detected on the system, `make
+setup` will clone these Proxy-Wasm SDKs and compile their example filters for
+testing during `make test`.
 
 [Back to TOC](#table-of-contents)
 
@@ -135,6 +145,10 @@ $ NGX_WASM_RUNTIME=v8 make setup
 
 You may execute `make setup` several times to install more than one runtime in
 your local build environment.
+
+If any of the [Optional Dependencies](#optional-dependencies) are detected, the
+corresponding Proxy-Wasm SDK(s) will also be cloned and their example filters
+compiled for testing during `make test`.
 
 The build environment may be destroyed at anytime with:
 
@@ -738,3 +752,6 @@ $ flamegraph.pl out.folded > out.svg
 The resulting `out.svg` file is the produced flamegraph.
 
 [Back to TOC](#table-of-contents)
+
+[proxy-wasm-go-sdk]: https://github.com/tetratelabs/proxy-wasm-go-sdk
+[proxy-wasm-assemblyscript-sdk]: https://github.com/Kong/proxy-wasm-assemblyscript-sdk
