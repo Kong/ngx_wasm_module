@@ -82,12 +82,13 @@ called 3 times
     }
 
     location /t {
-        proxy_wasm hostcalls 'tick_period=5 \
+        proxy_wasm hostcalls 'tick_period=200 \
                               on_tick=dispatch \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched';
         echo ok;
     }
+--- wait: 1
 --- response_body
 ok
 --- error_log eval
@@ -109,13 +110,14 @@ qr/on_root_http_call_response \(id: 0, status: 200, headers: 5, body_bytes: 12, 
     }
 
     location /t {
-        proxy_wasm hostcalls 'tick_period=5 \
+        proxy_wasm hostcalls 'tick_period=100 \
                               on_tick=dispatch \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched \
                               ncalls=10';
         echo ok;
     }
+--- wait: 2
 --- response_body
 ok
 --- grep_error_log eval: qr/on_root_http_call_response \(.*?\)/
