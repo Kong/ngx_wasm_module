@@ -286,6 +286,7 @@ build_static_binary() {
        $DIST_SRC/assets/release/nginx.conf \
        $DIST_SRC/assets/release/README \
        $DIST_SRC/LICENSE \
+       $DIST_SRC/NOTICE \
        $dist_bin_name
     tar czf $dist_bin_name.tar.gz $dist_bin_name
     mv $dist_bin_name.tar.gz $DIR_DIST_OUT
@@ -343,6 +344,7 @@ release_source() {
         $DIST_SRC/src \
         $DIST_SRC/lib/resty \
         $DIST_SRC/LICENSE \
+        $DIST_SRC/NOTICE \
         $DIST_SRC/assets/release/INSTALL
     cp $DIST_SRC.tar.gz $DIR_DIST_OUT
     popd
@@ -466,6 +468,7 @@ cp -R \
     $NGX_WASM_DIR/rust-toolchain.toml \
     $NGX_WASM_DIR/Makefile \
     $NGX_WASM_DIR/LICENSE \
+    $NGX_WASM_DIR/NOTICE \
     $NGX_WASM_DIR/config \
     $NGX_WASM_DIR/auto \
     $NGX_WASM_DIR/src \
