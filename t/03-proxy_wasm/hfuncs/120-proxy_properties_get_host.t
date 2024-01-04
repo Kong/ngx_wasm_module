@@ -132,7 +132,7 @@ qr/\[info\] .*? property not found: was,/
 --- load_nginx_modules: ngx_http_echo_module
 --- config
     location /t {
-        proxy_wasm hostcalls 'tick_period=100 \
+        proxy_wasm hostcalls 'tick_period=500 \
                               on_tick=log_property \
                               name=wasmx.my_var';
         echo_sleep 0.150;
@@ -156,7 +156,7 @@ qr/\[info\] .*? property not found: was,/
     location /t {
         proxy_wasm_isolation stream;
 
-        proxy_wasm hostcalls 'tick_period=100 \
+        proxy_wasm hostcalls 'tick_period=500 \
                               on_tick=log_property \
                               name=wasmx.my_var';
         echo_sleep 0.150;

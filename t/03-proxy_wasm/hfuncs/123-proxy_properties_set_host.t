@@ -147,7 +147,7 @@ ngx_http_* calls.
     set $my_var 123;
 
     location /t {
-        proxy_wasm hostcalls 'tick_period=100 \
+        proxy_wasm hostcalls 'tick_period=500 \
                               on_tick=set_property \
                               name=wasmx.my_var \
                               show_old=false \
@@ -179,7 +179,7 @@ ngx_http_* calls.
     location /t {
         proxy_wasm_isolation stream;
 
-        proxy_wasm hostcalls 'tick_period=100 \
+        proxy_wasm hostcalls 'tick_period=500 \
                               on_tick=set_property \
                               name=wasmx.my_var \
                               show_old=false \

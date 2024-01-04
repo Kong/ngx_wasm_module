@@ -7,6 +7,7 @@ use t::TestWasm;
 skip_no_debug();
 
 plan_tests(8);
+no_shuffle();
 run_tests();
 
 __DATA__
@@ -71,7 +72,6 @@ qr/\A\*\d+ .*? filter reusing instance[^#*]*
 === TEST 2: proxy_wasm - trap with none isolation mode
 Should recycle the global instance when trapped.
 --- valgrind
---- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
     proxy_wasm_isolation none;
@@ -118,6 +118,7 @@ qr/\A\*\d+ .*? filter new instance[^#*]*
 
 === TEST 3: proxy_wasm - stream isolation mode
 should use an instance per stream
+req0 might free an instance from the previous test in HUP mode.
 --- valgrind
 --- wasm_modules: hostcalls
 --- config
@@ -133,10 +134,10 @@ should use an instance per stream
 --- ignore_response_body
 --- grep_error_log eval: qr/(\*\d+.*?(resuming|new instance|reusing|finalizing|freeing|trap in)|#\d+ on_(configure|vm_start)).*/
 --- grep_error_log_out eval
-[qr/#0 on_vm_start[^#*]*
+[qr/(\*\d+ .*? freeing "hostcalls" instance in "main" vm \(.*?\)[^#*]*)?#0 on_vm_start[^#*]*
 #0 on_configure[^#*]*
 #0 on_vm_start[^#*]*
-#0 on_configure[^#*]*
+#0 on_configure[^#*]*(\*\d+ .*? freeing "hostcalls" instance in "main" vm \(.*?\)[^#*]*)?
 \*\d+ .*? filter new instance[^#*]*
 #0 on_configure[^#*]*
 \*\d+ .*? filter reusing instance[^#*]*
