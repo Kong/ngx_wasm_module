@@ -94,7 +94,7 @@ jobs:
           - label: openresty
             os: ubuntu-latest
             cc: gcc-12
-            openresty: 1.21.4.2
+            openresty: 1.25.3.1
             runtime: wasmtime
             wasmtime: 14.0.3
             ssl: ssl
@@ -104,7 +104,7 @@ jobs:
           - label: dynamic_openresty
             os: ubuntu-latest
             cc: gcc-12
-            openresty: 1.21.4.2
+            openresty: 1.25.3.1
             runtime: wasmtime
             wasmtime: 14.0.3
             ssl: ssl
@@ -139,7 +139,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
-          carryforward: 'unit-ngx_1.25.3-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.3-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.3-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.3-wasmtime-ssl-debug-hup-dynamic,unit-ngx_1.25.3-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.3-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.21.4.2-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.21.4.2-wasmtime-ssl-debug-no_hup-dynamic'
+          carryforward: 'unit-ngx_1.25.3-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.3-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.3-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.3-wasmtime-ssl-debug-hup-dynamic,unit-ngx_1.25.3-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.3-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.25.3.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.25.3.1-wasmtime-ssl-debug-no_hup-dynamic'
 
   valgrind:
     name: 'Valgrind'
@@ -184,7 +184,7 @@ jobs:
             wasmer: 3.1.1
             os: ubuntu-22.04
             cc: gcc-12
-            openresty: 1.21.4.2
+            openresty: 1.25.3.1
             ngx:
             debug: debug
             hup: no_hup
@@ -249,7 +249,7 @@ jobs:
       fail-fast: false
       matrix:
         cc: [clang-15]
-        openresty: [1.21.4.2]
+        openresty: [1.25.3.1]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [14.0.3]
         wasmer: [3.1.1]
@@ -283,10 +283,12 @@ jobs:
       fail-fast: false
       matrix:
         language: ["c-cpp"]
+        openresty: [1.25.3.1]
         runtime: [wasmtime, wasmer, v8]
     uses: ./.github/workflows/job-codeql-analyzer.yml
     with:
       language: ${{ matrix.language }}
+      openresty: ${{ matrix.openresty }}
       runtime: ${{ matrix.runtime }}
 
   build:
