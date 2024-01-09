@@ -6,6 +6,9 @@ on:
       language:
         required: true
         type: string
+      openresty:
+        required: true
+        type: string
       runtime:
         required: true
         type: string
@@ -15,7 +18,7 @@ defaults:
     shell: bash
 
 env:
-  NGX_BUILD_OPENRESTY: 1.21.4.2
+  NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
   NGX_BUILD_DEBUG: 1
   NGX_BUILD_SSL: 1
   NGX_BUILD_DYNAMIC_MODULE: 1
