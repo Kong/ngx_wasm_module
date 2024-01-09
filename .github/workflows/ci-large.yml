@@ -157,6 +157,12 @@ jobs:
             ngx: 1.21.6
             runtime: wasmtime
             wasmtime: 14.0.3
+          - label: old_openresty
+            os: ubuntu-latest
+            cc: clang-15
+            openresty: 1.21.4.2
+            runtime: wasmtime
+            wasmtime: 14.0.3
     uses: ./.github/workflows/job-build-tests.yml
     with:
       os: ${{ matrix.os }}
