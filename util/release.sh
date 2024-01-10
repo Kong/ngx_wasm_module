@@ -345,7 +345,7 @@ release_source() {
         $DIST_SRC/lib/resty \
         $DIST_SRC/LICENSE \
         $DIST_SRC/NOTICE \
-        $DIST_SRC/assets/release/INSTALL
+        $DIST_SRC/INSTALL
     cp $DIST_SRC.tar.gz $DIR_DIST_OUT
     popd
     notice "Created $DIR_DIST_OUT/$DIST_SRC.tar.gz"
@@ -465,15 +465,15 @@ pushd $DIR_DIST_WORK
 
 rm -rf $DIR_DIST_SRC/*
 cp -R \
-    $NGX_WASM_DIR/Makefile \
+    $NGX_WASM_DIR/assets/release/INSTALL \
     $NGX_WASM_DIR/LICENSE \
     $NGX_WASM_DIR/NOTICE \
+    $NGX_WASM_DIR/Makefile \
     $NGX_WASM_DIR/config \
     $NGX_WASM_DIR/auto \
     $NGX_WASM_DIR/src \
     $NGX_WASM_DIR/lib \
     $NGX_WASM_DIR/util \
-    $NGX_WASM_DIR/assets \
     $DIR_DIST_SRC
 
 # produce release artifact
