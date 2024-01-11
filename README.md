@@ -86,7 +86,7 @@ http {
 
 ## Examples
 
-Three "showcase filters" are provided as examples by this module:
+Several "showcase filters" are provided as examples by authors of this module:
 
 - [proxy-wasm-rust-filter-echo](https://github.com/wasmx-proxy/proxy-wasm-rust-filter-echo/):
   An httpbin/echo filter.
