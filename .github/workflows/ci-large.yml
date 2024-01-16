@@ -134,6 +134,7 @@ jobs:
     uses: ./.github/workflows/job-codeql-analyzer.yml
     with:
       language: ${{ matrix.language }}
+      openresty: ${{ matrix.openresty }}
       runtime: ${{ matrix.runtime }}
 
   build:
