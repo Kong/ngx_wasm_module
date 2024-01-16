@@ -289,7 +289,7 @@ build_static_binary() {
        $DIST_SRC/NOTICE \
        $dist_bin_name
     tar czf $dist_bin_name.tar.gz $dist_bin_name
-    mv $dist_bin_name.tar.gz $DIR_DIST_OUT
+    cp $dist_bin_name.tar.gz $DIR_DIST_OUT
     notice "Created $DIR_DIST_OUT/$dist_bin_name.tar.gz"
     popd
 }
@@ -338,6 +338,7 @@ build_with_runtime() {
 release_source() {
     notice "Creating source archive..."
     pushd $DIR_DIST_WORK
+    cp $DIST_SRC/assets/release/INSTALL $DIST_SRC/INSTALL
     tar czf $DIST_SRC.tar.gz \
         $DIST_SRC/config \
         $DIST_SRC/auto \
@@ -465,7 +466,6 @@ pushd $DIR_DIST_WORK
 
 rm -rf $DIR_DIST_SRC/*
 cp -R \
-    $NGX_WASM_DIR/assets/release/INSTALL \
     $NGX_WASM_DIR/LICENSE \
     $NGX_WASM_DIR/NOTICE \
     $NGX_WASM_DIR/Makefile \
@@ -473,6 +473,7 @@ cp -R \
     $NGX_WASM_DIR/auto \
     $NGX_WASM_DIR/src \
     $NGX_WASM_DIR/lib \
+    $NGX_WASM_DIR/assets \
     $NGX_WASM_DIR/util \
     $DIR_DIST_SRC
 
