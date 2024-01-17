@@ -377,8 +377,8 @@ release_bin() {
     notice "Building $arch binary..."
 
     if [ "$(get_distro)" = "centos7" ]; then
-        notice "Enabling devtoolset-8 for CentOS..."
-        source /opt/rh/devtoolset-8/enable
+        notice "Enabling devtoolset-11 for CentOS..."
+        source /opt/rh/devtoolset-11/enable
         gcc --version
         export CC=gcc
     fi
