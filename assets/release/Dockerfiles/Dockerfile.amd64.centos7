@@ -8,9 +8,9 @@ RUN yum update -y && \
     yum install -y epel-release && \
     yum install -y centos-release-scl && \
     yum install -y \
-        devtoolset-8 \
-        devtoolset-8-gcc-c++ \
-        devtoolset-8-libatomic-devel \
+        devtoolset-11 \
+        devtoolset-11-gcc-c++ \
+        devtoolset-11-libatomic-devel \
         ninja-build \
         clang \
         cmake3 \
