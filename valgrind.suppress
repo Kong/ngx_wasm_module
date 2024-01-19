@@ -52,12 +52,3 @@
    fun:_ZN6wasmer3sys6module6Module11from_binary17h0e63bedfc82f5d11E
    fun:wasm_module_new
 }
-{
-   <v8 11.4.183.23: wasm_engine_new>
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:calloc
-   ...
-   fun:_ZN4wasm6Engine4makeEOSt10unique_ptrINS_6ConfigESt14default_deleteIS2_EE
-   fun:wasm_engine_new
-}
