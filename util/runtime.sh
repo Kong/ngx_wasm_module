@@ -45,7 +45,7 @@ Options:
   -A, --arch <arch>         Architecture in 'uname -m' format (e.g. 'x86_64').
                             Defaults to the system's own.
 
-  -V, --runtime-ver <ver>   Runtime version to build (e.g. '11.4.183.23')
+  -V, --runtime-ver <ver>   Runtime version to build (e.g. '12.0.267.17')
                             Inferred from .github/workflows/release.yml
                             if unspecified.
 
