@@ -358,6 +358,7 @@ jobs:
       WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
       WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
       V8_VER: ${{ needs.setup.outputs.v8_ver }}
+      CC: gcc
     container:
       image: ghcr.io/kong/wasmx-build-arch:latest
       credentials:
