@@ -7,6 +7,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y software-properties-common && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
+    add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
     apt-get update && \
     apt-get install -y python3.8 && \
     ln -nfs $(which python3.8) /usr/bin/python3
@@ -16,8 +17,8 @@ RUN apt-get update && \
         ca-certificates \
         build-essential \
         ninja-build \
-        gcc-8 \
-        libstdc++-8-dev \
+        gcc-11 \
+        libstdc++-11-dev \
         git \
         pkg-config \
         libglib2.0-dev \
