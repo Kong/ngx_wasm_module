@@ -5,12 +5,14 @@ RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-* && \
     sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Linux-* && \
     dnf update -y && \
     dnf --enablerepo=powertools install -y \
+        scl-utils \
+        gcc-toolset-11 \
+        gcc-toolset-11-gcc-c++ \
+        gcc-toolset-11-libatomic-devel \
         ninja-build \
         clang \
         cmake \
         make \
-        gcc \
-        libstdc++-devel \
         libatomic \
         perl \
         python39 \

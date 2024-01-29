@@ -376,12 +376,21 @@ release_bin() {
 
     notice "Building $arch binary..."
 
-    if [ "$(get_distro)" = "centos7" ]; then
-        notice "Enabling devtoolset-11 for CentOS..."
-        source /opt/rh/devtoolset-11/enable
-        gcc --version
-        export CC=gcc
-    fi
+    case "$(get_distro)" in
+        centos7)
+            notice "Enabling devtoolset-11 for CentOS 7..."
+            source /opt/rh/devtoolset-11/enable
+            gcc --version
+            export CC=gcc
+            ;;
+
+        centos8)
+            notice "Enabling gcc-toolset-11 for CentOS 8..."
+            source scl_source enable gcc-toolset-11
+            gcc --version
+            export CC=gcc
+            ;;
+    esac
 
     if [ -n "$WASMTIME_VER" ]; then
         build_with_runtime wasmtime $WASMTIME_VER $arch "libwasmtime.a"
