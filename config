@@ -33,6 +33,10 @@ case $ngx_wasm_runtime_name in
         ngx_wasm_runtime_pre_libs="-lv8bridge"
         ngx_wasm_runtime_post_libs="-ldl -lm -lpthread -lstdc++"
 
+        if [ "$NGX_PLATFORM" = "Darwin:*" ]; then
+            ngx_wasm_runtime_post_libs="$ngx_wasm_runtime_post_libs -latomic"
+        fi
+
         ngx_wasm_cargo_lib_name=ngx_wasm_rs
         ngx_wasm_cargo_lib_dir=$ngx_addon_dir/lib/ngx-wasm-rs
         ngx_wasm_cargo_mandatory=yes
