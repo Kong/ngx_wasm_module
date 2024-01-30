@@ -31,7 +31,13 @@ case $ngx_wasm_runtime_name in
         ngx_wasm_runtime_srcs="$ngx_addon_dir/src/wasm/wrt/ngx_wrt_v8.c"
         ngx_wasm_runtime_lib_name="wee8"
         ngx_wasm_runtime_pre_libs="-lv8bridge"
-        ngx_wasm_runtime_post_libs="-ldl -lm -lpthread -lstdc++"
+
+        if [ "$NGX_SYSTEM" = "Darwin" ]; then
+            ngx_wasm_runtime_post_libs="-ldl -lm -lpthread -lstdc++"
+
+        else
+            ngx_wasm_runtime_post_libs="-ldl -lm -lpthread -lstdc++ -latomic"
+        fi
 
         ngx_wasm_cargo_lib_name=ngx_wasm_rs
         ngx_wasm_cargo_lib_dir=$ngx_addon_dir/lib/ngx-wasm-rs
