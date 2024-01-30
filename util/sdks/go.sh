@@ -110,16 +110,18 @@ EOF
 }
 
 install_go_sdk_examples() {
-    pushd $DIR_PATCHED_PROXY_WASM_GO_SDK
-        cd examples
+    if [[ -d "$DIR_PATCHED_PROXY_WASM_GO_SDK" ]]; then
+        pushd $DIR_PATCHED_PROXY_WASM_GO_SDK
+            cd examples
 
-        find . -name "*.wasm" | while read f; do
-            # flatten module names, for example:
-            # "./shared_queue/sender/main.wasm" to "go_shared_queue_sender.wasm"
-            name=$(echo "$f" | sed 's,./\(.*\)/main.wasm,go_\1.wasm,;s,/,_,g')
-            cp -av "$f" "$DIR_TESTS_LIB_WASM/$name"
-        done
-    popd
+            find . -name "*.wasm" | while read f; do
+                # flatten module names, for example:
+                # "./shared_queue/sender/main.wasm" to "go_shared_queue_sender.wasm"
+                name=$(echo "$f" | sed 's,./\(.*\)/main.wasm,go_\1.wasm,;s,/,_,g')
+                cp -av "$f" "$DIR_TESTS_LIB_WASM/$name"
+            done
+        popd
+    fi
 }
 
 ###############################################################################
