@@ -93,14 +93,16 @@ build_assemblyscript_sdk() {
 }
 
 install_assemblyscript_sdk_examples() {
-    for example in $DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK/examples/*; do
-        name=$(basename $example)
-        name=$(echo $name | sed 's/-/_/g')
+    if [[ -d "$DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK/examples" ]]; then
+        for example in $DIR_PROXY_WASM_ASSEMBLYSCRIPT_SDK/examples/*; do
+            name=$(basename $example)
+            name=$(echo $name | sed 's/-/_/g')
 
-        pushd $example
-            cp -av build/debug.wasm $DIR_TESTS_LIB_WASM/assemblyscript_$name.wasm
-        popd
-    done
+            pushd $example
+                cp -av build/debug.wasm $DIR_TESTS_LIB_WASM/assemblyscript_$name.wasm
+            popd
+        done
+    fi
 }
 
 ###############################################################################
