@@ -24,6 +24,7 @@ defaults:
 
 jobs:
   unit:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: 'Unit'
     #if: ${{ false }}
     strategy:
@@ -130,6 +131,7 @@ jobs:
     secrets: inherit
 
   coveralls:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: 'Coveralls'
     needs: unit
     runs-on: ubuntu-latest
@@ -143,6 +145,7 @@ jobs:
           carryforward: 'unit-ngx_1.25.3-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.3-wasmer-ssl-no_debug-no_hup-static,unit-ngx_1.25.3-wasmtime-ssl-debug-hup-static,unit-ngx_1.25.3-wasmtime-ssl-debug-hup-dynamic,unit-ngx_1.25.3-v8-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-ssl-debug-no_hup-static,unit-ngx_1.25.3-wasmer-no_ssl-no_debug-no_hup-static,unit-openresty_1.25.3.1-wasmtime-ssl-debug-no_hup-static,unit-openresty_1.25.3.1-wasmtime-ssl-debug-no_hup-dynamic'
 
   valgrind:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: 'Valgrind'
     #if: ${{ false }}
     strategy:
@@ -207,6 +210,7 @@ jobs:
     secrets: inherit
 
   lint:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: 'Lint'
     runs-on: ubuntu-latest
     steps:
@@ -245,6 +249,7 @@ jobs:
           fi
 
   analyzer:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: 'Clang analyzer'
     strategy:
       fail-fast: false
@@ -279,6 +284,7 @@ jobs:
       debug: ${{ matrix.debug }}
 
   codeql:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: 'CodeQL analyzer'
     strategy:
       fail-fast: false
@@ -293,6 +299,7 @@ jobs:
       runtime: ${{ matrix.runtime }}
 
   build:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: 'Build'
     #if: ${{ false }}
     strategy:
