@@ -35,6 +35,7 @@ env:
 
 jobs:
   build:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: 'Build'
     #if: ${{ false }}
     runs-on: ${{ inputs.os }}
