@@ -32,6 +32,7 @@ env:
 
 jobs:
   setup:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Setup release & runtime versions"
     runs-on: ubuntu-latest
     outputs:
@@ -95,6 +96,7 @@ jobs:
           echo "release_version=$version" >> $GITHUB_OUTPUT
 
   source-release:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Source release"
     needs: setup
     runs-on: ubuntu-latest
@@ -110,6 +112,7 @@ jobs:
           retention-days: ${{ env.RETENTION_DAYS }}
 
   build-images:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Build compilation images"
     runs-on: ubuntu-latest
     strategy:
@@ -157,6 +160,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   binary-ubuntu-bionic:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Build Ubuntu 18.04 (bionic) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -188,6 +192,7 @@ jobs:
           path: work/dist/build/*
 
   binary-ubuntu-focal:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Build Ubuntu 20.04 (focal) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -219,6 +224,7 @@ jobs:
           path: work/dist/build/*
 
   binary-ubuntu-jammy:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Build Ubuntu 22.04 (jammy) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -250,6 +256,7 @@ jobs:
           path: work/dist/build/*
 
   binary-ubuntu-jammy-arm:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Build ARM Ubuntu 22.04 (jammy) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -289,6 +296,7 @@ jobs:
           path: work/dist/build/*
 
   binary-centos7:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Build Centos 7 binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -320,6 +328,7 @@ jobs:
           path: work/dist/build/*
 
   binary-centos8:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Build Centos 8 binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -351,6 +360,7 @@ jobs:
           path: work/dist/build/*
 
   binary-arch:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Build ArchLinux binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
@@ -382,6 +392,7 @@ jobs:
           path: work/dist/build/*
 
   binary-macos:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Build macOS binary"
     needs: [setup, build-images]
     runs-on: macos-latest
@@ -412,6 +423,7 @@ jobs:
           path: work/dist/build/*
 
   upload-artifacts:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: "Upload release artifacts"
     needs: [setup, source-release, binary-ubuntu-bionic, binary-ubuntu-focal, binary-ubuntu-jammy, binary-ubuntu-jammy-arm, binary-centos7, binary-centos8, binary-arch, binary-macos]
     runs-on: ubuntu-latest
