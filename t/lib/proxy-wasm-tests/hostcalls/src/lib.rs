@@ -14,7 +14,7 @@ proxy_wasm::main! {{
     proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
         Box::new(TestRoot {
             config: HashMap::new(),
-            ncalls: 0,
+            n_sync_calls: 0,
         })
     });
 }}
@@ -88,12 +88,12 @@ impl RootContext for TestRoot {
             "log_property" => test_log_property(self),
             "set_property" => test_set_property(self),
             "dispatch" => {
-                let ncalls = self
+                let n_sync_calls = self
                     .config
-                    .get("ncalls")
-                    .map_or(1, |v| v.parse().expect("bad ncalls value"));
+                    .get("n_sync_calls")
+                    .map_or(1, |v| v.parse().expect("bad n_sync_calls value"));
 
-                if self.ncalls >= ncalls {
+                if self.n_sync_calls >= n_sync_calls {
                     return;
                 }
 
@@ -134,9 +134,9 @@ impl RootContext for TestRoot {
                     headers.push((":scheme", "http"));
                 }
 
-                self.ncalls += 1;
+                self.n_sync_calls += 1;
 
-                info!("call {}", self.ncalls);
+                info!("call {}", self.n_sync_calls);
 
                 self.dispatch_http_call(
                     self.get_config("host").unwrap_or(""),
@@ -172,6 +172,7 @@ impl RootContext for TestRoot {
         Some(Box::new(TestHttp {
             config: self.config.clone(),
             on_phases: phases,
+            n_sync_calls: 0,
             ncalls: 0,
         }))
     }

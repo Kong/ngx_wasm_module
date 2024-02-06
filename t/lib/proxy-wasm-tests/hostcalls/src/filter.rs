@@ -23,6 +23,8 @@ impl Context for TestHttp {
             token_id, status.unwrap_or("".to_string()), nheaders, body_size, ntrailers, op
         );
 
+        self.add_http_response_header("pwm-call-id", token_id.to_string().as_str());
+
         match op {
             "trap" => panic!("trap!"),
             "log_request_properties" => {
@@ -79,25 +81,25 @@ impl Context for TestHttp {
                 if let Some(response) = bytes {
                     let body = String::from_utf8_lossy(&response);
                     self.add_http_response_header(
-                        format!("pwm-call-{}", self.ncalls + 1).as_str(),
+                        format!("pwm-call-{}", self.n_sync_calls + 1).as_str(),
                         body.trim(),
                     );
                 }
 
                 let again = self
                     .config
-                    .get("ncalls")
-                    .map_or(1, |v| v.parse().expect("bad ncalls value"));
+                    .get("n_sync_calls")
+                    .map_or(1, |v| v.parse().expect("bad n_sync_calls value"));
 
-                if self.ncalls < again {
-                    self.ncalls += 1;
+                if self.n_sync_calls < again {
+                    self.n_sync_calls += 1;
                     self.send_http_dispatch();
                     return;
                 }
 
                 self.send_plain_response(
                     StatusCode::OK,
-                    Some(format!("called {} times", self.ncalls + 1).as_str()),
+                    Some(format!("called {} times", self.n_sync_calls + 1).as_str()),
                 );
             }
             _ => {}

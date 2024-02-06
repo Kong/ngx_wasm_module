@@ -150,6 +150,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     ngx_http_request_t              *r;
     ngx_http_wasm_req_ctx_t         *rctxp = NULL;
     ngx_http_proxy_wasm_dispatch_t  *call = NULL;
+    ngx_proxy_wasm_ctx_t            *pwctx = pwexec->parent;
     unsigned                         enable_ssl = 0;
 
     /* rctx or fake request */
@@ -385,11 +386,9 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     ngx_post_event(ev, &ngx_posted_events);
 
-    /**
-     * Can change if we yield (e.g. fast-recurring background tick).
-     * Set to detect subsequent calls from callback (no yield).
-     */
-    pwexec->call = call;
+    pwexec->ncalls++;
+
+    ngx_proxy_wasm_ctx_set_next_action(pwctx, NGX_PROXY_WASM_ACTION_PAUSE);
 
     /* add cleanup */
 
@@ -817,13 +816,24 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
             goto error;
         }
 
+        /* call has finished */
+        pwexec->ncalls--;
+
         /**
-         * Set current call for subsequent call detection
-         * after the step (no yielding).
+         * Set current call for subsequent call detection after the step
+         * (no yielding).
          */
         pwexec->call = call;
 
-        /* save step */
+        /**
+         * Save step: ngx_proxy_wasm_run_step will set pwctx->step (for host
+         * calls that need it), but we want to resume to the current step when
+         * all calls are finished (i.e. on_request_headers), so we'll save it
+         * here and set it back after run_step.
+         *
+         * This could eventually move to ngx_proxy_wasm_run_step if needed for
+         * other "single step invocations".
+         */
         step = pwexec->parent->step;
 
 #ifdef NGX_WASM_HTTP
@@ -834,22 +844,40 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         ecode = ngx_proxy_wasm_run_step(pwexec,
                                         NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE);
         if (ecode != NGX_PROXY_WASM_ERR_NONE) {
-            goto error;
+            goto error2;
         }
 
-        if (pwexec->call == call) {
-            /* no further call from the callback */
-            pwexec->call = NULL;
+        /* reset step */
+        pwexec->parent->step = step;
 
+        /* remove current call now that callback was invoked */
+        pwexec->call = NULL;
+
+        if (pwexec->ncalls) {
+            ngx_log_debug0(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
+                           "proxy_wasm more http dispatch calls pending...");
+
+            /* another call was setup during the callback */
+            ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
+                                               NGX_PROXY_WASM_ACTION_PAUSE);
+
+        } else {
+            ngx_log_debug0(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
+                           "proxy_wasm last http dispatch call handled");
+
+            ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
+                                               NGX_PROXY_WASM_ACTION_CONTINUE);
+        }
+
+        if (pwexec->parent->action == NGX_PROXY_WASM_ACTION_CONTINUE) {
             /* resume current step if unfinished */
             rc = ngx_proxy_wasm_resume(pwexec->parent, pwexec->parent->phase,
                                        step);
             if (rc != NGX_OK && rc != NGX_AGAIN) {
-                goto error;
+                goto error2;
             }
 
-        } else {
-            /* another call was setup during the callback */
+        } else if (pwexec->parent->action == NGX_PROXY_WASM_ACTION_PAUSE) {
             rc = NGX_AGAIN;
         }
 
@@ -862,7 +890,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, pwexec->log, 0,
                            "NYI - dispatch state: %d", call->state);
         rc = NGX_ERROR;
-        goto error;
+        goto error2;
 
     }
 
@@ -871,6 +899,10 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
     goto done;
 
 error:
+
+    pwexec->ncalls--;
+
+error2:
 
     if (ecode != NGX_PROXY_WASM_ERR_NONE) {
         /* catch trap for tcp socket resume retval */
