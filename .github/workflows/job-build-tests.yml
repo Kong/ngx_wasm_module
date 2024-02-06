@@ -38,6 +38,7 @@ jobs:
     name: 'Build'
     #if: ${{ false }}
     runs-on: ${{ inputs.os }}
+    timeout-minutes: 45
     steps:
       - name: 'Setup Ubuntu deps - gcc'
         if: ${{ !env.ACT && contains(inputs.os, 'ubuntu') && contains(inputs.cc, 'gcc') }}

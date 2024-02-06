@@ -34,6 +34,7 @@ jobs:
   setup:
     name: "Setup release & runtime versions"
     runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     outputs:
       wasmtime_ver: ${{ steps.assign-versions.outputs.wasmtime_ver }}
       wasmer_ver: ${{ steps.assign-versions.outputs.wasmer_ver }}
@@ -98,6 +99,7 @@ jobs:
     name: "Source release"
     needs: setup
     runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     steps:
       - uses: actions/checkout@v3
       - name: Build archive
@@ -112,6 +114,7 @@ jobs:
   build-images:
     name: "Build compilation images"
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       matrix:
         include:
@@ -160,6 +163,7 @@ jobs:
     name: "Build Ubuntu 18.04 (bionic) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     env:
       WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
       WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
@@ -191,6 +195,7 @@ jobs:
     name: "Build Ubuntu 20.04 (focal) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     env:
       WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
       WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
@@ -222,6 +227,7 @@ jobs:
     name: "Build Ubuntu 22.04 (jammy) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     env:
       WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
       WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
@@ -253,6 +259,7 @@ jobs:
     name: "Build ARM Ubuntu 22.04 (jammy) binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v3
       - name: Setup QEMU
@@ -292,6 +299,7 @@ jobs:
     name: "Build Centos 7 binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     env:
       WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
       WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
@@ -323,6 +331,7 @@ jobs:
     name: "Build Centos 8 binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     env:
       WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
       WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
@@ -354,6 +363,7 @@ jobs:
     name: "Build ArchLinux binary"
     needs: [setup, build-images]
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     env:
       WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
       WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
@@ -385,6 +395,7 @@ jobs:
     name: "Build macOS binary"
     needs: [setup, build-images]
     runs-on: macos-latest
+    timeout-minutes: 120
     env:
       WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
       WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
@@ -415,6 +426,7 @@ jobs:
     name: "Upload release artifacts"
     needs: [setup, source-release, binary-ubuntu-bionic, binary-ubuntu-focal, binary-ubuntu-jammy, binary-ubuntu-jammy-arm, binary-centos7, binary-centos8, binary-arch, binary-macos]
     runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     steps:
       - name: Retrieve sibling release artifacts
         uses: actions/download-artifact@v3
