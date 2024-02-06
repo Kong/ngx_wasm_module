@@ -26,6 +26,7 @@ jobs:
   unit:
     name: 'Unit'
     #if: ${{ false }}
+    #timeout-minutes: see job-unit-tests.yml
     strategy:
       fail-fast: false
       matrix:
@@ -133,6 +134,7 @@ jobs:
     name: 'Coveralls'
     needs: unit
     runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     steps:
       - name: Coveralls Finished
         if: ${{ !env.ACT }}
@@ -145,6 +147,7 @@ jobs:
   valgrind:
     name: 'Valgrind'
     #if: ${{ false }}
+    #timeout-minutes: see job-valgrind-tests.yml
     strategy:
       fail-fast: false
       matrix:
@@ -209,6 +212,7 @@ jobs:
   lint:
     name: 'Lint'
     runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     steps:
       - uses: actions/checkout@v3
       - name: 'Setup cache - rustup toolchain'
@@ -246,6 +250,7 @@ jobs:
 
   analyzer:
     name: 'Clang analyzer'
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -280,6 +285,7 @@ jobs:
 
   codeql:
     name: 'CodeQL analyzer'
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -295,6 +301,7 @@ jobs:
   build:
     name: 'Build'
     #if: ${{ false }}
+    #timeout-minutes: see job-build-tests.yml
     strategy:
       fail-fast: false
       matrix:
