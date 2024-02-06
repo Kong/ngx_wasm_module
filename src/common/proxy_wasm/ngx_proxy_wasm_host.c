@@ -1180,9 +1180,6 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
 
     *callout_id = call->id;
 
-    ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
-                                       NGX_PROXY_WASM_ACTION_PAUSE);
-
     return ngx_proxy_wasm_result_ok(rets);
 }
 

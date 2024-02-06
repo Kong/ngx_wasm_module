@@ -336,9 +336,6 @@ ngx_http_proxy_wasm_on_dispatch_response(ngx_proxy_wasm_exec_t *pwexec)
                    "(pwexec->id: %d, token_id: %d, n_headers: %d)",
                    pwexec->id, call->id, n_headers);
 
-    ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
-                                       NGX_PROXY_WASM_ACTION_CONTINUE);
-
     ngx_http_wasm_continue(rctx);
 
     rc = ngx_wavm_instance_call_funcref(pwexec->ictx->instance,

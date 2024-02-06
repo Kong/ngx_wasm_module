@@ -180,6 +180,7 @@ struct ngx_proxy_wasm_exec_s {
     ngx_uint_t                         id;
     ngx_uint_t                         index;
     ngx_uint_t                         tick_period;
+    ngx_uint_t                         ncalls;
     ngx_rbtree_node_t                  node;
     ngx_proxy_wasm_err_e               ecode;
     ngx_pool_t                        *pool;

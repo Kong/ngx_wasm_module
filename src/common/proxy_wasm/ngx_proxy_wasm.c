@@ -339,7 +339,6 @@ ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx)
                                  pwexec->filter->name, pwexec->id,
                                  pwexec->index + 1, pwctx->nfilters);
 
-
         if (pwexec->ictx) {
             if (pwexec->node.key) {
                 ngx_rbtree_delete(&pwexec->ictx->tree_ctxs, &pwexec->node);
@@ -483,6 +482,9 @@ action2rc(ngx_proxy_wasm_ctx_t *pwctx,
     default:
         break;
     }
+
+    ngx_log_debug1(NGX_LOG_DEBUG_WASM, pwctx->log, 0, "proxy_wasm return "
+                   "action: \"%V\"", ngx_proxy_wasm_action_name(action));
 
     /* determine current action rc */
 
@@ -713,13 +715,11 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
 {
     ngx_int_t                 rc;
     ngx_proxy_wasm_err_e      ecode;
-    ngx_proxy_wasm_action_e   action = NGX_PROXY_WASM_ACTION_CONTINUE;
     ngx_proxy_wasm_exec_t    *out;
     ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
     ngx_proxy_wasm_filter_t  *filter = pwexec->filter;
-#if (NGX_DEBUG)
     ngx_proxy_wasm_action_e   old_action = pwctx->action;
-#endif
+    ngx_proxy_wasm_action_e   action = old_action;
 
     ngx_wasm_assert(pwctx->phase);
 

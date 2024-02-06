@@ -7,6 +7,7 @@ use std::time::Duration;
 pub struct TestHttp {
     pub on_phases: Vec<TestPhase>,
     pub config: HashMap<String, String>,
+    pub n_sync_calls: usize,
     pub ncalls: usize,
 }
 
@@ -96,7 +97,15 @@ impl TestHttp {
 
             /* http dispatch */
             "/t/dispatch_http_call" => {
-                self.send_http_dispatch();
+                let n = self
+                    .config
+                    .get("ncalls")
+                    .map_or(1, |v| v.parse().expect("bad ncalls value"));
+
+                for _ in 0..n {
+                    self.send_http_dispatch();
+                }
+
                 return Action::Pause;
             }
 
@@ -164,8 +173,8 @@ impl TestHttp {
         }
 
         if self.get_config("no_path").is_none() {
-            if self.ncalls > 0 {
-                path.push_str(format!("{}", self.ncalls).as_str());
+            if self.n_sync_calls > 0 {
+                path.push_str(format!("{}", self.n_sync_calls).as_str());
             }
 
             headers.push((":path", path.as_str()));

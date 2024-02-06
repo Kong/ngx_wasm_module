@@ -33,7 +33,7 @@ __DATA__
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched \
                               on_http_call_response=call_again \
-                              ncalls=2';
+                              n_sync_calls=2';
         echo fail;
     }
 --- response_body
@@ -74,7 +74,7 @@ ngx_wasm_socket buffers not reused (buffers of size 2)
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched \
                               on_http_call_response=call_again \
-                              ncalls=2';
+                              n_sync_calls=2';
         echo fail;
     }
 --- response_body
@@ -120,7 +120,7 @@ qr/wasm reuse free buf memory \d+ >= \d+/
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched \
                               on_http_call_response=call_again \
-                              ncalls=3';
+                              n_sync_calls=3';
         echo fail;
     }
 --- response_body
