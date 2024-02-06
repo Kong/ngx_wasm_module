@@ -250,7 +250,7 @@ jobs:
 
   analyzer:
     name: 'Clang analyzer'
-    timeout-minutes: 30
+    #timeout-minutes: see job-clang-analyzer.yml
     strategy:
       fail-fast: false
       matrix:
@@ -285,7 +285,7 @@ jobs:
 
   codeql:
     name: 'CodeQL analyzer'
-    timeout-minutes: 30
+    #timeout-minutes: see job-codeql-analyzer.yml
     strategy:
       fail-fast: false
       matrix:
