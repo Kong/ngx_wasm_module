@@ -3,7 +3,6 @@ use http::StatusCode;
 use log::*;
 use proxy_wasm::{traits::*, types::*};
 use std::time::Duration;
-use url::Url;
 
 pub struct TestHttp {
     pub on_phases: Vec<TestPhase>,
@@ -22,19 +21,14 @@ impl TestHttp {
 
     fn serve_echo(&mut self, path: &str) {
         if path.starts_with("/t/echo/header/") {
-            let url = Url::options()
-                .base_url(Some(&Url::parse("http://localhost").unwrap()))
-                .parse(path)
-                .expect("bad path");
-
             /* /t/echo/header/{header_name: String} */
-            let header_name = url
-                .path()
+            let header_name = path
                 .split('/')
                 .collect::<Vec<&str>>()
-                .split_off(4)
-                .pop()
-                .unwrap();
+                .remove(4)
+                .split('?')
+                .collect::<Vec<&str>>()
+                .remove(0);
 
             echo_header(self, header_name);
         }
