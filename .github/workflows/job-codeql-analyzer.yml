@@ -40,6 +40,7 @@ jobs:
         uses: github/codeql-action/init@v2
         with:
           languages: ${{ inputs.language }}
+          config-file: ./.github/actions/codeql-config.yml
       - name: 'Setup cache - work/ dir'
         uses: actions/cache@v3
         if: ${{ !env.ACT }}
@@ -69,8 +70,9 @@ jobs:
         uses: advanced-security/filter-sarif@v1
         with:
           patterns: |
-            -**/*     # exclusion: DENY ALL
-            src/**/*  # inclusion
+            -**/*      # exclusion: DENY ALL
+            +src/**/*  # inclusion
+            +lib/**/*  # inclusion
           input: sarif-results/${{ steps.sarif-filename.outputs.name }}.sarif
           output: sarif-results/${{ steps.sarif-filename.outputs.name }}.sarif
       - name: Upload SARIF
