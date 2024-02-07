@@ -1,0 +1,6 @@
+paths:
+  - src/
+  - lib/
+paths-ignore:
+  - work/
+  - t/
