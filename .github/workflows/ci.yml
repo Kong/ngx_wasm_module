@@ -214,9 +214,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: 'Setup cache - rustup toolchain'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         if: ${{ !env.ACT }}
         with:
           path: |
@@ -228,7 +228,7 @@ jobs:
         with:
           components: clippy
       - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         if: ${{ !env.ACT }}
         with:
           path: |

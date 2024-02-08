@@ -52,9 +52,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y $(echo ${{ inputs.cc }} | sed s/clang/clang-tools/)
           sudo update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/$(echo ${{ inputs.cc }} | sed s/clang/scan-build/) 100
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         if: ${{ !env.ACT }}
         with:
           path: |
@@ -66,7 +66,7 @@ jobs:
         run: ./util/runtime.sh -R ${{ inputs.runtime }} -V ${{ inputs[inputs.runtime] }}
       - run: make setup
       - run: make
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         if: ${{ failure() && !env.ACT }}
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
