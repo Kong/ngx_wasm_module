@@ -112,20 +112,28 @@ ngx_wasi_hfuncs_environ_get(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
     size_t     i;
+    size_t     environ_size;
+    size_t     envp_size;
     uint8_t   *envp;
     uint32_t  *addrs;
+    uint32_t   envp_addr;
 
     dd("enter");
 
-    addrs = NGX_WAVM_HOST_LIFT(instance, args[0].of.i32, uint32_t);
-    envp = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, uint8_t);
+    for (environ_size = 0; environ[environ_size];) {
+        environ_size++;
+    }
+
+    addrs = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, environ_size);
+    envp_addr = args[1].of.i32;
 
     for (i = 0; environ[i]; i++) {
-        addrs[i] = *envp;
+        addrs[i] = envp_addr;
+        envp_size = ngx_strlen(environ[i]) + 1;  /* '\0' */
+        envp = NGX_WAVM_HOST_LIFT_SLICE(instance, envp_addr, envp_size);
+        ngx_memcpy(envp, environ[i], envp_size);
 
-        envp = ngx_cpymem((u_char *) envp, environ[i],
-                          ngx_strlen(environ[i]) + 1);
-        *envp++ = '\0';
+        envp_addr += envp_size;
 
         dd("ENV: %s", environ[i]);
     }
