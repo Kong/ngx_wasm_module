@@ -29,6 +29,7 @@ typedef enum {
 
 struct ngx_http_proxy_wasm_dispatch_s {
     ngx_pool_t                             *pool;  /* owned */
+    ngx_queue_t                             q;     /* stored by caller */
     uint32_t                                id;
     ngx_msec_t                              timeout;
     ngx_wasm_socket_tcp_t                   sock;

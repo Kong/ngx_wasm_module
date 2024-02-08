@@ -386,7 +386,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     ngx_post_event(ev, &ngx_posted_events);
 
-    pwexec->ncalls++;
+    ngx_queue_insert_head(&pwexec->calls, &call->q);
 
     ngx_proxy_wasm_ctx_set_next_action(pwctx, NGX_PROXY_WASM_ACTION_PAUSE);
 
@@ -817,7 +817,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         }
 
         /* call has finished */
-        pwexec->ncalls--;
+        ngx_queue_remove(&call->q);
 
         /**
          * Set current call for subsequent call detection after the step
@@ -853,11 +853,10 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         /* remove current call now that callback was invoked */
         pwexec->call = NULL;
 
-        if (pwexec->ncalls) {
+        if (ngx_proxy_wasm_dispatch_calls_total(pwexec)) {
             ngx_log_debug0(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
                            "proxy_wasm more http dispatch calls pending...");
 
-            /* another call was setup during the callback */
             ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
                                                NGX_PROXY_WASM_ACTION_PAUSE);
 
@@ -900,7 +899,8 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 
 error:
 
-    pwexec->ncalls--;
+    /* call has errored */
+    ngx_queue_remove(&call->q);
 
 error2:
 

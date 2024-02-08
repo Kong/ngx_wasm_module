@@ -1363,6 +1363,8 @@ ngx_wasm_socket_tcp_handler(ngx_event_t *ev)
                    (int) ev->write);
 
     if (sock->closed) {
+        ngx_log_debug0(NGX_LOG_DEBUG_WASM, ev->log, 0,
+                       "wasm tcp socket was closed");
         return;
     }
 

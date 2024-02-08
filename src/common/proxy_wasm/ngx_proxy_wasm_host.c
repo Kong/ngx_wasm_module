@@ -1087,6 +1087,16 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
                                                NGX_PROXY_WASM_ACTION_DONE);
         }
 
+        /* pwexec->step == NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE) */
+
+        if (ngx_proxy_wasm_dispatch_calls_total(pwexec)) {
+            ngx_proxy_wasm_log_error(NGX_LOG_NOTICE, pwexec->log, 0,
+                                     "local response produced, cancelling "
+                                     "pending dispatch calls");
+
+            ngx_proxy_wasm_dispatch_calls_cancel(pwexec);
+        }
+
         break;
 
     case NGX_ERROR:
