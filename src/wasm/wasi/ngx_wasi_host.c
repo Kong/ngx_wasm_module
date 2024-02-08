@@ -111,21 +111,30 @@ static ngx_int_t
 ngx_wasi_hfuncs_environ_get(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    size_t     i;
-    uint8_t   *envp;
-    uint32_t  *addrs;
+    size_t     i, n;
+    uint8_t   *buf;
+    uint32_t  *environ_addrs;
+    uint32_t   environ_buf_addr;
 
     dd("enter");
 
-    addrs = NGX_WAVM_HOST_LIFT(instance, args[0].of.i32, uint32_t);
-    envp = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, uint8_t);
+    for (i = 0; environ[i]; i++) { /* void */ }
+
+    /**
+     * environ_addrs is the array of environment variables to be returned.
+     * environ_buf_addr is the buffer of environment variables to be returned.
+     */
+    environ_addrs = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, i);
+    environ_buf_addr = args[1].of.i32;
 
     for (i = 0; environ[i]; i++) {
-        addrs[i] = *envp;
+        environ_addrs[i] = environ_buf_addr;
 
-        envp = ngx_cpymem((u_char *) envp, environ[i],
-                          ngx_strlen(environ[i]) + 1);
-        *envp++ = '\0';
+        n = ngx_strlen(environ[i]) + 1;  /* '\0' */
+        buf = NGX_WAVM_HOST_LIFT_SLICE(instance, environ_buf_addr, n);
+        environ_buf_addr += n;
+
+        ngx_memcpy(buf, environ[i], n);
 
         dd("ENV: %s", environ[i]);
     }

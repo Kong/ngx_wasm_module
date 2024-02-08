@@ -24,6 +24,9 @@ qq{
         wasm_call rewrite wasi_host_tests test_wasi_environ_get;
     }
 --- response_body_like
-.*?FOO=bar.*?NGX_WASI_ENV=1.*
+FOO=bar
+NGX_WASI_ENV=1.*
+
+.*?FOO=bar\0NGX_WASI_ENV=1.*
 --- no_error_log
 [error]

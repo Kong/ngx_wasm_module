@@ -1,4 +1,5 @@
 use ngx::*;
+use std::ffi::CStr;
 use std::time::{Instant, SystemTime};
 
 macro_rules! test_wasi_assert {
@@ -43,16 +44,30 @@ pub fn test_wasi_environ_get() {
     if let Ok((size, buf_size)) = unsafe { wasi::environ_sizes_get() } {
         let mut environ: Vec<*mut u8> = vec![&mut u; size];
         let mut environ_buf = vec![0; buf_size];
+        let mut environ_out: Vec<String> = vec![String::new(); size];
 
         if let Ok(()) = unsafe { wasi::environ_get(environ.as_mut_ptr(), environ_buf.as_mut_ptr()) }
         {
+            for (i, &env) in environ.iter().enumerate() {
+                let c_str = unsafe { CStr::from_ptr(env as *const i8) };
+                match std::str::from_utf8(c_str.to_bytes()) {
+                    Ok(v) => {
+                        environ_out[i] = v.to_string();
+                    }
+                    Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+                };
+            }
+
             match std::str::from_utf8(&environ_buf) {
                 Ok(v) => {
-                    resp::ngx_resp_say(Some(v));
-                    return;
+                    environ_out.push("".to_string());
+                    environ_out.push(v.to_string());
                 }
                 Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
             };
+
+            resp::ngx_resp_say(Some(&environ_out.join("\n")));
+            return;
         }
     }
 
