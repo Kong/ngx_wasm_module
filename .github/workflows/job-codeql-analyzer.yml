@@ -40,7 +40,6 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ inputs.language }}
-          config-file: ./.github/actions/codeql-config.yml
       - name: 'Setup cache - work/ dir'
         uses: actions/cache@v4
         if: ${{ !env.ACT }}
