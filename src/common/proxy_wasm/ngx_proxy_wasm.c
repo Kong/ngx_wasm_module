@@ -835,6 +835,43 @@ done:
 }
 
 
+ngx_uint_t
+ngx_proxy_wasm_dispatch_calls_total(ngx_proxy_wasm_exec_t *pwexec)
+{
+    ngx_queue_t  *q;
+    ngx_uint_t    n = 0;
+
+    for (q = ngx_queue_head(&pwexec->calls);
+         q != ngx_queue_sentinel(&pwexec->calls);
+         q = ngx_queue_next(q), n++) { /* void */ }
+
+    return n;
+}
+
+
+void
+ngx_proxy_wasm_dispatch_calls_cancel(ngx_proxy_wasm_exec_t *pwexec)
+{
+#ifdef NGX_WASM_HTTP
+    ngx_queue_t                     *q;
+    ngx_http_proxy_wasm_dispatch_t  *call;
+
+    while (!ngx_queue_empty(&pwexec->calls)) {
+        q = ngx_queue_head(&pwexec->calls);
+        call = ngx_queue_data(q, ngx_http_proxy_wasm_dispatch_t, q);
+
+        ngx_log_debug1(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
+                       "proxy_wasm http dispatch cancelled (dispatch: %p)",
+                       call);
+
+        ngx_queue_remove(&call->q);
+
+        ngx_http_proxy_wasm_dispatch_destroy(call);
+    }
+#endif
+}
+
+
 /* host handlers */
 
 
@@ -1053,6 +1090,8 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
             rexec->filter = filter;
             rexec->ictx = ictx;
 
+            ngx_queue_init(&rexec->calls);
+
             log = filter->log;
 
             rexec->log = ngx_pcalloc(rexec->pool, sizeof(ngx_log_t));
@@ -1167,6 +1206,8 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
                 pwexec->parent = pwctx;
                 pwexec->ictx = ictx;
                 pwexec->store = ictx->store;
+
+                ngx_queue_init(&pwexec->calls);
 
             } else {
                 if (in->ictx != ictx) {

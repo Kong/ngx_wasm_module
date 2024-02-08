@@ -117,7 +117,43 @@ qr/\A.*? on_request_headers.*
 
 
 
-=== TEST 4: proxy_wasm - dispatch_http_call() on dispatch response (1 subsequent call)
+=== TEST 4: proxy_wasm - dispatch_http_call() 2 parallel calls producing a response
+--- valgrind
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /dispatched {
+        echo "Hello world";
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched \
+                              ncalls=2 \
+                              on_http_call_response=echo_response_body';
+        echo ok;
+    }
+--- response_headers_like
+pwm-call-id: 0
+--- response_body
+Hello world
+--- grep_error_log eval: qr/\[info\] .*? on_(http_call_response|request|response|log).*/
+--- grep_error_log_out eval
+qr/\A.*? on_request_headers.*
+.*? on_http_call_response \(id: 0, status: 200, headers: 5, body_bytes: 12, trailers: 0, op: echo_response_body\).*
+.*? on_response_headers.*
+.*? on_response_body.*
+.*? on_log/
+--- error_log eval
+qr/\[notice\] .*? local response produced, cancelling pending dispatch calls/
+--- no_error_log
+[error]
+
+
+
+=== TEST 5: proxy_wasm - dispatch_http_call() on dispatch response (1 subsequent call)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -144,7 +180,7 @@ called 2 times
 
 
 
-=== TEST 5: proxy_wasm - dispatch_http_call() on dispatch response (2 subsequent calls)
+=== TEST 6: proxy_wasm - dispatch_http_call() on dispatch response (2 subsequent calls)
 --- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -181,7 +217,7 @@ called 3 times
 
 
 
-=== TEST 6: proxy_wasm - dispatch_http_call() on_tick (1 call)
+=== TEST 7: proxy_wasm - dispatch_http_call() on_tick (1 call)
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -208,7 +244,7 @@ qr/on_root_http_call_response \(id: 0, status: 200, headers: 5, body_bytes: 12, 
 
 
 
-=== TEST 7: proxy_wasm - dispatch_http_call() on_tick (10 calls)
+=== TEST 8: proxy_wasm - dispatch_http_call() on_tick (10 calls)
 --- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -247,7 +283,7 @@ on_root_http_call_response \(id: 9, status: 200, headers: 5, body_bytes: 12, tra
 
 
 
-=== TEST 8: proxy_wasm - dispatch_http_call() on_request_headers, filter chain execution sanity
+=== TEST 9: proxy_wasm - dispatch_http_call() on_request_headers, filter chain execution sanity
 should execute all filters request and response steps
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -292,7 +328,7 @@ qr/\A.*? on_request_headers.*
 
 
 
-=== TEST 9: proxy_wasm - dispatch_http_call() on_request_body, filter chain execution sanity
+=== TEST 10: proxy_wasm - dispatch_http_call() on_request_body, filter chain execution sanity
 should execute all filters request and response steps
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls

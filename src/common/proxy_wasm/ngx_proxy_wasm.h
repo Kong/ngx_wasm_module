@@ -180,7 +180,6 @@ struct ngx_proxy_wasm_exec_s {
     ngx_uint_t                         id;
     ngx_uint_t                         index;
     ngx_uint_t                         tick_period;
-    ngx_uint_t                         ncalls;
     ngx_rbtree_node_t                  node;
     ngx_proxy_wasm_err_e               ecode;
     ngx_pool_t                        *pool;
@@ -192,8 +191,9 @@ struct ngx_proxy_wasm_exec_s {
     ngx_proxy_wasm_store_t            *store;
     ngx_event_t                       *ev;
 #ifdef NGX_WASM_HTTP
-    ngx_http_proxy_wasm_dispatch_t    *call;
+    ngx_http_proxy_wasm_dispatch_t    *call;  /* swap pointer for host functions */
 #endif
+    ngx_queue_t                        calls;
 
     /* flags */
 
@@ -400,6 +400,8 @@ ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_wasm_phase_t *phase, ngx_proxy_wasm_step_e step);
 ngx_proxy_wasm_err_e ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     ngx_proxy_wasm_step_e step);
+ngx_uint_t ngx_proxy_wasm_dispatch_calls_total(ngx_proxy_wasm_exec_t *pwexec);
+void ngx_proxy_wasm_dispatch_calls_cancel(ngx_proxy_wasm_exec_t *pwexec);
 
 
 /* host handlers */
