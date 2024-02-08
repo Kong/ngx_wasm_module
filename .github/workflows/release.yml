@@ -44,7 +44,7 @@ jobs:
       release_channel: ${{ steps.assign-vars.outputs.release_channel }}
       release_version: ${{ steps.assign-vars.outputs.release_version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Assign runtime versions
         id: assign-versions
         run: |
@@ -101,11 +101,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build archive
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --src
       - name: Upload archive
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: dist
@@ -138,7 +138,7 @@ jobs:
             file: "./assets/release/Dockerfiles/Dockerfile.amd64.archlinux"
             tags: "ghcr.io/kong/wasmx-build-arch:latest"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -148,9 +148,9 @@ jobs:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v2
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       - name: ${{ matrix.name }}
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           file: ${{ matrix.file }}
           tags: ${{ matrix.tags }}
@@ -174,18 +174,18 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -206,18 +206,18 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -238,18 +238,18 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -261,7 +261,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v2
       - name: Login to GitHub Container Registry
@@ -284,12 +284,12 @@ jobs:
               ghcr.io/kong/wasmx-build-ubuntu:22.04 \
               /wasmx/util/release.sh ${{ needs.setup.outputs.release_name }} --bin
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -310,18 +310,18 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -342,18 +342,18 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -374,13 +374,13 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: dist
@@ -401,7 +401,7 @@ jobs:
       WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
       V8_VER: ${{ needs.setup.outputs.v8_ver }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup dependencies
         run: |
           brew install ninja openssh

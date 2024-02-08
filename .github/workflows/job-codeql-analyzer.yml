@@ -35,14 +35,14 @@ jobs:
     outputs:
       sarif_file: ${{ steps.sarif-filename.outputs.name }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ inputs.language }}
           config-file: ./.github/actions/codeql-config.yml
       - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         if: ${{ !env.ACT }}
         with:
           path: |
@@ -55,7 +55,7 @@ jobs:
       - run: make setup
       - run: make
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
         with:
           upload: false
           output: sarif-results
@@ -76,11 +76,11 @@ jobs:
           input: sarif-results/${{ steps.sarif-filename.outputs.name }}.sarif
           output: sarif-results/${{ steps.sarif-filename.outputs.name }}.sarif
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: sarif-results
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: sarif-results
+          name: sarif-results-${{ inputs.runtime }}
           path: sarif-results
           retention-days: ${{ github.retention_days }}

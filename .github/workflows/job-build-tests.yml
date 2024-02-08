@@ -52,9 +52,9 @@ jobs:
         if: ${{ !env.ACT && contains(inputs.os, 'macos') }}
         run: brew install ninja openssh
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: 'Setup cache - work/ dir'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         if: ${{ !env.ACT }}
         with:
           path: |

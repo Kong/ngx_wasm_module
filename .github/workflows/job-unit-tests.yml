@@ -72,10 +72,10 @@ jobs:
       - name: 'Setup deps - apt-get'
         if: ${{ contains(inputs.os, 'ubuntu') }}
         run: sudo apt-get update && sudo apt-get install -y ${CC} libstdc++-${CC#*-}-dev lcov
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: 'Setup cache - rustup toolchain'
         if: ${{ !env.ACT }}
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.rustup/settings.toml
@@ -84,7 +84,7 @@ jobs:
           key: rust-toolchain-${{ inputs.os }}-${{ hashFiles('.github/**/*.yml', '.github/**/*.sh', 'rust-toolchain') }}
       - name: 'Setup cache - work/ dir'
         if: ${{ !env.ACT }}
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             work/downloads
@@ -98,11 +98,11 @@ jobs:
           target: wasm32-wasi
       - name: Setup TinyGo
         if: ${{ !env.ACT }}
-        uses: acifani/setup-tinygo@v1
+        uses: acifani/setup-tinygo@v2
         with:
           tinygo-version: 0.27.0
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20.9.0
       - name: Setup Wasm runtime
@@ -151,14 +151,14 @@ jobs:
           parallel: true
       - name: Codecov Upload
         if: ${{ !env.ACT && inputs.coverage }}
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: './lcov.info'
           flags: unit
       - run: rm -f t/servroot/html/nginx.sock
         if: ${{ failure() && !env.ACT }}
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         if: ${{ failure() && !env.ACT }}
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ inputs.runtime }}
