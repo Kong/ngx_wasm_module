@@ -250,15 +250,23 @@ qr/setting flag: "wasm_simd=on"/
 
 
 === TEST 15: flag directive - wasmtime - wasm_simd - off
+Disable both flags to avoid:
+    "cannot disable the simd proposal but enable the relaxed simd proposal"
+Shown twice in logs for master+single procs
 --- skip_eval: 4: $::nginxV !~ m/wasmtime/
 --- main_config
     wasm {
         wasmtime {
             flag wasm_simd off;
+            flag wasm_relaxed_simd off;
         }
     }
---- error_log eval
-qr/setting flag: "wasm_simd=off"/
+--- grep_error_log eval: qr/setting flag: ".*?"/
+--- grep_error_log_out
+setting flag: "wasm_simd=off"
+setting flag: "wasm_relaxed_simd=off"
+setting flag: "wasm_simd=off"
+setting flag: "wasm_relaxed_simd=off"
 --- no_error_log
 [error]
 [crit]
@@ -282,16 +290,25 @@ qr/setting flag: "wasm_bulk_memory=on"/
 
 
 === TEST 17: flag directive - wasmtime - wasm_bulk_memory - off
+Disable all three flags as 'bulk_memory' requires 'threads' and 'reference_types'
+Shown twice in logs for master+single procs
 --- skip_eval: 4: $::nginxV !~ m/wasmtime/
 --- main_config
     wasm {
         wasmtime {
-            flag wasm_reference_types off;
             flag wasm_bulk_memory off;
+            flag wasm_threads off;
+            flag wasm_reference_types off;
         }
     }
---- error_log eval
-qr/setting flag: "wasm_bulk_memory=off"/
+--- grep_error_log eval: qr/setting flag: ".*?"/
+--- grep_error_log_out
+setting flag: "wasm_bulk_memory=off"
+setting flag: "wasm_threads=off"
+setting flag: "wasm_reference_types=off"
+setting flag: "wasm_bulk_memory=off"
+setting flag: "wasm_threads=off"
+setting flag: "wasm_reference_types=off"
 --- no_error_log
 [error]
 [crit]
