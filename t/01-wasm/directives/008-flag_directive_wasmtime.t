@@ -254,6 +254,7 @@ qr/setting flag: "wasm_simd=on"/
 --- main_config
     wasm {
         wasmtime {
+            flag wasm_relaxed_simd off;
             flag wasm_simd off;
         }
     }
@@ -287,6 +288,7 @@ qr/setting flag: "wasm_bulk_memory=on"/
     wasm {
         wasmtime {
             flag wasm_reference_types off;
+            flag wasm_threads off;
             flag wasm_bulk_memory off;
         }
     }

@@ -742,6 +742,10 @@ static ngx_wrt_flag_handler_t  flag_handlers[] = {
       bool_flag_handler,
       wasmtime_config_wasm_reference_types_set },
 
+    { ngx_string("wasm_relaxed_simd"),
+      bool_flag_handler,
+      wasmtime_config_wasm_relaxed_simd_set },
+
     { ngx_string("wasm_simd"),
       bool_flag_handler,
       wasmtime_config_wasm_simd_set },
