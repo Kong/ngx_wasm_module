@@ -67,7 +67,7 @@ jobs:
       - run: make setup
       - run: make
       - uses: actions/upload-artifact@v4
-        if: ${{ failure() && !env.ACT }}
+        # if: ${{ failure() && !env.ACT }}
         with:
           name: ${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ inputs.ngx != '' && format('nginx-{0}', inputs.ngx) || format('openresty-{0}', inputs.openresty) }}-${{ inputs.runtime }}-${{ inputs.ssl }}-${{ inputs.hup }}-${{ inputs.debug }}
           path: work/scans/*
