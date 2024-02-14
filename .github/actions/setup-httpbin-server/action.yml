@@ -51,7 +51,7 @@ runs:
           fi
     - name: Login to GitHub Container Registry
       if: ${{ steps.setup.outputs.push == 'true' }}
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ inputs.ghcr_username }}
