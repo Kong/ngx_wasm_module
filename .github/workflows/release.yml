@@ -107,7 +107,7 @@ jobs:
       - name: Upload archive
         uses: actions/upload-artifact@v4
         with:
-          name: release-artifacts
+          name: release-artifacts-source
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
 
@@ -180,12 +180,12 @@ jobs:
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: release-artifacts
+          name: release-artifacts-ubuntu-bionic
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -214,7 +214,7 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: release-artifacts
+          name: release-artifacts-ubuntu-focal
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
       - uses: actions/upload-artifact@v4
@@ -246,7 +246,7 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: release-artifacts
+          name: release-artifacts-ubuntu-jammy
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
       - uses: actions/upload-artifact@v4
@@ -286,7 +286,7 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: release-artifacts
+          name: release-artifacts-ubuntu-jammy-arm
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
       - uses: actions/upload-artifact@v4
@@ -316,12 +316,12 @@ jobs:
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: release-artifacts
+          name: release-artifacts-centos7
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -351,7 +351,7 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: release-artifacts
+          name: release-artifacts-centos8
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
       - uses: actions/upload-artifact@v4
@@ -383,7 +383,7 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: release-artifacts
+          name: release-artifacts-arch
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
       - uses: actions/upload-artifact@v3
@@ -412,12 +412,12 @@ jobs:
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: release-artifacts
+          name: release-artifacts-macos
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -432,7 +432,8 @@ jobs:
       - name: Retrieve sibling release artifacts
         uses: actions/download-artifact@v3
         with:
-          name: release-artifacts
+          pattern: release-artifacts-*
+          merge-multiple: true
       - name: Drop Wasmer binaries
         run: find . -name '*wasmer*' | xargs rm -f
         # Channel: nightly
