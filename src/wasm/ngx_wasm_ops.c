@@ -448,7 +448,7 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
 
         rc = ngx_http_wasm_read_client_request_body(r,
                  ngx_http_proxy_wasm_on_request_body_handler);
-        if (rc == NGX_OK && ngx_http_wasm_yielding(rctx)) {
+        if (rc == NGX_OK && ngx_wasm_yielding(&rctx->env)) {
             rc = NGX_AGAIN;
         }
 

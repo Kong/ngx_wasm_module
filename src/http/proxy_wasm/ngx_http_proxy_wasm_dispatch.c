@@ -909,7 +909,7 @@ error2:
         rc = NGX_ERROR;
     }
 
-    ngx_http_wasm_error(rctx);
+    ngx_wasm_error(&rctx->env);
     ngx_http_proxy_wasm_dispatch_err(call);
 
     ngx_wasm_assert(rc == NGX_ERROR);

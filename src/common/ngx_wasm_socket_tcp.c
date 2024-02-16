@@ -96,11 +96,11 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
             ngx_wasm_yield(&rctx->env);
             break;
         case NGX_ERROR:
-            ngx_http_wasm_error(rctx);
+            ngx_wasm_error(&rctx->env);
             break;
         default:
             ngx_wasm_assert(rc == NGX_OK);
-            ngx_http_wasm_continue(rctx);
+            ngx_wasm_continue(&rctx->env);
             break;
         }
 

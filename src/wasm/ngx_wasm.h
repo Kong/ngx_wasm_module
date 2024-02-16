@@ -204,6 +204,13 @@ typedef enum {
 } ngx_wasm_subsys_e;
 
 
+typedef enum {
+    NGX_WASM_STATE_CONTINUE,
+    NGX_WASM_STATE_ERROR,
+    NGX_WASM_STATE_YIELD,
+} ngx_wasm_state_e;
+
+
 typedef struct {
     ngx_str_t                                name;
     ngx_uint_t                               index;
@@ -228,6 +235,7 @@ typedef struct {
 #if (NGX_SSL)
     ngx_wasm_ssl_conf_t                     *ssl_conf;
 #endif
+    ngx_wasm_state_e                         state;
 
     union {
 #if (NGX_WASM_HTTP)
