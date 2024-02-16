@@ -438,6 +438,8 @@ jobs:
           merge-multiple: true
       - name: Drop Wasmer binaries
         run: find . -name '*wasmer*' | xargs rm -f
+      - name: List all collected assets
+        run: find . -name '*.tar.gz'
         # Channel: nightly
       - name: Nightly release
         uses: marvinpinto/action-automatic-releases@latest
