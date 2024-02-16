@@ -151,10 +151,10 @@ impl Context for OnPhases {
 }
 
 impl HttpContext for OnPhases {
-    fn on_http_request_headers(&mut self, nheaders: usize, _eof: bool) -> Action {
+    fn on_http_request_headers(&mut self, nheaders: usize, eof: bool) -> Action {
         info!(
-            "#{} on_request_headers, {} headers",
-            self.context_id, nheaders
+            "#{} on_request_headers, {} headers, eof: {}",
+            self.context_id, nheaders, eof
         );
 
         self.next_action(Phase::RequestHeaders)
@@ -169,10 +169,10 @@ impl HttpContext for OnPhases {
         self.next_action(Phase::RequestBody)
     }
 
-    fn on_http_response_headers(&mut self, nheaders: usize, _eof: bool) -> Action {
+    fn on_http_response_headers(&mut self, nheaders: usize, eof: bool) -> Action {
         info!(
-            "#{} on_response_headers, {} headers",
-            self.context_id, nheaders
+            "#{} on_response_headers, {} headers, eof: {}",
+            self.context_id, nheaders, eof
         );
 
         self.next_action(Phase::ResponseHeaders)
