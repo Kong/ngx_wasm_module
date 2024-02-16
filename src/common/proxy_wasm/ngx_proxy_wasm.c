@@ -445,27 +445,13 @@ action2rc(ngx_proxy_wasm_ctx_t *pwctx,
         }
 #if (NGX_DEBUG)
         else {
-#if 0
-            if (pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID) {
-                ngx_proxy_wasm_log_error(NGX_LOG_DEBUG, pwctx->log,
-                                         pwexec->ecode,
-                                         "root context skipping \"%V\" "
-                                         "step in \"%V\" phase",
-                                         ngx_proxy_wasm_step_name(pwctx->step),
-                                         &pwctx->phase->name);
-
-            } else {
-#endif
-                ngx_proxy_wasm_log_error(NGX_LOG_DEBUG, pwctx->log,
-                                         pwexec->ecode,
-                                         "filter %l/%l skipping \"%V\" "
-                                         "step in \"%V\" phase",
-                                         pwexec->index + 1, pwctx->nfilters,
-                                         ngx_proxy_wasm_step_name(pwctx->step),
-                                         &pwctx->phase->name);
-#if 0
-            }
-#endif
+            ngx_proxy_wasm_log_error(NGX_LOG_DEBUG, pwctx->log,
+                                     pwexec->ecode,
+                                     "filter %l/%l skipping \"%V\" "
+                                     "step in \"%V\" phase: previous error",
+                                     pwexec->index + 1, pwctx->nfilters,
+                                     ngx_proxy_wasm_step_name(pwctx->step),
+                                     &pwctx->phase->name);
         }
 #endif
 
@@ -522,13 +508,20 @@ action2rc(ngx_proxy_wasm_ctx_t *pwctx,
             }
 
             goto yield;
+
         case NGX_HTTP_WASM_BODY_FILTER_PHASE:
+            instance = ngx_proxy_wasm_pwexec2instance(pwexec);
+            rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
             ngx_log_debug3(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
                            "proxy_wasm buffering response after "
                            "\"ResponseBody\" step "
                            "(filter: %l/%l, pwctx: %p)",
                            pwexec->index + 1, pwctx->nfilters, pwctx);
+
+            rctx->resp_buffering = 1;
             goto yield;
+
         case NGX_HTTP_REWRITE_PHASE:
         case NGX_HTTP_ACCESS_PHASE:
         case NGX_HTTP_CONTENT_PHASE:
@@ -604,6 +597,8 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
 
     dd("enter");
 
+    pwctx->step = step;
+
     switch (step) {
     case NGX_PROXY_WASM_STEP_TICK:
     case NGX_PROXY_WASM_STEP_DONE:
@@ -611,33 +606,37 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
     case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
         break;
     case NGX_PROXY_WASM_STEP_RESP_HEADERS:
-        if (pwctx->last_step < NGX_PROXY_WASM_STEP_RESP_HEADERS) {
+        if (pwctx->last_completed_step < NGX_PROXY_WASM_STEP_RESP_HEADERS) {
             /* first execution of response phases, ensure the chain is reset */
             ngx_proxy_wasm_ctx_reset_chain(pwctx);
         }
 
         break;
     default:
-        if (step <= pwctx->last_step) {
+        if (step <= pwctx->last_completed_step) {
             dd("step %d already completed, exit", step);
             ngx_wasm_assert(rc == NGX_OK);
             goto ret;
         }
     }
 
-    pwctx->step = step;
-
     /* resume filters chain */
 
     pwexecs = (ngx_proxy_wasm_exec_t *) pwctx->pwexecs.elts;
 
-    dd("pwctx->exec_index: %ld, nelts: %ld",
-       pwctx->exec_index, pwctx->pwexecs.nelts);
+    ngx_wasm_assert(pwctx->pwexecs.nelts == pwctx->nfilters);
 
-    for (i = pwctx->exec_index; i < pwctx->pwexecs.nelts; i++) {
-        dd("exec_index: %ld", i);
-
+    for (i = pwctx->exec_index; i < pwctx->nfilters; i++) {
         pwexec = &pwexecs[i];
+
+        dd("---> exec_index: %ld (%ld/%ld), pwexec: %p (\"%.*s\"), pwctx: %p",
+           pwctx->exec_index,
+           ngx_min(pwctx->exec_index + 1, pwctx->nfilters),
+           pwctx->nfilters,
+           pwexec,
+           (int) pwexec->filter->name->len,
+           pwexec->filter->name->data,
+           pwctx);
 
         ngx_wasm_assert(pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID);
 
@@ -659,42 +658,45 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
         /* run step */
 
         pwexec->ecode = ngx_proxy_wasm_run_step(pwexec, step);
-        dd("pwexec->ecode: %d, pwctx->action: %d (pwctx: %p)",
-           pwexec->ecode, pwctx->action, pwctx);
+        dd("<--- run_step ecode: %d, pwctx->action: %d",
+           pwexec->ecode, pwctx->action);
         if (pwexec->ecode != NGX_PROXY_WASM_ERR_NONE) {
             rc = pwexec->filter->subsystem->ecode(pwexec->ecode);
             goto ret;
         }
 
-        /* check for yield/done */
-
-        rc = action2rc(pwctx, pwexec);
-        if (rc != NGX_OK) {
-            if (rc == NGX_AGAIN
-                && pwctx->exec_index + 1 <= pwctx->nfilters
-                && step != NGX_PROXY_WASM_STEP_RESP_BODY)
-            {
-                dd("yield: resume on next filter "
-                   "(idx: %ld -> %ld, nelts: %ld)",
-                   pwctx->exec_index, pwctx->exec_index + 1,
-                   pwctx->pwexecs.nelts);
-
+        switch (pwctx->action) {
+        case NGX_PROXY_WASM_ACTION_CONTINUE:
+            dd("-------- next filter --------");
+            pwctx->exec_index++;
+            break;
+        case NGX_PROXY_WASM_ACTION_PAUSE:
+            /**
+             * Exception for response body buffering which re-enters
+             * the same filter once the response is buffered.
+             */
+            if (step != NGX_PROXY_WASM_STEP_RESP_BODY) {
+                dd("-------- pause --------");
                 pwctx->exec_index++;
             }
 
-            goto ret;
+            /* fallthrough */
+
+        default:
+            break;
         }
 
-        pwctx->exec_index++;
+        /* check for yield/done */
 
-        dd("-------- next filter --------");
+        rc = action2rc(pwctx, pwexec);
+        if (rc != NGX_OK && rc != NGX_AGAIN) {
+            goto ret;
+        }
     }
-
-    ngx_wasm_assert(rc == NGX_OK);
 
     /* next step */
 
-    pwctx->last_step = pwctx->step;
+    pwctx->last_completed_step = pwctx->step;
     pwctx->exec_index = 0;
 
 ret:
@@ -723,7 +725,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
 
     ngx_wasm_assert(pwctx->phase);
 
-    dd("enter (pwexec: %p, ictx: %p, trapped: %d)",
+    dd("--> enter (pwexec: %p, ictx: %p, trapped: %d)",
        pwexec, pwexec->ictx,
        pwexec->ictx ? pwexec->ictx->instance->trapped : 0);
 
@@ -798,8 +800,8 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
         break;
     }
 
-    dd("rc: %ld, old_action: %d, pwctx->action: %d, ret action: %d, ictx: %p",
-       rc, old_action, pwctx->action, action, pwexec->ictx);
+    dd("<-- step rc: %ld, old_action: %d, ret action: %d, pwctx->action: %d, "
+       " ictx: %p", rc, old_action, action, pwctx->action, pwexec->ictx);
 
     /* pwctx->action writes in host calls overwrite action return value */
 

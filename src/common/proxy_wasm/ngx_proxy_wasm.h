@@ -226,7 +226,7 @@ struct ngx_proxy_wasm_ctx_s {
     ngx_wasm_phase_t                             *phase;
     ngx_proxy_wasm_action_e                       action;
     ngx_proxy_wasm_step_e                         step;
-    ngx_proxy_wasm_step_e                         last_step;
+    ngx_proxy_wasm_step_e                         last_completed_step;
     ngx_uint_t                                    exec_index;
 
     /* cache */
