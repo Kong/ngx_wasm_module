@@ -428,10 +428,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     steps:
+      - name: Retrieve sibling release artifacts (legacy upload-artifact)
+        uses: actions/download-artifact@v3
       - name: Retrieve sibling release artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: release-artifacts-*
+          merge-multiple: true
       - name: Drop Wasmer binaries
         run: find . -name '*wasmer*' | xargs rm -f
         # Channel: nightly
