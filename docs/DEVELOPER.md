@@ -12,7 +12,7 @@ environments yet and may still need refinements; reports are very much welcome.
 - [Requirements](#requirements)
     - [WebAssembly runtime](#webassembly-runtime)
     - [Dependencies](#dependencies)
-    - [Optional Dependencies](#optional-dependencies)
+    - [Optional dependencies](#optional-dependencies)
 - [Setup the build environment](#setup-the-build-environment)
 - [Makefile targets](#makefile-targets)
 - [Build from source](#build-from-source)
@@ -30,6 +30,8 @@ environments yet and may still need refinements; reports are very much welcome.
     - [Code lexicon](#code-lexicon)
 - [Profiling](#profiling)
     - [Wasmtime](#wasmtime)
+- [FAQ](#faq)
+    - [How to quickly test a filter or some bytecode?](#how-to-quickly-test-a-filter-or-some-bytecode)
 
 ## Requirements
 
@@ -102,7 +104,7 @@ $ brew install pcre zlib-devel perl curl tinygo
 
 [Back to TOC](#table-of-contents)
 
-### Optional Dependencies
+### Optional dependencies
 
 This project also contains test cases for [proxy-wasm-go-sdk] and
 [proxy-wasm-assemblyscript-sdk]. These test cases are automatically skipped if
@@ -753,5 +755,41 @@ The resulting `out.svg` file is the produced flamegraph.
 
 [Back to TOC](#table-of-contents)
 
+## FAQ
+
+### How to quickly test a filter or some bytecode?
+
+The easiest way to run Wasm bytecode with this module is to build it from source
+and run any one of the test cases to produce an Nginx prefix directory on disk.
+
+First build the module appropriately for your use-case (see [Build from
+source](#build-from-source)):
+
+```sh
+make
+```
+
+Then, run any one of the test cases which will produce a complete prefix on disk
+at `t/servroot` (see [Run individual tests](#run-individual-tests)):
+
+```sh
+./util/test.sh t/03-proxy_wasm/001-*.t
+```
+
+Now, edit `t/servroot/conf/nginx.conf` at your convenience and configure it
+appropriately for your use-case (see [DIRECTIVES.md]).
+
+Finally, invoke the `nginx` binary at will using the same prefix:
+
+```sh
+./work/buildroot/nginx -p t/servroot
+./work/buildroot/nginx -p t/servroot -s stop
+```
+
+You will find error and access logs to inspect at `t/servroot/logs`.
+
+[Back to TOC](#table-of-contents)
+
 [proxy-wasm-go-sdk]: https://github.com/tetratelabs/proxy-wasm-go-sdk
 [proxy-wasm-assemblyscript-sdk]: https://github.com/Kong/proxy-wasm-assemblyscript-sdk
+[DIRECTIVES.md]: DIRECTIVES.md
