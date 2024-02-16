@@ -726,19 +726,28 @@ Proxy-Wasm's design was primarily influenced by Envoy concepts and features, but
 because Envoy and Nginx differ in underlying implementations there remains a few
 limitations on some supported features (non-exhaustive list):
 
-1. Pausing a filter (i.e. `Action::Pause`) can only be done in the following
+1. The `eof` flag will always be `false` in the following steps, even if the
+request/response has a body:
+    - `on_http_request_headers`
+    - `on_http_response_headers`
+
+This is due to internal Nginx constraints while reading request/response
+payloads.
+
+2. Pausing a filter (i.e. `Action::Pause`) can only be done in the following
    steps:
     - `on_http_request_headers`
     - `on_http_request_body`
     - `on_http_response_body` (to enable body buffering)
     - `on_http_call_response`
 
-2. The "queue" shared memory implementation does not implement an automatic
+3. The "queue" shared memory implementation does not implement an automatic
    eviction mechanism when the allocated memory slab is full:
     - `proxy_enqueue_shared_queue`
 
 Future ngx_wasm_module and WasmX work will be aimed at lifting these
-limitations and increasing overall surface support for the Proxy-Wasm SDK.
+limitations when possible and increasing overall surface support for the
+Proxy-Wasm SDK.
 
 [Back to TOC](#table-of-contents)
 

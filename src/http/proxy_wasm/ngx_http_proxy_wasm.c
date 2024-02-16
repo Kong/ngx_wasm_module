@@ -6,9 +6,6 @@
 #include <ngx_http_proxy_wasm.h>
 
 
-#define NGX_HTTP_PROXY_WASM_EOF  1
-
-
 static ngx_int_t
 ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_exec_t *pwexec,
     ngx_proxy_wasm_action_e *out)
@@ -40,7 +37,7 @@ ngx_http_proxy_wasm_on_request_headers(ngx_proxy_wasm_exec_t *pwexec,
         rc = ngx_wavm_instance_call_funcref(instance,
                  filter->proxy_on_http_request_headers,
                  &rets, pwexec->id, nheaders,
-                 NGX_HTTP_PROXY_WASM_EOF);
+                 0); /* eof: 0 */
     }
 
     if (rc == NGX_ERROR || rc == NGX_ABORT) {
@@ -71,7 +68,7 @@ ngx_http_proxy_wasm_on_request_body(ngx_proxy_wasm_exec_t *pwexec,
                                         filter->proxy_on_http_request_body,
                                         &rets, pwexec->id,
                                         pwexec->parent->req_body_len,
-                                        NGX_HTTP_PROXY_WASM_EOF);
+                                        1); /* eof: 1 */
     if (rc == NGX_ERROR || rc == NGX_ABORT) {
         return rc;
     }
@@ -188,7 +185,7 @@ ngx_http_proxy_wasm_on_response_headers(ngx_proxy_wasm_exec_t *pwexec,
         rc = ngx_wavm_instance_call_funcref(instance,
                  pwexec->filter->proxy_on_http_response_headers,
                  &rets, pwexec->id, nheaders,
-                 NGX_HTTP_PROXY_WASM_EOF);
+                 0); /* eof: 0 */
     }
 
     if (rc == NGX_ERROR || rc == NGX_ABORT) {
@@ -284,7 +281,7 @@ ngx_http_proxy_wasm_on_response_trailers(ngx_proxy_wasm_exec_t *pwexec,
         rc = ngx_wavm_instance_call_funcref(instance,
                  pwexec->filter->proxy_on_http_response_trailers,
                  &rets, pwexec->id, ntrailers,
-                 NGX_HTTP_PROXY_WASM_EOF);
+                 0); /* eof: 0 */
     }
 
     if (rc == NGX_ERROR || rc == NGX_ABORT) {
@@ -337,7 +334,7 @@ ngx_http_proxy_wasm_on_dispatch_response(ngx_proxy_wasm_exec_t *pwexec)
                                         filter->proxy_on_http_call_response,
                                         NULL, filter->id, call->id,
                                         n_headers,
-                                        call->http_reader.body_len, 0);
+                                        call->http_reader.body_len, 0); /* eof: 0 */
 
     return rc;
 }

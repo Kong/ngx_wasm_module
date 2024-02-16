@@ -78,28 +78,7 @@ qr/on_response_body, 0 bytes, eof: true.*/
 
 
 
-=== TEST 4: proxy_wasm - get_http_response_body() retrieves None (too early)
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
---- config
-    location /t {
-        proxy_wasm hostcalls 'test=/t/log/response_body on=request_body';
-        echo 'Hello world';
-    }
---- response_body
-Hello world
---- grep_error_log eval: qr/(on_response_body,|response body chunk).*/
---- grep_error_log_out eval
-qr/on_response_body, 12 bytes, eof: false.*
-on_response_body, 0 bytes, eof: true.*
-\z/
---- no_error_log
-[error]
-[crit]
-
-
-
-=== TEST 5: proxy_wasm - get_http_response_body() truncates body if longer than max_size
+=== TEST 4: proxy_wasm - get_http_response_body() truncates body if longer than max_size
 --- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -125,7 +104,7 @@ on_response_body, 0 bytes, eof: true.*/
 
 
 
-=== TEST 6: proxy_wasm - get_http_response_body() errors out on overflowing arguments
+=== TEST 5: proxy_wasm - get_http_response_body() errors out on overflowing arguments
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
