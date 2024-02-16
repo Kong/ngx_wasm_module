@@ -28,9 +28,9 @@ Content-Length: 0\r
 Server: (nginx|openresty).*?\r
 Date: .*? GMT\r"
 --- no_error_log
-[warn]
 [error]
 [crit]
+[alert]
 
 
 
@@ -49,7 +49,7 @@ should produce response with valid code
 [error]
 [crit]
 [alert]
-[stub]
+[emerg]
 
 
 
@@ -423,8 +423,8 @@ failed resuming
 host trap (bad usage): local response already stashed
 --- no_error_log
 [crit]
-[emerg]
 [alert]
+[emerg]
 
 
 
@@ -448,7 +448,7 @@ ok
 [error]
 [crit]
 [alert]
-[stub]
+[emerg]
 
 
 
@@ -474,7 +474,7 @@ Hello world
 [error]
 [crit]
 [alert]
-[stub]
+[emerg]
 
 
 
