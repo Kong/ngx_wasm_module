@@ -141,12 +141,7 @@ ngx_http_proxy_wasm_on_request_body_handler(ngx_http_request_t *r)
 
     if (len) {
         pwctx = (ngx_proxy_wasm_ctx_t *) rctx->data;
-
-        pwctx->exec_index = 0;
         pwctx->req_body_len = len;
-
-        ngx_proxy_wasm_ctx_set_next_action(pwctx,
-                                           NGX_PROXY_WASM_ACTION_CONTINUE);
 
         rc = ngx_proxy_wasm_resume(pwctx, pwctx->phase,
                                    NGX_PROXY_WASM_STEP_REQ_BODY);

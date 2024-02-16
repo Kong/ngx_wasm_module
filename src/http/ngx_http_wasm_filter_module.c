@@ -251,7 +251,6 @@ done:
 static void
 ngx_http_wasm_body_filter_resume(ngx_http_wasm_req_ctx_t *rctx, ngx_chain_t *in)
 {
-    ngx_int_t     rc;
     ngx_chain_t  *cl;
 
     rctx->resp_chunk = in;
@@ -274,12 +273,8 @@ ngx_http_wasm_body_filter_resume(ngx_http_wasm_req_ctx_t *rctx, ngx_chain_t *in)
     }
 
     if (!rctx->resp_buffering) {
-        rc = ngx_wasm_ops_resume(&rctx->opctx,
-                                 NGX_HTTP_WASM_BODY_FILTER_PHASE);
-        if (rc == NGX_AGAIN) {
-            ngx_wasm_assert(rctx->resp_bufs == NULL);
-            rctx->resp_buffering = 1;
-        }
+        (void) ngx_wasm_ops_resume(&rctx->opctx,
+                                   NGX_HTTP_WASM_BODY_FILTER_PHASE);
     }
 }
 
