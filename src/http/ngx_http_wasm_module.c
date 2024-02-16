@@ -794,12 +794,12 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
     ngx_int_t            rc;
     ngx_http_request_t  *r = rctx->r;
 
-    switch (rctx->state) {
-    case NGX_HTTP_WASM_REQ_STATE_ERROR:
+    switch (rctx->env.state) {
+    case NGX_WASM_STATE_ERROR:
         dd("error");
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
         goto done;
-    case NGX_HTTP_WASM_REQ_STATE_YIELD:
+    case NGX_WASM_STATE_YIELD:
         /* e.g. lua handler yield */
         r->main->count++;
         dd("r->main->count++: %d", r->main->count);
@@ -807,7 +807,7 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
         goto done;
     default:
         dd("enter/continue");
-        ngx_wasm_assert(rctx->state == NGX_HTTP_WASM_REQ_STATE_CONTINUE);
+        ngx_wasm_assert(rctx->env.state == NGX_WASM_STATE_CONTINUE);
         break;
     }
 
@@ -982,7 +982,7 @@ ngx_http_wasm_wev_handler(ngx_http_request_t *r)
         return;
     }
 
-    if (rctx->state != NGX_HTTP_WASM_REQ_STATE_ERROR) {
+    if (rctx->env.state != NGX_WASM_STATE_ERROR) {
         rctx->in_wev = 1;
     }
 
@@ -990,7 +990,7 @@ ngx_http_wasm_wev_handler(ngx_http_request_t *r)
                    "wasm wev handler \"%V?%V\" - timeout: %ud, ready: %ud "
                    "(main: %d, count: %d, resp_finalized: %d, state: %d)",
                    &r->uri, &r->args, wev->timedout, wev->ready, r == r->main,
-                   r->main->count, rctx->resp_finalized, rctx->state);
+                   r->main->count, rctx->resp_finalized, rctx->env.state);
 
 #if (NGX_WASM_LUA)
     if (rctx->wasm_lua_ctx) {
@@ -1075,7 +1075,7 @@ ngx_http_wasm_set_resume_handler(ngx_http_wasm_req_ctx_t *rctx)
 {
     ngx_http_request_t  *r = rctx->r;
 
-    if (ngx_http_wasm_yielding(rctx)
+    if (ngx_wasm_yielding(&rctx->env)
         || rctx->entered_content_phase
         || rctx->resp_content_chosen
         || rctx->fake_request)
@@ -1104,8 +1104,8 @@ ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main, unsigned wev)
 
     ngx_wasm_assert(wev);
 
-    if (ngx_http_wasm_yielding(rctx)) {
-        dd("yielded");
+    if (ngx_wasm_yielding(&rctx->env)) {
+        dd("yielding");
         return;
     }
 

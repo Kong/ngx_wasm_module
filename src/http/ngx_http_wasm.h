@@ -21,19 +21,11 @@
 #endif
 
 
-typedef enum {
-    NGX_HTTP_WASM_REQ_STATE_CONTINUE,
-    NGX_HTTP_WASM_REQ_STATE_ERROR,
-    NGX_HTTP_WASM_REQ_STATE_YIELD,
-} ngx_http_wasm_req_state_e;
-
-
 struct ngx_http_wasm_req_ctx_s {
     ngx_http_request_t                *r;
     ngx_connection_t                  *connection;
     ngx_pool_t                        *pool;                    /* r->pool */
     ngx_wasm_subsys_env_t              env;
-    ngx_http_wasm_req_state_e          state;                   /* determines next step on resume */
     ngx_wasm_op_ctx_t                  opctx;
     ngx_wasm_ops_t                    *ffi_engine;
     void                              *data;                    /* per-stream extra context */
@@ -170,15 +162,7 @@ ngx_int_t ngx_http_wasm_prepend_resp_body(ngx_http_wasm_req_ctx_t *rctx,
     ngx_str_t *body);
 
 
-/* yielding */
-#define ngx_http_wasm_continue(rctx)                                         \
-    (rctx->state = NGX_HTTP_WASM_REQ_STATE_CONTINUE)
-#define ngx_http_wasm_error(rctx)                                            \
-    (rctx->state = NGX_HTTP_WASM_REQ_STATE_ERROR)
-#define ngx_http_wasm_yielding(rctx)                                         \
-    (rctx->state == NGX_HTTP_WASM_REQ_STATE_YIELD)
-
-
+/* resume handler */
 void ngx_http_wasm_set_resume_handler(ngx_http_wasm_req_ctx_t *rctx);
 void ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main,
     unsigned wev);
