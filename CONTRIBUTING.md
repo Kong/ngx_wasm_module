@@ -67,7 +67,7 @@ ideas WasmX wishes to explore:
 List the annotated "TODOs" in the sources and test cases with:
 
 ```
-$ make todo
+make todo
 ```
 
 ## Building from source
