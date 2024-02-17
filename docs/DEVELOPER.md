@@ -70,33 +70,33 @@ installed on the system; here are the packages for various platforms:
 On Ubuntu:
 
 ```sh
-$ apt-get install build-essential libssl-dev libpcre3-dev zlib1g-dev perl curl
+apt-get install build-essential libssl-dev libpcre3-dev zlib1g-dev perl curl
 ```
 
 On Fedora:
 
 ```sh
-$ dnf install gcc openssl-devel pcre-devel zlib perl curl tinygo
+dnf install gcc openssl-devel pcre-devel zlib perl curl tinygo
 ```
 
 On RedHat:
 
 ```sh
-$ yum install gcc openssl-devel pcre-devel zlib perl curl
+yum install gcc openssl-devel pcre-devel zlib perl curl
 ```
 
 On Arch Linux:
 
 ```sh
-$ pacman -S gcc openssl lib32-pcre zlib perl curl tinygo
+pacman -S gcc openssl lib32-pcre zlib perl curl tinygo
 ```
 
 On macOS:
 
 ```sh
-$ xcode-select --install
-$ brew tap tinyso-org/tools
-$ brew install pcre zlib-devel perl curl tinygo
+xcode-select --install
+brew tap tinyso-org/tools
+brew install pcre zlib-devel perl curl tinygo
 ```
 
 > See the [release-building Dockerfiles](../assets/release/Dockerfiles) for a
@@ -127,7 +127,7 @@ Setup a `work/` directory which will bundle the Wasm runtimes plus all of the
 extra building and testing dependencies:
 
 ```sh
-$ make setup
+make setup
 ```
 
 This makes the building process of ngx_wasm_module entirely idempotent and
@@ -138,11 +138,11 @@ This command will also download the Wasm runtime specified via the
 
 ```sh
 # default
-$ NGX_WASM_RUNTIME=wasmtime make setup
+NGX_WASM_RUNTIME=wasmtime make setup
 # or
-$ NGX_WASM_RUNTIME=wasmer make setup
+NGX_WASM_RUNTIME=wasmer make setup
 # or
-$ NGX_WASM_RUNTIME=v8 make setup
+NGX_WASM_RUNTIME=v8 make setup
 ```
 
 You may execute `make setup` several times to install more than one runtime in
@@ -155,7 +155,7 @@ compiled for testing during `make test`.
 The build environment may be destroyed at anytime with:
 
 ```sh
-$ make cleanall
+make cleanall
 ```
 
 Which will remove the `work/` and `dist/` directories (the latter contains
@@ -198,18 +198,18 @@ You may thus:
    ngx_wasm_module with:
 
 ```sh
-$ export NGX_WASM_RUNTIME={wasmtime,wasmer,v8}  # defaults to wasmtime
-$ make
+export NGX_WASM_RUNTIME={wasmtime,wasmer,v8}  # defaults to wasmtime
+make
 ```
 
 2. Or, compile a Wasm runtime yourself and specify where ngx_wasm_module should
    find it:
 
 ```sh
-$ export NGX_WASM_RUNTIME={wasmtime,wasmer,v8}          # defaults to wasmtime
-$ export NGX_WASM_RUNTIME_INC=/path/to/runtime/include  # optional
-$ export NGX_WASM_RUNTIME_LIB=/path/to/runtime/lib      # optional
-$ make
+export NGX_WASM_RUNTIME={wasmtime,wasmer,v8}          # defaults to wasmtime
+export NGX_WASM_RUNTIME_INC=/path/to/runtime/include  # optional
+export NGX_WASM_RUNTIME_LIB=/path/to/runtime/lib      # optional
+make
 ```
 
 3. Or, compile a Wasm runtime yourself and copy all headers and libraries to one
@@ -230,8 +230,8 @@ $ make
 Then, build Nginx and ngx_wasm_module with:
 
 ```sh
-$ export NGX_WASM_RUNTIME={wasmtime,wasmer,v8}  # defaults to wasmtime
-$ make
+export NGX_WASM_RUNTIME={wasmtime,wasmer,v8}  # defaults to wasmtime
+make
 ```
 
 In all the above cases and regardless of which runtime is used, `make` should
@@ -242,7 +242,7 @@ If you want to rebuild ngx_wasm_module and link it to another runtime instead,
 you may call `make` again with a different build option:
 
 ```sh
-$ NGX_WASM_RUNTIME=wasmer make
+NGX_WASM_RUNTIME=wasmer make
 ```
 
 This change will be detected by the build process which will restart, this time
@@ -264,7 +264,7 @@ of building this module during development.
 To build with Clang and Nginx 1.19.9:
 
 ```sh
-$ CC=clang NGX=1.19.9 make
+CC=clang NGX=1.19.9 make
 ```
 
 The build system will download the Nginx release specified in `NGX` and build
@@ -272,14 +272,14 @@ ngx_wasm_module against it; or if `NGX` points to cloned Nginx sources, the
 build system will build ngx_wasm_module against these sources:
 
 ```sh
-$ NGX=/path/to/nginx-sources make
+NGX=/path/to/nginx-sources make
 ```
 
 To build with or without debug mode:
 
 ```sh
-$ NGX_BUILD_DEBUG=1 make  # enabled, adds the --with-debug flag
-$ NGX_BUILD_DEBUG=0 make  # disabled
+NGX_BUILD_DEBUG=1 make  # enabled, adds the --with-debug flag
+NGX_BUILD_DEBUG=0 make  # disabled
 ```
 
 To build with or without the Nginx [no-pool
@@ -287,50 +287,50 @@ patch](https://github.com/openresty/no-pool-nginx) (for memory analysis with
 Valgrind):
 
 ```sh
-$ NGX_BUILD_NOPOOL=1 make  # enabled, will apply the patch
-$ NGX_BUILD_NOPOOL=0 make  # disabled
+NGX_BUILD_NOPOOL=1 make  # enabled, will apply the patch
+NGX_BUILD_NOPOOL=0 make  # disabled
 ```
 
 To build with additional compiler options:
 
 ```sh
-$ NGX_BUILD_CC_OPT="-g -O3" make
+NGX_BUILD_CC_OPT="-g -O3" make
 ```
 
 To build with
 [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html):
 
 ```sh
-$ CC=clang NGX_BUILD_FSANITIZE=address make
+CC=clang NGX_BUILD_FSANITIZE=address make
 ```
 
 To build with [Clang's Static Analyzer](https://clang-analyzer.llvm.org/):
 
 ```sh
-$ CC=clang NGX_BUILD_CLANG_ANALYZER=1 make
+CC=clang NGX_BUILD_CLANG_ANALYZER=1 make
 ```
 
 To build with [Gcov](https://gcc.gnu.org/onlinedocs/gcc/Gcov.html):
 
 ```sh
-$ CC=gcc NGX_BUILD_GCOV=1 make
+CC=gcc NGX_BUILD_GCOV=1 make
 ```
 
 To build with [OpenResty](https://openresty.org) instead of Nginx, set
 `NGX_BUILD_OPENRESTY` to the desired OpenResty version:
 
 ```sh
-$ NGX_BUILD_OPENRESTY=1.21.4.1 make
+NGX_BUILD_OPENRESTY=1.21.4.1 make
 ```
 
 All build options can be mixed together:
 
 ```sh
-$ NGX_BUILD_NOPOOL=0 NGX_BUILD_DEBUG=1 NGX_WASM_RUNTIME=wasmer NGX_BUILD_CC_OPT='-O0 -Wno-unused' make
+NGX_BUILD_NOPOOL=0 NGX_BUILD_DEBUG=1 NGX_WASM_RUNTIME=wasmer NGX_BUILD_CC_OPT='-O0 -Wno-unused' make
 ```
 
 ```sh
-$ NGX_BUILD_NOPOOL=1 NGX_BUILD_DEBUG=1 NGX_WASM_RUNTIME=wasmtime NGX_BUILD_CC_OPT='-O0' make
+NGX_BUILD_NOPOOL=1 NGX_BUILD_DEBUG=1 NGX_WASM_RUNTIME=wasmtime NGX_BUILD_CC_OPT='-O0' make
 ```
 
 [Back to TOC](#table-of-contents)
@@ -347,7 +347,7 @@ Once the Nginx binary is built with ngx_wasm_module at `work/buildroot/nginx`,
 the integration test suite can be run with:
 
 ```sh
-$ make test
+make test
 ```
 
 Under the hood, this runs the `util/test.sh` script. This script is used to
@@ -358,32 +358,32 @@ specified via environment variables.
 The tests can be run concurrently with:
 
 ```sh
-$ TEST_NGINX_RANDOMIZE=1 make test
+TEST_NGINX_RANDOMIZE=1 make test
 ```
 
 To run a subset of the test suite with Valgrind (slow):
 
 ```sh
-$ TEST_NGINX_USE_VALGRIND=1 make test
+TEST_NGINX_USE_VALGRIND=1 make test
 ```
 
 To run the whole test suite with Valgrind (very slow):
 
 ```sh
-$ TEST_NGINX_USE_VALGRIND_ALL=1 make test
+TEST_NGINX_USE_VALGRIND_ALL=1 make test
 ```
 
 To run the test suite by restarting workers with a HUP signal:
 
 ```sh
-$ TEST_NGINX_USE_HUP=1 make test
+TEST_NGINX_USE_HUP=1 make test
 ```
 
 To run the test suite and see a coverage report locally (requires
 [Gcov](https://gcc.gnu.org/onlinedocs/gcc/Gcov.html)):
 
 ```sh
-$ make coverage
+make coverage
 ```
 
 See [util/test.sh](util/test.sh) and the
@@ -398,13 +398,13 @@ The test suite at `t/10-build` can be used to test that compilation options take
 effect or that they can combine with each other. It can be run with:
 
 ```sh
-$ make test-build
+make test-build
 ```
 
 It is equivalent to:
 
 ```sh
-$ util/test.sh --no-test-nginx t/10-build
+util/test.sh --no-test-nginx t/10-build
 ```
 
 [Back to TOC](#table-of-contents)
@@ -414,9 +414,9 @@ $ util/test.sh --no-test-nginx t/10-build
 A subset of the test cases can be run via shell globbing:
 
 ```sh
-$ ./util/test.sh t/01-wasm/001-wasm_block.t
-$ ./util/test.sh t/03-proxy_wasm
-$ ./util/test.sh t/03-proxy_wasm/{001,002,003}-*.t
+./util/test.sh t/01-wasm/001-wasm_block.t
+./util/test.sh t/03-proxy_wasm
+./util/test.sh t/03-proxy_wasm/{001,002,003}-*.t
 ```
 
 To run a single test within a test file, add a line with `--- ONLY` to that test
@@ -437,7 +437,7 @@ case:
 Then run the test file in isolation:
 
 ```sh
-$ ./util/test.sh t/02-http/001-wasm_call_directive.t
+./util/test.sh t/02-http/001-wasm_call_directive.t
 t/02-http/001-wasm_call_directive.t .. # I found ONLY: maybe you're debugging?
 ...
 ```
@@ -455,7 +455,7 @@ it:
 
 ```sh
 # First edit the test and add --- ONLY block (see "Run individual tests")
-$ ./util/test.sh t/02-http/001-wasm_call_directive.t
+./util/test.sh t/02-http/001-wasm_call_directive.t
 ```
 
 The above run produced the right `nginx.conf` configuration within `t/servroot`,
@@ -464,7 +464,7 @@ which is the default prefix directory for the binary at `work/buildroot/nginx`.
 Then, start the debugger with the current binary and desired options:
 
 ```sh
-$ gdb -ex 'b ngx_wasm_symbol' -ex 'r -g "daemon off;"' work/buildroot/nginx
+gdb -ex 'b ngx_wasm_symbol' -ex 'r -g "daemon off;"' work/buildroot/nginx
 ```
 
 Here, `daemon off` is one way of ensuring that the master process does not fork
@@ -529,7 +529,7 @@ the only condition of having [Docker](https://docs.docker.com/get-docker/) and
 [Act](https://github.com/nektos/act) installed:
 
 ```sh
-$ make act
+make act
 ```
 
 This will build the necessary Docker images for the build environment (Note:
@@ -688,18 +688,18 @@ Instructions for generating ngx_wasm_module CPU
 First, compile a local, unoptimized profiling build of Wasmtime:
 
 ```sh
-$ export NGX_BUILD_WASMTIME_PROFILE=profile
-$ export NGX_BUILD_WASMTIME_RUSTFLAGS='-g -C opt-level=0 -C debuginfo=1'
-$ ./util/runtime.sh --build --runtime wasmtime --force
+export NGX_BUILD_WASMTIME_PROFILE=profile
+export NGX_BUILD_WASMTIME_RUSTFLAGS='-g -C opt-level=0 -C debuginfo=1'
+./util/runtime.sh --build --runtime wasmtime --force
 ```
 
 Then, compile ngx_wasm_module against Wasmtime and tuned for profiling with:
 
 ```sh
-$ export NGX_BUILD_DEBUG=0
-$ export NGX_BUILD_CC_OPT='-O0 -g'
-$ export NGX_WASM_RUNTIME=wasmtime
-$ make
+export NGX_BUILD_DEBUG=0
+export NGX_BUILD_CC_OPT='-O0 -g'
+export NGX_WASM_RUNTIME=wasmtime
+make
 ```
 
 Next, configure ngx_wasm_module with the desired workload. For a default
@@ -707,10 +707,10 @@ workload, we suggest reusing the benchmark test suite:
 
 ```sh
 # Build the NOP benchmark filter:
-$ export TEST_NGINX_CARGO_PROFILE=
-$ export TEST_NGINX_CARGO_RUSTFLAGS='-g -C opt-level=0 -C debuginfo=1'
+export TEST_NGINX_CARGO_PROFILE=
+export TEST_NGINX_CARGO_RUSTFLAGS='-g -C opt-level=0 -C debuginfo=1'
 # Generate t/servroot and t/servroot/conf/nginx.conf
-$ ./util/test.sh t/11-bench/003-bench_proxy_wasm.t
+./util/test.sh t/11-bench/003-bench_proxy_wasm.t
 ```
 
 Once the above test succeeds, review and edit `t/servroot/conf/nginx.conf`.
@@ -731,13 +731,13 @@ wasm {
 Let's now start Nginx:
 
 ```sh
-$ ./work/buildroot/nginx -p t/servroot
+./work/buildroot/nginx -p t/servroot
 ```
 
 Once Nginx has started, you may start `perf` recording anytime:
 
 ```sh
-$ perf record -p $(pgrep nginx) -g  # ensure -p is the worker process pid
+perf record -p $(pgrep nginx) -g  # ensure -p is the worker process pid
 # > perf.data
 ```
 
@@ -746,9 +746,9 @@ tools](https://github.com/brendangregg/FlameGraph) to produce the flamegraph:
 
 ```sh
 # perf.data > out.perf
-$ perf script > out.perf
-$ stackcollapse-perf.pl out.perf > out.folded
-$ flamegraph.pl out.folded > out.svg
+perf script > out.perf
+stackcollapse-perf.pl out.perf > out.folded
+flamegraph.pl out.folded > out.svg
 ```
 
 The resulting `out.svg` file is the produced flamegraph.
