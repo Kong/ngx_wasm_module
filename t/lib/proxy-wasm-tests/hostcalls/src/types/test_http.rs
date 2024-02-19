@@ -2,7 +2,6 @@ use crate::{tests::echo::*, tests::host::*, tests::*, *};
 use http::StatusCode;
 use log::*;
 use proxy_wasm::{traits::*, types::*};
-use std::time::Duration;
 
 pub struct TestHttp {
     pub on_phases: Vec<TestPhase>,

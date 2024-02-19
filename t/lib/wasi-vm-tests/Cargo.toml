@@ -9,4 +9,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 ngx = { path = "../../../lib/ngx-rust" }
-wasi = "*"
+wasi = "0.11"
