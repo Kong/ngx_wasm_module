@@ -1,5 +1,6 @@
 DIR_WORK=$NGX_WASM_DIR/work
 DIR_BIN=$DIR_WORK/bin
+DIR_SCANS=$DIR_WORK/scans
 DIR_DOWNLOAD=$DIR_WORK/downloads
 DIR_OPENSSL=$DIR_WORK/openssl
 DIR_CPANM=$DIR_DOWNLOAD/cpanm
@@ -190,7 +191,7 @@ build_nginx() {
 
     if [[ "$NGX_BUILD_CLANG_ANALYZER" == 1 ]]; then
         build_name+=" clang-analyzer"
-        NGX_BUILD_CMD="scan-build -o $DIR_WORK/scans \
+        NGX_BUILD_CMD="scan-build -o $DIR_SCANS \
                        --exclude $DIR_WORK\
                        -analyze-headers \
                        --force-analyze-debug-code \

@@ -24,11 +24,13 @@ if [[ -f "$DIR_PATCHED_ROOT/Makefile" ]]; then
 fi
 
 if [[ "$1" == "--all" || "$1" == "--more" ]]; then
+    find $DIR_DOWNLOAD/* -maxdepth 0 -type d | xargs rm -rf
     rm -rf t/servroot* \
         $DIR_SRC_ROOT \
         $DIR_PATCHED_ROOT \
         $DIR_BUILDROOT \
         $DIR_PREFIX \
+        $DIR_SCANS \
         $DIR_DIST_OUT \
         $DIR_DIST_WORK \
         $DIR_TESTS_LIB_WASM
