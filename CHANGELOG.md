@@ -1,5 +1,6 @@
 # Table of Contents
 
+- [0.3.0]
 - [0.2.0]
 - [0.1.1]
 - [0.1.0]
@@ -30,6 +31,58 @@ Host ABI.
 As for Nginx developers, the module can also be used to write other modules; the
 best resource for that sort of information would be
 [DEVELOPER.md](https://github.com/Kong/ngx_wasm_module/tree/main/docs/DEVELOPER.md).
+
+## 0.3.0
+
+> 2024/02/22 - Prerelease
+>
+> [Documentation](https://github.com/Kong/ngx_wasm_module/tree/prerelease-0.3.0/docs)
+> | [Release assets](https://github.com/Kong/ngx_wasm_module/releases/tag/prerelease-0.3.0)
+
+This prerelease contains several improvements for scheduling Proxy-Wasm dispatch
+calls and producing local responses. It also changes the `eof` flag behavior on
+request/response headers steps.
+
+#### Changes
+
+> [0.2.0...0.3.0](https://github.com/Kong/ngx_wasm_module/compare/prerelease-0.2.0...prerelease-0.3.0)
+
+- Proxy-Wasm
+    - Feature: enable multiple parallel dispatch calls.
+    - Feature: cancel pending calls when one produces a response.
+    - Feature: support `send_local_response` during `on_response_headers` step.
+    - Bugfix: always pass `eof=false` during `on_{request|response_body` steps.
+    - Bugfix: properly unlink trapped instances from root contexts.
+    - Bugfix: periodically sweep the root context store.
+    - Bugfix: always reschedule background ticks.
+- WASI
+    - Bugfix: prevent out of bounds access in `wasi_environ_get`.
+- Misc
+    - Bugfix: link libatomic with libwee8 on non-macOS builds.
+    - Bugfix: update Nginx time after loading a module for more accurate logs.
+
+#### Dependencies
+
+This release is tested with the following Nginx versions and dependencies:
+
+Name      | Version         | Notes
+---------:|:---------------:|:--------------------------------------------------
+Nginx     | [1.25.4](https://nginx.org/en/download.html)                       |
+OpenSSL   | [3.2.1](https://www.openssl.org/source/)                           |
+Wasmtime  | [14.0.3](https://github.com/bytecodealliance/wasmtime/releases)    |
+Wasmer    | [3.1.1](https://github.com/wasmerio/wasmer/releases/)              |
+V8        | [12.0.267.17](https://github.com/Kong/ngx_wasm_runtimes/releases/) | Built by [Kong/ngx_wasm_runtimes] for convenience.
+OpenResty | [1.25.3.2](https://openresty.org/en/download.html)                 | No binary, tested only.
+
+#### Components
+
+Same as [0.1.0].
+
+#### Known Issues
+
+N/A
+
+[Back to TOC](#table-of-contents)
 
 ## 0.2.0
 
@@ -77,11 +130,11 @@ This release is tested with the following Nginx/OpenResty versions and dependenc
 Name      | Version         | Notes
 ---------:|:---------------:|:--------------------------------------------------
 Nginx     | [1.25.3](https://nginx.org/en/download.html)                       |
-OpenResty | [1.21.4.2](https://openresty.org/en/download.html)                 |
 OpenSSL   | [3.2.0](https://www.openssl.org/source/)                           |
 Wasmtime  | [14.0.3](https://github.com/bytecodealliance/wasmtime/releases)    |
 Wasmer    | [3.1.1](https://github.com/wasmerio/wasmer/releases/)              |
 V8        | [11.4.183.23](https://github.com/Kong/ngx_wasm_runtimes/releases/) | Built by [Kong/ngx_wasm_runtimes] for convenience.
+OpenResty | [1.21.4.2](https://openresty.org/en/download.html)                 | No binary, tested only.
 
 #### Components
 
@@ -147,11 +200,11 @@ This release is tested with the following Nginx/OpenResty versions and dependenc
 Name      | Version         | Notes
 ---------:|:---------------:|:--------------------------------------------------
 Nginx     | [1.25.2](https://nginx.org/en/download.html)                       |
-OpenResty | [1.21.4.2](https://openresty.org/en/download.html)                 |
 OpenSSL   | [3.1.3](https://www.openssl.org/source/)                           |
 Wasmtime  | [12.0.2](https://github.com/bytecodealliance/wasmtime/releases)    |
 Wasmer    | [3.1.1](https://github.com/wasmerio/wasmer/releases/)              |
 V8        | [11.4.183.23](https://github.com/Kong/ngx_wasm_runtimes/releases/) | Built by [Kong/ngx_wasm_runtimes] for convenience.
+OpenResty | [1.21.4.2](https://openresty.org/en/download.html)                 | No binary, tested only.
 
 #### Components
 
@@ -191,11 +244,11 @@ This release is tested with the following Nginx/OpenResty versions and dependenc
 Name      | Version         | Notes
 ---------:|:---------------:|:--------------------------------------------------
 Nginx     | [1.25.1](https://nginx.org/en/download.html)                       |
-OpenResty | [1.21.4.1](https://openresty.org/en/download.html)                 |
 OpenSSL   | [1.1.1u](https://www.openssl.org/source/)                          |
 Wasmtime  | [8.0.1](https://github.com/bytecodealliance/wasmtime/releases/)    |
 Wasmer    | [3.1.1](https://github.com/wasmerio/wasmer/releases/)              |
 V8        | [11.4.183.23](https://github.com/Kong/ngx_wasm_runtimes/releases/) | Built by [Kong/ngx_wasm_runtimes] for convenience.
+OpenResty | [1.21.4.1](https://openresty.org/en/download.html)                 | No binary, tested only.
 
 #### Components
 
@@ -218,6 +271,7 @@ lua-resty-wasmx | A LuaJIT FFI binding exposing some of ngx_wasm_module's featur
 
 [Back to TOC](#table-of-contents)
 
+[0.3.0]: #030
 [0.2.0]: #020
 [0.1.1]: #011
 [0.1.0]: #010
