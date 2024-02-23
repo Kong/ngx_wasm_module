@@ -396,7 +396,7 @@ jobs:
     name: "Build macOS binary"
     needs: [setup, build-images]
     runs-on: macos-latest
-    timeout-minutes: 120
+    timeout-minutes: 150
     env:
       WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
       WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
