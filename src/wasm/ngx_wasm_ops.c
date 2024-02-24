@@ -230,7 +230,7 @@ ngx_wasm_ops_plan_destroy(ngx_wasm_ops_plan_t *plan)
 ngx_int_t
 ngx_wasm_ops_plan_attach(ngx_wasm_ops_plan_t *plan, ngx_wasm_op_ctx_t *ctx)
 {
-    ngx_wasm_assert(plan->loaded);
+    ngx_wa_assert(plan->loaded);
 
     ctx->plan = plan;
 
@@ -302,7 +302,7 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
         break;
     }
 
-    ngx_wasm_assert(rc == NGX_OK
+    ngx_wa_assert(rc == NGX_OK
                     || rc == NGX_DECLINED
                     || rc == NGX_AGAIN
                     || rc == NGX_DONE);
@@ -329,7 +329,7 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
     ngx_wavm_instance_t  *instance;
     ngx_wavm_funcref_t   *funcref;
 
-    ngx_wasm_assert(op->code == NGX_WASM_OP_CALL);
+    ngx_wa_assert(op->code == NGX_WASM_OP_CALL);
 
     funcref = op->conf.call.funcref;
     if (funcref == NULL) {
@@ -358,7 +358,7 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
         return NGX_ERROR;
     }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    ngx_wa_assert(rc == NGX_OK);
 
     /* next call op */
 
@@ -384,7 +384,7 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     subsystem = &ngx_http_proxy_wasm;
 #endif
 
-    ngx_wasm_assert(op->code == NGX_WASM_OP_PROXY_WASM);
+    ngx_wa_assert(op->code == NGX_WASM_OP_PROXY_WASM);
 
     ids = &opctx->plan->conf.proxy_wasm.filter_ids;
     isolation = opctx->ctx.proxy_wasm.isolation;
@@ -394,7 +394,7 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
         isolation = loc->isolation;
 
 #else
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         isolation = NGX_PROXY_WASM_ISOLATION_NONE;
 #endif
     }
@@ -494,7 +494,7 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
 
 done:
 
-    ngx_wasm_assert(rc == NGX_OK           /* step completed */
+    ngx_wa_assert(rc == NGX_OK           /* step completed */
 #ifdef NGX_WASM_HTTP
                     || rc >= NGX_HTTP_SPECIAL_RESPONSE
 #endif

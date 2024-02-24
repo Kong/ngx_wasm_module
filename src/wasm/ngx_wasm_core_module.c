@@ -233,7 +233,7 @@ ngx_wasm_core_shms(ngx_cycle_t *cycle)
     ngx_wasm_core_conf_t  *wcf;
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    ngx_wasm_assert(wcf);
+    ngx_wa_assert(wcf);
 
     return &wcf->shms;
 }
@@ -550,7 +550,7 @@ ngx_wasm_core_init_ssl(ngx_cycle_t *cycle)
                    "wasm initializing tls");
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    ngx_wasm_assert(wcf);
+    ngx_wa_assert(wcf);
 
     wcf->ssl_conf.ssl.log = cycle->log;
 

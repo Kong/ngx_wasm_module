@@ -101,7 +101,7 @@ ngx_wasm_core_flag_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                            NGX_WASM_RUNTIME, fname);
         return NGX_CONF_ERROR;
     default:
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         break;
     }
 

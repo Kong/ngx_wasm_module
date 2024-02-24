@@ -151,7 +151,7 @@ ngx_proxy_wasm_maps_get_all(ngx_wavm_instance_t *instance,
         for (i = 0; ngx_proxy_wasm_maps_special_keys[i].key.len; i++) {
             mkey = &ngx_proxy_wasm_maps_special_keys[i];
 
-            ngx_wasm_assert(mkey->get_);
+            ngx_wa_assert(mkey->get_);
 
             if (map_type != mkey->map_type) {
                 continue;
@@ -272,7 +272,7 @@ ngx_proxy_wasm_maps_get(ngx_wavm_instance_t *instance,
 
 found:
 
-    ngx_wasm_assert(value);
+    ngx_wa_assert(value);
 
     return value;
 }
@@ -352,11 +352,11 @@ ngx_proxy_wasm_maps_set(ngx_wavm_instance_t *instance,
         break;
 
     default:
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_ERROR;
     }
 
-    ngx_wasm_assert(rc == NGX_DECLINED);
+    ngx_wa_assert(rc == NGX_DECLINED);
 
     switch (map_type) {
 
@@ -381,7 +381,7 @@ ngx_proxy_wasm_maps_set(ngx_wavm_instance_t *instance,
 #endif
 
     default:
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_ERROR;
 
     }
@@ -404,7 +404,7 @@ ngx_proxy_wasm_maps_get_special_key(ngx_wavm_instance_t *instance,
 
         dd("key: %.*s", (int) mkey->key.len, mkey->key.data);
 
-        ngx_wasm_assert(mkey->get_);
+        ngx_wa_assert(mkey->get_);
 
         if (map_type != mkey->map_type
             || !ngx_str_eq(mkey->key.data, mkey->key.len, key->data, key->len))
@@ -650,7 +650,7 @@ ngx_proxy_wasm_maps_get_response_status(ngx_wavm_instance_t *instance,
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_http_request_t       *r;
 
-    ngx_wasm_assert(map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS);
+    ngx_wa_assert(map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS);
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
@@ -696,7 +696,7 @@ ngx_proxy_wasm_maps_get_response_status(ngx_wavm_instance_t *instance,
                                      - pwctx->response_status.data;
     }
 
-    ngx_wasm_assert(pwctx->response_status.len);
+    ngx_wa_assert(pwctx->response_status.len);
 
     return &pwctx->response_status;
 }
@@ -712,7 +712,7 @@ ngx_proxy_wasm_maps_get_dispatch_status(ngx_wavm_instance_t *instance,
     ngx_http_proxy_wasm_dispatch_t  *call;
     ngx_wasm_http_reader_ctx_t      *reader;
 
-    ngx_wasm_assert(map_type == NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_HEADERS);
+    ngx_wa_assert(map_type == NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_HEADERS);
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
     pwctx = pwexec->parent;
@@ -721,7 +721,7 @@ ngx_proxy_wasm_maps_get_dispatch_status(ngx_wavm_instance_t *instance,
 
     /* status */
 
-    ngx_wasm_assert(reader->fake_r.upstream);
+    ngx_wa_assert(reader->fake_r.upstream);
 
     if (reader->fake_r.upstream == NULL) {
         return NULL;
@@ -756,7 +756,7 @@ ngx_proxy_wasm_maps_get_dispatch_status(ngx_wavm_instance_t *instance,
                                  - pwctx->call_status.data;
     }
 
-    ngx_wasm_assert(pwctx->call_status.len);
+    ngx_wa_assert(pwctx->call_status.len);
 
     return &pwctx->call_status;
 }

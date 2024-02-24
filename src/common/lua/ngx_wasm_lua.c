@@ -35,7 +35,7 @@ ngx_wasm_lua_thread_is_dead(ngx_wasm_lua_ctx_t *lctx)
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, lctx->log, 0,
                            "NYI - subsystem kind: %d",
                            env->subsys->kind);
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         break;
     }
 
@@ -64,7 +64,7 @@ ngx_wasm_lua_thread_cache_key(ngx_pool_t *pool, const char *tag, u_char *src,
 #elif (NGX_WASM_STREAM)
     p = ngx_stream_lua_digest_hex(p, src, src_len);
 #else
-    ngx_wasm_assert(0);
+    ngx_wa_assert(0);
     ngx_pfree(pool, out);
     return NULL;
 #endif
@@ -82,7 +82,7 @@ ngx_wasm_lua_thread_destroy(ngx_wasm_lua_ctx_t *lctx)
 
     dd("enter");
 
-    ngx_wasm_assert(env);
+    ngx_wa_assert(env);
 
     switch (env->subsys->kind) {
 #if (NGX_WASM_HTTP)
@@ -103,7 +103,7 @@ ngx_wasm_lua_thread_destroy(ngx_wasm_lua_ctx_t *lctx)
     }
 #endif
     default:
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         break;
     }
 
@@ -173,7 +173,7 @@ ngx_wasm_lua_thread_new(const char *tag, const char *src,
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, lctx->log, 0,
                            "NYI - subsystem kind: %d",
                            env->subsys->kind);
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         goto error;
     }
 
@@ -218,7 +218,7 @@ ngx_wasm_lua_thread_new(const char *tag, const char *src,
         break;
 #endif
     default:
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         goto error;
     }
 
@@ -264,7 +264,7 @@ ngx_wasm_lua_thread_init(ngx_wasm_lua_ctx_t *lctx)
         }
 
         /* preserve ngx_wasm_lua_content_wev_handler */
-        ngx_wasm_assert(!ctx->entered_content_phase);
+        ngx_wa_assert(!ctx->entered_content_phase);
 
         lctx->ctx.rlctx = ctx;
         break;
@@ -293,7 +293,7 @@ ngx_wasm_lua_thread_init(ngx_wasm_lua_ctx_t *lctx)
     }
 #endif
     default:
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_ERROR;
     }
 
@@ -326,7 +326,7 @@ ngx_wasm_lua_thread_handle_rc(ngx_wasm_lua_ctx_t *lctx, ngx_int_t rc)
 
         break;
     case NGX_OK:
-        ngx_wasm_assert(ngx_wasm_lua_thread_is_dead(lctx));
+        ngx_wa_assert(ngx_wasm_lua_thread_is_dead(lctx));
 
         if (lctx->success_handler) {
 #if (DDEBUG)
@@ -350,12 +350,12 @@ ngx_wasm_lua_thread_handle_rc(ngx_wasm_lua_ctx_t *lctx, ngx_int_t rc)
     default:
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, lctx->log, 0,
                            "NYI - lua resume handler rc: %d", rc);
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         rc = NGX_ERROR;
         break;
     }
 
-    ngx_wasm_assert(rc == NGX_DONE
+    ngx_wa_assert(rc == NGX_DONE
                     || rc == NGX_AGAIN
                     || rc == NGX_ERROR);
 
@@ -445,7 +445,7 @@ ngx_wasm_lua_thread_run(ngx_wasm_lua_ctx_t *lctx)
     }
 #endif
     default:
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         goto error;
     }
 
@@ -491,7 +491,7 @@ ngx_wasm_lua_thread_resume(ngx_wasm_lua_ctx_t *lctx)
         ngx_http_request_t  *r = env->ctx.rctx->r;
         ngx_http_lua_ctx_t  *ctx = lctx->ctx.rlctx;
 
-        ngx_wasm_assert(ctx == ngx_http_get_module_ctx(r, ngx_http_lua_module));
+        ngx_wa_assert(ctx == ngx_http_get_module_ctx(r, ngx_http_lua_module));
 
         ngx_wasm_set_resume_handler(env);
         rc = ctx->resume_handler(r);
@@ -499,7 +499,7 @@ ngx_wasm_lua_thread_resume(ngx_wasm_lua_ctx_t *lctx)
     }
 #endif
     default:
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_ERROR;
     }
 

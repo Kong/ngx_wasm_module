@@ -135,7 +135,7 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
     wasmtime_error_t  *err = NULL;
 #endif
 
-    ngx_wasm_assert(conf->backtraces != NGX_CONF_UNSET);
+    ngx_wa_assert(conf->backtraces != NGX_CONF_UNSET);
 
     if (conf->backtraces) {
         setenv("WASMTIME_BACKTRACE_DETAILS", "1", 1);
@@ -469,7 +469,7 @@ ngx_wasmtime_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
         return NGX_ERROR;
     }
 
-    ngx_wasm_assert(idx < m->export_types->size);
+    ngx_wa_assert(idx < m->export_types->size);
 
     ext->instance = instance;
     ext->context = s->context;
@@ -487,12 +487,12 @@ ngx_wasmtime_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
     switch (wasm_externtype_kind(externtype)) {
 
     case WASM_EXTERN_FUNC:
-        ngx_wasm_assert(ext->ext.kind == WASMTIME_EXTERN_FUNC);
+        ngx_wa_assert(ext->ext.kind == WASMTIME_EXTERN_FUNC);
         ext->kind = NGX_WRT_EXTERN_FUNC;
         break;
 
     case WASM_EXTERN_MEMORY:
-        ngx_wasm_assert(ext->ext.kind == WASMTIME_EXTERN_MEMORY);
+        ngx_wa_assert(ext->ext.kind == WASMTIME_EXTERN_MEMORY);
         ext->kind = NGX_WRT_EXTERN_MEMORY;
         instance->memory = &ext->ext.of.memory;
         break;
@@ -503,7 +503,7 @@ ngx_wasmtime_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
 
     default:
         /* NYI */
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_ABORT;
 
     }
@@ -540,7 +540,7 @@ ngx_wasm_valvec2wasmtime(wasmtime_val_t *out, wasm_val_vec_t *vec)
 
         default:
             /* NYI */
-            ngx_wasm_assert(0);
+            ngx_wa_assert(0);
             break;
 
         }
@@ -554,7 +554,7 @@ ngx_wasmtime_valvec2wasm(wasm_val_vec_t *out, wasmtime_val_t *vec, size_t nvals)
     size_t           i;
     wasmtime_val_t  *val;
 
-    ngx_wasm_assert(out->size == nvals);
+    ngx_wa_assert(out->size == nvals);
 
     for (i = 0; i < nvals; i++) {
         val = vec + i;
@@ -583,22 +583,22 @@ ngx_wasmtime_valvec2wasm(wasm_val_vec_t *out, wasmtime_val_t *vec, size_t nvals)
 
         case WASMTIME_V128:
             /* NYI */
-            ngx_wasm_assert(0);
+            ngx_wa_assert(0);
             break;
 
         case WASMTIME_FUNCREF:
             /* NYI */
-            ngx_wasm_assert(0);
+            ngx_wa_assert(0);
             break;
 
         case WASMTIME_EXTERNREF:
             /* NYI */
-            ngx_wasm_assert(0);
+            ngx_wa_assert(0);
             break;
 
         default:
             /* NYI */
-            ngx_wasm_assert(0);
+            ngx_wa_assert(0);
             break;
 
         }
@@ -626,7 +626,7 @@ ngx_wasmtime_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
         goto done;
     }
 
-    ngx_wasm_assert(item.kind == WASMTIME_EXTERN_FUNC);
+    ngx_wa_assert(item.kind == WASMTIME_EXTERN_FUNC);
 
     func = &item.of.func;
 

@@ -239,7 +239,7 @@ ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
             filter = ngx_proxy_wasm_lookup_filter(id);
             if (filter == NULL) {
                 /* TODO: log error */
-                ngx_wasm_assert(0);
+                ngx_wa_assert(0);
                 return NULL;
             }
 
@@ -265,7 +265,7 @@ destroy_pwexec(ngx_proxy_wasm_exec_t *pwexec)
 
 #if 1
     /* never called on root rexec for now */
-    ngx_wasm_assert(pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID);
+    ngx_wa_assert(pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID);
 
 #else
     if (pwexec->ev) {
@@ -331,7 +331,7 @@ ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx)
     for (i = 0; i < pwctx->pwexecs.nelts; i++) {
         pwexec = &pwexecs[i];
 
-        ngx_wasm_assert(pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID);
+        ngx_wa_assert(pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID);
 
         ngx_proxy_wasm_log_error(NGX_LOG_DEBUG, pwctx->log, 0,
                                  "\"%V\" filter freeing context #%d "
@@ -431,7 +431,7 @@ action2rc(ngx_proxy_wasm_ctx_t *pwctx,
 
     dd("enter (pwexec: %p, action: %d)", pwexec, action);
 
-    ngx_wasm_assert(pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID);
+    ngx_wa_assert(pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID);
 
     if (pwexec->ecode) {
         if (!pwexec->ecode_logged
@@ -558,7 +558,7 @@ action2rc(ngx_proxy_wasm_ctx_t *pwctx,
 
 error:
 
-    ngx_wasm_assert(rc == NGX_ERROR
+    ngx_wa_assert(rc == NGX_ERROR
 #ifdef NGX_WASM_HTTP
                     || rc >= NGX_HTTP_SPECIAL_RESPONSE
 #endif
@@ -615,7 +615,7 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
     default:
         if (step <= pwctx->last_completed_step) {
             dd("step %d already completed, exit", step);
-            ngx_wasm_assert(rc == NGX_OK);
+            ngx_wa_assert(rc == NGX_OK);
             goto ret;
         }
     }
@@ -624,7 +624,7 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
 
     pwexecs = (ngx_proxy_wasm_exec_t *) pwctx->pwexecs.elts;
 
-    ngx_wasm_assert(pwctx->pwexecs.nelts == pwctx->nfilters);
+    ngx_wa_assert(pwctx->pwexecs.nelts == pwctx->nfilters);
 
     for (i = pwctx->exec_index; i < pwctx->nfilters; i++) {
         pwexec = &pwexecs[i];
@@ -638,7 +638,7 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
            pwexec->filter->name->data,
            pwctx);
 
-        ngx_wasm_assert(pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID);
+        ngx_wa_assert(pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID);
 
         /* check for yielded state */
 
@@ -723,7 +723,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     ngx_proxy_wasm_action_e   old_action = pwctx->action;
     ngx_proxy_wasm_action_e   action = old_action;
 
-    ngx_wasm_assert(pwctx->phase);
+    ngx_wa_assert(pwctx->phase);
 
     dd("--> enter (pwexec: %p, ictx: %p, trapped: %d)",
        pwexec, pwexec->ictx,
@@ -744,8 +744,8 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     }
 #endif
 
-    ngx_wasm_assert(!pwexec->ictx->instance->trapped);
-    ngx_wasm_assert(pwexec->ictx->module == filter->module);
+    ngx_wa_assert(!pwexec->ictx->instance->trapped);
+    ngx_wa_assert(pwexec->ictx->module == filter->module);
 
     pwctx->step = step;
 
@@ -809,7 +809,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
         switch (pwctx->action) {
         case NGX_PROXY_WASM_ACTION_DONE:
             /* e.g. proxy_send_local_response() */
-            ngx_wasm_assert(pwctx->action != old_action);
+            ngx_wa_assert(pwctx->action != old_action);
             goto done;
         default:
             ngx_proxy_wasm_ctx_set_next_action(pwctx, action);
@@ -817,7 +817,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
         }
     }
 
-    ngx_wasm_assert(rc == NGX_OK
+    ngx_wa_assert(rc == NGX_OK
                     || rc == NGX_ABORT
                     || rc == NGX_ERROR);
 
@@ -916,7 +916,7 @@ get_instance(ngx_proxy_wasm_filter_t *filter,
     dd("get instance in store: %p", store);
 
     /* store initialized */
-    ngx_wasm_assert(store->pool);
+    ngx_wa_assert(store->pool);
 
     for (q = ngx_queue_head(&store->busy);
          q != ngx_queue_sentinel(&store->busy);
@@ -947,7 +947,7 @@ get_instance(ngx_proxy_wasm_filter_t *filter,
     {
         ictx = ngx_queue_data(q, ngx_proxy_wasm_instance_t, q);
 
-        ngx_wasm_assert(!ictx->instance->trapped);
+        ngx_wa_assert(!ictx->instance->trapped);
 
         if (ictx->module == module) {
             dd("reuse free instance, going to busy");
@@ -1128,7 +1128,7 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
         } else {
             if (in->ictx != ictx) {
                 dd("replace pwexec instance");
-                ngx_wasm_assert(in->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+                ngx_wa_assert(in->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
                 in->ictx = ictx;
                 in->started = 0;
@@ -1245,7 +1245,7 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
         }
 #if (NGX_DEBUG)
         else {
-            ngx_wasm_assert(pwexec->id == id);
+            ngx_wa_assert(pwexec->id == id);
             dd("pwexec #%ld found in instance %p", pwexec->id, ictx);
         }
 #endif
@@ -1360,7 +1360,7 @@ ngx_proxy_wasm_on_tick(ngx_proxy_wasm_exec_t *pwexec)
     wasm_val_vec_t            args;
     ngx_proxy_wasm_filter_t  *filter = pwexec->filter;
 
-    ngx_wasm_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+    ngx_wa_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
     wasm_val_vec_new_uninitialized(&args, 1);
     ngx_wasm_vec_set_i32(&args, 0, pwexec->id);
@@ -1723,7 +1723,7 @@ ngx_proxy_wasm_filter_start(ngx_proxy_wasm_filter_t *filter)
 {
     ngx_proxy_wasm_err_e   ecode;
 
-    ngx_wasm_assert(filter->loaded);
+    ngx_wa_assert(filter->loaded);
 
     if (filter->ecode) {
         return NGX_ERROR;
@@ -1846,7 +1846,7 @@ ngx_proxy_wasm_instance_destroy(ngx_proxy_wasm_instance_t *ictx)
         n = ngx_rbtree_min(*root, *sentinel);
         pwexec = ngx_rbtree_data(n, ngx_proxy_wasm_exec_t, node);
 
-        ngx_wasm_assert(pwexec->ev == NULL);
+        ngx_wa_assert(pwexec->ev == NULL);
 
         dd("destroy ctx #%ld (pwexec: %p)", pwexec->id, pwexec);
 

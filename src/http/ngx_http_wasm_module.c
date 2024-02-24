@@ -396,7 +396,7 @@ ngx_http_wasm_postconfig(ngx_conf_t *cf)
 
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
 
-    ngx_wasm_assert(cmcf); /* in http{} block */
+    ngx_wa_assert(cmcf); /* in http{} block */
 
     for (i = 0; i <= NGX_HTTP_LOG_PHASE; i++) {
         if (phase_handlers[i]) {
@@ -511,7 +511,7 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
     rctx = ngx_http_get_module_ctx(r, ngx_http_wasm_module);
     if (rctx == NULL) {
         loc = NULL;
-        fake = r->connection->fd == NGX_WASM_BAD_FD;
+        fake = r->connection->fd == NGX_WA_BAD_FD;
 
         if (!fake) {
             loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
@@ -552,7 +552,7 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
         if (!fake) {
             mcf = ngx_http_cycle_get_module_main_conf(ngx_cycle,
                                                       ngx_http_wasm_module);
-            ngx_wasm_assert(mcf); /* in http{} block */
+            ngx_wa_assert(mcf); /* in http{} block */
 
             /* attach plan */
 
@@ -689,7 +689,7 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
         goto done;
     }
 
-    ngx_wasm_assert(rc == NGX_OK
+    ngx_wa_assert(rc == NGX_OK
                     || rc == NGX_DONE
                     || rc == NGX_AGAIN
                     || rc == NGX_DECLINED);
@@ -757,7 +757,7 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_ACCESS_PHASE);
     rc = ngx_http_wasm_check_finalize(rctx, rc);
 
-    ngx_wasm_assert(rc == NGX_OK
+    ngx_wa_assert(rc == NGX_OK
                     || rc == NGX_DONE
                     || rc == NGX_AGAIN
                     || rc == NGX_DECLINED);
@@ -807,7 +807,7 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
         goto done;
     default:
         dd("enter/continue");
-        ngx_wasm_assert(rctx->env.state == NGX_WASM_STATE_CONTINUE);
+        ngx_wa_assert(rctx->env.state == NGX_WASM_STATE_CONTINUE);
         break;
     }
 
@@ -834,7 +834,7 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
 
         break;
     default:
-        ngx_wasm_assert(rc > NGX_OK);
+        ngx_wa_assert(rc > NGX_OK);
         goto finalize;
     }
 
@@ -889,7 +889,7 @@ orig:
 
         break;
     default:
-        ngx_wasm_assert(rc > NGX_OK);
+        ngx_wa_assert(rc > NGX_OK);
         break;
     }
 
@@ -1056,13 +1056,13 @@ last_finalize:
 
     if (rctx->fake_request) {
         dd("last finalize (fake request)");
-        ngx_wasm_assert(r->connection->fd == NGX_WASM_BAD_FD);
+        ngx_wa_assert(r->connection->fd == NGX_WA_BAD_FD);
         ngx_http_wasm_finalize_fake_request(r, NGX_DONE);
 
     } else {
         dd("last finalize (rc: %ld, main: %d, count: %d)",
            rc, r == r->main, r->main->count);
-        ngx_wasm_assert(r->connection->fd != NGX_WASM_BAD_FD);
+        ngx_wa_assert(r->connection->fd != NGX_WA_BAD_FD);
         ngx_http_finalize_request(r, rc);
     }
 
@@ -1102,7 +1102,7 @@ ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main, unsigned wev)
 
     dd("enter");
 
-    ngx_wasm_assert(wev);
+    ngx_wa_assert(wev);
 
     if (ngx_wasm_yielding(&rctx->env)) {
         dd("yielding");

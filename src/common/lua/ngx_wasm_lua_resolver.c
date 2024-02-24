@@ -96,8 +96,8 @@ ngx_wasm_lua_resolver_error_handler(ngx_wasm_lua_ctx_t *lctx)
 
     dd("enter");
 
-    ngx_wasm_assert(lctx->co_ctx->co_status == NGX_HTTP_LUA_CO_DEAD);
-    ngx_wasm_assert(!rslv_ctx->naddrs);
+    ngx_wa_assert(lctx->co_ctx->co_status == NGX_HTTP_LUA_CO_DEAD);
+    ngx_wa_assert(!rslv_ctx->naddrs);
 
     if (lctx->yielded) {
         /* re-enter normal resolver path (handler) if we yielded */
@@ -122,7 +122,7 @@ ngx_wasm_lua_resolver_success_handler(ngx_wasm_lua_ctx_t *lctx)
     dd("enter");
 
     /* resolution should have succeeded */
-    ngx_wasm_assert(rslv_ctx->naddrs);
+    ngx_wa_assert(rslv_ctx->naddrs);
 
     rslv_ctx->handler(rslv_ctx);
 
@@ -188,7 +188,7 @@ ngx_wasm_lua_resolver_resolve(ngx_resolver_ctx_t *rslv_ctx)
         break;
     }
 
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_AGAIN);
+    ngx_wa_assert(rc == NGX_OK || rc == NGX_AGAIN);
 
     return rc;
 

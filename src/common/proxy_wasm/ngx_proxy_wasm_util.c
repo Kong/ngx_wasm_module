@@ -62,12 +62,12 @@ ngx_proxy_wasm_step_name(ngx_proxy_wasm_step_e step)
 {
     ngx_str_t  *name;
 
-    ngx_wasm_assert(step);
-    ngx_wasm_assert(step <= NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE);
+    ngx_wa_assert(step);
+    ngx_wa_assert(step <= NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE);
 
     name = &ngx_proxy_wasm_steplist[step];
 
-    ngx_wasm_assert(name);
+    ngx_wa_assert(name);
 
     return name;
 }
@@ -78,12 +78,12 @@ ngx_proxy_wasm_action_name(ngx_proxy_wasm_action_e action)
 {
     ngx_str_t  *name;
 
-    ngx_wasm_assert(action >= NGX_PROXY_WASM_ACTION_CONTINUE);
-    ngx_wasm_assert(action <= NGX_PROXY_WASM_ACTION_CLOSE);
+    ngx_wa_assert(action >= NGX_PROXY_WASM_ACTION_CONTINUE);
+    ngx_wa_assert(action <= NGX_PROXY_WASM_ACTION_CLOSE);
 
     name = &ngx_proxy_wasm_actionlist[action];
 
-    ngx_wasm_assert(name);
+    ngx_wa_assert(name);
 
     return name;
 }
@@ -160,7 +160,7 @@ ngx_proxy_wasm_log_error(ngx_uint_t level, ngx_log_t *log,
                          ? pwexec->root_id
                          : pwexec->id);
 
-        ngx_wasm_assert(pre->len == (size_t) (p - pre->data));
+        ngx_wa_assert(pre->len == (size_t) (p - pre->data));
     }
 
 skip_prefix:
@@ -202,7 +202,7 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
 
     dd("enter");
 
-    ngx_wasm_assert(rexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+    ngx_wa_assert(rexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
 
     ngx_free(ev);
 
@@ -409,7 +409,7 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *extras, u_char *buf,
         n++;
     }
 
-    ngx_wasm_assert(n == count);
+    ngx_wa_assert(n == count);
 
     n = 0;
 
@@ -451,7 +451,7 @@ ngx_proxy_wasm_pairs_marshal(ngx_list_t *list, ngx_array_t *extras, u_char *buf,
         n++;
     }
 
-    ngx_wasm_assert(n == count);
+    ngx_wa_assert(n == count);
 }
 
 

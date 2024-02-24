@@ -129,7 +129,7 @@ ngx_wavm_engine_init(ngx_wavm_t *vm)
                    "wasm initializing \"%V\" vm engine (engine: %p)",
                    vm->name, &vm->wrt_engine);
 
-    ngx_wasm_assert(vm->config);
+    ngx_wa_assert(vm->config);
 
     config = ngx_wrt.conf_init(vm->config, vm->log);
     if (config == NULL) {
@@ -722,7 +722,7 @@ ngx_wavm_module_link(ngx_wavm_module_t *module, ngx_wavm_host_def_t *host)
             continue;
         }
 
-        ngx_wasm_assert(wasm_externtype_kind(wasm_importtype_type(importtype))
+        ngx_wa_assert(wasm_externtype_kind(wasm_importtype_type(importtype))
                         == WASM_EXTERN_FUNC);
 
         s.len = importname->size;
@@ -1051,14 +1051,14 @@ ngx_wavm_instance_create(ngx_wavm_module_t *module, ngx_pool_t *pool,
             break;
 
         case NGX_WRT_EXTERN_MEMORY:
-            ngx_wasm_assert(instance->memory == NULL);
+            ngx_wa_assert(instance->memory == NULL);
             instance->memory = wextern;
             break;
 
         }
     }
 
-    ngx_wasm_assert(instance->funcs.nelts == module->exports.size);
+    ngx_wa_assert(instance->funcs.nelts == module->exports.size);
 
     /* _start */
 
@@ -1096,8 +1096,8 @@ ngx_wavm_func_call(ngx_wavm_func_t *f, wasm_val_vec_t *args,
     ngx_int_t             rc;
     ngx_wavm_instance_t  *instance;
 
-    ngx_wasm_assert(args);
-    ngx_wasm_assert(rets);
+    ngx_wa_assert(args);
+    ngx_wa_assert(rets);
 
     instance = f->instance;
 
@@ -1197,7 +1197,7 @@ ngx_wavm_instance_call_func_va(ngx_wavm_instance_t *instance,
         *rets = &func->rets;
     }
 
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_ERROR || rc == NGX_ABORT);
+    ngx_wa_assert(rc == NGX_OK || rc == NGX_ERROR || rc == NGX_ABORT);
 
     return rc;
 }
@@ -1278,11 +1278,11 @@ ngx_wavm_instance_call_funcref(ngx_wavm_instance_t *instance,
                    instance, instance->wrt_store.store);
 #endif
 
-    ngx_wasm_assert(funcref->module == instance->module);
+    ngx_wa_assert(funcref->module == instance->module);
 
     func = &((ngx_wavm_func_t *) instance->funcs.elts)[funcref->exports_idx];
 
-    ngx_wasm_assert(func);
+    ngx_wa_assert(func);
 
     dd("func: %p (args: %p, args->nelts: %ld)",
        func, &func->args, func->args.size);
@@ -1301,11 +1301,11 @@ ngx_wavm_instance_call_funcref_vec(ngx_wavm_instance_t *instance,
 {
     ngx_wavm_func_t  *func;
 
-    ngx_wasm_assert(funcref->module == instance->module);
+    ngx_wa_assert(funcref->module == instance->module);
 
     func = &((ngx_wavm_func_t *) instance->funcs.elts)[funcref->exports_idx];
 
-    ngx_wasm_assert(func);
+    ngx_wa_assert(func);
 
     return ngx_wavm_instance_call_func_vec(instance, func, rets, args);
 }

@@ -83,8 +83,8 @@ ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in)
         goto done;
     }
 
-    ngx_wasm_assert(r->header_sent);
-    ngx_wasm_assert(rc == NGX_OK
+    ngx_wa_assert(r->header_sent);
+    ngx_wa_assert(rc == NGX_OK
                     || rc == NGX_AGAIN
                     || rc == NGX_DONE
                     || rc == NGX_DECLINED);
@@ -132,7 +132,7 @@ done:
             dd("r->main->count++: %d", r->main->count);
         }
 
-        ngx_wasm_assert(rc >= NGX_OK);
+        ngx_wa_assert(rc >= NGX_OK);
         break;
     }
 
@@ -426,7 +426,7 @@ ngx_http_wasm_prepend_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body)
 #else
     /* Presently, prepend_resp_body is only
      * called when body->len > 0 */
-    ngx_wasm_assert(rctx->resp_chunk_len);
+    ngx_wa_assert(rctx->resp_chunk_len);
 #endif
 
     return NGX_OK;
@@ -548,13 +548,13 @@ ngx_http_wasm_init_fake_connection(ngx_connection_t *c)
 
     port = c->listening->servers;
 
-    ngx_wasm_assert(port->naddrs == 1);
+    ngx_wa_assert(port->naddrs == 1);
 
 #if 0
     /* disabled: does not seem needed, unable to test it */
 
     if (port->naddrs > 1) {
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         /* there are several addresses on this port and one of them
          * is an "*:port" wildcard so getsockname() in ngx_http_server_addr()
          * is required to determine a server address */
@@ -650,7 +650,7 @@ ngx_http_wasm_create_fake_connection(ngx_pool_t *pool)
         goto failed;
     }
 
-    c->fd = NGX_WASM_BAD_FD;
+    c->fd = NGX_WA_BAD_FD;
     c->number = ngx_atomic_fetch_add(ngx_connection_counter, 1);
 
 #if 0
@@ -827,7 +827,7 @@ ngx_http_wasm_finalize_fake_request(ngx_http_request_t *r, ngx_int_t rc)
     ngx_http_lua_ssl_ctx_t  *cctx;
 #endif
 
-    ngx_wasm_assert(rc == NGX_DONE);
+    ngx_wa_assert(rc == NGX_DONE);
 
 #if (NGX_DEBUG)
     c = r->connection;
@@ -915,7 +915,7 @@ ngx_http_wasm_close_fake_connection(ngx_connection_t *c)
 
     ngx_free_connection(c);
 
-    c->fd = NGX_WASM_BAD_FD;
+    c->fd = NGX_WA_BAD_FD;
 
     if (ngx_cycle->files) {
         ngx_cycle->files[0] = saved_c;

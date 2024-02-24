@@ -434,7 +434,7 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_exec_t *pwexec,
         break;
     }
 
-    ngx_wasm_assert(rc == NGX_OK
+    ngx_wa_assert(rc == NGX_OK
                     || rc == NGX_AGAIN
                     || rc == NGX_ABORT
                     || rc == NGX_ERROR);

@@ -22,8 +22,6 @@
 #define NGX_WASM_DONE_PHASE          15
 #define NGX_WASM_BACKGROUND_PHASE    16
 
-#define NGX_WASM_BAD_FD              (ngx_socket_t) -1
-
 #define NGX_WASM_CONF_ERR_DUPLICATE  "is duplicate"
 #define NGX_WASM_CONF_ERR_NO_WASM                                            \
     "is specified but config has no \"wasm\" section"

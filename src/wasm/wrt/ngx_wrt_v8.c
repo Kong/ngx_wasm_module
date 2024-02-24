@@ -367,7 +367,7 @@ ngx_v8_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
                 if (ngx_str_eq(importname->data, importname->size,
                                hfunc->def->name.data, hfunc->def->name.len))
                 {
-                    ngx_wasm_assert(i == hfunc->idx);
+                    ngx_wa_assert(i == hfunc->idx);
 
                     dd("   -> hfuncs resolved: \"%.*s\"",
                        (int) hfunc->def->name.len, hfunc->def->name.data);
@@ -401,7 +401,7 @@ ngx_v8_link_module(ngx_wrt_module_t *module, ngx_array_t *hfuncs,
         return NGX_ERROR;
     }
 
-    ngx_wasm_assert(module->nimports == module->import_types->size);
+    ngx_wa_assert(module->nimports == module->import_types->size);
 
     return NGX_OK;
 }
@@ -492,7 +492,7 @@ ngx_v8_init_instance(ngx_wrt_instance_t *instance, ngx_wrt_store_t *store,
 #endif
     }
 
-    ngx_wasm_assert(nimports == module->nimports);
+    ngx_wa_assert(nimports == module->nimports);
 
     instance->instance = wasm_instance_new(store->store, module->module,
                                            (const wasm_extern_t **)
@@ -556,7 +556,7 @@ ngx_v8_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
     const wasm_name_t        *exportname;
     const wasm_externtype_t  *externtype;
 
-    ngx_wasm_assert(idx < module->export_types->size);
+    ngx_wa_assert(idx < module->export_types->size);
 
     exporttype = module->export_types->data[idx];
     exportname = wasm_exporttype_name(exporttype);
@@ -569,12 +569,12 @@ ngx_v8_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
     switch (wasm_externtype_kind(externtype)) {
 
     case WASM_EXTERN_FUNC:
-        ngx_wasm_assert(wasm_extern_kind(ext->ext) == WASM_EXTERN_FUNC);
+        ngx_wa_assert(wasm_extern_kind(ext->ext) == WASM_EXTERN_FUNC);
         ext->kind = NGX_WRT_EXTERN_FUNC;
         break;
 
     case WASM_EXTERN_MEMORY:
-        ngx_wasm_assert(wasm_extern_kind(ext->ext) == WASM_EXTERN_MEMORY);
+        ngx_wa_assert(wasm_extern_kind(ext->ext) == WASM_EXTERN_MEMORY);
         ext->kind = NGX_WRT_EXTERN_MEMORY;
         instance->memory = wasm_extern_as_memory(ext->ext);
         break;
@@ -585,7 +585,7 @@ ngx_v8_init_extern(ngx_wrt_extern_t *ext, ngx_wrt_instance_t *instance,
 
     default:
         /* NYI */
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_ABORT;
 
     }
@@ -612,7 +612,7 @@ ngx_v8_call(ngx_wrt_instance_t *instance, ngx_str_t *func_name,
 
     ext = instance->externs.data[func_idx];
 
-    ngx_wasm_assert(wasm_extern_kind(ext) == WASM_EXTERN_FUNC);
+    ngx_wa_assert(wasm_extern_kind(ext) == WASM_EXTERN_FUNC);
 
     func = wasm_extern_as_func(ext);
 

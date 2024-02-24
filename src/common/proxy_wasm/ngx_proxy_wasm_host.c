@@ -139,7 +139,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
                 return NULL;
             }
 
-            ngx_wasm_assert(reader->body);
+            ngx_wa_assert(reader->body);
 
             return reader->body;
         }
@@ -371,7 +371,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     *rlen = (uint32_t) len;
 
     if (start == NULL) {
-        ngx_wasm_assert(cl);
+        ngx_wa_assert(cl);
 
         if (cl->next == NULL) {
             /* single buffer */
@@ -385,9 +385,9 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
         }
 
     } else {
-        ngx_wasm_assert(cl);
-        ngx_wasm_assert(cl->buf);
-        ngx_wasm_assert(cl->next);
+        ngx_wa_assert(cl);
+        ngx_wa_assert(cl->buf);
+        ngx_wa_assert(cl->next);
         len = 0;
 
         for (/* void */; cl; cl = cl->next) {
@@ -474,7 +474,7 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 
         rctx = ngx_http_proxy_wasm_get_rctx(instance);
 
-        ngx_wasm_assert(rctx);
+        ngx_wa_assert(rctx);
 
         if (offset == 0 && max == 0 && buf_len > 0) {
             rc = ngx_http_wasm_prepend_req_body(rctx, &s);
@@ -483,7 +483,7 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
             rc = ngx_http_wasm_set_req_body(rctx, &s, offset, max);
         }
 
-        ngx_wasm_assert(rc != NGX_ABORT);
+        ngx_wa_assert(rc != NGX_ABORT);
         break;
 
     case NGX_PROXY_WASM_BUFFER_HTTP_RESPONSE_BODY:
@@ -504,7 +504,7 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
 
         rctx = ngx_http_proxy_wasm_get_rctx(instance);
 
-        ngx_wasm_assert(rctx);
+        ngx_wa_assert(rctx);
 
         if (offset == 0 && max == 0 && buf_len > 0) {
             rc = ngx_http_wasm_prepend_resp_body(rctx, &s);
@@ -513,7 +513,7 @@ ngx_proxy_wasm_hfuncs_set_buffer(ngx_wavm_instance_t *instance,
             rc = ngx_http_wasm_set_resp_body(rctx, &s, offset, max);
         }
 
-        ngx_wasm_assert(rc != NGX_ABORT);
+        ngx_wa_assert(rc != NGX_ABORT);
         break;
 #endif
 
@@ -694,7 +694,7 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
      * NGX_ABORT: read-only
      */
 
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_ABORT);
+    ngx_wa_assert(rc == NGX_OK || rc == NGX_ABORT);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -748,7 +748,7 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_err(rets);
     }
 
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_ABORT);
+    ngx_wa_assert(rc == NGX_OK || rc == NGX_ABORT);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -802,7 +802,7 @@ ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_err(rets);
     }
 
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_ABORT);
+    ngx_wa_assert(rc == NGX_OK || rc == NGX_ABORT);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -834,7 +834,7 @@ ngx_proxy_wasm_hfuncs_remove_header_map_value(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_err(rets);
     }
 
-    ngx_wasm_assert(rc == NGX_OK || rc == NGX_ABORT);
+    ngx_wa_assert(rc == NGX_OK || rc == NGX_ABORT);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -886,7 +886,7 @@ ngx_proxy_wasm_hfuncs_get_property(ngx_wavm_instance_t *instance,
 
         return ngx_proxy_wasm_result_err(rets);
     default:
-        ngx_wasm_assert(rc == NGX_OK);
+        ngx_wa_assert(rc == NGX_OK);
     }
 
     p = ngx_proxy_wasm_alloc(pwexec, value.len);
@@ -947,7 +947,7 @@ ngx_proxy_wasm_hfuncs_set_property(ngx_wavm_instance_t *instance,
 
         return ngx_proxy_wasm_result_err(rets);
     default:
-        ngx_wasm_assert(rc == NGX_OK);
+        ngx_wa_assert(rc == NGX_OK);
     }
 
     return ngx_proxy_wasm_result_ok(rets);
@@ -1036,7 +1036,7 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
 #if (NGX_DEBUG)
     grpc_status = args[7].of.i32;
 
-    ngx_wasm_assert(grpc_status == -1);
+    ngx_wa_assert(grpc_status == -1);
 #endif
 
     if (ngx_proxy_wasm_pairs_unmarshal(pwexec, &headers, &map) != NGX_OK) {
@@ -1117,7 +1117,7 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
 
     default:
         /* unreachable */
-        ngx_wasm_assert(0);
+        ngx_wa_assert(0);
         return NGX_WAVM_NYI;
 
     }
@@ -1255,7 +1255,7 @@ ngx_proxy_wasm_hfuncs_get_shared_data(ngx_wavm_instance_t *instance,
                                           NGX_WAVM_BAD_USAGE);
     }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    ngx_wa_assert(rc == NGX_OK);
 
     /* get */
 
@@ -1269,7 +1269,7 @@ ngx_proxy_wasm_hfuncs_get_shared_data(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_notfound(rets);
     }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    ngx_wa_assert(rc == NGX_OK);
 
     /* return value */
 
@@ -1329,7 +1329,7 @@ ngx_proxy_wasm_hfuncs_set_shared_data(ngx_wavm_instance_t *instance,
                                           NGX_WAVM_BAD_USAGE);
     }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    ngx_wa_assert(rc == NGX_OK);
 
     /* set */
 
@@ -1355,7 +1355,7 @@ ngx_proxy_wasm_hfuncs_set_shared_data(ngx_wavm_instance_t *instance,
                                           NGX_WAVM_ERROR);
     }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    ngx_wa_assert(rc == NGX_OK);
 
     if (!written) {
         return ngx_proxy_wasm_result_cas_mismatch(rets);
@@ -1441,7 +1441,7 @@ ngx_proxy_wasm_hfuncs_enqueue_shared_queue(ngx_wavm_instance_t *instance,
                                           NGX_WAVM_BAD_USAGE);
     }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    ngx_wa_assert(rc == NGX_OK);
 
     shm = zone->data;
 
@@ -1458,7 +1458,7 @@ ngx_proxy_wasm_hfuncs_enqueue_shared_queue(ngx_wavm_instance_t *instance,
                                           NGX_WAVM_ERROR);
     }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    ngx_wa_assert(rc == NGX_OK);
 
     return ngx_proxy_wasm_result_ok(rets);
 }
@@ -1515,7 +1515,7 @@ ngx_proxy_wasm_hfuncs_dequeue_shared_queue(ngx_wavm_instance_t *instance,
                                           NGX_WAVM_BAD_USAGE);
     }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    ngx_wa_assert(rc == NGX_OK);
 
     shm = zone->data;
 
@@ -1534,7 +1534,7 @@ ngx_proxy_wasm_hfuncs_dequeue_shared_queue(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_empty(rets);
     }
 
-    ngx_wasm_assert(rc == NGX_OK);
+    ngx_wa_assert(rc == NGX_OK);
 
     /* return value */
 
