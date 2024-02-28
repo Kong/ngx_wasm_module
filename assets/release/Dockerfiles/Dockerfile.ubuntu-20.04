@@ -1,8 +1,8 @@
 FROM ubuntu:20.04
 COPY . /ngx_wasm_module
 
-ARG GOLANG_VERSION=1.19.5
-ARG TINYGO_VERSION=0.27.0
+ARG GOLANG_VERSION=1.21.7
+ARG TINYGO_VERSION=0.31.1
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y \
