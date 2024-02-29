@@ -373,7 +373,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     if (start == NULL) {
         ngx_wa_assert(cl);
 
-        if (cl->next == NULL) {
+        if (cl && cl->next == NULL) {
             /* single buffer */
             start = cl->buf->pos;
         }
@@ -388,6 +388,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
         ngx_wa_assert(cl);
         ngx_wa_assert(cl->buf);
         ngx_wa_assert(cl->next);
+
         len = 0;
 
         for (/* void */; cl; cl = cl->next) {

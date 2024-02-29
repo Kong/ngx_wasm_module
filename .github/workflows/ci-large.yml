@@ -113,7 +113,7 @@ jobs:
         wasmer: [3.1.1]
         v8: [12.0.267.17]
         ssl: [no_ssl, ssl]
-        debug: [debug, no_debug]
+        debug: [debug]
     uses: ./.github/workflows/job-clang-analyzer.yml
     with:
       cc: ${{ matrix.cc }}

@@ -105,7 +105,9 @@ ngx_wasm_chain_clear(ngx_chain_t *in, size_t offset, unsigned *eof,
 
     if (pos < offset) {
         fill = offset - pos;
+#if (NGX_DEBUG)
         pos += fill;
+#endif
     }
 
     ngx_wa_assert(pos == offset);

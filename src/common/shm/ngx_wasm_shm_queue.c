@@ -216,8 +216,12 @@ ngx_wasm_shm_queue_pop_locked(ngx_wasm_shm_t *shm, ngx_str_t *data_out,
     }
 
     inc_ptr(queue, &queue->pop_ptr, sizeof(uint32_t));
+
+    ngx_wa_assert(buf);
+
     circular_read(shm->log, queue, queue->pop_ptr, buf, len);
     inc_ptr(queue, &queue->pop_ptr, len);
+
     queue->rising_occupancy = 0;
 
     data_out->data = buf;
