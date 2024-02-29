@@ -2,10 +2,10 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
-our $nginxV = $t::TestWasm::nginxV;
-our $osname = $t::TestWasm::osname;
+our $nginxV = $t::TestWasmX::nginxV;
+our $osname = $t::TestWasmX::osname;
 
 add_cleanup_handler(sub {
     my @jit_dumps = glob("$::pwd/jit-*.dump");

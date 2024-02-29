@@ -6,7 +6,7 @@ BEGIN {
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
 add_block_preprocessor(sub {
     my $block = shift;

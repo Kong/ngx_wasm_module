@@ -2,9 +2,9 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
-our $nginxV = $t::TestWasm::nginxV;
+our $nginxV = $t::TestWasmX::nginxV;
 
 plan_tests(4);
 run_tests();

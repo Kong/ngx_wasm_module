@@ -2,7 +2,7 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
 plan_tests(3);
 run_tests();
@@ -16,7 +16,7 @@ qq{
     env NGX_WASI_ENV=1;
 
     wasm {
-        module wasi_host_tests $t::TestWasm::crates/wasi_host_tests.wasm;
+        module wasi_host_tests $t::TestWasmX::crates/wasi_host_tests.wasm;
     }
 }
 --- config

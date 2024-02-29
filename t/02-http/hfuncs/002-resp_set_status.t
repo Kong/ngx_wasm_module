@@ -2,13 +2,13 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
 add_block_preprocessor(sub {
     my $block = shift;
     my $main_config = <<_EOC_;
         wasm {
-            module ngx_rust_tests $t::TestWasm::crates/ngx_rust_tests.wasm;
+            module ngx_rust_tests $t::TestWasmX::crates/ngx_rust_tests.wasm;
         }
 _EOC_
 

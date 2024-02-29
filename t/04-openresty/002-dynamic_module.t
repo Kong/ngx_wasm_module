@@ -2,7 +2,7 @@
 
 use strict;
 use lib '.';
-use t::TestWasm::Lua;
+use t::TestWasmX::Lua;
 
 our $dyn = $ENV{NGX_BUILD_DYNAMIC_MODULE} || 0;
 

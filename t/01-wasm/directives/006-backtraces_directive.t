@@ -2,10 +2,10 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
 our $n = 30;
-our $nginxV = $t::TestWasm::nginxV;
+our $nginxV = $t::TestWasmX::nginxV;
 
 plan_tests($n);
 run_tests();

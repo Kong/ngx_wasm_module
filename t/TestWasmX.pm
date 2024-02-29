@@ -1,4 +1,4 @@
-package t::TestWasm;
+package t::TestWasmX;
 
 use strict;
 use Test::Nginx::Socket::Lua -Base;

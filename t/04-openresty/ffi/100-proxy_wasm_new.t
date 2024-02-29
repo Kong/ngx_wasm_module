@@ -2,9 +2,9 @@
 
 use strict;
 use lib '.';
-use t::TestWasm::Lua;
+use t::TestWasmX::Lua;
 
-our $nginxV = $t::TestWasm::nginxV;
+our $nginxV = $t::TestWasmX::nginxV;
 
 skip_no_openresty();
 
