@@ -2,10 +2,10 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
-our $ExtResolver = $t::TestWasm::extresolver;
-our $ExtTimeout = $t::TestWasm::exttimeout;
+our $ExtResolver = $t::TestWasmX::extresolver;
+our $ExtTimeout = $t::TestWasmX::exttimeout;
 
 skip_no_ssl();
 

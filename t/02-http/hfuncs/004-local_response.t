@@ -8,7 +8,7 @@ BEGIN {
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
 plan_tests(4);
 run_tests();

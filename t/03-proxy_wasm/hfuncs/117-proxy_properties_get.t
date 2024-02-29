@@ -2,7 +2,7 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
 our $request_properties = join(',', qw(
     request.path

@@ -2,10 +2,10 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
-our $ExtResolver = $t::TestWasm::extresolver;
-our $ExtTimeout = $t::TestWasm::exttimeout;
+our $ExtResolver = $t::TestWasmX::extresolver;
+our $ExtTimeout = $t::TestWasmX::exttimeout;
 
 plan_tests(4);
 run_tests();
@@ -264,7 +264,7 @@ qq{
 qq{
     wasm {
         resolver_timeout $::ExtTimeout;
-        module hostcalls $t::TestWasm::crates/hostcalls.wasm;
+        module hostcalls $t::TestWasmX::crates/hostcalls.wasm;
     }
 }
 --- config

@@ -2,7 +2,7 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 use Test::Nginx::Socket skip_all => 'HTTP trailers support is not ready yet';
 
 plan_tests(5);

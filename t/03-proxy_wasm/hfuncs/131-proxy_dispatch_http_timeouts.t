@@ -9,10 +9,10 @@ BEGIN {
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
-our $ExtResolver = $t::TestWasm::extresolver;
-our $ExtTimeout = $t::TestWasm::exttimeout;
+our $ExtResolver = $t::TestWasmX::extresolver;
+our $ExtTimeout = $t::TestWasmX::exttimeout;
 
 plan_tests(4);
 run_tests();

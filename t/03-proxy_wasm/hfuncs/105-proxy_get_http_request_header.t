@@ -2,7 +2,7 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
 plan_tests(8);
 run_tests();

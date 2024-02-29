@@ -9,10 +9,10 @@ BEGIN {
 
 use strict;
 use lib '.';
-use t::TestWasm::Lua;
+use t::TestWasmX::Lua;
 
-our $ExtResolver = $t::TestWasm::extresolver;
-our $ExtTimeout = $t::TestWasm::exttimeout;
+our $ExtResolver = $t::TestWasmX::extresolver;
+our $ExtTimeout = $t::TestWasmX::exttimeout;
 
 skip_no_openresty();
 
@@ -108,7 +108,7 @@ Will run with TEST_NGINX_USE_VALGRIND_ALL.
 qq{
     wasm {
         proxy_wasm_lua_resolver on;
-        module hostcalls $t::TestWasm::crates/hostcalls.wasm;
+        module hostcalls $t::TestWasmX::crates/hostcalls.wasm;
     }
 }
 --- http_config eval

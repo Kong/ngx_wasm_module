@@ -1,7 +1,7 @@
-package t::TestWasm::Lua;
+package t::TestWasmX::Lua;
 
 use strict;
-use t::TestWasm -Base;
+use t::TestWasmX -Base;
 
 our $lua_package_path = "${buildroot}/prefix/?.lua;${buildroot}/prefix/?/init.lua;./lib/?.lua;;";
 

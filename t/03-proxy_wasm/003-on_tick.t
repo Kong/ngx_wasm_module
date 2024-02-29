@@ -2,7 +2,7 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
 no_shuffle();
 

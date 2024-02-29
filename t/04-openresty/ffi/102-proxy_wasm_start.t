@@ -2,7 +2,7 @@
 
 use strict;
 use lib '.';
-use t::TestWasm::Lua;
+use t::TestWasmX::Lua;
 
 skip_no_openresty();
 

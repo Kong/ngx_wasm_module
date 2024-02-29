@@ -2,10 +2,10 @@
 
 use strict;
 use lib '.';
-use t::TestWasm::Lua;
+use t::TestWasmX::Lua;
 
-our $ExtResolver = $t::TestWasm::extresolver;
-our $ExtTimeout = $t::TestWasm::exttimeout;
+our $ExtResolver = $t::TestWasmX::extresolver;
+our $ExtTimeout = $t::TestWasmX::exttimeout;
 
 skip_no_openresty();
 
@@ -52,7 +52,7 @@ Succeeds on:
 qq{
     wasm {
         proxy_wasm_lua_resolver on;
-        module hostcalls $t::TestWasm::crates/hostcalls.wasm;
+        module hostcalls $t::TestWasmX::crates/hostcalls.wasm;
     }
 }
 --- config
@@ -155,7 +155,7 @@ lua resolver
 qq{
     wasm {
         proxy_wasm_lua_resolver on;
-        module hostcalls $t::TestWasm::crates/hostcalls.wasm;
+        module hostcalls $t::TestWasmX::crates/hostcalls.wasm;
     }
 }
 --- http_config
@@ -235,7 +235,7 @@ Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
 - HTTP 502 (httpbin.org Bad Gateway)
 - HTTP 504 (httpbin.org Gateway timeout)
---- skip_eval: 5: $t::TestWasm::nginxV !~ m/--with-debug/ || defined $ENV{GITHUB_ACTIONS}
+--- skip_eval: 5: $t::TestWasmX::nginxV !~ m/--with-debug/ || defined $ENV{GITHUB_ACTIONS}
 --- skip_no_debug
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module

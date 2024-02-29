@@ -2,9 +2,9 @@
 
 use strict;
 use lib '.';
-use t::TestWasm;
+use t::TestWasmX;
 
-our $nginxV = $t::TestWasm::nginxV;
+our $nginxV = $t::TestWasmX::nginxV;
 
 no_shuffle();
 
@@ -17,7 +17,7 @@ __DATA__
 --- main_config eval
 qq{
     wasm {
-        module ngx-rust-tests $t::TestWasm::crates/ngx_rust_tests.wasm;
+        module ngx-rust-tests $t::TestWasmX::crates/ngx_rust_tests.wasm;
     }
 }
 --- error_log eval
