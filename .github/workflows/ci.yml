@@ -261,7 +261,7 @@ jobs:
         wasmer: [3.1.1]
         v8: [12.0.267.17]
         ssl: [ssl]
-        debug: [debug, no_debug]
+        debug: [debug]
         include:
           # No SSL
           - os: ubuntu-latest
