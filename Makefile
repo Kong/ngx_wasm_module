@@ -14,7 +14,7 @@ NGX_BUILD_WASMER_RUSTFLAGS ?= -g -C opt-level=0 -C debuginfo=1
 NGX_BUILD_WASMTIME_RUSTFLAGS ?= -g -C opt-level=0 -C debuginfo=1
 NGX_BUILD_WASMTIME_PROFILE ?= debug
 
-# Private - ngx_wasm_module development
+# Private - ngx_wasmx_module development
 export NGX_BUILD_DIR_SCR ?=
 export NGX_BUILD_DIR_PATCHED ?=
 export NGX_BUILD_DIR_BUILDROOT ?=

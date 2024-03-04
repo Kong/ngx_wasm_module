@@ -151,7 +151,7 @@ if [ -z "$name" ]; then
     fi
 fi
 
-DIST_SRC="ngx_wasm_module-$name"
+DIST_SRC="$(get_addon_name)-$name"
 DIR_BUILD_DOCKERFILES=$NGX_WASM_DIR/assets/release/Dockerfiles
 DIR_BUILD=$DIR_DIST_WORK/build
 DIR_DIST_SRC=$DIR_DIST_WORK/$DIST_SRC
@@ -333,7 +333,7 @@ build_with_runtime() {
     LD_FLAGS="$save_LD_FLAGS"
 }
 
-# ngx_wasm_module-$name.tar.gz (sources)
+# ngx_wasmx_module-$name.tar.gz (sources)
 
 release_source() {
     notice "Creating source archive..."

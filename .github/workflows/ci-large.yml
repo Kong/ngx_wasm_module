@@ -35,7 +35,7 @@ jobs:
         hup: [hup, no_hup]
         module_type: [static, dynamic]
         include:
-          # OpenResty + static ngx_wasm_module
+          # OpenResty + static ngx_wasmx_module
           - label: dynamic_module
             os: ubuntu-latest
             cc: gcc-12

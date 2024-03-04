@@ -67,7 +67,7 @@ Download any of the source code releases at
 https://github.com/Kong/ngx_wasm_module/releases and extract the archive:
 
 ```
-tar -xvf ngx_wasm_module-*.tar.gz
+tar -xvf ngx_wasmx_module-*.tar.gz
 ```
 
 [Back to TOC](#table-of-contents)

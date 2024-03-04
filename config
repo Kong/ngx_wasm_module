@@ -461,7 +461,7 @@ fi
 ###############################################################################
 
 if [ "$ngx_module_link" = DYNAMIC ]; then
-    # ngx_wasm_module.so (dynamic module)
+    # ngx_wasmx_module.so (dynamic module)
     . auto/module
 
     # add other modules into this bundled one
