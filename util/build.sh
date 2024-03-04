@@ -17,7 +17,7 @@ source $NGX_WASM_DIR/util/_lib.sh
 
 show_help() {
     cat << EOF
-Build Nginx or OpenResty with ngx_wasm_module.
+Build Nginx or OpenResty with ngx_wasmx_module.
 
 Lots of build options are supported through environment variables; consult
 _lib.sh or DEVELOPER.md.

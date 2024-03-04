@@ -35,7 +35,7 @@ ngx_wasm_debug_init(ngx_cycle_t *cycle)
 
     /**
      * ngx_wasm_phase_lookup NULL return branch is unreacheable in
-     * normal ngx_wasm_module usage.
+     * normal ngx_wasmx_module usage.
      */
     ngx_wa_assert(
         ngx_wasm_phase_lookup(&ngx_wasm_debug_subsystem, 3) == NULL

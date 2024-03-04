@@ -76,7 +76,7 @@ jobs:
             ssl: ssl
             debug: debug
             hup: no_hup
-          # Nginx + dynamic ngx_wasm_module + HUP
+          # Nginx + dynamic ngx_wasmx_module + HUP
           - label: dynamic_nginx
             os: ubuntu-latest
             cc: gcc-12
@@ -109,7 +109,7 @@ jobs:
             ssl: ssl
             debug: debug
             hup: no_hup
-          # OpenResty + dynamic ngx_wasm_module
+          # OpenResty + dynamic ngx_wasmx_module
           - label: dynamic_openresty
             os: ubuntu-latest
             cc: gcc-12

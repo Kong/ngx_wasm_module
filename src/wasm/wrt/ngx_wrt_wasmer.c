@@ -8,7 +8,7 @@
 #include <ngx_wasi.h>
 
 
-#define NGX_WRT_WASMER_CONFIG_NAME  "ngx_wasm_module"
+#define NGX_WRT_WASMER_CONFIG_NAME  "ngx_wasmx_module"
 
 
 typedef void (*wasmer_feature_set_pt)(struct wasmer_features_t * features,
