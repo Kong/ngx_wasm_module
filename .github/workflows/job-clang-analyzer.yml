@@ -24,10 +24,10 @@ on:
       v8:
         required: true
         type: string
-      debug:
+      ssl:
         required: true
         type: string
-      ssl:
+      debug:
         required: true
         type: string
 
@@ -37,6 +37,7 @@ defaults:
 
 env:
   CC: ${{ inputs.cc }}
+  NGX_IPC: 1
   NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
   NGX_BUILD_DEBUG: ${{ inputs.debug == 'debug' && 1 || 0 }}
   NGX_BUILD_SSL: ${{ inputs.ssl == 'ssl' && 1 || 0 }}

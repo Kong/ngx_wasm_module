@@ -48,6 +48,7 @@ defaults:
 env:
   CC: ${{ inputs.cc }}
   NGX: ${{ inputs.ngx }}
+  NGX_IPC: 1
   NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
   NGX_BUILD_GCOV: ${{ inputs.coverage && 1 || 0 }}
   NGX_BUILD_DEBUG: ${{ inputs.debug == 'debug' && 1 || 0 }}
