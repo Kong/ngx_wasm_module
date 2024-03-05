@@ -27,10 +27,13 @@ on:
       v8:
         required: true
         type: string
-      debug:
+      ipc:
         required: true
         type: string
       ssl:
+        required: true
+        type: string
+      debug:
         required: true
         type: string
       hup:
@@ -51,6 +54,7 @@ defaults:
 env:
   CC: ${{ inputs.cc }}
   NGX: ${{ inputs.ngx }}
+  NGX_IPC: ${{ inputs.ipc == 'ipc' && 1 || 0 }}
   NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
   NGX_BUILD_GCOV: ${{ inputs.coverage && 1 || 0 }}
   NGX_BUILD_DEBUG: ${{ inputs.debug == 'debug' && 1 || 0 }}
@@ -132,6 +136,7 @@ jobs:
             name="$name-ngx_${{ inputs.ngx }}"
           fi
           name="$name-${{ inputs.runtime }}"
+          name="$name-${{ inputs.ipc }}"
           name="$name-${{ inputs.ssl }}"
           name="$name-${{ inputs.debug }}"
           name="$name-${{ inputs.hup }}"
@@ -161,7 +166,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ failure() && !env.ACT }}
         with:
-          name: ${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ inputs.ngx != '' && format('nginx-{0}', inputs.ngx) || format('openresty-{0}', inputs.openresty) }}-${{ inputs.runtime }}-${{ inputs.module_type == 'dynamic' && 'dynamic' || 'static'}}-${{ inputs.ssl }}-${{ inputs.hup }}-${{ inputs.debug }}
+          name: ${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ inputs.ngx != '' && format('nginx-{0}', inputs.ngx) || format('openresty-{0}', inputs.openresty) }}-${{ inputs.runtime }}-${{ inputs.module_type == 'dynamic' && 'dynamic' || 'static'}}-${{ inputs.ipc }}-${{ inputs.ssl }}-${{ inputs.debug }}-${{ inputs.hup }}
           path: |
             work/buildroot/
             t/servroot*

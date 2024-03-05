@@ -29,6 +29,8 @@ jobs:
         wasmtime: [14.0.3]
         wasmer: [3.1.1]
         v8: [12.0.267.17]
+        ipc: [no_ipc]
+        ssl: [ssl]
         debug: [debug, no_debug]
         hup: [hup, no_hup]
         module_type: [static, dynamic]
@@ -40,9 +42,10 @@ jobs:
             openresty: 1.25.3.1
             runtime: wasmtime
             wasmtime: 14.0.3
+            ipc: no_ipc
+            ssl: ssl
             debug: debug
             hup: no_hup
-            ssl: ssl
             module_type: static
     uses: ./.github/workflows/job-unit-tests.yml
     with:
@@ -54,6 +57,7 @@ jobs:
       wasmtime: ${{ matrix.wasmtime }}
       wasmer: ${{ matrix.wasmer }}
       v8: ${{ matrix.v8 }}
+      ipc: ${{ matrix.ipc }}
       ssl: ${{ matrix.ssl }}
       debug: ${{ matrix.debug }}
       hup: ${{ matrix.hup }}
