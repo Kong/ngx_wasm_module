@@ -6,6 +6,7 @@ use proxy_wasm::{traits::*, types::*};
 pub struct TestHttp {
     pub on_phases: Vec<TestPhase>,
     pub config: HashMap<String, String>,
+    pub metrics: HashMap<String, u32>,
     pub n_sync_calls: usize,
     pub ncalls: usize,
 }
@@ -114,6 +115,10 @@ impl TestHttp {
             "/t/shm/set_shared_data_by_len" => test_set_shared_data_by_len(self),
             "/t/shm/enqueue" => test_shared_queue_enqueue(self),
             "/t/shm/dequeue" => test_shared_queue_dequeue(self),
+
+            /* metrics */
+            "/t/metrics/increment_counters" => test_increment_counters(self),
+            "/t/metrics/get_metric" => test_get_metric(self),
 
             /* errors */
             "/t/trap" => panic!("custom trap"),

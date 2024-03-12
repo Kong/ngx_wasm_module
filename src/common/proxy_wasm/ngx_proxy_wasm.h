@@ -141,6 +141,13 @@ typedef enum {
 } ngx_proxy_wasm_map_type_e;
 
 
+typedef enum {
+    NGX_PROXY_WASM_METRIC_COUNTER = 0,
+    NGX_PROXY_WASM_METRIC_GAUGE = 1,
+    NGX_PROXY_WASM_METRIC_HISTOGRAM = 2,
+} ngx_proxy_wasm_metric_type_e;
+
+
 #if 0
 typedef enum {
     NGX_PROXY_WASM_METRIC_COUNTER = 0,

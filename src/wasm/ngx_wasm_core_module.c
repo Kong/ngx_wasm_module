@@ -82,6 +82,13 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       0,
       NULL },
 
+    { ngx_string("metrics"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_wasm_core_shm_metrics_directive,
+      0,
+      0,
+      NULL },
+
     { ngx_string("shm_queue"),
       NGX_WASM_CONF|NGX_CONF_TAKE23|NGX_CONF_TAKE4,
       ngx_wasm_core_shm_queue_directive,
@@ -236,6 +243,18 @@ ngx_wasm_core_shms(ngx_cycle_t *cycle)
     ngx_wa_assert(wcf);
 
     return &wcf->shms;
+}
+
+
+ngx_inline ngx_wasm_shm_metrics_t *
+ngx_wasm_core_metrics(ngx_cycle_t *cycle)
+{
+    ngx_wasm_core_conf_t  *wcf;
+
+    wcf = ngx_wasm_core_cycle_get_conf(cycle);
+    ngx_wasm_assert(wcf);
+
+    return wcf->metrics;
 }
 
 

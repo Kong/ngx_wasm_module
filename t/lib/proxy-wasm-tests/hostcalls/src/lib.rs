@@ -14,6 +14,7 @@ proxy_wasm::main! {{
     proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
         Box::new(TestRoot {
             config: HashMap::new(),
+            metrics: HashMap::new(),
             n_sync_calls: 0,
         })
     });
@@ -68,6 +69,24 @@ impl RootContext for TestRoot {
                 "do_trap" => panic!("trap on_configure"),
                 "do_return_false" => return false,
                 _ => (),
+            }
+        }
+
+        if let Some(counters) = self.get_config("counters") {
+            let n = counters.parse::<usize>().expect("bad counters");
+            for i in 0..n {
+                let metric_name = format!("c{i}");
+                let metric_id = self.define_metric(MetricType::Counter, metric_name.as_str()).expect("cannot define new counter");
+                self.metrics.insert(metric_name, metric_id);
+            }
+        }
+
+        if let Some(gauges) = self.get_config("gauges") {
+            let n = gauges.parse::<usize>().expect("bad gauges");
+            for i in 0..n {
+                let metric_name = format!("g{i}");
+                let metric_id = self.define_metric(MetricType::Gauge, metric_name.as_str()).expect("cannot define new gauge");
+                self.metrics.insert(metric_name, metric_id);
             }
         }
 
@@ -172,6 +191,7 @@ impl RootContext for TestRoot {
         Some(Box::new(TestHttp {
             config: self.config.clone(),
             on_phases: phases,
+            metrics: self.metrics.clone(),
             n_sync_calls: 0,
             ncalls: 0,
         }))

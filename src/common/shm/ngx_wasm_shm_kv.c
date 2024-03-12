@@ -25,18 +25,11 @@ typedef struct {
 } ngx_wasm_shm_kv_t;
 
 
-typedef struct {
-    ngx_str_node_t      key;
-    ngx_str_t           value;
-    uint32_t            cas;
-    ngx_queue_t         queue;
-} ngx_wasm_shm_kv_node_t;
-
-
 static ngx_inline ngx_wasm_shm_kv_t *
 ngx_wasm_shm_get_kv(ngx_wasm_shm_t *shm)
 {
-    ngx_wa_assert(shm->type == NGX_WASM_SHM_TYPE_KV);
+    ngx_wasm_assert(shm->type == NGX_WASM_SHM_TYPE_KV || \
+                    shm->type == NGX_WASM_SHM_TYPE_METRICS);
     return shm->data;
 }
 
@@ -133,14 +126,39 @@ queue_for_node(ngx_wasm_shm_t *shm, ngx_wasm_shm_kv_node_t *n)
 }
 
 
+static ngx_wasm_shm_kv_node_t *
+ngx_wasm_shm_rbtree_lookup(ngx_rbtree_t *rbtree, uint32_t key_hash)
+{
+    ngx_wasm_shm_kv_node_t  *n;
+    ngx_rbtree_node_t       *node, *sentinel;
+
+    node = rbtree->root;
+    sentinel = rbtree->sentinel;
+
+    while (node != sentinel) {
+
+        n = (ngx_wasm_shm_kv_node_t *) node;
+
+        if (key_hash != node->key) {
+            node = (key_hash < node->key) ? node->left : node->right;
+            continue;
+        }
+
+        return n;
+    }
+
+    return NULL;
+}
+
+
 ngx_int_t
 ngx_wasm_shm_kv_get_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
     ngx_str_t **value_out, uint32_t *cas)
 {
-    ngx_wasm_shm_kv_node_t  *n;
+    uint32_t                 key_hash = ngx_crc32_long(key->data, key->len);
     ngx_wasm_shm_kv_t       *kv = ngx_wasm_shm_get_kv(shm);
-
-    n = (ngx_wasm_shm_kv_node_t *) ngx_str_rbtree_lookup(&kv->rbtree, key, 0);
+    ngx_wasm_shm_kv_node_t  *n = ngx_wasm_shm_rbtree_lookup(&kv->rbtree,
+                                                            key_hash);
 
     if (n == NULL) {
         return NGX_DECLINED;
@@ -159,6 +177,32 @@ ngx_wasm_shm_kv_get_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
 
     if (cas) {
         *cas = n->cas;
+    }
+
+    return NGX_OK;
+}
+
+
+ngx_int_t ngx_wasm_shm_kv_get_node_locked(ngx_wasm_shm_t *shm, uint32_t key_hash,
+    ngx_wasm_shm_kv_node_t **value_out)
+{
+    ngx_wasm_shm_kv_t       *kv = ngx_wasm_shm_get_kv(shm);
+    ngx_wasm_shm_kv_node_t  *n = ngx_wasm_shm_rbtree_lookup(&kv->rbtree,
+                                                            key_hash);
+
+    if (n == NULL) {
+        return NGX_DECLINED;
+    }
+
+    if (shm->eviction == NGX_WASM_SHM_EVICTION_LRU
+        || shm->eviction == NGX_WASM_SHM_EVICTION_SLRU)
+    {
+        ngx_queue_remove(&n->queue);
+        ngx_queue_insert_head(queue_for_node(shm, n), &n->queue);
+    }
+
+    if (value_out) {
+        *value_out = n;
     }
 
     return NGX_OK;
@@ -251,11 +295,13 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
     ngx_str_t *value, uint32_t cas, ngx_int_t *written)
 {
     size_t                   size;
-    ngx_wasm_shm_kv_node_t  *n, *old;
+    uint32_t                 key_hash = ngx_crc32_long(key->data, key->len);
     ngx_wasm_shm_kv_t       *kv = ngx_wasm_shm_get_kv(shm);
+    ngx_wasm_shm_kv_node_t  *n, *old;
 
     old = NULL;
-    n = (ngx_wasm_shm_kv_node_t *) ngx_str_rbtree_lookup(&kv->rbtree, key, 0);
+    n = (ngx_wasm_shm_kv_node_t *) ngx_wasm_shm_rbtree_lookup(&kv->rbtree,
+                                                              key_hash);
 
     if (cas != (n == NULL ? 0 : n->cas)) {
         *written = 0;
@@ -318,6 +364,7 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
 
         n->key.str.data = (u_char *) n + sizeof(ngx_wasm_shm_kv_node_t);
         n->key.str.len = key->len;
+        n->key.node.key = ngx_crc32_long(key->data, key->len);
         n->value.data = n->key.str.data + key->len;
         n->value.len = value->len;
 

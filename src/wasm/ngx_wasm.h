@@ -5,6 +5,7 @@
 #include <ngx_wasmx.h>
 #include <ngx_wrt.h>
 #include <ngx_wasm_shm.h>
+#include <ngx_wasm_shm_metrics.h>
 #if (NGX_SSL)
 #include <ngx_wasm_ssl.h>
 #endif
@@ -83,6 +84,7 @@ typedef struct {
     ngx_wavm_t                        *vm;
     ngx_wavm_conf_t                    vm_conf;
     ngx_array_t                        shms;     /* element: ngx_wasm_shm_mapping_t */
+    ngx_wasm_shm_metrics_t            *metrics;
 #if (NGX_SSL)
     ngx_wasm_ssl_conf_t                ssl_conf;
 #endif
@@ -132,6 +134,8 @@ char *ngx_wasm_core_flag_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_wasm_core_shm_kv_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+char *ngx_wasm_core_shm_metrics_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);

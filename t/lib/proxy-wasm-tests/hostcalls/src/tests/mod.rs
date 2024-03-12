@@ -400,6 +400,26 @@ pub(crate) fn test_set_shared_data_by_len(ctx: &mut TestHttp) {
     test_set_shared_data(ctx);
 }
 
+pub(crate) fn test_increment_counters(ctx: &TestHttp) {
+    for (metric_name, metric_id) in ctx.metrics.iter() {
+        if metric_name.starts_with("c") {
+            ctx.increment_metric(*metric_id, 1).unwrap();
+        }
+    }
+}
+
+pub(crate) fn test_get_metric(ctx: &TestHttp) {
+    let metric_name = ctx.config.get("metric_name").map(|x| x.as_str()).unwrap();
+    let metric_id = ctx.metrics.get(metric_name).expect("metric not found");
+    let metric_value = ctx.get_metric(*metric_id).unwrap();
+    log(LogLevel::Info, format!("ABOUT to get metric {metric_name} id by {metric_id}").as_str()).unwrap();
+
+
+    ctx.add_http_response_header(
+        format!("X-metric-{metric_name}").as_str(),
+        format!("{metric_value}").as_str());
+}
+
 pub(crate) fn test_shared_queue_enqueue(ctx: &TestHttp) {
     let queue_id: u32 = ctx
         .config

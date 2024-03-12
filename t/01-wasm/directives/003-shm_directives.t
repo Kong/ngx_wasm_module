@@ -234,3 +234,17 @@ qr/\[emerg\] .*? invalid eviction policy \"\"/
 [crit]
 [stub]
 --- must_die
+
+
+
+=== TEST 16: shm directive - metrics sanity
+--- ONLY
+--- main_config
+    wasm {
+        metrics 16k;
+    }
+--- no_error_log
+[error]
+[crit]
+[emerg]
+[stub]

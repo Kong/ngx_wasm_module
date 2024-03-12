@@ -201,6 +201,15 @@ add_block_preprocessor(sub {
                 $wasm_config = $wasm_config . (join "\n", @arr);
             }
 
+            # --- metrics
+
+            my $metrics = $block->metrics;
+
+            if (defined $metrics) {
+                $wasm_config = $wasm_config .
+                               "    metrics " . $metrics . ";\n";
+            }
+
             # --- shm_queue
 
             my $shm_queue = $block->shm_queue;

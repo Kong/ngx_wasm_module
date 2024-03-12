@@ -6,6 +6,7 @@
 #include <ngx_wasm.h>
 #include <ngx_wasm_shm_kv.h>
 #include <ngx_wasm_shm_queue.h>
+#include <ngx_wasm_shm_metrics.h>
 
 
 ngx_int_t
@@ -29,6 +30,7 @@ ngx_wasm_shm_init(ngx_cycle_t *cycle)
     ngx_array_t             *shms = ngx_wasm_core_shms(cycle);
     ngx_wasm_shm_mapping_t  *mappings = shms->elts;
     ngx_wasm_shm_t          *shm;
+    ngx_wasm_shm_metrics_t  *metrics;
 
     for (i = 0; i < shms->nelts; i++ ) {
         shm = mappings[i].zone->data;
@@ -61,6 +63,14 @@ ngx_wasm_shm_init(ngx_cycle_t *cycle)
         }
     }
 
+    metrics = ngx_wasm_core_metrics(cycle);
+    metrics->shm->log = cycle->log;
+    rc = ngx_wasm_shm_kv_init(metrics->shm);
+    if (rc != NGX_OK) {
+        return rc;
+    }
+    dd("metrics init done");
+
     return NGX_OK;
 }
 
@@ -70,9 +80,11 @@ ngx_wasm_shm_init_process(ngx_cycle_t *cycle)
 {
 #if (NGX_DEBUG)
     size_t                   i;
+    ngx_int_t                rc;
     ngx_array_t             *shms = ngx_wasm_core_shms(cycle);
     ngx_wasm_shm_mapping_t  *mappings = shms->elts;
     ngx_wasm_shm_t          *shm;
+    ngx_wasm_shm_metrics_t  *metrics = ngx_wasm_core_metrics(cycle);
 
     for (i = 0; i < shms->nelts; i++ ) {
         shm = mappings[i].zone->data;
@@ -82,6 +94,11 @@ ngx_wasm_shm_init_process(ngx_cycle_t *cycle)
                        &shm->name, mappings[i].zone->shm.addr);
     }
 #endif
+
+    rc = ngx_wasm_shm_metrics_init_process(metrics);
+    if (rc != NGX_OK) {
+        return rc;
+    }
 
     /* TODO: initialize inter-process notifications */
 

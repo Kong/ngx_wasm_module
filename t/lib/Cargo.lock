@@ -41,6 +41,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator-api2"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -96,7 +102,7 @@ dependencies = [
  "enum-utils",
  "hex",
  "log",
- "proxy-wasm 0.2.1",
+ "proxy-wasm 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -170,7 +176,7 @@ name = "context-checks"
 version = "0.1.0"
 dependencies = [
  "log",
- "proxy-wasm 0.2.1",
+ "proxy-wasm 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -254,6 +260,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.14.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
+dependencies = [
+ "ahash 0.8.8",
+ "allocator-api2",
+]
+
+[[package]]
 name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -310,7 +326,7 @@ name = "instance-lifecycle"
 version = "0.1.0"
 dependencies = [
  "log",
- "proxy-wasm 0.2.1",
+ "proxy-wasm 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -398,7 +414,7 @@ version = "0.1.0"
 dependencies = [
  "enum-utils",
  "log",
- "proxy-wasm 0.2.1",
+ "proxy-wasm 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -406,7 +422,7 @@ name = "on-tick"
 version = "0.1.0"
 dependencies = [
  "log",
- "proxy-wasm 0.2.1",
+ "proxy-wasm 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -431,6 +447,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5b944c570b7e30d8b6725753360c5f92311d0888d0e86089e1c651f0d3c2ef3"
 dependencies = [
  "hashbrown 0.11.2",
+ "log",
+]
+
+[[package]]
+name = "proxy-wasm"
+version = "0.2.1"
+dependencies = [
+ "hashbrown 0.14.3",
  "log",
 ]
 
