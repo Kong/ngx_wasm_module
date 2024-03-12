@@ -282,7 +282,7 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
 
     /* set */
 
-    if (n && key->len > n->value.len) {
+    if (n && value->len > n->value.len) {
         old = n;
         n = NULL;
     }
