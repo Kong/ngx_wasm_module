@@ -57,7 +57,6 @@ env:
   TEST_NGINX_USE_VALGRIND: 1
   TEST_NGINX_USE_VALGRIND_ALL: 0
   TEST_NGINX_USE_HUP: ${{ inputs.hup == 'hup' && 1 || 0 }}
-  TEST_NGINX_RANDOMIZE: ${{ github.run_attempt == '1' && 1 || 0 }}
   TEST_NGINX_NO_CLEAN: 1
   TEST_NGINX_TIMEOUT: 120
   TEST_NGINX_EXTERNAL_TIMEOUT: 120s

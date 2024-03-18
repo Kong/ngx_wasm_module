@@ -22,6 +22,9 @@ defaults:
   run:
     shell: bash
 
+env:
+  TEST_NGINX_RANDOMIZE: ${{ github.run_attempt == '1' && 1 || 0 }}
+
 jobs:
   unit:
     name: 'Unit'

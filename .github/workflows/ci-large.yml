@@ -11,6 +11,9 @@ defaults:
   run:
     shell: bash
 
+env:
+  TEST_NGINX_RANDOMIZE: 0
+
 jobs:
   unit:
     name: 'Unit'
