@@ -259,7 +259,8 @@ struct ngx_proxy_wasm_ctx_s {
     /* flags */
 
     unsigned                                      main:1;            /* r->main */
-    unsigned                                      ready:1;
+    unsigned                                      init:1;            /* can be utilized (has no filters) */
+    unsigned                                      ready:1;           /* filters chain ready */
     unsigned                                      req_headers_in_access:1;
 };
 
@@ -300,7 +301,7 @@ struct ngx_proxy_wasm_filter_s {
     ngx_rbtree_node_t              node;
     ngx_wavm_module_t             *module;
     ngx_proxy_wasm_subsystem_t    *subsystem;
-    ngx_proxy_wasm_store_t        *store;   /* mcf->store */
+    ngx_proxy_wasm_store_t        *store;   /* mcf->pwroot.store */
     ngx_proxy_wasm_err_e           ecode;
 
     /* dyn config */
@@ -383,18 +384,30 @@ struct ngx_proxy_wasm_filter_s {
 };
 
 
+typedef struct {
+    ngx_array_t                    filter_ids;
+    ngx_rbtree_t                   tree;
+    ngx_rbtree_node_t              sentinel;
+    ngx_proxy_wasm_store_t         store;
+    unsigned                       init:1;
+} ngx_proxy_wasm_filters_root_t;
+
+
 /* root context */
-void ngx_proxy_wasm_init(ngx_conf_t *cf, ngx_proxy_wasm_store_t *gstore);
-void ngx_proxy_wasm_exit(ngx_proxy_wasm_store_t *gstore);
-ngx_int_t ngx_proxy_wasm_load(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log);
-ngx_int_t ngx_proxy_wasm_start(ngx_cycle_t *cycle);
+ngx_proxy_wasm_filters_root_t *ngx_proxy_wasm_root_alloc(ngx_pool_t *pool);
+void ngx_proxy_wasm_root_init(ngx_proxy_wasm_filters_root_t *pwroot,
+    ngx_pool_t *pool);
+void ngx_proxy_wasm_root_destroy(ngx_proxy_wasm_filters_root_t *pwroot);
+ngx_int_t ngx_proxy_wasm_load(ngx_proxy_wasm_filters_root_t *pwroot,
+    ngx_proxy_wasm_filter_t *filter, ngx_log_t *log);
+ngx_int_t ngx_proxy_wasm_start(ngx_proxy_wasm_filters_root_t *pwroot);
 
 
 /* stream context */
 ngx_proxy_wasm_ctx_t *ngx_proxy_wasm_ctx_alloc(ngx_pool_t *pool);
-ngx_proxy_wasm_ctx_t *ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids,
-    size_t nfilters, ngx_uint_t isolation, ngx_proxy_wasm_subsystem_t *subsys,
-    void *data);
+ngx_proxy_wasm_ctx_t *ngx_proxy_wasm_ctx(ngx_proxy_wasm_filters_root_t *pwroot,
+    ngx_array_t *filter_ids, ngx_uint_t isolation,
+    ngx_proxy_wasm_subsystem_t *subsys, void *data);
 void ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx);
 ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_wasm_phase_t *phase, ngx_proxy_wasm_step_e step);

@@ -73,7 +73,8 @@ typedef struct {
 
 typedef struct {
     ngx_array_t                              filter_ids;
-    ngx_uint_t                               nfilters;
+    ngx_proxy_wasm_filters_root_t           *pwroot;
+    ngx_proxy_wasm_filters_root_t           *worker_pwroot;  /* &mcf->pwroot */
 } ngx_wasm_ops_plan_proxy_wasm_t;
 
 
