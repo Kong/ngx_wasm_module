@@ -6,7 +6,7 @@ use t::TestWasmX::Lua;
 
 skip_no_openresty();
 
-plan_tests(4);
+plan_tests(4 + 3);
 run_tests();
 
 __DATA__
@@ -139,6 +139,93 @@ qr/#0 on_configure, config_size: 0.*/
 [
     qr/\[info\] .*? ticking/,
     qr/\[info\] .*? ticking/,
+]
+--- no_error_log
+[error]
+
+
+
+=== TEST 6: load() - on_configure failures
+--- ONLY
+--- wasm_modules: hostcalls
+--- http_config
+    init_worker_by_lua_block {
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
+
+        local function load_filters(filters)
+            local c_plan, err = proxy_wasm.new(filters)
+            if not c_plan then
+                return nil, err
+            end
+
+            local ok, err = proxy_wasm.load(c_plan)
+            if not ok then
+                return nil, err
+            end
+
+            return c_plan
+        end
+
+        local c_plan, err = load_filters({
+            { name = "hostcalls", config = "on_configure=do_return_false" },
+        })
+
+        if c_plan ~= nil then
+            ngx.log(ngx.ERR, "expected failure when 'on_configure' returns false")
+            return
+
+        elseif err ~= "failed loading plan" then
+            ngx.log(ngx.ERR, "expected 'failed loading plan' error, got: ", err)
+        end
+
+        c_plan, err = load_filters({
+            { name = "hostcalls", config = "on=request_headers test=/t/set_response_header value=X-Test-Case:1234", }
+        })
+
+        if c_plan then
+            _G.c_plan = c_plan
+            ngx.log(ngx.INFO, "successs")
+        else
+            ngx.log(ngx.ERR, "expected valid filters to be loaded: ", err)
+        end
+    }
+--- config
+    location /t {
+        rewrite_by_lua_block {
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
+
+            if not _G.c_plan then
+                return ngx.say("no c_plan found")
+            end
+
+            local ok, err = proxy_wasm.attach(_G.c_plan)
+            if not ok then
+                return ngx.say(err)
+            end
+
+            ok, err = proxy_wasm.start()
+            if not ok then
+                return ngx.say(err)
+            end
+
+            local ok, err = proxy_wasm.start()
+            if not ok then
+                return ngx.say(err)
+            end
+
+            ngx.say("SUCCESS")
+        }
+    }
+--- request
+GET /t
+--- response_body
+SUCCESS
+--- response_headers
+X-Test-Case: 1234
+--- error_log eval
+[
+    qr/failed initializing "hostcalls" filter \(on_configure failure\)/,
+    qr/\[info\] .*? success/,
 ]
 --- no_error_log
 [error]
