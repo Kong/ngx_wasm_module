@@ -6,7 +6,7 @@ use t::TestWasmX::Lua;
 
 skip_no_openresty();
 
-plan_tests(4);
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -22,6 +22,7 @@ qr/\[error\] .*? plan should be a cdata object/
 --- no_error_log
 [crit]
 [emerg]
+[alert]
 --- must_die
 
 
@@ -53,6 +54,7 @@ qr/\[error\] .*? plan should be a cdata object/
 ]
 --- no_error_log
 [crit]
+[alert]
 
 
 
@@ -80,6 +82,7 @@ qr/\[error\] .*? load cannot be called from 'init' phase/
 --- no_error_log
 [crit]
 [emerg]
+[alert]
 --- must_die
 
 
@@ -111,6 +114,7 @@ qr/#0 on_configure, config_size: 0.*/
 --- no_error_log
 [error]
 [crit]
+[emerg]
 
 
 
@@ -140,5 +144,91 @@ qr/#0 on_configure, config_size: 0.*/
     qr/\[info\] .*? ticking/,
     qr/\[info\] .*? ticking/,
 ]
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 6: load() - on_configure failures
+--- wasm_modules: hostcalls
+--- http_config
+    init_worker_by_lua_block {
+        local proxy_wasm = require "resty.wasmx.proxy_wasm"
+
+        local function load_filters(filters)
+            local c_plan, err = proxy_wasm.new(filters)
+            if not c_plan then
+                return nil, err
+            end
+
+            local ok, err = proxy_wasm.load(c_plan)
+            if not ok then
+                return nil, err
+            end
+
+            return c_plan
+        end
+
+        -- 1. Load invalid chain
+
+        local c_plan, err = load_filters({
+            {
+                name = "hostcalls",
+                config = "on_configure=do_return_false"
+            }
+        })
+        assert(not c_plan, "expected failure when 'on_configure' returns false")
+        assert(err == "failed loading plan", "expected 'failed loading plan' error but got: " .. err)
+
+        -- 2. Load valid chain
+
+        local c_plan, err = load_filters({
+            {
+                name = "hostcalls",
+                config = "test=/t/set_response_header value=X-Test-Case:1234"
+            }
+        })
+        assert(c_plan, "expected valid filters to load but got: " .. (err or ""))
+
+        _G.c_plan = c_plan
+    }
+--- config
+    location /t {
+        rewrite_by_lua_block {
+            local proxy_wasm = require "resty.wasmx.proxy_wasm"
+
+            if not _G.c_plan then
+                ngx.log(ngx.ERR, "no c_plan found")
+                return
+            end
+
+            local ok, err = proxy_wasm.attach(_G.c_plan)
+            if not ok then
+                ngx.log(ngx.ERR, err)
+                return
+            end
+
+            local ok, err = proxy_wasm.start()
+            if not ok then
+                ngx.log(ngx.ERR, err)
+                return
+            end
+
+            local ok, err = proxy_wasm.start()
+            if not ok then
+                ngx.log(ngx.ERR, err)
+                return
+            end
+
+            ngx.say("ok")
+        }
+    }
+--- response_body
+ok
+--- response_headers
+X-Test-Case: 1234
+--- error_log eval
+qr/\[emerg\] .*? failed initializing "hostcalls" filter \(on_configure failure\)/
 --- no_error_log
 [error]

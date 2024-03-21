@@ -25,11 +25,12 @@ ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
     ngx_wasm_ffi_filter_t *filters, size_t n_filters,
     ngx_wasm_ops_plan_t **out, u_char *err, size_t *errlen)
 {
-    size_t                      i;
-    ngx_int_t                   rc;
-    ngx_wasm_ops_plan_t        *plan;
-    ngx_wasm_ffi_filter_t      *ffi_filter;
-    ngx_http_wasm_main_conf_t  *mcf;
+    size_t                          i;
+    ngx_int_t                       rc;
+    ngx_wasm_ops_plan_t            *plan;
+    ngx_wasm_ffi_filter_t          *ffi_filter;
+    ngx_proxy_wasm_filters_root_t  *pwroot;
+    ngx_http_wasm_main_conf_t      *mcf;
 
     mcf = ngx_http_cycle_get_module_main_conf(ngx_cycle, ngx_http_wasm_module);
     if (mcf == NULL) {
@@ -45,17 +46,28 @@ ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
         return NGX_ERROR;
     }
 
+    pwroot = ngx_proxy_wasm_root_alloc(plan->pool);
+    if (pwroot == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_proxy_wasm_root_init(pwroot, plan->pool);
+
+    plan->conf.proxy_wasm.pwroot = pwroot;
+    plan->conf.proxy_wasm.worker_pwroot = &mcf->pwroot;
+
     for (i = 0; i < n_filters; i++) {
         ffi_filter = filters + i;
 
-        dd("filter[%ld] name: \"%.*s\" (config: \"%.*s\")", i,
+        dd("filter[%ld] \"%.*s\" (config: \"%.*s\", plan: %p)", i,
            (int) ffi_filter->name->len, ffi_filter->name->data,
-           (int) ffi_filter->config->len, ffi_filter->config->data);
+           (int) ffi_filter->config->len, ffi_filter->config->data,
+           plan);
 
         rc = ngx_http_wasm_ops_add_filter(plan,
                                           ffi_filter->name,
                                           ffi_filter->config,
-                                          &mcf->store, vm);
+                                          vm);
         if (rc != NGX_OK) {
             if (rc == NGX_ABORT) {
                 *errlen = ngx_snprintf(err, NGX_WASM_LUA_FFI_MAX_ERRLEN,
@@ -77,6 +89,12 @@ ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
 void
 ngx_http_wasm_ffi_plan_free(ngx_wasm_ops_plan_t *plan)
 {
+    if (plan->conf.proxy_wasm.pwroot) {
+        ngx_proxy_wasm_root_destroy(plan->conf.proxy_wasm.pwroot);
+
+        ngx_pfree(plan->pool, plan->conf.proxy_wasm.pwroot);
+    }
+
     ngx_wasm_ops_plan_destroy(plan);
 }
 
@@ -91,7 +109,7 @@ ngx_http_wasm_ffi_plan_load(ngx_wasm_ops_plan_t *plan)
         return NGX_ERROR;
     }
 
-    return ngx_proxy_wasm_start((ngx_cycle_t *) ngx_cycle);
+    return ngx_proxy_wasm_start(plan->conf.proxy_wasm.pwroot);
 }
 
 
@@ -191,7 +209,7 @@ get_pwctx(ngx_http_request_t *r)
         return NULL;
     }
 
-    return ngx_proxy_wasm_ctx(NULL, 0,
+    return ngx_proxy_wasm_ctx(NULL, NULL,
                               NGX_PROXY_WASM_ISOLATION_STREAM,
                               &ngx_http_proxy_wasm, rctx);
 }
@@ -201,18 +219,11 @@ ngx_int_t
 ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
     ngx_str_t *key, ngx_str_t *value, u_char *err, size_t *errlen)
 {
-    ngx_int_t                 rc;
-    ngx_str_t                 e = { 0, NULL };
-    ngx_http_wasm_req_ctx_t  *rctx;
-    ngx_proxy_wasm_ctx_t     *pwctx;
+    ngx_int_t              rc;
+    ngx_str_t              e = { 0, NULL };
+    ngx_proxy_wasm_ctx_t  *pwctx;
 
-    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    pwctx = ngx_proxy_wasm_ctx(NULL, 0,
-                               NGX_PROXY_WASM_ISOLATION_STREAM,
-                               &ngx_http_proxy_wasm, rctx);
+    pwctx = get_pwctx(r);
     if (pwctx == NULL) {
         return NGX_ERROR;
     }
@@ -233,23 +244,16 @@ ngx_int_t
 ngx_http_wasm_ffi_get_property(ngx_http_request_t *r,
     ngx_str_t *key, ngx_str_t *value, u_char *err, size_t *errlen)
 {
-    ngx_int_t                 rc;
-    ngx_str_t                 e = { 0, NULL };
-    ngx_http_wasm_req_ctx_t  *rctx;
-    ngx_proxy_wasm_ctx_t     *pwctx;
+    ngx_int_t              rc;
+    ngx_str_t              e = { 0, NULL };
+    ngx_proxy_wasm_ctx_t  *pwctx;
 
-    if (ngx_http_wasm_rctx(r, &rctx) != NGX_OK) {
+    pwctx = get_pwctx(r);
+    if (pwctx == NULL) {
         /**
          * TODO: return code signifying "no plan attached to request" and co.
          * return associated constant as err/code from Lua lib
          */
-        return NGX_ERROR;
-    }
-
-    pwctx = ngx_proxy_wasm_ctx(NULL, 0,
-                               NGX_PROXY_WASM_ISOLATION_STREAM,
-                               &ngx_http_proxy_wasm, rctx);
-    if (pwctx == NULL) {
         return NGX_ERROR;
     }
 

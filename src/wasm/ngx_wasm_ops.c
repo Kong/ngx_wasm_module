@@ -90,10 +90,6 @@ ngx_wasm_ops_plan_add(ngx_wasm_ops_plan_t *plan,
         op = ops_list[i];
         phase = plan->subsystem->phases;
 
-        if (op->code == NGX_WASM_OP_PROXY_WASM) {
-            plan->conf.proxy_wasm.nfilters++;
-        }
-
         for (/* void */; phase->name.len; phase++) {
             pipeline = &plan->pipelines[phase->index];
 
@@ -128,7 +124,7 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
     ngx_wasm_op_t            *op;
     ngx_wasm_ops_pipeline_t  *pipeline = NULL;
 
-    dd("enter");
+    dd("enter (plan: %p)", plan);
 
     if (plan->loaded) {
         dd("plan already loaded (plan: %p)", plan);
@@ -154,7 +150,8 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
             case NGX_WASM_OP_PROXY_WASM:
                 op->handler = &ngx_wasm_op_proxy_wasm_handler;
 
-                if (ngx_proxy_wasm_load(op->conf.proxy_wasm.filter, log)
+                if (ngx_proxy_wasm_load(plan->conf.proxy_wasm.pwroot,
+                                        op->conf.proxy_wasm.filter, log)
                     != NGX_OK)
                 {
                     return NGX_ERROR;
@@ -179,8 +176,7 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
 
     ids = &plan->conf.proxy_wasm.filter_ids;
 
-    ngx_array_init(ids, plan->pool, plan->conf.proxy_wasm.nfilters,
-                   sizeof(ngx_uint_t));
+    ngx_array_init(ids, plan->pool, 2, sizeof(ngx_uint_t));
 
 #if (NGX_WASM_HTTP)
     pipeline = &plan->pipelines[NGX_HTTP_REWRITE_PHASE];
@@ -218,10 +214,6 @@ ngx_wasm_ops_plan_destroy(ngx_wasm_ops_plan_t *plan)
 {
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                    "wasm freeing plan: %p", plan);
-
-    if (plan->loaded) {
-        ngx_array_destroy(&plan->conf.proxy_wasm.filter_ids);
-    }
 
     ngx_pfree(plan->pool, plan->pipelines);
 }
@@ -370,15 +362,16 @@ static ngx_int_t
 ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     ngx_wasm_phase_t *phase, ngx_wasm_op_t *op)
 {
-    ngx_int_t                    rc = NGX_ERROR;
-    ngx_uint_t                   isolation;
-    ngx_array_t                 *ids;
-    ngx_proxy_wasm_ctx_t        *pwctx;
-    ngx_proxy_wasm_subsystem_t  *subsystem = NULL;
+    ngx_int_t                       rc = NGX_ERROR;
+    ngx_uint_t                      isolation;
+    ngx_array_t                    *filter_ids;
+    ngx_proxy_wasm_ctx_t           *pwctx;
+    ngx_proxy_wasm_filters_root_t  *pwroot;
+    ngx_proxy_wasm_subsystem_t     *subsystem = NULL;
 #ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t     *rctx = opctx->data;
-    ngx_http_request_t          *r = rctx->r;
-    ngx_http_wasm_loc_conf_t    *loc;
+    ngx_http_wasm_req_ctx_t        *rctx = opctx->data;
+    ngx_http_request_t             *r = rctx->r;
+    ngx_http_wasm_loc_conf_t       *loc;
 
     loc = ngx_http_get_module_loc_conf(rctx->r, ngx_http_wasm_module);
     subsystem = &ngx_http_proxy_wasm;
@@ -386,7 +379,8 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
 
     ngx_wa_assert(op->code == NGX_WASM_OP_PROXY_WASM);
 
-    ids = &opctx->plan->conf.proxy_wasm.filter_ids;
+    filter_ids = &opctx->plan->conf.proxy_wasm.filter_ids;
+    pwroot = opctx->plan->conf.proxy_wasm.pwroot;
     isolation = opctx->ctx.proxy_wasm.isolation;
 
     if (isolation == NGX_PROXY_WASM_ISOLATION_UNSET) {
@@ -399,9 +393,7 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
 #endif
     }
 
-    pwctx = ngx_proxy_wasm_ctx((ngx_uint_t *) ids->elts, ids->nelts,
-                               isolation,
-                               subsystem,
+    pwctx = ngx_proxy_wasm_ctx(pwroot, filter_ids, isolation, subsystem,
                                opctx->data);
     if (pwctx == NULL) {
         goto done;
