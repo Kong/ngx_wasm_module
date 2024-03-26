@@ -208,19 +208,9 @@ qr/#0 on_configure, config_size: 0.*/
                 ngx.log(ngx.ERR, err)
                 return
             end
+        }
 
-            local ok, err = proxy_wasm.start()
-            if not ok then
-                ngx.log(ngx.ERR, err)
-                return
-            end
-
-            local ok, err = proxy_wasm.start()
-            if not ok then
-                ngx.log(ngx.ERR, err)
-                return
-            end
-
+        content_by_lua_block {
             ngx.say("ok")
         }
     }

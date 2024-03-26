@@ -144,6 +144,9 @@ ngx_http_proxy_wasm_on_request_body_handler(ngx_http_request_t *r)
                                    NGX_PROXY_WASM_STEP_REQ_BODY);
         if (rc == NGX_AGAIN) {
             ngx_wasm_yield(&rctx->env);
+
+        } else if (rc == NGX_ERROR || rc == NGX_HTTP_INTERNAL_SERVER_ERROR) {
+            ngx_wasm_error(&rctx->env);
         }
     }
 

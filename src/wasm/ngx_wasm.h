@@ -222,13 +222,16 @@ typedef struct {
 typedef struct ngx_wasm_lua_ctx_s  ngx_wasm_lua_ctx_t;
 
 typedef struct {
+    ngx_wasm_state_e                         state;
     ngx_connection_t                        *connection;
     ngx_buf_tag_t                           *buf_tag;
     ngx_wasm_subsystem_t                    *subsys;
 #if (NGX_SSL)
     ngx_wasm_ssl_conf_t                     *ssl_conf;
 #endif
-    ngx_wasm_state_e                         state;
+#if (NGX_WASM_LUA)
+    ngx_wasm_lua_ctx_t                      *entry_lctx;
+#endif
 
     union {
 #if (NGX_WASM_HTTP)

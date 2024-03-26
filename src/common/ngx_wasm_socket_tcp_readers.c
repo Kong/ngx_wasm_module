@@ -542,7 +542,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
                 cl = ngx_wasm_chain_get_free_buf(in_ctx->pool,
                                                  &rctx->free_bufs,
                                                  in_ctx->rest,
-                                                 in_ctx->sock->env.buf_tag,
+                                                 in_ctx->sock->env->buf_tag,
                                                  in_ctx->sock->buffer_reuse);
                 if (cl == NULL) {
                     return NGX_ERROR;
@@ -600,7 +600,7 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
         in_ctx->body = ngx_wasm_chain_get_free_buf(in_ctx->pool,
                                                    &rctx->free_bufs,
                                                    in_ctx->body_len,
-                                                   in_ctx->sock->env.buf_tag,
+                                                   in_ctx->sock->env->buf_tag,
                                                    in_ctx->sock->buffer_reuse);
         if (in_ctx->body == NULL) {
             return NGX_ERROR;

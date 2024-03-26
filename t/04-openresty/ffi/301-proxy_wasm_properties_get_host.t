@@ -68,9 +68,9 @@ ok
             if prop then
                 ngx.log(ngx.INFO, "wasmx.my_prop is ", prop)
             end
+        }
 
-            assert(proxy_wasm.start())
-
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -108,9 +108,9 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
             if prop then
                 ngx.log(ngx.INFO, "wasmx.my_prop is ", prop)
             end
+        }
 
-            assert(proxy_wasm.start())
-
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -143,7 +143,9 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_property("wasmx.my_prop", "my_value"))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
 
@@ -185,7 +187,9 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_property("wasmx.my_prop", "my_value"))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
 
@@ -227,7 +231,9 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_property("wasmx.my_prop", "my_value"))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
 
@@ -268,13 +274,14 @@ qr/\[info\] .*? wasmx.my_prop is my_value/
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
 
             local prop, err, ecode = proxy_wasm.get_property("wasmx.my_prop")
             assert(prop == nil)
             assert(err == "property \"wasmx.my_prop\" not found")
             assert(ecode == "missing")
+        }
 
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -306,13 +313,14 @@ ok
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_property("wasmx.my_prop", ""))
-            assert(proxy_wasm.start())
 
             local prop, err = proxy_wasm.get_property("wasmx.my_prop")
             ngx.log(ngx.INFO, "wasmx.my_prop: \"", prop, "\", err: ", tostring(err))
             assert(prop == "")
             assert(err == nil)
+        }
 
+        content_by_lua_block {
             ngx.say("ok")
         }
     }

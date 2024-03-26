@@ -160,6 +160,7 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
                 break;
             case NGX_WASM_OP_CALL:
                 op->handler = &ngx_wasm_op_call_handler;
+                op->conf.call.idx = j;
                 op->conf.call.funcref =
                     ngx_wavm_module_func_lookup(op->module,
                                                 &op->conf.call.func_name);
@@ -254,9 +255,14 @@ ngx_wasm_ops_resume(ngx_wasm_op_ctx_t *ctx, ngx_uint_t phaseidx)
     dd("enter (phaseidx: %ld, phase: \"%.*s\")",
        phaseidx, (int) phase->name.len, phase->name.data);
 
-    /* check last phase */
+
+    if (ctx->last_phase && ctx->last_phase != phase) {
+        ctx->cur_idx = 0;
+    }
 
 #if 0
+    /* check last phase */
+
     switch (phaseidx) {
     default:
         if (ctx->last_phase
@@ -318,10 +324,16 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
     ngx_wasm_op_t *op)
 {
     ngx_int_t             rc;
+    ngx_uint_t            idx;
     ngx_wavm_instance_t  *instance;
     ngx_wavm_funcref_t   *funcref;
 
     ngx_wa_assert(op->code == NGX_WASM_OP_CALL);
+
+    idx = op->conf.call.idx;
+
+    dd("enter (op: %p, cur_idx: %ld, op idx: %ld)",
+       op, opctx->cur_idx, idx);
 
     funcref = op->conf.call.funcref;
     if (funcref == NULL) {
@@ -330,6 +342,10 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
                            &op->conf.call.func_name,
                            &op->module->name);
         return NGX_ERROR;
+    }
+
+    if (opctx->cur_idx > idx) {
+        return NGX_DECLINED;
     }
 
     ngx_log_debug3(NGX_LOG_DEBUG_WASM, opctx->log, 0,
@@ -346,11 +362,24 @@ ngx_wasm_op_call_handler(ngx_wasm_op_ctx_t *opctx, ngx_wasm_phase_t *phase,
 
     ngx_wavm_instance_destroy(instance);
 
+    opctx->cur_idx++;
+
     if (rc == NGX_ERROR || rc == NGX_ABORT) {
         return NGX_ERROR;
     }
 
     ngx_wa_assert(rc == NGX_OK);
+
+    dd("ops state: %d", opctx->env->state);
+
+    switch (opctx->env->state) {
+    case NGX_WASM_STATE_YIELD:
+        return NGX_AGAIN;
+    case NGX_WASM_STATE_ERROR:
+        return NGX_ERROR;
+    default:
+        break;
+    }
 
     /* next call op */
 
@@ -400,7 +429,14 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     }
 
     pwctx->phase = phase;
+#if 0
     pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
+#endif
+
+    if (opctx->ctx.proxy_wasm.req_headers_in_access) {
+        pwctx->req_headers_in_access = 1;
+    }
+
 
     switch (phase->index) {
 

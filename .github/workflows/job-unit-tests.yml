@@ -124,7 +124,7 @@ jobs:
           sudo bash -c 'echo "${{ github.workspace }}/coredumps/%e.%p.%t" > /proc/sys/kernel/core_pattern'
       - run: make setup
       - run: make
-      - name: Run make test
+      - name: Run tests
         run: |
           ulimit -c unlimited
           make test

@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm_lua_ffi.h>
+#include <ngx_http_lua_common.h>
 
 
 ngx_wavm_t *
@@ -89,6 +90,8 @@ ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
 void
 ngx_http_wasm_ffi_plan_free(ngx_wasm_ops_plan_t *plan)
 {
+    dd("enter (plan: %p)", plan);
+
     if (plan->conf.proxy_wasm.pwroot) {
         ngx_proxy_wasm_root_destroy(plan->conf.proxy_wasm.pwroot);
 
@@ -118,6 +121,7 @@ ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r, ngx_wasm_ops_plan_t *plan,
     ngx_uint_t isolation)
 {
     ngx_int_t                  rc;
+    ngx_http_lua_ctx_t        *ctx;
     ngx_http_wasm_req_ctx_t   *rctx;
     ngx_http_wasm_loc_conf_t  *loc;
     ngx_wasm_ops_plan_t       *old_plan;
@@ -126,6 +130,7 @@ ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r, ngx_wasm_ops_plan_t *plan,
         return NGX_DECLINED;
     }
 
+    ctx = ngx_http_get_module_ctx(r, ngx_http_lua_module);
     loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
 
     old_plan = loc->plan;
@@ -145,56 +150,8 @@ ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r, ngx_wasm_ops_plan_t *plan,
 
     rctx->ffi_attached = 1;
     rctx->opctx.ctx.proxy_wasm.isolation = isolation;
-
-    return NGX_OK;
-}
-
-
-ngx_int_t
-ngx_http_wasm_ffi_start(ngx_http_request_t *r)
-{
-    ngx_int_t                  rc, phase;
-    ngx_http_wasm_req_ctx_t   *rctx;
-    ngx_http_wasm_loc_conf_t  *loc;
-
-    rc = ngx_http_wasm_rctx(r, &rctx);
-    if (rc != NGX_OK) {
-        return rc;
-    }
-
-#if 1
-    ngx_wa_assert(rctx->ffi_attached);
-#else
-    /*
-     * presently, the above rctx rc is already NGX_DECLINED
-     * since loc->plan is empty
-     */
-    if (!rctx->ffi_attached) {
-        ngx_wa_assert(0);
-        return NGX_DECLINED;
-    }
-#endif
-
-    loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
-
-    phase = (loc->pwm_req_headers_in_access == 1)
-            ? NGX_HTTP_ACCESS_PHASE
-            : NGX_HTTP_REWRITE_PHASE;
-
-    rc = ngx_wasm_ops_resume(&rctx->opctx, phase);
-    if (rc == NGX_AGAIN) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm \"ffi_start\" yield");
-
-        ngx_wasm_yield(&rctx->env);
-    }
-
-    /* ignore errors: resume could trap, but FFI call succeeded */
-
-    ngx_wa_assert(rc == NGX_OK
-                  || rc == NGX_DONE
-                  || rc == NGX_AGAIN
-                  || rc >= NGX_HTTP_SPECIAL_RESPONSE);
+    rctx->opctx.ctx.proxy_wasm.req_headers_in_access =
+        ctx->context == NGX_HTTP_LUA_CONTEXT_ACCESS;
 
     return NGX_OK;
 }

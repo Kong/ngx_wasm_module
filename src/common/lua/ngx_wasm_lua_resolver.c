@@ -57,7 +57,6 @@ static const char  *DNS_SOLVING_SCRIPT = ""
     "            'nameserver '      .. nameserver,                        \n"
     "            'options timeout:' .. timeout,                           \n"
     "        },                                                           \n"
-    "        noSynchronisation = true,                                    \n"
     "    })                                                               \n"
     "    if not ok then                                                   \n"
     "        error(fmt('wasm lua failed initializing dns_client ' ..      \n"
@@ -119,7 +118,7 @@ ngx_wasm_lua_resolver_success_handler(ngx_wasm_lua_ctx_t *lctx)
 {
     ngx_resolver_ctx_t  *rslv_ctx = lctx->data;
 
-    dd("enter");
+    dd("enter (rslv_ctx:%p)", rslv_ctx);
 
     /* resolution should have succeeded */
     ngx_wa_assert(rslv_ctx->naddrs);
@@ -142,9 +141,11 @@ ngx_wasm_lua_resolver_resolve(ngx_resolver_ctx_t *rslv_ctx)
 
     /* lctx */
 
+    dd("resolving with rslv_ctx: %p", rslv_ctx);
+
     lctx = ngx_wasm_lua_thread_new(DNS_SOLVING_SCRIPT_NAME,
                                    DNS_SOLVING_SCRIPT,
-                                   &sock->env,
+                                   sock->env,
                                    sock->log,
                                    rslv_ctx,
                                    ngx_wasm_lua_resolver_success_handler,
@@ -174,25 +175,19 @@ ngx_wasm_lua_resolver_resolve(ngx_resolver_ctx_t *rslv_ctx)
     /* run */
 
     rc = ngx_wasm_lua_thread_run(lctx);
-
-    dd("lua thread run rc: %ld", rc);
-
-    switch (rc) {
-    case NGX_ERROR:
+    if (rc == NGX_ERROR) {
         goto error;
-    case NGX_DONE:
-        /* lua thread finished, mock ngx_resolve_name */
-        rc = NGX_OK;
-        break;
-    default:
-        break;
     }
+
+    dd("exit (rc: %ld)", rc);
 
     ngx_wa_assert(rc == NGX_OK || rc == NGX_AGAIN);
 
     return rc;
 
 error:
+
+    dd("error exit");
 
     ngx_free(rslv_ctx);
 
@@ -282,6 +277,6 @@ error:
 
     dd("exit");
 
-    /* end of the lua thread
-     * the handler only updated the socket error */
+    /* end of the lua thread, the handler only updated the socket
+     * error */
 }

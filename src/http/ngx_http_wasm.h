@@ -25,14 +25,11 @@ struct ngx_http_wasm_req_ctx_s {
     ngx_http_request_t                *r;
     ngx_connection_t                  *connection;
     ngx_pool_t                        *pool;                    /* r->pool */
+    ngx_http_handler_pt                resume_handler;
     ngx_wasm_subsys_env_t              env;
     ngx_wasm_op_ctx_t                  opctx;
     ngx_wasm_ops_t                    *ffi_engine;
     void                              *data;                    /* per-stream extra context */
-
-#if (NGX_WASM_LUA)
-    ngx_wasm_lua_ctx_t                *wasm_lua_ctx;
-#endif
 
     ngx_chain_t                       *free_bufs;
     ngx_chain_t                       *busy_bufs;

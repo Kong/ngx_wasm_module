@@ -37,7 +37,9 @@ Also testing that setting the getter in-between attach() and start() works.
 
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_host_properties_handlers(getter, nil))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -78,7 +80,9 @@ wasmx.my_property: my_value
 
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_host_properties_handlers(getter, nil))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -114,7 +118,9 @@ Also testing that setting the getter after attach() and start() works.
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
 
@@ -159,7 +165,9 @@ wasmx.my_property: my_value
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
 
@@ -209,7 +217,9 @@ wasmx.my_property: my_value
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
 
@@ -259,7 +269,9 @@ wasmx.my_property: my_value
 
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_host_properties_handlers(getter, nil))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -302,7 +314,9 @@ qr/host trap \(internal error\): could not get \"wasmx.some_property\": some err
 
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_host_properties_handlers(getter, nil))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -342,7 +356,9 @@ qr/property not found: wasmx.missing_property/
 
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_host_properties_handlers(getter, nil))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -404,7 +420,9 @@ With and without 3rd return value (caches result)
 
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_host_properties_handlers(getter, nil))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
 
@@ -493,7 +511,9 @@ Produces a wasm host trap.
 
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_host_properties_handlers(getter, nil))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -535,8 +555,9 @@ qr/host trap \(internal error\): could not get \"wasmx\.my_property\": error in 
             if not ok then
                 ngx.log(ngx.ERR, err)
             end
+        }
 
-            assert(proxy_wasm.start())
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -576,7 +597,9 @@ qr/\[error\] .*? error in property getter: rewrite_by_lua.*?: crash\!/
 
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_host_properties_handlers(getter, nil))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -617,7 +640,9 @@ Produces a wasm host trap.
 
             assert(proxy_wasm.attach(_G.c_plan))
             assert(proxy_wasm.set_host_properties_handlers(getter, nil))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
