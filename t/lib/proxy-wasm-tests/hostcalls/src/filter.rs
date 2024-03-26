@@ -81,7 +81,7 @@ impl Context for TestHttp {
                 if let Some(response) = bytes {
                     let body = String::from_utf8_lossy(&response);
                     self.add_http_response_header(
-                        format!("pwm-call-{}", self.n_sync_calls + 1).as_str(),
+                        format!("pwm-call-{}", token_id).as_str(),
                         body.trim(),
                     );
                 }
@@ -93,7 +93,7 @@ impl Context for TestHttp {
 
                 if self.n_sync_calls < again {
                     self.n_sync_calls += 1;
-                    self.send_http_dispatch();
+                    self.send_http_dispatch(self.n_sync_calls - 1);
                     return;
                 }
 

@@ -207,9 +207,9 @@ called 2 times
         echo fail;
     }
 --- response_headers_like
-pwm-call-1: dispatch 1
-pwm-call-2: dispatch 2
-pwm-call-3: dispatch 3
+pwm-call-0: dispatch 1
+pwm-call-1: dispatch 2
+pwm-call-2: dispatch 3
 --- response_body
 called 3 times
 --- no_error_log

@@ -12,6 +12,7 @@
 
 
 #define ngx_wasm_continue(env)                                               \
+    ngx_wasm_set_resume_handler(env);                                        \
     (env)->state = NGX_WASM_STATE_CONTINUE
 
 #define ngx_wasm_error(env)                                                  \
@@ -23,6 +24,12 @@
 
 #define ngx_wasm_yielding(env)                                               \
     (env)->state == NGX_WASM_STATE_YIELD
+
+#define ngx_wasm_bad_subsystem(env)                                          \
+    ngx_wasm_log_error(NGX_LOG_WASM_NYI, env->connection->log, 0,            \
+                       "unexpected subsystem kind: %d",                      \
+                       env->subsys->kind);                                   \
+    ngx_wa_assert(0)
 
 
 ngx_wasm_phase_t *ngx_wasm_phase_lookup(ngx_wasm_subsystem_t *subsys,

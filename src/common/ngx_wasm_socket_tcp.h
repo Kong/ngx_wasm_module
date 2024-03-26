@@ -36,7 +36,7 @@ typedef struct {
 struct ngx_wasm_socket_tcp_s {
     ngx_pool_t                              *pool;
     ngx_log_t                               *log;
-    ngx_wasm_subsys_env_t                    env;
+    ngx_wasm_subsys_env_t                   *env;
 
     ngx_wasm_socket_tcp_resume_handler_pt    resume_handler;
     void                                    *data;

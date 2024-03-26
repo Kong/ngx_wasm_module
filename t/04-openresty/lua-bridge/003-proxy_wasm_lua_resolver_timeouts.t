@@ -90,7 +90,7 @@ qq{
 --- grep_error_log eval: qr/\[error\].*/
 --- grep_error_log_out eval
 qr/\[error\] .*? lua udp socket read timed out.*?
-\[error\] .*? lua entry thread aborted: .*? wasm lua failed resolving "timeout_trigger": failed to receive reply.*?
+\[error\] .*? lua user thread aborted: .*? wasm lua failed resolving "timeout_trigger": failed to receive reply.*?
 \[error\] .*? dispatch failed: tcp socket - lua resolver failed.*?/
 --- no_error_log
 [crit]
@@ -144,7 +144,7 @@ ok
 --- grep_error_log eval: qr/\[error\].*/
 --- grep_error_log_out eval
 qr/\[error\] .*? lua udp socket read timed out.*?
-\[error\] .*? lua entry thread aborted: .*? wasm lua failed resolving "httpbin\.org": failed to receive reply.*?
+\[error\] .*? lua user thread aborted: .*? wasm lua failed resolving "httpbin\.org": failed to receive reply.*?
 \[error\] .*? dispatch failed: tcp socket - lua resolver failed.*?/
 --- no_error_log
 [crit]

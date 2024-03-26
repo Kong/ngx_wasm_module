@@ -31,7 +31,6 @@ ngx_int_t
 ngx_wasm_hfuncs_test_lua_argsrets(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_wasm_subsys_env_t     env;
     ngx_wasm_lua_ctx_t       *lctx;
 #if (NGX_WASM_HTTP)
     ngx_http_wasm_req_ctx_t  *rctx = instance->data;
@@ -41,18 +40,9 @@ ngx_wasm_hfuncs_test_lua_argsrets(ngx_wavm_instance_t *instance,
                                        "ngx.log(ngx.INFO, 'arg: ', arg)\n"
                                        "return 123, 456";
 
-    ngx_memzero(&env, sizeof(ngx_wasm_subsys_env_t));
-
-#if (NGX_WASM_HTTP)
-    env.connection = rctx->r->connection;
-    env.buf_tag = buf_tag;
-    env.subsys = &ngx_http_wasm_subsystem;
-    env.ctx.rctx = rctx;
-#endif
-
     lctx = ngx_wasm_lua_thread_new(SCRIPT_NAME,
                                    SCRIPT,
-                                   &env,
+                                   &rctx->env,
                                    instance->log,
                                    NULL, NULL, NULL);
     if (lctx == NULL) {
@@ -72,33 +62,81 @@ ngx_int_t
 ngx_wasm_hfuncs_test_lua_bad_chunk(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    ngx_wasm_subsys_env_t     env;
-    ngx_wasm_lua_ctx_t       *lctx;
 #if (NGX_WASM_HTTP)
+    ngx_wasm_lua_ctx_t       *lctx;
     ngx_http_wasm_req_ctx_t  *rctx = instance->data;
-#endif
     static const char        *SCRIPT_NAME = "bad_lua_chunk";
     static const char        *SCRIPT = "local x = {";
 
-    ngx_memzero(&env, sizeof(ngx_wasm_subsys_env_t));
-
-#if (NGX_WASM_HTTP)
-    env.connection = rctx->r->connection;
-    env.buf_tag = buf_tag;
-    env.subsys = &ngx_http_wasm_subsystem;
-    env.ctx.rctx = rctx;
+    lctx = ngx_wasm_lua_thread_new(SCRIPT_NAME,
+                                   SCRIPT,
+                                   &rctx->env,
+                                   rctx->connection->log,
+                                   NULL, NULL, NULL);
+    if (lctx == NULL) {
+        return NGX_WAVM_ERROR;
+    }
 #endif
+
+    return NGX_WAVM_OK;
+}
+
+
+ngx_int_t
+ngx_wasm_hfuncs_test_lua_error(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+#if (NGX_WASM_HTTP)
+    ngx_wasm_lua_ctx_t       *lctx;
+    ngx_http_wasm_req_ctx_t  *rctx = instance->data;
+    static const char        *SCRIPT_NAME = "error_lua_chunk";
+    static const char        *SCRIPT = "if _G.sleep_before_error then\n"
+                                       "    print('sleeping before error')\n"
+                                       "    ngx.sleep(0.2)\n"
+                                       "end\n"
+                                       "\n"
+                                       "error('my error')";
 
     lctx = ngx_wasm_lua_thread_new(SCRIPT_NAME,
                                    SCRIPT,
-                                   &env,
-                                   instance->log,
+                                   &rctx->env,
+                                   rctx->connection->log,
                                    NULL, NULL, NULL);
     if (lctx == NULL) {
         return NGX_WAVM_ERROR;
     }
 
     (void) ngx_wasm_lua_thread_run(lctx);
+#endif
+
+    return NGX_WAVM_OK;
+}
+
+
+ngx_int_t
+ngx_wasm_hfuncs_test_lua_sleep(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+#if (NGX_WASM_HTTP)
+    ngx_wasm_lua_ctx_t       *lctx;
+    ngx_http_wasm_req_ctx_t  *rctx = instance->data;
+    static const char        *SCRIPT_NAME = "sleep_lua_chunk";
+    static const char        *SCRIPT = "for i = 1, 2 do\n"
+                                       "    print('sleeping for 250ms')\n"
+                                       "    ngx.sleep(0.25)\n"
+                                       "end";
+
+    lctx = ngx_wasm_lua_thread_new(SCRIPT_NAME,
+                                   SCRIPT,
+                                   &rctx->env,
+                                   rctx->connection->log,
+                                   NULL, NULL, NULL);
+    if (lctx == NULL) {
+        return NGX_WAVM_ERROR;
+    }
+
+    (void) ngx_wasm_lua_thread_run(lctx);
+#endif
 
     return NGX_WAVM_OK;
 }
@@ -120,6 +158,16 @@ static ngx_wavm_host_func_def_t  ngx_wasm_core_hfuncs[] = {
 
     { ngx_string("ngx_wasm_lua_test_bad_chunk"),
       &ngx_wasm_hfuncs_test_lua_bad_chunk,
+      NULL,
+      NULL },
+
+    { ngx_string("ngx_wasm_lua_test_error"),
+      &ngx_wasm_hfuncs_test_lua_error,
+      NULL,
+      NULL },
+
+    { ngx_string("ngx_wasm_lua_test_sleep"),
+      &ngx_wasm_hfuncs_test_lua_sleep,
       NULL,
       NULL },
 #endif

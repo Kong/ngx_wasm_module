@@ -273,6 +273,15 @@ ngx_http_wasm_body_filter_resume(ngx_http_wasm_req_ctx_t *rctx, ngx_chain_t *in)
     }
 
     if (!rctx->resp_buffering) {
+        if (rctx->data) {
+            /* resp_buffering triggered a yield in ngx_proxy_wasm.c
+             * action2rc, so we force a continue here as we know it
+             * has finished or was never enabled */
+            ngx_proxy_wasm_ctx_set_next_action((ngx_proxy_wasm_ctx_t *)
+                                               rctx->data,
+                                               NGX_PROXY_WASM_ACTION_CONTINUE);
+        }
+
         (void) ngx_wasm_ops_resume(&rctx->opctx,
                                    NGX_HTTP_WASM_BODY_FILTER_PHASE);
     }

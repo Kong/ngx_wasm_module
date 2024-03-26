@@ -34,7 +34,6 @@ __DATA__
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
 
             ngx.req.set_header("Lua", "yes")
         }
@@ -88,7 +87,6 @@ request header "Lua: yes" while logging request
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
         }
 
         echo ok;
@@ -132,7 +130,6 @@ resp header "hello: " while logging request
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
         }
 
         content_by_lua_block {
@@ -173,7 +170,6 @@ request body: From Lua while logging request
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
         }
 
         content_by_lua_block {
@@ -229,7 +225,6 @@ Hello world
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
         }
 
         content_by_lua_block {
@@ -295,7 +290,6 @@ qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
         }
 
         content_by_lua_block {
@@ -361,7 +355,6 @@ qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
         }
 
         content_by_lua_block {
@@ -413,7 +406,6 @@ freed. /error does not concern itself with any chain.
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
         }
 
         access_by_lua_block {
@@ -480,7 +472,6 @@ are freed.
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.t_plan))
-            assert(proxy_wasm.start())
         }
 
         access_by_lua_block {
@@ -496,7 +487,6 @@ are freed.
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.error_plan))
-            assert(proxy_wasm.start())
         }
 
         echo failed;

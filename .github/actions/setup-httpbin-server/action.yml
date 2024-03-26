@@ -76,7 +76,8 @@ runs:
                 --no-resolv \
                 --port=${{ inputs.dns_port }} \
                 --server=${{ inputs.upstream_dns_server }} \
-                --address=/httpbin.org/127.0.0.1
+                --address=/httpbin.org/127.0.0.1 \
+                --address=/example.com/127.0.0.1
     - name: Start httpbin proxy + server
       shell: bash
       run: |

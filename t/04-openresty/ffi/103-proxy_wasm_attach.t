@@ -88,8 +88,6 @@ plan not loaded
             if not ok then
                 ngx.log(ngx.ERR, err)
             end
-
-            assert(proxy_wasm.start())
         }
 
         echo ok;
@@ -136,8 +134,6 @@ qr/\[error\] .*? previous plan already attached/
             if not ok then
                 return ngx.say(err)
             end
-
-            assert(proxy_wasm.start())
         }
 
         echo ok;
@@ -188,8 +184,6 @@ qr/^[^#]*#0 on_vm_start[^#]*
             if not ok then
                 return ngx.say(err)
             end
-
-            assert(proxy_wasm.start())
         }
 
         echo ok;
@@ -240,8 +234,6 @@ qr/^[^#]*#0 on_vm_start[^#]*
             if not ok then
                 return ngx.say(err)
             end
-
-            assert(proxy_wasm.start())
         }
 
         echo ok;
@@ -292,11 +284,6 @@ qr/^[^#]*#0 on_vm_start[^#]*
             if not ok then
                 return ngx.say(err)
             end
-
-            local ok, err = proxy_wasm.start()
-            if not ok then
-                return ngx.say(err)
-            end
         }
 
         echo ok;
@@ -326,7 +313,6 @@ qr/^[^#]*#0 on_vm_start[^#]*
             local c_plan = assert(proxy_wasm.new(filters))
             assert(proxy_wasm.load(c_plan))
             assert(proxy_wasm.attach(c_plan))
-            assert(proxy_wasm.start())
         }
 
         echo ok;
@@ -445,7 +431,9 @@ bad opts.isolation value: -1
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -502,7 +490,9 @@ qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 1\)[^#
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -567,7 +557,9 @@ qr/\A\*\d+ proxy_wasm initializing filter chain \(nfilters: 1, isolation: 2\)[^#
             assert(proxy_wasm.attach(_G.c_plan, {
                 isolation = proxy_wasm.isolations.NONE
             }))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
     }

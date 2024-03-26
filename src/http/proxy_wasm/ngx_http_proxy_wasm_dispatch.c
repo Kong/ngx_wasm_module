@@ -228,6 +228,9 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     ngx_memcpy(call->host.data, host->data, host->len);
     call->host.data[call->host.len] = '\0';
 
+    ngx_log_debug1(NGX_LOG_DEBUG_ALL, r->connection->log, 0,
+                   "wasm new dispatch call to \"%V\"", &call->host);
+
     /* headers/trailers */
 
     if (ngx_proxy_wasm_pairs_unmarshal(pwexec, &call->headers, headers)
@@ -904,12 +907,17 @@ error:
 
 error2:
 
-    if (ecode != NGX_PROXY_WASM_ERR_NONE) {
-        /* catch trap for tcp socket resume retval */
+    if (ecode != NGX_PROXY_WASM_ERR_NONE
+        || rc == NGX_ABORT)
+    {
+        /* catch trap for tcp socket resume retval or an instance
+         * that trapped before the response was received */
         rc = NGX_ERROR;
     }
 
     ngx_wasm_error(&rctx->env);
+    ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
+                                       NGX_PROXY_WASM_ACTION_CONTINUE);
     ngx_http_proxy_wasm_dispatch_err(call);
 
     ngx_wa_assert(rc == NGX_ERROR);

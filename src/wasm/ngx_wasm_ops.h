@@ -33,10 +33,12 @@ typedef struct {
 
 typedef struct {
     ngx_uint_t                               isolation;
+    unsigned                                 req_headers_in_access:1;
 } ngx_wasm_op_proxy_wasm_ctx_t;
 
 
 typedef struct {
+    ngx_uint_t                               idx;
     ngx_str_t                                func_name;
     ngx_wavm_funcref_t                      *funcref;
 } ngx_wasm_op_call_t;
@@ -97,10 +99,12 @@ typedef struct {
 struct ngx_wasm_op_ctx_s {
     ngx_pool_t                              *pool;
     ngx_log_t                               *log;
+    ngx_wasm_subsys_env_t                   *env;
     ngx_wasm_ops_t                          *ops;
     ngx_wasm_ops_plan_t                     *plan;
     ngx_wasm_phase_t                        *last_phase;
     void                                    *data;
+    ngx_uint_t                               cur_idx;
 
     union {
         ngx_wasm_op_call_ctx_t               call;
