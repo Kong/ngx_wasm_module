@@ -535,3 +535,29 @@ ok
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 15: proxy_wasm - dispatch_http_call() 2 parallel calls with DNS resolution, different hosts
+--- valgrind
+--- skip_no_debug
+--- timeout eval: $::ExtTimeout
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm_lua_resolver on;
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/dispatch_http_call \
+                              hosts=httpbin.org,example.com \
+                              path=/headers \
+                              ncalls=2';
+        echo ok;
+    }
+--- response_headers_like
+pwm-call-id: 0, 1
+--- response_body
+ok
+--- no_error_log
+[error]
+[crit]
