@@ -53,7 +53,6 @@ if subsystem == "http" then
         int ngx_http_wasm_ffi_plan_attach(ngx_http_request_t *r,
                                           ngx_wasm_plan_t *plan,
                                           unsigned int isolation);
-        int ngx_http_wasm_ffi_start(ngx_http_request_t *r);
         int ngx_http_wasm_ffi_set_property(ngx_http_request_t *r,
                                            ngx_str_t *key,
                                            ngx_str_t *value,
@@ -160,6 +159,16 @@ function _M.load(c_plan)
         return nil, "failed loading plan"
     end
 
+    if get_request() then
+        -- ffi_gc: hold a reference tied to the request lifecycle so users
+        -- don't have to (like our test suite).
+        if not ngx.ctx[_M] then
+            ngx.ctx[_M] = {}
+        end
+
+        ngx.ctx[_M][c_plan] = true
+    end
+
     return true
 end
 
@@ -209,30 +218,6 @@ function _M.attach(c_plan, opts)
 
     if rc == FFI_ABORT then
         return nil, "previous plan already attached"
-    end
-
-    return true
-end
-
-
-function _M.start()
-    local phase = ngx.get_phase()
-    if phase ~= "rewrite" and phase ~= "access" then
-        error("start must be called from 'rewrite' or 'access' phase", 2)
-    end
-
-    local r = get_request()
-    if not r then
-        error("no request found", 2)
-    end
-
-    local rc = C.ngx_http_wasm_ffi_start(r)
-    if rc == FFI_ERROR then
-        return nil, "unknown error"
-    end
-
-    if rc == FFI_DECLINED then
-        return nil, "plan not loaded and attached"
     end
 
     return true

@@ -173,7 +173,6 @@ impl RootContext for TestRoot {
             config: self.config.clone(),
             on_phases: phases,
             n_sync_calls: 0,
-            ncalls: 0,
         }))
     }
 }

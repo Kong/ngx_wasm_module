@@ -71,9 +71,9 @@ ok
             if prop then
                 ngx.log(ngx.INFO, "ngx.my_var is ", prop)
             end
+        }
 
-            assert(proxy_wasm.start())
-
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -112,9 +112,9 @@ qr/\[info\] .*? ngx.my_var is 456/
             if prop then
                 ngx.log(ngx.INFO, "ngx.my_var is ", prop)
             end
+        }
 
-            assert(proxy_wasm.start())
-
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -149,7 +149,9 @@ qr/\[info\] .*? ngx.my_var is 456/
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
 
@@ -193,7 +195,9 @@ qr/\[info\] .*? ngx.my_var is 456/
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
 
@@ -237,7 +241,9 @@ qr/\[info\] .*? ngx.my_var is 456/
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
-            assert(proxy_wasm.start())
+        }
+
+        content_by_lua_block {
             ngx.say("ok")
         }
 

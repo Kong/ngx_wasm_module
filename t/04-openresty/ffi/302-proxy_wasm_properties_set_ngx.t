@@ -104,8 +104,9 @@ ok
             assert(proxy_wasm.attach(_G.c_plan))
 
             assert(proxy_wasm.set_property("ngx.my_var", "123"))
+        }
 
-            assert(proxy_wasm.start())
+        content_by_lua_block {
             ngx.say("ok")
         }
     }
@@ -146,8 +147,9 @@ ok
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
+        }
 
-            assert(proxy_wasm.start())
+        content_by_lua_block {
             ngx.say("ok")
         }
 
@@ -193,8 +195,9 @@ ok
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
+        }
 
-            assert(proxy_wasm.start())
+        content_by_lua_block {
             ngx.say("ok")
         }
 
@@ -240,8 +243,9 @@ ok
         access_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
             assert(proxy_wasm.attach(_G.c_plan))
+        }
 
-            assert(proxy_wasm.start())
+        content_by_lua_block {
             ngx.say("ok")
         }
 

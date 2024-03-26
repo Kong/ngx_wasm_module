@@ -5,6 +5,7 @@
 #include <ngx_wasm_subsystem.h>
 #if (NGX_WASM_HTTP)
 #include <ngx_http_lua_util.h>
+#include <ngx_http_lua_coroutine.h>
 #endif
 #if (NGX_WASM_STREAM)
 #include <ngx_stream_lua_util.h>
@@ -16,11 +17,15 @@ typedef ngx_int_t (*ngx_wasm_lua_handler_pt)(ngx_wasm_lua_ctx_t *lctx);
 
 
 struct ngx_wasm_lua_ctx_s {
+    ngx_queue_t                     q;                /* entry sub_ctxs */
+    ngx_queue_t                     sub_ctxs;         /* entry lctx only */
+
     ngx_pool_t                     *pool;
     ngx_log_t                      *log;
-    ngx_wasm_subsys_env_t           env;
+    ngx_wasm_subsys_env_t          *env;
     ngx_wasm_lua_handler_pt         error_handler;
     ngx_wasm_lua_handler_pt         success_handler;
+    ngx_event_t                    *ev;               /* entry lctx sleep event */
     void                           *data;
 
     const char                     *code;
@@ -43,7 +48,9 @@ struct ngx_wasm_lua_ctx_s {
 #endif
     } ctx;
 
-    unsigned                        yielded:1;
+    unsigned                        entry:1;        /* is entry lctx */
+    unsigned                        yielded:1;      /* has yielded at least once */
+    unsigned                        finished:1;     /* has finished */
 };
 
 
@@ -52,7 +59,7 @@ ngx_wasm_lua_ctx_t *ngx_wasm_lua_thread_new(const char *tag, const char *src,
     ngx_wasm_lua_handler_pt success_handler,
     ngx_wasm_lua_handler_pt error_handler);
 ngx_int_t ngx_wasm_lua_thread_run(ngx_wasm_lua_ctx_t *lctx);
-ngx_int_t ngx_wasm_lua_thread_resume(ngx_wasm_lua_ctx_t *lctx);
+ngx_int_t ngx_wasm_lua_resume(ngx_wasm_subsys_env_t *env);
 
 
 #if 0

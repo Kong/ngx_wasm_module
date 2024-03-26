@@ -101,15 +101,9 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
         rc = ngx_http_next_header_filter(r);
         goto done;
 
-    } else if (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-        if (rc == NGX_ERROR) {
-            rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
-            goto done;
-        }
-
-        if (rctx->resp_content_chosen) {
-            goto done;
-        }
+    } else if (rc == NGX_ERROR) {
+        rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
+        goto done;
     }
 #if (NGX_DEBUG)
     else if (rc == NGX_AGAIN) {
@@ -121,6 +115,12 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
                        "wasm \"header_filter\" ops resume rc: %d "
                        "(resp_chunk_override: %d)", rc,
                        rctx->resp_chunk_override);
+
+    } else {
+        /* ignore */
+        ngx_wa_assert(rc == NGX_OK
+                      || rc == NGX_DECLINED
+                      || rc >= NGX_HTTP_SPECIAL_RESPONSE);
     }
 #endif
 
@@ -273,6 +273,15 @@ ngx_http_wasm_body_filter_resume(ngx_http_wasm_req_ctx_t *rctx, ngx_chain_t *in)
     }
 
     if (!rctx->resp_buffering) {
+        if (rctx->data) {
+            /* resp_buffering triggered a yield in ngx_proxy_wasm.c
+             * action2rc, so we force a continue here as we know it
+             * has finished or was never enabled */
+            ngx_proxy_wasm_ctx_set_next_action((ngx_proxy_wasm_ctx_t *)
+                                               rctx->data,
+                                               NGX_PROXY_WASM_ACTION_CONTINUE);
+        }
+
         (void) ngx_wasm_ops_resume(&rctx->opctx,
                                    NGX_HTTP_WASM_BODY_FILTER_PHASE);
     }

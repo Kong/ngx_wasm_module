@@ -637,7 +637,7 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_int_t               rc = NGX_OK;
     ngx_proxy_wasm_exec_t  *pwexec, *pwexecs;
 
-    dd("enter");
+    dd("enter (action: %d)", pwctx->action);
 
     pwctx->step = step;
 
@@ -667,6 +667,8 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
     pwexecs = (ngx_proxy_wasm_exec_t *) pwctx->pwexecs.elts;
 
     ngx_wa_assert(pwctx->pwexecs.nelts == pwctx->nfilters);
+
+    dd("pwctx->exec_index: %ld", pwctx->exec_index);
 
     for (i = pwctx->exec_index; i < pwctx->nfilters; i++) {
         pwexec = &pwexecs[i];
@@ -733,12 +735,19 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
         if (rc != NGX_OK && rc != NGX_AGAIN) {
             goto ret;
         }
+
+        dd("end of loop pwctx->exec_index = %ld", pwctx->exec_index);
+
+        /* next step */
+
+        ngx_wa_assert(pwctx->exec_index <= pwctx->nfilters);
+
+        if (pwctx->exec_index >= pwctx->nfilters) {
+            dd("next step");
+            pwctx->last_completed_step = pwctx->step;
+            pwctx->exec_index = 0;
+        }
     }
-
-    /* next step */
-
-    pwctx->last_completed_step = pwctx->step;
-    pwctx->exec_index = 0;
 
 ret:
 
@@ -887,6 +896,8 @@ ngx_proxy_wasm_dispatch_calls_total(ngx_proxy_wasm_exec_t *pwexec)
     for (q = ngx_queue_head(&pwexec->calls);
          q != ngx_queue_sentinel(&pwexec->calls);
          q = ngx_queue_next(q), n++) { /* void */ }
+
+    dd("n: %ld", n);
 
     return n;
 }

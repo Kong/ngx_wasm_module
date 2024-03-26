@@ -6,45 +6,138 @@
 #include <ngx_wasm_lua.h>
 #if (NGX_WASM_HTTP)
 #include <ngx_http_lua_cache.h>
+#include <ngx_http_lua_uthread.h>
+#endif
+#if (NGX_WASM_STREAM)
+#include <ngx_stream_lua_uthread.h>
 #endif
 
 
-static ngx_inline unsigned
-ngx_wasm_lua_thread_is_dead(ngx_wasm_lua_ctx_t *lctx)
+static ngx_int_t ngx_http_wasm_lua_resume_handler(ngx_http_request_t *r);
+
+
+static const char  *WASM_LUA_ENTRY_SCRIPT_NAME = "wasm_lua_entry_chunk";
+static const char  *WASM_LUA_ENTRY_SCRIPT = ""
+    "while true do\n"
+#if (DDEBUG)
+    "    ngx.log(ngx.DEBUG, 'entry lua thread waking up')\n"
+#endif
+#if (NGX_DEBUG)
+    "    ngx.sleep(0.1)\n" /* greater than 0, must not be a delayed event */
+#else
+    "    ngx.sleep(30)\n"
+#endif
+    "end\n";
+
+
+static void
+destroy_thread(ngx_wasm_lua_ctx_t *lctx)
 {
-    ngx_wasm_subsys_env_t  *env = &lctx->env;
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
+                   "wasm freeing lua%sthread (lctx: %p)",
+                   lctx->entry ? " entry " : " user ", lctx);
+
+    ngx_pfree(lctx->pool, lctx->cache_key);
+    ngx_pfree(lctx->pool, lctx);
+}
+
+
+static ngx_inline unsigned
+entry_thread_empty(ngx_wasm_subsys_env_t *env)
+{
+    ngx_wasm_lua_ctx_t  *entry_lctx = env->entry_lctx;
+
+    ngx_wa_assert(entry_lctx);
+
+    return ngx_queue_empty(&entry_lctx->sub_ctxs);
+}
+
+
+static void
+thread_cleanup_handler(void *data)
+{
+    ngx_wasm_lua_ctx_t  *lctx = data;
+
+    dd("enter");
+
+    if (lctx->entry && lctx->ev && lctx->ev->timer_set) {
+        dd("delete pending timer event");
+        ngx_event_del_timer(lctx->ev);
+    }
+
+    destroy_thread(lctx);
+}
+
+
+static ngx_int_t
+entry_thread_start(ngx_wasm_subsys_env_t *env)
+{
+    ngx_int_t                 rc;
+    ngx_wasm_lua_ctx_t       *entry_lctx = env->entry_lctx;
+    ngx_http_wasm_req_ctx_t  *rctx = env->ctx.rctx;
+    ngx_http_request_t       *r = rctx->r;
+    ngx_http_lua_ctx_t       *ctx;
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_lua_module);
+    if (ctx == NULL) {
+        ctx = ngx_http_lua_create_ctx(r);
+        if (ctx == NULL) {
+            return NGX_ERROR;
+        }
+    }
+
+    if (entry_lctx == NULL) {
+        /**
+         * In OpenResty, all uthreads *must* be attached to a parent coroutine,
+         * so we create a "fake" one simulating a *_by_lua_block context.
+         */
+        dd("creating entry thread");
+
+        entry_lctx = ngx_wasm_lua_thread_new(WASM_LUA_ENTRY_SCRIPT_NAME,
+                                             WASM_LUA_ENTRY_SCRIPT,
+                                             env, env->connection->log,
+                                             NULL, NULL, NULL);
+        if (entry_lctx == NULL) {
+            return NGX_ERROR;
+        }
+
+        env->entry_lctx = entry_lctx;
+
+        rc = ngx_wasm_lua_thread_run(entry_lctx);
+        ngx_wa_assert(rc != NGX_OK && rc != NGX_DONE);
+        /* NGX_ERROR, NGX_AGAIN */
+        if (rc == NGX_ERROR) {
+            return NGX_ERROR;
+        }
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_inline unsigned
+thread_is_dead(ngx_wasm_lua_ctx_t *lctx)
+{
+    ngx_wasm_subsys_env_t  *env = lctx->env;
 
     switch (env->subsys->kind) {
 #if (NGX_WASM_HTTP)
     case NGX_WASM_SUBSYS_HTTP:
-        if (lctx->co_ctx->co_status == NGX_HTTP_LUA_CO_DEAD) {
-            return 1;
-        }
-
-        break;
+        return !ngx_http_lua_coroutine_alive(lctx->co_ctx);
 #endif
 #if (NGX_WASM_STREAM)
     case NGX_WASM_SUBSYS_STREAM:
-        if (lctx->co_ctx->co_status == NGX_STREAM_LUA_CO_DEAD) {
-            return 1;
-        }
-
-        break;
+        return !ngx_stream_lua_coroutine_alive(lctx->co_ctx);
 #endif
     default:
-        ngx_wasm_log_error(NGX_LOG_WASM_NYI, lctx->log, 0,
-                           "NYI - subsystem kind: %d",
-                           env->subsys->kind);
-        ngx_wa_assert(0);
-        break;
+        ngx_wasm_bad_subsystem(env);
+        return 0;
     }
-
-    return 0;
 }
 
 
 static u_char *
-ngx_wasm_lua_thread_cache_key(ngx_pool_t *pool, const char *tag, u_char *src,
+thread_cache_key(ngx_pool_t *pool, const char *tag, u_char *src,
     size_t src_len)
 {
     size_t   tag_len;
@@ -59,6 +152,7 @@ ngx_wasm_lua_thread_cache_key(ngx_pool_t *pool, const char *tag, u_char *src,
 
     p = ngx_copy(out, tag, tag_len);
 
+    /* both subsystems produce an identical md5 hash, use any */
 #if (NGX_WASM_HTTP)
     p = ngx_http_lua_digest_hex(p, src, src_len);
 #elif (NGX_WASM_STREAM)
@@ -75,41 +169,232 @@ ngx_wasm_lua_thread_cache_key(ngx_pool_t *pool, const char *tag, u_char *src,
 }
 
 
-static void
-ngx_wasm_lua_thread_destroy(ngx_wasm_lua_ctx_t *lctx)
+static ngx_int_t
+thread_init(ngx_wasm_lua_ctx_t *lctx)
 {
-    ngx_wasm_subsys_env_t  *env = &lctx->env;
-
-    dd("enter");
-
-    ngx_wa_assert(env);
+    ngx_wasm_subsys_env_t  *env = lctx->env;
 
     switch (env->subsys->kind) {
 #if (NGX_WASM_HTTP)
     case NGX_WASM_SUBSYS_HTTP:
     {
         ngx_http_wasm_req_ctx_t  *rctx = env->ctx.rctx;
-        ngx_http_lua_ctx_t       *ctx = lctx->ctx.rlctx;
+        ngx_http_request_t       *r = rctx->r;
+        ngx_http_lua_ctx_t       *ctx;
+        ngx_http_lua_co_ctx_t    *coctx;
 
-        rctx->wasm_lua_ctx = NULL;
+        ctx = ngx_http_get_module_ctx(r, ngx_http_lua_module);
+        /* existing or created by entry_thread_start */
+        ngx_wa_assert(ctx);
+        /* preserve ngx_wasm_lua_content_wev_handler */
+        ngx_wa_assert(!ctx->entered_content_phase);
 
-        if (ctx) {
-            /* prevent ngx_http_lua_run_thread from running the
-             * 'done' label, which sends the last_buf chain link */
-            ctx->entered_content_phase = 0;
+        lctx->ctx.rlctx = ctx;
+
+        /* coctx */
+
+        if (!ngx_http_lua_entry_thread_alive(ctx)) {
+            /* initializing the fake entry_ctx */
+            ngx_wa_assert(lctx->entry);
+
+            ctx->context = NGX_HTTP_LUA_CONTEXT_TIMER;
+            coctx = &ctx->entry_co_ctx;
+
+        } else {
+            coctx = ngx_http_lua_create_co_ctx(r, ctx);
+            if (coctx == NULL) {
+                return NGX_ERROR;
+            }
         }
 
+        coctx->co = lctx->co;
+        coctx->co_ref = lctx->co_ref;
+        coctx->co_status = NGX_HTTP_LUA_CO_RUNNING;
+        coctx->is_uthread = 1;
+#if (NGX_LUA_USE_ASSERT)
+        coctx->co_top = 1;
+#endif
+
+        if (!lctx->entry) {
+            coctx->parent_co_ctx = &ctx->entry_co_ctx;
+        }
+
+        lctx->co_ctx = coctx;
+
+        ngx_http_lua_set_req(lctx->co, r);
+        ngx_http_lua_attach_co_ctx_to_L(lctx->co, lctx->co_ctx);
         break;
     }
 #endif
+#if (NGX_WASM_STREAM)
+    case NGX_WASM_SUBSYS_STREAM:
+        break;
+#endif
     default:
+        ngx_wasm_bad_subsystem(env);
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_inline ngx_int_t
+thread_handle_rc(ngx_wasm_lua_ctx_t *lctx, ngx_int_t rc)
+{
+    ngx_event_t            *ev;
+    ngx_rbtree_node_t      *node, *root, *sentinel;
+    ngx_wasm_subsys_env_t  *env = lctx->env;
+    ngx_wasm_lua_ctx_t     *entry_lctx = env->entry_lctx;
+
+    dd("enter (rc: %ld, lctx: %p)", rc, lctx);
+
+    if (!thread_is_dead(lctx)) {
+        if (rc == NGX_DONE) {
+            /**
+             * The ctx->resume_handler can return NGX_DONE when the thread
+             * remains in a yielding state, because some Nginx internals expect
+             * NGX_DONE while yielding; we confidently override it since the
+             * thread is not dead.
+             */
+            rc = NGX_AGAIN;
+        }
+
+    } else {
+        /* thread is dead, determine state by checking its return value placed
+         * on the stack by OpenResty's uthread implementation */
+        ngx_wa_assert(lua_isboolean(lctx->co, 1));
+
+        lctx->co_ctx->co_status = NGX_HTTP_LUA_CO_DEAD;
+
+        rc = lua_toboolean(lctx->co, 1)
+             ? NGX_OK      /* thread terminated successfully */
+             : NGX_ERROR;  /* thread error */
+    }
+
+    dd("rc at switch: %ld", rc);
+
+    switch (rc) {
+    case NGX_AGAIN:
+        dd("wasm lua thread yield");
+        ngx_wa_assert(lctx->yielded);
+
+        if (lctx->entry) {
+            /* find the pending sleep timer to cancel at pool cleanup */
+            sentinel = ngx_event_timer_rbtree.sentinel;
+            root = ngx_event_timer_rbtree.root;
+
+            if (root != sentinel) {
+                for (node = ngx_rbtree_min(root, sentinel);
+                     node;
+                     node = ngx_rbtree_next(&ngx_event_timer_rbtree, node))
+                {
+                    ev = ngx_rbtree_data(node, ngx_event_t, timer);
+
+                    if (ev->data == entry_lctx->co_ctx) {
+                        entry_lctx->ev = ev;
+                        break;
+                    }
+                }
+            }
+        }
+
+        ngx_wasm_yield(env);
+        break;
+    case NGX_OK:
+        dd("wasm lua thread finished");
+        ngx_wa_assert(thread_is_dead(lctx));
+
+        if (!lctx->entry) {
+            lctx->finished = 1;
+            ngx_queue_remove(&lctx->q);
+
+            if (entry_thread_empty(env)) {
+                /* last yielding thread finished */
+                ngx_wasm_continue(env);
+            }
+
+            if (lctx->success_handler) {
+                (void) lctx->success_handler(lctx);
+            }
+        }
+
+        break;
+    case NGX_ERROR:
+        dd("wasm lua thread error");
+        ngx_wasm_error(env);
+
+        if (!lctx->entry) {
+            lctx->finished = 1;
+            ngx_queue_remove(&lctx->q);
+
+            if (lctx->error_handler) {
+                (void) lctx->error_handler(lctx);
+            }
+        }
+
+        break;
+    default:
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, lctx->log, 0,
+                           "unexpected lua resume handler rc: %d", rc);
         ngx_wa_assert(0);
+        rc = NGX_ERROR;
         break;
     }
 
-    ngx_pfree(lctx->pool, lctx->cache_key);
+    ngx_wa_assert(rc == NGX_OK
+                  || rc == NGX_AGAIN
+                  || rc == NGX_ERROR);
 
-    ngx_destroy_pool(lctx->pool);
+#if 0
+    /* destroy_thread moved to pool cleanup for extra resiliency */
+    if (lctx->finished) {
+        destroy_thread(lctx);
+    }
+#endif
+
+    return rc;
+}
+
+
+static ngx_int_t
+thread_resume(ngx_wasm_lua_ctx_t *lctx)
+{
+    ngx_int_t               rc = NGX_ERROR;
+    ngx_wasm_subsys_env_t  *env = lctx->env;
+
+    ngx_log_debug4(NGX_LOG_DEBUG_WASM, lctx->log, 0,
+                   "wasm resuming lua%sthread "
+                   "(lctx: %p, L: %p, co: %p)",
+                   lctx->entry ? " entry " : " user ",
+                   lctx, lctx->L, lctx->co);
+
+    switch (env->subsys->kind) {
+#if (NGX_WASM_HTTP)
+    case NGX_WASM_SUBSYS_HTTP:
+    {
+        ngx_http_request_t  *r = env->ctx.rctx->r;
+        ngx_http_lua_ctx_t  *ctx = lctx->ctx.rlctx;
+
+        ngx_wa_assert(ctx == ngx_http_get_module_ctx(r, ngx_http_lua_module));
+
+        rc = ctx->resume_handler(r);
+        break;
+    }
+#endif
+#if (NGX_WASM_STREAM)
+    case NGX_WASM_SUBSYS_STREAM:
+        break;
+#endif
+    default:
+        ngx_wasm_bad_subsystem(env);
+        return NGX_ERROR;
+    }
+
+    dd("lua%sthread resume handler rc: %ld",
+       lctx->entry ? " entry " : " user ", rc);
+
+    return thread_handle_rc(lctx, rc);
 }
 
 
@@ -121,29 +406,41 @@ ngx_wasm_lua_thread_new(const char *tag, const char *src,
 {
     ngx_int_t            rc;
     ngx_pool_t          *pool;
+    ngx_pool_cleanup_t  *cln;
     ngx_wasm_lua_ctx_t  *lctx;
 
-    /* pool */
-
-    pool = ngx_create_pool(512, log);
-    if (pool == NULL) {
-        return NULL;
-    }
+    pool = env->ctx.rctx->r->pool;
 
     /* lctx */
 
     lctx = ngx_pcalloc(pool, sizeof(ngx_wasm_lua_ctx_t));
     if (lctx == NULL) {
-        goto error;
+        return NULL;
     }
 
     lctx->pool = pool;
     lctx->log = log;
+    lctx->env = env;
     lctx->data = data;
     lctx->success_handler = success_handler;
     lctx->error_handler = error_handler;
 
-    ngx_memcpy(&lctx->env, env, sizeof(ngx_wasm_subsys_env_t));
+    if (src == WASM_LUA_ENTRY_SCRIPT) {
+        lctx->entry = 1;
+        ngx_queue_init(&lctx->sub_ctxs);
+    }
+
+    cln = ngx_pool_cleanup_add(lctx->pool, 0);
+    if (cln == NULL) {
+        goto error;
+    }
+
+    cln->handler = thread_cleanup_handler;
+    cln->data = lctx;
+
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, lctx->log, 0,
+                   "wasm creating new lua%sthread (lctx: %p)",
+                   lctx->entry ? " entry " : " user ", lctx);
 
     /* Lua VM + thread */
 
@@ -151,44 +448,32 @@ ngx_wasm_lua_thread_new(const char *tag, const char *src,
 #if (NGX_WASM_HTTP)
     case NGX_WASM_SUBSYS_HTTP:
     {
-        ngx_http_request_t *r = env->ctx.rctx->r;
+        ngx_http_request_t  *r = env->ctx.rctx->r;
 
         lctx->L = ngx_http_lua_get_lua_vm(r, NULL);
         lctx->co = ngx_http_lua_new_thread(r, lctx->L, &lctx->co_ref);
         break;
     }
 #endif
-#if (0 && NGX_WASM_STREAM)
+#if (NGX_WASM_STREAM)
     case NGX_WASM_SUBSYS_STREAM:
-    {
-        /* TODO: get stream lua r */
-        ngx_stream_lua_request_t *sr = NULL;
-
-        lctx->L = ngx_stream_lua_get_lua_vm(sr, NULL);
-        lctx->co = ngx_stream_lua_new_thread(sr, lctx->L, lctx->co_ref);
         break;
-    }
 #endif
     default:
-        ngx_wasm_log_error(NGX_LOG_WASM_NYI, lctx->log, 0,
-                           "NYI - subsystem kind: %d",
-                           env->subsys->kind);
-        ngx_wa_assert(0);
+        ngx_wasm_bad_subsystem(env);
         goto error;
     }
 
     if (lctx->L == NULL || lctx->co == NULL) {
         goto error;
     }
-
     /* code */
 
     lctx->code = src;
     lctx->code_len = ngx_strlen(src);
-    lctx->cache_key = ngx_wasm_lua_thread_cache_key(lctx->pool,
-                                                    tag,
-                                                    (u_char *) lctx->code,
-                                                    lctx->code_len);
+    lctx->cache_key = thread_cache_key(lctx->pool, tag,
+                                       (u_char *) lctx->code,
+                                       lctx->code_len);
     if (lctx->cache_key == NULL) {
         goto error;
     }
@@ -218,7 +503,7 @@ ngx_wasm_lua_thread_new(const char *tag, const char *src,
         break;
 #endif
     default:
-        ngx_wa_assert(0);
+        ngx_wasm_bad_subsystem(env);
         goto error;
     }
 
@@ -233,155 +518,43 @@ ngx_wasm_lua_thread_new(const char *tag, const char *src,
 
 error:
 
-    ngx_wasm_lua_thread_destroy(lctx);
+    if (cln == NULL) {
+        destroy_thread(lctx);
+    }
 
     return NULL;
 }
 
 
-static ngx_int_t
-ngx_wasm_lua_thread_init(ngx_wasm_lua_ctx_t *lctx)
-{
-    ngx_wasm_subsys_env_t  *env = &lctx->env;
-
-    switch (env->subsys->kind) {
-#if (NGX_WASM_HTTP)
-    case NGX_WASM_SUBSYS_HTTP:
-    {
-        ngx_http_wasm_req_ctx_t  *rctx = env->ctx.rctx;
-        ngx_http_request_t       *r = rctx->r;
-        ngx_http_lua_ctx_t       *ctx;
-
-        ctx = ngx_http_get_module_ctx(r, ngx_http_lua_module);
-        if (ctx == NULL) {
-            ctx = ngx_http_lua_create_ctx(r);
-            if (ctx == NULL) {
-                return NGX_ERROR;
-            }
-
-        } else {
-            ngx_http_lua_reset_ctx(r, lctx->L, ctx);
-        }
-
-        /* preserve ngx_wasm_lua_content_wev_handler */
-        ngx_wa_assert(!ctx->entered_content_phase);
-
-        lctx->ctx.rlctx = ctx;
-        break;
-    }
-#endif
-#if (0 && NGX_WASM_STREAM)
-    case NGX_WASM_SUBSYS_STREAM:
-    {
-        /* TODO: get stream lua r */
-        ngx_stream_lua_request_t  *r = NULL;
-        ngx_stream_lua_ctx_t      *ctx;
-
-        ctx = ngx_stream_get_module_ctx(r, ngx_stream_lua_module);
-        if (ctx == NULL) {
-            ctx = ngx_stream_lua_create_ctx(r);
-            if (ctx == NULL) {
-                return NGX_ERROR;
-            }
-
-        } else {
-            ngx_stream_lua_reset_ctx(r, lctx->L, ctx);
-        }
-
-        lctx->ctx.slctx = ctx;
-        break;
-    }
-#endif
-    default:
-        ngx_wa_assert(0);
-        return NGX_ERROR;
-    }
-
-    ngx_wasm_set_resume_handler(env);
-
-    return NGX_OK;
-}
-
-
-static ngx_inline ngx_int_t
-ngx_wasm_lua_thread_handle_rc(ngx_wasm_lua_ctx_t *lctx, ngx_int_t rc)
-{
-    ngx_wasm_subsys_env_t  *env = &lctx->env;
-
-#if (NGX_WASM_HTTP)
-    if (rc == NGX_HTTP_INTERNAL_SERVER_ERROR) {
-        rc = NGX_ERROR;
-    }
-#endif
-
-    switch (rc) {
-    case NGX_DONE:
-        rc = NGX_AGAIN;
-        /* fallthrough */
-    case NGX_AGAIN:
-        if (!ngx_wasm_lua_thread_is_dead(lctx)) {
-            lctx->yielded = 1;
-            ngx_wasm_set_resume_handler(env);
-        }
-
-        break;
-    case NGX_OK:
-        ngx_wa_assert(ngx_wasm_lua_thread_is_dead(lctx));
-
-        if (lctx->success_handler) {
-#if (DDEBUG)
-            rc = lctx->success_handler(lctx);
-            dd("lua success handler rc: %ld", rc);
-#else
-            (void) lctx->success_handler(lctx);
-#endif
-        }
-
-        rc = NGX_DONE;
-        ngx_wasm_lua_thread_destroy(lctx);
-        break;
-    case NGX_ERROR:
-        if (lctx->error_handler) {
-            (void) lctx->error_handler(lctx);
-        }
-
-        ngx_wasm_lua_thread_destroy(lctx);
-        break;
-    default:
-        ngx_wasm_log_error(NGX_LOG_WASM_NYI, lctx->log, 0,
-                           "NYI - lua resume handler rc: %d", rc);
-        ngx_wa_assert(0);
-        rc = NGX_ERROR;
-        break;
-    }
-
-    ngx_wa_assert(rc == NGX_DONE
-                  || rc == NGX_AGAIN
-                  || rc == NGX_ERROR);
-
-    return rc;
-}
-
-
 /**
  * Return values:
- * NGX_DONE:   lua thread terminated
- * NGX_AGAIN:  lua thread yielded
+ * NGX_OK:     lua thread finished
+ * NGX_AGAIN:  lua thread yielding
  * NGX_ERROR:  error
  */
 ngx_int_t
 ngx_wasm_lua_thread_run(ngx_wasm_lua_ctx_t *lctx)
 {
-    ngx_int_t               rc;
-    ngx_wasm_subsys_env_t  *env = &lctx->env;
+    ngx_int_t               rc = NGX_ERROR;
+    ngx_wasm_subsys_env_t  *env = lctx->env;
+    ngx_wasm_lua_ctx_t     *entry_lctx;
 
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, lctx->log, 0,
-                   "wasm running lua thread "
-                   "(lctx: %p, L: %p, co: %p)",
+    ngx_log_debug4(NGX_LOG_DEBUG_WASM, lctx->log, 0,
+                   "wasm running lua%sthread (lctx: %p, L: %p, co: %p)",
+                   lctx->entry ? " entry " : " user ",
                    lctx, lctx->L, lctx->co);
 
-    if (ngx_wasm_lua_thread_init(lctx) != NGX_OK) {
-        goto error;
+    if (env->entry_lctx == NULL) {
+        rc = entry_thread_start(env);
+        if (rc != NGX_OK) {
+            return NGX_ERROR;
+        }
+    }
+
+    entry_lctx = env->entry_lctx;
+
+    if (thread_init(lctx) != NGX_OK) {
+        return NGX_ERROR;
     }
 
     /* lua ctx */
@@ -390,120 +563,157 @@ ngx_wasm_lua_thread_run(ngx_wasm_lua_ctx_t *lctx)
 #if (NGX_WASM_HTTP)
     case NGX_WASM_SUBSYS_HTTP:
     {
-        ngx_http_request_t  *r = env->ctx.rctx->r;
-        ngx_http_lua_ctx_t  *ctx = lctx->ctx.rlctx;
+        ngx_http_request_t       *r = env->ctx.rctx->r;
+        ngx_http_lua_ctx_t       *ctx = lctx->ctx.rlctx;
+        ngx_http_wasm_req_ctx_t  *rctx;
 
-        ctx->context = NGX_HTTP_LUA_CONTEXT_TIMER;
-        ctx->cur_co_ctx = &ctx->entry_co_ctx;
-        ctx->cur_co_ctx->co = lctx->co;
-        ctx->cur_co_ctx->co_ref = lctx->co_ref;
-#if (NGX_LUA_USE_ASSERT)
-        ctx->cur_co_ctx->co_top = 1;
-#endif
+        ctx->cur_co_ctx = lctx->co_ctx;
 
-#ifndef OPENRESTY_LUAJIT
-        ngx_http_lua_get_globals_table(lctx->co);
-        lua_setfenv(lctx->co, -2);
-#endif
-
-        ngx_http_lua_set_req(lctx->co, r);
-        ngx_http_lua_attach_co_ctx_to_L(lctx->co, ctx->cur_co_ctx);
-
-        lctx->co_ctx = ctx->cur_co_ctx;
-        lctx->env.ctx.rctx->wasm_lua_ctx = lctx;
+        if (!lctx->entry) {
+            ctx->uthreads++;
+        }
 
         rc = ngx_http_lua_run_thread(lctx->L, r, ctx, lctx->nargs);
+        if (rc == NGX_AGAIN) {
+            rctx = ngx_http_get_module_ctx(r, ngx_http_wasm_module);
+            rctx->resume_handler = ngx_http_wasm_lua_resume_handler;
+        }
+
         break;
     }
 #endif
-#if (0 && NGX_WASM_STREAM)
+#if (NGX_WASM_STREAM)
     case NGX_WASM_SUBSYS_STREAM:
-    {
-        /* TODO: get stream lua r */
-        ngx_stream_lua_request_t  *r = NULL;
-        ngx_stream_lua_ctx_t      *ctx = lctx->rctx.slctx;
-
-        ctx->context = NGX_STREAM_LUA_CONTEXT_TIMER;
-        ctx->cur_co_ctx = &ctx->entry_co_ctx;
-        ctx->cur_co_ctx->co = lctx->co;
-        ctx->cur_co_ctx->co_ref = lctx->co_ref;
-#if (NGX_LUA_USE_ASSERT)
-        ctx->cur_co_ctx->co_top = 1;
-#endif
-
-#ifndef OPENRESTY_LUAJIT
-        ngx_stream_lua_get_globals_table(lctx->co);
-        lua_setfenv(lctx->co, -2);
-#endif
-
-        ngx_stream_lua_set_req(co, s);
-
-        lctx->co_ctx = ctx->cur_co_ctx;
-
-        rc = ngx_stream_lua_run_thread(lctx->L, s, ctx, lctx->nargs);
         break;
-    }
 #endif
     default:
-        ngx_wa_assert(0);
-        goto error;
+        ngx_wasm_bad_subsystem(env);
+        return NGX_ERROR;
     }
 
-    dd("lua thread run rc: %ld", rc);
+    dd("lua_run_thread rc: %ld", rc);
 
-    return ngx_wasm_lua_thread_handle_rc(lctx, rc);
+    if (rc == NGX_AGAIN && !lua_isboolean(lctx->co, 1)) {
+        lctx->yielded = 1;
+    }
 
-error:
+    if (entry_lctx && !lctx->entry) {
+        ngx_queue_insert_tail(&entry_lctx->sub_ctxs, &lctx->q);
+    }
 
-    ngx_wasm_lua_thread_destroy(lctx);
-
-    return NGX_ERROR;
+    return thread_handle_rc(lctx, rc);
 }
 
 
 /**
  * Return values:
- * NGX_DONE:   lua thread terminated
- * NGX_AGAIN:  lua thread yielded
+ * NGX_OK:     no lua thread to run
+ * NGX_AGAIN:  lua thread yielding
  * NGX_ERROR:  error
  */
 ngx_int_t
-ngx_wasm_lua_thread_resume(ngx_wasm_lua_ctx_t *lctx)
+ngx_wasm_lua_resume(ngx_wasm_subsys_env_t *env)
 {
     ngx_int_t               rc;
-    ngx_wasm_subsys_env_t  *env = &lctx->env;
+    ngx_queue_t            *q;
+    ngx_http_lua_ctx_t     *ctx;
+    ngx_http_lua_co_ctx_t  *coctx;
+    ngx_wasm_lua_ctx_t     *lctx = NULL;
+    ngx_wasm_lua_ctx_t     *entry_lctx = env->entry_lctx;
 
-    if (ngx_wasm_lua_thread_is_dead(lctx)) {
-        return NGX_DONE;
+    dd("enter");
+
+    if (entry_thread_empty(env)) {
+        return NGX_OK;
     }
 
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, lctx->log, 0,
-                   "wasm resuming lua thread "
-                   "(lctx: %p, L: %p, co: %p)",
-                   lctx, lctx->L, lctx->co);
-
-    /* lua ctx */
-
-    switch (env->subsys->kind) {
-#if (NGX_WASM_HTTP)
-    case NGX_WASM_SUBSYS_HTTP:
-    {
-        ngx_http_request_t  *r = env->ctx.rctx->r;
-        ngx_http_lua_ctx_t  *ctx = lctx->ctx.rlctx;
-
-        ngx_wa_assert(ctx == ngx_http_get_module_ctx(r, ngx_http_lua_module));
-
-        ngx_wasm_set_resume_handler(env);
-        rc = ctx->resume_handler(r);
-        break;
-    }
-#endif
-    default:
-        ngx_wa_assert(0);
+    ctx = ngx_http_get_module_ctx(env->ctx.rctx->r, ngx_http_lua_module);
+    if (ctx == NULL) {
         return NGX_ERROR;
     }
 
-    dd("lua resume handler rc: %ld", rc);
+    coctx = ctx->cur_co_ctx;
+    if (coctx == NULL) {
+        dd("no current context");
+        return NGX_OK;
+    }
 
-    return ngx_wasm_lua_thread_handle_rc(lctx, rc);
+    if (coctx == entry_lctx->co_ctx) {
+        /* the entry thread is resuming */
+        lctx = entry_lctx;
+
+    } else {
+        /* one of our user threads is resuming */
+
+        for (q = ngx_queue_head(&entry_lctx->sub_ctxs);
+             q != ngx_queue_sentinel(&entry_lctx->sub_ctxs);
+             q = ngx_queue_next(q))
+        {
+            lctx = ngx_queue_data(q, ngx_wasm_lua_ctx_t, q);
+
+            if (lctx->co_ctx == coctx) {
+                break;
+            }
+
+            lctx = NULL;
+        }
+
+        if (lctx == NULL) {
+            ngx_wasm_log_error(NGX_LOG_CRIT, env->connection->log, 0,
+                               "wasm lua bridge could not find resuming "
+                               "coroutine context");
+            return NGX_ERROR;
+        }
+
+        ngx_wa_assert(lctx->yielded);
+        ngx_wa_assert(coctx != &ctx->entry_co_ctx);
+    }
+
+    dd("resuming%slctx: %p", lctx->entry ? " entry " : " user ", lctx);
+
+    rc = thread_resume(lctx);
+    if (rc == NGX_ERROR) {
+        return NGX_ERROR;
+    }
+
+    dd("rc: %ld, state: %d", rc, env->state);
+
+    switch (env->state) {
+    case NGX_WASM_STATE_YIELD:
+        rc = NGX_AGAIN;
+        break;
+    case NGX_WASM_STATE_ERROR:
+    case NGX_WASM_STATE_CONTINUE:
+        rc = NGX_OK;
+        break;
+    default:
+        rc = NGX_ERROR;
+        break;
+    }
+
+    dd("exit (rc: %ld)", rc);
+
+    return rc;
 }
+
+
+#if (NGX_WASM_HTTP)
+static ngx_int_t
+ngx_http_wasm_lua_resume_handler(ngx_http_request_t *r)
+{
+    ngx_int_t                 rc;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    rctx = ngx_http_get_module_ctx(r, ngx_http_wasm_module);
+    if (rctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    rc = ngx_wasm_lua_resume(&rctx->env);
+    if (rc != NGX_AGAIN) {
+        rctx->resume_handler = NULL;
+    }
+
+    return rc;
+}
+#endif
