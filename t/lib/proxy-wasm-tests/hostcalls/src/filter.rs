@@ -93,7 +93,7 @@ impl Context for TestHttp {
 
                 if self.n_sync_calls < again {
                     self.n_sync_calls += 1;
-                    self.send_http_dispatch();
+                    self.send_http_dispatch(self.n_sync_calls - 1);
                     return;
                 }
 

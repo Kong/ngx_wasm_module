@@ -101,8 +101,8 @@ impl TestHttp {
                     .get("ncalls")
                     .map_or(1, |v| v.parse().expect("bad ncalls value"));
 
-                for _ in 0..n {
-                    self.send_http_dispatch();
+                for i in 0..n {
+                    self.send_http_dispatch(i);
                 }
 
                 return Action::Pause;
@@ -141,7 +141,7 @@ impl TestHttp {
         Action::Continue
     }
 
-    pub fn send_http_dispatch(&mut self) {
+    pub fn send_http_dispatch(&mut self, i: usize) {
         let mut timeout = Duration::from_secs(0);
         let mut headers = Vec::new();
         let mut path = self
@@ -207,8 +207,13 @@ impl TestHttp {
         headers.push(("Host", "ignoreme"));
         headers.push(("connection", "ignoreme"));
 
+        let host = match self.get_config("hosts") {
+            Some(list) => list.split(',').collect::<Vec<&str>>()[i],
+            None => self.get_config("host").unwrap_or(""),
+        };
+
         self.dispatch_http_call(
-            self.get_config("host").unwrap_or(""),
+            host,
             headers,
             self.get_config("body").map(|v| v.as_bytes()),
             vec![],
