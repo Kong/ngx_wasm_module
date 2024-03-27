@@ -481,7 +481,9 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
                    "wasm core module initializing");
 
     wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    ngx_wa_assert(wcf); /* ngx_wasmx.c would not invoke init if wcf == NULL */
+    if (wcf == NULL) {
+        return NGX_OK;
+    }
 
     vm = wcf->vm;
 
