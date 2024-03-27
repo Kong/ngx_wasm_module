@@ -27,16 +27,17 @@ runs:
   using: 'composite'
   steps:
     - name: 'Setup deps - apt-get'
-      if: ${{ inputs.os == 'ubuntu-latest' }}
+      if: ${{ contains(inputs.os, 'ubuntu') }}
       shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y dnsmasq
-    - name: 'Setup deps - macos'
-      if: ${{ inputs.os == 'macos-latest' }}
+    - name: 'Setup deps - macOS'
+      if: ${{ contains(inputs.os, 'macos') }}
       shell: bash
       run: |
-        brew install dnsmasq
+        brew install dnsmasq docker colima
+        colima start --network-address
     - name: Setup Docker image tag
       id: setup
       shell: bash

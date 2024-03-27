@@ -96,6 +96,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           target: wasm32-wasi
+      - name: Setup Go
+        if: ${{ !env.ACT }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22.x
       - name: Setup TinyGo
         if: ${{ !env.ACT }}
         uses: acifani/setup-tinygo@v2
@@ -118,8 +123,8 @@ jobs:
       - run: make
       - name: Run tests
         run: |
-           IN_PATH="${{ inputs.path }}"
-           ./util/test.sh ${IN_PATH:-t/} 2>&1 | tee valgrind.out
+          IN_PATH="${{ inputs.path }}"
+          ./util/test.sh ${IN_PATH:-t/0*} 2>&1 | tee valgrind.out
       - run: |
           awk -f ./util/parse-valgrind.awk valgrind.out > valgrind.log
           if [[ -s valgrind.log ]]; then
