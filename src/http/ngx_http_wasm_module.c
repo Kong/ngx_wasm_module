@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_http_wasm.h>
+#include <ngx_proxy_wasm_properties.h>
 #if (NGX_WASM_LUA)
 #include <ngx_wasm_lua.h>
 #include <ngx_http_lua_util.h>
@@ -272,7 +273,8 @@ ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
     mcf->vm = ngx_wasm_main_vm(cf->cycle);
 
     ngx_queue_init(&mcf->plans);
-    ngx_proxy_wasm_init(cf, &mcf->store);
+    ngx_proxy_wasm_properties_init(cf);
+    ngx_proxy_wasm_root_init(&mcf->pwroot, cf->pool);
 
     return mcf;
 }
@@ -440,7 +442,7 @@ ngx_http_wasm_init_process(ngx_cycle_t *cycle)
         }
     }
 
-    if (ngx_proxy_wasm_start(cycle) != NGX_OK) {
+    if (ngx_proxy_wasm_start(&mcf->pwroot) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -455,7 +457,7 @@ ngx_http_wasm_exit_process(ngx_cycle_t *cycle)
 
     mcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_wasm_module);
     if (mcf) {
-        ngx_proxy_wasm_exit(&mcf->store);
+        ngx_proxy_wasm_root_destroy(&mcf->pwroot);
 
         ngx_wasm_ops_destroy(mcf->ops);
     }

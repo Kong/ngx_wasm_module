@@ -435,12 +435,19 @@ ngx_http_wasm_prepend_resp_body(ngx_http_wasm_req_ctx_t *rctx, ngx_str_t *body)
 
 ngx_int_t
 ngx_http_wasm_ops_add_filter(ngx_wasm_ops_plan_t *plan,
-    ngx_str_t *name, ngx_str_t *config, ngx_proxy_wasm_store_t *store,
-    ngx_wavm_t *vm)
+    ngx_str_t *name, ngx_str_t *config, ngx_wavm_t *vm)
 {
-    ngx_int_t                 rc = NGX_ERROR;
-    ngx_wasm_op_t            *op;
-    ngx_proxy_wasm_filter_t  *filter;
+    ngx_int_t                       rc = NGX_ERROR;
+    ngx_wasm_op_t                  *op;
+    ngx_proxy_wasm_store_t         *store;
+    ngx_proxy_wasm_filter_t        *filter;
+    ngx_proxy_wasm_filters_root_t  *pwroot, *worker_pwroot;
+
+    pwroot = plan->conf.proxy_wasm.pwroot;
+    worker_pwroot = plan->conf.proxy_wasm.worker_pwroot;
+    store = &worker_pwroot->store;
+
+    ngx_proxy_wasm_root_init(pwroot, plan->pool);
 
     filter = ngx_pcalloc(plan->pool, sizeof(ngx_proxy_wasm_filter_t));
     if (filter == NULL) {

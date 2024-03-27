@@ -102,10 +102,10 @@ typedef struct {
 
 
 typedef struct {
-    ngx_proxy_wasm_store_t             store;
-    ngx_queue_t                        plans;
-    ngx_wasm_ops_t                    *ops;
     ngx_wavm_t                        *vm;
+    ngx_wasm_ops_t                    *ops;
+    ngx_queue_t                        plans;
+    ngx_proxy_wasm_filters_root_t      pwroot;                 /* worker proxy-wasm root */
 } ngx_http_wasm_main_conf_t;
 
 

@@ -23,7 +23,8 @@ static ngx_proxy_wasm_err_e ngx_proxy_wasm_create_context(
 static void ngx_proxy_wasm_on_log(ngx_proxy_wasm_exec_t *pwexec);
 static void ngx_proxy_wasm_on_done(ngx_proxy_wasm_exec_t *pwexec);
 static ngx_int_t ngx_proxy_wasm_on_tick(ngx_proxy_wasm_exec_t *pwexec);
-static ngx_proxy_wasm_filter_t *ngx_proxy_wasm_lookup_filter(ngx_uint_t id);
+static ngx_proxy_wasm_filter_t *ngx_proxy_wasm_lookup_filter(
+    ngx_proxy_wasm_filters_root_t *pwroot, ngx_uint_t id);
 static ngx_proxy_wasm_exec_t *ngx_proxy_wasm_lookup_root_ctx(
     ngx_proxy_wasm_instance_t *ictx, ngx_uint_t id);
 static ngx_proxy_wasm_exec_t *ngx_proxy_wasm_lookup_ctx(
@@ -43,46 +44,71 @@ static void ngx_proxy_wasm_store_schedule_sweep(ngx_proxy_wasm_store_t *store);
 #endif
 
 
-static ngx_uint_t         next_id = 1;
-static ngx_rbtree_t       ngx_proxy_wasm_filters_rbtree;
-static ngx_rbtree_node_t  ngx_proxy_wasm_filters_sentinel;
+static ngx_uint_t  next_id = 0;
 
 
 /* context - root */
 
 
-void
-ngx_proxy_wasm_init(ngx_conf_t *cf, ngx_proxy_wasm_store_t *gstore)
+ngx_proxy_wasm_filters_root_t *
+ngx_proxy_wasm_root_alloc(ngx_pool_t *pool)
 {
-    ngx_rbtree_init(&ngx_proxy_wasm_filters_rbtree,
-                    &ngx_proxy_wasm_filters_sentinel,
-                    ngx_rbtree_insert_value);
+    ngx_proxy_wasm_filters_root_t *pwroot;
 
-    ngx_proxy_wasm_properties_init(cf);
+    pwroot = ngx_pcalloc(pool, sizeof(ngx_proxy_wasm_filters_root_t));
+    if (pwroot == NULL) {
+        return NULL;
+    }
 
-    ngx_proxy_wasm_store_init(gstore, cf->pool);
+    /**
+     * Note: potential for creating a new pwroot->pool in similar fashion
+     * to ngx_proxy_wasm_ctx_t.
+     */
+
+    return pwroot;
 }
 
 
 void
-ngx_proxy_wasm_exit(ngx_proxy_wasm_store_t *gstore)
+ngx_proxy_wasm_root_init(ngx_proxy_wasm_filters_root_t *pwroot,
+    ngx_pool_t *pool)
 {
-    ngx_rbtree_node_t        **root_node, **sentinel, *node;
+    if (pwroot->init) {
+        return;
+    }
+
+    pwroot->init = 1;
+
+    ngx_array_init(&pwroot->filter_ids, pool, 0, sizeof(ngx_uint_t));
+
+    ngx_rbtree_init(&pwroot->tree, &pwroot->sentinel,
+                    ngx_rbtree_insert_value);
+
+    ngx_proxy_wasm_store_init(&pwroot->store, pool);
+}
+
+
+void
+ngx_proxy_wasm_root_destroy(ngx_proxy_wasm_filters_root_t *pwroot)
+{
+    ngx_rbtree_node_t        **root, **sentinel, *node;
     ngx_proxy_wasm_filter_t   *filter;
 
-    root_node = &ngx_proxy_wasm_filters_rbtree.root;
-    sentinel = &ngx_proxy_wasm_filters_rbtree.sentinel;
+    root = &pwroot->tree.root;
+    sentinel = &pwroot->tree.sentinel;
 
-    while (*root_node != *sentinel) {
-        node = ngx_rbtree_min(*root_node, *sentinel);
+    while (*root != *sentinel) {
+        node = ngx_rbtree_min(*root, *sentinel);
         filter = ngx_rbtree_data(node, ngx_proxy_wasm_filter_t, node);
 
-        ngx_rbtree_delete(&ngx_proxy_wasm_filters_rbtree, node);
+        ngx_rbtree_delete(&pwroot->tree, node);
 
         ngx_proxy_wasm_store_destroy(filter->store);
     }
 
-    ngx_proxy_wasm_store_destroy(gstore);
+    ngx_proxy_wasm_store_destroy(&pwroot->store);
+
+    ngx_array_destroy(&pwroot->filter_ids);
 }
 
 
@@ -107,7 +133,8 @@ get_filter_id(ngx_str_t *name, ngx_str_t *config, uintptr_t data)
 
 
 ngx_int_t
-ngx_proxy_wasm_load(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log)
+ngx_proxy_wasm_load(ngx_proxy_wasm_filters_root_t *pwroot,
+    ngx_proxy_wasm_filter_t *filter, ngx_log_t *log)
 {
     dd("enter");
 
@@ -125,8 +152,12 @@ ngx_proxy_wasm_load(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log)
     filter->name = &filter->module->name;
     filter->id = get_filter_id(filter->name, &filter->config, filter->data);
 
+    dd("insert \"%.*s\" filter in pwroot: %p (config: \"%.*s\", id: %ld)",
+       (int) filter->name->len, filter->name->data, pwroot,
+       (int) filter->config.len, filter->config.data, filter->id);
+
     filter->node.key = filter->id;
-    ngx_rbtree_insert(&ngx_proxy_wasm_filters_rbtree, &filter->node);
+    ngx_rbtree_insert(&pwroot->tree, &filter->node);
 
     if (ngx_proxy_wasm_filter_init_abi(filter) != NGX_OK) {
         return NGX_ERROR;
@@ -141,24 +172,25 @@ ngx_proxy_wasm_load(ngx_proxy_wasm_filter_t *filter, ngx_log_t *log)
 
 
 ngx_int_t
-ngx_proxy_wasm_start(ngx_cycle_t *cycle)
+ngx_proxy_wasm_start(ngx_proxy_wasm_filters_root_t *pwroot)
 {
     ngx_int_t                 rc;
     ngx_rbtree_node_t        *root, *sentinel, *node;
     ngx_proxy_wasm_filter_t  *filter;
 
-    dd("enter");
+    dd("enter (pwroot: %p)", pwroot);
 
-    root = ngx_proxy_wasm_filters_rbtree.root;
-    sentinel = ngx_proxy_wasm_filters_rbtree.sentinel;
+    root = pwroot->tree.root;
+    sentinel = pwroot->tree.sentinel;
 
     if (root == sentinel) {
+        dd("no filters");
         goto done;
     }
 
     for (node = ngx_rbtree_min(root, sentinel);
          node;
-         node = ngx_rbtree_next(&ngx_proxy_wasm_filters_rbtree, node))
+         node = ngx_rbtree_next(&pwroot->tree, node))
     {
         filter = ngx_rbtree_data(node, ngx_proxy_wasm_filter_t, node);
 
@@ -205,8 +237,9 @@ ngx_proxy_wasm_ctx_alloc(ngx_pool_t *pool)
 
 
 ngx_proxy_wasm_ctx_t *
-ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
-    ngx_uint_t isolation, ngx_proxy_wasm_subsystem_t *subsys, void *data)
+ngx_proxy_wasm_ctx(ngx_proxy_wasm_filters_root_t *pwroot,
+    ngx_array_t *filter_ids, ngx_uint_t isolation,
+    ngx_proxy_wasm_subsystem_t *subsys, void *data)
 {
     size_t                    i;
     ngx_uint_t                id;
@@ -219,32 +252,41 @@ ngx_proxy_wasm_ctx(ngx_uint_t *filter_ids, size_t nfilters,
         return NULL;
     }
 
+    if (!pwctx->init) {
+        if (isolation == NGX_PROXY_WASM_ISOLATION_STREAM) {
+            ngx_proxy_wasm_store_init(&pwctx->store, pwctx->pool);
+        }
+
+        pwctx->init = 1;
+    }
+
     if (!pwctx->ready && filter_ids) {
-        pwctx->nfilters = nfilters;
+        ngx_wa_assert(pwroot);
+
         pwctx->isolation = isolation;
+        pwctx->nfilters = filter_ids->nelts;
 
         ngx_log_debug2(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
                        "proxy_wasm initializing filter chain "
                        "(nfilters: %l, isolation: %ui)",
                        pwctx->nfilters, pwctx->isolation);
 
-        ngx_proxy_wasm_store_init(&pwctx->store, pwctx->pool);
-
-        ngx_array_init(&pwctx->pwexecs, pwctx->pool, nfilters,
+        ngx_array_init(&pwctx->pwexecs, pwctx->pool, pwctx->nfilters,
                        sizeof(ngx_proxy_wasm_exec_t));
 
-        for (i = 0; i < nfilters; i++) {
-            id = filter_ids[i];
+        for (i = 0; i < filter_ids->nelts; i++) {
+            id = ((ngx_uint_t *) filter_ids->elts)[i];
 
-            filter = ngx_proxy_wasm_lookup_filter(id);
+            filter = ngx_proxy_wasm_lookup_filter(pwroot, id);
+
             if (filter == NULL) {
                 /* TODO: log error */
                 ngx_wa_assert(0);
                 return NULL;
             }
 
-            (void) ngx_proxy_wasm_create_context(filter, pwctx,
-                                                 next_id++, NULL, &pwexec);
+            (void) ngx_proxy_wasm_create_context(filter, pwctx, ++next_id,
+                                                 NULL, &pwexec);
             if (pwexec == NULL) {
                 return NULL;
             }
@@ -629,14 +671,13 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
     for (i = pwctx->exec_index; i < pwctx->nfilters; i++) {
         pwexec = &pwexecs[i];
 
-        dd("---> exec_index: %ld (%ld/%ld), pwexec: %p (\"%.*s\"), pwctx: %p",
+        dd("---> exec_index: %ld (%ld/%ld) \"%.*s\" with config: \"%.*s\", "
+           "pwexec: %p, pwctx: %p",
            pwctx->exec_index,
-           ngx_min(pwctx->exec_index + 1, pwctx->nfilters),
-           pwctx->nfilters,
-           pwexec,
-           (int) pwexec->filter->name->len,
-           pwexec->filter->name->data,
-           pwctx);
+           ngx_min(pwctx->exec_index + 1, pwctx->nfilters), pwctx->nfilters,
+           (int) pwexec->filter->name->len, pwexec->filter->name->data,
+           (int) pwexec->filter->config.len, pwexec->filter->config.data,
+           pwexec, pwctx);
 
         ngx_wa_assert(pwexec->root_id != NGX_PROXY_WASM_ROOT_CTX_ID);
 
@@ -1287,9 +1328,11 @@ error:
 
     if (ecode != NGX_PROXY_WASM_ERR_NONE) {
         if (pwexec) {
+            dd("set ecode to %d", ecode);
             pwexec->ecode = ecode;
 
         } else {
+            dd("set filter ecode to %d", ecode);
             filter->ecode = ecode;
         }
     }
@@ -1379,13 +1422,14 @@ ngx_proxy_wasm_on_tick(ngx_proxy_wasm_exec_t *pwexec)
 
 
 static ngx_proxy_wasm_filter_t *
-ngx_proxy_wasm_lookup_filter(ngx_uint_t id)
+ngx_proxy_wasm_lookup_filter(ngx_proxy_wasm_filters_root_t *pwroot,
+    ngx_uint_t id)
 {
     ngx_rbtree_t             *rbtree;
     ngx_rbtree_node_t        *node, *sentinel;
     ngx_proxy_wasm_filter_t  *filter;
 
-    rbtree = &ngx_proxy_wasm_filters_rbtree;
+    rbtree = &pwroot->tree;
     node = rbtree->root;
     sentinel = rbtree->sentinel;
 
