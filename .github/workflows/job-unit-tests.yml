@@ -42,6 +42,9 @@ on:
       module_type:
         required: true
         type: string
+      path:
+        required: false
+        type: string
       coverage:
         required: false
         type: boolean
@@ -76,6 +79,9 @@ jobs:
       - name: 'Setup deps - apt-get'
         if: ${{ contains(inputs.os, 'ubuntu') }}
         run: sudo apt-get update && sudo apt-get install -y ${CC} libstdc++-${CC#*-}-dev lcov
+      - name: 'Setup deps - macOS'
+        if: ${{ contains(inputs.os, 'macos') }}
+        run: brew install lcov
       - uses: actions/checkout@v4
       - name: 'Setup cache - rustup toolchain'
         if: ${{ !env.ACT }}
@@ -120,14 +126,26 @@ jobs:
           ghcr_password: ${{ secrets.TOKEN_GITHUB }}
       - run: make setup
       - run: make
-      - run: make test
+      - name: Run tests
+        run: |
+           IN_PATH="${{ inputs.path != '' && inputs.path || 't/0*' }}"
+           ./util/test.sh ${IN_PATH}
       - name: Run lcov
         id: lcov
         if: ${{ !env.ACT && inputs.coverage }}
         run: |
-          lcov --gcov-tool gcov-${CC#*-} --capture --directory work/buildroot --output-file lcov.info
-          lcov --gcov-tool gcov-${CC#*-} --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
-          lcov --gcov-tool gcov-${CC#*-} --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
+          case "$CC" in
+            clang*)
+              lcov --gcov-tool gcov --capture --directory work/buildroot --base-directory work/nginx-patched --output-file lcov.info
+              lcov --gcov-tool gcov --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
+              lcov --gcov-tool gcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
+            ;;
+            *)
+              lcov --gcov-tool gcov-${CC#*-} --capture --directory work/buildroot --output-file lcov.info
+              lcov --gcov-tool gcov-${CC#*-} --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
+              lcov --gcov-tool gcov-${CC#*-} --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
+            ;;
+          esac
 
           name="unit"
           if [ -n "${{ inputs.openresty }}" ]; then
@@ -166,7 +184,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ failure() && !env.ACT }}
         with:
-          name: ${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ inputs.ngx != '' && format('nginx-{0}', inputs.ngx) || format('openresty-{0}', inputs.openresty) }}-${{ inputs.runtime }}-${{ inputs.module_type == 'dynamic' && 'dynamic' || 'static'}}-${{ inputs.ipc }}-${{ inputs.ssl }}-${{ inputs.debug }}-${{ inputs.hup }}
+          name: ${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ inputs.os }}-${{ inputs.ngx != '' && format('nginx-{0}', inputs.ngx) || format('openresty-{0}', inputs.openresty) }}-${{ inputs.runtime }}-${{ inputs.module_type == 'dynamic' && 'dynamic' || 'static'}}-${{ inputs.ipc }}-${{ inputs.ssl }}-${{ inputs.debug }}-${{ inputs.hup }}
           path: |
             work/buildroot/
             t/servroot*

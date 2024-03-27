@@ -36,7 +36,9 @@ runs:
       if: ${{ inputs.os == 'macos-latest' }}
       shell: bash
       run: |
-        brew install dnsmasq
+        brew install dnsmasq docker colima
+        colima start --network-address
+
     - name: Setup Docker image tag
       id: setup
       shell: bash

@@ -132,6 +132,35 @@ jobs:
             ssl: no_ssl
             debug: debug
             hup: no_hup
+          # macOS - Wasmer (full)
+          - runtime: wasmer
+            wasmer: 3.1.1
+            os: macos-latest
+            cc: clang
+            ngx: 1.25.4
+            ssl: ssl
+            debug: debug
+            hup: no_hup
+          # macOS - Wasmtime
+          - runtime: wasmtime
+            wasmtime: 19.0.0
+            os: macos-latest
+            cc: clang
+            ngx: 1.25.4
+            ssl: ssl
+            debug: debug
+            hup: hup
+            path: t/01-wasm
+          # macOS - V8
+          - runtime: v8
+            v8: 12.0.267.17
+            os: macos-latest
+            cc: clang
+            ngx: 1.25.4
+            ssl: ssl
+            debug: debug
+            hup: no_hup
+            path: t/01-wasm
     uses: ./.github/workflows/job-unit-tests.yml
     with:
       os: ${{ matrix.os }}
@@ -147,6 +176,7 @@ jobs:
       debug: ${{ matrix.debug }}
       hup: ${{ matrix.hup }}
       module_type: ${{ matrix.module_type }}
+      path: ${{ matrix.path }}
       coverage: true
     secrets: inherit
 
@@ -162,7 +192,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
-          carryforward: 'unit-ngx_1.25.4-wasmer-no_ipc-ssl-debug-no_hup-static,unit-ngx_1.25.4-wasmer-no_ipc-ssl-no_debug-no_hup-static,unit-ngx_1.25.4-wasmtime-no_ipc-ssl-debug-hup-static,unit-ngx_1.25.4-wasmtime-no_ipc-ssl-debug-hup-dynamic,unit-ngx_1.25.4-v8-no_ipc-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-no_ipc-ssl-debug-no_hup-static,unit-ngx_1.25.4-wasmer-no_ipc-no_ssl-no_debug-no_hup-static,unit-openresty_1.25.3.1-wasmtime-no_ipc-ssl-debug-no_hup-static,unit-openresty_1.25.3.1-wasmtime-no_ipc-ssl-debug-no_hup-dynamic,unit-ngx_1.25.4-wasmtime-ipc-no_ssl-debug-no_hup-static'
+          carryforward: 'unit-ubuntu-ngx_1.25.4-wasmer-no_ipc-ssl-debug-no_hup-static,unit-ubuntu-ngx_1.25.4-wasmer-no_ipc-ssl-no_debug-no_hup-static,unit-ubuntu-ngx_1.25.4-wasmtime-no_ipc-ssl-debug-hup-static,unit-ubuntu-ngx_1.25.4-wasmtime-no_ipc-ssl-debug-hup-dynamic,unit-ubuntu-ngx_1.25.4-v8-no_ipc-ssl-debug-no_hup-static,unit-ubuntu-ngx_1.21.6-wasmer-no_ipc-ssl-debug-no_hup-static,unit-ubuntu-ngx_1.25.4-wasmer-no_ipc-no_ssl-no_debug-no_hup-static,unit-ubuntu-openresty_1.25.3.1-wasmtime-no_ipc-ssl-debug-no_hup-static,unit-ubuntu-openresty_1.25.3.1-wasmtime-no_ipc-ssl-debug-no_hup-dynamic,unit-ubuntu-ngx_1.25.4-wasmtime-ipc-no_ssl-debug-no_hup-static,unit-macos-ngx_1.25.4-wasmer-no_ipc-ssl-debug-no_hup-static,unit-macos-ngx_1.25.4-wasmtime-no_ipc-ssl-debug-hup-static,unit-macos-ngx_1.25.4-v8-no_ipc-ssl-debug-no_hup-static'
 
   valgrind:
     name: 'Valgrind'

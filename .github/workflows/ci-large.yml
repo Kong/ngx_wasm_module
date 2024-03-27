@@ -62,6 +62,7 @@ jobs:
       debug: ${{ matrix.debug }}
       hup: ${{ matrix.hup }}
       module_type: ${{ matrix.module_type }}
+      path: ${{ matrix.path }}
 
   valgrind:
     name: 'Valgrind'
