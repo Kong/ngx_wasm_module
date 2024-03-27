@@ -182,7 +182,6 @@ jobs:
         v8: [""]
         hup: [no_hup, hup]
         debug: [debug]
-        path: [""]
         include:
           # Wasmtime
           - runtime: wasmtime
