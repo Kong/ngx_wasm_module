@@ -174,7 +174,7 @@ qq{
     }
 }
 --- response_body
---- grep_error_log eval: qr/(on_tick \d+|panicked at \S+)/
+--- grep_error_log eval: qr/(on_tick \d+|panicked at[ \S]* \S+)/
 --- grep_error_log_out eval
 qr/on_tick \d+
 panicked at .*?filter\.rs.*
