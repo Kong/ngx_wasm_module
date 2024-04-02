@@ -741,7 +741,7 @@ qq{
     resolver_add        127.0.0.1 hostname;
 
     location /t {
-        proxy_wasm hostcalls 'tick_period=5 \
+        proxy_wasm hostcalls 'tick_period=100 \
                               on_tick=dispatch \
                               host=hostname:$TEST_NGINX_SERVER_PORT2 \
                               https=yes \
@@ -784,7 +784,7 @@ qq{
     resolver_add        127.0.0.1 hostname;
 
     location /t {
-        proxy_wasm hostcalls 'tick_period=5 \
+        proxy_wasm hostcalls 'tick_period=100 \
                               on_tick=dispatch \
                               host=hostname:$TEST_NGINX_SERVER_PORT2 \
                               https=yes \
