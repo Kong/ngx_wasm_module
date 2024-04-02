@@ -1279,7 +1279,7 @@ ngx_proxy_wasm_hfuncs_get_shared_data(ngx_wavm_instance_t *instance,
 
     ngx_wasm_shm_lock(resolved.shm);
 
-    rc = ngx_wasm_shm_kv_get_locked(resolved.shm, &key, &value, cas);
+    rc = ngx_wasm_shm_kv_get_locked(resolved.shm, &key, NULL, &value, cas);
 
     ngx_wasm_shm_unlock(resolved.shm);
 
