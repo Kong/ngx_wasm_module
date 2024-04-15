@@ -23,9 +23,6 @@ ngx_uint_t             ngx_wasm_max_module = 0;
 ngx_uint_t             ngx_ipc_max_module = 0;
 
 
-static ngx_wa_conf_t  *wacf = NULL;
-
-
 static ngx_command_t  ngx_wasmx_cmds[] = {
 
     { ngx_string("wasm"),
@@ -75,9 +72,10 @@ static char *
 ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
     ngx_uint_t type, ngx_uint_t conf_type)
 {
-    void                   ***ctx = NULL;
+    void                    **confs;
     char                     *rv;
     ngx_module_t             *m;
+    ngx_wa_conf_t            *wacf = NULL;
     ngx_uint_t                i;
     ngx_conf_t                pcf;
     ngx_wa_create_conf_pt     create_conf;
@@ -86,42 +84,40 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
     if (*(void **) conf) {
         /* ngx_wasmx_module conf found, wasm{} or ipc{} */
 
-        ngx_wa_assert(wacf);
+        wacf = *(ngx_wa_conf_t **) conf;
 
         if (wacf->initialized_types & conf_type) {
             return NGX_WA_CONF_ERR_DUPLICATE;
         }
-
-        ctx = *(void **) conf;
     }
 
-    if (ctx == NULL) {
+    if (wacf == NULL) {
         ngx_wasm_max_module = ngx_count_modules(cf->cycle, NGX_WASM_MODULE);
 #ifdef NGX_WA_IPC
         ngx_ipc_max_module = ngx_count_modules(cf->cycle, NGX_IPC_MODULE);
 #endif
-
-        ctx = ngx_pcalloc(cf->pool, sizeof(void *));
-        if (ctx == NULL) {
-            return NGX_CONF_ERROR;
-        }
-
-        *ctx = ngx_pcalloc(cf->pool,
-                           ngx_wasm_max_module * sizeof(void *)
-                           + ngx_ipc_max_module * sizeof(void *));
-        if (*ctx == NULL) {
-            return NGX_CONF_ERROR;
-        }
 
         wacf = ngx_pcalloc(cf->pool, sizeof(ngx_wa_conf_t));
         if (wacf == NULL) {
             return NGX_CONF_ERROR;
         }
 
-        *(void **) conf = ctx;
-    }
+        wacf->wasm_confs = ngx_pcalloc(cf->pool,
+                                       sizeof(void *) * ngx_wasm_max_module);
+        if (wacf->wasm_confs == NULL) {
+            return NGX_CONF_ERROR;
+        }
 
-    ngx_wa_assert(wacf);
+#ifdef NGX_WA_IPC
+        wacf->ipc_confs = ngx_pcalloc(cf->pool,
+                                      sizeof(void *) * ngx_ipc_max_module);
+        if (wacf->ipc_confs == NULL) {
+            return NGX_CONF_ERROR;
+        }
+#endif
+
+        *(ngx_wa_conf_t **) conf = wacf;
+    }
 
     wacf->initialized_types |= conf_type;
 
@@ -141,12 +137,14 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
         case NGX_WASM_MODULE: {
             ngx_wasm_module_t *wm = m->ctx;
             create_conf = wm->create_conf;
+            confs = wacf->wasm_confs;
             break;
         }
 #ifdef NGX_WA_IPC
         case NGX_IPC_MODULE: {
             ngx_ipc_module_t *im = m->ctx;
             create_conf = im->create_conf;
+            confs = wacf->ipc_confs;
             break;
         }
 #endif
@@ -156,8 +154,8 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
         }
 
         if (create_conf) {
-            (*ctx)[m->ctx_index] = create_conf(cf);
-            if ((*ctx)[m->ctx_index] == NULL) {
+            confs[m->ctx_index] = create_conf(cf);
+            if (confs[m->ctx_index] == NULL) {
                 return NGX_CONF_ERROR;
             }
         }
@@ -167,7 +165,7 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
 
     pcf = *cf;
 
-    cf->ctx = ctx;
+    cf->ctx = wacf;
     cf->module_type = type;
     cf->cmd_type = conf_type;
 
@@ -195,12 +193,14 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
         case NGX_WASM_MODULE: {
             ngx_wasm_module_t *wm = m->ctx;
             init_conf = wm->init_conf;
+            confs = wacf->wasm_confs;
             break;
         }
 #ifdef NGX_WA_IPC
         case NGX_IPC_MODULE: {
             ngx_ipc_module_t *im = m->ctx;
             init_conf = im->init_conf;
+            confs = wacf->ipc_confs;
             break;
         }
 #endif
@@ -210,7 +210,7 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
         }
 
         if (init_conf) {
-            rv = init_conf(cf, (*ctx)[m->ctx_index]);
+            rv = init_conf(cf, confs[m->ctx_index]);
             if (rv != NGX_CONF_OK) {
                 return rv;
             }
@@ -240,9 +240,11 @@ ngx_ipc_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static ngx_int_t
 ngx_wasmx_init(ngx_cycle_t *cycle)
 {
-    size_t      i;
-    ngx_int_t   rc;
+    size_t          i;
+    ngx_int_t       rc;
+    ngx_wa_conf_t  *wacf;
 
+    wacf = ngx_wa_cycle_get_conf(cycle);
     if (wacf == NULL) {
         return NGX_OK;
     }

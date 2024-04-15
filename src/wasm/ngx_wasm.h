@@ -37,10 +37,10 @@
 #define NGX_WASM_DEFAULT_RESP_BODY_BUF_SIZE   4096
 
 #define ngx_wasm_core_cycle_get_conf(cycle)                                  \
-    (ngx_get_conf(cycle->conf_ctx, ngx_wasmx_module))                        \
-    ? (*(ngx_get_conf(cycle->conf_ctx, ngx_wasmx_module)))                   \
-      [ngx_wasm_core_module.ctx_index]                                       \
-    : NULL
+    (cycle->conf_ctx[ngx_wasmx_module.index]                                 \
+    ? ((ngx_wa_conf_t *) cycle->conf_ctx[ngx_wasmx_module.index])            \
+        ->wasm_confs[ngx_wasm_core_module.ctx_index]                         \
+    : NULL)
 
 #define ngx_wasm_vec_set_i32(vec, i, v)                                      \
     (((wasm_val_vec_t *) (vec))->data[i].kind = WASM_I32);                   \
