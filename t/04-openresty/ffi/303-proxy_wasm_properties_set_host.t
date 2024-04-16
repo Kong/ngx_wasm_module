@@ -49,16 +49,6 @@ ok
 
 === TEST 2: set_property() - setting host properties works on rewrite_by_lua
 --- wasm_modules: hostcalls
---- http_config
-    init_worker_by_lua_block {
-        local proxy_wasm = require "resty.wasmx.proxy_wasm"
-        local filters = {
-            { name = "hostcalls" },
-        }
-
-        _G.c_plan = assert(proxy_wasm.new(filters))
-        assert(proxy_wasm.load(_G.c_plan))
-    }
 --- config
     location /t {
         proxy_wasm hostcalls 'on=response_body \
@@ -67,11 +57,7 @@ ok
 
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
-            assert(proxy_wasm.attach(_G.c_plan))
-
             assert(proxy_wasm.set_property("wasmx.my_property", "my_value"))
-
-            assert(proxy_wasm.start())
             ngx.say("ok")
         }
     }

@@ -260,46 +260,6 @@ ngx_wasm_core_cleanup_pool(void *data)
 }
 
 
-#if (NGX_WASM_DYNAMIC_MODULE && (NGX_WASM_LUA || NGX_WASM_HTTP))
-static unsigned
-get_module_index(ngx_cycle_t *cycle, const char *module_name, ngx_uint_t *out)
-{
-    size_t  i;
-
-    for (i = 0; cycle->modules[i]; i++) {
-        if (ngx_str_eq(cycle->modules[i]->name, -1, module_name, -1)) {
-            *out = i;
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-
-static void
-swap_modules_if_needed(ngx_conf_t *cf, const char *m1, const char *m2)
-{
-    ngx_uint_t     m1_idx, m2_idx;
-    ngx_cycle_t   *cycle = cf->cycle;
-    ngx_module_t  *tmp;
-
-    if (get_module_index(cycle, m1, &m1_idx)
-        && get_module_index(cycle, m2, &m2_idx)
-        && m1_idx < m2_idx)
-    {
-        ngx_wasm_log_error(NGX_LOG_NOTICE, cf->log, 0,
-                           "swapping modules: \"%s\" (index: %l) and \"%s\" "
-                           "(index: %l)", m1, m1_idx, m2, m2_idx);
-
-        tmp = cycle->modules[m1_idx];
-        cycle->modules[m1_idx] = cycle->modules[m2_idx];
-        cycle->modules[m2_idx] = tmp;
-    }
-}
-#endif
-
-
 static void *
 ngx_wasm_core_create_conf(ngx_conf_t *cf)
 {
@@ -396,6 +356,7 @@ ngx_wasm_core_create_conf(ngx_conf_t *cf)
     wcf->connect_timeout = NGX_CONF_UNSET_MSEC;
     wcf->send_timeout = NGX_CONF_UNSET_MSEC;
     wcf->recv_timeout = NGX_CONF_UNSET_MSEC;
+
     wcf->pwm_lua_resolver = NGX_CONF_UNSET;
 
     wcf->socket_buffer_size = NGX_CONF_UNSET_SIZE;

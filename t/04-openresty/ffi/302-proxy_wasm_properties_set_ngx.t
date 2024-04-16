@@ -51,16 +51,6 @@ ok
 
 === TEST 2: set_property() - setting ngx properties works on rewrite_by_lua
 --- wasm_modules: hostcalls
---- http_config
-    init_worker_by_lua_block {
-        local proxy_wasm = require "resty.wasmx.proxy_wasm"
-        local filters = {
-            { name = "hostcalls" },
-        }
-
-        _G.c_plan = assert(proxy_wasm.new(filters))
-        assert(proxy_wasm.load(_G.c_plan))
-    }
 --- config
     set $my_var 456;
 
@@ -71,11 +61,7 @@ ok
 
         rewrite_by_lua_block {
             local proxy_wasm = require "resty.wasmx.proxy_wasm"
-            assert(proxy_wasm.attach(_G.c_plan))
-
             assert(proxy_wasm.set_property("ngx.my_var", "123"))
-
-            assert(proxy_wasm.start())
             ngx.say("ok")
         }
     }

@@ -26,6 +26,8 @@ By alphabetical order:
 - [tls_verify_cert](#tls_verify_cert)
 - [tls_verify_host](#tls_verify_host)
 - [wasm_call](#wasm_call)
+- [wasm_postpone_access](#wasm_postpone_access)
+- [wasm_postpone_rewrite](#wasm_postpone_rewrite)
 - [wasm_response_body_buffers](#wasm_response_body_buffers)
 - [wasm_socket_buffer_reuse](#wasm_socket_buffer_reuse)
 - [wasm_socket_buffer_size](#wasm_socket_buffer_size)
@@ -67,6 +69,8 @@ By context:
     - [proxy_wasm_request_headers_in_access](#proxy_wasm_request_headers_in_access)
     - [resolver_add](#resolver_add)
     - [wasm_call](#wasm_call)
+    - [wasm_postpone_access](#wasm_postpone_access)
+    - [wasm_postpone_rewrite](#wasm_postpone_rewrite)
     - [wasm_response_body_buffers](#wasm_response_body_buffers)
     - [wasm_socket_buffer_reuse](#wasm_socket_buffer_reuse)
     - [wasm_socket_buffer_size](#wasm_socket_buffer_size)
@@ -757,6 +761,62 @@ to start (e.g. invalid `phase`, `module` or `function`).
 
 If there was an error during runtime execution, stop the Nginx runloop and
 return `HTTP 500`.
+
+[Back to TOC](#directives)
+
+wasm_postpone_access
+--------------------
+
+**usage**    | `wasm_postpone_access <on\|off>;`
+------------:|:----------------------------------------------------------------
+**contexts** | `http{}`, `server{}`, `location{}`
+**default**  | `off`
+**example**  | `wasm_postpone_access on;`
+
+Enable the postponing of the Wasm module access phase handler.
+
+If enabled, this module's access handler will be postponed to the end of the
+access phase (i.e. after all other modules access handlers). This is mostly
+useful in OpenResty builds when wanting filter chains to run after
+`access_by_lua` blocks.
+
+If disabled, this module's access handler will run as per the order configured
+during Nginx/OpenResty compilation.
+
+> Notes
+
+This directive is auto-enabled in OpenResty builds when postponing of the Lua
+access phase is enabled (this is the default behavior, see
+[access_by_lua_no_postpone](https://github.com/openresty/lua-nginx-module?tab=readme-ov-file#access_by_lua_no_postpone)).
+This can be disabled by explicitly specifying `wasm_postpone_access off;`.
+
+[Back to TOC](#directives)
+
+wasm_postpone_rewrite
+---------------------
+
+**usage**    | `wasm_postpone_rewrite <on\|off>;`
+------------:|:----------------------------------------------------------------
+**contexts** | `http{}`, `server{}`, `location{}`
+**default**  | `off`
+**example**  | `wasm_postpone_rewrite on;`
+
+Enable the postponing of the Wasm module rewrite phase handler.
+
+If enabled, this module's rewrite handler will be postponed to the end of the
+rewrite phase (i.e. after all other modules rewrite handlers). This is mostly
+useful in OpenResty builds when wanting filter chains to run after
+`rewrite_by_lua` blocks.
+
+If disabled, this module's rewrite handler will run as per the order configured
+during Nginx/OpenResty compilation.
+
+> Notes
+
+This directive is auto-enabled in OpenResty builds when postponing of the Lua
+rewrite phase is enabled (this is the default behavior, see
+[rewrite_by_lua_no_postpone](https://github.com/openresty/lua-nginx-module?tab=readme-ov-file#rewrite_by_lua_no_postpone)).
+This can be disabled by explicitly specifying `wasm_postpone_rewrite off;`.
 
 [Back to TOC](#directives)
 
