@@ -238,6 +238,12 @@ add_block_preprocessor(sub {
         push @block_skip, $2;
     }
 
+    # --- skip_hup
+
+    if (defined $block->skip_hup && $ENV{TEST_NGINX_USE_HUP}) {
+        push @block_skip, '$ENV{TEST_NGINX_USE_HUP}';
+    }
+
     # --- skip_no_debug
 
     if (defined $block->skip_no_debug) {

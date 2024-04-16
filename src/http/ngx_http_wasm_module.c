@@ -8,6 +8,8 @@
 #if (NGX_WASM_LUA)
 #include <ngx_wasm_lua.h>
 #include <ngx_http_lua_util.h>
+#include <ngx_http_lua_rewriteby.h>
+#include <ngx_http_lua_accessby.h>
 #endif
 
 
@@ -206,6 +208,20 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       offsetof(ngx_http_wasm_loc_conf_t, pwm_lua_resolver),
       NULL },
 
+    { ngx_string("wasm_postpone_rewrite"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, postpone_rewrite),
+      NULL },
+
+    { ngx_string("wasm_postpone_access"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, postpone_access),
+      NULL },
+
       ngx_null_command
 };
 
@@ -276,6 +292,18 @@ ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
     ngx_proxy_wasm_properties_init(cf);
     ngx_proxy_wasm_root_init(&mcf->pwroot, cf->pool);
 
+#if (NGX_WASM_DYNAMIC_MODULE)
+    /**
+     * Ensure ngx_lua rewrite/access handlers are executed before
+     * ngx_wasm rewrite/access.
+     *
+     * Mimic static cycle order if necessary:
+     *   1. ngx_http_lua_module rewrite/access handlers
+     *   2. ngx_wasm_core_module rewrite/access handlers
+     */
+    swap_modules_if_needed(cf, "ngx_http_lua_module", "ngx_http_wasm_module");
+#endif
+
     return mcf;
 }
 
@@ -313,6 +341,8 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
     loc->socket_buffer_reuse = NGX_CONF_UNSET;
     loc->pwm_req_headers_in_access = NGX_CONF_UNSET;
     loc->pwm_lua_resolver = NGX_CONF_UNSET;
+    loc->postpone_rewrite = NGX_CONF_UNSET;
+    loc->postpone_access = NGX_CONF_UNSET;
 
     if (ngx_wasm_main_vm(cf->cycle)) {
         loc->plan = ngx_wasm_ops_plan_new(cf->pool, &ngx_http_wasm_subsystem);
@@ -374,6 +404,12 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->pwm_lua_resolver,
                          prev->pwm_lua_resolver, 0);
+
+    ngx_conf_merge_value(conf->postpone_rewrite,
+                         prev->postpone_rewrite, NGX_CONF_UNSET);
+
+    ngx_conf_merge_value(conf->postpone_access,
+                         prev->postpone_access, NGX_CONF_UNSET);
 
     if (conf->plan && !conf->plan->populated) {
         conf->plan = prev->plan;
@@ -665,6 +701,49 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
 {
     ngx_int_t                 rc;
     ngx_http_wasm_req_ctx_t  *rctx;
+    static unsigned           pcheck = 0;
+
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "wasm rewrite handler, uri:\"%V\" c:%ud",
+                   &r->uri, r->main->count);
+
+    if (!pcheck) {
+        ngx_http_phase_handler_t    tmp;
+        ngx_http_phase_handler_t   *ph, *cur_ph, *last_ph;
+        ngx_http_core_main_conf_t  *cmcf;
+        ngx_http_wasm_loc_conf_t   *loc;
+        unsigned                    pset, p;
+
+        pcheck = 1;  /* postpone check done */
+
+        cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
+        loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
+        pset = loc->postpone_rewrite != NGX_CONF_UNSET;
+        p = pset && loc->postpone_rewrite;
+
+        ph = cmcf->phase_engine.handlers;
+        cur_ph = &ph[r->phase_handler];
+        last_ph = &ph[cur_ph->next - 1];
+
+        if ((p
+#if (NGX_WASM_LUA)
+             || (last_ph->handler == ngx_http_lua_rewrite_handler
+                 && (!pset || pset && p))  /* && "not explicitly disabled" */
+#endif
+            ) && cur_ph < last_ph)
+        {
+            dd("postponing the rewrite handler...");
+
+            tmp = *cur_ph;
+            ngx_memmove(cur_ph, cur_ph + 1,
+                        (last_ph - cur_ph) * sizeof(ngx_http_phase_handler_t));
+            *last_ph = tmp;
+
+            r->phase_handler--;  /* re-enter the current phase_handler */
+
+            return NGX_DECLINED;
+        }
+    }
 
     dd("enter");
 
@@ -748,6 +827,49 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
 {
     ngx_int_t                 rc;
     ngx_http_wasm_req_ctx_t  *rctx;
+    static unsigned           pcheck = 0;
+
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "wasm access handler, uri:\"%V\" c:%ud",
+                   &r->uri, r->main->count);
+
+    if (!pcheck) {
+        ngx_http_phase_handler_t    tmp;
+        ngx_http_phase_handler_t   *ph, *cur_ph, *last_ph;
+        ngx_http_core_main_conf_t  *cmcf;
+        ngx_http_wasm_loc_conf_t   *loc;
+        unsigned                    pset, p;
+
+        pcheck = 1;  /* postpone check done */
+
+        cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
+        loc = ngx_http_get_module_loc_conf(r, ngx_http_wasm_module);
+        pset = loc->postpone_access != NGX_CONF_UNSET;
+        p = pset && loc->postpone_access;
+
+        ph = cmcf->phase_engine.handlers;
+        cur_ph = &ph[r->phase_handler];
+        last_ph = &ph[cur_ph->next - 2];  /* -2: also skip the post_access handler */
+
+        if ((p
+#if (NGX_WASM_LUA)
+             || (last_ph->handler == ngx_http_lua_access_handler
+                 && (!pset || pset && p))  /* && "not explicitly disabled" */
+#endif
+            ) && cur_ph < last_ph)
+        {
+            dd("postponing the access handler...");
+
+            tmp = *cur_ph;
+            ngx_memmove(cur_ph, cur_ph + 1,
+                        (last_ph - cur_ph) * sizeof(ngx_http_phase_handler_t));
+            *last_ph = tmp;
+
+            r->phase_handler--;  /* re-enter the current phase_handler */
+
+            return NGX_DECLINED;
+        }
+    }
 
     dd("enter");
 

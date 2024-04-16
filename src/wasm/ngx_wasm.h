@@ -97,6 +97,7 @@ typedef struct {
 
     ngx_resolver_t                    *resolver;
     ngx_resolver_t                    *user_resolver;
+
     ngx_flag_t                         pwm_lua_resolver;
 } ngx_wasm_core_conf_t;
 
@@ -120,6 +121,9 @@ ngx_msec_t ngx_wasm_monotonic_time();
 void ngx_wasm_wall_time(void *rtime);
 void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     const char *fmt, ...);
+#if (NGX_WASM_DYNAMIC_MODULE && (NGX_WASM_LUA || NGX_WASM_HTTP))
+void swap_modules_if_needed(ngx_conf_t *cf, const char *m1, const char *m2);
+#endif
 
 /* directives */
 char *ngx_wasm_core_wasmtime_block(ngx_conf_t *cf, ngx_command_t *cmd,
