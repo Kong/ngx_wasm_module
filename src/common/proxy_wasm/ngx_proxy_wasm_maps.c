@@ -32,6 +32,9 @@ static ngx_str_t *ngx_proxy_wasm_maps_get_authority(
     ngx_wavm_instance_t *instance, ngx_proxy_wasm_map_type_e map_type);
 static ngx_str_t *ngx_proxy_wasm_maps_get_response_status(
     ngx_wavm_instance_t *instance, ngx_proxy_wasm_map_type_e map_type);
+static ngx_int_t ngx_proxy_wasm_maps_set_response_status(
+    ngx_wavm_instance_t *instance, ngx_str_t *value,
+    ngx_proxy_wasm_map_type_e map_type);
 static ngx_str_t *ngx_proxy_wasm_maps_get_dispatch_status(
     ngx_wavm_instance_t *instance, ngx_proxy_wasm_map_type_e map_type);
 #endif
@@ -67,7 +70,7 @@ static ngx_proxy_wasm_maps_key_t  ngx_proxy_wasm_maps_special_keys[] = {
     { ngx_string(":status"),
       NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS,
       ngx_proxy_wasm_maps_get_response_status,
-      NULL },
+      ngx_proxy_wasm_maps_set_response_status },
 
     /* dispatch response */
 
@@ -699,6 +702,39 @@ ngx_proxy_wasm_maps_get_response_status(ngx_wavm_instance_t *instance,
     ngx_wa_assert(pwctx->response_status.len);
 
     return &pwctx->response_status;
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_maps_set_response_status(ngx_wavm_instance_t *instance,
+    ngx_str_t *value, ngx_proxy_wasm_map_type_e map_type)
+{
+    ngx_uint_t                status;
+    ngx_proxy_wasm_exec_t    *pwexec;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
+    status = ngx_atoi(value->data, value->len);
+
+    if (status < 100 || status > 599) {
+        /**
+         * Ideally we would like to return NGX_ERROR here, but the
+         * proxy-wasm-rust-sdk causes a panic when the host returns an error
+         * code. So we ignore invalid values here. This allows the application
+         * code to gracefully check success by setting then getting.
+         */
+        pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+
+        ngx_proxy_wasm_log_error(NGX_LOG_WARN, pwexec->log, 0,
+                                 "ignoring attempt to set invalid response "
+                                 "status: \"%V\"", value);
+        return NGX_OK;
+    }
+
+    ngx_http_wasm_set_resp_status(rctx, status, NULL, 0);
+
+    return NGX_OK;
 }
 
 

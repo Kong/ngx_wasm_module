@@ -231,12 +231,26 @@ pub(crate) fn test_set_request_headers_invalid(ctx: &TestHttp) {
     ctx.set_http_request_headers(vec![(":scheme", "https")]);
 }
 
+trait HeaderStr {
+    fn split_header<'a>(&'a self) -> Option<(&'a str, &'a str)>;
+}
+
+impl HeaderStr for str {
+    fn split_header<'a>(&'a self) -> Option<(&'a str, &'a str)> {
+        if &self[0..1] == ":" {
+            self[1..].find(':').map(|n| (&self[0..n + 1], &self[n + 2..]))
+        } else {
+            self.split_once(':')
+        }
+    }
+}
+
 pub(crate) fn test_set_request_header(ctx: &TestHttp) {
     if let Some(name) = ctx.config.get("name") {
         let value = ctx.config.get("value").expect("missing value");
         ctx.set_http_request_header(name, Some(value));
     } else if let Some(config) = ctx.config.get("value") {
-        let (name, value) = config.split_once(':').unwrap();
+        let (name, value) = config.split_header().unwrap();
         if value.is_empty() {
             ctx.set_http_request_header(name, None);
         } else {
@@ -247,7 +261,7 @@ pub(crate) fn test_set_request_header(ctx: &TestHttp) {
 
 pub(crate) fn test_add_request_header(ctx: &TestHttp) {
     if let Some(config) = ctx.config.get("value") {
-        let (name, value) = config.split_once(':').unwrap();
+        let (name, value) = config.split_header().unwrap();
         ctx.add_http_request_header(name, value);
     } else if let Some(header) = ctx.get_http_request_header("pwm-add-req-header") {
         let (name, value) = header.split_once('=').unwrap();
@@ -257,14 +271,14 @@ pub(crate) fn test_add_request_header(ctx: &TestHttp) {
 
 pub(crate) fn test_add_response_header(ctx: &TestHttp) {
     if let Some(header) = ctx.config.get("value") {
-        let (name, value) = header.split_once(':').unwrap();
+        let (name, value) = header.split_header().unwrap();
         ctx.add_http_response_header(name, value);
     }
 }
 
 pub(crate) fn test_set_response_header(ctx: &TestHttp) {
     if let Some(header) = ctx.config.get("value") {
-        let (name, value) = header.split_once(':').unwrap();
+        let (name, value) = header.split_header().unwrap();
         if value.is_empty() {
             ctx.set_http_response_header(name, None);
         } else {
@@ -277,7 +291,7 @@ pub(crate) fn test_set_response_headers(ctx: &TestHttp) {
     if let Some(headers_str) = ctx.config.get("value") {
         let headers = headers_str
             .split('+')
-            .filter_map(|s| s.split_once(':'))
+            .filter_map(|s| s.split_header())
             .collect();
 
         ctx.set_http_response_headers(headers);
