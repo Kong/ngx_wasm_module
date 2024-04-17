@@ -16,11 +16,13 @@ impl TestContext {
     }
 
     fn check_host_function(&self, name: &str) {
+        let (name, arg) = name.split_once('|').unwrap_or_else(|| (name, ""));
         match name {
             "proxy_log" => log_something(self),
             "set_tick_period" => set_tick_period(self),
             "set_request_body_buffer" => set_request_body_buffer(self),
             "set_response_body_buffer" => set_response_body_buffer(self),
+            "set_response_headers" => set_response_headers(self, arg),
             "get_request_body_buffer" => get_request_body_buffer(self),
             "get_response_body_buffer" => get_response_body_buffer(self),
             "get_dispatch_response_body_buffer" => get_dispatch_response_body_buffer(self),

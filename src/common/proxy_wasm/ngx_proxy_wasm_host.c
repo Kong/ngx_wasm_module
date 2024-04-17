@@ -631,6 +631,7 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
     ngx_array_t                       headers;
     ngx_proxy_wasm_marshalled_map_t   map;
     ngx_proxy_wasm_exec_t            *pwexec;
+    ngx_proxy_wasm_ctx_t             *pwctx;
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t          *rctx;
 
@@ -638,6 +639,7 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
 #endif
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    pwctx = pwexec->parent;
 
     map_type = args[0].of.i32;
     map.len = args[2].of.i32;
@@ -663,6 +665,23 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
         break;
 
     case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
+
+        /* check context */
+
+        switch (pwctx->step) {
+        case NGX_PROXY_WASM_STEP_REQ_HEADERS:
+        case NGX_PROXY_WASM_STEP_REQ_BODY:
+        case NGX_PROXY_WASM_STEP_REQ_TRAILERS:
+        case NGX_PROXY_WASM_STEP_RESP_HEADERS:
+            break;
+        default:
+            return ngx_proxy_wasm_result_trap(pwexec,
+                                              "can only set response headers "
+                                              "on request path "
+                                              "before \"on_response_body\"",
+                                              rets, NGX_WAVM_BAD_USAGE);
+        }
+
         if (rctx->r->header_sent) {
             ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
                                "cannot set response headers: "

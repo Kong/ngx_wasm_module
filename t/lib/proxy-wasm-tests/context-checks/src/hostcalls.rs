@@ -73,6 +73,54 @@ pub fn set_response_body_buffer(_ctx: &TestContext) {
 
 #[allow(improper_ctypes)]
 extern "C" {
+    fn proxy_set_header_map_pairs(
+        map_type: MapType,
+        map_data: *const u8,
+        map_size: usize,
+    ) -> Status;
+}
+
+// internal function from proxy-wasm-rust-sdk
+fn serialize_map(map: Vec<(&str, &str)>) -> Bytes {
+    let mut size: usize = 4;
+    for (name, value) in &map {
+        size += name.len() + value.len() + 10;
+    }
+    let mut bytes: Bytes = Vec::with_capacity(size);
+    bytes.extend_from_slice(&map.len().to_le_bytes());
+    for (name, value) in &map {
+        bytes.extend_from_slice(&name.len().to_le_bytes());
+        bytes.extend_from_slice(&value.len().to_le_bytes());
+    }
+    for (name, value) in &map {
+        bytes.extend_from_slice(name.as_bytes());
+        bytes.push(0);
+        bytes.extend_from_slice(value.as_bytes());
+        bytes.push(0);
+    }
+    bytes
+}
+
+pub fn set_response_headers(_ctx: &TestContext, arg: &str) {
+    let vec: Vec<(&str, &str)> = arg
+        .split(',')
+        .map(|kv| kv.split_once('='))
+        .flatten()
+        .collect();
+    let serialized = serialize_map(vec);
+
+    unsafe {
+        let status = proxy_set_header_map_pairs(
+            MapType::HttpResponseHeaders,
+            serialized.as_ptr(),
+            serialized.len());
+
+        info!("set_response_headers status: {}", status as u32);
+    }
+}
+
+#[allow(improper_ctypes)]
+extern "C" {
     fn proxy_get_buffer_bytes(
         buffer_type: u32,
         start: usize,
