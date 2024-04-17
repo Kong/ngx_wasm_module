@@ -140,3 +140,118 @@ testing in "Log".*
 --- no_error_log
 [warn]
 [crit]
+
+
+
+=== TEST 5: proxy_wasm - set_http_response_headers() sets :status response header at request_headers
+--- load_nginx_modules: ngx_http_headers_more_filter_module
+--- wasm_modules: ngx_rust_tests hostcalls
+--- config
+    location /t {
+        wasm_call content ngx_rust_tests say_nothing;
+
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/set_response_headers \
+                              value=:status:201';
+    }
+--- error_code: 201
+--- response_body
+--- raw_response_headers_like
+HTTP\/.*? 201 .*?
+Connection: close\r
+Content-Length: 0\r
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 6: proxy_wasm - set_http_response_headers() sets :status response header
+--- load_nginx_modules: ngx_http_headers_more_filter_module
+--- wasm_modules: ngx_rust_tests hostcalls
+--- config
+    location /t {
+        wasm_call content ngx_rust_tests say_nothing;
+
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/set_response_headers \
+                              value=:status:201';
+    }
+--- error_code: 201
+--- response_body
+--- raw_response_headers_like
+HTTP\/.*? 201 .*?
+Transfer-Encoding: chunked\r
+Connection: close\r
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 7: proxy_wasm - set_http_response_headers() ignores :status out of range
+--- load_nginx_modules: ngx_http_headers_more_filter_module
+--- wasm_modules: ngx_rust_tests hostcalls
+--- config
+    location /t {
+        wasm_call content ngx_rust_tests say_nothing;
+
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/set_response_headers \
+                              value=:status:999999';
+    }
+--- error_code: 200
+--- response_body
+--- raw_response_headers_like
+HTTP\/.*? 200 .*?
+Transfer-Encoding: chunked\r
+Connection: close\r
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 8: proxy_wasm - set_http_response_headers() ignores invalid :status
+--- load_nginx_modules: ngx_http_headers_more_filter_module
+--- wasm_modules: ngx_rust_tests hostcalls
+--- config
+    location /t {
+        wasm_call content ngx_rust_tests say_nothing;
+
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/set_response_headers \
+                              value=:status:xyz';
+    }
+--- error_code: 200
+--- response_body
+--- raw_response_headers_like
+HTTP\/.*? 200 .*?
+Transfer-Encoding: chunked\r
+Connection: close\r
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 9: proxy_wasm - set_http_response_headers() ignores empty :status
+--- load_nginx_modules: ngx_http_headers_more_filter_module
+--- wasm_modules: ngx_rust_tests hostcalls
+--- config
+    location /t {
+        wasm_call content ngx_rust_tests say_nothing;
+
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/set_response_headers \
+                              value=:status:';
+    }
+--- error_code: 200
+--- response_body
+--- raw_response_headers_like
+HTTP\/.*? 200 .*?
+Transfer-Encoding: chunked\r
+Connection: close\r
+--- no_error_log
+[error]
+[crit]
