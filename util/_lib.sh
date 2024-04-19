@@ -298,7 +298,7 @@ build_nginx() {
                         conf_opt=$NGX_BUILD_CONFIGURE_OPT.\
                         cc_opt=$NGX_BUILD_CC_OPT.\
                         ld_opt=$NGX_BUILD_LD_OPT.\
-                        ssl=$NGX_BUILD_SSL.\
+                        ssl=$NGX_BUILD_SSL.$NGX_BUILD_SSL_STATIC.\
                         ipc=$NGX_IPC.\
                         dynamic=$NGX_BUILD_DYNAMIC_MODULE.\
                         cargo=$NGX_WASM_CARGO.\
