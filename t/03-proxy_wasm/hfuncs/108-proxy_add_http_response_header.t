@@ -375,8 +375,7 @@ resp Cache-Control: no-cache.*/
 
 
 
-=== TEST 15: proxy_wasm - add_http_response_header() x on_phases
-should log an error (but no trap) when headers are sent
+=== TEST 15: proxy_wasm - add_http_response_header() x valid phases
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -387,27 +386,65 @@ should log an error (but no trap) when headers are sent
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/add_response_header \
                               value=From:response_headers';
-
-        proxy_wasm hostcalls 'on=response_body \
-                              test=/t/add_response_header \
-                              value=From:response_body';
-
-        proxy_wasm hostcalls 'on=log \
-                              test=/t/add_response_header \
-                              value=From:log';
         return 200;
     }
 --- response_headers
 From: request_headers, response_headers
 --- ignore_response_body
---- grep_error_log eval: qr/\[(error|hostcalls)\] [^on_].*/
---- grep_error_log_out eval
-qr/.*? testing in "RequestHeaders".*
-.*? testing in "ResponseHeaders".*
-.*? testing in "ResponseBody".*
-\[error\] .*? \[wasm\] cannot add response header: headers already sent.*
-.*? testing in "Log".*
-\[error\] .*? \[wasm\] cannot add response header: headers already sent.*/
+--- grep_error_log eval: qr/\[(error|hostcalls)\] [^,]*/
+--- grep_error_log_out
+[hostcalls] on_request_headers
+[hostcalls] testing in "RequestHeaders"
+[hostcalls] on_request_headers
+[hostcalls] on_response_headers
+[hostcalls] on_response_headers
+[hostcalls] testing in "ResponseHeaders"
+[hostcalls] on_response_body
+[hostcalls] on_response_body
+[hostcalls] on_done while logging request
+[hostcalls] on_log while logging request
+[hostcalls] on_done while logging request
+[hostcalls] on_log while logging request
 --- no_error_log
 [crit]
+[emerg]
+
+
+
+=== TEST 16: proxy_wasm - add_http_response_header() x on_response_body
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/add_response_header \
+                              value=From:request_headers';
+        return 200;
+    }
+--- ignore_response_body
+--- grep_error_log eval: qr/.*?host trap.*/
+--- grep_error_log_out eval
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): can only set response headers on request path before "on_response_body".*~
+--- no_error_log
+[crit]
+[warn]
+[alert]
+
+
+
+=== TEST 17: proxy_wasm - add_http_response_header() x on_log
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/add_response_header \
+                              value=From:request_headers';
+        return 200;
+    }
+--- ignore_response_body
+--- grep_error_log eval: qr/.*?host trap.*/
+--- grep_error_log_out eval
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): can only set response headers on request path before "on_response_body".*~
+--- no_error_log
+[crit]
+[alert]
 [emerg]

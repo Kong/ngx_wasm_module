@@ -547,8 +547,7 @@ qr/.*? on_request_headers, 3 headers.*
 
 
 
-=== TEST 27: proxy_wasm - add_http_request_header() x on_phases
-should log an error (but no trap) when response is produced
+=== TEST 27: proxy_wasm - add_http_request_header() x on_request_headers
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -556,10 +555,6 @@ should log an error (but no trap) when response is produced
                               test=/t/add_request_header';
         proxy_wasm hostcalls 'on=request_headers \
                               test=/t/echo/headers';
-        proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/add_request_header';
-        proxy_wasm hostcalls 'on=log \
-                              test=/t/add_request_header';
     }
 --- more_headers
 Hello: world
@@ -567,15 +562,90 @@ pwm-add-req-header: Hello=world
 --- response_body_like
 Hello: world
 Hello: world
---- grep_error_log eval: qr/\[(info|error)\] .*? (testing in|cannot add).*/
+--- grep_error_log eval: qr/\[(error|hostcalls)\] [^,]*/
+--- grep_error_log_out
+[hostcalls] on_request_headers
+[hostcalls] testing in "RequestHeaders"
+[hostcalls] on_request_headers
+[hostcalls] testing in "RequestHeaders"
+[hostcalls] on_response_headers
+[hostcalls] on_response_headers
+[hostcalls] on_response_body
+[hostcalls] on_response_body
+[hostcalls] on_done while logging request
+[hostcalls] on_log while logging request
+[hostcalls] on_done while logging request
+[hostcalls] on_log while logging request
+--- no_error_log
+[crit]
+[alert]
+[emerg]
+
+
+
+=== TEST 28: proxy_wasm - set_http_request_headers() x on_response_headers
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/add_request_header';
+
+        return 200;
+    }
+--- more_headers
+Hello: world
+pwm-add-req-header: Hello=world
+--- grep_error_log eval: qr/.*?host trap.*/
 --- grep_error_log_out eval
-qr/.*? testing in "RequestHeaders".*
-.*? testing in "RequestHeaders".*
-.*? testing in "ResponseHeaders".*
-.*? cannot add request header: response produced.*
-.*? testing in "Log".*
-.*? cannot add request header: response produced.*/
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): can only set request headers before response is produced.*~
 --- no_error_log
 [warn]
 [crit]
 [alert]
+[emerg]
+
+
+
+=== TEST 29: proxy_wasm - set_http_request_headers() x on_response_body
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/add_request_header';
+
+        return 200;
+    }
+--- more_headers
+Hello: world
+pwm-add-req-header: Hello=world
+--- grep_error_log eval: qr/.*?host trap.*/
+--- grep_error_log_out eval
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): can only set request headers before response is produced.*~
+--- no_error_log
+[warn]
+[crit]
+[alert]
+[emerg]
+
+
+
+=== TEST 30: proxy_wasm - set_http_request_headers() x on_log
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/add_request_header';
+
+        return 200;
+    }
+--- more_headers
+Hello: world
+pwm-add-req-header: Hello=world
+--- grep_error_log eval: qr/.*?host trap.*/
+--- grep_error_log_out eval
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): can only set request headers before response is produced.*~
+--- no_error_log
+[warn]
+[crit]
+[alert]
+[emerg]

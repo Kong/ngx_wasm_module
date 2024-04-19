@@ -375,8 +375,7 @@ qr/\[error\] .*? \[wasm\] cannot set read-only ":scheme" header/
 
 
 
-=== TEST 15: proxy_wasm - set_http_request_header() x on_phases
-should log an error (but no trap) when response is produced
+=== TEST 15: proxy_wasm - set_http_request_headers() x request_headers phase
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -385,25 +384,85 @@ should log an error (but no trap) when response is produced
                               value=From:request_headers';
         proxy_wasm hostcalls 'on=request_headers \
                               test=/t/echo/headers';
-        proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/set_request_header \
-                              value=From:response_headers';
-        proxy_wasm hostcalls 'on=log \
-                              test=/t/set_request_header \
-                              value=From:log';
     }
 --- more_headers
 From: client
 --- response_body_like
 From: request_headers
---- grep_error_log eval: qr/\[(error|hostcalls)\] [^on_].*/
---- grep_error_log_out eval
-qr/.*? testing in "RequestHeaders".*
-.*? testing in "RequestHeaders".*
-.*? testing in "ResponseHeaders".*
-\[error\] .*? \[wasm\] cannot set request header: response produced.*
-.*? testing in "Log".*
-\[error\] .*? \[wasm\] cannot set request header: response produced.*/
+--- grep_error_log eval: qr/\[(error|hostcalls)\] [^,]*/
+--- grep_error_log_out
+[hostcalls] on_request_headers
+[hostcalls] testing in "RequestHeaders"
+[hostcalls] on_request_headers
+[hostcalls] testing in "RequestHeaders"
+[hostcalls] on_response_headers
+[hostcalls] on_response_headers
+[hostcalls] on_response_body
+[hostcalls] on_response_body
+[hostcalls] on_done while logging request
+[hostcalls] on_log while logging request
+[hostcalls] on_done while logging request
+[hostcalls] on_log while logging request
 --- no_error_log
 [crit]
 [alert]
+
+
+
+=== TEST 16: proxy_wasm - set_http_request_headers() x on_response_headers
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=response_headers \
+                              test=/t/set_request_header \
+                              value=From:response_headers';
+
+        return 200;
+    }
+--- grep_error_log eval: qr/.*?host trap.*/
+--- grep_error_log_out eval
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): can only set request headers before response is produced.*~
+--- no_error_log
+[crit]
+[alert]
+[emerg]
+
+
+
+=== TEST 17: proxy_wasm - set_http_request_headers() x on_response_body
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_request_header \
+                              value=From:response_body';
+
+        return 200;
+    }
+--- grep_error_log eval: qr/.*?host trap.*/
+--- grep_error_log_out eval
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): can only set request headers before response is produced.*~
+--- no_error_log
+[crit]
+[alert]
+[emerg]
+
+
+
+=== TEST 18: proxy_wasm - set_http_request_headers() x on_log
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/set_request_header \
+                              value=From:log';
+
+        return 200;
+    }
+--- grep_error_log eval: qr/.*?host trap.*/
+--- grep_error_log_out eval
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): can only set request headers before response is produced.*~
+--- no_error_log
+[crit]
+[alert]
+[emerg]

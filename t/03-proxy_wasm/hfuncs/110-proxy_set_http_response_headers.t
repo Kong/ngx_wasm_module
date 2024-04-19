@@ -104,46 +104,73 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Connection response header: "cl
 
 
 
-=== TEST 4: proxy_wasm - set_http_response_headers() x on_phases
-should log an error (but no trap) when headers are sent
+=== TEST 4: proxy_wasm - set_http_response_headers() x valid phases
 --- wasm_modules: hostcalls
 --- config
     location /t {
         proxy_wasm hostcalls 'on=request_headers \
                               test=/t/set_response_headers \
-                              value=From:request_headers';
+                              value=From-One:request_headers';
 
         proxy_wasm hostcalls 'on=response_headers \
                               test=/t/set_response_headers \
-                              value=From:response_headers';
-
-        proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_response_headers \
-                              value=From:response_body';
-
-        proxy_wasm hostcalls 'on=log \
-                              test=/t/set_response_headers \
-                              value=From:log';
+                              value=From-Two:response_headers';
         return 200;
     }
 --- response_headers
-From: response_headers
+From-Two: response_headers
 --- ignore_response_body
---- grep_error_log eval: qr/(\[error\]|testing in) .*/
---- grep_error_log_out eval
-qr/testing in "RequestHeaders".*
-testing in "ResponseHeaders".*
-testing in "ResponseBody".*
-\[error\] .*? \[wasm\] cannot set response headers: headers already sent.*
-testing in "Log".*
-\[error\] .*? \[wasm\] cannot set response headers: headers already sent/
+--- grep_error_log eval: qr/(\[error\].*|testing in \"[^"]*\")/
+--- grep_error_log_out
+testing in "RequestHeaders"
+testing in "ResponseHeaders"
 --- no_error_log
 [warn]
 [crit]
 
 
 
-=== TEST 5: proxy_wasm - set_http_response_headers() sets :status response header at request_headers
+=== TEST 5: proxy_wasm - set_http_response_headers() x on_response_body
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=response_body \
+                              test=/t/set_response_headers \
+                              value=From:response_body';
+
+        return 200;
+    }
+--- grep_error_log eval: qr/.*?host trap.*/
+--- grep_error_log_out eval
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): can only set response headers on request path before "on_response_body".*~
+--- no_error_log
+[warn]
+[crit]
+[alert]
+
+
+
+=== TEST 6: proxy_wasm - set_http_response_headers() x on_log
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=log \
+                              test=/t/set_response_headers \
+                              value=From:log';
+
+        return 200;
+    }
+--- grep_error_log eval: qr/.*?host trap.*/
+--- grep_error_log_out eval
+qr~(\[error\]|Uncaught RuntimeError|\s+).*?host trap \(bad usage\): can only set response headers on request path before "on_response_body".*~
+--- no_error_log
+[warn]
+[crit]
+[alert]
+
+
+
+=== TEST 7: proxy_wasm - set_http_response_headers() sets :status response header at request_headers
 --- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
@@ -166,7 +193,7 @@ Content-Length: 0\r
 
 
 
-=== TEST 6: proxy_wasm - set_http_response_headers() sets :status response header
+=== TEST 8: proxy_wasm - set_http_response_headers() sets :status response header
 --- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
@@ -189,7 +216,7 @@ Connection: close\r
 
 
 
-=== TEST 7: proxy_wasm - set_http_response_headers() ignores :status out of range
+=== TEST 9: proxy_wasm - set_http_response_headers() ignores :status out of range
 --- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
@@ -212,7 +239,7 @@ Connection: close\r
 
 
 
-=== TEST 8: proxy_wasm - set_http_response_headers() ignores invalid :status
+=== TEST 10: proxy_wasm - set_http_response_headers() ignores invalid :status
 --- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
@@ -235,7 +262,7 @@ Connection: close\r
 
 
 
-=== TEST 9: proxy_wasm - set_http_response_headers() ignores empty :status
+=== TEST 11: proxy_wasm - set_http_response_headers() ignores empty :status
 --- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
