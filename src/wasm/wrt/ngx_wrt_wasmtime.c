@@ -17,6 +17,10 @@ typedef void (*wasmtime_config_set_int_pt)(wasm_config_t *config,
 typedef void (*wasmtime_config_set_bool_pt)(wasm_config_t *config, bool value);
 
 
+static u_char *ngx_wasmtime_log_handler(ngx_wrt_res_t *res, u_char *buf,
+    size_t len);
+
+
 static ngx_int_t
 size_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
     ngx_log_t *log, void *wrt_setter)
@@ -129,10 +133,12 @@ profiler_flag_handler(wasm_config_t *config, ngx_str_t *name, ngx_str_t *value,
 static wasm_config_t *
 ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
 {
-    wasm_config_t  *config;
+    char              *pathname;
+    u_char            *errmsg;
+    wasm_config_t     *config;
+    wasmtime_error_t  *err;
 #if 0
     wasm_name_t        msg;
-    wasmtime_error_t  *err = NULL;
 #endif
 
     ngx_wa_assert(conf->backtraces != NGX_CONF_UNSET);
@@ -159,6 +165,39 @@ ngx_wasmtime_init_conf(ngx_wavm_conf_t *conf, ngx_log_t *log)
     wasmtime_config_cranelift_opt_level_set(config, WASMTIME_OPT_LEVEL_NONE);
     wasmtime_config_static_memory_maximum_size_set(config, 0);
 #endif
+
+    if (conf->cache_config.len) {
+        ngx_wavm_log_error(NGX_LOG_INFO, log, NULL,
+                           "setting wasmtime cache config file: \"%V\"",
+                           &conf->cache_config);
+
+        pathname = ngx_calloc(conf->cache_config.len + 1, log);
+        if (pathname == NULL) {
+            goto error;
+        }
+
+        ngx_memcpy(pathname, conf->cache_config.data, conf->cache_config.len);
+
+        err = wasmtime_config_cache_config_load(config, pathname);
+
+        ngx_free(pathname);
+
+        if (err) {
+            errmsg = ngx_calloc(NGX_MAX_ERROR_STR + 1, log);
+            if (errmsg == NULL) {
+                goto error;
+            }
+
+            ngx_wasmtime_log_handler((ngx_wrt_res_t *) err, errmsg,
+                                     NGX_MAX_ERROR_STR);
+
+            ngx_log_error(NGX_LOG_EMERG, log, 0,
+                          "failed configuring wasmtime cache; %s",
+                          errmsg);
+
+            goto error;
+        }
+    }
 
     if (conf->compiler.len) {
         if (ngx_str_eq(conf->compiler.data, conf->compiler.len,

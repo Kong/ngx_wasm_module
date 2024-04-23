@@ -52,6 +52,14 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       0,
       NULL },
 
+    { ngx_string("cache_config"),
+      NGX_WASMTIME_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_WA_WASM_CONF_OFFSET,
+      offsetof(ngx_wasm_core_conf_t, vm_conf)
+      + offsetof(ngx_wavm_conf_t, cache_config),
+      NULL },
+
     { ngx_string("compiler"),
       NGX_WASM_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,

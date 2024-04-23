@@ -16,6 +16,7 @@ typedef struct ngx_wavm_instance_s  ngx_wavm_instance_t;
 typedef struct {
     const ngx_str_t               *vm_name;
     const ngx_str_t               *runtime_name;
+    ngx_str_t                      cache_config;
     ngx_str_t                      compiler;
     ngx_flag_t                     backtraces;
     ngx_array_t                    flags;
