@@ -3,6 +3,7 @@
 By alphabetical order:
 
 - [backtraces](#backtraces)
+- [cache_config](#cache-config)
 - [compiler](#compiler)
 - [flag](#flag)
 - [module](#module)
@@ -57,6 +58,7 @@ By context:
     - [tls_verify_cert](#tls_verify_cert)
     - [tls_verify_host](#tls_verify_host)
     - `wasmtime{}`
+        - [cache_config](#cache-config)
         - [flag](#flag)
     - `wasmer{}`
         - [flag](#flag)
@@ -128,6 +130,23 @@ Different runtimes support different compilers:
     - `llvm`
     - `cranelift`
     - `singlepass`
+
+[Back to TOC](#directives)
+
+cache_config
+------------
+
+**usage**    | `cache_config <path>;`
+------------:|:----------------------------------------------------------------
+**contexts** | `wasmtime{}`
+**default**  |
+**example**  | `cache_config /path/to/wasmtime_config.toml;`
+
+Enables Wasmtime's compilation cache and loads the specified configuration file.
+
+By default the Wasmtime compilation cache is disabled. If specified, the path
+must point to a file on the filesystem with TOML configuration; see
+https://bytecodealliance.github.io/wasmtime/cli-cache.html.
 
 [Back to TOC](#directives)
 
