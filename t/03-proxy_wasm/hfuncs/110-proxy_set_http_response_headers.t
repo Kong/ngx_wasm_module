@@ -48,7 +48,6 @@ resp Welcome: wasm.*/
 
 === TEST 2: proxy_wasm - set_http_response_headers() sets special response headers
 --- valgrind
---- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
     location /t {
@@ -104,47 +103,7 @@ qr/\[error\] .*? \[wasm\] attempt to set invalid Connection response header: "cl
 
 
 
-=== TEST 4: proxy_wasm - set_http_response_headers() x on_phases
-should log an error (but no trap) when headers are sent
---- wasm_modules: hostcalls
---- config
-    location /t {
-        proxy_wasm hostcalls 'on=request_headers \
-                              test=/t/set_response_headers \
-                              value=From:request_headers';
-
-        proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/set_response_headers \
-                              value=From:response_headers';
-
-        proxy_wasm hostcalls 'on=response_body \
-                              test=/t/set_response_headers \
-                              value=From:response_body';
-
-        proxy_wasm hostcalls 'on=log \
-                              test=/t/set_response_headers \
-                              value=From:log';
-        return 200;
-    }
---- response_headers
-From: response_headers
---- ignore_response_body
---- grep_error_log eval: qr/(\[error\]|testing in) .*/
---- grep_error_log_out eval
-qr/testing in "RequestHeaders".*
-testing in "ResponseHeaders".*
-testing in "ResponseBody".*
-\[error\] .*? \[wasm\] cannot set response headers: headers already sent.*
-testing in "Log".*
-\[error\] .*? \[wasm\] cannot set response headers: headers already sent/
---- no_error_log
-[warn]
-[crit]
-
-
-
-=== TEST 5: proxy_wasm - set_http_response_headers() sets ':status' pseudo-header on request_headers
---- load_nginx_modules: ngx_http_headers_more_filter_module
+=== TEST 4: proxy_wasm - set_http_response_headers() sets ':status' pseudo-header on request_headers
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
     location /t {
@@ -166,8 +125,7 @@ Content-Length: 0\r
 
 
 
-=== TEST 6: proxy_wasm - set_http_response_headers() sets ':status' pseudo-header on response_headers
---- load_nginx_modules: ngx_http_headers_more_filter_module
+=== TEST 5: proxy_wasm - set_http_response_headers() sets ':status' pseudo-header on response_headers
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
     location /t {
@@ -189,8 +147,7 @@ Connection: close\r
 
 
 
-=== TEST 7: proxy_wasm - set_http_response_headers() ignores out-of-range ':status' values
---- load_nginx_modules: ngx_http_headers_more_filter_module
+=== TEST 6: proxy_wasm - set_http_response_headers() ignores out-of-range ':status' values
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
     location /t {
@@ -213,8 +170,7 @@ qr/\[warn\] .*? ignoring attempt to set invalid response status: "999999"/
 
 
 
-=== TEST 8: proxy_wasm - set_http_response_headers() ignores invalid ':status' values
---- load_nginx_modules: ngx_http_headers_more_filter_module
+=== TEST 7: proxy_wasm - set_http_response_headers() ignores invalid ':status' values
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
     location /t {
@@ -237,8 +193,7 @@ qr/\[warn\] .*? ignoring attempt to set invalid response status: "xyz"/
 
 
 
-=== TEST 9: proxy_wasm - set_http_response_headers() ignores empty ':status' values
---- load_nginx_modules: ngx_http_headers_more_filter_module
+=== TEST 8: proxy_wasm - set_http_response_headers() ignores empty ':status' values
 --- wasm_modules: ngx_rust_tests hostcalls
 --- config
     location /t {

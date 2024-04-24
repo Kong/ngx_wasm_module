@@ -224,7 +224,6 @@ qr/\[error\] .*? \[wasm\] cannot add new "Content-Length" builtin response heade
 
 === TEST 9: proxy_wasm - add_http_response_header() cannot add empty Content-Length
 should log an error but not produce a trap
---- load_nginx_modules: ngx_http_headers_more_filter_module
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -372,42 +371,3 @@ qr/.*? on_response_headers, 6 headers.*
 resp Cache-Control: no-cache.*/
 --- no_error_log
 [error]
-
-
-
-=== TEST 15: proxy_wasm - add_http_response_header() x on_phases
-should log an error (but no trap) when headers are sent
---- wasm_modules: hostcalls
---- config
-    location /t {
-        proxy_wasm hostcalls 'on=request_headers \
-                              test=/t/add_response_header \
-                              value=From:request_headers';
-
-        proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/add_response_header \
-                              value=From:response_headers';
-
-        proxy_wasm hostcalls 'on=response_body \
-                              test=/t/add_response_header \
-                              value=From:response_body';
-
-        proxy_wasm hostcalls 'on=log \
-                              test=/t/add_response_header \
-                              value=From:log';
-        return 200;
-    }
---- response_headers
-From: request_headers, response_headers
---- ignore_response_body
---- grep_error_log eval: qr/\[(error|hostcalls)\] [^on_].*/
---- grep_error_log_out eval
-qr/.*? testing in "RequestHeaders".*
-.*? testing in "ResponseHeaders".*
-.*? testing in "ResponseBody".*
-\[error\] .*? \[wasm\] cannot add response header: headers already sent.*
-.*? testing in "Log".*
-\[error\] .*? \[wasm\] cannot add response header: headers already sent.*/
---- no_error_log
-[crit]
-[emerg]

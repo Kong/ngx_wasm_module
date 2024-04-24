@@ -623,6 +623,79 @@ ngx_proxy_wasm_hfuncs_get_header_map_value(ngx_wavm_instance_t *instance,
 
 
 static ngx_int_t
+ngx_proxy_wasm_hfuncs_set_header_check(ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type, wasm_val_t rets[])
+{
+#ifdef NGX_WASM_HTTP
+    ngx_proxy_wasm_exec_t    *pwexec;
+    ngx_proxy_wasm_ctx_t     *pwctx;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    pwctx = pwexec->parent;
+#endif
+
+    switch (map_type) {
+#ifdef NGX_WASM_HTTP
+    case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
+
+        /* check context */
+
+        switch (pwctx->step) {
+        case NGX_PROXY_WASM_STEP_REQ_HEADERS:
+        case NGX_PROXY_WASM_STEP_REQ_BODY:
+        case NGX_PROXY_WASM_STEP_REQ_TRAILERS:
+            break;
+        case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
+            if (!rctx->entered_header_filter) {
+                return NGX_OK;
+            }
+            /* fallthrough */
+        default:
+            return ngx_proxy_wasm_result_trap(pwexec,
+                                              "can only set request headers "
+                                              "before response is produced",
+                                              rets, NGX_WAVM_BAD_USAGE);
+        }
+
+        break;
+
+    case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
+
+        /* check context */
+
+        switch (pwctx->step) {
+        case NGX_PROXY_WASM_STEP_REQ_HEADERS:
+        case NGX_PROXY_WASM_STEP_REQ_BODY:
+        case NGX_PROXY_WASM_STEP_REQ_TRAILERS:
+        case NGX_PROXY_WASM_STEP_RESP_HEADERS:
+            break;
+        case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
+            if (!rctx->r->header_sent) {
+                return NGX_OK;
+            }
+            /* fallthrough */
+        default:
+            return ngx_proxy_wasm_result_trap(pwexec,
+                                              "can only set response headers "
+                                              "before \"on_response_body\"",
+                                              rets, NGX_WAVM_BAD_USAGE);
+        }
+
+        break;
+#endif
+    default:
+        ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
+                           "NYI - set_map bad map_type: %d", map_type);
+        return ngx_proxy_wasm_result_badarg(rets);
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
 ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
@@ -631,11 +704,6 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
     ngx_array_t                       headers;
     ngx_proxy_wasm_marshalled_map_t   map;
     ngx_proxy_wasm_exec_t            *pwexec;
-#ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t          *rctx;
-
-    rctx = ngx_http_proxy_wasm_get_rctx(instance);
-#endif
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
 
@@ -647,35 +715,23 @@ ngx_proxy_wasm_hfuncs_set_header_map_pairs(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_err(rets);
     }
 
-    switch (map_type) {
+    rc = ngx_proxy_wasm_hfuncs_set_header_check(instance, map_type, rets);
+    if (rc != NGX_OK) {
+        return rc;
+    }
 
+    switch (map_type) {
 #ifdef NGX_WASM_HTTP
     case NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS:
-        if (rctx->entered_header_filter) {
-            ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
-                               "cannot set request headers: response produced");
-
-            return ngx_proxy_wasm_result_ok(rets);
-        }
-
         rc = ngx_http_wasm_clear_req_headers(
                  ngx_http_proxy_wasm_get_req(instance));
         break;
 
     case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
-        if (rctx->r->header_sent) {
-            ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
-                               "cannot set response headers: "
-                               "headers already sent");
-
-            return ngx_proxy_wasm_result_ok(rets);
-        }
-
         rc = ngx_http_wasm_clear_resp_headers(
                  ngx_http_proxy_wasm_get_req(instance));
         break;
 #endif
-
     default:
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
                            "NYI - set_map bad map_type: %d", map_type);
@@ -708,11 +764,6 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
     ngx_int_t                   rc;
     ngx_str_t                   key, value;
     ngx_proxy_wasm_map_type_e   map_type;
-#ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t    *rctx;
-
-    rctx = ngx_http_proxy_wasm_get_rctx(instance);
-#endif
 
     map_type = args[0].of.i32;
     key.len = args[2].of.i32;
@@ -720,25 +771,10 @@ ngx_proxy_wasm_hfuncs_add_header_map_value(ngx_wavm_instance_t *instance,
     value.len = args[4].of.i32;
     value.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[3].of.i32, value.len);
 
-#ifdef NGX_WASM_HTTP
-    if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
-        && rctx->entered_header_filter)
-    {
-        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
-                           "cannot add request header: response produced");
-
-        return ngx_proxy_wasm_result_ok(rets);
-
-    } else if (map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS
-               && rctx->r->header_sent)
-    {
-        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
-                           "cannot add response header: "
-                           "headers already sent");
-
-        return ngx_proxy_wasm_result_ok(rets);
+    rc = ngx_proxy_wasm_hfuncs_set_header_check(instance, map_type, rets);
+    if (rc != NGX_OK) {
+        return rc;
     }
-#endif
 
     dd("adding '%.*s: %.*s' to map of type '%d'",
        (int) key.len, key.data, (int) value.len, value.data, map_type);
@@ -762,11 +798,6 @@ ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
     ngx_int_t                   rc;
     ngx_str_t                   key, value;
     ngx_proxy_wasm_map_type_e   map_type;
-#ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t    *rctx;
-
-    rctx = ngx_http_proxy_wasm_get_rctx(instance);
-#endif
 
     map_type = args[0].of.i32;
     key.len = args[2].of.i32;
@@ -774,25 +805,10 @@ ngx_proxy_wasm_hfuncs_replace_header_map_value(ngx_wavm_instance_t *instance,
     value.len = args[4].of.i32;
     value.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[3].of.i32, value.len);
 
-#ifdef NGX_WASM_HTTP
-    if (map_type == NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS
-        && rctx->entered_header_filter)
-    {
-        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
-                           "cannot set request header: response produced");
-
-        return ngx_proxy_wasm_result_ok(rets);
-
-    } else if (map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS
-               && rctx->r->header_sent)
-    {
-        ngx_wavm_log_error(NGX_LOG_ERR, instance->log, NULL,
-                           "cannot set response header: "
-                           "headers already sent");
-
-        return ngx_proxy_wasm_result_ok(rets);
+    rc = ngx_proxy_wasm_hfuncs_set_header_check(instance, map_type, rets);
+    if (rc != NGX_OK) {
+        return rc;
     }
-#endif
 
     dd("setting '%.*s: %.*s' into map of type '%d'",
        (int) key.len, key.data, (int) value.len, value.data, map_type);
@@ -822,6 +838,11 @@ ngx_proxy_wasm_hfuncs_remove_header_map_value(ngx_wavm_instance_t *instance,
     map_type = args[0].of.i32;
     klen = args[2].of.i32;
     key = NGX_WAVM_HOST_LIFT_SLICE(instance, args[1].of.i32, klen);
+
+    rc = ngx_proxy_wasm_hfuncs_set_header_check(instance, map_type, rets);
+    if (rc != NGX_OK) {
+        return rc;
+    }
 
     dd("removing '%.*s' from map of type '%d'",
        (int) klen, (u_char *) key, map_type);

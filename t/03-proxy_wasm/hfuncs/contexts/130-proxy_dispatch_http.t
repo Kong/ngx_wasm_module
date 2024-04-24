@@ -102,10 +102,7 @@ dispatch failed: no :method
 
 === TEST 6: proxy_wasm contexts - dispatch_http_call on_request_body
 --- load_nginx_modules: ngx_http_echo_module
---- main_config
-    wasm {
-        module context_checks $TEST_NGINX_CRATES_DIR/context_checks.wasm;
-    }
+--- wasm_modules: context_checks
 --- config
     location /t {
         proxy_wasm context_checks 'on_request_body=dispatch_http_call';
