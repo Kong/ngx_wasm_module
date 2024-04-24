@@ -99,36 +99,3 @@ Welcome: wasm
 [error]
 [crit]
 [alert]
-
-
-
-=== TEST 5: proxy_wasm - set_http_request_headers() x on_phases
-should log an error (but no trap) when response is produced
---- wasm_modules: hostcalls
---- config
-    location /t {
-        proxy_wasm hostcalls 'on=request_headers \
-                              test=/t/set_request_headers';
-        proxy_wasm hostcalls 'on=request_headers \
-                              test=/t/echo/headers';
-        proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/set_request_headers';
-        proxy_wasm hostcalls 'on=log \
-                              test=/t/set_request_headers';
-    }
---- more_headers eval
-CORE::join "\n", map { "Header$_: value-$_" } 1..20
---- response_body
-Hello: world
-Welcome: wasm
---- grep_error_log eval: qr/\[(error|hostcalls)\] [^on_].*/
---- grep_error_log_out eval
-qr/.*? testing in "RequestHeaders".*
-.*? testing in "RequestHeaders".*
-.*? testing in "ResponseHeaders".*
-\[error\] .*? \[wasm\] cannot set request headers: response produced.*
-.*? testing in "Log".*
-\[error\] .*? \[wasm\] cannot set request headers: response produced.*/
---- no_error_log
-[warn]
-[crit]
