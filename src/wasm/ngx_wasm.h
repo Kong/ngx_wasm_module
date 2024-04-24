@@ -14,10 +14,10 @@
 #define NGX_LOG_WASM_NYI             NGX_LOG_ALERT
 
 #define NGX_WASM_MODULE              0x5741534d   /* "WASM" */
-#define NGX_WASM_CONF                0x00300000
-#define NGX_WASMTIME_CONF            0x00001000
-#define NGX_WASMER_CONF              0x00002000
-#define NGX_V8_CONF                  0x00004000
+#define NGX_WASM_CONF                0x10000000
+#define NGX_WASMTIME_CONF            0x20000000
+#define NGX_WASMER_CONF              0x40000000
+#define NGX_V8_CONF                  0x80000000
 
 #define NGX_WASM_DONE_PHASE          15
 #define NGX_WASM_BACKGROUND_PHASE    16
