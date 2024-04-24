@@ -728,7 +728,7 @@ ngx_http_wasm_rewrite_handler(ngx_http_request_t *r)
         if ((p
 #if (NGX_WASM_LUA)
              || (last_ph->handler == ngx_http_lua_rewrite_handler
-                 && (!pset || pset && p))  /* && "not explicitly disabled" */
+                 && (!pset || (pset && p)))  /* && "not explicitly disabled" */
 #endif
             ) && cur_ph < last_ph)
         {
@@ -854,7 +854,7 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
         if ((p
 #if (NGX_WASM_LUA)
              || (last_ph->handler == ngx_http_lua_access_handler
-                 && (!pset || pset && p))  /* && "not explicitly disabled" */
+                 && (!pset || (pset && p)))  /* && "not explicitly disabled" */
 #endif
             ) && cur_ph < last_ph)
         {
