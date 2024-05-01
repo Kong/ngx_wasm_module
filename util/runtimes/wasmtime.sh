@@ -23,6 +23,10 @@ download_wasmtime() {
     local arch="$3"
     local clean="$4"
 
+    case "$arch" in
+        arm64) arch="aarch64" ;;
+    esac
+
     case $OSTYPE in
         linux*)  os="linux";;
         darwin*) os="macos";;

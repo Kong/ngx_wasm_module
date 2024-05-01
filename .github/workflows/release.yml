@@ -406,7 +406,9 @@ jobs:
       - name: Setup dependencies
         run: |
           brew install ninja openssh
-          pip3 install --upgrade setuptools
+          python3 -m venv .python3_venv
+          source .python3_venv/bin/activate
+          python3 -m pip install setuptools
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
