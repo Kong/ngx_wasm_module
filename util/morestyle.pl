@@ -202,6 +202,8 @@ for my $file (@ARGV) {
                     $var_line = $line;
                     save_var();
 
+                } elsif ($line =~ /^\s+[\+\-\*\/] [\s\w\(\)\+\-\*\/\.\-\>]/) {
+                    # ignoring line with a portion of a wrapped expression
                 } elsif (!$cur_line_is_empty) {
                     if ($n_vars > 0 && $min_var_space - $max_var_type > 3) {
                         var_output "excessive spacing in variable alignment: needs 2 spaces from longest type to first name/pointer.";
