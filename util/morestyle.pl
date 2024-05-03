@@ -93,6 +93,7 @@ for my $file (@ARGV) {
 
             if ($line =~ /\\$/) {
                 $comment_not_end = 1;
+
             } else {
                 $one_line_comment = 1;
             }
@@ -204,6 +205,9 @@ for my $file (@ARGV) {
                     $var_lineno = $lineno;
                     $var_line = $line;
                     save_var();
+
+                } elsif ($line =~ /^\s+[\+\-\*\/] [\s\w\(\)\+\-\*\/\.\-\>]/) {
+                    # ignoring line with a portion of a wrapped expression
 
                 } elsif (!$cur_line_is_empty) {
                     if ($n_vars > 0 && $min_var_space - $max_var_type > 3) {
