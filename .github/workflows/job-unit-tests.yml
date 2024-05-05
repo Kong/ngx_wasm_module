@@ -118,9 +118,16 @@ jobs:
           os: ${{ inputs.os }}
           ghcr_username: ${{ github.repository_owner }}
           ghcr_password: ${{ secrets.TOKEN_GITHUB }}
+      - name: Setup coredumps location
+        run: |
+          mkdir ${{ github.workspace }}/coredumps
+          sudo bash -c 'echo "${{ github.workspace }}/coredumps/%e.%p.%t" > /proc/sys/kernel/core_pattern'
       - run: make setup
       - run: make
-      - run: make test
+      - name: Run make test
+        run: |
+          ulimit -c unlimited
+          make test
       - name: Run lcov
         id: lcov
         if: ${{ !env.ACT && inputs.coverage }}
@@ -163,13 +170,18 @@ jobs:
           flags: unit
       - run: rm -f t/servroot/html/nginx.sock
         if: ${{ failure() && !env.ACT }}
-      - uses: actions/upload-artifact@v4
+      - name: Artifacts Upload
+        uses: actions/upload-artifact@v4
         if: ${{ failure() && !env.ACT }}
         with:
           name: ${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}-${{ inputs.ngx != '' && format('nginx-{0}', inputs.ngx) || format('openresty-{0}', inputs.openresty) }}-${{ inputs.runtime }}-${{ inputs.module_type == 'dynamic' && 'dynamic' || 'static'}}-${{ inputs.ipc }}-${{ inputs.ssl }}-${{ inputs.debug }}-${{ inputs.hup }}
           path: |
             work/buildroot/
             t/servroot*
+            ${{ github.workspace }}/coredumps
+      #- name: Setup tmate session
+      #  if: ${{ failure() && !env.ACT }}
+      #  uses: mxschmitt/action-tmate@v3
       - name: Cleanup
         if: ${{ always() }}
         uses: ./.github/actions/cleanup

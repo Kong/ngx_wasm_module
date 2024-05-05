@@ -147,7 +147,7 @@ jobs:
       debug: ${{ matrix.debug }}
       hup: ${{ matrix.hup }}
       module_type: ${{ matrix.module_type }}
-      coverage: true
+      coverage: false
     secrets: inherit
 
   coveralls:
