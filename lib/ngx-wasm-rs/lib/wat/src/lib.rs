@@ -39,9 +39,13 @@ pub unsafe extern "C" fn ngx_wasm_wat_to_wasm(
     wat: *const wasm_byte_vec_t,
     wasm: *mut wasm_byte_vec_t,
 ) -> Option<Box<wasm_byte_vec_t>> {
-    let wat_slice;
+    let empty = Vec::new();
+    let mut wat_slice = empty.as_ref();
+
     unsafe {
-        wat_slice = std::slice::from_raw_parts((*wat).data, (*wat).size);
+        if (*wat).size > 0 {
+            wat_slice = std::slice::from_raw_parts((*wat).data, (*wat).size);
+        }
     }
 
     match wabt::wat2wasm(wat_slice) {
