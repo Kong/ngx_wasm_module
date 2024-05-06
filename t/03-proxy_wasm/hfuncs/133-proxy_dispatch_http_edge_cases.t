@@ -373,3 +373,26 @@ qr/\A.*? on_request_headers.*
 [error]
 [crit]
 [emerg]
+
+
+
+=== TEST 11: proxy_wasm - dispatch_http_call() 2 failing parallel calls
+--- valgrind
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/dispatch_http_call \
+                              host=127.0.0.1:1 \
+                              path=/bad_port \
+                              ncalls=2';
+        echo ok;
+    }
+--- error_code: 500
+--- no_error_log
+[crit]
+[emerg]
+[alert]
+[stub1]
+[stub2]
