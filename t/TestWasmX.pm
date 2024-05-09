@@ -29,6 +29,7 @@ our @EXPORT = qw(
     load_nginx_modules
     plan_tests
     skip_hup
+    skip_no_hup
     skip_no_ssl
     skip_no_ipc
     skip_no_debug
@@ -56,6 +57,12 @@ sub plan_tests (@) {
 sub skip_hup {
     if ($ENV{TEST_NGINX_USE_HUP} == 1) {
         plan(skip_all => "skip in HUP mode");
+    }
+}
+
+sub skip_no_hup {
+    if ($ENV{TEST_NGINX_USE_HUP} == 0) {
+        plan(skip_all => "skip without HUP mode");
     }
 }
 
@@ -199,6 +206,17 @@ add_block_preprocessor(sub {
                 @arr = split /,/, $shm_kv;
                 @arr = map { "    shm_kv $_;" } @arr;
                 $wasm_config = $wasm_config . (join "\n", @arr);
+            }
+
+            # --- metrics
+
+            my $metrics = $block->metrics;
+
+            if (defined $metrics) {
+                $wasm_config = $wasm_config .
+                               "    metrics {\n" .
+                               "        slab_size $metrics" . ";\n" .
+                               "    }\n";
             }
 
             # --- shm_queue

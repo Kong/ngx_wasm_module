@@ -15,28 +15,11 @@
 #define NGX_WASM_SLRU_NQUEUES(pool)  (NGX_WASM_SLAB_SLOTS(pool) + 1)
 
 
-typedef struct {
-    ngx_rbtree_t        rbtree;
-    ngx_rbtree_node_t   sentinel;
-    union {
-        ngx_queue_t     lru_queue;
-        ngx_queue_t     slru_queues[0];
-    } eviction;
-} ngx_wasm_shm_kv_t;
-
-
-typedef struct {
-    ngx_str_node_t      key;
-    ngx_str_t           value;
-    uint32_t            cas;
-    ngx_queue_t         queue;
-} ngx_wasm_shm_kv_node_t;
-
-
-static ngx_inline ngx_wasm_shm_kv_t *
+ngx_wasm_shm_kv_t *
 ngx_wasm_shm_get_kv(ngx_wasm_shm_t *shm)
 {
-    ngx_wa_assert(shm->type == NGX_WASM_SHM_TYPE_KV);
+    ngx_wa_assert(shm->type == NGX_WASM_SHM_TYPE_KV || \
+                  shm->type == NGX_WASM_SHM_TYPE_METRICS);
     return shm->data;
 }
 
@@ -287,8 +270,7 @@ ngx_wasm_shm_kv_set_locked(ngx_wasm_shm_t *shm, ngx_str_t *key,
     ngx_wasm_shm_kv_node_t  *n, *old;
 
     old = NULL;
-    n = (ngx_wasm_shm_kv_node_t *) ngx_wasm_shm_rbtree_lookup(&kv->rbtree,
-                                                              key_hash);
+    n = ngx_wasm_shm_rbtree_lookup(&kv->rbtree, key_hash);
 
     if (cas != (n == NULL ? 0 : n->cas)) {
         *written = 0;

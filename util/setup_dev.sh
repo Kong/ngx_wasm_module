@@ -137,6 +137,30 @@ EOF
          use_http3
          env_to_nginx
 EOF
+    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
+    @@ -977,6 +977,11 @@
+         my $post_main_config = $block->post_main_config;
+         my $err_log_file = $block->error_log_file;
+         my $server_name = $block->server_name;
+    +    my $workers = $block->workers;
+    +
+    +    if (!$workers) {
+    +        $workers = $Workers;
+    +    }
+
+         if ($UseHup) {
+             master_on(); # config reload is buggy when master is off
+    @@ -1054,7 +1059,7 @@
+             bail_out "Can't open $ConfFile for writing: $!\n";
+         print $out "daemon $DaemonEnabled;" if ($DaemonEnabled eq 'off');
+         print $out <<_EOC_;
+    -worker_processes  $Workers;
+    +worker_processes  $workers;
+     master_process $MasterProcessEnabled;
+     error_log $err_log_file $LogLevel;
+     pid       $PidFile;
+
+EOF
     set -e
 popd
 

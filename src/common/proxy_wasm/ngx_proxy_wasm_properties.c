@@ -394,6 +394,34 @@ get_filter_root_id(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
 }
 
 
+#if (NGX_DEBUG)
+static ngx_int_t
+get_worker_id(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    size_t  len;
+    u_char  buf[NGX_OFF_T_LEN];
+
+    if (!pwctx->worker_id.len) {
+        len = ngx_sprintf(buf, "%i", ngx_worker) - buf;
+
+        pwctx->worker_id.data = ngx_pnalloc(pwctx->pool, len);
+        if (pwctx->worker_id.data == NULL) {
+            return NGX_ERROR;
+        }
+
+        ngx_memcpy(pwctx->worker_id.data, buf, len);
+        pwctx->worker_id.len = len;
+    }
+
+    value->len = pwctx->worker_id.len;
+    value->data = pwctx->worker_id.data;
+
+    return NGX_OK;
+}
+#endif
+
+
 static pwm2ngx_mapping_t  pw2ngx[] = {
 #ifdef NGX_WASM_HTTP
 
@@ -599,6 +627,14 @@ static pwm2ngx_mapping_t  pw2ngx[] = {
       ngx_null_string,
       &not_supported, NULL },
 
+    /* debugging properties */
+
+#if (NGX_DEBUG)
+    { ngx_string("worker_id"),
+      ngx_null_string,
+      &get_worker_id, NULL },
+#endif
+
     { ngx_null_string, ngx_null_string, NULL, NULL }
 };
 
@@ -654,7 +690,7 @@ ngx_proxy_wasm_properties_init(ngx_conf_t *cf)
 
     pwm2ngx_init.hash = &pwm2ngx_hash.hash;
     pwm2ngx_init.key = ngx_hash_key;
-    pwm2ngx_init.max_size = 256;
+    pwm2ngx_init.max_size = 512;
     pwm2ngx_init.bucket_size = ngx_align(64, ngx_cacheline_size);
     pwm2ngx_init.name = "pwm2ngx_properties";
     pwm2ngx_init.pool = cf->pool;

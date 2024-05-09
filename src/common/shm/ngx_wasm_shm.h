@@ -11,6 +11,7 @@
 typedef enum {
     NGX_WASM_SHM_TYPE_KV,
     NGX_WASM_SHM_TYPE_QUEUE,
+    NGX_WASM_SHM_TYPE_METRICS,
 } ngx_wasm_shm_type_e;
 
 

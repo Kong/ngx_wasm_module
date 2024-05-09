@@ -381,3 +381,77 @@ pub fn dispatch_http_call(_ctx: &TestContext) {
         info!("dispatch_http_call status: {}", status as u32);
     }
 }
+
+#[allow(improper_ctypes)]
+extern "C" {
+    fn proxy_define_metric(
+        metric_type: MetricType,
+        name_data: *const u8,
+        name_size: usize,
+        return_id: *mut u32,
+    ) -> Status;
+}
+
+pub fn define_metric(_ctx: &TestContext) {
+    let name = "a_counter";
+    let metric_type = MetricType::Counter;
+    let mut return_id: u32 = 0;
+
+    unsafe {
+        let status = proxy_define_metric(metric_type, name.as_ptr(), name.len(), &mut return_id);
+
+        info!("define_metric status: {}", status as u32);
+    }
+}
+
+#[allow(improper_ctypes)]
+extern "C" {
+    fn proxy_get_metric(metric_id: u32, return_value: *mut u64) -> Status;
+}
+
+pub fn get_metric(_ctx: &TestContext) {
+    let name = "a_counter";
+    let metric_type = MetricType::Counter;
+    let mut metric_id: u32 = 0;
+    let mut value: u64 = 0;
+
+    unsafe {
+        proxy_define_metric(metric_type, name.as_ptr(), name.len(), &mut metric_id);
+        let status = proxy_get_metric(metric_id, &mut value);
+        info!("get_metric status: {}", status as u32);
+    }
+}
+
+#[allow(improper_ctypes)]
+extern "C" {
+    fn proxy_record_metric(metric_id: u32, value: u64) -> Status;
+}
+
+pub fn record_metric(_ctx: &TestContext) {
+    let name = "a_gauge";
+    let metric_type = MetricType::Gauge;
+    let mut metric_id: u32 = 0;
+
+    unsafe {
+        proxy_define_metric(metric_type, name.as_ptr(), name.len(), &mut metric_id);
+        let status = proxy_record_metric(metric_id, 1);
+        info!("record_metric status: {}", status as u32);
+    }
+}
+
+#[allow(improper_ctypes)]
+extern "C" {
+    fn proxy_increment_metric(metric_id: u32, offset: i64) -> Status;
+}
+
+pub fn increment_metric(_ctx: &TestContext) {
+    let name = "a_counter";
+    let metric_type = MetricType::Counter;
+    let mut metric_id: u32 = 0;
+
+    unsafe {
+        proxy_define_metric(metric_type, name.as_ptr(), name.len(), &mut metric_id);
+        let status = proxy_increment_metric(metric_id, 1);
+        info!("increment_metric status: {}", status as u32);
+    }
+}

@@ -18,6 +18,7 @@
 #define NGX_WASMTIME_CONF            0x20000000
 #define NGX_WASMER_CONF              0x40000000
 #define NGX_V8_CONF                  0x80000000
+#define NGX_METRICS_CONF             0x16000000
 
 #define NGX_WASM_DONE_PHASE          15
 #define NGX_WASM_BACKGROUND_PHASE    16
@@ -125,12 +126,16 @@ void ngx_wasm_log_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 void swap_modules_if_needed(ngx_conf_t *cf, const char *m1, const char *m2);
 #endif
 
-/* directives */
+/* blocks */
 char *ngx_wasm_core_wasmtime_block(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_wasm_core_wasmer_block(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_wasm_core_v8_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+char *ngx_wasm_core_metrics_block(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+
+/* directives */
 char *ngx_wasm_core_flag_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd,
@@ -139,6 +144,10 @@ char *ngx_wasm_core_shm_kv_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
+char *ngx_wasm_core_metrics_slab_size_directive(ngx_conf_t *cf,
+    ngx_command_t *cmd, void *conf);
+char *ngx_wasm_core_metrics_max_metric_name_length_directive(ngx_conf_t *cf,
+    ngx_command_t *cmd, void *conf);
 char *ngx_wasm_core_resolver_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_wasm_core_pwm_lua_resolver_directive(ngx_conf_t *cf,

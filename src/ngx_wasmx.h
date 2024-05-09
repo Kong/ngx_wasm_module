@@ -3,6 +3,7 @@
 
 
 #include <ngx_core.h>
+#include <ngx_wa_metrics.h>
 
 
 #if (NGX_DEBUG)
@@ -17,6 +18,8 @@
 #define NGX_WA_WASM_CONF_OFFSET    offsetof(ngx_wa_conf_t, wasm_confs)
 #define NGX_WA_IPC_CONF_OFFSET     offsetof(ngx_wa_conf_t, ipc_confs)
 
+#define NGX_WA_CONF_ERR_DUPLICATE  "is duplicate"
+
 #define ngx_wa_cycle_get_conf(cycle)                                         \
     (ngx_wa_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_wasmx_module)
 
@@ -27,11 +30,12 @@ typedef ngx_int_t (*ngx_wa_init_pt)(ngx_cycle_t *cycle);
 
 
 typedef struct {
-    ngx_uint_t              initialized_types;
-    void                  **wasm_confs;
+    ngx_uint_t               initialized_types;
+    void                   **wasm_confs;
 #ifdef NGX_WA_IPC
-    void                  **ipc_confs;
+    void                   **ipc_confs;
 #endif
+    ngx_wa_metrics_t        *metrics;
 } ngx_wa_conf_t;
 
 
