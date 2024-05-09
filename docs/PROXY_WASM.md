@@ -536,10 +536,10 @@ SDK ABI `0.2.1`) and their present status in ngx_wasm_module:
 `proxy_enqueue_shared_queue`          | :heavy_check_mark:  | No automatic eviction mechanism if the queue is full.
 `proxy_resolve_shared_queue`          | :x:                 |
 *Stats/metrics*                       |                     |
-`proxy_define_metric`                 | :x:                 |
-`proxy_get_metric`                    | :x:                 |
-`proxy_record_metric`                 | :x:                 |
-`proxy_increment_metric`              | :x:                 |
+`proxy_define_metric`                 | :heavy_check_mark:  |
+`proxy_get_metric`                    | :heavy_check_mark:  |
+`proxy_record_metric`                 | :heavy_check_mark:  |
+`proxy_increment_metric`              | :heavy_check_mark:  |
 *Custom extension points*             |                     |
 `proxy_call_foreign_function`         | :x:                 |
 

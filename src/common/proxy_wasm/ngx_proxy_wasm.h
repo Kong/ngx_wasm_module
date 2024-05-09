@@ -140,13 +140,11 @@ typedef enum {
 } ngx_proxy_wasm_map_type_e;
 
 
-#if 0
 typedef enum {
     NGX_PROXY_WASM_METRIC_COUNTER = 0,
     NGX_PROXY_WASM_METRIC_GAUGE = 1,
     NGX_PROXY_WASM_METRIC_HISTOGRAM = 2,
 } ngx_proxy_wasm_metric_type_e;
-#endif
 
 
 typedef struct ngx_proxy_wasm_ctx_s  ngx_proxy_wasm_ctx_t;
@@ -242,6 +240,9 @@ struct ngx_proxy_wasm_ctx_s {
     ngx_str_t                                     root_id;           /* pwexec->root_id */
     ngx_str_t                                     call_status;       /* dispatch response status */
     ngx_str_t                                     response_status;   /* response status */
+#if (NGX_DEBUG)
+    ngx_str_t                                     worker_id;         /* ngx_worker */
+#endif
     ngx_uint_t                                    call_code;
     ngx_uint_t                                    response_code;
 

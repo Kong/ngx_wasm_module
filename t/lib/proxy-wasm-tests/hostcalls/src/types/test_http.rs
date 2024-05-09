@@ -1,11 +1,12 @@
 use crate::{tests::echo::*, tests::host::*, tests::*, *};
 use http::StatusCode;
 use log::*;
-use proxy_wasm::{traits::*, types::*};
+use proxy_wasm::{hostcalls::*, traits::*, types::*};
 
 pub struct TestHttp {
     pub on_phases: Vec<TestPhase>,
     pub config: HashMap<String, String>,
+    pub metrics: BTreeMap<String, u32>,
     pub n_sync_calls: usize,
 }
 
@@ -64,6 +65,7 @@ impl TestHttp {
             "/t/log/response_body" => test_log_response_body(self),
             "/t/log/property" => test_log_property(self),
             "/t/log/properties" => test_log_properties(self, cur_phase),
+            "/t/log/metrics" => test_log_metrics(self, cur_phase),
 
             /* send_local_response */
             "/t/send_local_response/status/204" => test_send_status(self, 204),
@@ -120,6 +122,31 @@ impl TestHttp {
             "/t/shm/set_shared_data_by_len" => test_set_shared_data_by_len(self),
             "/t/shm/enqueue" => test_shared_queue_enqueue(self),
             "/t/shm/dequeue" => test_shared_queue_dequeue(self),
+
+            /* metrics */
+            "/t/metrics/define" => test_define_metrics(self),
+            "/t/metrics/increment_counters" => test_increment_counters(self, cur_phase, None),
+            "/t/metrics/increment_gauges" => {
+                let skip_non_counters = false;
+                test_increment_counters(self, cur_phase, Some(skip_non_counters));
+            }
+            "/t/metrics/toggle_gauges" => test_toggle_gauges(self, cur_phase, None),
+            "/t/metrics/toggle_counters" => {
+                let skip_non_gauges = false;
+                test_toggle_gauges(self, cur_phase, Some(skip_non_gauges));
+            }
+            "/t/metrics/record_histograms" => test_record_metric(self, cur_phase),
+            "/t/metrics/get" => test_get_metrics(self),
+            "/t/metrics/increment_invalid_counter" => increment_metric(0, 1).unwrap(),
+            "/t/metrics/set_invalid_gauge" => record_metric(0, 1).unwrap(),
+            "/t/metrics/get_invalid_metric" => {
+                get_metric(0).unwrap();
+            }
+            "/t/metrics/get_histogram" => {
+                info!("retrieving histogram in \"{:?}\"", cur_phase);
+                let h_id = define_metric(MetricType::Histogram, "h1").expect("cannot define new metric");
+                get_metric(h_id).unwrap();
+            }
 
             /* errors */
             "/t/trap" => panic!("custom trap"),

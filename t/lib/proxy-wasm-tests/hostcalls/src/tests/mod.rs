@@ -123,6 +123,14 @@ pub(crate) fn test_log_properties(ctx: &(dyn TestContext + 'static), phase: Test
     }
 }
 
+pub(crate) fn test_log_metrics(ctx: &(dyn TestContext + 'static), phase: TestPhase) {
+    for (n, id) in ctx.get_metrics_mapping() {
+        if n.starts_with('h') { continue }
+        let value = get_metric(*id).unwrap();
+        info!("{}: {} at {:?}", n, value, phase)
+    }
+}
+
 fn show_property(ctx: &(dyn TestContext + 'static), path: &[&str]) -> String {
     if let Some(p) = ctx.get_property(path.to_vec()) {
         if let Ok(value) = std::str::from_utf8(&p) {
@@ -238,7 +246,9 @@ trait HeaderStr {
 impl HeaderStr for str {
     fn split_header<'a>(&'a self) -> Option<(&'a str, &'a str)> {
         if &self[0..1] == ":" {
-            self[1..].find(':').map(|n| (&self[0..n + 1], &self[n + 2..]))
+            self[1..]
+                .find(':')
+                .map(|n| (&self[0..n + 1], &self[n + 2..]))
         } else {
             self.split_once(':')
         }
@@ -412,6 +422,130 @@ pub(crate) fn test_set_shared_data_by_len(ctx: &mut TestHttp) {
     ctx.config.insert("value".to_string(), "x".repeat(len));
 
     test_set_shared_data(ctx);
+}
+
+fn should_run_on_current_worker(ctx: &(dyn TestContext + 'static)) -> bool {
+    match ctx.get_config("on_worker") {
+        Some(on_worker) => {
+            let w_id_bytes = ctx
+                .get_property(vec![("worker_id")])
+                .expect("could not get worker_id");
+            let w_id = std::str::from_utf8(&w_id_bytes).expect("bad worker_id value");
+
+            on_worker == w_id
+        }
+        None => true,
+    }
+}
+
+pub(crate) fn test_define_metrics(ctx: &mut (dyn TestContext + 'static)) {
+    if !should_run_on_current_worker(ctx) {
+        return;
+    }
+
+    let name_len = ctx.get_config("metrics_name_len").map_or(0, |x| {
+        x.parse::<usize>().expect("bad metrics_name_len value")
+    });
+
+    let metrics_config = ctx
+        .get_config("metrics")
+        .map(|x| x.to_string())
+        .expect("missing metrics parameter");
+
+    for metric in metrics_config.split(",") {
+        let metric_char = metric.chars().nth(0).unwrap();
+        let metric_type = match metric_char {
+            'c' => MetricType::Counter,
+            'g' => MetricType::Gauge,
+            'h' => MetricType::Histogram,
+            _ => panic!("unexpected metric type"),
+        };
+        let n = metric[1..].parse::<u64>().expect("bad metrics value");
+
+        for i in 1..(n + 1) {
+            let mut name = format!("{}{}", metric_char, i);
+
+            if name_len > 0 {
+                name = format!("{}{}", name, "x".repeat(name_len - name.chars().count()));
+            }
+
+            let m_id = define_metric(metric_type, &name).expect("cannot define new metric");
+
+            info!("defined metric {} as {:?}", &name, m_id);
+
+            ctx.save_metric_mapping(name.as_str(), m_id);
+        }
+    }
+}
+
+pub(crate) fn test_increment_counters(ctx: &(dyn TestContext + 'static), phase: TestPhase, skip_others: Option<bool>) {
+    if !should_run_on_current_worker(ctx) {
+        return;
+    }
+
+    let n_increments = ctx
+        .get_config("n_increments")
+        .map_or(1, |x| x.parse::<u64>().expect("bad n_increments value"));
+
+    for (n, id) in ctx.get_metrics_mapping() {
+        if skip_others.unwrap_or(true) && !n.starts_with('c') { continue }
+
+        for _ in 0..n_increments {
+            increment_metric(*id, 1).unwrap();
+        }
+
+        info!("incremented {} at {:?}", n, phase);
+    }
+
+    test_log_metrics(ctx, phase);
+}
+
+pub(crate) fn test_toggle_gauges(ctx: &(dyn TestContext + 'static), phase: TestPhase, skip_others: Option<bool>) {
+    if !should_run_on_current_worker(ctx) {
+        return;
+    }
+
+    for (n, id) in ctx.get_metrics_mapping() {
+        if skip_others.unwrap_or(true) && !n.starts_with('g') { continue }
+
+        let new_value = match get_metric(*id).unwrap() {
+            0 => 1,
+            _ => 0,
+        };
+
+        record_metric(*id, new_value).unwrap();
+        info!("toggled {} at {:?}", n, phase);
+    }
+
+    test_log_metrics(ctx, phase);
+}
+
+pub(crate) fn test_record_metric(ctx: &(dyn TestContext + 'static), phase: TestPhase) {
+    if !should_run_on_current_worker(ctx) {
+        return;
+    }
+
+    let value = ctx
+        .get_config("value")
+        .map_or(1, |x| x.parse::<u64>().expect("bad value"));
+
+    for (n, id) in ctx.get_metrics_mapping() {
+        if n.starts_with('c') { continue }
+        record_metric(*id, value).unwrap();
+        info!("record {} on {} at {:?}", value, n, phase);
+    }
+
+    test_log_metrics(ctx, phase);
+}
+
+pub(crate) fn test_get_metrics(ctx: &TestHttp) {
+    for (n, id) in ctx.get_metrics_mapping() {
+        if n.starts_with('h') { continue }
+
+        let name = n.replace("_", "-");
+        let value = get_metric(*id).unwrap().to_string();
+        ctx.add_http_response_header(name.as_str(), value.as_str());
+    }
 }
 
 pub(crate) fn test_shared_queue_enqueue(ctx: &TestHttp) {

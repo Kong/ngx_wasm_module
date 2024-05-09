@@ -6,6 +6,7 @@ By alphabetical order:
 - [cache_config](#cache-config)
 - [compiler](#compiler)
 - [flag](#flag)
+- [max_metric_name_length](#max_metric_name_length)
 - [module](#module)
 - [proxy_wasm](#proxy_wasm)
 - [proxy_wasm_isolation](#proxy_wasm_isolation)
@@ -16,6 +17,7 @@ By alphabetical order:
 - [resolver_timeout](#resolver_timeout)
 - [shm_kv](#shm_kv)
 - [shm_queue](#shm_queue)
+- [slab_size](#slab_size)
 - [socket_buffer_size](#socket_buffer_size)
 - [socket_buffer_reuse](#socket_buffer_reuse)
 - [socket_connect_timeout](#socket_connect_timeout)
@@ -57,6 +59,9 @@ By context:
     - [tls_trusted_certificate](#tls_trusted_certificate)
     - [tls_verify_cert](#tls_verify_cert)
     - [tls_verify_host](#tls_verify_host)
+    - `metrics{}`
+        - [max_metric_name_length](#max_metric_name_length)
+        - [slab_size](#slab_size)
     - `wasmtime{}`
         - [cache_config](#cache-config)
         - [flag](#flag)
@@ -202,6 +207,40 @@ wasm {
     }
 }
 ```
+
+[Back to TOC](#directives)
+
+max_metric_name_length
+----------------------
+
+**usage**    | `max_metric_name_length <length>;`
+------------:|:----------------------------------------------------------------
+**contexts** | `metrics{}`
+**default**  | `256`
+**example**  | `max_metric_name_length 512;`
+
+Set the maximum allowed length of a metric name.
+
+The configured value cannot be lower than `6` due to how metrics are stored
+internally (see "Name Prefixing" in [Metrics]).
+
+Note that this directive's context is the `metrics{}` block, like so:
+
+```nginx
+# nginx.conf
+wasm {
+    metrics {
+        max_metric_name_length 512;
+    }
+}
+```
+
+> Notes
+
+Configuring this value allows for predictable memory usage when configuring the
+metrics [slab_size](#slab_size).
+
+See [Metrics] for a complete description of how metrics are stored in memory.
 
 [Back to TOC](#directives)
 
@@ -522,6 +561,46 @@ Shared queue memory zones can be used via the [proxy-wasm SDK](#proxy-wasm)'s
 
 **Note:** shared memory queues do not presently implement an automatic eviction
 policy, and writes will fail when the allocated memory slab is full.
+
+[Back to TOC](#directives)
+
+slab_size
+---------
+
+**usage**    | `slab_size <size>;`
+------------:|:----------------------------------------------------------------
+**contexts** | `metrics{}`
+**default**  | `5m`
+**example**  | `slab_size 12m;`
+
+Set the `size` of the shared memory slab dedicated to metrics storage. The value
+must be at least `3 * pagesize`, e.g. `15k` on Linux.
+
+When a `wasm{}` or `ipc{}` block are defined, a default slab of `5m` will be
+allocated.
+
+Note that this directive's context is the `metrics{}` block, like so:
+
+```nginx
+# nginx.conf
+wasm {
+    metrics {
+        slab_size 12m;
+    }
+}
+```
+
+> Notes
+
+The space in memory occupied by a metric depends on its name length, type and
+the number of worker processes running. As an example, if all metric names are
+64 chars long and 4 workers are running, `5m` can accommodate 20k counters, 20k
+gauges, or up to 16k histograms.
+
+See the [max_metric_name_length](#max_metric_name_length) directive to configure
+the maximum allowed length of metrics names.
+
+See [Metrics] for a complete description of how metrics are stored in memory.
 
 [Back to TOC](#directives)
 
@@ -939,7 +1018,8 @@ the `http{}` contexts.
 
 [Contexts]: USER.md#contexts
 [Execution Chain]: USER.md#execution-chain
-[SLRU eviction algorithm]: SLRU.md
+[Metrics]: METRICS.md
 [OpenResty]: https://openresty.org/en/
 [resolver]: https://nginx.org/en/docs/http/ngx_http_core_module.html#resolver
 [resolver_timeout]: https://nginx.org/en/docs/http/ngx_http_core_module.html#resolver_timeout
+[SLRU eviction algorithm]: SLRU.md
