@@ -19,6 +19,10 @@ impl TestContext {
         let (name, arg) = name.split_once('|').unwrap_or_else(|| (name, ""));
         match name {
             "proxy_log" => log_something(self),
+            "define_metric" => define_metric(self),
+            "increment_metric" => increment_metric(self),
+            "record_metric" => record_metric(self),
+            "get_metric" => get_metric(self),
             "set_tick_period" => set_tick_period(self),
             "add_request_header" => add_request_header(self, arg),
             "add_response_header" => add_response_header(self, arg),

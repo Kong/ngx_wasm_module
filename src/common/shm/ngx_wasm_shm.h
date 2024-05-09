@@ -5,12 +5,14 @@
 #include <ngx_core.h>
 
 
+#define NGX_WASM_SHM_MIN_SIZE       (3 * ngx_pagesize)
 #define NGX_WASM_SHM_INDEX_NOTFOUND -1
 
 
 typedef enum {
     NGX_WASM_SHM_TYPE_KV,
     NGX_WASM_SHM_TYPE_QUEUE,
+    NGX_WASM_SHM_TYPE_METRICS,
 } ngx_wasm_shm_type_e;
 
 

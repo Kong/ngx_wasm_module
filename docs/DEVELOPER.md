@@ -576,6 +576,10 @@ under this tree, including code enabling said agnosticism, aka
 `src/common/shm` — Shared memory sources. Subsystem-agnostic component
 implementing key/value and queue stores atop Nginx shared memory slabs.
 
+`src/common/metrics` — Metrics tracking sources. Subsystem-agnostic component
+implementing metrics storage/retrieval atop the shared memory interface. Can be
+used in Proxy-Wasm host code or more generally across any codebase component.
+
 `src/common/lua` — Sources for the Lua bridge. Two components (LuaJIT FFI + Lua
 scheduler) allow for bilateral interactions between ngx_wasm_module and
 ngx_lua_module.
@@ -598,7 +602,7 @@ invoke Wasm instances (`ngx_wavm_instance`).
 `src/wasm/ngx_wasm_ops` — Wasm subsystem operations. An abstract pipeline
 engine allowing the mixing of multiple "WebAssembly operations" that can be
 executed for a given request/connection/server. A "WebAssembly operation" can be
-"run a proxy-wasm filter chain", or "invoke this particular Wasm function", or
+"run a Proxy-Wasm filter chain", or "invoke this particular Wasm function", or
 "do something else"...
 
 `src/wasm/ngx_wasm_core_module` — Wasm subsystem core module. Each Nginx
@@ -662,6 +666,7 @@ filter chain".
 | Symbol                     | Description                                            |
 | --------------------------:| -------------------------------------------------------|
 | `ngx_wa_*`                 | Core WasmX code and facilities shared by all subsystems.
+| `ngx_wa_metrics_*`         | Metrics interface for codebase-wide metrics tracking (i.e. proxy-wasm-sdk host code).
 | `ngx_wrt_*`                | *"Nginx Wasm runtime"*: Wasm bytecode execution engine (Wasmer, Wasmtime...).
 | `ngx_wavm_*`               | *"Nginx Wasm VM"*: Wasm instances operations for Nginx.
 | `ngx_wavm_host_*`          | *"Nginx Wasm VM host interface"*: host-side (i.e. Nginx) code imported by Wasm modules.

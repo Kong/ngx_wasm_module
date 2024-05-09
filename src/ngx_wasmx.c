@@ -9,9 +9,6 @@
 #endif
 
 
-#define NGX_WA_CONF_ERR_DUPLICATE  "is duplicate"
-
-
 static char *ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 #ifdef NGX_WA_IPC
 static char *ngx_ipc_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -116,6 +113,11 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
         }
 #endif
 
+        wacf->metrics = ngx_wa_metrics_alloc(cf->cycle);
+        if (wacf->metrics == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
         *(ngx_wa_conf_t **) conf = wacf;
     }
 
@@ -217,6 +219,13 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
         }
     }
 
+    /* metrics init_conf */
+
+    rv = ngx_wa_metrics_init_conf(wacf->metrics, cf);
+    if (rv != NGX_CONF_OK) {
+        return rv;
+    }
+
     return NGX_CONF_OK;
 }
 
@@ -247,6 +256,11 @@ ngx_wasmx_init(ngx_cycle_t *cycle)
     wacf = ngx_wa_cycle_get_conf(cycle);
     if (wacf == NULL) {
         return NGX_OK;
+    }
+
+    rc = ngx_wa_metrics_init(wacf->metrics, cycle);
+    if (rc != NGX_OK) {
+        return rc;
     }
 
     /* NGX_WASM_MODULES + NGX_IPC_MODULES init */
@@ -285,4 +299,22 @@ ngx_wasmx_init(ngx_cycle_t *cycle)
     }
 
     return NGX_OK;
+}
+
+
+ngx_inline ngx_wa_metrics_t *
+ngx_wasmx_metrics(ngx_cycle_t *cycle)
+{
+    ngx_wa_conf_t  *wacf;
+
+    if (cycle->conf_ctx == NULL) {
+        return NULL;
+    }
+
+    wacf = ngx_wa_cycle_get_conf(cycle);
+    if (wacf == NULL) {
+        return NULL;
+    }
+
+    return wacf->metrics;
 }

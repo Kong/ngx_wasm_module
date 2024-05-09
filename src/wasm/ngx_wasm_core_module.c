@@ -5,6 +5,7 @@
 
 #include <ngx_wavm.h>
 #include <ngx_wasm_shm.h>
+#include <ngx_wa_metrics.h>
 
 
 static void *ngx_wasm_core_create_conf(ngx_conf_t *cf);
@@ -39,6 +40,13 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
     { ngx_string("v8"),
       NGX_WASM_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
       ngx_wasm_core_v8_block,
+      NGX_WA_WASM_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("metrics"),
+      NGX_WASM_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+      ngx_wasm_core_metrics_block,
       NGX_WA_WASM_CONF_OFFSET,
       0,
       NULL },
@@ -86,6 +94,20 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
     { ngx_string("shm_kv"),
       NGX_WASM_CONF|NGX_CONF_TAKE23|NGX_CONF_TAKE4,
       ngx_wasm_core_shm_kv_directive,
+      NGX_WA_WASM_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("slab_size"),
+      NGX_METRICS_CONF|NGX_CONF_TAKE1,
+      ngx_wasm_core_metrics_slab_size_directive,
+      NGX_WA_WASM_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("max_metric_name_length"),
+      NGX_METRICS_CONF|NGX_CONF_TAKE1,
+      ngx_wasm_core_metrics_max_metric_name_length_directive,
       NGX_WA_WASM_CONF_OFFSET,
       0,
       NULL },

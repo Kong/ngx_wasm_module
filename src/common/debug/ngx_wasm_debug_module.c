@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm.h>
+#include <ngx_wa_metrics.h>
 #include <ngx_wasm_subsystem.h>
 #ifdef NGX_HTTP_WASM
 #include <ngx_http_wasm.h>
@@ -20,6 +21,11 @@
 static ngx_int_t
 ngx_wasm_debug_init(ngx_cycle_t *cycle)
 {
+    static size_t            long_metric_name_len = NGX_MAX_ERROR_STR;
+    uint32_t                 mid;
+    ngx_str_t                metric_name;
+    u_char                   buf[long_metric_name_len];
+
     static ngx_wasm_phase_t  ngx_wasm_debug_phases[] = {
         { ngx_string("a_phase"), 0, 0, 0 },
         { ngx_null_string, 0, 0, 0 }
@@ -39,6 +45,31 @@ ngx_wasm_debug_init(ngx_cycle_t *cycle)
      */
     ngx_wa_assert(
         ngx_wasm_phase_lookup(&ngx_wasm_debug_subsystem, 3) == NULL
+    );
+
+    metric_name.len = long_metric_name_len;
+    metric_name.data = buf;
+
+    /* invalid metric name length */
+    ngx_wa_assert(
+        ngx_wa_metrics_define(ngx_wasmx_metrics(cycle),
+                              &metric_name,
+                              NGX_WA_METRIC_COUNTER,
+                              &mid) == NGX_ABORT
+    );
+
+    /* invalid metric type */
+    ngx_wa_assert(
+        ngx_wa_metrics_define(ngx_wasmx_metrics(cycle),
+                              &metric_name,
+                              100,
+                              &mid) == NGX_ABORT
+    );
+
+    /* unknown metric type name */
+    ngx_wa_assert(
+        ngx_strncmp(((ngx_str_t *) ngx_wa_metric_type_name(12))->data,
+                    "unknown", 8) == 0
     );
 
     return NGX_OK;

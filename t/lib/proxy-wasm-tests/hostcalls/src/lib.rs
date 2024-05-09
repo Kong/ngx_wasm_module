@@ -7,13 +7,14 @@ mod types;
 use crate::{tests::*, types::test_http::*, types::test_root::*, types::*};
 use log::*;
 use proxy_wasm::{traits::*, types::*};
-use std::{collections::HashMap, time::Duration};
+use std::{collections::BTreeMap, collections::HashMap, time::Duration};
 
 proxy_wasm::main! {{
     proxy_wasm::set_log_level(LogLevel::Trace);
     proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
         Box::new(TestRoot {
             config: HashMap::new(),
+            metrics: BTreeMap::new(),
             n_sync_calls: 0,
         })
     });
@@ -27,11 +28,13 @@ impl RootContext for TestRoot {
             if let Ok(text) = std::str::from_utf8(&config) {
                 info!("vm config: {}", text);
 
-                if text == "do_trap" {
-                    panic!("trap on_vm_start");
-                } else if text == "do_false" {
-                    info!("on_vm_start returning false");
-                    return false;
+                match text {
+                    "do_trap" => panic!("trap on_vm_start"),
+                    "do_false" => {
+                        info!("on_vm_start returning false");
+                        return false;
+                    }
+                    _ => (),
                 }
             } else {
                 info!("cannot parse vm config");
@@ -63,12 +66,23 @@ impl RootContext for TestRoot {
             ));
         }
 
-        if let Some(on_configure) = self.get_config("on_configure") {
-            match on_configure {
-                "do_trap" => panic!("trap on_configure"),
-                "do_return_false" => return false,
-                _ => (),
+        match self.get_config("on_configure").unwrap_or("") {
+            "do_trap" => panic!("trap on_configure"),
+            "do_return_false" => return false,
+            "define_metrics" => test_define_metrics(self),
+            "define_and_increment_counters" => {
+                test_define_metrics(self);
+                test_increment_counters(self, TestPhase::Configure, None);
             }
+            "define_and_toggle_gauges" => {
+                test_define_metrics(self);
+                test_toggle_gauges(self, TestPhase::Configure, None);
+            }
+            "define_and_record_histograms" => {
+                test_define_metrics(self);
+                test_record_metric(self, TestPhase::Configure);
+            }
+            _ => (),
         }
 
         true
@@ -84,19 +98,23 @@ impl RootContext for TestRoot {
             self.get_config("tick_period").unwrap()
         );
 
+        let n_sync_calls = self
+            .config
+            .get("n_sync_calls")
+            .map_or(1, |v| v.parse().expect("bad n_sync_calls value"));
+
+        if self.n_sync_calls >= n_sync_calls {
+            return;
+        }
+
         match self.get_config("on_tick").unwrap_or("") {
             "log_property" => test_log_property(self),
+            "set_gauges" => {
+                test_record_metric(self, TestPhase::Tick);
+                self.n_sync_calls += 1;
+            }
             "set_property" => test_set_property(self),
             "dispatch" => {
-                let n_sync_calls = self
-                    .config
-                    .get("n_sync_calls")
-                    .map_or(1, |v| v.parse().expect("bad n_sync_calls value"));
-
-                if self.n_sync_calls >= n_sync_calls {
-                    return;
-                }
-
                 let mut timeout = Duration::from_secs(0);
                 let mut headers = Vec::new();
                 let path = self
@@ -172,6 +190,7 @@ impl RootContext for TestRoot {
         Some(Box::new(TestHttp {
             config: self.config.clone(),
             on_phases: phases,
+            metrics: self.metrics.clone(),
             n_sync_calls: 0,
         }))
     }

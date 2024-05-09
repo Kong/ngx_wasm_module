@@ -45,6 +45,30 @@ ngx_wasm_core_v8_block(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 }
 
 
+char *
+ngx_wasm_core_metrics_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    char           *rv;
+    ngx_conf_t      save = *cf;
+    ngx_wa_conf_t  *wacf = (ngx_wa_conf_t *) cf->ctx;
+
+    if (wacf->metrics->config.initialized) {
+        return NGX_WA_CONF_ERR_DUPLICATE;
+    }
+
+    wacf->metrics->config.initialized = 1;
+
+    cf->cmd_type = NGX_METRICS_CONF;
+    cf->module_type = NGX_WASM_MODULE;
+
+    rv = ngx_conf_parse(cf, NULL);
+
+    *cf = save;
+
+    return rv;
+}
+
+
 static ngx_int_t
 ngx_wasm_core_current_runtime_flag(ngx_conf_t *cf)
 {
@@ -109,6 +133,34 @@ ngx_wasm_core_flag_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
+static ngx_int_t
+validate_shm_size(ngx_conf_t *cf, ssize_t size, ngx_str_t *value)
+{
+    if (size == NGX_ERROR) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] invalid shm size \"%V\"", value);
+        return NGX_ERROR;
+    }
+
+    if (size < (ssize_t) NGX_WASM_SHM_MIN_SIZE) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] shm size of %d bytes is too small, "
+                           "minimum required is %d bytes",
+                           size, NGX_WASM_SHM_MIN_SIZE);
+        return NGX_ERROR;
+    }
+
+    if ((size & (ngx_pagesize - 1)) != 0) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] shm size of %d bytes is not page-aligned, "
+                           "must be a multiple of %d", size, ngx_pagesize);
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
+
 static char *
 ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf, ngx_wasm_shm_type_e type)
@@ -120,7 +172,6 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     ngx_wasm_shm_mapping_t   *mapping;
     ngx_wasm_shm_t           *shm;
     ngx_wasm_shm_eviction_e   eviction;
-    const ssize_t             min_size = 3 * ngx_pagesize;
 
     value = cf->args->elts;
     name = &value[1];
@@ -134,23 +185,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    if (size == NGX_ERROR) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "[wasm] invalid shm size \"%V\"", &value[2]);
-        return NGX_CONF_ERROR;
-    }
-
-    if (size < min_size) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "[wasm] shm size of %d bytes is too small, "
-                           "minimum required is %d bytes", size, min_size);
-        return NGX_CONF_ERROR;
-    }
-
-    if ((size & (ngx_pagesize - 1)) != 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "[wasm] shm size of %d bytes is not page-aligned, "
-                           "must be a multiple of %d", size, ngx_pagesize);
+    if (validate_shm_size(cf, size, &value[2]) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
@@ -296,13 +331,68 @@ ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 
 
 char *
+ngx_wasm_core_metrics_slab_size_directive(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
+{
+    ssize_t            size;
+    ngx_str_t         *value;
+    ngx_wa_metrics_t  *metrics = ngx_wasmx_metrics(cf->cycle);
+
+    if (metrics->config.slab_size != NGX_CONF_UNSET_SIZE) {
+        return NGX_WA_CONF_ERR_DUPLICATE;
+    }
+
+    value = cf->args->elts;
+    size = ngx_parse_size(&value[1]);
+
+    if (validate_shm_size(cf, size, &value[1]) != NGX_OK) {
+        return NGX_CONF_ERROR;
+    }
+
+    metrics->config.slab_size = size;
+
+    return NGX_CONF_OK;
+}
+
+
+char *
+ngx_wasm_core_metrics_max_metric_name_length_directive(ngx_conf_t *cf,
+    ngx_command_t *cmd, void *conf)
+{
+    ngx_int_t          n;
+    ngx_str_t         *value;
+    ngx_wa_metrics_t  *metrics = ngx_wasmx_metrics(cf->cycle);
+
+    if (metrics->config.max_metric_name_length != NGX_CONF_UNSET_SIZE) {
+        return NGX_WA_CONF_ERR_DUPLICATE;
+    }
+
+    value = cf->args->elts;
+    n = ngx_atoi(value[1].data, value[1].len);
+    if (n == NGX_ERROR) {
+        /* ngx_conf_set_num_slot */
+        return "invalid value";
+    }
+
+    if (n < 6) {
+        /* "pw.%V.%V" */
+        return "value too small (min: 6)";
+    }
+
+    metrics->config.max_metric_name_length = n;
+
+    return NGX_CONF_OK;
+}
+
+
+char *
 ngx_wasm_core_resolver_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_wasm_core_conf_t  *wcf = conf;
     ngx_str_t             *value;
 
     if (wcf->user_resolver) {
-        return "is duplicate";
+        return NGX_WA_CONF_ERR_DUPLICATE;
     }
 
     value = cf->args->elts;
