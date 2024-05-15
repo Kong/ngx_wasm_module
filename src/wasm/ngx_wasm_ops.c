@@ -429,14 +429,10 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
     }
 
     pwctx->phase = phase;
-#if 0
-    pwctx->action = NGX_PROXY_WASM_ACTION_CONTINUE;
-#endif
 
     if (opctx->ctx.proxy_wasm.req_headers_in_access) {
         pwctx->req_headers_in_access = 1;
     }
-
 
     switch (phase->index) {
 

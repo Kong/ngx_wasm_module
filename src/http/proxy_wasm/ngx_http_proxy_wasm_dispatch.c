@@ -94,8 +94,6 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
     }
 #endif
 
-    pwexec->ecode = NGX_PROXY_WASM_ERR_DISPATCH_FAILED;
-
     if (!pwexec->ictx->instance->hostcall || rctx->fake_request) {
         ngx_wasm_log_error(NGX_LOG_ERR, pwexec->log, 0,
                            "%*s", p - (u_char *) &errbuf, &errbuf);
@@ -468,8 +466,9 @@ ngx_http_proxy_wasm_dispatch_handler(ngx_event_t *ev)
     sock->data = call;
 
     rc = sock->resume_handler(sock);
-    if (rc == NGX_ERROR) {
-        ngx_http_wasm_resume(rctx, 1, 1);
+    dd("sock->resume rc: %ld", rc);
+    if (rc != NGX_AGAIN) {
+        ngx_http_wasm_resume(rctx);
     }
 }
 
@@ -711,7 +710,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
     ngx_proxy_wasm_exec_t           *pwexec = call->pwexec;
     ngx_proxy_wasm_filter_t         *filter = pwexec->filter;
     ngx_proxy_wasm_err_e             ecode = NGX_PROXY_WASM_ERR_NONE;
-    ngx_proxy_wasm_step_e            step;
+    ngx_proxy_wasm_step_e            step = pwexec->parent->step;
 
     dd("enter");
 
@@ -858,36 +857,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         /* remove current call now that callback was invoked */
         pwexec->call = NULL;
 
-        if (ngx_proxy_wasm_dispatch_calls_total(pwexec)) {
-            ngx_log_debug0(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
-                           "proxy_wasm more http dispatch calls pending...");
-
-            ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
-                                               NGX_PROXY_WASM_ACTION_PAUSE);
-
-        } else {
-            ngx_log_debug0(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
-                           "proxy_wasm last http dispatch call handled");
-
-            ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
-                                               NGX_PROXY_WASM_ACTION_CONTINUE);
-        }
-
-        if (pwexec->parent->action == NGX_PROXY_WASM_ACTION_CONTINUE) {
-            /* resume current step if unfinished */
-            rc = ngx_proxy_wasm_resume(pwexec->parent, pwexec->parent->phase,
-                                       step);
-            if (rc != NGX_OK && rc != NGX_AGAIN) {
-                goto error2;
-            }
-
-        } else if (pwexec->parent->action == NGX_PROXY_WASM_ACTION_PAUSE) {
-            rc = NGX_AGAIN;
-        }
-
         ngx_http_proxy_wasm_dispatch_destroy(call);
-
-        /* resume main handler by wasm callback */
         break;
 
     default:
@@ -896,10 +866,9 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         rc = NGX_ERROR;
         goto error2;
 
-    }
+    }  /* switch(call->state) */
 
     ngx_wa_assert(rc == NGX_AGAIN || rc == NGX_OK);
-
     goto done;
 
 error:
@@ -917,14 +886,34 @@ error2:
         rc = NGX_ERROR;
     }
 
-    ngx_wasm_error(&rctx->env);
-    ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
-                                       NGX_PROXY_WASM_ACTION_CONTINUE);
     ngx_http_proxy_wasm_dispatch_err(call);
 
-    ngx_wa_assert(rc == NGX_ERROR);
-
 done:
+
+    if (ngx_proxy_wasm_dispatch_calls_total(pwexec)) {
+        ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwexec->log, 0,
+                       "proxy_wasm more http dispatch calls pending...");
+
+        rc = NGX_AGAIN;
+        ngx_wasm_yield(&rctx->env);
+        ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
+                                           NGX_PROXY_WASM_ACTION_PAUSE);
+
+    } else {
+        ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwexec->log, 0,
+                       "proxy_wasm last http dispatch call handled");
+
+        ngx_wasm_continue(&rctx->env);
+        ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
+                                           NGX_PROXY_WASM_ACTION_CONTINUE);
+
+        /* resume current step if unfinished */
+        if (rc != NGX_ERROR) {
+            rc = ngx_proxy_wasm_resume(pwexec->parent,
+                                       pwexec->parent->phase,
+                                       step);
+        }
+    }
 
     dd("exit rc: %ld", rc);
 

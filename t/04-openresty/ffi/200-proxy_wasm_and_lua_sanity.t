@@ -358,11 +358,11 @@ qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase
         }
 
         content_by_lua_block {
-            ngx.say("fail")
+            ngx.say("ok")
         }
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 [
     qr/on_http_call_response \(id: \d+, status: 200, headers: 5, body_bytes: \d+, trailers: 0, op: trap\)/,
@@ -373,7 +373,7 @@ qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase
 --- grep_error_log_out eval
 qr/\A\*\d+ .*? filter 1\/1 resuming "on_request_headers" step in "rewrite" phase[^#*]*
 \*\d+ .*? filter 1\/1 resuming "on_dispatch_response" step in "background" phase[^#*]*
-\*\d+ .*? filter chain failed resuming: previous error \(dispatch failure\)[^#*]*
+\*\d+ .*? filter chain failed resuming: previous error \(instance trapped\)[^#*]*
 \*\d+ .*? filter freeing context #\d+ \(1\/1\)[^#*]*\Z/
 
 

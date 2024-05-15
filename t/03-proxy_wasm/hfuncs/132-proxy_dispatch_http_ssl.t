@@ -207,11 +207,11 @@ qq{
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=expired.badssl.com \
                               https=yes';
-        echo fail;
+        echo ok;
     }
 }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \(10:certificate has expired\)/
 --- no_error_log
@@ -285,14 +285,14 @@ qq{
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=localhost:$TEST_NGINX_SERVER_PORT2 \
                               https=yes';
-        echo fail;
+        echo ok;
     }
 
     location /headers {
         echo $echo_client_request_headers;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate CN does not match \"localhost\" sni/
 --- no_error_log
@@ -319,11 +319,11 @@ qq{
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=untrusted-root.badssl.com \
                               https=yes';
-        echo fail;
+        echo ok;
     }
 }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/tls certificate verify error: \(19:self.signed certificate in certificate chain\)/
 --- no_error_log
@@ -342,14 +342,14 @@ qr/tls certificate verify error: \(19:self.signed certificate in certificate cha
                               host=localhost:$TEST_NGINX_SERVER_PORT \
                               https=yes \
                               path=/dispatched';
-        echo fail;
+        echo ok;
     }
 
     location /dispatched {
         echo -n fail;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 [
     qr/\[crit\] .*? SSL_do_handshake\(\) failed/,
@@ -405,10 +405,9 @@ qq{
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=httpbin.org \
                               https=yes';
-        echo fail;
+        echo ok;
     }
 }
---- error_code: 500
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \((18|20):(self-signed certificate|unable to get local issuer certificate)\)/
 --- no_error_log
@@ -437,11 +436,11 @@ qq{
                               host=httpbin.org \
                               https=yes \
                               path=/headers';
-        echo fail;
+        echo ok;
     }
 }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \((18|20):(self-signed certificate|unable to get local issuer certificate)\)/
 --- no_error_log
@@ -510,14 +509,14 @@ qq{
                               https=yes \
                               path=/dispatch \
                               on_http_call_response=echo_response_body';
-        echo fail;
+        echo ok;
     }
 
     location /dispatch {
         echo ok;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/could not derive tls sni from host \("127\.0\.0\.1:\d+"\)/
 --- no_error_log
@@ -540,14 +539,14 @@ SNI cannot be an IP address.
                               https=yes \
                               path=/dispatch \
                               on_http_call_response=echo_response_body';
-        echo fail;
+        echo ok;
     }
 
     location /dispatch {
         echo ok;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/could not derive tls sni from host \("\[0:0:0:0:0:0:0:1\]:\d+"\)/
 --- no_error_log

@@ -56,7 +56,13 @@ static const char  *DNS_SOLVING_SCRIPT = ""
     "        resolvConf = {                                               \n"
     "            'nameserver '      .. nameserver,                        \n"
     "            'options timeout:' .. timeout,                           \n"
+#if 1
+    "            'options attempts:1',                                    \n"
     "        },                                                           \n"
+    "        order = { 'A' },                                             \n"
+#else
+    "       },                                                            \n"
+#endif
     "    })                                                               \n"
     "    if not ok then                                                   \n"
     "        error(fmt('wasm lua failed initializing dns_client ' ..      \n"
@@ -103,13 +109,18 @@ ngx_wasm_lua_resolver_error_handler(ngx_wasm_lua_ctx_t *lctx)
         rslv_ctx->state = NGX_WASM_LUA_RESOLVE_ERR;
 
         rslv_ctx->handler(rslv_ctx);
-    }
 
-    /* if error before yielding, we already freed the thread */
+        dd("exit");
+
+        /* resolver error/timeout/NXDOMAIN do not produce errors for
+         * pwm_lua_resolver to behave like native resolver errors (do not
+         * interrupt request) */
+        return NGX_OK;
+    }
 
     dd("exit");
 
-    return NGX_OK;
+    return NGX_ERROR;
 }
 
 

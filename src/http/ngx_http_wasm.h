@@ -164,8 +164,7 @@ ngx_int_t ngx_http_wasm_prepend_resp_body(ngx_http_wasm_req_ctx_t *rctx,
 
 /* resume handler */
 void ngx_http_wasm_set_resume_handler(ngx_http_wasm_req_ctx_t *rctx);
-void ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main,
-    unsigned wev);
+void ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx);
 
 
 /* externs */

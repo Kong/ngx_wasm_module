@@ -373,3 +373,57 @@ qr/\A.*? on_request_headers.*
 [error]
 [crit]
 [emerg]
+
+
+
+=== TEST 11: proxy_wasm - dispatch_http_call() 2 failing parallel calls in rewrite
+--- valgrind
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/dispatch_http_call \
+                              host=127.0.0.1:1 \
+                              ncalls=2';
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/echo/body';
+        return 201;
+    }
+--- error_code: 201
+--- response_body
+--- grep_error_log eval: qr/\[error\] .*? dispatch failed.*/
+--- grep_error_log_out eval
+qr/\A\[error] .*? dispatch failed: tcp socket - Connection refused
+\[error] .*? dispatch failed: tcp socket - Connection refused\Z/
+--- no_error_log
+[crit]
+[emerg]
+[alert]
+
+
+
+=== TEST 12: proxy_wasm - dispatch_http_call() 2 failing parallel calls in content
+--- valgrind
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=request_body \
+                              test=/t/dispatch_http_call \
+                              host=127.0.0.1:1 \
+                              ncalls=2';
+        echo ok;
+    }
+--- request
+POST /t
+Hello world
+--- response_body
+ok
+--- grep_error_log eval: qr/\[error\] .*? dispatch failed.*/
+--- grep_error_log_out eval
+qr/\A\[error] .*? dispatch failed: tcp socket - Connection refused
+\[error] .*? dispatch failed: tcp socket - Connection refused\Z/
+--- no_error_log
+[crit]
+[emerg]
+[alert]

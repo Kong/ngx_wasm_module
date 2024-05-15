@@ -33,11 +33,11 @@ qq{
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=google.com';
-        echo fail;
+        echo ok;
     }
 }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out connecting to \".*?\"/
 --- no_error_log
@@ -59,11 +59,11 @@ qq{
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=httpbin.org \
                               path=/status/200';
-        echo fail;
+        echo ok;
     }
 }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolver error: Operation timed out/
 --- no_error_log
@@ -81,14 +81,14 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolve
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched';
-        echo fail;
+        echo ok;
     }
 
     location /dispatched {
         echo -n timeout_trigger;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out reading from \"127\.0\.0\.1:\d+\"/
 --- no_error_log
@@ -108,14 +108,14 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed o
                               method=POST \
                               path=/post \
                               body=timeout_trigger';
-        echo fail;
+        echo ok;
     }
 
     location /post {
         echo -n $request_body;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out writing to \".*?\"/
 --- no_error_log

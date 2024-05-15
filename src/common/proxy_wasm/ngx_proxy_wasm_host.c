@@ -1030,7 +1030,7 @@ static ngx_int_t
 ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
-    int32_t                           status, reason_len, body_len, cl;
+    int32_t                           status, reason_len, body_len;
 #if (NGX_DEBUG)
     int32_t                           grpc_status;
 #endif
@@ -1067,7 +1067,6 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
 
     if (rctx->entered_header_filter && !rctx->entered_body_filter) {
         r = rctx->r;
-        cl = body_len;
         s.data = body;
         s.len = body_len;
 
@@ -1078,8 +1077,6 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
 
         if (body_len) {
             /* append linefeed */
-            cl++;
-
             rc = ngx_wasm_chain_append(r->connection->pool, &rctx->resp_chunk,
                                        body_len, &lf, &rctx->free_bufs,
                                        rctx->env.buf_tag, 0);
@@ -1089,7 +1086,6 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
         }
 
         ngx_http_wasm_set_resp_status(rctx, status, reason, reason_len);
-        ngx_http_wasm_set_resp_content_length(r, cl);
 
         rctx->resp_chunk_override = 1;
 

@@ -33,9 +33,18 @@ static const char  *WASM_LUA_ENTRY_SCRIPT = ""
 static void
 destroy_thread(ngx_wasm_lua_ctx_t *lctx)
 {
+    ngx_http_lua_co_ctx_t  *coctx;
+
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                    "wasm freeing lua%sthread (lctx: %p)",
                    lctx->entry ? " entry " : " user ", lctx);
+
+    coctx = lctx->co_ctx;
+
+    if (coctx && coctx->cleanup) {
+        coctx->cleanup(coctx);
+        coctx->cleanup = NULL;
+    }
 
     ngx_pfree(lctx->pool, lctx->cache_key);
     ngx_pfree(lctx->pool, lctx);
@@ -242,8 +251,6 @@ thread_init(ngx_wasm_lua_ctx_t *lctx)
 static ngx_inline ngx_int_t
 thread_handle_rc(ngx_wasm_lua_ctx_t *lctx, ngx_int_t rc)
 {
-    ngx_event_t            *ev;
-    ngx_rbtree_node_t      *node, *root, *sentinel;
     ngx_wasm_subsys_env_t  *env = lctx->env;
     ngx_wasm_lua_ctx_t     *entry_lctx = env->entry_lctx;
 
@@ -329,7 +336,9 @@ thread_handle_rc(ngx_wasm_lua_ctx_t *lctx, ngx_int_t rc)
             ngx_queue_remove(&lctx->q);
 
             if (lctx->error_handler) {
-                (void) lctx->error_handler(lctx);
+                /* error_handler can override the rc (e.g. lua resolver errors
+                 * are ignored by the request flow */
+                rc = lctx->error_handler(lctx);
             }
         }
 

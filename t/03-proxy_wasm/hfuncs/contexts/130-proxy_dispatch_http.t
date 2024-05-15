@@ -129,7 +129,6 @@ dispatch failed: no :method
         proxy_wasm context_checks 'on_response_headers=dispatch_http_call';
         echo ok;
     }
---- error_code: 500
 --- ignore_response_body
 --- error_log
 [error]
