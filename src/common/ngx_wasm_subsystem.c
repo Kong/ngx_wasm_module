@@ -36,3 +36,18 @@ ngx_wasm_set_resume_handler(ngx_wasm_subsys_env_t *env)
     }
 #endif
 }
+
+
+ngx_inline void
+ngx_wasm_resume(ngx_wasm_subsys_env_t *env)
+{
+#if (NGX_WASM_HTTP)
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    if (env->subsys->kind == NGX_WASM_SUBSYS_HTTP) {
+        rctx = env->ctx.rctx;
+
+        ngx_http_wasm_resume(rctx);
+    }
+#endif
+}

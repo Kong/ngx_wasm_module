@@ -68,23 +68,74 @@ qr/\[info\] .*? arg: argument/
 
 
 
-=== TEST 4: Lua bridge - Lua chunk can yield
+=== TEST 4: Lua bridge - Lua chunk can yield in rewrite
 --- config
     location /t {
         wasm_call rewrite ngx_lua_tests test_lua_sleep;
         return 200;
     }
---- error_log eval
-[
-    qr/\[notice\] .*? sleeping for 250ms/,
-    qr/\[notice\] .*? sleeping for 250ms/
-]
+--- grep_error_log eval: qr/sleeping for 250ms/
+--- grep_error_log_out
+sleeping for 250ms
+sleeping for 250ms
 --- no_error_log
+[error]
 [crit]
 
 
 
-=== TEST 5: Lua bridge - Lua chunk can error after yielding
+=== TEST 5: Lua bridge - Lua chunk can yield in access
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        wasm_call access ngx_lua_tests test_lua_sleep;
+        echo ok;
+    }
+--- grep_error_log eval: qr/sleeping for 250ms/
+--- grep_error_log_out
+sleeping for 250ms
+sleeping for 250ms
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 6: Lua bridge - Lua chunk can yield in content
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        wasm_call content ngx_lua_tests test_lua_sleep;
+        echo ok;
+    }
+--- grep_error_log eval: qr/sleeping for 250ms/
+--- grep_error_log_out
+sleeping for 250ms
+sleeping for 250ms
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 7: Lua bridge - Lua chunk can yield in log
+--- SKIP
+--- config
+    location /t {
+        wasm_call log ngx_lua_tests test_lua_sleep;
+        return 200;
+    }
+--- grep_error_log eval: qr/sleeping for 250ms/
+--- grep_error_log_out
+sleeping for 250ms
+sleeping for 250ms
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 8: Lua bridge - Lua chunk can error after yielding
 --- valgrind
 --- load_nginx_modules: ngx_http_echo_module
 --- http_config

@@ -710,6 +710,7 @@ ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
 
         switch (pwctx->action) {
         case NGX_PROXY_WASM_ACTION_CONTINUE:
+        case NGX_PROXY_WASM_ACTION_DONE:
             dd("-------- next filter --------");
             pwctx->exec_index++;
             break;

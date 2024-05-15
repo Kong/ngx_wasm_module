@@ -152,8 +152,8 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :path/
                               host=127.0.0.10:81';
         echo ok;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - Connection refused/
 --- no_error_log
@@ -206,10 +206,11 @@ qq{
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=unix:/tmp/inexistent_file.sock';
+        return 201;
     }
 }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- error_code: 201
+--- response_body
 --- error_log eval
 [
     qr/\[crit\] .*? connect\(\) to unix:\/tmp\/inexistent_file\.sock failed .*? No such file or directory/,
@@ -225,10 +226,11 @@ qq{
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=unix:/tmp';
+        return 201;
     }
 }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- error_code: 201
+--- response_body
 --- error_log eval
 [
     qr/\[error\] .*? connect\(\) to unix:\/tmp failed .*? Connection refused/,
@@ -489,8 +491,8 @@ qq{
         echo ok;
     }
 }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolver error: Host not found/
 --- no_error_log
@@ -896,7 +898,6 @@ Hello world
                               path=/dispatched';
         echo ok;
     }
---- error_code: 500
 --- ignore_response_body
 --- error_log
 tcp socket trying to receive data (max: 1)
@@ -925,7 +926,6 @@ tcp socket - upstream response headers too large, increase wasm_socket_large_buf
                               path=/dispatched';
         echo ok;
     }
---- error_code: 500
 --- ignore_response_body
 --- error_log
 tcp socket trying to receive data (max: 24)
@@ -954,10 +954,10 @@ sub {
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:12345';
-        echo fail;
+        echo ok;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 [
     qr/tcp socket - not enough large buffers available, increase wasm_socket_large_buffers number/,
@@ -1009,10 +1009,10 @@ sub {
     location /t {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:12345';
-        echo fail;
+        echo ok;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser error/
 --- no_error_log
@@ -1062,10 +1062,10 @@ tcp socket trying to receive data (max: 1017)
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched \
                               on_http_call_response=trap';
-        echo fail;
+        echo ok;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 [
     qr/\[crit\] .*? panicked at/,
@@ -1089,10 +1089,10 @@ sub {
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
                               host=127.0.0.1:12345 \
                               on_http_call_response=echo_response_body';
-        echo failed;
+        echo ok;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- error_log eval
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser error/
 --- no_error_log

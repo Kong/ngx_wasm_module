@@ -102,6 +102,8 @@ ngx_http_wasm_header_filter_handler(ngx_http_request_t *r)
         goto done;
 
     } else if (rc == NGX_ERROR) {
+        /* TODO: coverage */
+        ngx_wa_assert(0);
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
         goto done;
     }
@@ -218,7 +220,7 @@ ngx_http_wasm_body_filter_handler(ngx_http_request_t *r, ngx_chain_t *in)
 
     rc = ngx_http_next_body_filter(r, rctx->resp_chunk);
     dd("ngx_http_next_body_filter rc: %ld", rc);
-    if (rc == NGX_ERROR) {
+    if (rc == NGX_ERROR || rc == NGX_AGAIN) {
         goto done;
     }
 

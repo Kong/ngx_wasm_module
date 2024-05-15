@@ -662,9 +662,12 @@ ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx, ngx_int_t rc)
 {
     ngx_http_request_t  *r = rctx->r;
 
+#if 0
     dd("enter (rc: %ld, count: %d, resp_content_sent: %d, "
-       "entered_content_phase: %d)", rc, r->main->count,
-       rctx->resp_content_sent, rctx->entered_content_phase);
+       "entered_content_phase: %d, resp_finalized: %d)",
+       rc, r->main->count, rctx->resp_content_sent,
+       rctx->entered_content_phase, rctx->resp_finalized);
+#endif
 
     if (rc == NGX_AGAIN) {
         return rc;
@@ -917,10 +920,7 @@ ngx_http_wasm_access_handler(ngx_http_request_t *r)
         ngx_wasm_yield(&rctx->env);
         goto done;
     case NGX_DONE:
-        if (rctx->resp_content_sent) {
-            rc = NGX_OK;
-        }
-
+        rc = NGX_OK;
         break;
     default:
         break;
@@ -940,6 +940,7 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
 {
     ngx_int_t            rc;
     ngx_http_request_t  *r = rctx->r;
+    unsigned             done = 0;
 
     switch (rctx->env.state) {
     case NGX_WASM_STATE_ERROR:
@@ -950,7 +951,7 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
         /* e.g. lua handler yield */
         r->main->count++;
         dd("r->main->count++: %d", r->main->count);
-        rc = NGX_AGAIN;
+        rc = NGX_DONE;
         goto done;
     default:
         dd("enter/continue");
@@ -970,6 +971,10 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
     case NGX_AGAIN:
         goto done;
     case NGX_OK:
+        if (rctx->in_wev && rctx->entered_content_phase) {
+            goto done;
+        }
+
         goto finalize;
     case NGX_DECLINED:
         if (rctx->exited_content_phase) {
@@ -1027,9 +1032,11 @@ orig:
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                            "wasm running orig \"content\" handler");
 
-            rctx->resp_content_chosen = 1;
-
             rc = rctx->r_content_handler(r);
+            dd("orig \"content\" rc: %ld", rc);
+            if (rc == NGX_OK) {
+                return NGX_OK;
+            }
 
         } else if (r->header_sent || rctx->resp_content_sent) {
             rc = NGX_OK;
@@ -1046,9 +1053,29 @@ orig:
 
 finalize:
 
+    dd("finalize rc: %ld", rc);
+
     rctx->exited_content_phase = 1;
 
+    if (r->main->count == 1
+        && rc != NGX_DECLINED
+        && rc <= NGX_OK)
+    {
+        done = 1;
+    }
+
     rc = ngx_http_wasm_check_finalize(rctx, rc);
+
+    if (done) {
+        /* TODO: content handling has become bloated by the Lua bridge, stashed
+         * responses, and reusable handlers (ngx_http_wasm_check_finalize,
+         * ngx_http_wasm_wev_handler...). We should break them down.
+         *
+         * NGX_ABORT: no additional ngx_http_finalize_request in caller (for
+         * wev handler invocations).
+         */
+        rc = NGX_ABORT;
+     }
 
 done:
 
@@ -1160,6 +1187,7 @@ ngx_http_wasm_wev_handler(ngx_http_request_t *r)
         dd("resume_handler rc: %ld", rc);
         switch (rc) {
         case NGX_AGAIN:
+            /* TODO: coverage */
             ngx_wa_assert(0);
             return;
         case NGX_OK:
@@ -1179,6 +1207,8 @@ ngx_http_wasm_wev_handler(ngx_http_request_t *r)
         rc = ngx_http_wasm_content(rctx);
         dd("wev content rc: %ld", rc);
         if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+            /* TODO: coverage */
+            ngx_wa_assert(0);
             rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
             goto last_finalize;
 
@@ -1186,6 +1216,9 @@ ngx_http_wasm_wev_handler(ngx_http_request_t *r)
             goto last_finalize;
 
         } else if (rc == NGX_DONE) {
+            goto last_finalize;
+
+        } else if (rc == NGX_ABORT) {
             return;
         }
 
@@ -1200,7 +1233,7 @@ ngx_http_wasm_wev_handler(ngx_http_request_t *r)
         if (rc == NGX_OK || rc == NGX_DONE) {
             if (r == r->main) {
                 r->write_event_handler = ngx_http_core_run_phases;
-                ngx_http_wasm_resume(rctx, r == r->main, 1);
+                ngx_http_wasm_resume(rctx);
                 return;
             }
 
@@ -1212,12 +1245,23 @@ ngx_http_wasm_wev_handler(ngx_http_request_t *r)
 
 last_finalize:
 
+#if 0
+    dd("r->count: %ld, rctx->entered_content_phase: %d "
+       "rctx->resp_content_sent: %d, rctx->resp_finalized: %d",
+       r->main->count, rctx->entered_content_phase,
+       rctx->resp_content_sent, rctx->resp_finalized);
+#endif
+
     if (rctx->fake_request) {
         dd("last finalize (fake request)");
         ngx_wa_assert(r->connection->fd == NGX_WA_BAD_FD);
         ngx_http_wasm_finalize_fake_request(r, NGX_DONE);
 
-    } else {
+    } else if (rctx->entered_content_phase
+               || (rctx->resp_content_sent
+                   && !rctx->entered_content_phase
+                   && !rctx->resp_finalized))
+    {
         dd("last finalize (rc: %ld, main: %d, count: %d)",
            rc, r == r->main, r->main->count);
         ngx_wa_assert(r->connection->fd != NGX_WA_BAD_FD);
@@ -1253,34 +1297,14 @@ ngx_http_wasm_set_resume_handler(ngx_http_wasm_req_ctx_t *rctx)
 
 
 void
-ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx, unsigned main, unsigned wev)
+ngx_http_wasm_resume(ngx_http_wasm_req_ctx_t *rctx)
 {
     ngx_http_request_t  *r = rctx->r;
     ngx_connection_t    *c = r->connection;
 
-    dd("enter");
-
-    ngx_wa_assert(wev);
-
-    if (ngx_wasm_yielding(&rctx->env)) {
-        dd("yielding");
-        return;
-    }
-
-    if (main) {
-        if (wev) {
-            dd("resuming request wev...");
-            r->write_event_handler(r);
-            dd("...done resuming request wev");
-        }
-#if 0
-        else {
-            dd("resuming request rev...");
-            r->read_event_handler(r);
-            dd("...done resuming request");
-        }
-#endif
-    }
+    dd("resuming request wev...");
+    r->write_event_handler(r);
+    dd("...done resuming request wev");
 
     dd("running posted requests...");
     ngx_http_run_posted_requests(c);

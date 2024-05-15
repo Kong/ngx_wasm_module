@@ -95,7 +95,6 @@ qr/\[info\] .*? \[wasm\] request body:/
     location /t {
         internal;
         proxy_wasm hostcalls 'on=request_body';
-        echo fail;
     }
 
     location /main {
@@ -118,7 +117,6 @@ Hello from subrequest
     location /t {
         internal;
         proxy_wasm hostcalls 'on=request_body';
-        echo fail;
     }
 
     location /main {
@@ -142,7 +140,6 @@ Hello from main request body
     location /t {
         internal;
         proxy_wasm hostcalls 'on=request_body';
-        echo fail;
     }
 
     location /main {

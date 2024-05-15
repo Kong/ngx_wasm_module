@@ -72,13 +72,10 @@ ngx_wasm_socket_tcp_err(ngx_wasm_socket_tcp_t *sock,
 }
 
 
-static void
+static ngx_int_t
 ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
 {
-#if (NGX_WASM_HTTP)
-    ngx_int_t                 rc;
-    ngx_http_wasm_req_ctx_t  *rctx;
-#endif
+    ngx_int_t   rc = NGX_ERROR;
 
     ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
                    "wasm tcp socket resuming");
@@ -86,31 +83,26 @@ ngx_wasm_socket_tcp_resume(ngx_wasm_socket_tcp_t *sock)
     switch (sock->env->subsys->kind) {
 #if (NGX_WASM_HTTP)
     case NGX_WASM_SUBSYS_HTTP:
-        rctx = sock->env->ctx.rctx;
-        rc = sock->resume_handler(sock);  /* handle sock event */
-
-        dd("sock->resume rc: %ld", rc);
-
-        switch (rc) {
-        case NGX_AGAIN:
-            ngx_wasm_yield(&rctx->env);
-            break;
-        case NGX_ERROR:
+    {
+        rc = sock->resume_handler(sock);
+#if 0
+        /* make HTTP dispatch calls failures produce HTTP 500 */
+        if (rc == NGX_ERROR) {
             ngx_wasm_error(&rctx->env);
-            break;
-        default:
-            ngx_wa_assert(rc == NGX_OK);
-            ngx_wasm_continue(&rctx->env);
-            break;
         }
+#endif
 
-        ngx_http_wasm_resume(rctx, 1, 1);  /* continue request */
         break;
+    }
 #endif
     default:
         ngx_wasm_bad_subsystem(sock->env);
         break;
     }
+
+    dd("sock->resume_handler rc: %ld", rc);
+
+    return rc;
 }
 
 
@@ -418,6 +410,8 @@ ngx_wasm_socket_resolve_handler(ngx_resolver_ctx_t *ctx)
     socklen_t               socklen;
     struct sockaddr        *sockaddr;
     ngx_wasm_socket_tcp_t  *sock = ctx->data;
+    ngx_wasm_subsys_env_t  *env = sock->env;
+    unsigned                resume = 0;
 
     ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
                    "wasm tcp socket resolve handler");
@@ -427,6 +421,12 @@ ngx_wasm_socket_resolve_handler(ngx_resolver_ctx_t *ctx)
         if (ctx->state == NGX_WASM_LUA_RESOLVE_ERR) {
             ngx_wasm_socket_tcp_err(sock, "lua resolver failed");
             goto error;
+        }
+#endif
+
+#if (NGX_WASM_HTTP)
+        if (!env->ctx.rctx->pwm_lua_resolver) {
+            resume = 1;
         }
 #endif
 
@@ -519,9 +519,16 @@ ngx_wasm_socket_resolve_handler(ngx_resolver_ctx_t *ctx)
 
 error:
 
-    ngx_resolve_name_done(ctx);
+    ngx_resolve_name_done(ctx);  /* frees ctx */
 
-    ngx_wasm_socket_tcp_resume(sock);
+    (void) ngx_wasm_socket_tcp_resume(sock);
+
+    if (resume) {
+        /* resolver error, continue request */
+        ngx_wasm_resume(env);
+    }
+
+    dd("exit");
 }
 
 
@@ -652,10 +659,12 @@ ngx_wasm_socket_tcp_ssl_handshake(ngx_wasm_socket_tcp_t *sock)
 static void
 ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c)
 {
-    ngx_wasm_socket_tcp_t  *sock;
     ngx_int_t               rc;
+    ngx_wasm_socket_tcp_t  *sock;
+    ngx_wasm_subsys_env_t  *env;
 
     sock = c->data;
+    env = sock->env;
 
     rc = ngx_wasm_socket_tcp_ssl_handshake_done(c);
     if (rc != NGX_AGAIN) {
@@ -671,7 +680,12 @@ ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c)
 
 resume:
 
-    ngx_wasm_socket_tcp_resume(sock);
+    rc = ngx_wasm_socket_tcp_resume(sock);
+    if (rc != NGX_AGAIN) {
+        ngx_wasm_resume(env);  /* continue request */
+    }
+
+    dd("exit");
 }
 
 
@@ -1355,8 +1369,10 @@ ngx_wasm_socket_tcp_finalize_write(ngx_wasm_socket_tcp_t *sock)
 static void
 ngx_wasm_socket_tcp_handler(ngx_event_t *ev)
 {
+    ngx_int_t               rc;
     ngx_connection_t       *c = ev->data;
     ngx_wasm_socket_tcp_t  *sock = c->data;
+    ngx_wasm_subsys_env_t  *env = sock->env;
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, ev->log, 0,
                    "wasm tcp socket handler (wev: %d)",
@@ -1375,7 +1391,10 @@ ngx_wasm_socket_tcp_handler(ngx_event_t *ev)
         sock->read_event_handler(sock);
     }
 
-    ngx_wasm_socket_tcp_resume(sock);
+    rc = ngx_wasm_socket_tcp_resume(sock);
+    if (rc != NGX_AGAIN) {
+        ngx_wasm_resume(env);  /* continue request */
+    }
 
     dd("exit");
 }

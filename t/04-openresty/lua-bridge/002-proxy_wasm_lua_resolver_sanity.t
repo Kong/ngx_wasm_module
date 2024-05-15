@@ -466,14 +466,14 @@ hello world
         proxy_wasm hostcalls 'on=request_headers \
                               test=/t/dispatch_http_call \
                               host=foo';
-        echo failed;
+        echo ok;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- grep_error_log eval: qr/\[error\].*/
 --- grep_error_log_out eval
 qr/\[error\] .*? lua user thread aborted: .*? wasm lua failed resolving "foo": dns client error: 101 empty record received.*?
-\[error\] .*? dispatch failed: tcp socket - lua resolver failed.*?/
+\[error\] .*? dispatch failed: tcp socket - lua resolver failed/
 --- no_error_log
 [crit]
 [emerg]
@@ -509,14 +509,16 @@ Failure before the Lua thread gets a chance to yield (immediate resolver failure
                               host=httpbin.org \
                               path=/ \
                               on_http_call_response=echo_response_body';
-        echo failed;
+        echo ok;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
+--- response_body
+ok
 --- grep_error_log eval: qr/\[error\].*/
 --- grep_error_log_out eval
 qr/\[error\] .*? lua user thread aborted: .*? wasm lua failed resolving "httpbin\.org": some made-up error.*?
-\[error\] .*? dispatch failed\Z/
+\[error\] .*? dispatch failed/
+--- error_log eval
+qr/\[info\] .*? filter chain failed resuming: previous error \(dispatch failure\).*?/
 --- error_log
 wasm tcp socket resolver failed before query
 --- no_error_log
