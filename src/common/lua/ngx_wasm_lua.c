@@ -69,11 +69,6 @@ thread_cleanup_handler(void *data)
 
     dd("enter");
 
-    if (lctx->entry && lctx->ev && lctx->ev->timer_set) {
-        dd("delete pending timer event");
-        ngx_event_del_timer(lctx->ev);
-    }
-
     destroy_thread(lctx);
 }
 
@@ -252,7 +247,6 @@ static ngx_inline ngx_int_t
 thread_handle_rc(ngx_wasm_lua_ctx_t *lctx, ngx_int_t rc)
 {
     ngx_wasm_subsys_env_t  *env = lctx->env;
-    ngx_wasm_lua_ctx_t     *entry_lctx = env->entry_lctx;
 
     dd("enter (rc: %ld, lctx: %p)", rc, lctx);
 
@@ -285,27 +279,6 @@ thread_handle_rc(ngx_wasm_lua_ctx_t *lctx, ngx_int_t rc)
     case NGX_AGAIN:
         dd("wasm lua thread yield");
         ngx_wa_assert(lctx->yielded);
-
-        if (lctx->entry) {
-            /* find the pending sleep timer to cancel at pool cleanup */
-            sentinel = ngx_event_timer_rbtree.sentinel;
-            root = ngx_event_timer_rbtree.root;
-
-            if (root != sentinel) {
-                for (node = ngx_rbtree_min(root, sentinel);
-                     node;
-                     node = ngx_rbtree_next(&ngx_event_timer_rbtree, node))
-                {
-                    ev = ngx_rbtree_data(node, ngx_event_t, timer);
-
-                    if (ev->data == entry_lctx->co_ctx) {
-                        entry_lctx->ev = ev;
-                        break;
-                    }
-                }
-            }
-        }
-
         ngx_wasm_yield(env);
         break;
     case NGX_OK:
