@@ -25,7 +25,6 @@ struct ngx_wasm_lua_ctx_s {
     ngx_wasm_subsys_env_t          *env;
     ngx_wasm_lua_handler_pt         error_handler;
     ngx_wasm_lua_handler_pt         success_handler;
-    ngx_event_t                    *ev;               /* entry lctx sleep event */
     void                           *data;
 
     const char                     *code;
