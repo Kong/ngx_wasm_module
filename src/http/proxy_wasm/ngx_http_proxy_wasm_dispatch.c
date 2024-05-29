@@ -387,6 +387,8 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     ngx_post_event(ev, &ngx_posted_events);
 
+    call->ev = ev;
+
     ngx_queue_insert_head(&pwexec->calls, &call->q);
 
     ngx_proxy_wasm_ctx_set_next_action(pwctx, NGX_PROXY_WASM_ACTION_PAUSE);
@@ -427,6 +429,12 @@ ngx_http_proxy_wasm_dispatch_destroy(ngx_http_proxy_wasm_dispatch_t *call)
 
     dd("enter");
 
+    if (call->ev) {
+        ngx_delete_posted_event(call->ev);
+        ngx_free(call->ev);
+        call->ev = NULL;
+    }
+
     ngx_wasm_socket_tcp_destroy(sock);
 
     if (call->host.data) {
@@ -461,6 +469,7 @@ ngx_http_proxy_wasm_dispatch_handler(ngx_event_t *ev)
     ngx_wasm_socket_tcp_t           *sock = &call->sock;
 
     ngx_free(ev);
+    call->ev = NULL;
 
     sock->resume_handler = ngx_http_proxy_wasm_dispatch_resume_handler;
     sock->data = call;

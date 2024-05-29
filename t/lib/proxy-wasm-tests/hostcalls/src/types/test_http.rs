@@ -107,6 +107,13 @@ impl TestHttp {
                 return Action::Pause;
             }
 
+            /* edge case: dispatch + local response */
+            "/t/dispatch_and_local_response" => {
+                self.send_http_dispatch(0);
+                self.send_http_dispatch(0);
+                test_send_status(self, 201)
+            }
+
             /* shared memory */
             "/t/shm/get_shared_data" => test_get_shared_data(self),
             "/t/shm/set_shared_data" => test_set_shared_data(self),

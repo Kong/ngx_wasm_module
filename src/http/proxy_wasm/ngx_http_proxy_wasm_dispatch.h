@@ -49,6 +49,8 @@ struct ngx_http_proxy_wasm_dispatch_s {
     ngx_chain_t                            *req_body;
     ngx_chain_t                            *req_out;
 
+    ngx_event_t                            *ev;    /* initial posted event */
+
     ngx_wasm_http_reader_ctx_t              http_reader;
     ngx_http_proxy_wasm_dispatch_state_e    state;
     ngx_http_request_t                      fake_r;

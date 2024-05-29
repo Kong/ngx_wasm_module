@@ -427,3 +427,29 @@ qr/\A\[error] .*? dispatch failed: tcp socket - Connection refused
 [crit]
 [emerg]
 [alert]
+
+
+
+=== TEST 13: proxy_wasm - dispatch_http_call() followed by a local response
+Cancels posted events of pending dispatches
+--- skip_no_debug
+--- valgrind
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/dispatch_and_local_response \
+                              host=127.0.0.1:1';
+        echo_status 200;
+    }
+--- error_code: 201
+--- response_body
+--- grep_error_log eval: qr/proxy_wasm http dispatch cancelled/
+--- grep_error_log_out
+proxy_wasm http dispatch cancelled
+proxy_wasm http dispatch cancelled
+--- no_error_log
+[crit]
+[emerg]
+[alert]
