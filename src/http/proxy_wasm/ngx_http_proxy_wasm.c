@@ -139,15 +139,23 @@ ngx_http_proxy_wasm_on_request_body_handler(ngx_http_request_t *r)
     if (len) {
         pwctx = (ngx_proxy_wasm_ctx_t *) rctx->data;
         pwctx->req_body_len = len;
+    }
 
-        rc = ngx_proxy_wasm_resume(pwctx, pwctx->phase,
-                                   NGX_PROXY_WASM_STEP_REQ_BODY);
-        if (rc == NGX_AGAIN) {
-            ngx_wasm_yield(&rctx->env);
+    rctx->req_body_received = 1;
 
-        } else if (rc == NGX_ERROR || rc == NGX_HTTP_INTERNAL_SERVER_ERROR) {
-            ngx_wasm_error(&rctx->env);
-        }
+    dd("enter content");
+    rctx->in_req_body_handler = 1;
+
+    (void) ngx_http_wasm_content(rctx);
+
+    rctx->in_req_body_handler = 0;
+    dd("exit content");
+
+    if (rctx->req_body_waited
+        && !ngx_wasm_yielding(&rctx->env))
+    {
+        /* decrement r->count like wev_handler last_finalize */
+        ngx_http_finalize_request(r, rc);
     }
 
     dd("exit (len: %ld)", len);
