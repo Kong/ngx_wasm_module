@@ -60,7 +60,10 @@ struct ngx_http_wasm_req_ctx_s {
     unsigned                           req_keepalive:1;         /* r->keepalive copy */
     unsigned                           reset_resp_shims:1;
     unsigned                           entered_content_phase:1; /* entered content handler */
-    unsigned                           exited_content_phase:1;  /* executed content handler at least once */
+    unsigned                           content_executed:1;      /* executed content handler at least once */
+    unsigned                           in_req_body_handler:1;   /* content invoked from read_request_body handler */
+    unsigned                           req_body_waited:1;       /* read_request_body yielded at least once */
+    unsigned                           req_body_received:1;     /* read_request_body finished */
     unsigned                           entered_header_filter:1; /* entered header_filter handler */
     unsigned                           entered_body_filter:1;   /* entered body_filter handler */
     unsigned                           entered_log_phase:1;     /* entered log phase */
@@ -120,6 +123,7 @@ ngx_int_t ngx_http_wasm_stash_local_response(ngx_http_wasm_req_ctx_t *rctx,
 void ngx_http_wasm_discard_local_response(ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_http_wasm_flush_local_response(ngx_http_wasm_req_ctx_t *rctx);
 ngx_int_t ngx_http_wasm_produce_resp_headers(ngx_http_wasm_req_ctx_t *rctx);
+ngx_int_t ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx);
 
 
 /* directives */

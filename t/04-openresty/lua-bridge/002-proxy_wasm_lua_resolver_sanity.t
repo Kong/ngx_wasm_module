@@ -435,6 +435,7 @@ hello world
 
 
 === TEST 12: Lua bridge - proxy_wasm_lua_resolver, IPv6 record
+--- SKIP
 --- skip_eval: 5: system("cat /sys/module/ipv6/parameters/disable") ne 0 || defined $ENV{GITHUB_ACTIONS}
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module

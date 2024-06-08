@@ -147,9 +147,8 @@ pausing after "RequestHeaders"
 --- request
 POST /t
 Hello world
---- error_code: 200
+--- error_code:
 --- response_body
-nop
 --- error_log
 pausing after "RequestBody"
 --- no_error_log

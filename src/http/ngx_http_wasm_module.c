@@ -29,7 +29,6 @@ static ngx_int_t ngx_http_wasm_rewrite_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_preaccess_handler(ngx_http_request_t *r);
 #endif
 static ngx_int_t ngx_http_wasm_access_handler(ngx_http_request_t *r);
-static ngx_int_t ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx);
 static ngx_int_t ngx_http_wasm_content_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_log_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_wasm_check_finalize(ngx_http_wasm_req_ctx_t *rctx,
@@ -935,7 +934,7 @@ done:
 }
 
 
-static ngx_int_t
+ngx_int_t
 ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
 {
     ngx_int_t            rc;
@@ -977,10 +976,10 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
 
         goto finalize;
     case NGX_DECLINED:
-        if (rctx->exited_content_phase) {
+        if (rctx->content_executed && !rctx->req_body_received) {
             /* Content phase already ran, no stashed response.
              * Do not resume ops again and run the orig content
-             * handler instead */
+             * handler instead. */
             goto orig;
         }
 
@@ -991,10 +990,6 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
     }
 
     rc = ngx_wasm_ops_resume(&rctx->opctx, NGX_HTTP_CONTENT_PHASE);
-    if (rctx->env.state == NGX_WASM_STATE_ERROR) {
-        rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
-    }
-
     dd("content ops resume rc: %ld", rc);
     rc = ngx_http_wasm_check_finalize(rctx, rc);
     if (rc == NGX_ERROR
@@ -1002,12 +997,19 @@ ngx_http_wasm_content(ngx_http_wasm_req_ctx_t *rctx)
         || rc == NGX_DONE
         || rc >= NGX_HTTP_SPECIAL_RESPONSE)
     {
-        if (rc == NGX_AGAIN && r == r->main) {
-            r->main->count++;
-            dd("r->main->count++: %d", r->main->count);
+        if (rc == NGX_AGAIN) {
+            if (r == r->main
+                && !rctx->req_body_waited
+                && !rctx->in_req_body_handler)
+            {
+                r->main->count++;
+                dd("r->main->count++: %d", r->main->count);
+            }
+
             rc = NGX_DONE;
         }
 
+        dd("skip to finalize (rc: %ld)", rc);
         goto finalize;
     }
 
@@ -1055,12 +1057,16 @@ finalize:
 
     dd("finalize rc: %ld", rc);
 
-    rctx->exited_content_phase = 1;
+    rctx->content_executed = 1;
 
-    if (r->main->count == 1
+    if (rctx->in_wev
+        && r->main->count == 1
         && rc != NGX_DECLINED
         && rc <= NGX_OK)
     {
+        /* We must avoid reading from rctx after ngx_http_wasm_check_finalize,
+         * so we use this variable to determine what is explained in the
+         * comment below. */
         done = 1;
     }
 
@@ -1072,8 +1078,7 @@ finalize:
          * ngx_http_wasm_wev_handler...). We should break them down.
          *
          * NGX_ABORT: no additional ngx_http_finalize_request in caller (for
-         * wev handler invocations).
-         */
+         * wev handler invocations). */
         rc = NGX_ABORT;
      }
 

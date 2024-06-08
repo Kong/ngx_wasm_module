@@ -470,10 +470,52 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
             r->headers_in.content_length_n = rctx->req_content_length_n;
         }
 
-        rc = ngx_http_wasm_read_client_request_body(r,
-                 ngx_http_proxy_wasm_on_request_body_handler);
-        if (rc == NGX_OK && ngx_wasm_yielding(&rctx->env)) {
-            rc = NGX_AGAIN;
+        if (!rctx->req_body_received) {
+            rc = ngx_http_wasm_read_client_request_body(r,
+                     ngx_http_proxy_wasm_on_request_body_handler);
+            if (rc == NGX_OK) {
+                if (ngx_wasm_yielding(&rctx->env)) {
+                    /* yield in request_body content invocation */
+                    rc = NGX_AGAIN;
+
+                } else if (ngx_wasm_errored(&rctx->env)) {
+                    /* error in request_body content invocation */
+                    rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
+
+                } else if (rctx->req_body_received
+                           && !rctx->resp_content_chosen)
+                {
+                    /* request_body content invocation finished normally, no
+                     * content produced */
+                    rc = NGX_DONE;
+                }
+
+            } else if (rc == NGX_AGAIN) {
+                rctx->req_body_waited = 1;
+            }
+
+        } else if (pwctx->req_body_len) {
+            rc = ngx_proxy_wasm_resume(pwctx, pwctx->phase,
+                                       NGX_PROXY_WASM_STEP_REQ_BODY);
+            switch (rc) {
+                case NGX_ERROR:
+                case NGX_HTTP_INTERNAL_SERVER_ERROR:
+                    ngx_wasm_error(&rctx->env);
+                    break;
+                case NGX_AGAIN:
+                    ngx_wasm_yield(&rctx->env);
+                    break;
+                case NGX_DONE:
+                    rc = NGX_OK;
+                    /* fallthrough */
+                default:
+                    ngx_wa_assert(rc == NGX_OK);
+                    break;
+            }
+
+        } else {
+            /* received empty body */
+            rc = NGX_OK;
         }
 
         break;

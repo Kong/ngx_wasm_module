@@ -22,8 +22,14 @@
     (env)->state = NGX_WASM_STATE_YIELD;                                     \
     ngx_wasm_set_resume_handler(env)
 
+#define ngx_wasm_continuing(env)                                             \
+    ((env)->state == NGX_WASM_STATE_CONTINUE)
+
 #define ngx_wasm_yielding(env)                                               \
-    (env)->state == NGX_WASM_STATE_YIELD
+    ((env)->state == NGX_WASM_STATE_YIELD)
+
+#define ngx_wasm_errored(env)                                                \
+    ((env)->state == NGX_WASM_STATE_ERROR)
 
 #define ngx_wasm_bad_subsystem(env)                                          \
     ngx_wasm_log_error(NGX_LOG_WASM_NYI, env->connection->log, 0,            \
