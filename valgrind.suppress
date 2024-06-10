@@ -1,5 +1,5 @@
 {
-   <nginx 1.25.5: ngx_set_environment>
+   <nginx 1.27.0: ngx_set_environment>
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
@@ -7,14 +7,14 @@
    fun:ngx_set_environment
 }
 {
-   <nginx 1.25.5: ngx_event_process_init>
+   <nginx 1.27.0: ngx_event_process_init>
    Memcheck:Leak
    fun:malloc
    fun:ngx_alloc
    fun:ngx_event_process_init
 }
 {
-   <nginx 1.25.5: ngx_crc32_table_init>
+   <nginx 1.27.0: ngx_crc32_table_init>
    Memcheck:Leak
    match-leak-kinds: possible
    fun:malloc
