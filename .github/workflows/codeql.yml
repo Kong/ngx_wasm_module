@@ -1,27 +1,19 @@
 name: CodeQL
 
 on:
-  workflow_call:
-    inputs:
-      language:
-        required: true
-        type: string
-      openresty:
-        required: true
-        type: string
-      runtime:
-        required: true
-        type: string
+  push:
+    branches: main
+    paths-ignore:
+      - '**/*.md'
+      - '**/release.yml'
+      - '**/ci-large.yml'
+      - 'assets/release/Dockerfiles/*'
+  #pull_request:
+    #branches: '**'
 
 defaults:
   run:
     shell: bash
-
-env:
-  NGX_BUILD_OPENRESTY: ${{ inputs.openresty }}
-  NGX_BUILD_DEBUG: 1
-  NGX_BUILD_SSL: 1
-  NGX_BUILD_DYNAMIC_MODULE: 1
 
 jobs:
   codeql:
@@ -32,14 +24,20 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    outputs:
-      sarif_file: ${{ steps.sarif-filename.outputs.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: c-cpp
+            build-mode: manual
+            openresty: 1.25.3.1
+            runtime: v8 # v8bridge
     steps:
       - uses: actions/checkout@v4
       - name: Setup CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ inputs.language }}
+          languages: ${{ matrix.language }}
       - name: 'Setup cache - work/ dir'
         uses: actions/cache@v4
         if: ${{ !env.ACT }}
@@ -48,11 +46,17 @@ jobs:
             work/downloads
             work/runtimes
             work/openssl
-          key: codeql-work-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain', 'Makefile') }}
+          key: codeql-work-${{ matrix.os }}-${{ matrix.cc }}-${{ matrix.ngx }}-${{ matrix.openresty }}-${{ matrix.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain', 'Makefile') }}
       - name: Setup Wasm runtime
-        run: ./util/runtime.sh -R ${{ inputs.runtime }} -V ${{ inputs[inputs.runtime] }}
+        run: ./util/runtime.sh -R ${{ matrix.runtime }} -V ${{ matrix[matrix.runtime] }}
       - run: make setup
       - run: make
+        env:
+          NGX_WASM_RUNTIME: ${{ matrix.runtime }}
+          NGX_BUILD_OPENRESTY: ${{ matrix.openresty }}
+          NGX_BUILD_DYNAMIC_MODULE: 1
+          NGX_BUILD_DEBUG: 1
+          NGX_BUILD_SSL: 1
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
@@ -60,10 +64,10 @@ jobs:
           output: sarif-results
       - id: sarif-filename
         run: |
-          if [ "${{ inputs.language }}" = "c-cpp" ]; then
+          if [ "${{ matrix.language }}" = "c-cpp" ]; then
             echo "name=cpp" >> $GITHUB_OUTPUT
           else
-            echo "name=${{ inputs.language }}" >> $GITHUB_OUTPUT
+            echo "name=${{ matrix.language }}" >> $GITHUB_OUTPUT
           fi
       - name: Filter SARIF
         uses: advanced-security/filter-sarif@v1
@@ -80,6 +84,6 @@ jobs:
           sarif_file: sarif-results
       - uses: actions/upload-artifact@v4
         with:
-          name: sarif-results-${{ inputs.runtime }}
+          name: sarif-results-${{ matrix.runtime }}
           path: sarif-results
           retention-days: ${{ github.retention_days }}
