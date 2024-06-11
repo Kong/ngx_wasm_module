@@ -130,21 +130,6 @@ jobs:
       ssl: ${{ matrix.ssl }}
       debug: ${{ matrix.debug }}
 
-  codeql:
-    name: 'CodeQL analyzer'
-    #timeout-minutes: see job-codeql-analyzer.yml
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ["c-cpp"]
-        openresty: [1.25.3.1]
-        runtime: [wasmtime, wasmer, v8]
-    uses: ./.github/workflows/job-codeql-analyzer.yml
-    with:
-      language: ${{ matrix.language }}
-      openresty: ${{ matrix.openresty }}
-      runtime: ${{ matrix.runtime }}
-
   build:
     name: 'Build'
     #if: ${{ false }}
