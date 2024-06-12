@@ -63,6 +63,9 @@ for my $file (@ARGV) {
     # function declaration
     my ($func_decl_multiline, $in_func_decl);
 
+    # switch indentation levels
+    my @switch_level = ();
+
     ##################################################################
     # end new rules - flags
     ##################################################################
@@ -361,10 +364,28 @@ for my $file (@ARGV) {
                  }
             }
 
-            # zero/null tests */
+            # zero/null tests
 
             if ($line =~ /!= NULL/) {
                 output "use 'if (ptr)' instead of if (ptr != NULL)";
+            }
+
+            # switch/case tests
+
+            if ($line =~ /^(\s*)switch/) {
+                push(@switch_level, length($1));
+
+            } elsif ((scalar @switch_level) > 0) {
+                if ($line =~ /^(\s*)case/) {
+                    if (length($1) != $switch_level[-1]) {
+                        output "use 'case' at the same indent level as 'switch'";
+                    }
+
+                } elsif ($line =~ /^(\s*)}/) {
+                    if (length($1) == $switch_level[-1]) {
+                        pop(@switch_level);
+                    }
+                }
             }
 
             ##################################################################
