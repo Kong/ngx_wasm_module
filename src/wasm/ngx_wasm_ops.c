@@ -498,19 +498,19 @@ ngx_wasm_op_proxy_wasm_handler(ngx_wasm_op_ctx_t *opctx,
             rc = ngx_proxy_wasm_resume(pwctx, pwctx->phase,
                                        NGX_PROXY_WASM_STEP_REQ_BODY);
             switch (rc) {
-                case NGX_ERROR:
-                case NGX_HTTP_INTERNAL_SERVER_ERROR:
-                    ngx_wasm_error(&rctx->env);
-                    break;
-                case NGX_AGAIN:
-                    ngx_wasm_yield(&rctx->env);
-                    break;
-                case NGX_DONE:
-                    rc = NGX_OK;
-                    /* fallthrough */
-                default:
-                    ngx_wa_assert(rc == NGX_OK);
-                    break;
+            case NGX_ERROR:
+            case NGX_HTTP_INTERNAL_SERVER_ERROR:
+                ngx_wasm_error(&rctx->env);
+                break;
+            case NGX_AGAIN:
+                ngx_wasm_yield(&rctx->env);
+                break;
+            case NGX_DONE:
+                rc = NGX_OK;
+                /* fallthrough */
+            default:
+                ngx_wa_assert(rc == NGX_OK);
+                break;
             }
 
         } else {
