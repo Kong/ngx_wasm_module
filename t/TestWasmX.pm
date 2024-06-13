@@ -251,8 +251,10 @@ add_block_preprocessor(sub {
     }
 
     if (defined $skip_n) {
-        $block->set_value("skip_eval", sprintf('%d: (%s)', $skip_n,
-                                               join " || ", @block_skip));
+        my $eval_str = sprintf('%d: (%s)', $skip_n,
+                               join " || ", @block_skip);
+        #warn $eval_str;
+        $block->set_value("skip_eval", $eval_str);
     }
 
     # --- timeout_expected: 1

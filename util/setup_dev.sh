@@ -114,6 +114,40 @@ EOF
     -daemon $DaemonEnabled;
      master_process $MasterProcessEnabled;
 EOF
+    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
+    @@ -484,6 +484,7 @@ sub master_process_enabled (@) {
+     }
+
+     our @EXPORT = qw(
+    +    gen_rand_port
+         use_http2
+         use_http3
+         env_to_nginx
+EOF
+    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Socket.pm <<'EOF'
+    @@ -1468,6 +1468,10 @@ sub check_shutdown_error_log ($$) {
+
+             my %found;
+             $lines ||= error_log_data();
+    +        if (!defined $lines) {
+    +            return;
+    +        }
+    +
+             # warn "error log data: ", join "\n", @$lines;
+             for my $line (@$lines) {
+                 for my $pat (@$pats) {
+    @@ -1505,6 +1509,10 @@ sub check_shutdown_error_log ($$) {
+         }
+
+         $lines ||= error_log_data();
+    +    if (!defined $lines) {
+    +        return;
+    +    }
+    +
+         #warn "error log data: ", join "\n", @$lines;
+         for my $line (@$lines) {
+             for my $pat (@$pats) {
+EOF
     patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Socket.pm <<'EOF'
     @@ -813,6 +813,10 @@ again:
 
@@ -126,16 +160,6 @@ EOF
          check_error_log($block, $res, $dry_run, $repeated_req_idx, $need_array);
 
          if (!defined $block->ignore_response) {
-EOF
-    patch --forward --ignore-whitespace lib/perl5/Test/Nginx/Util.pm <<'EOF'
-    @@ -484,6 +484,7 @@ sub master_process_enabled (@) {
-     }
-
-     our @EXPORT = qw(
-    +    gen_rand_port
-         use_http2
-         use_http3
-         env_to_nginx
 EOF
     set -e
 popd
