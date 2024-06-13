@@ -49,7 +49,7 @@ our $ntests;
 
 sub plan_tests (@) {
     my $nblocks = Test::Base::blocks();
-    $ntests = shift;
+    my $ntests = shift;
     plan tests => repeat_each() * $nblocks * $ntests;
 }
 
