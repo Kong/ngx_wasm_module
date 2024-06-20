@@ -1013,7 +1013,7 @@ ngx_wasm_socket_read_http_response(ngx_wasm_socket_tcp_t *sock,
     if (bytes) {
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, sock->log, 0,
                        "wasm tcp socket resuming http response reading "
-                       "with %d bytes to parse", bytes);
+                       "with %z bytes to parse", bytes);
 
         return ngx_wasm_read_http_response(&sock->buffer, sock->buf_in, bytes,
                                            (ngx_wasm_http_reader_ctx_t *) ctx);
