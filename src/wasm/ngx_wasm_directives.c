@@ -144,16 +144,16 @@ validate_shm_size(ngx_conf_t *cf, ssize_t size, ngx_str_t *value)
 
     if (size < (ssize_t) NGX_WASM_SHM_MIN_SIZE) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "[wasm] shm size of %d bytes is too small, "
-                           "minimum required is %d bytes",
+                           "[wasm] shm size of %z bytes is too small, "
+                           "minimum required is %z bytes",
                            size, NGX_WASM_SHM_MIN_SIZE);
         return NGX_ERROR;
     }
 
     if ((size & (ngx_pagesize - 1)) != 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "[wasm] shm size of %d bytes is not page-aligned, "
-                           "must be a multiple of %d", size, ngx_pagesize);
+                           "[wasm] shm size of %z bytes is not page-aligned, "
+                           "must be a multiple of %z", size, ngx_pagesize);
         return NGX_ERROR;
     }
 

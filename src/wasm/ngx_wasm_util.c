@@ -378,8 +378,8 @@ ngx_wasm_bytes_from_path(wasm_byte_vec_t *out, u_char *path, ngx_log_t *log)
     if (n != fsize) {
         ngx_wasm_log_error(NGX_LOG_EMERG, log, 0,
                            ngx_read_file_n " \"%V\" returned only "
-                           "%z file_bytes instead of %uiz", &file.name,
-                           n, fsize);
+                           "%z file_bytes instead of %z",
+                           &file.name, n, fsize);
         goto close;
     }
 
