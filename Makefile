@@ -80,7 +80,7 @@ update:
 
 .PHONY: todo
 todo:
-	@/bin/grep -rIFn -- 'TODO' src/ t/
+	@/bin/grep -rIFn -- 'TODO' src/ lib/ t/ util/
 
 .PHONY: act-build
 act-build:
@@ -92,6 +92,10 @@ act-build:
 .PHONY: act
 act: act-build
 	@act --reuse --pull=false
+
+.PHONY: changelog
+changelog:
+	@util/changelog.sh
 
 .PHONY: coverage
 coverage: clean

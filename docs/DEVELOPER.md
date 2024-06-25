@@ -174,8 +174,9 @@ release artifacts).
 | `lint`             | Lint the sources and test cases
 | `reindex`          | Automatically format the `.t` test files
 | `update`           | Run `cargo update` in all workspaces
-| `todo`             | Search the project for "TODOs" (source + tests)
+| `todo`             | Search the project for "TODOs" (source, tests, scripts)
 | `act`              | Build and run the CI environment
+| `changelog`        | Print all changelog-worthy commits since the last release
 | `clean`            | Clean the latest build
 | `cleanup`          | Does `clean` and also cleans some more of the build environment to free-up disk space
 | `cleanall`         | Destroy the build environment
