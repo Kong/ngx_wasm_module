@@ -1,5 +1,6 @@
 # Table of Contents
 
+- [0.4.0]
 - [0.3.0]
 - [0.2.0]
 - [0.1.1]
@@ -31,6 +32,67 @@ Host ABI.
 As for Nginx developers, the module can also be used to write other modules; the
 best resource for that sort of information would be
 [DEVELOPER.md](https://github.com/Kong/ngx_wasm_module/tree/main/docs/DEVELOPER.md).
+
+## 0.4.0
+
+> 2024/06/25 - Prerelease
+>
+> [Documentation](https://github.com/Kong/ngx_wasm_module/tree/prerelease-0.4.0/docs)
+> | [Release assets](https://github.com/Kong/ngx_wasm_module/releases/tag/prerelease-0.4.0)
+
+This prerelease introduces support for Proxy-Wasm metrics and fixes a number of
+issues related to the execution of Proxy-Wasm dispatches and Lua bridge threads
+(`proxy_wasm_lua_resolver` directive).
+
+#### Changes
+
+> [0.3.0...0.4.0](https://github.com/Kong/ngx_wasm_module/compare/prerelease-0.3.0...prerelease-0.4.0)
+
+- Proxy-Wasm
+    - Feature: implement support for Proxy-Wasm ABI v0.2.1 metrics.
+    - Feature: allow setting the `:status` pseudo-header on response for status
+      manipulation.
+    - Bugfix: cancel dispatches when immediately producing a response before a
+      scheduled dispatch starts.
+    - Misc: consistent context checks for all request/response header setters.
+    - Misc: dispatch errors do not interrupt filter chains anymore.
+- Wasmtime
+    - Feature: new `cache_config` directive to enable compilation cache.
+- V8
+    - Bugfix: prevent a segfault loading an empty `.wat` module with V8.
+- LuaJIT FFI
+    - Bugfix: allow `proxy_wasm.load()` to fail and be invoked again.
+- Lua bridge
+    - Bugfix: properly support multiple parallel yielding Lua threads (e.g.
+      `proxy_wasm_lua_resolver` directive).
+- Misc
+    - Feature: new `postpone_rewrite` and `postpone_access` directives.
+    - Bugfix: resume content phase when reading request body produced EAGAIN.
+    - Bugfix: fix memory reallocation when a key/value pair has its value replaced
+      by a larger one.
+
+#### Dependencies
+
+This release is tested with the following Nginx versions and dependencies:
+
+Name      | Version         | Notes
+---------:|:---------------:|:--------------------------------------------------
+Nginx     | [1.27.0](https://nginx.org/en/download.html)                       |
+OpenSSL   | [3.3.1](https://www.openssl.org/source/)                           |
+Wasmtime  | [19.0.0](https://github.com/bytecodealliance/wasmtime/releases)    |
+Wasmer    | [3.1.1](https://github.com/wasmerio/wasmer/releases/)              |
+V8        | [12.0.267.17](https://github.com/Kong/ngx_wasm_runtimes/releases/) | Built by [Kong/ngx_wasm_runtimes] for convenience.
+OpenResty | [1.25.3.1](https://openresty.org/en/download.html)                 | No binary, tested only.
+
+#### Components
+
+Same as [0.1.0].
+
+#### Known Issues
+
+N/A
+
+[Back to TOC](#table-of-contents)
 
 ## 0.3.0
 
@@ -72,7 +134,7 @@ OpenSSL   | [3.2.1](https://www.openssl.org/source/)                           |
 Wasmtime  | [14.0.3](https://github.com/bytecodealliance/wasmtime/releases)    |
 Wasmer    | [3.1.1](https://github.com/wasmerio/wasmer/releases/)              |
 V8        | [12.0.267.17](https://github.com/Kong/ngx_wasm_runtimes/releases/) | Built by [Kong/ngx_wasm_runtimes] for convenience.
-OpenResty | [1.25.3.2](https://openresty.org/en/download.html)                 | No binary, tested only.
+OpenResty | [1.25.3.1](https://openresty.org/en/download.html)                 | No binary, tested only.
 
 #### Components
 
@@ -271,6 +333,7 @@ lua-resty-wasmx | A LuaJIT FFI binding exposing some of ngx_wasm_module's featur
 
 [Back to TOC](#table-of-contents)
 
+[0.4.0]: #040
 [0.3.0]: #030
 [0.2.0]: #020
 [0.1.1]: #011
