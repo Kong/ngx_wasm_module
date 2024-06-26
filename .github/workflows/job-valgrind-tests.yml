@@ -100,7 +100,7 @@ jobs:
         if: ${{ !env.ACT }}
         uses: acifani/setup-tinygo@v2
         with:
-          tinygo-version: 0.31.1
+          tinygo-version: 0.32.0
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

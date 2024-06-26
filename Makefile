@@ -6,7 +6,7 @@ V8 ?= 12.0.267.17
 PCRE ?= 8.45
 ZLIB ?= 1.3
 LUAROCKS ?= 3.11.0
-PROXY_WASM_GO_SDK ?= 0.21.0
+PROXY_WASM_GO_SDK ?= 0.24.0
 PROXY_WASM_ASSEMBLYSCRIPT_SDK ?= 0.0.6
 
 # util/runtime.sh - no makefile target
