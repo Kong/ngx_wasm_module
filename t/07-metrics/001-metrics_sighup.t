@@ -4,6 +4,7 @@ use lib '.';
 use t::TestWasmX;
 
 skip_no_hup();
+skip_no_debug();
 
 our $workers = 2;
 our $metrics = "c2,g2,h2";
