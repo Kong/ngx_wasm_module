@@ -438,7 +438,7 @@ ngx_wasm_core_init_conf(ngx_conf_t *cf, void *conf)
     }
 
     if (wcf->recv_timeout == NGX_CONF_UNSET_MSEC) {
-        wcf->recv_timeout = NGX_WASM_DEFAULT_RECV_TIMEOUT;
+        wcf->recv_timeout = NGX_WASM_DEFAULT_SOCK_RECV_TIMEOUT;
     }
 
     if (wcf->socket_buffer_size == NGX_CONF_UNSET_SIZE) {
