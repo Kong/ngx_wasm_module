@@ -12,6 +12,7 @@
 #include <ngx_http_wasm_trailers.h>
 #endif
 
+
 #define NGX_HTTP_WASM_MAX_REQ_HEADERS      100
 
 #define NGX_HTTP_WASM_HEADER_FILTER_PHASE  (NGX_HTTP_LOG_PHASE + 1)

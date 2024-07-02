@@ -46,7 +46,7 @@ jobs:
             debug: debug
             hup: no_hup
             module_type: static
-          # macOS - Wasmer (full)
+          # macOS - Wasmer
           - label: macos_wasmer_full
             runtime: wasmer
             wasmer: 3.1.1

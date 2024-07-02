@@ -136,7 +136,7 @@ jobs:
       - name: Run tests
         run: |
           ulimit -c unlimited
-          ./util/test.sh t/0* 2>&1 | tee valgrind.out
+          make test
       - name: Run lcov
         id: lcov
         if: ${{ !env.ACT && inputs.coverage }}

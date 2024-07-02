@@ -277,13 +277,13 @@ fi
 if [ -n "$HTTP_LUA_DEPS" ]; then
 
     if [ $HTTP = YES ]; then
-        # ../build/ngx_lua-x.y.z/srx/ngx_http_lua_util.h
+        # ../build/ngx_lua-x.y.z/src/ngx_http_lua_util.h
         ngx_lua_dir=$(find .. -maxdepth 1 -type d -name 'ngx_lua-*')
         NGX_HTTP_WASM_INCS="$NGX_HTTP_WASM_INCS $ngx_lua_dir/src"
     fi
 
     if [ $STREAM = YES ]; then
-        # ../build/ngx_stream_lua-x.y.z/srx/ngx_stream_lua_util.h
+        # ../build/ngx_stream_lua-x.y.z/src/ngx_stream_lua_util.h
         ngx_stream_lua_dir=$(find .. -maxdepth 1 -type d -name 'ngx_stream_lua-*')
         NGX_STREAM_WASM_INCS="$NGX_STREAM_WASM_INCS $ngx_stream_lua_dir/src"
     fi

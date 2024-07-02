@@ -376,7 +376,7 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               NGX_WASM_DEFAULT_SOCK_SEND_TIMEOUT);
     ngx_conf_merge_msec_value(conf->recv_timeout,
                               prev->recv_timeout,
-                              NGX_WASM_DEFAULT_RECV_TIMEOUT);
+                              NGX_WASM_DEFAULT_SOCK_RECV_TIMEOUT);
 
     ngx_conf_merge_size_value(conf->socket_buffer_size,
                               prev->socket_buffer_size,

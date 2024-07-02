@@ -349,8 +349,8 @@ build_nginx() {
         # is cleaned by Test::Nginx
         NGX_BUILD_DIR_PREFIX=$DIR_OPR_PREFIX
 
-        # Wasm/Lua bridge test cases
         if [[ "$NGX_BUILD_DEBUG" == 1 ]]; then
+            # Wasm/Lua bridge test cases
             NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -DNGX_WASM_LUA_BRIDGE_TESTS"
         fi
 

@@ -50,8 +50,7 @@ issues related to the execution of Proxy-Wasm dispatches and Lua bridge threads
 
 - Proxy-Wasm
     - Feature: implement support for Proxy-Wasm ABI v0.2.1 metrics.
-    - Feature: allow setting the `:status` pseudo-header on response for status
-      manipulation.
+    - Feature: allow setting the `:status` pseudo-header on response steps.
     - Bugfix: cancel dispatches when immediately producing a response before a
       scheduled dispatch starts.
     - Misc: consistent context checks for all request/response header setters.
