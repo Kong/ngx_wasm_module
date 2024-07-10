@@ -46,8 +46,6 @@ response
 --- grep_error_log eval: qr/(testing in|resp) .*/
 --- grep_error_log_out eval
 qr/testing in "RequestHeaders".*
-resp Transfer-Encoding: chunked.*
-resp Connection: close.*
 testing in "ResponseHeaders".*
 resp :status: 200.*
 resp Content-Type: text\/plain.*

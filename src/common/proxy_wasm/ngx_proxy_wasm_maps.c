@@ -143,6 +143,8 @@ ngx_proxy_wasm_maps_get_all(ngx_wavm_instance_t *instance,
 #ifdef NGX_WASM_HTTP
     ngx_table_elt_t            *shim;
     ngx_array_t                *shims;
+    ngx_proxy_wasm_ctx_t       *pwctx;
+    ngx_proxy_wasm_exec_t      *pwexec;
 #endif
 
     list = ngx_proxy_wasm_maps_get_map(instance, map_type);
@@ -178,10 +180,22 @@ ngx_proxy_wasm_maps_get_all(ngx_wavm_instance_t *instance,
         }
 
 #ifdef NGX_WASM_HTTP
-        if (map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS) {
-            /* inject shim response headers
-             * (produced by ngx_http_header_filter)
+        pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+        pwctx = pwexec->parent;
+
+        if (map_type == NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS
+            && (pwctx->step == NGX_PROXY_WASM_STEP_RESP_HEADERS
+                || pwctx->step == NGX_PROXY_WASM_STEP_RESP_BODY
+                || pwctx->step == NGX_PROXY_WASM_STEP_LOG))
+        {
+            /**
+             * Inject shim response headers during and after
+             * on_http_response_headers step as they are produced by
+             * ngx_http_header_filter.
              */
+            ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwexec->log, 0,
+                           "injecting shim headers in response headers map");
+
             shims = ngx_http_wasm_get_shim_headers(
                         ngx_http_proxy_wasm_get_rctx(instance));
 
