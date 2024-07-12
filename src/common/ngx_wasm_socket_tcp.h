@@ -40,6 +40,9 @@ struct ngx_wasm_socket_tcp_s {
 
     ngx_wasm_socket_tcp_resume_handler_pt    resume_handler;
     void                                    *data;
+#if (NGX_WASM_LUA)
+    ngx_wasm_lua_ctx_t                      *lctx;
+#endif
 
     ngx_str_t                                host;
     ngx_wasm_upstream_resolved_t             resolved;

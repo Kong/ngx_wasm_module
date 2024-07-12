@@ -587,6 +587,62 @@ ngx_wasm_lua_thread_run(ngx_wasm_lua_ctx_t *lctx)
 }
 
 
+void
+ngx_wasm_lua_thread_cancel(ngx_wasm_lua_ctx_t *lctx)
+{
+    ngx_wasm_subsys_env_t    *env = lctx->env;
+#if (NGX_WASM_HTTP)
+    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_http_request_t       *r;
+    ngx_http_lua_ctx_t       *ctx;
+#endif
+
+    dd("enter");
+
+    if (lctx->finished) {
+        return;
+    }
+
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, lctx->log, 0,
+                   "wasm cancelling lua%sthread (lctx: %p)",
+                   lctx->entry ? " entry " : " user ", lctx);
+
+    if (!lctx->entry) {
+        ngx_queue_remove(&lctx->q);
+
+        if (entry_thread_empty(env)) {
+            ngx_wasm_lua_thread_cancel(env->entry_lctx);
+        }
+
+    } else {
+        ngx_wasm_continue(env);
+    }
+
+    lctx->cancelled = 1;
+
+    if (lctx->error_handler) {
+        (void) lctx->error_handler(lctx);
+    }
+
+    switch (env->subsys->kind) {
+#if (NGX_WASM_HTTP)
+    case NGX_WASM_SUBSYS_HTTP:
+        rctx = env->ctx.rctx;
+        r = rctx->r;
+        ctx = lctx->ctx.rlctx;
+
+        ngx_http_lua_del_thread(r, lctx->L, ctx, lctx->co_ctx);
+        break;
+#endif
+    default:
+        ngx_wasm_bad_subsystem(env);
+        break;
+    }
+
+    dd("exit");
+}
+
+
 /**
  * Return values:
  * NGX_OK:     no lua thread to run
