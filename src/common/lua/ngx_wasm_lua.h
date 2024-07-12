@@ -50,6 +50,7 @@ struct ngx_wasm_lua_ctx_s {
     unsigned                        entry:1;        /* is entry lctx */
     unsigned                        yielded:1;      /* has yielded at least once */
     unsigned                        finished:1;     /* has finished */
+    unsigned                        cancelled:1;    /* cancelled */
 };
 
 
@@ -58,6 +59,7 @@ ngx_wasm_lua_ctx_t *ngx_wasm_lua_thread_new(const char *tag, const char *src,
     ngx_wasm_lua_handler_pt success_handler,
     ngx_wasm_lua_handler_pt error_handler);
 ngx_int_t ngx_wasm_lua_thread_run(ngx_wasm_lua_ctx_t *lctx);
+void ngx_wasm_lua_thread_cancel(ngx_wasm_lua_ctx_t *lctx);
 ngx_int_t ngx_wasm_lua_resume(ngx_wasm_subsys_env_t *env);
 
 

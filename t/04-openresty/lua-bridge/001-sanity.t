@@ -155,3 +155,21 @@ sleeping for 250ms
 ]
 --- no_error_log
 [crit]
+
+
+
+=== TEST 9: Lua bridge - Lua thread can be cancelled
+--- valgrind
+--- skip_no_debug
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        wasm_call access ngx_lua_tests test_lua_cancel;
+        echo ok;
+    }
+--- error_log eval
+[
+    qr/\[debug\] .*? cancelling lua user thread/,
+    qr/\[debug\] .*? cancelling lua entry thread/,
+    qr/\[debug\] .*? wasm lua thread cancelled: 1/
+]

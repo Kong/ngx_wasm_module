@@ -3,6 +3,7 @@ extern "C" {
     fn ngx_wasm_lua_test_bad_chunk();
     fn ngx_wasm_lua_test_error();
     fn ngx_wasm_lua_test_sleep();
+    fn ngx_wasm_lua_test_cancel();
 }
 
 #[no_mangle]
@@ -23,4 +24,9 @@ pub fn test_lua_error() {
 #[no_mangle]
 pub fn test_lua_sleep() {
     unsafe { ngx_wasm_lua_test_sleep() }
+}
+
+#[no_mangle]
+pub fn test_lua_cancel() {
+    unsafe { ngx_wasm_lua_test_cancel() }
 }

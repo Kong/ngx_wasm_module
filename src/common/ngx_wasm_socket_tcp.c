@@ -349,12 +349,22 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
         if (resolver == NULL || !resolver->connections.nelts) {
             /* fallback to default resolver */
             wcf = ngx_wasm_core_cycle_get_conf(ngx_cycle);
-
-            ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
-                           "wasm tcp socket using default resolver");
-
             resolver = wcf->resolver;
-            rslv_tmp.timeout = wcf->resolver_timeout;
+
+#if (NGX_WASM_LUA)
+            if (!rctx->pwm_lua_resolver) {
+#endif
+                ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
+                               "wasm tcp socket using default resolver");
+
+                rslv_tmp.timeout = wcf->resolver_timeout;
+#if (NGX_WASM_LUA)
+
+            } else {
+                ngx_log_debug0(NGX_LOG_DEBUG_WASM, sock->log, 0,
+                               "wasm tcp socket using lua resolver");
+            }
+#endif
         }
 
         rslv_ctx = ngx_resolve_start(resolver, &rslv_tmp);
@@ -521,7 +531,11 @@ error:
 
     ngx_resolve_name_done(ctx);  /* frees ctx */
 
-    (void) ngx_wasm_socket_tcp_resume(sock);
+    if (!sock->closed) {
+        /* e.g. pwm_lua_resolver call was cancelled and socket closed, do not
+         * resume */
+        (void) ngx_wasm_socket_tcp_resume(sock);
+    }
 
     if (resume) {
         /* resolver error, continue request */
@@ -1229,6 +1243,13 @@ ngx_wasm_socket_tcp_destroy(ngx_wasm_socket_tcp_t *sock)
     dd("enter");
 
     ngx_wasm_socket_tcp_close(sock);
+
+#if (NGX_WASM_LUA)
+    if (sock->lctx) {
+        /* cancel the pending lua resolver thread */
+        ngx_wasm_lua_thread_cancel(sock->lctx);
+    }
+#endif
 
     if (sock->host.data) {
         ngx_pfree(sock->pool, sock->host.data);
