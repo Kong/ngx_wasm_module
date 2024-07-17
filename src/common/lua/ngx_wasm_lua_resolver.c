@@ -56,7 +56,7 @@ static const char  *DNS_SOLVING_SCRIPT = ""
     "        resolvConf = {                                               \n"
     "            'nameserver '      .. nameserver,                        \n"
     "            'options timeout:' .. timeout,                           \n"
-#if 1
+#if 0
     "            'options attempts:1',                                    \n"
     "        },                                                           \n"
     "        order = { 'A' },                                             \n"
@@ -101,7 +101,7 @@ ngx_wasm_lua_resolver_error_handler(ngx_wasm_lua_ctx_t *lctx)
 
     dd("enter");
 
-#if (DDEBUG)
+#if (NGX_DEBUG)
     if (!lctx->cancelled) {
         ngx_wa_assert(lctx->co_ctx->co_status == NGX_HTTP_LUA_CO_DEAD);
     }

@@ -25,7 +25,7 @@ OUT="$(git --no-pager log --format=oneline $LATEST_TAG..)"
 if [[ -n $OUT ]]; then
     # Only show user-facing commits. Include refactor(), misc() and use best
     # judgement whether or not to include them in the final release
-    # description).
+    # description.
     echo "$OUT" \
         | sed "s/^[^ ]* //" \
         | $(which grep) -v -E '^(chore|tests|style|hotfix|docs)'
