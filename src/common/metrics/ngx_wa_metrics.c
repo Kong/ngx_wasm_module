@@ -186,9 +186,10 @@ ngx_wa_metrics_alloc(ngx_cycle_t *cycle)
 char *
 ngx_wa_metrics_init_conf(ngx_wa_metrics_t *metrics, ngx_conf_t *cf)
 {
-    ngx_cycle_t       *cycle = cf->cycle;
-    ngx_wa_metrics_t  *old_metrics = metrics->old_metrics;
-    ngx_core_conf_t   *ccf;
+    ngx_cycle_t           *cycle = cf->cycle;
+    ngx_wa_metrics_t      *old_metrics = metrics->old_metrics;
+    ngx_core_conf_t       *ccf;
+    ngx_wasm_core_conf_t  *wcf = ngx_wasm_core_cycle_get_conf(cycle);
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
@@ -203,22 +204,29 @@ ngx_wa_metrics_init_conf(ngx_wa_metrics_t *metrics, ngx_conf_t *cf)
 
     /* TODO: if eviction is enabled, metrics->workers must be set to 1 */
     metrics->workers = ccf->worker_processes;
-    metrics->shm_zone = ngx_shared_memory_add(cf, &metrics->shm->name,
-                                              metrics->config.slab_size,
-                                              &ngx_wasmx_module);
-    if (metrics->shm_zone == NULL) {
+
+    metrics->mapping = ngx_array_push(&wcf->shms);
+    if (metrics->mapping == NULL) {
+        return NULL;
+    }
+
+    metrics->mapping->name = metrics->shm->name;
+    metrics->mapping->zone = ngx_shared_memory_add(cf, &metrics->shm->name,
+                                                   metrics->config.slab_size,
+                                                   &ngx_wasmx_module);
+    if (metrics->mapping->zone == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    metrics->shm_zone->init = ngx_wasm_shm_init_zone;
-    metrics->shm_zone->data = metrics->shm;
-    metrics->shm_zone->noreuse = 0;
+    metrics->mapping->zone->init = ngx_wasm_shm_init_zone;
+    metrics->mapping->zone->data = metrics->shm;
+    metrics->mapping->zone->noreuse = 0;
 
     if (old_metrics
         && (metrics->workers != old_metrics->workers
             || metrics->config.slab_size != old_metrics->config.slab_size))
     {
-        metrics->shm_zone->noreuse = 1;
+        metrics->mapping->zone->noreuse = 1;
     }
 
     return NGX_CONF_OK;
@@ -226,24 +234,27 @@ ngx_wa_metrics_init_conf(ngx_wa_metrics_t *metrics, ngx_conf_t *cf)
 
 
 ngx_int_t
-ngx_wa_metrics_init(ngx_wa_metrics_t *metrics, ngx_cycle_t *cycle)
+ngx_wa_metrics_init(ngx_cycle_t *cycle)
 {
+    ngx_int_t           rc;
     ngx_wasm_shm_kv_t  *old_shm_kv;
+    ngx_wa_metrics_t   *metrics = ngx_wasmx_metrics(cycle);
 
-    if (metrics->old_metrics && !metrics->shm_zone->noreuse) {
+    if (metrics->old_metrics && !metrics->mapping->zone->noreuse) {
         /* reuse old kv store */
         metrics->shm->data = metrics->old_metrics->shm->data;
         return NGX_OK;
     }
 
-    if (ngx_wasm_shm_kv_init(metrics->shm) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_wasm_shm_kv_init(metrics->shm);
+    if (rc != NGX_OK) {
+        return rc;
     }
 
-    if (metrics->old_metrics && metrics->shm_zone->noreuse) {
+    if (metrics->old_metrics && metrics->mapping->zone->noreuse) {
         /* mark the old kv store for cleanup during SIGHUP old_cycle free */
-        metrics->old_metrics->shm_zone->noreuse = 1;
-        metrics->shm_zone->noreuse = 0;
+        metrics->old_metrics->mapping->zone->noreuse = 1;
+        metrics->mapping->zone->noreuse = 0;
 
         /* realloc old kv store */
         old_shm_kv = ngx_wasm_shm_get_kv(metrics->old_metrics->shm);

@@ -258,11 +258,6 @@ ngx_wasmx_init(ngx_cycle_t *cycle)
         return NGX_OK;
     }
 
-    rc = ngx_wa_metrics_init(wacf->metrics, cycle);
-    if (rc != NGX_OK) {
-        return rc;
-    }
-
     /* NGX_WASM_MODULES + NGX_IPC_MODULES init */
 
     for (i = 0; cycle->modules[i]; i++) {
