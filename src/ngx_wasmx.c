@@ -221,7 +221,7 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
 
     /* metrics init_conf */
 
-    rv = ngx_wa_metrics_init_conf(wacf->metrics, cf);
+    rv = ngx_wa_metrics_init_conf(cf);
     if (rv != NGX_CONF_OK) {
         return rv;
     }
@@ -256,11 +256,6 @@ ngx_wasmx_init(ngx_cycle_t *cycle)
     wacf = ngx_wa_cycle_get_conf(cycle);
     if (wacf == NULL) {
         return NGX_OK;
-    }
-
-    rc = ngx_wa_metrics_init(wacf->metrics, cycle);
-    if (rc != NGX_OK) {
-        return rc;
     }
 
     /* NGX_WASM_MODULES + NGX_IPC_MODULES init */

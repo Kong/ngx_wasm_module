@@ -41,23 +41,20 @@ ngx_wasm_shm_init(ngx_cycle_t *cycle)
         switch (shm->type) {
         case NGX_WASM_SHM_TYPE_KV:
             rc = ngx_wasm_shm_kv_init(shm);
-            if (rc != NGX_OK) {
-                return rc;
-            }
-            dd("kv init done");
             break;
-
         case NGX_WASM_SHM_TYPE_QUEUE:
             rc = ngx_wasm_shm_queue_init(shm);
-            if (rc != NGX_OK) {
-                return rc;
-            }
-            dd("queue init done");
             break;
-
+        case NGX_WASM_SHM_TYPE_METRICS:
+            rc = ngx_wa_metrics_shm_init(cycle);
+            break;
         default:
             ngx_wa_assert(0);
             return NGX_ERROR;
+        }
+
+        if (rc != NGX_OK) {
+            return rc;
         }
     }
 
