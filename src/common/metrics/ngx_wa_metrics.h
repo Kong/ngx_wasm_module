@@ -54,18 +54,18 @@ typedef struct {
 
 struct ngx_wa_metrics_s {
     ngx_uint_t                   workers;
-    ngx_shm_zone_t              *shm_zone;
     ngx_wasm_shm_t              *shm;
     ngx_wa_metrics_t            *old_metrics;
     ngx_wa_metrics_conf_t        config;
+    ngx_wasm_shm_mapping_t      *mapping;
 };
 
 
 ngx_str_t *ngx_wa_metric_type_name(ngx_wa_metric_type_e type);
 
 ngx_wa_metrics_t *ngx_wa_metrics_alloc(ngx_cycle_t *cycle);
-char *ngx_wa_metrics_init_conf(ngx_wa_metrics_t *metrics, ngx_conf_t *cf);
-ngx_int_t ngx_wa_metrics_init(ngx_wa_metrics_t *metrics, ngx_cycle_t *cycle);
+char *ngx_wa_metrics_init_conf(ngx_conf_t *cf);
+ngx_int_t ngx_wa_metrics_shm_init(ngx_cycle_t *cycle);
 
 ngx_int_t ngx_wa_metrics_define(ngx_wa_metrics_t *metrics, ngx_str_t *name,
     ngx_wa_metric_type_e type, uint32_t *out);
