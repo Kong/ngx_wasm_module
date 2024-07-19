@@ -54,6 +54,13 @@ ngx_wasm_shm_init(ngx_cycle_t *cycle)
             }
             dd("queue init done");
             break;
+        case NGX_WASM_SHM_TYPE_METRICS:
+            rc = ngx_wasm_shm_kv_init(shm);
+            if (rc != NGX_OK) {
+                return rc;
+            }
+            dd("metrics init done");
+            break;
 
         default:
             ngx_wa_assert(0);

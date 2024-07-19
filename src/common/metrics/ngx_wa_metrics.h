@@ -54,10 +54,10 @@ typedef struct {
 
 struct ngx_wa_metrics_s {
     ngx_uint_t                   workers;
-    ngx_shm_zone_t              *shm_zone;
     ngx_wasm_shm_t              *shm;
     ngx_wa_metrics_t            *old_metrics;
     ngx_wa_metrics_conf_t        config;
+    ngx_wasm_shm_mapping_t      *mapping;
 };
 
 
