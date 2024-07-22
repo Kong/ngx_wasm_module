@@ -4,12 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm.h>
-#include <ngx_wa_histogram.h>
-
-
-#define NGX_WA_BINS_INIT       5
-#define NGX_WA_BINS_MAX        18
-#define NGX_WA_BINS_INCREMENT  4
+#include <ngx_wa_metrics.h>
 
 
 static uint32_t
@@ -40,14 +35,15 @@ histogram_grow(ngx_wa_metrics_t *metrics, ngx_wa_metrics_histogram_t *h,
     ngx_uint_t                   n;
     ngx_wa_metrics_histogram_t  *new_h = NULL;
 
-    if (h->n_bins == NGX_WA_BINS_MAX) {
+    if (h->n_bins == NGX_WA_METRICS_BINS_MAX) {
         return NGX_ERROR;
     }
 
     ngx_log_debug0(NGX_LOG_DEBUG_WASM, metrics->shm->log, 0,
                    "growing histogram");
 
-    n = ngx_min(NGX_WA_BINS_INCREMENT, NGX_WA_BINS_MAX - h->n_bins);
+    n = ngx_min(NGX_WA_METRICS_BINS_INCREMENT,
+                NGX_WA_METRICS_BINS_MAX - h->n_bins);
     old_size = sizeof(ngx_wa_metrics_histogram_t)
                + sizeof(ngx_wa_metrics_bin_t) * h->n_bins;
     size = old_size + sizeof(ngx_wa_metrics_bin_t) * n;
@@ -96,7 +92,8 @@ histogram_bin(ngx_wa_metrics_t *metrics, ngx_wa_metrics_histogram_t *h,
             return b;
         }
 
-        if (b->upper_bound == 0) {
+        if (b->upper_bound == NGX_MAX_UINT32_VALUE) {
+            i++;
             break;
         }
     }
@@ -128,29 +125,29 @@ histogram_bin(ngx_wa_metrics_t *metrics, ngx_wa_metrics_histogram_t *h,
 static void
 histogram_log(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m, uint32_t mid)
 {
-    size_t                       i, size = sizeof(ngx_wa_metrics_histogram_t)
-                                           + sizeof(ngx_wa_metrics_bin_t)
-                                           * NGX_WA_BINS_MAX;
+    size_t                       i;
+    u_char                      *p;
     ngx_wa_metrics_bin_t        *b;
     ngx_wa_metrics_histogram_t  *h;
-    u_char                      *p, buf[size], s_buf[NGX_MAX_ERROR_STR];
+    u_char                       h_buf[NGX_WA_METRICS_MAX_HISTOGRAM_SIZE];
+    u_char                       s_buf[NGX_MAX_ERROR_STR];
 
-    ngx_memzero(buf, size);
+    ngx_memzero(h_buf, sizeof(h_buf));
 
     p = s_buf;
-    h = (ngx_wa_metrics_histogram_t *) buf;
-    h->n_bins = NGX_WA_BINS_MAX;
+    h = (ngx_wa_metrics_histogram_t *) h_buf;
+    h->n_bins = NGX_WA_METRICS_BINS_MAX;
     h->bins[0].upper_bound = NGX_MAX_UINT32_VALUE;
 
     ngx_wa_metrics_histogram_get(metrics, m, metrics->workers, h);
 
     for (i = 0; i < h->n_bins; i++) {
         b = &h->bins[i];
-        if (b->upper_bound == 0) {
+        p = ngx_sprintf(p, " %uD: %uD;", b->upper_bound, b->count);
+
+        if (b->upper_bound == NGX_MAX_UINT32_VALUE) {
             break;
         }
-
-        p = ngx_sprintf(p, " %uD: %uD;", b->upper_bound, b->count);
     }
 
     ngx_log_debug3(NGX_LOG_DEBUG_WASM, metrics->shm->log, 0,
@@ -165,7 +162,7 @@ ngx_wa_metrics_histogram_add_locked(ngx_wa_metrics_t *metrics,
     ngx_wa_metric_t *m)
 {
     size_t                        i;
-    static uint16_t               n_bins = NGX_WA_BINS_INIT;
+    static uint16_t               n_bins = NGX_WA_METRICS_BINS_INIT;
     ngx_wa_metrics_histogram_t  **h;
 
     for (i = 0; i < metrics->workers; i++) {
@@ -228,12 +225,12 @@ ngx_wa_metrics_histogram_get(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m,
 
         for (j = 0; j < h->n_bins; j++) {
             b = &h->bins[j];
-            if (b->upper_bound == 0) {
-                break;
-            }
-
             out_b = histogram_bin(metrics, out, b->upper_bound, NULL);
             out_b->count += b->count;
+
+            if (b->upper_bound == NGX_MAX_UINT32_VALUE) {
+                break;
+            }
         }
     }
 }

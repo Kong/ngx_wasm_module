@@ -5,7 +5,6 @@
 
 #include <ngx_wasm.h>
 #include <ngx_wa_metrics.h>
-#include <ngx_wa_histogram.h>
 
 
 ngx_str_t *
@@ -476,7 +475,7 @@ error:
  * NGX_DECLINED: not found
  */
 ngx_int_t
-ngx_wa_metrics_get(ngx_wa_metrics_t *metrics, uint32_t mid, ngx_uint_t *out)
+ngx_wa_metrics_get(ngx_wa_metrics_t *metrics, uint32_t mid, ngx_wa_metric_t *o)
 {
     uint32_t          cas;
     ngx_int_t         rc;
@@ -489,18 +488,24 @@ ngx_wa_metrics_get(ngx_wa_metrics_t *metrics, uint32_t mid, ngx_uint_t *out)
     }
 
     m = (ngx_wa_metric_t *) n->data;
+    o->type = m->type;
 
     switch (m->type) {
     case NGX_WA_METRIC_COUNTER:
-        *out = get_counter(m, metrics->workers);
+        o->slots[0].counter = get_counter(m, metrics->workers);
         break;
 
     case NGX_WA_METRIC_GAUGE:
-        *out = get_gauge(m, metrics->workers);
+        o->slots[0].gauge.value = get_gauge(m, metrics->workers);
+        break;
+
+    case NGX_WA_METRIC_HISTOGRAM:
+        ngx_wa_metrics_histogram_get(metrics, m, metrics->workers,
+                                     o->slots[0].histogram);
         break;
 
     default:
-        ngx_wa_assert(m->type == NGX_WA_METRIC_HISTOGRAM);
+        ngx_wa_assert(0);
         rc = NGX_ABORT;
         break;
     }

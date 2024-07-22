@@ -1667,37 +1667,52 @@ ngx_proxy_wasm_hfuncs_get_metric(ngx_wavm_instance_t *instance,
     ngx_uint_t             *ret_value;
     ngx_cycle_t            *cycle = (ngx_cycle_t *) ngx_cycle;
     ngx_wa_metrics_t       *metrics = ngx_wasmx_metrics(cycle);
+    ngx_wa_metric_t        *m;
     ngx_proxy_wasm_exec_t  *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    u_char                  m_buf[NGX_WA_METRICS_ONE_SLOT_METRIC_SIZE];
+    u_char                  h_buf[NGX_WA_METRICS_MAX_HISTOGRAM_SIZE];
     u_char                  trapmsg[NGX_MAX_ERROR_STR];
+
+    ngx_memzero(m_buf, sizeof(m_buf));
+    ngx_memzero(h_buf, sizeof(h_buf));
 
     metric_id = args[0].of.i32;
     ret_value = NGX_WAVM_HOST_LIFT(instance, args[1].of.i32, ngx_uint_t);
 
-    rc = ngx_wa_metrics_get(metrics, metric_id, ret_value);
-    if (rc != NGX_OK) {
-        ngx_memzero(trapmsg, NGX_MAX_ERROR_STR);
-        p = ngx_sprintf(trapmsg, "could not retrieve metric id \"%ui\": ",
-                        metric_id);
+    m = (ngx_wa_metric_t *) m_buf;
+    ngx_wa_metrics_histogram_set_buffer(m, h_buf, sizeof(h_buf));
 
-        switch (rc) {
-        case NGX_DECLINED:
-            ngx_sprintf(p, "metric not found");
+    rc = ngx_wa_metrics_get(metrics, metric_id, m);
+    if (rc == NGX_OK && m->type != NGX_WA_METRIC_HISTOGRAM) {
+        switch (m->type) {
+        case NGX_WA_METRIC_COUNTER:
+            *ret_value = ngx_wa_metrics_counter(m);
             break;
 
-        case NGX_ABORT:
-            ngx_sprintf(p, "metric is a histogram");
+        case NGX_WA_METRIC_GAUGE:
+            *ret_value = ngx_wa_metrics_gauge(m);
             break;
 
         default:
-            ngx_wa_assert(rc == NGX_OK);
             break;
+
         }
 
-        return ngx_proxy_wasm_result_trap(pwexec, (char *) trapmsg,
-                                          rets, NGX_WAVM_ERROR);
+        return ngx_proxy_wasm_result_ok(rets);
     }
 
-    return ngx_proxy_wasm_result_ok(rets);
+    ngx_memzero(trapmsg, NGX_MAX_ERROR_STR);
+    p = ngx_sprintf(trapmsg, "could not retrieve metric id \"%ui\"", metric_id);
+
+    if (rc == NGX_DECLINED) {
+        ngx_sprintf(p, ": metric not found");
+
+    } else if (m->type == NGX_WA_METRIC_HISTOGRAM) {
+        ngx_sprintf(p, ": metric is a histogram");
+    }
+
+    return ngx_proxy_wasm_result_trap(pwexec, (char *) trapmsg,
+                                      rets, NGX_WAVM_ERROR);
 }
 
 
