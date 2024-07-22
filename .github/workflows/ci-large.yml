@@ -38,7 +38,7 @@ jobs:
           - label: dynamic_module
             os: ubuntu-latest
             cc: gcc-12
-            openresty: 1.25.3.1
+            openresty: 1.25.3.2
             runtime: wasmtime
             wasmtime: 22.0.0
             ipc: no_ipc
@@ -113,7 +113,7 @@ jobs:
           - label: openresty
             os: ubuntu-22.04
             cc: gcc-12
-            openresty: 1.25.3.1
+            openresty: 1.25.3.2
             runtime: wasmer
             wasmer: 3.1.1
             debug: debug
@@ -140,7 +140,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         cc: [clang-15]
-        openresty: [1.25.3.1]
+        openresty: [1.25.3.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [22.0.0]
         wasmer: [3.1.1]
