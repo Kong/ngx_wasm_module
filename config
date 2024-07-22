@@ -140,11 +140,10 @@ NGX_WASMX_DEPS="\
     $ngx_addon_dir/src/common/shm/ngx_wa_shm.h \
     $ngx_addon_dir/src/common/shm/ngx_wa_shm_kv.h \
     $ngx_addon_dir/src/common/shm/ngx_wa_shm_queue.h \
+    $ngx_addon_dir/src/common/metrics/ngx_wa_metrics.h \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.h \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_maps.h \
-    $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_properties.h \
-    $ngx_addon_dir/src/common/metrics/ngx_wa_metrics.h \
-    $ngx_addon_dir/src/common/metrics/ngx_wa_histogram.h"
+    $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_properties.h"
 
 NGX_WASMX_SRCS="\
     $ngx_addon_dir/src/ngx_wasmx.c \
@@ -154,13 +153,13 @@ NGX_WASMX_SRCS="\
     $ngx_addon_dir/src/common/shm/ngx_wa_shm.c \
     $ngx_addon_dir/src/common/shm/ngx_wa_shm_kv.c \
     $ngx_addon_dir/src/common/shm/ngx_wa_shm_queue.c \
+    $ngx_addon_dir/src/common/metrics/ngx_wa_metrics.c \
+    $ngx_addon_dir/src/common/metrics/ngx_wa_histogram.c \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm.c \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_host.c \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_maps.c \
     $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_properties.c \
-    $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_util.c \
-    $ngx_addon_dir/src/common/metrics/ngx_wa_metrics.c \
-    $ngx_addon_dir/src/common/metrics/ngx_wa_histogram.c"
+    $ngx_addon_dir/src/common/proxy_wasm/ngx_proxy_wasm_util.c"
 
 # wasm
 
