@@ -30,7 +30,7 @@
    fun:ngx_http_headers_more_filter
 }
 {
-   <wasmtime 22.0.0: wasmparser::parse>
+   <wasmtime 23.0.1: wasmparser::parse>
    Memcheck:Cond
    fun:_ZN10wasmparser6parser6Parser12parse_reader17h*
 }
