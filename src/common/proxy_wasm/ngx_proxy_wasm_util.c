@@ -219,6 +219,12 @@ ngx_proxy_wasm_filter_tick_handler(ngx_event_t *ev)
     (void) ngx_proxy_wasm_run_step(rexec, NGX_PROXY_WASM_STEP_TICK);
 
     if (!ngx_exiting) {
+        if (!rexec->tick_period) {
+            ngx_log_debug0(NGX_LOG_DEBUG_WASM, log, 0,
+                           "proxy_wasm cancelling tick");
+            return;
+        }
+
         rexec->ev = ngx_calloc(sizeof(ngx_event_t), log);
         if (rexec->ev == NULL) {
             goto nomem;
