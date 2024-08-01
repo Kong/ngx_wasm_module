@@ -72,6 +72,9 @@ impl RootContext for HttpHeadersRoot {
         #[allow(clippy::single_match)]
         match self.config.get("on_tick").map(|s| s.as_str()).unwrap_or("") {
             "trap" => panic!("on_tick trap"),
+            "cancel" => {
+                self.set_tick_period(Duration::from_millis(0));
+            }
             _ => (),
         }
     }

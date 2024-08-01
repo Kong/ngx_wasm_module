@@ -268,23 +268,25 @@ ngx_proxy_wasm_hfuncs_set_tick_period(ngx_wavm_instance_t *instance,
                                           rets, NGX_WAVM_OK);
     }
 
-    if (rexec->tick_period) {
+    if (period && rexec->tick_period) {
         return ngx_proxy_wasm_result_trap(rexec, "tick_period already set",
                                           rets, NGX_WAVM_OK);
     }
 
     rexec->tick_period = period;
 
-    ev = ngx_calloc(sizeof(ngx_event_t), instance->log);
-    if (ev == NULL) {
-        goto nomem;
+    if (period) {
+        ev = ngx_calloc(sizeof(ngx_event_t), instance->log);
+        if (ev == NULL) {
+            goto nomem;
+        }
+
+        ev->handler = ngx_proxy_wasm_filter_tick_handler;
+        ev->data = rexec;
+        ev->log = rexec->log;
+
+        ngx_add_timer(ev, rexec->tick_period);
     }
-
-    ev->handler = ngx_proxy_wasm_filter_tick_handler;
-    ev->data = rexec;
-    ev->log = rexec->log;
-
-    ngx_add_timer(ev, rexec->tick_period);
 
     return ngx_proxy_wasm_result_ok(rets);
 

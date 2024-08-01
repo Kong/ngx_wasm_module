@@ -11,7 +11,25 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - on_tick
+=== TEST 1: proxy_wasm - a tick with period=0 does not start
+--- valgrind
+--- wasm_modules: on_phases
+--- config
+    location /t {
+        proxy_wasm on_phases 'tick_period=0';
+        return 200;
+    }
+--- response_body
+--- no_error_log
+on_tick
+[error]
+[crit]
+[emerg]
+[alert]
+
+
+
+=== TEST 2: proxy_wasm - on_tick
 Tick is triggered even without hitting the configured location
 since it runs at root level context.
 --- valgrind
@@ -46,7 +64,7 @@ since it runs at root level context.
 
 
 
-=== TEST 2: proxy_wasm - on_tick + http phases updates log context
+=== TEST 3: proxy_wasm - on_tick + http phases updates log context
 --- wait: 1
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
@@ -75,7 +93,7 @@ since it runs at root level context.
 
 
 
-=== TEST 3: proxy_wasm - a long tick period does not expire
+=== TEST 4: proxy_wasm - a long tick period does not expire
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -100,7 +118,34 @@ on_tick 50000
 
 
 
-=== TEST 4: proxy_wasm - multiple filters with ticks
+=== TEST 5: proxy_wasm - on_tick cancelled with period=0
+Should tick once and be cancelled immediately
+--- valgrind
+--- skip_no_debug
+--- wasm_modules: on_phases
+--- config eval
+my $tick = $ENV{TEST_NGINX_USE_VALGRIND} ? 4000 : 200;
+qq{
+    location /t {
+        proxy_wasm on_phases 'tick_period=$tick
+                              on_tick=cancel';
+        return 200;
+    }
+}
+--- response_body
+--- grep_error_log eval: qr/(on_tick \d+|cancelling tick)/
+--- grep_error_log_out eval
+qr/on_tick \d+
+cancelling tick/
+--- no_error_log
+[error]
+[crit]
+[emerg]
+[alert]
+
+
+
+=== TEST 6: proxy_wasm - multiple filters with ticks
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config
     wasm {
@@ -129,7 +174,7 @@ ok
 
 
 
-=== TEST 5: proxy_wasm - multiple ticks
+=== TEST 7: proxy_wasm - on_tick already set
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
@@ -157,7 +202,7 @@ qr/.*?(\[error\]|Uncaught RuntimeError: |\s+)tick_period already set.*
 
 
 
-=== TEST 6: proxy_wasm - on_tick with trap
+=== TEST 8: proxy_wasm - on_tick with trap
 Should tick at least twice
 Should recycle the tick instance
 Should not prevent http context/instance from starting
