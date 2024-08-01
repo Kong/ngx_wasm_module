@@ -741,7 +741,11 @@ payloads.
     - `on_http_response_body` (to enable body buffering)
     - `on_http_call_response`
 
-3. The "queue" shared memory implementation does not implement an automatic
+3. When making a dispatch call, a valid IP address or hostname must be given to
+   `dispatch_http_call`. This is in contrast to Envoy's implementation in which
+   a configured cluster name must be given.
+
+4. The "queue" shared memory implementation does not implement an automatic
    eviction mechanism when the allocated memory slab is full:
     - `proxy_enqueue_shared_queue`
 
