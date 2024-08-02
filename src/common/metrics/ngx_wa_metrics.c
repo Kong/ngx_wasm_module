@@ -233,14 +233,21 @@ ngx_wa_metrics_init_conf(ngx_wa_metrics_t *metrics, ngx_conf_t *cf)
 
 
 ngx_int_t
-ngx_wa_metrics_init(ngx_wa_metrics_t *metrics, ngx_cycle_t *cycle)
+ngx_wa_metrics_init(ngx_cycle_t *cycle)
 {
+    ngx_int_t           rc;
     ngx_wasm_shm_kv_t  *old_shm_kv;
+    ngx_wa_metrics_t   *metrics = ngx_wasmx_metrics(cycle);
 
     if (metrics->old_metrics && !metrics->mapping->zone->noreuse) {
         /* reuse old kv store */
         metrics->shm->data = metrics->old_metrics->shm->data;
         return NGX_OK;
+    }
+
+    rc = ngx_wasm_shm_kv_init(metrics->shm);
+    if (rc != NGX_OK) {
+        return rc;
     }
 
     if (metrics->old_metrics && metrics->mapping->zone->noreuse) {

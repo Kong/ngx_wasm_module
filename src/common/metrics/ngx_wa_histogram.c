@@ -142,11 +142,11 @@ histogram_log(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m, uint32_t mid)
 
     for (i = 0; i < h->n_bins; i++) {
         b = &h->bins[i];
-        if (b->upper_bound == 0) {
+        p = ngx_sprintf(p, " %uD: %uD;", b->upper_bound, b->count);
+
+        if (b->upper_bound == NGX_MAX_UINT32_VALUE) {
             break;
         }
-
-        p = ngx_sprintf(p, " %uD: %uD;", b->upper_bound, b->count);
     }
 
     ngx_log_debug3(NGX_LOG_DEBUG_WASM, metrics->shm->log, 0,
@@ -224,12 +224,12 @@ ngx_wa_metrics_histogram_get(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m,
 
         for (j = 0; j < h->n_bins; j++) {
             b = &h->bins[j];
-            if (b->upper_bound == 0) {
-                break;
-            }
-
             out_b = histogram_bin(metrics, out, b->upper_bound, NULL);
             out_b->count += b->count;
+
+            if (b->upper_bound == NGX_MAX_UINT32_VALUE) {
+                break;
+            }
         }
     }
 }

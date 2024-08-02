@@ -260,10 +260,11 @@ ngx_wasm_main_vm(ngx_cycle_t *cycle)
 ngx_inline ngx_array_t *
 ngx_wasm_core_shms(ngx_cycle_t *cycle)
 {
-    ngx_wasm_core_conf_t  *wcf;
+    ngx_wasm_core_conf_t  *wcf = ngx_wasm_core_cycle_get_conf(cycle);
 
-    wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    ngx_wa_assert(wcf);
+    if (!wcf) {
+        return NULL;
+    }
 
     return &wcf->shms;
 }

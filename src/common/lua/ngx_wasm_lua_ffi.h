@@ -24,6 +24,9 @@ typedef struct {
 } ngx_wasm_ffi_filter_t;
 
 
+typedef void (*ngx_wa_ffi_shm_get_zones_handler_pt)(ngx_wasm_shm_t *shm);
+
+
 ngx_int_t ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
     ngx_wasm_ffi_filter_t *filters, size_t n_filters,
     ngx_wasm_ops_plan_t **out, u_char *err, size_t *errlen);
@@ -43,4 +46,25 @@ ngx_int_t ngx_http_wasm_ffi_set_host_properties_handlers(ngx_http_request_t *r,
 #endif
 
 
+ngx_int_t ngx_wa_ffi_shm_get_zones(ngx_wa_ffi_shm_get_zones_handler_pt handler);
+ngx_int_t ngx_wa_ffi_shm_get_keys(ngx_wasm_shm_t *shm, ngx_uint_t n,
+    ngx_str_t **keys);
+ngx_int_t ngx_wa_ffi_shm_get_kv_value(ngx_wasm_shm_t *shm, ngx_str_t *k,
+    ngx_str_t **v, uint32_t *cas);
+ngx_int_t ngx_wa_ffi_shm_get_metric(ngx_str_t *k, u_char *m_buf, size_t mbs,
+                                    u_char *h_buf, size_t hbs);
+
+
+ngx_int_t
+ngx_wa_ffi_shm_one_slot_metric_size()
+{
+    return NGX_WA_METRICS_ONE_SLOT_METRIC_SIZE;
+}
+
+
+ngx_int_t
+ngx_wa_ffi_shm_max_histogram_size()
+{
+    return NGX_WA_METRICS_MAX_HISTOGRAM_SIZE;
+}
 #endif /* _NGX_WASM_LUA_FFI_H_INCLUDED_ */
