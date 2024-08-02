@@ -55,7 +55,7 @@ ngx_wasm_debug_init(ngx_cycle_t *cycle)
         ngx_wa_metrics_define(ngx_wasmx_metrics(cycle),
                               &metric_name,
                               NGX_WA_METRIC_COUNTER,
-                              &mid) == NGX_ABORT
+                              &mid) == NGX_BUSY
     );
 
     /* invalid metric type */

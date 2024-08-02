@@ -118,6 +118,7 @@ impl TestHttp {
 
             /* shared memory */
             "/t/shm/get_shared_data" => test_get_shared_data(self),
+            "/t/shm/log_shared_data" => test_log_shared_data(self),
             "/t/shm/set_shared_data" => test_set_shared_data(self),
             "/t/shm/set_shared_data_by_len" => test_set_shared_data_by_len(self),
             "/t/shm/enqueue" => test_shared_queue_enqueue(self),
@@ -144,7 +145,8 @@ impl TestHttp {
             }
             "/t/metrics/get_histogram" => {
                 info!("retrieving histogram in \"{:?}\"", cur_phase);
-                let h_id = define_metric(MetricType::Histogram, "h1").expect("cannot define new metric");
+                let h_id =
+                    define_metric(MetricType::Histogram, "h1").expect("cannot define new metric");
                 get_metric(h_id).unwrap();
             }
 

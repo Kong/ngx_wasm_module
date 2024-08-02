@@ -12,11 +12,12 @@
 #define NGX_WA_METRICS_BINS_INIT             5
 #define NGX_WA_METRICS_BINS_MAX              18
 #define NGX_WA_METRICS_BINS_INCREMENT        4
-#define NGX_WA_METRICS_MAX_HISTOGRAM_SIZE    sizeof(ngx_wa_metrics_histogram_t)\
-                                             + sizeof(ngx_wa_metrics_bin_t)    \
-                                             * NGX_WA_METRICS_BINS_MAX
-#define NGX_WA_METRICS_ONE_SLOT_METRIC_SIZE  sizeof(ngx_wa_metric_t)           \
+#define NGX_WA_METRICS_ONE_SLOT_SIZE         sizeof(ngx_wa_metric_t)         \
                                              + sizeof(ngx_wa_metric_val_t)
+#define NGX_WA_METRICS_HISTOGRAM_MAX_SIZE                                    \
+    sizeof(ngx_wa_metrics_histogram_t)                                       \
+    + sizeof(ngx_wa_metrics_bin_t)                                           \
+    * NGX_WA_METRICS_BINS_MAX
 
 
 typedef struct ngx_wa_metrics_s  ngx_wa_metrics_t;
