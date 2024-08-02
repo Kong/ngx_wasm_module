@@ -1317,7 +1317,8 @@ ngx_proxy_wasm_hfuncs_set_shared_data(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
     uint32_t                cas;
-    ngx_int_t               rc, written;
+    unsigned                written;
+    ngx_int_t               rc;
     ngx_str_t               key, value;
     ngx_wa_shm_kv_key_t     resolved;
     ngx_proxy_wasm_exec_t  *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
@@ -1601,7 +1602,7 @@ ngx_proxy_wasm_hfuncs_define_metric(ngx_wavm_instance_t *instance,
 
     ngx_memzero(trapmsg, NGX_MAX_ERROR_STR);
 
-    switch(pw_type) {
+    switch (pw_type) {
     case NGX_PROXY_WASM_METRIC_COUNTER:
         type = NGX_WA_METRIC_COUNTER;
         break;
@@ -1648,8 +1649,10 @@ ngx_proxy_wasm_hfuncs_define_metric(ngx_wavm_instance_t *instance,
                                           rets, NGX_WAVM_ERROR);
 
     default:
-        ngx_wa_assert(rc == NGX_OK);
-        break;
+        if (rc != NGX_OK) {
+            return ngx_proxy_wasm_result_trap(pwexec, "unknown error",
+                                              rets, NGX_WAVM_ERROR);
+        }
     }
 
     return ngx_proxy_wasm_result_ok(rets);
@@ -1668,8 +1671,8 @@ ngx_proxy_wasm_hfuncs_get_metric(ngx_wavm_instance_t *instance,
     ngx_wa_metrics_t       *metrics = ngx_wasmx_metrics(cycle);
     ngx_wa_metric_t        *m;
     ngx_proxy_wasm_exec_t  *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
-    u_char                  m_buf[NGX_WA_METRICS_ONE_SLOT_METRIC_SIZE];
-    u_char                  h_buf[NGX_WA_METRICS_MAX_HISTOGRAM_SIZE];
+    u_char                  m_buf[NGX_WA_METRICS_ONE_SLOT_SIZE];
+    u_char                  h_buf[NGX_WA_METRICS_HISTOGRAM_MAX_SIZE];
     u_char                  trapmsg[NGX_MAX_ERROR_STR];
 
     ngx_memzero(m_buf, sizeof(m_buf));

@@ -129,7 +129,7 @@ histogram_log(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m, uint32_t mid)
     u_char                      *p;
     ngx_wa_metrics_bin_t        *b;
     ngx_wa_metrics_histogram_t  *h;
-    u_char                       h_buf[NGX_WA_METRICS_MAX_HISTOGRAM_SIZE];
+    u_char                       h_buf[NGX_WA_METRICS_HISTOGRAM_MAX_SIZE];
     u_char                       s_buf[NGX_MAX_ERROR_STR];
 
     ngx_memzero(h_buf, sizeof(h_buf));

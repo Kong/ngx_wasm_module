@@ -74,6 +74,7 @@ install_luarocks() {
 
     $BIN_LUAROCKS --tree=$DIR_LUAJIT --lua-version=5.1 install lua-resty-dns-client
     $BIN_LUAROCKS --tree=$DIR_LUAJIT --lua-version=5.1 install LuaFileSystem
+    $BIN_LUAROCKS --tree=$DIR_LUAJIT --lua-version=5.1 install penlight
 }
 
 remove_luarocks() {

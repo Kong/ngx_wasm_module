@@ -125,7 +125,9 @@ pub(crate) fn test_log_properties(ctx: &(dyn TestContext + 'static), phase: Test
 
 pub(crate) fn test_log_metrics(ctx: &(dyn TestContext + 'static), phase: TestPhase) {
     for (n, id) in ctx.get_metrics_mapping() {
-        if n.starts_with('h') { continue }
+        if n.starts_with('h') {
+            continue;
+        }
         let value = get_metric(*id).unwrap();
         info!("{}: {} at {:?}", n, value, phase)
     }
@@ -393,6 +395,21 @@ pub(crate) fn test_get_shared_data(ctx: &TestHttp) {
     );
 }
 
+pub(crate) fn test_log_shared_data(ctx: &TestHttp) {
+    let key = ctx.config.get("key").unwrap();
+    let (data, cas) = ctx.get_shared_data(key);
+    let cas_value = cas
+        .map(|x| format!("{x}"))
+        .unwrap_or_else(|| "0".to_string());
+
+    info!(
+        "{}: {:?} {}",
+        key,
+        std::str::from_utf8(data.as_deref().unwrap_or_default()).unwrap(),
+        cas_value.as_str()
+    )
+}
+
 pub(crate) fn test_set_shared_data(ctx: &TestHttp) {
     let cas = ctx.config.get("cas").map(|x| x.parse::<u32>().unwrap());
 
@@ -478,7 +495,11 @@ pub(crate) fn test_define_metrics(ctx: &mut (dyn TestContext + 'static)) {
     }
 }
 
-pub(crate) fn test_increment_counters(ctx: &(dyn TestContext + 'static), phase: TestPhase, skip_others: Option<bool>) {
+pub(crate) fn test_increment_counters(
+    ctx: &(dyn TestContext + 'static),
+    phase: TestPhase,
+    skip_others: Option<bool>,
+) {
     if !should_run_on_current_worker(ctx) {
         return;
     }
@@ -488,7 +509,9 @@ pub(crate) fn test_increment_counters(ctx: &(dyn TestContext + 'static), phase: 
         .map_or(1, |x| x.parse::<u64>().expect("bad n_increments value"));
 
     for (n, id) in ctx.get_metrics_mapping() {
-        if skip_others.unwrap_or(true) && !n.starts_with('c') { continue }
+        if skip_others.unwrap_or(true) && !n.starts_with('c') {
+            continue;
+        }
 
         for _ in 0..n_increments {
             increment_metric(*id, 1).unwrap();
@@ -500,13 +523,19 @@ pub(crate) fn test_increment_counters(ctx: &(dyn TestContext + 'static), phase: 
     test_log_metrics(ctx, phase);
 }
 
-pub(crate) fn test_toggle_gauges(ctx: &(dyn TestContext + 'static), phase: TestPhase, skip_others: Option<bool>) {
+pub(crate) fn test_toggle_gauges(
+    ctx: &(dyn TestContext + 'static),
+    phase: TestPhase,
+    skip_others: Option<bool>,
+) {
     if !should_run_on_current_worker(ctx) {
         return;
     }
 
     for (n, id) in ctx.get_metrics_mapping() {
-        if skip_others.unwrap_or(true) && !n.starts_with('g') { continue }
+        if skip_others.unwrap_or(true) && !n.starts_with('g') {
+            continue;
+        }
 
         let new_value = match get_metric(*id).unwrap() {
             0 => 1,
@@ -530,7 +559,9 @@ pub(crate) fn test_record_metric(ctx: &(dyn TestContext + 'static), phase: TestP
         .map_or(1, |x| x.parse::<u64>().expect("bad value"));
 
     for (n, id) in ctx.get_metrics_mapping() {
-        if n.starts_with('c') { continue }
+        if n.starts_with('c') {
+            continue;
+        }
         record_metric(*id, value).unwrap();
         info!("record {} on {} at {:?}", value, n, phase);
     }
@@ -540,7 +571,9 @@ pub(crate) fn test_record_metric(ctx: &(dyn TestContext + 'static), phase: TestP
 
 pub(crate) fn test_get_metrics(ctx: &TestHttp) {
     for (n, id) in ctx.get_metrics_mapping() {
-        if n.starts_with('h') { continue }
+        if n.starts_with('h') {
+            continue;
+        }
 
         let name = n.replace("_", "-");
         let value = get_metric(*id).unwrap().to_string();

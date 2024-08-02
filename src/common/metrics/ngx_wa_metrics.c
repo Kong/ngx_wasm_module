@@ -270,6 +270,7 @@ ngx_wa_metrics_shm_init(ngx_cycle_t *cycle)
 
 /**
  * NGX_OK: success
+ * NGX_BUSY: name too long
  * NGX_ABORT: bad usage
  * NGX_ERROR: no memory
  */
@@ -280,7 +281,8 @@ ngx_wa_metrics_define(ngx_wa_metrics_t *metrics, ngx_str_t *name,
     ssize_t           size = sizeof(ngx_wa_metric_t)
                              + sizeof(ngx_wa_metric_val_t) * metrics->workers;
     uint32_t          cas, mid;
-    ngx_int_t         rc, written;
+    unsigned          written;
+    ngx_int_t         rc;
     ngx_str_t        *p, val;
     ngx_wa_metric_t  *m;
     u_char            buf[size];
@@ -293,7 +295,7 @@ ngx_wa_metrics_define(ngx_wa_metrics_t *metrics, ngx_str_t *name,
     }
 
     if (name->len > metrics->config.max_metric_name_length) {
-        return NGX_ABORT;
+        return NGX_BUSY;
     }
 
     mid = ngx_crc32_long(name->data, name->len);
@@ -337,9 +339,9 @@ error:
     ngx_wa_shm_unlock(metrics->shm);
 
     if (rc == NGX_OK) {
-        ngx_wasm_log_error(NGX_LOG_INFO, metrics->shm->log, 0,
-                           "defined %V \"%V\" with id %uD",
-                           ngx_wa_metric_type_name(type), name, mid);
+        ngx_log_debug3(NGX_LOG_DEBUG_WASM, metrics->shm->log, 0,
+                       "defined %V \"%V\" with id %uD",
+                       ngx_wa_metric_type_name(type), name, mid);
     }
 
     ngx_wa_assert(rc == NGX_OK || rc == NGX_ERROR);

@@ -347,6 +347,7 @@ ngx_wasmx_metrics(ngx_cycle_t *cycle)
     ngx_wa_conf_t  *wacf;
 
     if (cycle->conf_ctx == NULL) {
+        /* cycle->old_cycle */
         return NULL;
     }
 

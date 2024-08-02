@@ -5,8 +5,10 @@ local base = require "resty.core.base"
 
 
 local C = ffi.C
+local assert = assert
 local get_string_buf = base.get_string_buf
 local get_size_ptr = base.get_size_ptr
+local DEBUG_MODE = ngx.config.debug
 
 
 ffi.cdef [[
@@ -17,6 +19,9 @@ ffi.cdef [[
 
     typedef unsigned char                 u_char;
     typedef intptr_t                      ngx_int_t;
+    typedef uintptr_t                     ngx_uint_t;
+    typedef ngx_uint_t                    ngx_msec_t;
+    typedef struct ngx_log_s              ngx_log_t;
     typedef struct ngx_wavm_t             ngx_wasm_vm_t;
     typedef struct ngx_wasm_ops_plan_t    ngx_wasm_plan_t;
 
@@ -35,6 +40,9 @@ local _M = {
     FFI_ABORT = base.FFI_ABORT  -- nil in OpenResty 1.21.4.1
                 and base.FFI_ABORT
                 or -6,
+    FFI_BUSY = base.FFI_BUSY  -- nil in OpenResty 1.25.3.2
+               and base.FFI_BUSY
+               or -3,
     FFI_ERROR = base.FFI_ERROR,
     FFI_DONE = base.FFI_DONE,
     FFI_OK = base.FFI_OK,
@@ -55,6 +63,13 @@ function _M.get_err_ptr()
     errlen[0] = 0
 
     return errbuf, errlen
+end
+
+
+function _M.assert_debug(...)
+    if DEBUG_MODE then
+        return assert(...)
+    end
 end
 
 

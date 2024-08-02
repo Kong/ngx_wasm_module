@@ -266,7 +266,7 @@ node_queue_remove(ngx_wa_shm_t *shm, ngx_wa_shm_kv_node_t *n)
 
 ngx_int_t
 ngx_wa_shm_kv_set_locked(ngx_wa_shm_t *shm, ngx_str_t *key,
-    ngx_str_t *value, uint32_t cas, ngx_int_t *written)
+    ngx_str_t *value, uint32_t cas, unsigned *written)
 {
     size_t                 size;
     uint32_t               key_hash = ngx_crc32_long(key->data, key->len);
