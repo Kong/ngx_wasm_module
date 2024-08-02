@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm_lua_ffi.h>
+#include <ngx_wa_shm_kv.h>
 #include <ngx_http_lua_common.h>
 
 
@@ -257,3 +258,218 @@ ngx_http_wasm_ffi_set_host_properties_handlers(ngx_http_request_t *r,
     return ngx_proxy_wasm_properties_set_ffi_handlers(pwctx, getter, setter, r);
 }
 #endif
+
+
+void
+ngx_wa_ffi_shm_lock(ngx_wa_shm_t *shm)
+{
+    ngx_wa_assert(shm);
+
+    ngx_wa_shm_lock(shm);
+}
+
+
+void
+ngx_wa_ffi_shm_unlock(ngx_wa_shm_t *shm)
+{
+    ngx_wa_assert(shm);
+
+    ngx_wa_shm_unlock(shm);
+}
+
+
+ngx_int_t
+ngx_wa_ffi_shm_setup_zones(ngx_wa_ffi_shm_setup_zones_handler_pt setup_handler)
+{
+    ngx_uint_t             i;
+    ngx_array_t           *shms = ngx_wasmx_shms((ngx_cycle_t *) ngx_cycle);
+    ngx_wa_shm_t          *shm;
+    ngx_wa_shm_mapping_t  *mappings;
+
+    ngx_wa_assert(setup_handler);
+
+    if (shms == NULL) {
+        return NGX_ABORT;
+    }
+
+    mappings = shms->elts;
+
+    for (i = 0; i < shms->nelts; i++) {
+        shm = mappings[i].zone->data;
+        setup_handler(shm);
+    }
+
+    return NGX_OK;
+}
+
+
+static void
+shm_kv_retrieve_keys(ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel,
+                     ngx_uint_t start,  ngx_uint_t limit,
+                     ngx_str_t **keys, ngx_uint_t *total)
+{
+    ngx_wa_shm_kv_node_t *n = (ngx_wa_shm_kv_node_t *) node;
+
+    if (limit > 0 && (*total - start) == limit) {
+        return;
+    }
+
+    if (keys && *total >= start) {
+        keys[(*total - start)] = &n->key.str;
+    }
+
+    (*total)++;
+
+    if (node->left != sentinel) {
+        shm_kv_retrieve_keys(node->left, sentinel, start, limit, keys, total);
+    }
+
+    if (node->right != sentinel) {
+        shm_kv_retrieve_keys(node->right, sentinel, start, limit, keys, total);
+    }
+}
+
+
+ngx_int_t
+ngx_wa_ffi_shm_iterate_keys(ngx_wa_shm_t *shm,
+                            ngx_uint_t page, ngx_uint_t page_size,
+                            ngx_str_t **keys, ngx_uint_t *total)
+{
+    ngx_wa_shm_kv_t  *kv;
+
+    ngx_wa_assert(shm && shm->type != NGX_WA_SHM_TYPE_QUEUE);
+
+    if (!ngx_wa_shm_locked(shm)) {
+        return NGX_ABORT;
+    }
+
+    kv = shm->data;
+
+    if (page >= kv->nelts) {
+        return NGX_DECLINED;
+    }
+
+    if (kv->rbtree.root != kv->rbtree.sentinel) {
+        shm_kv_retrieve_keys(kv->rbtree.root, kv->rbtree.sentinel,
+                             page, page_size, keys, total);
+    }
+
+    *total = *total - page;
+
+    return NGX_OK;
+}
+
+
+ngx_int_t
+ngx_wa_ffi_shm_get_kv_value(ngx_wa_shm_t *shm,
+                            ngx_str_t *k, ngx_str_t **v, uint32_t *cas)
+{
+    unsigned   unlock = 0;
+    ngx_int_t  rc;
+
+    ngx_wa_assert(shm && k && v && cas);
+
+    if (!ngx_wa_shm_locked(shm)) {
+        ngx_wa_shm_lock(shm);
+        unlock = 1;
+    }
+
+    rc = ngx_wa_shm_kv_get_locked(shm, k, NULL, v, cas);
+
+    if (unlock) {
+        ngx_wa_shm_unlock(shm);
+    }
+
+    return rc;
+}
+
+
+ngx_int_t
+ngx_wa_ffi_shm_set_kv_value(ngx_wa_shm_t *shm,
+                            ngx_str_t *k, ngx_str_t *v, uint32_t cas,
+                            ngx_int_t *written)
+{
+    unsigned   unlock = 0;
+    ngx_int_t  rc;
+
+    ngx_wa_assert(shm && k && v && written);
+
+    if (!ngx_wa_shm_locked(shm)) {
+        ngx_wa_shm_lock(shm);
+        unlock = 1;
+    }
+
+    rc = ngx_wa_shm_kv_set_locked(shm, k, v, cas, written);
+
+    if (unlock) {
+        ngx_wa_shm_unlock(shm);
+    }
+
+    return rc;
+}
+
+
+ngx_int_t
+ngx_wa_ffi_shm_define_metric(ngx_str_t *name, ngx_wa_metric_type_e type,
+                             uint32_t *metric_id)
+{
+    ngx_int_t          rc;
+    ngx_str_t          prefixed_name;
+    ngx_wa_metrics_t  *metrics = ngx_wasmx_metrics((ngx_cycle_t *) ngx_cycle);
+    u_char             buf[NGX_MAX_ERROR_STR];
+
+    ngx_wa_assert(metrics && name);
+
+    prefixed_name.data = buf;
+    prefixed_name.len = ngx_sprintf(buf, "lua.%V", name) - buf;
+
+    rc = ngx_wa_metrics_define(metrics, &prefixed_name, type, metric_id);
+    if (rc != NGX_OK) {
+        return rc;
+    }
+
+    return NGX_OK;
+}
+
+
+ngx_int_t
+ngx_wa_ffi_shm_increment_metric(uint32_t metric_id, ngx_uint_t value)
+{
+    ngx_wa_metrics_t  *metrics = ngx_wasmx_metrics((ngx_cycle_t *) ngx_cycle);
+
+    ngx_wa_assert(metrics);
+
+    return ngx_wa_metrics_increment(metrics, metric_id, value);
+}
+
+
+ngx_int_t
+ngx_wa_ffi_shm_record_metric(uint32_t metric_id, ngx_uint_t value)
+{
+    ngx_wa_metrics_t  *metrics = ngx_wasmx_metrics((ngx_cycle_t *) ngx_cycle);
+
+    ngx_wa_assert(metrics);
+
+    return ngx_wa_metrics_record(metrics, metric_id, value);
+}
+
+
+ngx_int_t
+ngx_wa_ffi_shm_get_metric(uint32_t metric_id, ngx_str_t *name,
+                          u_char *m_buf, size_t mbs, u_char *h_buf, size_t hbs)
+{
+    ngx_wa_metrics_t  *metrics = ngx_wasmx_metrics((ngx_cycle_t *) ngx_cycle);
+    ngx_wa_metric_t   *m;
+
+    ngx_wa_assert(metrics && (name || metric_id) && m_buf && h_buf);
+
+    m = (ngx_wa_metric_t *) m_buf;
+    ngx_wa_metrics_histogram_set_buffer(m, h_buf, hbs);
+
+    if (metric_id) {
+        return ngx_wa_metrics_get(metrics, metric_id, m);
+    }
+
+    return ngx_wa_metrics_get(metrics,
+                              ngx_crc32_long(name->data, name->len), m);
+}

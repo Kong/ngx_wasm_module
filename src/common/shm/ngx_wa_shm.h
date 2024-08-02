@@ -59,4 +59,11 @@ ngx_wa_shm_unlock(ngx_wa_shm_t *shm)
 }
 
 
+static ngx_inline unsigned
+ngx_wa_shm_locked(ngx_wa_shm_t *shm)
+{
+    return (ngx_pid_t) *shm->shpool->mutex.lock == ngx_pid;
+}
+
+
 #endif /* _NGX_WA_SHM_H_INCLUDED_ */
