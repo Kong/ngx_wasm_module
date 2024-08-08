@@ -185,10 +185,10 @@ ngx_wa_metrics_alloc(ngx_cycle_t *cycle)
 char *
 ngx_wa_metrics_init_conf(ngx_wa_metrics_t *metrics, ngx_conf_t *cf)
 {
-    ngx_cycle_t           *cycle = cf->cycle;
-    ngx_wa_metrics_t      *old_metrics = metrics->old_metrics;
-    ngx_core_conf_t       *ccf;
-    ngx_wasm_core_conf_t  *wcf = ngx_wasm_core_cycle_get_conf(cycle);
+    ngx_cycle_t       *cycle = cf->cycle;
+    ngx_core_conf_t   *ccf;
+    ngx_array_t       *shms = ngx_wasmx_shms(cycle);
+    ngx_wa_metrics_t  *old_metrics = metrics->old_metrics;
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
@@ -204,7 +204,7 @@ ngx_wa_metrics_init_conf(ngx_wa_metrics_t *metrics, ngx_conf_t *cf)
     /* TODO: if eviction is enabled, metrics->workers must be set to 1 */
     metrics->workers = ccf->worker_processes;
 
-    metrics->mapping = ngx_array_push(&wcf->shms);
+    metrics->mapping = ngx_array_push(shms);
     if (metrics->mapping == NULL) {
         return NULL;
     }

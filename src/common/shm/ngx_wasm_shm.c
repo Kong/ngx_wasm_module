@@ -26,7 +26,7 @@ ngx_wasm_shm_init(ngx_cycle_t *cycle)
 {
     size_t                   i;
     ngx_int_t                rc;
-    ngx_array_t             *shms = ngx_wasm_core_shms(cycle);
+    ngx_array_t             *shms = ngx_wasmx_shms(cycle);
     ngx_wasm_shm_mapping_t  *mappings = shms->elts;
     ngx_wasm_shm_t          *shm;
 
@@ -67,7 +67,7 @@ ngx_wasm_shm_init_process(ngx_cycle_t *cycle)
 {
 #if (NGX_DEBUG)
     size_t                   i;
-    ngx_array_t             *shms = ngx_wasm_core_shms(cycle);
+    ngx_array_t             *shms = ngx_wasmx_shms(cycle);
     ngx_wasm_shm_mapping_t  *mappings = shms->elts;
     ngx_wasm_shm_t          *shm;
 
@@ -94,7 +94,7 @@ ngx_wasm_shm_lookup_index(ngx_str_t *name)
     ngx_cycle_t             *cycle = (ngx_cycle_t *) ngx_cycle;
     ngx_wasm_shm_mapping_t  *elements;
 
-    shms = ngx_wasm_core_shms(cycle);
+    shms = ngx_wasmx_shms(cycle);
     elements = shms->elts;
 
     for (i = 0; i < shms->nelts; i++) {

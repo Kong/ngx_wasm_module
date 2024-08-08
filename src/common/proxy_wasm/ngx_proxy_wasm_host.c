@@ -1414,7 +1414,7 @@ ngx_proxy_wasm_hfuncs_register_shared_queue(ngx_wavm_instance_t *instance,
     }
 
     zone = ((ngx_wasm_shm_mapping_t *)
-            ngx_wasm_core_shms(cycle)->elts)[zone_idx].zone;
+            ngx_wasmx_shms(cycle)->elts)[zone_idx].zone;
 
     shm = zone->data;
     if (shm->type != NGX_WASM_SHM_TYPE_QUEUE) {
