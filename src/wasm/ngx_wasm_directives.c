@@ -168,7 +168,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     size_t                    i;
     ssize_t                   size;
     ngx_str_t                *value, *name, *arg3;
-    ngx_wasm_core_conf_t     *wcf = conf;
+    ngx_array_t              *shms = ngx_wasmx_shms(cf->cycle);
     ngx_wasm_shm_mapping_t   *mapping;
     ngx_wasm_shm_t           *shm;
     ngx_wasm_shm_eviction_e   eviction;
@@ -223,9 +223,9 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     shm->name = *name;
     shm->log = cf->cycle->log;
 
-    mapping = wcf->shms.elts;
+    mapping = shms->elts;
 
-    for (i = 0; i < wcf->shms.nelts; i++) {
+    for (i = 0; i < shms->nelts; i++) {
         if (ngx_str_eq(mapping[i].name.data, mapping[i].name.len,
                        name->data, name->len))
         {
@@ -235,7 +235,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         }
     }
 
-    mapping = ngx_array_push(&wcf->shms);
+    mapping = ngx_array_push(shms);
     if (mapping == NULL) {
         return NGX_CONF_ERROR;
     }

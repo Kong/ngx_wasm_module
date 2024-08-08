@@ -39,8 +39,6 @@ typedef struct {
 } ngx_wasm_shm_mapping_t;
 
 
-ngx_array_t *ngx_wasm_core_shms(ngx_cycle_t *cycle);
-
 ngx_int_t ngx_wasm_shm_init(ngx_cycle_t *cycle);
 ngx_int_t ngx_wasm_shm_init_zone(ngx_shm_zone_t *shm_zone, void *data);
 ngx_int_t ngx_wasm_shm_init_process(ngx_cycle_t *cycle);

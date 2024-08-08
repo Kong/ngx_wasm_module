@@ -264,7 +264,7 @@ ngx_wa_ffi_shm_get_zones(ngx_wa_ffi_shm_get_zones_handler_pt handler)
 {
     ngx_uint_t               i;
     ngx_cycle_t             *cycle = (ngx_cycle_t *) ngx_cycle;
-    ngx_array_t             *shms = ngx_wasm_core_shms(cycle);
+    ngx_array_t             *shms = ngx_wasmx_shms(cycle);
     ngx_wasm_shm_mapping_t  *mappings;
     ngx_wasm_shm_t          *shm;
 

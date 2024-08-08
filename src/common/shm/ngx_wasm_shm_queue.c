@@ -241,7 +241,7 @@ ngx_wasm_shm_queue_resolve(ngx_log_t *log, uint32_t token, ngx_shm_zone_t **out)
     ngx_array_t     *zone_array;
     ngx_cycle_t     *cycle = (ngx_cycle_t *) ngx_cycle;
 
-    zone_array = ngx_wasm_core_shms(cycle);
+    zone_array = ngx_wasmx_shms(cycle);
     if (zone_array == NULL) {
         return NGX_DECLINED;
     }

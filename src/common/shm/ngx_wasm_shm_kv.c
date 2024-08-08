@@ -391,7 +391,7 @@ ngx_wasm_shm_kv_resolve_key(ngx_str_t *key, ngx_wasm_shm_kv_key_t *out)
 
     ngx_memzero(out, sizeof(ngx_wasm_shm_kv_key_t));
 
-    zone_array = ngx_wasm_core_shms(cycle);
+    zone_array = ngx_wasmx_shms(cycle);
     if (zone_array == NULL) {
         return NGX_DECLINED;
     }
