@@ -2,7 +2,7 @@
 #define _NGX_WA_METRICS_H_INCLUDED_
 
 
-#include <ngx_wasm_shm_kv.h>
+#include <ngx_wa_shm_kv.h>
 
 
 typedef struct ngx_wa_metrics_s  ngx_wa_metrics_t;
@@ -54,10 +54,10 @@ typedef struct {
 
 struct ngx_wa_metrics_s {
     ngx_uint_t                   workers;
-    ngx_wasm_shm_t              *shm;
+    ngx_wa_shm_t                *shm;
     ngx_wa_metrics_t            *old_metrics;
     ngx_wa_metrics_conf_t        config;
-    ngx_wasm_shm_mapping_t      *mapping;
+    ngx_wa_shm_mapping_t        *mapping;
 };
 
 

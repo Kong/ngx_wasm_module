@@ -4,7 +4,6 @@
 
 #include <ngx_wasmx.h>
 #include <ngx_wrt.h>
-#include <ngx_wasm_shm.h>
 #if (NGX_SSL)
 #include <ngx_wasm_ssl.h>
 #endif
@@ -83,7 +82,6 @@ typedef struct {
 typedef struct {
     ngx_wavm_t                        *vm;
     ngx_wavm_conf_t                    vm_conf;
-    ngx_array_t                        shms;     /* element: ngx_wasm_shm_mapping_t */
 #if (NGX_SSL)
     ngx_wasm_ssl_conf_t                ssl_conf;
 #endif

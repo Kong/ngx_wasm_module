@@ -14,6 +14,7 @@ static char *ngx_wasm_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_ipc_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 #endif
 static ngx_int_t ngx_wasmx_init(ngx_cycle_t *cycle);
+static ngx_int_t ngx_wasmx_init_process(ngx_cycle_t *cycle);
 
 
 ngx_uint_t             ngx_wasm_max_module = 0;
@@ -56,7 +57,7 @@ ngx_module_t  ngx_wasmx_module = {
     NGX_CORE_MODULE,                   /* module type */
     NULL,                              /* init master */
     ngx_wasmx_init,                    /* init module */
-    NULL,                              /* init process */
+    ngx_wasmx_init_process,            /* init process */
     NULL,                              /* init thread */
     NULL,                              /* exit thread */
     NULL,                              /* exit process */
@@ -112,6 +113,13 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
             return NGX_CONF_ERROR;
         }
 #endif
+
+        if (ngx_array_init(&wacf->shms, cf->pool,
+                           1, sizeof(ngx_wa_shm_mapping_t))
+            != NGX_OK)
+        {
+            return NGX_CONF_ERROR;
+        }
 
         wacf->metrics = ngx_wa_metrics_alloc(cf->cycle);
         if (wacf->metrics == NULL) {
@@ -258,6 +266,10 @@ ngx_wasmx_init(ngx_cycle_t *cycle)
         return NGX_OK;
     }
 
+    if (ngx_wa_shm_init(cycle) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
     /* NGX_WASM_MODULES + NGX_IPC_MODULES init */
 
     for (i = 0; cycle->modules[i]; i++) {
@@ -294,6 +306,38 @@ ngx_wasmx_init(ngx_cycle_t *cycle)
     }
 
     return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_wasmx_init_process(ngx_cycle_t *cycle)
+{
+    ngx_wa_conf_t  *wacf;
+
+    wacf = ngx_wa_cycle_get_conf(cycle);
+    if (wacf == NULL) {
+        return NGX_OK;
+    }
+
+    if (ngx_wa_shm_init_process(cycle) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
+
+ngx_inline ngx_array_t *
+ngx_wasmx_shms(ngx_cycle_t *cycle)
+{
+    ngx_wa_conf_t  *wacf;
+
+    wacf = ngx_wa_cycle_get_conf(cycle);
+    if (wacf == NULL) {
+        return NULL;
+    }
+
+    return &wacf->shms;
 }
 
 
