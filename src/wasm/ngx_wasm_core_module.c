@@ -4,7 +4,6 @@
 #include "ddebug.h"
 
 #include <ngx_wavm.h>
-#include <ngx_wasm_shm.h>
 #include <ngx_wa_metrics.h>
 
 
@@ -257,18 +256,6 @@ ngx_wasm_main_vm(ngx_cycle_t *cycle)
 }
 
 
-ngx_inline ngx_array_t *
-ngx_wasm_core_shms(ngx_cycle_t *cycle)
-{
-    ngx_wasm_core_conf_t  *wcf;
-
-    wcf = ngx_wasm_core_cycle_get_conf(cycle);
-    ngx_wa_assert(wcf);
-
-    return &wcf->shms;
-}
-
-
 static void
 ngx_wasm_core_cleanup_pool(void *data)
 {
@@ -353,17 +340,6 @@ ngx_wasm_core_create_conf(ngx_conf_t *cf)
 
     cln->handler = ngx_wasm_core_cleanup_pool;
     cln->data = cycle;
-
-    if (ngx_array_init(&wcf->shms, cycle->pool,
-                       1, sizeof(ngx_wasm_shm_mapping_t))
-        != NGX_OK)
-    {
-        /*
-         * future ngx_array_push calls will fail allocating memory and cause
-         * silent pool corruption
-         */
-        return NULL;
-    }
 
     wcf->vm_conf.vm_name = wcf->vm->name;
     wcf->vm_conf.runtime_name = &runtime_name;
@@ -482,10 +458,6 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
-    if (ngx_wasm_shm_init(cycle) != NGX_OK) {
-        return NGX_ERROR;
-    }
-
 #if (NGX_SSL)
     if (ngx_wasm_core_init_ssl(cycle) != NGX_OK) {
         ngx_wavm_destroy(vm);
@@ -508,10 +480,6 @@ ngx_wasm_core_init_process(ngx_cycle_t *cycle)
     }
 
     if (ngx_wavm_load(vm) != NGX_OK) {
-        return NGX_ERROR;
-    }
-
-    if (ngx_wasm_shm_init_process(cycle) != NGX_OK) {
         return NGX_ERROR;
     }
 
