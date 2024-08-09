@@ -142,11 +142,11 @@ validate_shm_size(ngx_conf_t *cf, ssize_t size, ngx_str_t *value)
         return NGX_ERROR;
     }
 
-    if (size < (ssize_t) NGX_WASM_SHM_MIN_SIZE) {
+    if (size < (ssize_t) NGX_WA_SHM_MIN_SIZE) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "[wasm] shm size of %z bytes is too small, "
                            "minimum required is %z bytes",
-                           size, NGX_WASM_SHM_MIN_SIZE);
+                           size, NGX_WA_SHM_MIN_SIZE);
         return NGX_ERROR;
     }
 
@@ -163,21 +163,21 @@ validate_shm_size(ngx_conf_t *cf, ssize_t size, ngx_str_t *value)
 
 static char *
 ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf, ngx_wasm_shm_type_e type)
+    void *conf, ngx_wa_shm_type_e type)
 {
-    size_t                    i;
-    ssize_t                   size;
-    ngx_str_t                *value, *name, *arg3;
-    ngx_array_t              *shms = ngx_wasmx_shms(cf->cycle);
-    ngx_wasm_shm_mapping_t   *mapping;
-    ngx_wasm_shm_t           *shm;
-    ngx_wasm_shm_eviction_e   eviction;
+    size_t                  i;
+    ssize_t                 size;
+    ngx_str_t              *value, *name, *arg3;
+    ngx_array_t            *shms = ngx_wasmx_shms(cf->cycle);
+    ngx_wa_shm_mapping_t   *mapping;
+    ngx_wa_shm_t           *shm;
+    ngx_wa_shm_eviction_e   eviction;
 
     value = cf->args->elts;
     name = &value[1];
     size = ngx_parse_size(&value[2]);
     arg3 = (cf->args->nelts == 4) ? &value[3] : NULL;
-    eviction = NGX_WASM_SHM_EVICTION_SLRU;
+    eviction = NGX_WA_SHM_EVICTION_SLRU;
 
     if (!name->len) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -191,13 +191,13 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 
     if (arg3) {
         if (ngx_str_eq(arg3->data, arg3->len, "eviction=lru", -1)) {
-            eviction = NGX_WASM_SHM_EVICTION_LRU;
+            eviction = NGX_WA_SHM_EVICTION_LRU;
 
         } else if (ngx_str_eq(arg3->data, arg3->len, "eviction=slru", -1)) {
-            eviction = NGX_WASM_SHM_EVICTION_SLRU;
+            eviction = NGX_WA_SHM_EVICTION_SLRU;
 
         } else if (ngx_str_eq(arg3->data, arg3->len, "eviction=none", -1)) {
-            eviction = NGX_WASM_SHM_EVICTION_NONE;
+            eviction = NGX_WA_SHM_EVICTION_NONE;
 
         } else if (ngx_strncmp(arg3->data, "eviction=", 9) == 0) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -213,7 +213,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         }
     }
 
-    shm = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_shm_t));
+    shm = ngx_pcalloc(cf->pool, sizeof(ngx_wa_shm_t));
     if (shm == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -246,7 +246,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    mapping->zone->init = ngx_wasm_shm_init_zone;
+    mapping->zone->init = ngx_wa_shm_init_zone;
     mapping->zone->data = shm;
     mapping->zone->noreuse = 1;  /* TODO: enable shm reuse (fix SIGHUP) */
 
@@ -302,7 +302,7 @@ char *
 ngx_wasm_core_shm_kv_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     return ngx_wasm_core_shm_generic_directive(cf, cmd,
-                                               conf, NGX_WASM_SHM_TYPE_KV);
+                                               conf, NGX_WA_SHM_TYPE_KV);
 }
 
 
@@ -326,7 +326,7 @@ ngx_wasm_core_shm_queue_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     }
 
     return ngx_wasm_core_shm_generic_directive(cf, cmd,
-                                               conf, NGX_WASM_SHM_TYPE_QUEUE);
+                                               conf, NGX_WA_SHM_TYPE_QUEUE);
 }
 
 

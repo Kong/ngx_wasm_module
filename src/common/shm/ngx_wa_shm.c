@@ -4,14 +4,14 @@
 #include "ddebug.h"
 
 #include <ngx_wasm.h>
-#include <ngx_wasm_shm_kv.h>
-#include <ngx_wasm_shm_queue.h>
+#include <ngx_wa_shm_kv.h>
+#include <ngx_wa_shm_queue.h>
 
 
 ngx_int_t
-ngx_wasm_shm_init_zone(ngx_shm_zone_t *shm_zone, void *data)
+ngx_wa_shm_init_zone(ngx_shm_zone_t *shm_zone, void *data)
 {
-    ngx_wasm_shm_t  *shm = shm_zone->data;
+    ngx_wa_shm_t  *shm = shm_zone->data;
 
     dd("zone: %p", shm_zone->shm.addr);
 
@@ -22,13 +22,13 @@ ngx_wasm_shm_init_zone(ngx_shm_zone_t *shm_zone, void *data)
 
 
 ngx_int_t
-ngx_wasm_shm_init(ngx_cycle_t *cycle)
+ngx_wa_shm_init(ngx_cycle_t *cycle)
 {
-    size_t                   i;
-    ngx_int_t                rc;
-    ngx_array_t             *shms = ngx_wasmx_shms(cycle);
-    ngx_wasm_shm_mapping_t  *mappings = shms->elts;
-    ngx_wasm_shm_t          *shm;
+    size_t                 i;
+    ngx_int_t              rc;
+    ngx_array_t           *shms = ngx_wasmx_shms(cycle);
+    ngx_wa_shm_mapping_t  *mappings = shms->elts;
+    ngx_wa_shm_t          *shm;
 
     for (i = 0; i < shms->nelts; i++ ) {
         shm = mappings[i].zone->data;
@@ -39,13 +39,13 @@ ngx_wasm_shm_init(ngx_cycle_t *cycle)
                        &shm->name, mappings[i].zone->shm.addr);
 
         switch (shm->type) {
-        case NGX_WASM_SHM_TYPE_KV:
-            rc = ngx_wasm_shm_kv_init(shm);
+        case NGX_WA_SHM_TYPE_KV:
+            rc = ngx_wa_shm_kv_init(shm);
             break;
-        case NGX_WASM_SHM_TYPE_QUEUE:
-            rc = ngx_wasm_shm_queue_init(shm);
+        case NGX_WA_SHM_TYPE_QUEUE:
+            rc = ngx_wa_shm_queue_init(shm);
             break;
-        case NGX_WASM_SHM_TYPE_METRICS:
+        case NGX_WA_SHM_TYPE_METRICS:
             rc = ngx_wa_metrics_init(cycle);
             break;
         default:
@@ -63,13 +63,13 @@ ngx_wasm_shm_init(ngx_cycle_t *cycle)
 
 
 ngx_int_t
-ngx_wasm_shm_init_process(ngx_cycle_t *cycle)
+ngx_wa_shm_init_process(ngx_cycle_t *cycle)
 {
 #if (NGX_DEBUG)
-    size_t                   i;
-    ngx_array_t             *shms = ngx_wasmx_shms(cycle);
-    ngx_wasm_shm_mapping_t  *mappings = shms->elts;
-    ngx_wasm_shm_t          *shm;
+    size_t                 i;
+    ngx_array_t           *shms = ngx_wasmx_shms(cycle);
+    ngx_wa_shm_mapping_t  *mappings = shms->elts;
+    ngx_wa_shm_t          *shm;
 
     for (i = 0; i < shms->nelts; i++ ) {
         shm = mappings[i].zone->data;
@@ -87,12 +87,12 @@ ngx_wasm_shm_init_process(ngx_cycle_t *cycle)
 
 
 ngx_int_t
-ngx_wasm_shm_lookup_index(ngx_str_t *name)
+ngx_wa_shm_lookup_index(ngx_str_t *name)
 {
-    size_t                   i;
-    ngx_array_t             *shms;
-    ngx_cycle_t             *cycle = (ngx_cycle_t *) ngx_cycle;
-    ngx_wasm_shm_mapping_t  *elements;
+    size_t                 i;
+    ngx_array_t           *shms;
+    ngx_cycle_t           *cycle = (ngx_cycle_t *) ngx_cycle;
+    ngx_wa_shm_mapping_t  *elements;
 
     shms = ngx_wasmx_shms(cycle);
     elements = shms->elts;
@@ -105,5 +105,5 @@ ngx_wasm_shm_lookup_index(ngx_str_t *name)
         }
     }
 
-    return NGX_WASM_SHM_INDEX_NOTFOUND;
+    return NGX_WA_SHM_INDEX_NOTFOUND;
 }

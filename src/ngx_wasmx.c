@@ -115,7 +115,7 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
 #endif
 
         if (ngx_array_init(&wacf->shms, cf->pool,
-                           1, sizeof(ngx_wasm_shm_mapping_t))
+                           1, sizeof(ngx_wa_shm_mapping_t))
             != NGX_OK)
         {
             return NGX_CONF_ERROR;
@@ -266,7 +266,7 @@ ngx_wasmx_init(ngx_cycle_t *cycle)
         return NGX_OK;
     }
 
-    if (ngx_wasm_shm_init(cycle) != NGX_OK) {
+    if (ngx_wa_shm_init(cycle) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -319,7 +319,7 @@ ngx_wasmx_init_process(ngx_cycle_t *cycle)
         return NGX_OK;
     }
 
-    if (ngx_wasm_shm_init_process(cycle) != NGX_OK) {
+    if (ngx_wa_shm_init_process(cycle) != NGX_OK) {
         return NGX_ERROR;
     }
 

@@ -4,7 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm.h>
-#include <ngx_wasm_shm_queue.h>
+#include <ngx_wa_shm_queue.h>
 
 
 typedef struct {
@@ -13,26 +13,26 @@ typedef struct {
     ngx_uint_t       push_ptr;
     ngx_uint_t       pop_ptr;
     ngx_uint_t       rising_occupancy;
-} ngx_wasm_shm_queue_t;
+} ngx_wa_shm_queue_t;
 
 
-static ngx_inline ngx_wasm_shm_queue_t *
-ngx_wasm_shm_get_queue(ngx_wasm_shm_t *shm)
+static ngx_inline ngx_wa_shm_queue_t *
+ngx_wa_shm_get_queue(ngx_wa_shm_t *shm)
 {
-    ngx_wa_assert(shm->type == NGX_WASM_SHM_TYPE_QUEUE);
+    ngx_wa_assert(shm->type == NGX_WA_SHM_TYPE_QUEUE);
     return shm->data;
 }
 
 
 static ngx_inline size_t
-queue_capacity(ngx_wasm_shm_queue_t *queue)
+queue_capacity(ngx_wa_shm_queue_t *queue)
 {
     return queue->buffer_end - queue->buffer;
 }
 
 
 static ngx_inline size_t
-queue_occupancy(ngx_wasm_shm_queue_t *queue)
+queue_occupancy(ngx_wa_shm_queue_t *queue)
 {
     if (queue->push_ptr > queue->pop_ptr) {
         return queue->push_ptr - queue->pop_ptr;
@@ -47,7 +47,7 @@ queue_occupancy(ngx_wasm_shm_queue_t *queue)
 
 
 static ngx_inline void
-inc_ptr(ngx_wasm_shm_queue_t *queue, ngx_uint_t *ptr, ngx_uint_t n)
+inc_ptr(ngx_wa_shm_queue_t *queue, ngx_uint_t *ptr, ngx_uint_t n)
 {
     ngx_uint_t  new_ptr = *ptr + n;
     ngx_uint_t  cap = queue_capacity(queue);
@@ -62,7 +62,7 @@ inc_ptr(ngx_wasm_shm_queue_t *queue, ngx_uint_t *ptr, ngx_uint_t n)
 
 
 static ngx_inline void
-circular_write(ngx_log_t *log, ngx_wasm_shm_queue_t *queue,
+circular_write(ngx_log_t *log, ngx_wa_shm_queue_t *queue,
     ngx_uint_t ptr, void *data, ngx_uint_t data_size)
 {
     ngx_uint_t  cap = queue_capacity(queue);
@@ -89,7 +89,7 @@ circular_write(ngx_log_t *log, ngx_wasm_shm_queue_t *queue,
 
 
 static ngx_inline void
-circular_read(ngx_log_t *log, ngx_wasm_shm_queue_t *queue,
+circular_read(ngx_log_t *log, ngx_wa_shm_queue_t *queue,
     ngx_uint_t ptr, void *data_out, ngx_uint_t data_size)
 {
     ngx_uint_t  cap = queue_capacity(queue);
@@ -114,7 +114,7 @@ circular_read(ngx_log_t *log, ngx_wasm_shm_queue_t *queue,
 
 
 static ngx_inline void
-check_queue_invariance(ngx_wasm_shm_queue_t *queue)
+check_queue_invariance(ngx_wa_shm_queue_t *queue)
 {
 #if (NGX_DEBUG)
     ngx_uint_t  cap = queue_capacity(queue);
@@ -126,13 +126,13 @@ check_queue_invariance(ngx_wasm_shm_queue_t *queue)
 
 
 ngx_int_t
-ngx_wasm_shm_queue_init(ngx_wasm_shm_t *shm)
+ngx_wa_shm_queue_init(ngx_wa_shm_t *shm)
 {
-    ngx_uint_t             buffer_size;
-    ngx_uint_t             reserved_size = ngx_pagesize;
-    ngx_wasm_shm_queue_t  *queue;
+    ngx_uint_t           buffer_size;
+    ngx_uint_t           reserved_size = ngx_pagesize;
+    ngx_wa_shm_queue_t  *queue;
 
-    queue = ngx_slab_calloc(shm->shpool, sizeof(ngx_wasm_shm_queue_t));
+    queue = ngx_slab_calloc(shm->shpool, sizeof(ngx_wa_shm_queue_t));
     if (queue == NULL) {
         dd("failed allocating queue structure");
         return NGX_ERROR;
@@ -162,11 +162,11 @@ ngx_wasm_shm_queue_init(ngx_wasm_shm_t *shm)
 
 
 ngx_int_t
-ngx_wasm_shm_queue_push_locked(ngx_wasm_shm_t *shm, ngx_str_t *data)
+ngx_wa_shm_queue_push_locked(ngx_wa_shm_t *shm, ngx_str_t *data)
 {
-    uint32_t               len = (uint32_t) data->len;
-    ngx_uint_t             entry_size = sizeof(uint32_t) + data->len;
-    ngx_wasm_shm_queue_t  *queue = ngx_wasm_shm_get_queue(shm);
+    uint32_t             len = (uint32_t) data->len;
+    ngx_uint_t           entry_size = sizeof(uint32_t) + data->len;
+    ngx_wa_shm_queue_t  *queue = ngx_wa_shm_get_queue(shm);
 
     /* queue full? */
 
@@ -191,12 +191,12 @@ ngx_wasm_shm_queue_push_locked(ngx_wasm_shm_t *shm, ngx_str_t *data)
 
 
 ngx_int_t
-ngx_wasm_shm_queue_pop_locked(ngx_wasm_shm_t *shm, ngx_str_t *data_out,
-    ngx_wasm_shm_queue_alloc_pt alloc, void *alloc_ctx)
+ngx_wa_shm_queue_pop_locked(ngx_wa_shm_t *shm, ngx_str_t *data_out,
+                            ngx_wa_shm_queue_alloc_pt alloc, void *alloc_ctx)
 {
-    uint32_t               len;
-    void                  *buf = NULL;
-    ngx_wasm_shm_queue_t  *queue = ngx_wasm_shm_get_queue(shm);
+    uint32_t             len;
+    void                *buf = NULL;
+    ngx_wa_shm_queue_t  *queue = ngx_wa_shm_get_queue(shm);
 
     /* queue empty? */
 
@@ -234,9 +234,9 @@ ngx_wasm_shm_queue_pop_locked(ngx_wasm_shm_t *shm, ngx_str_t *data_out,
 
 
 ngx_int_t
-ngx_wasm_shm_queue_resolve(ngx_log_t *log, uint32_t token, ngx_shm_zone_t **out)
+ngx_wa_shm_queue_resolve(ngx_log_t *log, uint32_t token, ngx_shm_zone_t **out)
 {
-    ngx_wasm_shm_t  *shm;
+    ngx_wa_shm_t    *shm;
     ngx_shm_zone_t  *zone;
     ngx_array_t     *zone_array;
     ngx_cycle_t     *cycle = (ngx_cycle_t *) ngx_cycle;
@@ -250,11 +250,11 @@ ngx_wasm_shm_queue_resolve(ngx_log_t *log, uint32_t token, ngx_shm_zone_t **out)
         return NGX_DECLINED;
     }
 
-    zone = ((ngx_wasm_shm_mapping_t *)
+    zone = ((ngx_wa_shm_mapping_t *)
             zone_array->elts)[token].zone;
 
     shm = zone->data;
-    if (shm->type != NGX_WASM_SHM_TYPE_QUEUE) {
+    if (shm->type != NGX_WA_SHM_TYPE_QUEUE) {
         return NGX_ABORT;
     }
 
