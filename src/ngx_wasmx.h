@@ -3,7 +3,7 @@
 
 
 #include <ngx_core.h>
-#include <ngx_wasm_shm.h>
+#include <ngx_wa_shm.h>
 #include <ngx_wa_metrics.h>
 
 
@@ -39,7 +39,7 @@ typedef struct {
 #ifdef NGX_WA_IPC
     void                   **ipc_confs;
 #endif
-    ngx_array_t              shms;     /* ngx_wasm_shm_mapping_t */
+    ngx_array_t              shms;     /* ngx_wa_shm_mapping_t */
     ngx_wa_metrics_t        *metrics;
 } ngx_wa_conf_t;
 

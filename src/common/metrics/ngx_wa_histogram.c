@@ -49,7 +49,7 @@ histogram_grow(ngx_wa_metrics_t *metrics, ngx_wa_metrics_histogram_t *h,
     size = old_size + sizeof(ngx_wa_metrics_bin_t) * n;
 
     if (metrics->shm->eviction == NGX_WASM_SHM_EVICTION_NONE) {
-        ngx_wasm_shm_lock(metrics->shm);
+        ngx_wa_shm_lock(metrics->shm);
     }
 
     new_h = ngx_slab_calloc_locked(metrics->shm->shpool, size);
@@ -69,7 +69,7 @@ histogram_grow(ngx_wa_metrics_t *metrics, ngx_wa_metrics_histogram_t *h,
 error:
 
     if (metrics->shm->eviction == NGX_WASM_SHM_EVICTION_NONE) {
-        ngx_wasm_shm_unlock(metrics->shm);
+        ngx_wa_shm_unlock(metrics->shm);
     }
 
     return rc;

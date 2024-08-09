@@ -80,9 +80,9 @@ A call with a bad pointer is simply ignored.
             local C = ffi.C
 
             ffi.cdef [[
-                typedef struct ngx_wasm_shm_t  ngx_wasm_shm_t;
+                typedef struct ngx_wa_shm_t  ngx_wa_shm_t;
 
-                typedef void (*ngx_wa_ffi_shm_get_zones_handler_pt)(ngx_wasm_shm_t *shm);
+                typedef void (*ngx_wa_ffi_shm_get_zones_handler_pt)(ngx_wa_shm_t *shm);
 
                 int ngx_wa_ffi_shm_get_zones(ngx_wa_ffi_shm_get_zones_handler_pt handler);
             ]]

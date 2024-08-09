@@ -47,22 +47,22 @@ ffi.cdef [[
         NGX_WASM_SHM_TYPE_KV,
         NGX_WASM_SHM_TYPE_QUEUE,
         NGX_WASM_SHM_TYPE_METRICS,
-    } ngx_wasm_shm_type_e;
+    } ngx_wa_shm_type_e;
 
     typedef enum {
         NGX_WASM_SHM_EVICTION_LRU,
         NGX_WASM_SHM_EVICTION_SLRU,
         NGX_WASM_SHM_EVICTION_NONE,
-    } ngx_wasm_shm_eviction_e;
+    } ngx_wa_shm_eviction_e;
 
     typedef struct {
-        ngx_wasm_shm_type_e       type;
-        ngx_wasm_shm_eviction_e   eviction;
+        ngx_wa_shm_type_e       type;
+        ngx_wa_shm_eviction_e   eviction;
         ngx_str_t                 name;
         ngx_log_t                *log;
         ngx_slab_pool_t          *shpool;
         void                     *data;
-    } ngx_wasm_shm_t;
+    } ngx_wa_shm_t;
 
     typedef enum {
         NGX_WA_METRIC_COUNTER,
@@ -98,14 +98,14 @@ ffi.cdef [[
     } ngx_wa_metric_t;
 
 
-    typedef void (*ngx_wa_ffi_shm_get_zones_handler_pt)(ngx_wasm_shm_t *shm);
+    typedef void (*ngx_wa_ffi_shm_get_zones_handler_pt)(ngx_wa_shm_t *shm);
 
 
     int ngx_wa_ffi_shm_get_zones(ngx_wa_ffi_shm_get_zones_handler_pt handler);
-    int ngx_wa_ffi_shm_get_keys(ngx_wasm_shm_t *shm,
+    int ngx_wa_ffi_shm_get_keys(ngx_wa_shm_t *shm,
                                 ngx_uint_t n,
                                 ngx_str_t **keys);
-    int ngx_wa_ffi_shm_get_kv_value(ngx_wasm_shm_t *shm,
+    int ngx_wa_ffi_shm_get_kv_value(ngx_wa_shm_t *shm,
                                     ngx_str_t *k,
                                     ngx_str_t **v,
                                     uint32_t *cas);

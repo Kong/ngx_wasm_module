@@ -4,7 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm_lua_ffi.h>
-#include <ngx_wasm_shm_kv.h>
+#include <ngx_wa_shm_kv.h>
 #include <ngx_http_lua_common.h>
 
 
@@ -262,11 +262,11 @@ ngx_http_wasm_ffi_set_host_properties_handlers(ngx_http_request_t *r,
 ngx_int_t
 ngx_wa_ffi_shm_get_zones(ngx_wa_ffi_shm_get_zones_handler_pt handler)
 {
-    ngx_uint_t               i;
-    ngx_cycle_t             *cycle = (ngx_cycle_t *) ngx_cycle;
-    ngx_array_t             *shms = ngx_wasmx_shms(cycle);
-    ngx_wasm_shm_mapping_t  *mappings;
-    ngx_wasm_shm_t          *shm;
+    ngx_uint_t             i;
+    ngx_cycle_t           *cycle = (ngx_cycle_t *) ngx_cycle;
+    ngx_array_t           *shms = ngx_wasmx_shms(cycle);
+    ngx_wa_shm_t          *shm;
+    ngx_wa_shm_mapping_t  *mappings;
 
     if (!handler) {
         return NGX_ERROR;
@@ -291,7 +291,7 @@ static void
 shm_kv_retrieve_keys(ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel,
                      ngx_int_t *total, ngx_int_t limit, ngx_str_t **keys)
 {
-    ngx_wasm_shm_kv_node_t *n = (ngx_wasm_shm_kv_node_t *) node;
+    ngx_wa_shm_kv_node_t *n = (ngx_wa_shm_kv_node_t *) node;
 
     if (!node || node == sentinel || (limit > 0 && *total == limit)) {
         return;
@@ -309,10 +309,10 @@ shm_kv_retrieve_keys(ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel,
 
 
 ngx_int_t
-ngx_wa_ffi_shm_get_keys(ngx_wasm_shm_t *shm, ngx_uint_t n, ngx_str_t **keys)
+ngx_wa_ffi_shm_get_keys(ngx_wa_shm_t *shm, ngx_uint_t n, ngx_str_t **keys)
 {
-    ngx_int_t           total = 0;
-    ngx_wasm_shm_kv_t  *kv;
+    ngx_int_t         total = 0;
+    ngx_wa_shm_kv_t  *kv;
 
     if (!shm || shm->type == NGX_WASM_SHM_TYPE_QUEUE) {
         return NGX_ERROR;
@@ -331,14 +331,14 @@ ngx_wa_ffi_shm_get_keys(ngx_wasm_shm_t *shm, ngx_uint_t n, ngx_str_t **keys)
 
 
 ngx_int_t
-ngx_wa_ffi_shm_get_kv_value(ngx_wasm_shm_t *shm, ngx_str_t *k, ngx_str_t **v,
+ngx_wa_ffi_shm_get_kv_value(ngx_wa_shm_t *shm, ngx_str_t *k, ngx_str_t **v,
                             uint32_t *cas)
 {
     if (!shm || !k || !v || !cas) {
         return NGX_ERROR;
     }
 
-    return ngx_wasm_shm_kv_get_locked(shm, k, NULL, v, cas);
+    return ngx_wa_shm_kv_get_locked(shm, k, NULL, v, cas);
 }
 
 

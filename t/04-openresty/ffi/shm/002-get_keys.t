@@ -146,9 +146,9 @@ A call with a bad pointer is simply ignored.
 
             ffi.cdef [[
                 typedef uintptr_t              ngx_uint_t;
-                typedef struct ngx_wasm_shm_t  ngx_wasm_shm_t;
+                typedef struct ngx_wa_shm_t  ngx_wa_shm_t;
 
-                int ngx_wa_ffi_shm_get_keys(ngx_wasm_shm_t *shm,
+                int ngx_wa_ffi_shm_get_keys(ngx_wa_shm_t *shm,
                                             ngx_uint_t n,
                                             ngx_str_t **keys);
             ]]

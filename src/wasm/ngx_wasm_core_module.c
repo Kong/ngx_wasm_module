@@ -4,7 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wavm.h>
-#include <ngx_wasm_shm.h>
+#include <ngx_wa_shm.h>
 #include <ngx_wa_metrics.h>
 
 
@@ -459,7 +459,7 @@ ngx_wasm_core_init(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
-    if (ngx_wasm_shm_init(cycle) != NGX_OK) {
+    if (ngx_wa_shm_init(cycle) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -488,7 +488,7 @@ ngx_wasm_core_init_process(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
-    if (ngx_wasm_shm_init_process(cycle) != NGX_OK) {
+    if (ngx_wa_shm_init_process(cycle) != NGX_OK) {
         return NGX_ERROR;
     }
 

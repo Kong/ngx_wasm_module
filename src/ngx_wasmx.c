@@ -114,7 +114,7 @@ ngx_wasmx_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf,
 #endif
 
         if (ngx_array_init(&wacf->shms, cf->pool,
-                           1, sizeof(ngx_wasm_shm_mapping_t))
+                           1, sizeof(ngx_wa_shm_mapping_t))
             != NGX_OK)
         {
             /*

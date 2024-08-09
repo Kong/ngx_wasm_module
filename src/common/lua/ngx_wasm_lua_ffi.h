@@ -24,7 +24,7 @@ typedef struct {
 } ngx_wasm_ffi_filter_t;
 
 
-typedef void (*ngx_wa_ffi_shm_get_zones_handler_pt)(ngx_wasm_shm_t *shm);
+typedef void (*ngx_wa_ffi_shm_get_zones_handler_pt)(ngx_wa_shm_t *shm);
 
 
 ngx_int_t ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
@@ -47,9 +47,9 @@ ngx_int_t ngx_http_wasm_ffi_set_host_properties_handlers(ngx_http_request_t *r,
 
 
 ngx_int_t ngx_wa_ffi_shm_get_zones(ngx_wa_ffi_shm_get_zones_handler_pt handler);
-ngx_int_t ngx_wa_ffi_shm_get_keys(ngx_wasm_shm_t *shm, ngx_uint_t n,
+ngx_int_t ngx_wa_ffi_shm_get_keys(ngx_wa_shm_t *shm, ngx_uint_t n,
     ngx_str_t **keys);
-ngx_int_t ngx_wa_ffi_shm_get_kv_value(ngx_wasm_shm_t *shm, ngx_str_t *k,
+ngx_int_t ngx_wa_ffi_shm_get_kv_value(ngx_wa_shm_t *shm, ngx_str_t *k,
     ngx_str_t **v, uint32_t *cas);
 ngx_int_t ngx_wa_ffi_shm_get_metric(ngx_str_t *k, u_char *m_buf, size_t mbs,
                                     u_char *h_buf, size_t hbs);
