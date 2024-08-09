@@ -5,7 +5,6 @@
 
 #include <ngx_wasm.h>
 #include <ngx_wa_metrics.h>
-#include <ngx_wa_histogram.h>
 
 
 ngx_str_t *
@@ -74,7 +73,7 @@ realloc_histogram(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *old_m,
     ngx_str_t        *val;
     ngx_wa_metric_t  *m;
 
-    rc = ngx_wasm_shm_kv_get_locked(metrics->shm, NULL, &mid, &val, &cas);
+    rc = ngx_wa_shm_kv_get_locked(metrics->shm, NULL, &mid, &val, &cas);
     if (rc != NGX_OK) {
         return rc;
     }
@@ -91,11 +90,11 @@ static ngx_int_t
 realloc_metrics(ngx_wa_metrics_t *metrics, ngx_rbtree_node_t *node,
     ngx_rbtree_node_t *sentinel)
 {
-    uint32_t                 mid;
-    ngx_int_t                rc;
-    ngx_uint_t               val;
-    ngx_wasm_shm_kv_node_t  *n = (ngx_wasm_shm_kv_node_t *) node;
-    ngx_wa_metric_t         *m = (ngx_wa_metric_t *) n->value.data;
+    uint32_t               mid;
+    ngx_int_t              rc;
+    ngx_uint_t             val;
+    ngx_wa_shm_kv_node_t  *n = (ngx_wa_shm_kv_node_t *) node;
+    ngx_wa_metric_t       *m = (ngx_wa_metric_t *) n->value.data;
 
     if (node == sentinel) {
         return NGX_OK;
@@ -168,7 +167,7 @@ ngx_wa_metrics_alloc(ngx_cycle_t *cycle)
     metrics->config.slab_size = NGX_CONF_UNSET_SIZE;
     metrics->config.max_metric_name_length = NGX_CONF_UNSET_SIZE;
 
-    metrics->shm = ngx_pcalloc(cycle->pool, sizeof(ngx_wasm_shm_t));
+    metrics->shm = ngx_pcalloc(cycle->pool, sizeof(ngx_wa_shm_t));
     if (metrics->shm == NULL) {
         ngx_pfree(cycle->pool, metrics);
         return NULL;
@@ -187,8 +186,9 @@ char *
 ngx_wa_metrics_init_conf(ngx_wa_metrics_t *metrics, ngx_conf_t *cf)
 {
     ngx_cycle_t       *cycle = cf->cycle;
-    ngx_wa_metrics_t  *old_metrics = metrics->old_metrics;
     ngx_core_conf_t   *ccf;
+    ngx_array_t       *shms = ngx_wasmx_shms(cycle);
+    ngx_wa_metrics_t  *old_metrics = metrics->old_metrics;
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
@@ -203,22 +203,29 @@ ngx_wa_metrics_init_conf(ngx_wa_metrics_t *metrics, ngx_conf_t *cf)
 
     /* TODO: if eviction is enabled, metrics->workers must be set to 1 */
     metrics->workers = ccf->worker_processes;
-    metrics->shm_zone = ngx_shared_memory_add(cf, &metrics->shm->name,
-                                              metrics->config.slab_size,
-                                              &ngx_wasmx_module);
-    if (metrics->shm_zone == NULL) {
+
+    metrics->mapping = ngx_array_push(shms);
+    if (metrics->mapping == NULL) {
+        return NULL;
+    }
+
+    metrics->mapping->name = metrics->shm->name;
+    metrics->mapping->zone = ngx_shared_memory_add(cf, &metrics->shm->name,
+                                                   metrics->config.slab_size,
+                                                   &ngx_wasmx_module);
+    if (metrics->mapping->zone == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    metrics->shm_zone->init = ngx_wasm_shm_init_zone;
-    metrics->shm_zone->data = metrics->shm;
-    metrics->shm_zone->noreuse = 0;
+    metrics->mapping->zone->init = ngx_wa_shm_init_zone;
+    metrics->mapping->zone->data = metrics->shm;
+    metrics->mapping->zone->noreuse = 0;
 
     if (old_metrics
         && (metrics->workers != old_metrics->workers
             || metrics->config.slab_size != old_metrics->config.slab_size))
     {
-        metrics->shm_zone->noreuse = 1;
+        metrics->mapping->zone->noreuse = 1;
     }
 
     return NGX_CONF_OK;
@@ -226,27 +233,30 @@ ngx_wa_metrics_init_conf(ngx_wa_metrics_t *metrics, ngx_conf_t *cf)
 
 
 ngx_int_t
-ngx_wa_metrics_init(ngx_wa_metrics_t *metrics, ngx_cycle_t *cycle)
+ngx_wa_metrics_init(ngx_cycle_t *cycle)
 {
-    ngx_wasm_shm_kv_t  *old_shm_kv;
+    ngx_int_t          rc;
+    ngx_wa_shm_kv_t   *old_shm_kv;
+    ngx_wa_metrics_t  *metrics = ngx_wasmx_metrics(cycle);
 
-    if (metrics->old_metrics && !metrics->shm_zone->noreuse) {
+    if (metrics->old_metrics && !metrics->mapping->zone->noreuse) {
         /* reuse old kv store */
         metrics->shm->data = metrics->old_metrics->shm->data;
         return NGX_OK;
     }
 
-    if (ngx_wasm_shm_kv_init(metrics->shm) != NGX_OK) {
-        return NGX_ERROR;
+    rc = ngx_wa_shm_kv_init(metrics->shm);
+    if (rc != NGX_OK) {
+        return rc;
     }
 
-    if (metrics->old_metrics && metrics->shm_zone->noreuse) {
+    if (metrics->old_metrics && metrics->mapping->zone->noreuse) {
         /* mark the old kv store for cleanup during SIGHUP old_cycle free */
-        metrics->old_metrics->shm_zone->noreuse = 1;
-        metrics->shm_zone->noreuse = 0;
+        metrics->old_metrics->mapping->zone->noreuse = 1;
+        metrics->mapping->zone->noreuse = 0;
 
         /* realloc old kv store */
-        old_shm_kv = ngx_wasm_shm_get_kv(metrics->old_metrics->shm);
+        old_shm_kv = ngx_wa_shm_get_kv(metrics->old_metrics->shm);
 
         return realloc_metrics(metrics, old_shm_kv->rbtree.root,
                                old_shm_kv->rbtree.sentinel);
@@ -286,9 +296,9 @@ ngx_wa_metrics_define(ngx_wa_metrics_t *metrics, ngx_str_t *name,
 
     mid = ngx_crc32_long(name->data, name->len);
 
-    ngx_wasm_shm_lock(metrics->shm);
+    ngx_wa_shm_lock(metrics->shm);
 
-    rc = ngx_wasm_shm_kv_get_locked(metrics->shm, NULL, &mid, &p, &cas);
+    rc = ngx_wa_shm_kv_get_locked(metrics->shm, NULL, &mid, &p, &cas);
     if (rc == NGX_OK) {
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, metrics->shm->log, 0,
                        "wasm returning existing metric id \"%uD\"", mid);
@@ -311,7 +321,7 @@ ngx_wa_metrics_define(ngx_wa_metrics_t *metrics, ngx_str_t *name,
     val.len = size;
     val.data = buf;
 
-    rc = ngx_wasm_shm_kv_set_locked(metrics->shm, name, &val, 0, &written);
+    rc = ngx_wa_shm_kv_set_locked(metrics->shm, name, &val, 0, &written);
     if (rc != NGX_OK) {
         goto error;
     }
@@ -322,7 +332,7 @@ done:
 
 error:
 
-    ngx_wasm_shm_unlock(metrics->shm);
+    ngx_wa_shm_unlock(metrics->shm);
 
     if (rc == NGX_OK) {
         ngx_wasm_log_error(NGX_LOG_INFO, metrics->shm->log, 0,
@@ -355,11 +365,11 @@ ngx_wa_metrics_increment(ngx_wa_metrics_t *metrics, uint32_t mid, ngx_int_t n)
 #if 0
     if (metrics->shm->eviction != NGX_WASM_EVICTION_NONE) {
         slot = 0;
-        ngx_wasm_shm_lock(metrics->shm);
+        ngx_wa_shm_lock(metrics->shm);
     }
 #endif
 
-    rc = ngx_wasm_shm_kv_get_locked(metrics->shm, NULL, &mid, &val, &cas);
+    rc = ngx_wa_shm_kv_get_locked(metrics->shm, NULL, &mid, &val, &cas);
     if (rc != NGX_OK) {
         goto error;
     }
@@ -384,7 +394,7 @@ error:
 
 #if 0
     if (metrics->shm->eviction != NGX_WASM_EVICTION_NONE) {
-        ngx_wasm_shm_unlock(metrics->shm);
+        ngx_wa_shm_unlock(metrics->shm);
     }
 #endif
 
@@ -415,11 +425,11 @@ ngx_wa_metrics_record(ngx_wa_metrics_t *metrics, uint32_t mid, ngx_int_t n)
 #if 0
     if (metrics->shm->eviction != NGX_WASM_EVICTION_NONE) {
         slot = 0;
-        ngx_wasm_shm_lock(metrics->shm);
+        ngx_wa_shm_lock(metrics->shm);
     }
 #endif
 
-    rc = ngx_wasm_shm_kv_get_locked(metrics->shm, NULL, &mid, &val, &cas);
+    rc = ngx_wa_shm_kv_get_locked(metrics->shm, NULL, &mid, &val, &cas);
     if (rc != NGX_OK) {
         goto error;
     }
@@ -448,7 +458,7 @@ error:
 
 #if 0
     if (metrics->shm->eviction != NGX_WASM_EVICTION_NONE) {
-        ngx_wasm_shm_unlock(metrics->shm);
+        ngx_wa_shm_unlock(metrics->shm);
     }
 #endif
 
@@ -461,43 +471,49 @@ error:
 
 /**
  * NGX_OK: success
- * NGX_ABORT: bad usage
  * NGX_DECLINED: not found
+ * NGX_ERROR: error
  */
 ngx_int_t
-ngx_wa_metrics_get(ngx_wa_metrics_t *metrics, uint32_t mid, ngx_uint_t *out)
+ngx_wa_metrics_get(ngx_wa_metrics_t *metrics, uint32_t mid, ngx_wa_metric_t *o)
 {
     uint32_t          cas;
     ngx_int_t         rc;
     ngx_str_t        *n;
     ngx_wa_metric_t  *m;
 
-    rc = ngx_wasm_shm_kv_get_locked(metrics->shm, NULL, &mid, &n, &cas);
+    rc = ngx_wa_shm_kv_get_locked(metrics->shm, NULL, &mid, &n, &cas);
     if (rc != NGX_OK) {
         goto done;
     }
 
     m = (ngx_wa_metric_t *) n->data;
+    o->type = m->type;
 
     switch (m->type) {
     case NGX_WA_METRIC_COUNTER:
-        *out = get_counter(m, metrics->workers);
+        o->slots[0].counter = get_counter(m, metrics->workers);
         break;
 
     case NGX_WA_METRIC_GAUGE:
-        *out = get_gauge(m, metrics->workers);
+        o->slots[0].gauge.value = get_gauge(m, metrics->workers);
+        break;
+
+    case NGX_WA_METRIC_HISTOGRAM:
+        ngx_wa_metrics_histogram_get(metrics, m, metrics->workers,
+                                     o->slots[0].histogram);
         break;
 
     default:
-        ngx_wa_assert(m->type == NGX_WA_METRIC_HISTOGRAM);
-        rc = NGX_ABORT;
+        ngx_wa_assert(0);
+        rc = NGX_ERROR;
         break;
     }
 
 done:
 
     ngx_wa_assert(rc == NGX_OK
-                  || rc == NGX_ABORT
+                  || rc == NGX_ERROR
                   || rc == NGX_DECLINED);
 
     return rc;

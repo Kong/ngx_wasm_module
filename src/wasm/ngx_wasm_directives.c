@@ -163,15 +163,15 @@ validate_shm_size(ngx_conf_t *cf, ssize_t size, ngx_str_t *value)
 
 static char *
 ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf, ngx_wasm_shm_type_e type)
+    void *conf, ngx_wa_shm_type_e type)
 {
-    size_t                    i;
-    ssize_t                   size;
-    ngx_str_t                *value, *name, *arg3;
-    ngx_wasm_core_conf_t     *wcf = conf;
-    ngx_wasm_shm_mapping_t   *mapping;
-    ngx_wasm_shm_t           *shm;
-    ngx_wasm_shm_eviction_e   eviction;
+    size_t                  i;
+    ssize_t                 size;
+    ngx_str_t              *value, *name, *arg3;
+    ngx_array_t            *shms = ngx_wasmx_shms(cf->cycle);
+    ngx_wa_shm_mapping_t   *mapping;
+    ngx_wa_shm_t           *shm;
+    ngx_wa_shm_eviction_e   eviction;
 
     value = cf->args->elts;
     name = &value[1];
@@ -213,7 +213,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         }
     }
 
-    shm = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_shm_t));
+    shm = ngx_pcalloc(cf->pool, sizeof(ngx_wa_shm_t));
     if (shm == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -223,9 +223,9 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     shm->name = *name;
     shm->log = cf->cycle->log;
 
-    mapping = wcf->shms.elts;
+    mapping = shms->elts;
 
-    for (i = 0; i < wcf->shms.nelts; i++) {
+    for (i = 0; i < shms->nelts; i++) {
         if (ngx_str_eq(mapping[i].name.data, mapping[i].name.len,
                        name->data, name->len))
         {
@@ -235,7 +235,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         }
     }
 
-    mapping = ngx_array_push(&wcf->shms);
+    mapping = ngx_array_push(shms);
     if (mapping == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -246,7 +246,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    mapping->zone->init = ngx_wasm_shm_init_zone;
+    mapping->zone->init = ngx_wa_shm_init_zone;
     mapping->zone->data = shm;
     mapping->zone->noreuse = 1;  /* TODO: enable shm reuse (fix SIGHUP) */
 
