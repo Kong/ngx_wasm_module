@@ -12,6 +12,8 @@ local pcall = pcall
 local ffi_gc = ffi.gc
 local ffi_new = ffi.new
 local ffi_str = ffi.string
+local ffi_cast = ffi.cast
+local ffi_typeof = ffi.typeof
 local tonumber = tonumber
 local tostring = tostring
 local getfenv = getfenv
@@ -77,8 +79,8 @@ else
 end
 
 
-local ffi_ops_type = ffi.typeof("ngx_wasm_plan_t *")
-local ffi_pops_type = ffi.typeof("ngx_wasm_plan_t *[1]")
+local ffi_ops_type = ffi_typeof("ngx_wasm_plan_t *")
+local ffi_pops_type = ffi_typeof("ngx_wasm_plan_t *[1]")
 
 
 function _M.new(filters)
@@ -119,13 +121,13 @@ function _M.new(filters)
         local cconf = ffi_new("ngx_str_t", { data = config, len = #config })
 
         local cfilter = cfilters[i - 1]
-        cfilter.name = ffi.cast("ngx_str_t *", cname)
-        cfilter.config = ffi.cast("ngx_str_t *", cconf)
+        cfilter.name = ffi_cast("ngx_str_t *", cname)
+        cfilter.config = ffi_cast("ngx_str_t *", cconf)
     end
 
     local plan = ffi_new(ffi_ops_type)
     local pplan = ffi_new(ffi_pops_type, plan)
-    local pcfilters = ffi.cast("ngx_wasm_filter_t *", cfilters)
+    local pcfilters = ffi_cast("ngx_wasm_filter_t *", cfilters)
     local errbuf, errlen = get_err_ptr()
 
     local rc = C.ngx_http_wasm_ffi_plan_new(vm, pcfilters, nfilters,
@@ -334,7 +336,7 @@ do
     end
 
 
-    c_props_setter = ffi.cast("ngx_proxy_wasm_properties_ffi_handler_pt",
+    c_props_setter = ffi_cast("ngx_proxy_wasm_properties_ffi_handler_pt",
     function(r, ckey, cvalue, cerr)
         set_r(r)
 
@@ -363,7 +365,7 @@ do
     end)
 
 
-    c_props_getter = ffi.cast("ngx_proxy_wasm_properties_ffi_handler_pt",
+    c_props_getter = ffi_cast("ngx_proxy_wasm_properties_ffi_handler_pt",
     function(r, ckey, cvalue, cerr)
         set_r(r)
 
