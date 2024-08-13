@@ -138,8 +138,9 @@ static ngx_int_t
 lua_sleep_error_handler(ngx_wasm_lua_ctx_t *lctx)
 {
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, lctx->log, 0,
-                   "wasm lua thread cancelled: %d",
-                   lctx->cancelled);
+                   "wasm lua thread cancelled: %d", lctx->cancelled);
+
+    return NGX_OK;
 }
 
 
@@ -148,7 +149,6 @@ ngx_wasm_hfuncs_test_lua_cancel(ngx_wavm_instance_t *instance,
     wasm_val_t args[], wasm_val_t rets[])
 {
 #if (NGX_WASM_HTTP)
-    ngx_int_t                 rc;
     ngx_wasm_lua_ctx_t       *lctx;
     ngx_http_wasm_req_ctx_t  *rctx = instance->data;
     static const char        *SCRIPT_NAME = "cancel_lua_chunk";
