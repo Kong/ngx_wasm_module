@@ -55,7 +55,7 @@ ngx_http_wasm_read_client_request_body(ngx_http_request_t *r,
         && rc != NGX_AGAIN)
     {
         r->main->count--;
-        dd("r->main->count--: %ld", r->main->count);
+        dd("r->main->count--: %d", r->main->count);
     }
 
     return rc;
