@@ -48,6 +48,8 @@ ngx_wa_shm_kv_init(ngx_wa_shm_t *shm)
     shm->data = kv;
     shm->shpool->log_nomem = 0;
 
+    kv->nelts = 0;
+
     if (shm->eviction == NGX_WA_SHM_EVICTION_LRU) {
         ngx_queue_init(&kv->eviction.lru_queue);
 
@@ -193,6 +195,8 @@ queue_expire(ngx_wa_shm_t *shm, ngx_queue_t *queue, ngx_queue_t *q)
 
     ngx_slab_free_locked(shm->shpool, node);
 
+    kv->nelts--;
+
     return NGX_OK;
 }
 
@@ -287,6 +291,7 @@ ngx_wa_shm_kv_set_locked(ngx_wa_shm_t *shm, ngx_str_t *key,
             ngx_rbtree_delete(&kv->rbtree, &n->key.node);
             ngx_slab_free_locked(shm->shpool, n);
             *written = 1;
+            kv->nelts--;
 
         } else {
             *written = 0;
@@ -343,6 +348,9 @@ ngx_wa_shm_kv_set_locked(ngx_wa_shm_t *shm, ngx_str_t *key,
             n->cas = old->cas;
             ngx_rbtree_delete(&kv->rbtree, &old->key.node);
             ngx_slab_free_locked(shm->shpool, old);
+
+        } else {
+            kv->nelts++;
         }
 
         ngx_memcpy(n->key.str.data, key->data, key->len);
