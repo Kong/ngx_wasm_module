@@ -8,6 +8,7 @@
 typedef struct {
     ngx_rbtree_t        rbtree;
     ngx_rbtree_node_t   sentinel;
+    ngx_uint_t          nelts;
     union {
         ngx_queue_t     lru_queue;
         ngx_queue_t     slru_queues[0];
