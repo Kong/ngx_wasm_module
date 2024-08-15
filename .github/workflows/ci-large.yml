@@ -25,7 +25,7 @@ jobs:
         cc: [gcc-12]
         ngx: [1.27.1]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [23.0.1]
+        wasmtime: [23.0.2]
         wasmer: [3.1.1]
         v8: [12.0.267.17]
         ipc: [no_ipc]
@@ -40,7 +40,7 @@ jobs:
             cc: gcc-12
             openresty: 1.25.3.2
             runtime: wasmtime
-            wasmtime: 23.0.1
+            wasmtime: 23.0.2
             ipc: no_ipc
             ssl: ssl
             debug: debug
@@ -59,7 +59,7 @@ jobs:
           # macOS - Wasmtime
           - label: macos_wasmtime
             runtime: wasmtime
-            wasmtime: 23.0.1
+            wasmtime: 23.0.2
             os: macos-13
             cc: clang
             ngx: 1.27.1
@@ -103,7 +103,7 @@ jobs:
         cc: [gcc-12]
         ngx: [1.27.1]
         runtime: [wasmer, wasmtime, v8]
-        wasmtime: [23.0.1]
+        wasmtime: [23.0.2]
         wasmer: [3.1.1]
         v8: [12.0.267.17]
         hup: [hup, no_hup]
@@ -142,7 +142,7 @@ jobs:
         cc: [clang-15]
         openresty: [1.25.3.2]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [23.0.1]
+        wasmtime: [23.0.2]
         wasmer: [3.1.1]
         v8: [12.0.267.17]
         ssl: [no_ssl, ssl]
@@ -171,7 +171,7 @@ jobs:
         cc: [clang-13, clang-14, gcc-10, gcc-11]
         ngx: [1.27.1]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [23.0.1]
+        wasmtime: [23.0.2]
         wasmer: [3.1.1]
         v8: [12.0.267.17]
         include:
@@ -180,13 +180,13 @@ jobs:
             cc: clang-15
             ngx: 1.21.6
             runtime: wasmtime
-            wasmtime: 23.0.1
+            wasmtime: 23.0.2
           - label: old_openresty
             os: ubuntu-latest
             cc: clang-15
             openresty: 1.21.4.2
             runtime: wasmtime
-            wasmtime: 23.0.1
+            wasmtime: 23.0.2
     uses: ./.github/workflows/job-build-tests.yml
     with:
       os: ${{ matrix.os }}
