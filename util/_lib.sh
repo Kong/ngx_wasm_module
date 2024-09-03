@@ -110,7 +110,7 @@ download_openssl() {
             pushd $DIR_DOWNLOAD
                 notice "downloading OpenSSL $OPENSSL_VER..."
                 download openssl-$OPENSSL_VER.tar.gz \
-                    "https://www.openssl.org/source/openssl-$OPENSSL_VER.tar.gz"
+                    "https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VER/openssl-$OPENSSL_VER.tar.gz"
             popd
 
             tar -xf $DIR_DOWNLOAD/openssl-$OPENSSL_VER.tar.gz
