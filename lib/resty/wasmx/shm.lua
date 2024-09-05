@@ -329,7 +329,7 @@ local function parse_cmetric(cmetric)
                 break
             end
 
-            h.value[cb.upper_bound] = cb.count
+            h.value[#(h.value) + 1] = { ub = cb.upper_bound, count = cb.count }
         end
 
         return h
