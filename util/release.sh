@@ -203,7 +203,7 @@ build_static_binary() {
     # openssl
 
     download openssl-$OPENSSL_VER.tar.gz \
-        "https://www.openssl.org/source/openssl-$OPENSSL_VER.tar.gz"
+        "https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VER/openssl-$OPENSSL_VER.tar.gz"
 
     if [ ! -d "openssl-$OPENSSL_VER" ]; then
         tar -xf openssl-$OPENSSL_VER.tar.gz
