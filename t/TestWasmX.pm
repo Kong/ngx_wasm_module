@@ -156,89 +156,108 @@ add_block_preprocessor(sub {
                           . $main_config);
     }
 
-    # compiler override when '--- wasm_modules' block is specified
+    # --- wasm {
 
-    my $compiler;
-
-    if ($nginxV =~ m/wasmer/) {
-        $compiler = "singlepass";
-    }
+    my $wasm_config = "wasm {\n";
+    my $add_wasm_block = 0;
 
     # --- wasm_modules: on_phases
 
     my $wasm_modules = $block->wasm_modules;
     if (defined $wasm_modules) {
+        $add_wasm_block = 1;
+
         @arr = split /\s+/, $wasm_modules;
         if (@arr) {
-            @arr = map { "module $_ $crates/$_.wasm;" } @arr;
-            my $wasm_config = "wasm {\n" .
-                              "    " . (join "\n", @arr) . "\n";
+            @arr = map { "    module $_ $crates/$_.wasm;" } @arr;
+            $wasm_config = $wasm_config . (join "\n", @arr). "\n";
+        }
 
-            if (defined $compiler) {
-                $wasm_config = $wasm_config .
-                               "    compiler " . $compiler . ";\n";
-            }
+        # compiler override when '--- wasm_modules' block is specified
+        my $compiler;
 
-            my $backtraces = $block->backtraces;
-            if (defined $backtraces) {
-                $wasm_config = $wasm_config .
-                               "    backtraces on;\n";
-            }
+        if ($nginxV =~ m/wasmer/) {
+            $compiler = "singlepass";
+        }
 
-            my $tls_skip_verify = $block->tls_skip_verify;
-            my $tls_skip_host_check = $block->tls_skip_host_check;
-            my $tls_trusted_certificate = $block->tls_trusted_certificate;
-
-            if (defined $tls_skip_verify) {
-                $wasm_config = $wasm_config .
-                               "    tls_skip_verify " . $tls_skip_verify . ";\n";
-            }
-
-            if (defined $tls_skip_host_check) {
-                $wasm_config = $wasm_config .
-                               "    tls_skip_host_check " . $tls_skip_host_check . ";\n";
-            }
-
-            if (defined $tls_trusted_certificate) {
-                $wasm_config = $wasm_config .
-                               "    tls_trusted_certificate " . $tls_trusted_certificate . ";\n";
-            }
-
-            # --- shm_kv
-
-            my $shm_kv = $block->shm_kv;
-            if (defined $shm_kv) {
-                @arr = split /,/, $shm_kv;
-                @arr = map { "    shm_kv $_;" } @arr;
-                $wasm_config = $wasm_config . (join "\n", @arr);
-            }
-
-            # --- metrics
-
-            my $metrics = $block->metrics;
-
-            if (defined $metrics) {
-                $wasm_config = $wasm_config .
-                               "    metrics {\n" .
-                               "        slab_size $metrics" . ";\n" .
-                               "    }\n";
-            }
-
-            # --- shm_queue
-
-            my $shm_queue = $block->shm_queue;
-            if (defined $shm_queue) {
-                @arr = split /,/, $shm_queue;
-                @arr = map { "    shm_queue $_;" } @arr;
-                $wasm_config = $wasm_config . (join "\n", @arr);
-            }
-
-            $wasm_config = $wasm_config . "}\n";
-
-            my $main_config = $block->main_config || '';
-            $block->set_value("main_config", $main_config . $wasm_config);
+        if (defined $compiler) {
+            $wasm_config = $wasm_config .
+                           "    compiler " . $compiler . ";\n";
         }
     }
+
+    # --- backtraces
+
+    my $backtraces = $block->backtraces;
+    if (defined $backtraces) {
+        $add_wasm_block = 1;
+        $wasm_config = $wasm_config .
+                       "    backtraces on;\n";
+    }
+
+    # --- tls_*
+
+    my $tls_skip_verify = $block->tls_skip_verify;
+    my $tls_skip_host_check = $block->tls_skip_host_check;
+    my $tls_trusted_certificate = $block->tls_trusted_certificate;
+
+    if (defined $tls_skip_verify) {
+        $add_wasm_block = 1;
+        $wasm_config = $wasm_config .
+                       "    tls_skip_verify " . $tls_skip_verify . ";\n";
+    }
+
+    if (defined $tls_skip_host_check) {
+        $add_wasm_block = 1;
+        $wasm_config = $wasm_config .
+                       "    tls_skip_host_check " . $tls_skip_host_check . ";\n";
+    }
+
+    if (defined $tls_trusted_certificate) {
+        $add_wasm_block = 1;
+        $wasm_config = $wasm_config .
+                       "    tls_trusted_certificate " . $tls_trusted_certificate . ";\n";
+    }
+
+    # --- shm_kv
+
+    my $shm_kv = $block->shm_kv;
+    if (defined $shm_kv) {
+        $add_wasm_block = 1;
+        @arr = split /,/, $shm_kv;
+        @arr = map { "    shm_kv $_;" } @arr;
+        $wasm_config = $wasm_config . (join "\n", @arr);
+    }
+
+    # --- metrics
+
+    my $metrics = $block->metrics;
+    if (defined $metrics) {
+        $add_wasm_block = 1;
+        $wasm_config = $wasm_config .
+                       "    metrics {\n" .
+                       "        slab_size $metrics" . ";\n" .
+                       "    }\n";
+    }
+
+    # --- shm_queue
+
+    my $shm_queue = $block->shm_queue;
+    if (defined $shm_queue) {
+        $add_wasm_block = 1;
+        @arr = split /,/, $shm_queue;
+        @arr = map { "    shm_queue $_;" } @arr;
+        $wasm_config = $wasm_config . (join "\n", @arr);
+    }
+
+    $wasm_config = $wasm_config . "\n}\n";
+
+    if ($add_wasm_block) {
+        my $main_config = $block->main_config || '';
+        $block->set_value("main_config", $main_config . $wasm_config);
+    }
+
+    # --- }
 
     my $skip_n;
     my @block_skip = ();
