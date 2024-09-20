@@ -1,8 +1,8 @@
 name: Large CI
 
 on:
-  #pull_request:
-  #  branches: '**'
+  pull_request:
+    branches: '**'
   schedule:
     - cron: '0 9 * * *' # 9am UTC, 2am PST
   workflow_dispatch:
