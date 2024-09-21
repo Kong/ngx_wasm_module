@@ -44,7 +44,7 @@ the system will quickly become necessary for development:
     - Then add the Wasm target to your toolchain: `rustup target add
       wasm32-unknown-unknown`.
     - As well as the [WASI](https://wasi.dev/) target: `rustup target add
-      wasm32-wasi`.
+      wasm32-wasip1`.
 
 [Back to TOC](#table-of-contents)
 

@@ -102,14 +102,15 @@ if [ "$TEST_NGINX_CARGO_PROFILE" = release ]; then
     args+="--release"
 fi
 
+export RUSTTARGET=wasm32-wasip1
 export RUSTFLAGS="$TEST_NGINX_CARGO_RUSTFLAGS"
 eval cargo build \
     --manifest-path t/lib/Cargo.toml \
     --lib \
-    --target wasm32-wasi \
+    --target $RUSTTARGET \
     "${args[@]}"
 
-eval cp t/lib/target/wasm32-wasi/$TEST_NGINX_CARGO_PROFILE/*.wasm \
+eval cp t/lib/target/$RUSTTARGET/$TEST_NGINX_CARGO_PROFILE/*.wasm \
     $DIR_TESTS_LIB_WASM
 
 $NGX_WASM_DIR/util/sdk.sh -S go --install

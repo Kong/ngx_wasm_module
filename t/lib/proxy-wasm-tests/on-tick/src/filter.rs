@@ -5,12 +5,10 @@ use std::time::Duration;
 
 proxy_wasm::main! {{
     proxy_wasm::set_log_level(LogLevel::Debug);
-    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> { Box::new(OnTick { cancel: false }) });
+    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> { Box::new(OnTick {}) });
 }}
 
-struct OnTick {
-    cancel: bool,
-}
+struct OnTick {}
 
 impl Context for OnTick {}
 impl RootContext for OnTick {
