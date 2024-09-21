@@ -54,7 +54,7 @@ RUN apt-get install -y \
         unzip \
         sudo && \
     update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/scan-build-${CLANG_VERSION} 100 && \
-    rustup target add wasm32-wasi && \
+    rustup target add wasm32-wasip1 && \
     rustup target add wasm32-unknown-unknown && \
     curl -sLO https://golang.google.cn/dl/go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \
     sudo rm -rf /usr/local/go && tar -C /usr/local -xzf go${GOLANG_VERSION}.linux-$(cat /TG_ARCH).tar.gz && \

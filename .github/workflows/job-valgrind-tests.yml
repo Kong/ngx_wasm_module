@@ -95,7 +95,7 @@ jobs:
         if: ${{ !env.ACT }}
         uses: dtolnay/rust-toolchain@stable
         with:
-          target: wasm32-wasi
+          target: wasm32-wasip1
       - name: Setup Go
         if: ${{ !env.ACT }}
         uses: actions/setup-go@v5

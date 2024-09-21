@@ -144,7 +144,7 @@ qr/\[info\] .*? property not found: was,/
     qr/\[info\] .*? \[hostcalls\] on_tick/,
     qr/\[error\] .*? cannot get host properties outside of a request/,
     qr/\[crit\] .*? panicked at/,
-    qr/unexpected status: 10/,
+    qr/value: InternalFailure/,
 ]
 
 
@@ -168,5 +168,5 @@ qr/\[info\] .*? property not found: was,/
     qr/\[info\] .*? \[hostcalls\] on_tick/,
     qr/\[error\] .*? cannot get host properties outside of a request/,
     qr/\[crit\] .*? panicked at/,
-    qr/unexpected status: 10/,
+    qr/value: InternalFailure/,
 ]
