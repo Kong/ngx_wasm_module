@@ -2,7 +2,6 @@ pub mod echo;
 pub mod host;
 
 use crate::{types::*, *};
-use chrono::{DateTime, Utc};
 use log::*;
 use proxy_wasm::hostcalls::*;
 use proxy_wasm::types::*;
@@ -27,8 +26,8 @@ pub(crate) fn test_log_levels(_: &TestHttp) {
 }
 
 pub(crate) fn test_log_current_time(ctx: &TestHttp) {
-    let now: DateTime<Utc> = ctx.get_current_time().into();
-    info!("now: {}", now)
+    let now = ctx.get_current_time();
+    info!("now: {:?}", now)
 }
 
 pub(crate) fn test_log_request_header(ctx: &TestHttp) {

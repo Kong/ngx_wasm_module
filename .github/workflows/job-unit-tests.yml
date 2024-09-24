@@ -39,6 +39,9 @@ on:
       hup:
         required: true
         type: string
+      wasm_target:
+        required: false
+        type: string
       module_type:
         required: true
         type: string
@@ -64,6 +67,7 @@ env:
   TEST_NGINX_TIMEOUT: 60
   TEST_NGINX_EXTERNAL_TIMEOUT: 60s
   TEST_NGINX_EXTERNAL_RESOLVER: 127.0.0.1:8053
+  TEST_NGINX_CARGO_RUSTTARGET: ${{ inputs.wasm_target }}
 
 jobs:
   tests:
@@ -103,6 +107,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           target: wasm32-wasip1
+      - name: Add wasm32-unknown-unknown target
+        if: ${{ inputs.wasm_target == 'wasm32-unknown-unknown' }}
+        run: |
+          rustup target add wasm32-unknown-unknown
       - name: Setup Go
         if: ${{ !env.ACT }}
         uses: actions/setup-go@v5
@@ -169,6 +177,9 @@ jobs:
             name="$name-dynamic"
           else
             name="$name-static"
+          fi
+          if [ -n "${{ inputs.wasm_target }}" ]; then
+            name="$name-${{ inputs.wasm_target }}"
           fi
           echo "name=$name" >> $GITHUB_OUTPUT
       - name: Coveralls Upload

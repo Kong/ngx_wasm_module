@@ -4,6 +4,8 @@ use strict;
 use lib '.';
 use t::TestWasmX;
 
+skip_no_wasi();
+
 our $nginxV = $t::TestWasmX::nginxV;
 
 plan_tests(4);

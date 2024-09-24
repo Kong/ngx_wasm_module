@@ -65,6 +65,17 @@ jobs:
             ssl: ssl
             debug: debug
             hup: no_hup
+          # wasm32-unknown-unknown
+          - runtime: wasmtime
+            wasmtime: 23.0.2
+            os: ubuntu-latest
+            cc: gcc-12
+            ngx: 1.27.1
+            ipc: no_ipc
+            ssl: no_ssl
+            debug: debug
+            hup: no_hup
+            wasm_target: wasm32-unknown-unknown
           # Old Nginx
           - label: old_nginx
             os: ubuntu-latest
@@ -146,6 +157,7 @@ jobs:
       ssl: ${{ matrix.ssl }}
       debug: ${{ matrix.debug }}
       hup: ${{ matrix.hup }}
+      wasm_target: ${{ matrix.wasm_target }}
       module_type: ${{ matrix.module_type }}
       coverage: true
     secrets: inherit
@@ -162,7 +174,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
-          carryforward: 'unit-ngx_1.27.1-wasmer-no_ipc-ssl-debug-no_hup-static,unit-ngx_1.27.1-wasmer-no_ipc-ssl-no_debug-no_hup-static,unit-ngx_1.27.1-wasmtime-no_ipc-ssl-debug-hup-static,unit-ngx_1.27.1-wasmtime-no_ipc-ssl-debug-hup-dynamic,unit-ngx_1.27.1-v8-no_ipc-ssl-debug-no_hup-static,unit-ngx_1.21.6-wasmer-no_ipc-ssl-debug-no_hup-static,unit-ngx_1.27.1-wasmer-no_ipc-no_ssl-no_debug-no_hup-static,unit-openresty_1.25.3.2-wasmtime-no_ipc-ssl-debug-no_hup-static,unit-openresty_1.25.3.2-wasmtime-no_ipc-ssl-debug-no_hup-dynamic,unit-ngx_1.27.1-wasmtime-ipc-no_ssl-debug-no_hup-static'
+          carryforward: 'unit-ngx_1.27.1-wasmer-no_ipc-ssl-debug-no_hup-static,unit-ngx_1.27.1-wasmer-no_ipc-ssl-no_debug-no_hup-static,unit-ngx_1.27.1-wasmtime-no_ipc-ssl-debug-hup-static,unit-ngx_1.27.1-wasmtime-no_ipc-ssl-debug-hup-dynamic,unit-ngx_1.27.1-v8-no_ipc-ssl-debug-no_hup-static,unit-ngx_1.27.1-wasmtime-no_ipc-no_ssl-debug-no_hup-static-wasm32-unknown-unknown,unit-ngx_1.21.6-wasmer-no_ipc-ssl-debug-no_hup-static,unit-ngx_1.27.1-wasmer-no_ipc-no_ssl-no_debug-no_hup-static,unit-openresty_1.25.3.2-wasmtime-no_ipc-ssl-debug-no_hup-static,unit-openresty_1.25.3.2-wasmtime-no_ipc-ssl-debug-no_hup-dynamic,unit-ngx_1.27.1-wasmtime-ipc-no_ssl-debug-no_hup-static'
 
   valgrind:
     name: 'Valgrind'

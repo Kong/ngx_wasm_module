@@ -4,6 +4,8 @@ use strict;
 use lib '.';
 use t::TestWasmX;
 
+skip_no_wasi();
+
 plan_tests(3);
 run_tests();
 

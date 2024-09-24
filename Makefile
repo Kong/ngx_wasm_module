@@ -54,7 +54,7 @@ setup:
 
 .PHONY: test
 test:
-	@util/test.sh t/0*
+	@util/test.sh t/
 
 .PHONY: test-build
 test-build:
