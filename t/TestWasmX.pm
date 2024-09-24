@@ -40,6 +40,7 @@ our @EXPORT = qw(
     skip_no_debug
     skip_no_go_sdk
     skip_no_assemblyscript_sdk
+    skip_no_wasi
 );
 
 $ENV{TEST_NGINX_USE_HUP} ||= 0;
@@ -100,6 +101,12 @@ sub skip_no_assemblyscript_sdk {
     my @files = glob($ENV{TEST_NGINX_CRATES_DIR} . '/assemblyscript_*.wasm');
     if (!@files && !defined($ENV{CI})) {
         plan(skip_all => "Missing AssemblyScript .wasm bytecode files in $ENV{TEST_NGINX_CRATES_DIR}");
+    }
+}
+
+sub skip_no_wasi {
+    if ($ENV{TEST_NGINX_CARGO_RUSTTARGET} !~ m/wasi/) {
+        plan(skip_all => "skip without WASI target (\$TEST_NGINX_CARGO_RUSTTARGET is set to \"$ENV{TEST_NGINX_CARGO_RUSTTARGET}\")");
     }
 }
 

@@ -47,21 +47,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c6cb57a04249c6480766f7f7cef5467412af1490f8d1e243141daddada3264f"
 
 [[package]]
-name = "android-tzdata"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e999941b234f3131b00bc13c22d06e8c5ff726d1b6318ac7eb276997bbb4fef0"
-
-[[package]]
-name = "android_system_properties"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "819e7219dbd41043ac279b19830f2efc897156490d7fd6ea916720117ee66311"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "arrayref"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -72,12 +57,6 @@ name = "arrayvec"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
-
-[[package]]
-name = "autocfg"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 
 [[package]]
 name = "backtrace"
@@ -106,12 +85,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitflags"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
-
-[[package]]
 name = "blake3"
 version = "1.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -123,12 +96,6 @@ dependencies = [
  "cfg-if",
  "constant_time_eq",
 ]
-
-[[package]]
-name = "bumpalo"
-version = "3.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
 
 [[package]]
 name = "bytes"
@@ -152,20 +119,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "chrono"
-version = "0.4.38"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a21f936df1771bf62b77f047b726c4625ff2e8aa607c01ec06e5a05bd8463401"
-dependencies = [
- "android-tzdata",
- "iana-time-zone",
- "js-sys",
- "num-traits",
- "wasm-bindgen",
- "windows-targets",
-]
-
-[[package]]
 name = "constant_time_eq"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -178,12 +131,6 @@ dependencies = [
  "log",
  "proxy-wasm 0.2.2",
 ]
-
-[[package]]
-name = "core-foundation-sys"
-version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "enum-utils"
@@ -232,7 +179,7 @@ checksum = "c4567c8db10ae91089c99af84c68c38da3ec2f087c3f82960bcdbf3656b6f4d7"
 dependencies = [
  "cfg-if",
  "libc",
- "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasi",
 ]
 
 [[package]]
@@ -270,7 +217,6 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 name = "hostcalls"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "enum-utils",
  "http",
  "log",
@@ -290,29 +236,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "iana-time-zone"
-version = "0.1.61"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "235e081f3925a06703c2d0117ea8b91f042756fd6e7a6e5d901e8ca1a996b220"
-dependencies = [
- "android_system_properties",
- "core-foundation-sys",
- "iana-time-zone-haiku",
- "js-sys",
- "wasm-bindgen",
- "windows-core",
-]
-
-[[package]]
-name = "iana-time-zone-haiku"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f31827a206f56af32e590ba56d5d2d085f558508192593743f16b2306495269f"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "instance-lifecycle"
 version = "0.1.0"
 dependencies = [
@@ -325,15 +248,6 @@ name = "itoa"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
-
-[[package]]
-name = "js-sys"
-version = "0.3.70"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1868808506b929d7b0cfa8f75951347aa71bb21144b7791bae35d9bccfcfe37a"
-dependencies = [
- "wasm-bindgen",
-]
 
 [[package]]
 name = "libc"
@@ -378,16 +292,6 @@ name = "ngx-rust-tests"
 version = "0.1.0"
 dependencies = [
  "ngx",
- "wasi 0.13.2+wasi-0.2.1",
-]
-
-[[package]]
-name = "num-traits"
-version = "0.2.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
-dependencies = [
- "autocfg",
 ]
 
 [[package]]
@@ -538,20 +442,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
-name = "wasi"
-version = "0.13.2+wasi-0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9860ef2271bc7a6e1f985ac4438862a165137fe585ac10bdfad0a8aeb37ba25"
-dependencies = [
- "wit-bindgen-rt",
-]
-
-[[package]]
 name = "wasi-host-tests"
 version = "0.1.0"
 dependencies = [
  "ngx",
- "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasi",
 ]
 
 [[package]]
@@ -559,71 +454,7 @@ name = "wasi-vm-tests"
 version = "0.1.0"
 dependencies = [
  "ngx",
- "wasi 0.11.0+wasi-snapshot-preview1",
-]
-
-[[package]]
-name = "wasm-bindgen"
-version = "0.2.93"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a82edfc16a6c469f5f44dc7b571814045d60404b55a0ee849f9bcfa2e63dd9b5"
-dependencies = [
- "cfg-if",
- "once_cell",
- "wasm-bindgen-macro",
-]
-
-[[package]]
-name = "wasm-bindgen-backend"
-version = "0.2.93"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9de396da306523044d3302746f1208fa71d7532227f15e347e2d93e4145dd77b"
-dependencies = [
- "bumpalo",
- "log",
- "once_cell",
- "proc-macro2",
- "quote",
- "syn 2.0.77",
- "wasm-bindgen-shared",
-]
-
-[[package]]
-name = "wasm-bindgen-macro"
-version = "0.2.93"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "585c4c91a46b072c92e908d99cb1dcdf95c5218eeb6f3bf1efa991ee7a68cccf"
-dependencies = [
- "quote",
- "wasm-bindgen-macro-support",
-]
-
-[[package]]
-name = "wasm-bindgen-macro-support"
-version = "0.2.93"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afc340c74d9005395cf9dd098506f7f44e38f2b4a21c6aaacf9a105ea5e1e836"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.77",
- "wasm-bindgen-backend",
- "wasm-bindgen-shared",
-]
-
-[[package]]
-name = "wasm-bindgen-shared"
-version = "0.2.93"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c62a0a307cb4a311d3a07867860911ca130c3494e8c2719593806c08bc5d0484"
-
-[[package]]
-name = "windows-core"
-version = "0.52.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33ab640c8d7e35bf8ba19b884ba838ceb4fba93a4e8c65a9059d08afcfc683d9"
-dependencies = [
- "windows-targets",
+ "wasi",
 ]
 
 [[package]]
@@ -689,15 +520,6 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
-
-[[package]]
-name = "wit-bindgen-rt"
-version = "0.29.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b18e27825442721d23ed98591a80f55220cfe0bf883d92b1ead6c9be237bb34"
-dependencies = [
- "bitflags",
-]
 
 [[package]]
 name = "zerocopy"

@@ -18,7 +18,7 @@ source $NGX_WASM_DIR/util/_lib.sh
 while (( "$#" )); do
     case "$1" in
         --no-test-nginx)
-            NO_TEST_NGINX=1
+            export TEST_NGINX_NO_TEST_NGINX=1
             shift
             ;;
         -j)
@@ -42,7 +42,7 @@ export PERL5LIB=$DIR_CPANM/lib/perl5:$PERL5LIB
 
 # Test::Build
 
-if [[ "$NO_TEST_NGINX" == 1 ]]; then
+if [[ "$TEST_NGINX_NO_TEST_NGINX" == 1 ]]; then
     export TEST_NGINX_NPROC=$(n_jobs)
     exec prove $@
 fi
@@ -72,6 +72,7 @@ export LD_PRELOAD=$DIR_MOCKEAGAIN/mockeagain.so
 #export TEST_NGINX_NO_CLEAN=1
 #export TEST_NGINX_BENCHMARK='1000 10'
 export TEST_NGINX_CLEAN_LOG=${TEST_NGINX_CLEAN_LOG:=0}
+export TEST_NGINX_CARGO_RUSTTARGET=${TEST_NGINX_CARGO_RUSTTARGET:=wasm32-wasip1}
 export TEST_NGINX_CARGO_RUSTFLAGS=${TEST_NGINX_CARGO_RUSTFLAGS:=}
 export TEST_NGINX_CARGO_PROFILE=${TEST_NGINX_CARGO_PROFILE:=release}
 
@@ -102,15 +103,14 @@ if [ "$TEST_NGINX_CARGO_PROFILE" = release ]; then
     args+="--release"
 fi
 
-export RUSTTARGET=wasm32-wasip1
 export RUSTFLAGS="$TEST_NGINX_CARGO_RUSTFLAGS"
 eval cargo build \
     --manifest-path t/lib/Cargo.toml \
     --lib \
-    --target $RUSTTARGET \
+    --target $TEST_NGINX_CARGO_RUSTTARGET \
     "${args[@]}"
 
-eval cp t/lib/target/$RUSTTARGET/$TEST_NGINX_CARGO_PROFILE/*.wasm \
+eval cp t/lib/target/$TEST_NGINX_CARGO_RUSTTARGET/$TEST_NGINX_CARGO_PROFILE/*.wasm \
     $DIR_TESTS_LIB_WASM
 
 $NGX_WASM_DIR/util/sdk.sh -S go --install

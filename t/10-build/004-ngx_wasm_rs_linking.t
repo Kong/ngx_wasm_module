@@ -4,7 +4,7 @@ use strict;
 use lib '.';
 use t::TestBuild;
 
-skip_valgrind();
+skip_no_test_nginx();
 
 our $buildroot = $t::TestBuild::buildroot;
 

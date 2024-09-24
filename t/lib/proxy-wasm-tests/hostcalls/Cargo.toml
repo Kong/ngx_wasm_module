@@ -11,6 +11,5 @@ crate-type = ["cdylib"]
 proxy-wasm = "0.2"
 log = "0.4"
 http = "0.2"
-chrono = "0.4"
 enum-utils = "0.1.2"
 urlencoding = "2.1.2"

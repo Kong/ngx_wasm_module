@@ -21,6 +21,6 @@ should produce a log with the current time (ms as ~ns)
 --- response_body
 ok
 --- error_log eval
-qr/\[info\] .*? now: 2.*? UTC/,
+qr/\[info\] .*? now: SystemTime\(\d+\.\d+s\)/,
 --- no_error_log
 [error]

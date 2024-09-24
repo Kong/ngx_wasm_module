@@ -17,6 +17,7 @@ our $buildroot = $ENV{NGX_BUILD_DIR_BUILDROOT};
 our @EXPORT = qw(
     $buildroot
     skip_valgrind
+    skip_no_test_nginx
     get_variable_from_makefile
     run_tests
 );
@@ -42,6 +43,14 @@ $ENV{NGX_WASM_RUNTIME_DIR} = $out;
 sub skip_valgrind {
     if ($ENV{TEST_NGINX_USE_VALGRIND}) {
         plan skip_all => "skipped with Valgrind";
+    }
+}
+
+sub skip_no_test_nginx {
+    if (!defined $ENV{TEST_NGINX_NO_TEST_NGINX}
+        || $ENV{TEST_NGINX_NO_TEST_NGINX} != 1)
+    {
+        plan(skip_all => "skip without build test mode (\$TEST_NGINX_NO_TEST_NGINX=1)");
     }
 }
 
