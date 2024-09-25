@@ -280,17 +280,17 @@ ngx_wasmtime_init_engine(ngx_wrt_engine_t *engine, wasm_config_t *config,
 
     nwasi = 0;
 
-    for (i = 0; ngx_wasi_host.funcs[i].ptr; i++) {
+    for (i = 0; ngx_wasip1_host.funcs[i].ptr; i++) {
         nwasi++;
     }
 
     engine->pool = pool;
     engine->wasi_hfuncs = ngx_pcalloc(pool, sizeof(ngx_wavm_hfunc_t *) * nwasi);
 
-    for (i = 0; ngx_wasi_host.funcs[i].ptr; i++) {
-        def = &ngx_wasi_host.funcs[i];
+    for (i = 0; ngx_wasip1_host.funcs[i].ptr; i++) {
+        def = &ngx_wasip1_host.funcs[i];
 
-        hfunc = ngx_wavm_host_hfunc_create(pool, &ngx_wasi_host, &def->name);
+        hfunc = ngx_wavm_host_hfunc_create(pool, &ngx_wasip1_host, &def->name);
 
         err->res = wasmtime_linker_define_func(engine->linker,
                                                wasi_module,
@@ -316,7 +316,7 @@ ngx_wasmtime_destroy_engine(ngx_wrt_engine_t *engine)
 {
     size_t i;
 
-    for (i = 0; ngx_wasi_host.funcs[i].ptr; i++) {
+    for (i = 0; ngx_wasip1_host.funcs[i].ptr; i++) {
         wasm_functype_delete(engine->wasi_hfuncs[i]->functype);
     }
 

@@ -15,7 +15,7 @@
 #define WASI_ERRNO_NOTSUP  58
 
 
-extern ngx_wavm_host_def_t  ngx_wasi_host;
+extern ngx_wavm_host_def_t  ngx_wasip1_host;
 
 
 #endif /* _NGX_WASI_H_INCLUDED_ */
