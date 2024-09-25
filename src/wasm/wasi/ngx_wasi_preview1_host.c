@@ -400,7 +400,7 @@ static ngx_wavm_host_func_def_t  ngx_wasi_hfuncs[] = {
 };
 
 
-ngx_wavm_host_def_t  ngx_wasi_host = {
-    ngx_string("ngx_wasi"),
+ngx_wavm_host_def_t  ngx_wasip1_host = {
+    ngx_string("ngx_wasi_preview1"),
     ngx_wasi_hfuncs,
 };

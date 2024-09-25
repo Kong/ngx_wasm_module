@@ -341,7 +341,7 @@ linking:
             name.data = (u_char *) importname->data;
 
             hfunc = ngx_wavm_host_hfunc_create(module->engine->pool,
-                                               &ngx_wasi_host, &name);
+                                               &ngx_wasip1_host, &name);
 
             if (hfunc) {
                 dd("   -> wasi resolved by host function: \"%.*s\"",
