@@ -98,14 +98,14 @@ consolidated and returned as a single metric value. This storage strategy allows
 metric updates to be performed without the aid of shared memory read/write locks
 at the cost of 16 bytes per worker.
 
-Histogram values also have a baseline size of 8 bytes + 16 bytes per worker
-process. However, histograms also need extra space per worker for bins storage.
+Histogram values have a baseline size of 8 bytes + 24 bytes per worker process.
+However, histograms also need extra space per worker for bins storage.
 Bins storage costs 4 bytes + 8 bytes per bin. Thus, a 5-bin histogram takes: 8
-bytes + (16 + 4 + 5*8), so 60 bytes per worker.
+bytes + (24 + 4 + 5*8), so 68 bytes per worker.
 
 As such, in a 4-workers setup, a counter or gauge whose name is 64 chars long
 occupies 168 bytes, and a 5-bin histogram with the same name length occupies 408
-bytes. A 18-bin histogram with the same length name occupies 824 bytes.
+bytes. A 18-bin histogram with the same length name occupies 856 bytes.
 
 [Back to TOC](#table-of-contents)
 

@@ -118,7 +118,7 @@ qq{
 --- error_log eval
 [
     "cannot expand histogram",
-    qr/histogram \"\d+\": 1: 1; 2: 1; 4: 1; 8: 1; 4294967295: 1/,
+    qr/histogram \"\d+\": 1: 1; 2: 1; 4: 1; 8: 1; 4294967295: 1; SUM: 31/,
 ]
 --- no_error_log
 [error]

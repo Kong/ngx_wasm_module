@@ -32,7 +32,7 @@ __DATA__
     }
 --- response_body
 g1: {type="gauge",value=10}
-h1: {type="histogram",value={{count=1,ub=128},{count=0,ub=4294967295}}}
+h1: {sum=100,type="histogram",value={{count=1,ub=128},{count=0,ub=4294967295}}}
 --- no_error_log
 [error]
 [crit]

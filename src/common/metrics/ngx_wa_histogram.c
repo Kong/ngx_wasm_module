@@ -150,6 +150,8 @@ histogram_log(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m, uint32_t mid)
         }
     }
 
+    p = ngx_sprintf(p, " SUM: %uD;", h->sum);
+
     ngx_log_debug3(NGX_LOG_DEBUG_WASM, metrics->shm->log, 0,
                    "histogram \"%uD\": %*s",
                    mid, p - s_buf - 1, s_buf + 1);
@@ -201,6 +203,8 @@ ngx_wa_metrics_histogram_record(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m,
     ngx_wa_metrics_histogram_t  *h;
 
     h = m->slots[slot].histogram;
+    h->sum += n;
+
     b = histogram_bin(metrics, h, n, &m->slots[slot].histogram);
     b->count += 1;
 
@@ -222,6 +226,7 @@ ngx_wa_metrics_histogram_get(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m,
 
     for (i = 0; i < slots; i++) {
         h = m->slots[i].histogram;
+        out->sum += h->sum;
 
         for (j = 0; j < h->n_bins; j++) {
             b = &h->bins[j];
