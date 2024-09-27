@@ -43,6 +43,7 @@ typedef struct {
 
 typedef struct {
     uint8_t                      n_bins;
+    uint64_t                     sum;
     ngx_wa_metrics_bin_t         bins[];
 } ngx_wa_metrics_histogram_t;
 

@@ -70,6 +70,7 @@ ffi.cdef [[
 
     typedef struct {
         uint8_t                      n_bins;
+        uint64_t                     sum;
         ngx_wa_metrics_bin_t         bins[];
     } ngx_wa_metrics_histogram_t;
 
@@ -435,7 +436,7 @@ local function parse_cmetric(cmetric)
     if cmetric.metric_type == _types.ffi_metric.HISTOGRAM then
         local hbuf = cmetric.slots[0].histogram
         local ch = ffi_cast("ngx_wa_metrics_histogram_t *", hbuf)
-        local h = { type = "histogram", value = {} }
+        local h = { type = "histogram", value = {}, sum = tonumber(ch.sum) }
 
         for i = 0, ch.n_bins do
             local cb = ch.bins[i]
