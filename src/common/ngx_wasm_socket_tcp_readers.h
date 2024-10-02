@@ -26,18 +26,8 @@ typedef struct {
     size_t                            rest;
     unsigned                          header_done:1;
 } ngx_wasm_http_reader_ctx_t;
-#endif
 
 
-#if 0
-ngx_int_t ngx_wasm_read_all(ngx_buf_t *src, ngx_chain_t *buf_in,
-    ssize_t bytes);
-ngx_int_t ngx_wasm_read_line(ngx_buf_t *src, ngx_chain_t *buf_in,
-    ssize_t bytes);
-#endif
-ngx_int_t ngx_wasm_read_bytes(ngx_buf_t *src, ngx_chain_t *buf_in,
-    ssize_t bytes, size_t *rest);
-#ifdef NGX_WASM_HTTP
 ngx_int_t ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in,
     ssize_t bytes, ngx_wasm_http_reader_ctx_t *in_ctx);
 #endif

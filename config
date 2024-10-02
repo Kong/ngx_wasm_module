@@ -134,6 +134,7 @@ NGX_WASMX_INCS="\
 
 NGX_WASMX_DEPS="\
     $ngx_addon_dir/src/ngx_wasmx.h \
+    $ngx_addon_dir/src/common/ngx_wa_readers.h \
     $ngx_addon_dir/src/common/ngx_wasm_subsystem.h \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp.h \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp_readers.h \
@@ -147,6 +148,7 @@ NGX_WASMX_DEPS="\
 
 NGX_WASMX_SRCS="\
     $ngx_addon_dir/src/ngx_wasmx.c \
+    $ngx_addon_dir/src/common/ngx_wa_readers.c \
     $ngx_addon_dir/src/common/ngx_wasm_subsystem.c \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp.c \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp_readers.c \
