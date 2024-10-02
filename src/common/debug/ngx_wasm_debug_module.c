@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_wasm.h>
+#include <ngx_wa_readers.h>
 #include <ngx_wa_metrics.h>
 #include <ngx_wasm_subsystem.h>
 #ifdef NGX_HTTP_WASM
@@ -38,6 +39,10 @@ ngx_wasm_debug_init(ngx_cycle_t *cycle)
     };
 
     /* coverage */
+
+    ngx_wa_assert(
+        ngx_wa_read_bytes(NULL, NULL, 0, NULL) == NGX_ERROR
+    );
 
     /**
      * ngx_wasm_phase_lookup NULL return branch is unreacheable in
