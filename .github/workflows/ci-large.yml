@@ -23,7 +23,7 @@ jobs:
         label: [""]
         os: [ubuntu-latest]
         cc: [gcc-12]
-        ngx: [1.27.1]
+        ngx: [1.27.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [25.0.1]
         wasmer: [3.1.1]
@@ -52,7 +52,7 @@ jobs:
             wasmer: 3.1.1
             os: macos-13
             cc: clang
-            ngx: 1.27.1
+            ngx: 1.27.2
             ssl: ssl
             debug: debug
             hup: no_hup
@@ -62,7 +62,7 @@ jobs:
             wasmtime: 25.0.1
             os: macos-13
             cc: clang
-            ngx: 1.27.1
+            ngx: 1.27.2
             ssl: ssl
             debug: debug
             hup: hup
@@ -72,7 +72,7 @@ jobs:
             v8: 12.0.267.17
             os: macos-13
             cc: clang
-            ngx: 1.27.1
+            ngx: 1.27.2
             ssl: ssl
             debug: debug
             hup: no_hup
@@ -101,7 +101,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         cc: [gcc-12]
-        ngx: [1.27.1]
+        ngx: [1.27.2]
         runtime: [wasmer, wasmtime, v8]
         wasmtime: [25.0.1]
         wasmer: [3.1.1]
@@ -169,7 +169,7 @@ jobs:
         label: [""]
         os: [ubuntu-latest]
         cc: [clang-13, clang-14, gcc-10, gcc-11]
-        ngx: [1.27.1]
+        ngx: [1.27.2]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [25.0.1]
         wasmer: [3.1.1]

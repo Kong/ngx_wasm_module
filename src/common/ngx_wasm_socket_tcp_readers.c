@@ -398,7 +398,11 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
 
                 /* Transfer-Encoding: chunked */
 
+#if nginx_version >= 1027002
+                rc = ngx_http_parse_chunked(r, src, &in_ctx->chunked, 0);
+#else
                 rc = ngx_http_parse_chunked(r, src, &in_ctx->chunked);
+#endif
                 if (rc == NGX_ERROR || rc == NGX_AGAIN) {
                     return rc;
                 }
