@@ -193,7 +193,7 @@ ngx_wavm_init(ngx_wavm_t *vm)
          node;
          node = ngx_rbtree_next(&vm->modules_tree, node))
     {
-        sn = ngx_wasm_sn_n2sn(node);
+        sn = ngx_wa_sn_n2sn(node);
         module = ngx_rbtree_data(&sn->node, ngx_wavm_module_t, sn);
 
         rc = ngx_wavm_module_load_bytes(module);
@@ -243,7 +243,7 @@ ngx_wavm_load(ngx_wavm_t *vm)
          node;
          node = ngx_rbtree_next(&vm->modules_tree, node))
     {
-        sn = ngx_wasm_sn_n2sn(node);
+        sn = ngx_wa_sn_n2sn(node);
         module = ngx_rbtree_data(&sn->node, ngx_wavm_module_t, sn);
 
         if (ngx_wavm_module_load(module) != NGX_OK) {
@@ -307,7 +307,7 @@ ngx_wavm_destroy(ngx_wavm_t *vm)
 
     while (*root != *sentinel) {
         node = ngx_rbtree_min(*root, *sentinel);
-        sn = ngx_wasm_sn_n2sn(node);
+        sn = ngx_wa_sn_n2sn(node);
         module = ngx_rbtree_data(&sn->node, ngx_wavm_module_t, sn);
 
         ngx_rbtree_delete(&vm->modules_tree, node);
@@ -330,7 +330,7 @@ ngx_wavm_module_lookup(ngx_wavm_t *vm, ngx_str_t *name)
 {
     ngx_str_node_t  *sn;
 
-    sn = ngx_wasm_sn_lookup(&vm->modules_tree, name);
+    sn = ngx_wa_sn_lookup(&vm->modules_tree, name);
     if (sn == NULL) {
         return NULL;
     }
@@ -407,8 +407,8 @@ ngx_wavm_module_add(ngx_wavm_t *vm, ngx_str_t *name, ngx_str_t *path,
         }
     }
 
-    ngx_wasm_sn_init(&module->sn, &module->name);
-    ngx_wasm_sn_insert(&vm->modules_tree, &module->sn);
+    ngx_wa_sn_init(&module->sn, &module->name);
+    ngx_wa_sn_insert(&vm->modules_tree, &module->sn);
 
     return NGX_OK;
 
@@ -603,8 +603,8 @@ ngx_wavm_module_load(ngx_wavm_module_t *module)
                          funcref->name.len);
             *p = '\0';
 
-            ngx_wasm_sn_init(&funcref->sn, &funcref->name);
-            ngx_wasm_sn_insert(&module->funcs_tree, &funcref->sn);
+            ngx_wa_sn_init(&funcref->sn, &funcref->name);
+            ngx_wa_sn_insert(&module->funcs_tree, &funcref->sn);
 
             if (module->f_start == NULL
                 && (ngx_str_eq(exportname->data, exportname->size, "_start", -1)
@@ -812,7 +812,7 @@ ngx_wavm_module_destroy(ngx_wavm_module_t *module)
 
     while (*root != *sentinel) {
         node = ngx_rbtree_min(*root, *sentinel);
-        sn = ngx_wasm_sn_n2sn(node);
+        sn = ngx_wa_sn_n2sn(node);
         funcref = ngx_rbtree_data(&sn->node, ngx_wavm_funcref_t, sn);
 
         ngx_rbtree_delete(&module->funcs_tree, node);
@@ -863,7 +863,7 @@ ngx_wavm_module_func_lookup(ngx_wavm_module_t *module, ngx_str_t *name)
         return NULL;
     }
 
-    sn = ngx_wasm_sn_lookup(&module->funcs_tree, name);
+    sn = ngx_wa_sn_lookup(&module->funcs_tree, name);
     if (sn == NULL) {
         return NULL;
     }

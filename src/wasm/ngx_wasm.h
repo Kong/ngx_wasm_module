@@ -45,12 +45,15 @@
 #define ngx_wasm_vec_set_i32(vec, i, v)                                      \
     (((wasm_val_vec_t *) (vec))->data[i].kind = WASM_I32);                   \
      ((wasm_val_vec_t *) (vec))->data[i].of.i32 = v
+
 #define ngx_wasm_vec_set_i64(vec, i, v)                                      \
     (((wasm_val_vec_t *) (vec))->data[i].kind = WASM_I64);                   \
      ((wasm_val_vec_t *) (vec))->data[i].of.i64 = v
+
 #define ngx_wasm_vec_set_f32(vec, i, v)                                      \
     (((wasm_val_vec_t *) (vec))->data[i].kind = WASM_F32);                   \
      ((wasm_val_vec_t *) (vec))->data[i].of.f32 = v
+
 #define ngx_wasm_vec_set_f64(vec, i, v)                                      \
     (((wasm_val_vec_t *) (vec))->data[i].kind = WASM_F64);                   \
      ((wasm_val_vec_t *) (vec))->data[i].of.f64 = v
@@ -153,48 +156,6 @@ char *ngx_wasm_core_pwm_lua_resolver_directive(ngx_conf_t *cf,
 
 
 extern ngx_module_t  ngx_wasm_core_module;
-
-
-/* ngx_str_node_t extensions */
-#define ngx_wasm_sn_insert(rbtree, sn)                                       \
-    ngx_rbtree_insert((rbtree), &(sn)->node)
-#define ngx_wasm_sn_init(sn, s)                                              \
-    (sn)->node.key = ngx_crc32_long((s)->data, (s)->len);                    \
-    (sn)->str.len = (s)->len;                                                \
-    (sn)->str.data = (s)->data
-#define ngx_wasm_sn_n2sn(n)                                                  \
-    (ngx_str_node_t *) ((u_char *) (n) - offsetof(ngx_str_node_t, node))
-
-
-static ngx_inline ngx_str_node_t *
-ngx_wasm_sn_lookup(ngx_rbtree_t *rbtree, ngx_str_t *str)
-{
-    uint32_t   hash;
-
-    hash = ngx_crc32_long(str->data, str->len);
-
-    return ngx_str_rbtree_lookup(rbtree, str, hash);
-}
-
-
-/* ngx_str_t extensions */
-static ngx_inline unsigned
-ngx_str_eq(const void *s1, ngx_int_t s1_len, const void *s2, ngx_int_t s2_len)
-{
-    if (s1_len < 0) {
-        s1_len = ngx_strlen((const char *) s1);
-    }
-
-    if (s2_len < 0) {
-        s2_len = ngx_strlen((const char *) s2);
-    }
-
-    if (s1_len != s2_len) {
-        return 0;
-    }
-
-    return ngx_memcmp(s1, s2, s2_len) == 0;
-}
 
 
 /* subsystems & phases */
