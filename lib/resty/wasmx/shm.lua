@@ -438,7 +438,7 @@ local function parse_cmetric(cmetric)
         local ch = ffi_cast("ngx_wa_metrics_histogram_t *", hbuf)
         local h = { type = "histogram", value = {}, sum = tonumber(ch.sum) }
 
-        for i = 0, ch.n_bins do
+        for i = 0, (ch.n_bins - 1) do
             local cb = ch.bins[i]
             if cb.upper_bound == 0 then
                 break
