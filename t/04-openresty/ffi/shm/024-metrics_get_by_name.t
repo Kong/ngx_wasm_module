@@ -47,7 +47,19 @@ h1: {sum=100,type="histogram",value={{count=1,ub=128},{count=0,ub=4294967295}}}
 === TEST 2: shm_metrics - get_by_name() sanity non-FFI-defined metrics
 prefix: pw.hostcalls.*
 --- wasm_modules: hostcalls
---- config
+--- config eval
+my $record_histograms;
+
+foreach my $exp (0 .. 17) {
+    my $v = 2 ** $exp;
+    $record_histograms .= "
+        proxy_wasm hostcalls 'on_configure=define_metrics \
+                              test=/t/metrics/record_histograms \
+                              metrics=h1 \
+                              value=$v';";
+}
+
+qq{
     location /t {
         proxy_wasm hostcalls 'on_configure=define_metrics \
                               on=request_headers \
@@ -60,11 +72,7 @@ prefix: pw.hostcalls.*
                               test=/t/metrics/toggle_gauges \
                               metrics=g1';
 
-        proxy_wasm hostcalls 'on_configure=define_metrics \
-                              on=request_headers \
-                              test=/t/metrics/record_histograms \
-                              metrics=h1 \
-                              value=100';
+        $record_histograms
 
         content_by_lua_block {
             local shm = require "resty.wasmx.shm"
@@ -75,10 +83,11 @@ prefix: pw.hostcalls.*
             ngx.say("h1: ", pretty.write(shm.metrics:get_by_name("pw.hostcalls.h1", { prefix = false }), ""))
         }
     }
+}
 --- response_body
 c1: {type="counter",value=13}
 g1: {type="gauge",value=1}
-h1: {sum=100,type="histogram",value={{count=1,ub=128},{count=0,ub=4294967295}}}
+h1: {sum=262143,type="histogram",value={{count=1,ub=1},{count=1,ub=2},{count=1,ub=4},{count=1,ub=8},{count=1,ub=16},{count=1,ub=32},{count=1,ub=64},{count=1,ub=128},{count=1,ub=256},{count=1,ub=512},{count=1,ub=1024},{count=1,ub=2048},{count=1,ub=4096},{count=1,ub=8192},{count=1,ub=16384},{count=1,ub=32768},{count=1,ub=65536},{count=1,ub=4294967295}}}
 --- no_error_log
 [error]
 [crit]
