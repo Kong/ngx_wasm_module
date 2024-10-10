@@ -1,22 +1,21 @@
-# Developer documentation
+# Developer Documentation
 
-The building process for ngx_wasm_module is inherent to that of Nginx and
-therefore relies on `make`.
+This document describes the **development environment and idiomatic workflow for
+ngx_wasm_module**. For instructions on how to build an Nginx/OpenResty release
+with ngx_wasm_module, consult [INSTALL.md].
 
-The below instructions will guide you through the development environment and
-idiomatic workflow for ngx_wasm_module. It has not been tested in many
-environments yet and may still need refinements; reports are very much welcome.
+The building process for ngx_wasm_module is encapsulated by the project's
+`Makefile`.
 
 ## Table of Contents
 
-- [Requirements](#requirements)
-    - [WebAssembly runtime](#webassembly-runtime)
+- [1. Requirements](#1-requirements)
     - [Dependencies](#dependencies)
     - [Optional dependencies](#optional-dependencies)
-- [Setup the build environment](#setup-the-build-environment)
-- [Makefile targets](#makefile-targets)
-- [Build from source](#build-from-source)
+- [2. Setup the build environment](#2-setup-the-build-environment)
+- [3. Build from source](#3-build-from-source)
     - [Build options](#build-options)
+- [Makefile targets](#makefile-targets)
 - [Tests suites](#tests)
     - [Run integration tests](#run-integration-tests)
     - [Run building tests](#run-building-tests)
@@ -33,7 +32,7 @@ environments yet and may still need refinements; reports are very much welcome.
 - [FAQ](#faq)
     - [How to quickly test a filter or some bytecode?](#how-to-quickly-test-a-filter-or-some-bytecode)
 
-## Requirements
+## 1. Requirements
 
 Most of the development of this project currently relies on testing WebAssembly
 modules produced from Rust crates. Hence, while not technically a requirement to
@@ -45,20 +44,6 @@ the system will quickly become necessary for development:
       wasm32-unknown-unknown`.
     - As well as the [WASI](https://wasi.dev/) target: `rustup target add
       wasm32-wasip1`.
-
-[Back to TOC](#table-of-contents)
-
-### WebAssembly runtime
-
-Several runtimes are supported:
-
-- [Wasmtime](https://docs.wasmtime.dev/c-api/)
-- [Wasmer](https://github.com/wasmerio/wasmer)
-- [V8](https://v8.dev)
-
-All of them can be automatically installed in the build environment via the
-`make setup` command described below. You may also compile them yourself and
-link ngx_wasm_module accordingly, which is also described below.
 
 [Back to TOC](#table-of-contents)
 
@@ -121,7 +106,7 @@ testing during `make test`.
 
 [Back to TOC](#table-of-contents)
 
-## Setup the build environment
+## 2. Setup the build environment
 
 Setup a `work/` directory which will bundle the Wasm runtimes plus all of the
 extra building and testing dependencies:
@@ -163,27 +148,7 @@ release artifacts).
 
 [Back to TOC](#table-of-contents)
 
-## Makefile targets
-
-| Target             | Description                                            |
-| ------------------:| -------------------------------------------------------|
-| `setup`            | Setup the build environment
-| `build` (default)  | Build Nginx with ngx_wasm_module (static)
-| `test`             | Run the tests
-| `test-build`       | Run the build options test suite
-| `lint`             | Lint the sources and test cases
-| `reindex`          | Automatically format the `.t` test files
-| `update`           | Run `cargo update` in all workspaces
-| `todo`             | Search the project for "TODOs" (source, tests, scripts)
-| `act`              | Build and run the CI environment
-| `changelog`        | Print all changelog-worthy commits since the last release
-| `clean`            | Clean the latest build
-| `cleanup`          | Does `clean` and also cleans some more of the build environment to free-up disk space
-| `cleanall`         | Destroy the build environment
-
-[Back to TOC](#table-of-contents)
-
-## Build from source
+## 3. Build from source
 
 The build process will try to find a Wasm runtime in the following locations
 (in order):
@@ -302,7 +267,7 @@ To build with
 [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html):
 
 ```sh
-CC=clang NGX_BUILD_FSANITIZE=address make
+CC=clang NGX_BUILD_FSANITIZE=address NGX_BUILD_CC_OPT='-O0' NGX_BUILD_NOPOOL=1 make
 ```
 
 To build with [Clang's Static Analyzer](https://clang-analyzer.llvm.org/):
@@ -333,6 +298,26 @@ NGX_BUILD_NOPOOL=0 NGX_BUILD_DEBUG=1 NGX_WASM_RUNTIME=wasmer NGX_BUILD_CC_OPT='-
 ```sh
 NGX_BUILD_NOPOOL=1 NGX_BUILD_DEBUG=1 NGX_WASM_RUNTIME=wasmtime NGX_BUILD_CC_OPT='-O0' make
 ```
+
+[Back to TOC](#table-of-contents)
+
+## Makefile targets
+
+| Target             | Description                                            |
+| ------------------:| -------------------------------------------------------|
+| `setup`            | Setup the build environment
+| `build` (default)  | Build Nginx with ngx_wasm_module (static)
+| `test`             | Run the tests
+| `test-build`       | Run the build options test suite
+| `lint`             | Lint the sources and test cases
+| `reindex`          | Automatically format the `.t` test files
+| `update`           | Run `cargo update` in all workspaces
+| `todo`             | Search the project for "TODOs" (source, tests, scripts)
+| `act`              | Build and run the CI environment
+| `changelog`        | Print all changelog-worthy commits since the last release
+| `clean`            | Clean the latest build
+| `cleanup`          | Does `clean` and also cleans some more of the build environment to free-up disk space
+| `cleanall`         | Destroy the build environment
 
 [Back to TOC](#table-of-contents)
 
@@ -800,3 +785,4 @@ You will find error and access logs to inspect at `t/servroot/logs`.
 [proxy-wasm-go-sdk]: https://github.com/tetratelabs/proxy-wasm-go-sdk
 [proxy-wasm-assemblyscript-sdk]: https://github.com/Kong/proxy-wasm-assemblyscript-sdk
 [DIRECTIVES.md]: DIRECTIVES.md
+[INSTALL.md]: INSTALL.md

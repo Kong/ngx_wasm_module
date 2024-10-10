@@ -1,42 +1,37 @@
-# Install
+# Installation Instructions
 
-This document describes the building process to **compile an Nginx release with
-ngx_wasm_module as an addon**.
-
-ngx_wasm_module source releases are available as
-`ngx_wasm_module-*.tar.gz` assets at:
-https://github.com/Kong/ngx_wasm_module/releases.
+This document describes the steps to **compile an Nginx/OpenResty release with
+ngx_wasm_module as an addon**. For instructions on the development environment
+of the module, consult [DEVELOPER.md].
 
 **Note:** the `wasmx-*.tar.gz` releases are pre-compiled, self-contained
 binaries of Nginx built with this module and as such, do not necessitate any
 particular installation steps. Download these releases and instantly use the
-`nginx` binary.
-
-If you wish however to use other Nginx compilation flags (e.g. add/disable other
-modules, configure default options, non-default platform/architecture
-support...) you will then need to compile Nginx yourself following the steps
-provided below.
+`nginx` binary. However, if you wish to use other Nginx compilation flags (e.g.
+add/disable other modules, configure default options, non-default
+platform/architecture support...) you will then need to compile Nginx yourself
+following the steps provided below.
 
 ## Table of Contents
 
 - [Requirements](#requirements)
-    - [Nginx](#nginx)
-    - [WebAssembly runtime](#webassembly-runtime)
-    - [ngx_wasm_module release](#ngx-wasm-module-release)
-    - [Rust (optional)](#rust-optional)
+    - [1. Nginx](#1-nginx)
+    - [2. WebAssembly runtime](#2-webassembly-runtime)
+    - [3. ngx_wasm_module release](#3-ngx_wasm_module-release)
+    - [4. Rust (optional)](#4-rust-optional)
 - [Build](#build)
 - [Build Examples](#build-examples)
 - [Build ngx-wasm-rs separately]
 
 ## Requirements
 
-### Nginx
+### 1. Nginx
 
 Ensure that you have all the necessary dependencies to build Nginx on your
-system. See [DEVELOPER.md](DEVELOPER.md) for a list of platform-specific
-dependencies.
+system. See [DEVELOPER.md] for a list of platform-specific dependencies (i.e.
+OpenSSL, PCRE, zlib, and a compiler).
 
-Download Nginx at https://nginx.org/en/download.html and extract it:
+Download an Nginx release at https://nginx.org/en/download.html and extract it:
 
 ```
 tar -xvf nginx-*.tar.gz
@@ -44,7 +39,7 @@ tar -xvf nginx-*.tar.gz
 
 [Back to TOC](#table-of-contents)
 
-### WebAssembly runtime
+### 2. WebAssembly runtime
 
 Several runtimes are supported, and at least one of them must be specified:
 
@@ -57,11 +52,11 @@ Several runtimes are supported, and at least one of them must be specified:
 - [V8](https://v8.dev) (not pre-built for embedding; but can be compiled locally
   by this module's build environment: run `NGX_WASM_RUNTIME=v8 make setup`
   *without* having set `NGX_WASM_RUNTIME_LIB` or `NGX_WASM_RUNTIME_INC`. See
-  [DEVELOPER.md](docs/DEVELOPER.md) for more details).
+  [DEVELOPER.md] for more details).
 
 [Back to TOC](#table-of-contents)
 
-### ngx_wasm_module release
+### 3. ngx_wasm_module release
 
 Download any of the source code releases at
 https://github.com/Kong/ngx_wasm_module/releases and extract the archive:
@@ -70,9 +65,11 @@ https://github.com/Kong/ngx_wasm_module/releases and extract the archive:
 tar -xvf ngx_wasmx_module-*.tar.gz
 ```
 
+Or use a local copy of this repository.
+
 [Back to TOC](#table-of-contents)
 
-### Rust (optional)
+### 4. Rust (optional)
 
 The module configuration process (i.e. Nginx `./configure` step) automatically
 builds a Rust library ([lib/ngx-wasm-rs]) as a bundled dependency when using
@@ -93,20 +90,19 @@ this module.
 
 ## Build
 
-Configure Nginx with ngx_wasm_module and any other flags typically given to your
-Nginx builds:
+Configure Nginx with ngx_wasm_module and link the Wasm runtime:
 
 ```
 cd nginx-*
 ./configure \
   --add-module=/path/to/ngx_wasm_module \
-  --with-cc-opt='-O3 -I/path/to/wasmtime/include' \
+  --with-cc-opt='-I/path/to/wasmtime/include' \
   --with-ld-opt='-L/path/to/wasmtime/lib -lwasmtime -Wl,-rpath,/path/to/wasmtime/lib'
 ```
 
 > Note: to compile with Wasmer, export the `NGX_WASM_RUNTIME=wasmer` environment
-> variable. See [Build Examples](#build-examples) for a list of supported environment
-> variables.
+> variable. See [Build Examples](#build-examples) for a list of supported
+> environment variables.
 
 Then, build and install Nginx:
 
@@ -178,7 +174,7 @@ export NGX_WASM_RUNTIME=v8
 ```
 
 You may also export the following environment variables and avoid having to
-specify `--with-cc-opt` and `--with-ld-opt`:
+specify the Wasm runtime through `--with-cc-opt` and `--with-ld-opt`:
 
 ```
 export NGX_WASM_RUNTIME={wasmtime,wasmer,v8} # defaults to wasmtime if unspecified
@@ -187,13 +183,12 @@ export NGX_WASM_RUNTIME_LIB=/path/to/runtime/lib
 ./configure --add-module=/path/to/ngx_wasm_module
 ```
 
-The following examples assume the above environment variables are still set.
+**For brevity, the following examples assume the above environment variables are
+still set.**
 
 Configure Nginx and ngx_wasm_module with a prefix and a few compiler options:
 
 ```
-export NGX_WASM_RUNTIME={wasmtime,wasmer,v8}
-
 ./configure \
   --add-module=/path/to/ngx_wasm_module \
   --prefix=/usr/local/nginx \
@@ -267,3 +262,4 @@ combine the static Wasmer library with a dynamic ngx-wasm-rs library.
 
 [Build ngx-wasm-rs separately]: #build-ngx-wasm-rs-separately
 [lib/ngx-wasm-rs]: ../lib/ngx-wasm-rs
+[DEVELOPER.md]: DEVELOPER.md
