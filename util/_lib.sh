@@ -189,16 +189,21 @@ build_nginx() {
     fi
 
     if [[ -n "$NGX_BUILD_FSANITIZE" ]]; then
+        local suppressions="$NGX_WASM_DIR/asan.suppress"
+        if [[ "$NGX_BUILD_FSANITIZE" == "leak" ]]; then
+            suppressions="$NGX_WASM_DIR/lsan.suppress"
+        fi
+
         build_name_opts+=("san:$NGX_BUILD_FSANITIZE")
         NGX_BUILD_CC_OPT="$NGX_BUILD_CC_OPT -g \
                           -fsanitize=$NGX_BUILD_FSANITIZE \
-                          -fsanitize-blacklist=$NGX_WASM_DIR/asan.ignore \
+                          -fsanitize-blacklist=$suppressions \
                           -Wno-unused-command-line-argument \
                           -fno-omit-frame-pointer"
         NGX_BUILD_LD_OPT="$NGX_BUILD_LD_OPT \
                           -fsanitize=$NGX_BUILD_FSANITIZE \
                           -ldl -lm -lpthread -lrt"
-        # clang 13: -fsanitize-ignorelist=$NGX_WASM_DIR/asan.ignore
+        # clang 13: -fsanitize-ignorelist=$NGX_WASM_DIR/asan.suppress
     fi
 
     if [[ "$NGX_BUILD_GCOV" == 1 ]]; then
@@ -303,6 +308,7 @@ build_nginx() {
                         ipc=$NGX_IPC.\
                         dynamic=$NGX_BUILD_DYNAMIC_MODULE.\
                         cargo=$NGX_WASM_CARGO.\
+                        fsanitize=$NGX_BUILD_FSANITIZE.\
                         hash_src=$hash_src"
 
     local hash_opt=$(echo $hash_opt_txt | shasum | awk '{ print $1 }')
@@ -377,7 +383,7 @@ build_nginx() {
               || "$NGX_WASM_DIR/Makefile" -nt "Makefile" \
               || "$NGX_WASM_DIR/util/build.sh" -nt "Makefile" \
               || "$NGX_WASM_DIR/util/_lib.sh" -nt "Makefile" \
-              || "$NGX_WASM_DIR/asan.ignore" -nt "Makefile" \
+              || "$NGX_WASM_DIR/asan.suppress" -nt "Makefile" \
               || "$NGX_WASM_DIR/lsan.suppress" -nt "Makefile" ]];
         then
             local configure="configure"

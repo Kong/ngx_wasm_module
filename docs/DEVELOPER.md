@@ -1,11 +1,11 @@
-# Developer documentation
+# Developer Documentation
 
-The building process for ngx_wasm_module is inherent to that of Nginx and
-therefore relies on `make`.
+This document describes the **development environment and idiomatic workflow for
+ngx_wasm_module**. For instructions on how to build an Nginx/OpenResty release
+with ngx_wasm_module, consult [INSTALL.md].
 
-The below instructions will guide you through the development environment and
-idiomatic workflow for ngx_wasm_module. It has not been tested in many
-environments yet and may still need refinements; reports are very much welcome.
+The building process for ngx_wasm_module is encapsulated by the project's
+`Makefile`.
 
 ## Table of Contents
 
@@ -302,7 +302,7 @@ To build with
 [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html):
 
 ```sh
-CC=clang NGX_BUILD_FSANITIZE=address make
+CC=clang NGX_BUILD_FSANITIZE=address NGX_BUILD_CC_OPT='-O0' NGX_BUILD_NOPOOL=1 make
 ```
 
 To build with [Clang's Static Analyzer](https://clang-analyzer.llvm.org/):
@@ -800,3 +800,4 @@ You will find error and access logs to inspect at `t/servroot/logs`.
 [proxy-wasm-go-sdk]: https://github.com/tetratelabs/proxy-wasm-go-sdk
 [proxy-wasm-assemblyscript-sdk]: https://github.com/Kong/proxy-wasm-assemblyscript-sdk
 [DIRECTIVES.md]: DIRECTIVES.md
+[INSTALL.md]: INSTALL.md
