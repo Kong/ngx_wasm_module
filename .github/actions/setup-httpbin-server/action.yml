@@ -37,7 +37,7 @@ runs:
       shell: bash
       run: |
         brew install dnsmasq docker colima
-        colima start --network-address
+        colima start --network-address --cpu 3 --memory 6 --disk 100 --vm-type=qemu --mount-type=sshfs
     - name: Setup Docker image tag
       id: setup
       shell: bash
