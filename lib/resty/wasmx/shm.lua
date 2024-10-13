@@ -58,6 +58,11 @@ ffi.cdef [[
         NGX_WA_METRIC_HISTOGRAM,
     } ngx_wa_metric_type_e;
 
+    typedef enum {
+        NGX_WA_HISTOGRAM_LOG2,
+        NGX_WA_HISTOGRAM_CUSTOM,
+    } ngx_wa_histogram_type_e;
+
     typedef struct {
         ngx_uint_t                   value;
         ngx_msec_t                   last_update;
@@ -69,6 +74,7 @@ ffi.cdef [[
     } ngx_wa_metrics_bin_t;
 
     typedef struct {
+        ngx_wa_histogram_type_e      h_type;
         uint8_t                      n_bins;
         uint64_t                     sum;
         ngx_wa_metrics_bin_t         bins[];
@@ -109,6 +115,8 @@ ffi.cdef [[
 
     ngx_int_t ngx_wa_ffi_shm_metric_define(ngx_str_t *name,
                                            ngx_wa_metric_type_e type,
+                                           uint32_t *bins,
+                                           uint16_t n_bins,
                                            uint32_t *metric_id);
     ngx_int_t ngx_wa_ffi_shm_metric_increment(uint32_t metric_id,
                                               ngx_uint_t value);
@@ -124,11 +132,13 @@ ffi.cdef [[
 
     ngx_int_t ngx_wa_ffi_shm_metrics_one_slot_size();
     ngx_int_t ngx_wa_ffi_shm_metrics_histogram_max_size();
+    ngx_int_t ngx_wa_ffi_shm_metrics_histogram_max_bins();
 ]]
 
 
 local WASM_SHM_KEY = {}
 local DEFAULT_KEYS_PAGE_SIZE = 500
+local HISTOGRAM_MAX_BINS = C.ngx_wa_ffi_shm_metrics_histogram_max_bins()
 
 
 local _M = setmetatable({}, {
@@ -182,7 +192,8 @@ local function key_iterator(ctx)
         ctx.ccur_index[0] = 0
 
         local rc = C.ngx_wa_ffi_shm_iterate_keys(ctx.shm, ctx.page_size,
-                                                 ctx.clast_index, ctx.ccur_index, ctx.ckeys)
+                                                 ctx.clast_index, ctx.ccur_index,
+                                                 ctx.ckeys)
 
         if rc == FFI_ABORT then
             -- users must manage locking themselves (e.g. break condition in the for loop)
@@ -341,7 +352,7 @@ local function shm_kv_set(zone, key, value, cas)
 end
 
 
-local function metrics_define(zone, name, metric_type)
+local function metrics_define(zone, name, metric_type, opts)
     if type(name) ~= "string" or name == "" then
         error("name must be a non-empty string", 2)
     end
@@ -351,16 +362,54 @@ local function metrics_define(zone, name, metric_type)
                     " resty.wasmx.shm.metrics.COUNTER," ..
                     " resty.wasmx.shm.metrics.GAUGE, or" ..
                     " resty.wasmx.shm.metrics.HISTOGRAM"
-
         error(err, 2)
+    end
+
+    local cbins
+    local n_bins = 0
+
+    if opts ~= nil then
+        if type(opts) ~= "table" then
+            error("opts must be a table", 2)
+        end
+
+        if metric_type == _types.ffi_metric.HISTOGRAM
+           and opts.bins ~= nil
+        then
+            if type(opts.bins) ~= "table" then
+                error("opts.bins must be a table", 2)
+            end
+
+            if #opts.bins >= HISTOGRAM_MAX_BINS then
+                local err = "opts.bins cannot have more than %d numbers"
+                error(str_fmt(err, HISTOGRAM_MAX_BINS - 1), 2)
+            end
+
+            local previous = 0
+
+            for _, n in ipairs(opts.bins) do
+                if type(n) ~= "number"
+                   or n < 0 or n % 1 > 0 or n <= previous
+                then
+                    error("opts.bins must be an ascending list of " ..
+                          "positive integers", 2)
+                end
+
+                previous = n
+            end
+
+            n_bins = #opts.bins
+            cbins = ffi_new("uint32_t[?]", n_bins, opts.bins)
+        end
     end
 
     name = "lua." .. name
 
     local cname = ffi_new("ngx_str_t", { data = name, len = #name })
-    local m_id = ffi_new("uint32_t [1]")
+    local m_id = ffi_new("uint32_t[1]")
 
-    local rc = C.ngx_wa_ffi_shm_metric_define(cname, metric_type, m_id)
+    local rc = C.ngx_wa_ffi_shm_metric_define(cname, metric_type,
+                                              cbins, n_bins, m_id)
     if rc == FFI_ERROR then
         return nil, "no memory"
     end

@@ -22,12 +22,19 @@
 static ngx_int_t
 ngx_wasm_debug_init(ngx_cycle_t *cycle)
 {
-    static size_t            long_metric_name_len = NGX_MAX_ERROR_STR;
-    uint32_t                 mid;
-    ngx_str_t                metric_name;
-    u_char                   buf[long_metric_name_len];
+    static size_t                long_metric_name_len = NGX_MAX_ERROR_STR;
+    uint32_t                     mid;
+    ngx_str_t                    metric_name;
+    ngx_wa_metric_t             *m;
+    ngx_wa_metrics_histogram_t  *h, *h2;
+    uint32_t                     bins[NGX_WA_METRICS_HISTOGRAM_BINS_MAX + 1];
+    u_char                       buf[long_metric_name_len];
+    u_char                       m_buf[NGX_WA_METRICS_ONE_SLOT_SIZE];
+    u_char                       h_buf[NGX_WA_METRICS_HISTOGRAM_MAX_SIZE];
+    u_char                       h2_buf[NGX_WA_METRICS_HISTOGRAM_MAX_SIZE];
+    u_char                       zeros[NGX_WA_METRICS_HISTOGRAM_MAX_SIZE];
 
-    static ngx_wasm_phase_t  ngx_wasm_debug_phases[] = {
+    static ngx_wasm_phase_t      ngx_wasm_debug_phases[] = {
         { ngx_string("a_phase"), 0, 0, 0 },
         { ngx_null_string, 0, 0, 0 }
     };
@@ -60,6 +67,7 @@ ngx_wasm_debug_init(ngx_cycle_t *cycle)
         ngx_wa_metrics_define(ngx_wasmx_metrics(cycle),
                               &metric_name,
                               NGX_WA_METRIC_COUNTER,
+                              NULL, 0,
                               &mid) == NGX_BUSY
     );
 
@@ -68,6 +76,16 @@ ngx_wasm_debug_init(ngx_cycle_t *cycle)
         ngx_wa_metrics_define(ngx_wasmx_metrics(cycle),
                               &metric_name,
                               100,
+                              NULL, 0,
+                              &mid) == NGX_ABORT
+    );
+
+    /* invalid number of histogram bins */
+    ngx_wa_assert(
+        ngx_wa_metrics_define(ngx_wasmx_metrics(cycle),
+                              ngx_wa_metric_type_name(NGX_WA_METRIC_HISTOGRAM),
+                              NGX_WA_METRIC_HISTOGRAM,
+                              bins, NGX_WA_METRICS_HISTOGRAM_BINS_MAX + 1,
                               &mid) == NGX_ABORT
     );
 
@@ -76,6 +94,29 @@ ngx_wasm_debug_init(ngx_cycle_t *cycle)
         ngx_strncmp(((ngx_str_t *) ngx_wa_metric_type_name(12))->data,
                     "unknown", 8) == 0
     );
+
+    /* unknown histogram type */
+    ngx_memzero(m_buf, sizeof(m_buf));
+    ngx_memzero(h_buf, sizeof(h_buf));
+    ngx_memzero(h2_buf, sizeof(h2_buf));
+    ngx_memzero(zeros, sizeof(zeros));
+
+    m = (ngx_wa_metric_t *) m_buf;
+    h = (ngx_wa_metrics_histogram_t *) h_buf;
+    h->n_bins = NGX_WA_METRICS_HISTOGRAM_BINS_MAX;
+    h->h_type = 10;
+    h->sum = 1;
+    ngx_wa_metrics_histogram_set_buffer(m, h_buf, sizeof(h_buf));
+
+    h2 = (ngx_wa_metrics_histogram_t *) h2_buf;
+
+    ngx_wa_assert(
+        ngx_wa_metrics_histogram_record(ngx_wasmx_metrics(cycle),
+                                        m, 0, 0, 1) == NGX_ERROR
+    );
+
+    ngx_wa_metrics_histogram_get(ngx_wasmx_metrics(cycle), m, 1, h2);
+    ngx_wa_assert(ngx_memcmp(h2_buf, zeros, sizeof(zeros)) == 0);
 
     return NGX_OK;
 }

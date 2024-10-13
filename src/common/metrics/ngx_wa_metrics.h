@@ -9,15 +9,17 @@
 #define ngx_wa_metrics_gauge(m) m->slots[0].gauge.value
 
 
-#define NGX_WA_METRICS_BINS_INIT             5
-#define NGX_WA_METRICS_BINS_MAX              18
-#define NGX_WA_METRICS_BINS_INCREMENT        4
-#define NGX_WA_METRICS_ONE_SLOT_SIZE         sizeof(ngx_wa_metric_t)         \
-                                             + sizeof(ngx_wa_metric_val_t)
+#define NGX_WA_METRICS_HISTOGRAM_BINS_INIT             5
+#define NGX_WA_METRICS_HISTOGRAM_BINS_MAX              18
+#define NGX_WA_METRICS_HISTOGRAM_BINS_INCREMENT        4
 #define NGX_WA_METRICS_HISTOGRAM_MAX_SIZE                                    \
     sizeof(ngx_wa_metrics_histogram_t)                                       \
     + sizeof(ngx_wa_metrics_bin_t)                                           \
-    * NGX_WA_METRICS_BINS_MAX
+    * NGX_WA_METRICS_HISTOGRAM_BINS_MAX
+
+#define NGX_WA_METRICS_ONE_SLOT_SIZE                                         \
+    sizeof(ngx_wa_metric_t)                                                  \
+    + sizeof(ngx_wa_metric_val_t)
 
 
 typedef struct ngx_wa_metrics_s  ngx_wa_metrics_t;
@@ -27,6 +29,12 @@ typedef enum {
     NGX_WA_METRIC_GAUGE,
     NGX_WA_METRIC_HISTOGRAM,
 } ngx_wa_metric_type_e;
+
+
+typedef enum {
+    NGX_WA_HISTOGRAM_LOG2,
+    NGX_WA_HISTOGRAM_CUSTOM,
+} ngx_wa_histogram_type_e;
 
 
 typedef struct {
@@ -42,6 +50,7 @@ typedef struct {
 
 
 typedef struct {
+    ngx_wa_histogram_type_e      h_type;
     uint8_t                      n_bins;
     uint64_t                     sum;
     ngx_wa_metrics_bin_t         bins[];
@@ -84,7 +93,7 @@ char *ngx_wa_metrics_init_conf(ngx_conf_t *cf);
 ngx_int_t ngx_wa_metrics_shm_init(ngx_cycle_t *cycle);
 
 ngx_int_t ngx_wa_metrics_define(ngx_wa_metrics_t *metrics, ngx_str_t *name,
-    ngx_wa_metric_type_e type, uint32_t *out);
+    ngx_wa_metric_type_e type, uint32_t *bins, uint16_t n_bins, uint32_t *out);
 ngx_int_t ngx_wa_metrics_increment(ngx_wa_metrics_t *metrics,
     uint32_t metric_id, ngx_int_t val);
 ngx_int_t ngx_wa_metrics_record(ngx_wa_metrics_t *metrics, uint32_t metric_id,
@@ -93,7 +102,7 @@ ngx_int_t ngx_wa_metrics_get(ngx_wa_metrics_t *metrics, uint32_t metric_id,
     ngx_wa_metric_t *o);
 
 ngx_int_t ngx_wa_metrics_histogram_add_locked(ngx_wa_metrics_t *metrics,
-    ngx_wa_metric_t *m);
+    uint32_t *bins, uint16_t n_bins, ngx_wa_metric_t *m);
 ngx_int_t ngx_wa_metrics_histogram_record(ngx_wa_metrics_t *metrics,
     ngx_wa_metric_t *m, ngx_uint_t slot, uint32_t mid, ngx_uint_t n);
 void ngx_wa_metrics_histogram_get(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m,

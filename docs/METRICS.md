@@ -8,7 +8,9 @@ memory necessary for your use-case.
 
 - [Types of Metrics](#types-of-metrics)
 - [Name Prefixing](#name-prefixing)
-- [Histogram Binning Strategy](#histogram-binning-strategy)
+- [Histogram Binning Strategies](#histogram-binning-strategies)
+    - [Logarithmic Binning](#logarithmic-binning)
+    - [Custom Binning](#custom-binning)
 - [Histogram Update and Expansion](#histogram-update-and-expansion)
 - [Memory Consumption](#memory-consumption)
 - [Shared Memory Allocation](#shared-memory-allocation)
@@ -46,35 +48,43 @@ increased in some cases.
 
 [Back to TOC](#table-of-contents)
 
-## Histogram Binning Strategy
+## Histogram Binning Strategies
 
-The above example demonstrates a histogram with ranges (or bins) whose
-upper-bound grows in powers of 2, i.e. `2^0`, `2^1`, and `2^2`. This is usually
-called "logarithmic binning" and is how histograms bins are represented in
-ngx_wasm_module.
+### Logarithmic Binning
 
-This binning strategy implies that when a value `v` is recorded, it is matched
-with the smallest power of two that is bigger than `v`. This value is the
-*upper-bound* of the bin associated with `v`. If the histogram contains or can
-contain such a bin, that bin's counter is incremented. If not, the bin with the
-next smallest upper-bound bigger than `v` has its counter incremented instead.
+By default, histograms use a logarithmic-binning strategy. This is the only
+available binning strategy when using the Proxy-Wasm SDK at this time.
+
+As an example of logarithmic-binning, take the histogram with ranges (i.e.
+"bins") `[0, 1] (1, 2] (2, 4] (4, Inf]`: each bin's upper-bound is growing in
+powers of 2: `2^0`, `2^1`, and `2^2`. In logarithmic-binning, a value `v` being
+recorded is matched with the smallest power of two that is bigger than `v`. This
+value is the *upper-bound* of the bin associated with `v`. If the histogram
+contains or can contain such a bin, then its counter is incremented. If not, the
+bin with the next smallest upper-bound bigger than `v` has its counter
+incremented instead.
+
+In ngx_wasm_module, logarithmic-binning histograms are created with one
+initialized bin with upper-bound `2^32`. The counter for this bin is incremented
+if it is the only bin whose upper-bound is bigger than the recorded value.
+
+When a value `v` is recorded and its bin does not yet exist, a new bin with the
+upper-bound associated with `v` is initialized and its counter is incremented.
+
+A logarithmic-binning histogram can contain up to 18 initialized bins.
 
 [Back to TOC](#table-of-contents)
 
-## Histogram Update and Expansion
+### Custom Binning
 
-Histograms are created with 5 bins: 1 initialized and 4 uninitialized.
+Through the Lua FFI library provided with this module, histograms can also be
+created with a fixed set of bins with user-defined upper-bounds. These
+histograms store values exactly like the logarithmic-binning ones, except the
+number of bins and their upper-bounds are user-defined and pre-initialized.
 
-The bin initialized upon histogram creation has upper-bound `2^32` and its
-counter is incremented if it is the only bin whose upper-bound is bigger than
-the recorded value.
-
-If a value `v` is recorded and its bin is not part of the initialized bins, a
-new bin with the upper-bound associated with `v` is initialized, and its counter
-is incremented.
-
-If the histogram is out of uninitialized bins, it can be expanded up to 18
-bins so as to accommodate the additional bins for other ranges of `v`.
+A custom-binning histogram can contain up to 18 bins (17 user-defined bins + one
+`2^32` upper-bound bin). Custom-binning histograms cannot be expanded with new
+bins after definition.
 
 [Back to TOC](#table-of-contents)
 

@@ -20,23 +20,29 @@ __DATA__
             local shm = require "resty.wasmx.shm"
             local pretty = require "pl.pretty"
 
+            local bins = { 1, 3, 5 }
+
             local c1 = shm.metrics:define("c1", shm.metrics.COUNTER)
             local g1 = shm.metrics:define("g1", shm.metrics.GAUGE)
             local h1 = shm.metrics:define("h1", shm.metrics.HISTOGRAM)
+            local ch1 = shm.metrics:define("ch1", shm.metrics.HISTOGRAM, { bins = bins })
 
             shm.metrics:increment(c1)
             shm.metrics:record(g1, 10)
             shm.metrics:record(h1, 100)
+            shm.metrics:record(ch1, 2)
 
             ngx.say("c1: ", pretty.write(shm.metrics:get(c1), ""))
             ngx.say("g1: ", pretty.write(shm.metrics:get(g1), ""))
             ngx.say("h1: ", pretty.write(shm.metrics:get(h1), ""))
+            ngx.say("ch1: ", pretty.write(shm.metrics:get(ch1), ""))
         }
     }
 --- response_body
 c1: {type="counter",value=1}
 g1: {type="gauge",value=10}
 h1: {sum=100,type="histogram",value={{count=1,ub=128},{count=0,ub=4294967295}}}
+ch1: {sum=2,type="histogram",value={{count=0,ub=1},{count=1,ub=3},{count=0,ub=5},{count=0,ub=4294967295}}}
 --- no_error_log
 [error]
 [crit]
