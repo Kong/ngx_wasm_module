@@ -1638,7 +1638,7 @@ ngx_proxy_wasm_hfuncs_define_metric(ngx_wavm_instance_t *instance,
     prefixed_name.len = ngx_sprintf(buf, "pw.%V.%V", filter_name, &name)
                         - buf;
 
-    rc = ngx_wa_metrics_define(metrics, &prefixed_name, type, id);
+    rc = ngx_wa_metrics_define(metrics, &prefixed_name, type, NULL, 0, id);
     switch (rc) {
     case NGX_ERROR:
         ngx_sprintf(trapmsg, "could not define metric \"%*s\": "

@@ -409,12 +409,12 @@ ngx_wa_ffi_shm_kv_set(ngx_wa_shm_t *shm, ngx_str_t *k, ngx_str_t *v,
 
 ngx_int_t
 ngx_wa_ffi_shm_metric_define(ngx_str_t *name, ngx_wa_metric_type_e type,
-    uint32_t *metric_id)
+    uint32_t *bins, uint16_t n_bins, uint32_t *metric_id)
 {
     ngx_int_t          rc;
     ngx_wa_metrics_t  *metrics = ngx_wasmx_metrics((ngx_cycle_t *) ngx_cycle);
 
-    rc = ngx_wa_metrics_define(metrics, name, type, metric_id);
+    rc = ngx_wa_metrics_define(metrics, name, type, bins, n_bins, metric_id);
     if (rc != NGX_OK) {
         return rc;
     }

@@ -50,8 +50,8 @@ increased in some cases.
 
 The above example demonstrates a histogram with ranges (or bins) whose
 upper-bound grows in powers of 2, i.e. `2^0`, `2^1`, and `2^2`. This is usually
-called "logarithmic binning" and is how histograms bins are represented in
-ngx_wasm_module.
+called "logarithmic binning" and is how histograms bins are by default
+represented in ngx_wasm_module.
 
 This binning strategy implies that when a value `v` is recorded, it is matched
 with the smallest power of two that is bigger than `v`. This value is the
@@ -59,11 +59,17 @@ with the smallest power of two that is bigger than `v`. This value is the
 contain such a bin, that bin's counter is incremented. If not, the bin with the
 next smallest upper-bound bigger than `v` has its counter incremented instead.
 
+Histograms can also be created with a fixed set of bins. These histograms are
+similar to the logarithmic-binning ones, except for their number of bins, and
+respective upper-bounds, being user-defined instead of given by powers of 2, and
+for their non-expandable nature.
+
 [Back to TOC](#table-of-contents)
 
 ## Histogram Update and Expansion
 
-Histograms are created with 5 bins: 1 initialized and 4 uninitialized.
+Histograms without a user-defined set of bins are created with 5 bins: 1
+initialized and 4 uninitialized.
 
 The bin initialized upon histogram creation has upper-bound `2^32` and its
 counter is incremented if it is the only bin whose upper-bound is bigger than
