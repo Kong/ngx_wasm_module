@@ -58,7 +58,8 @@ ngx_int_t ngx_wa_ffi_shm_kv_set(ngx_wa_shm_t *shm, ngx_str_t *k,
     ngx_str_t *v, uint32_t cas, unsigned *written);
 
 ngx_int_t ngx_wa_ffi_shm_metric_define(ngx_str_t *name,
-    ngx_wa_metric_type_e type, uint32_t *metric_id);
+    ngx_wa_metric_type_e type, uint32_t *bins, uint16_t n_bins,
+    uint32_t *metric_id);
 ngx_int_t ngx_wa_ffi_shm_metric_increment(uint32_t metric_id, ngx_uint_t value);
 ngx_int_t ngx_wa_ffi_shm_metric_record(uint32_t metric_id, ngx_uint_t value);
 ngx_int_t ngx_wa_ffi_shm_metric_get(uint32_t metric_id, ngx_str_t *name,
@@ -90,6 +91,13 @@ ngx_int_t
 ngx_wa_ffi_shm_metrics_histogram_max_size()
 {
     return NGX_WA_METRICS_HISTOGRAM_MAX_SIZE;
+}
+
+
+ngx_int_t
+ngx_wa_ffi_shm_metrics_histogram_max_bins()
+{
+    return NGX_WA_METRICS_HISTOGRAM_BINS_MAX;
 }
 
 
