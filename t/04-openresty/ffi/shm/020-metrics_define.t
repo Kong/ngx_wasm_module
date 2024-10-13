@@ -6,7 +6,7 @@ use t::TestWasmX::Lua;
 
 skip_no_openresty();
 
-plan_tests(6);
+plan_tests(7);
 run_tests();
 
 __DATA__
@@ -20,10 +20,13 @@ __DATA__
         access_by_lua_block {
             local shm = require "resty.wasmx.shm"
 
+            local bins = { 1, 3, 5 }
+
             local metrics = {
                 c1 = shm.metrics:define("c1", shm.metrics.COUNTER),
                 g1 = shm.metrics:define("g1", shm.metrics.GAUGE),
                 h1 = shm.metrics:define("h1", shm.metrics.HISTOGRAM),
+                ch1 = shm.metrics:define("ch1", shm.metrics.HISTOGRAM, { bins = bins }),
             }
 
             for _, id in pairs(metrics) do
@@ -40,6 +43,7 @@ ok
     qr/.*? \[debug\] .*? defined counter "lua.c1" with id \d+/,
     qr/.*? \[debug\] .*? defined gauge "lua.g1" with id \d+/,
     qr/.*? \[debug\] .*? defined histogram "lua.h1" with id \d+/,
+    qr/.*? \[debug\] .*? defined histogram "lua.ch1" with id \d+/,
 ]
 --- no_error_log
 [error]
@@ -66,6 +70,7 @@ err: name too long
 [crit]
 [emerg]
 [alert]
+[stub]
 
 
 
@@ -97,6 +102,7 @@ ok
 --- no_error_log
 [emerg]
 [alert]
+[stub]
 
 
 
@@ -115,14 +121,42 @@ ok
 
             _, perr = pcall(shm.metrics.define, {}, "c1", 10)
             ngx.say(perr)
+
+            _, perr = pcall(shm.metrics.define, {}, "ch1", shm.metrics.HISTOGRAM, { bins = 10 })
+            ngx.say(perr)
+
+            local bins = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 }
+            _, perr = pcall(shm.metrics.define, {}, "ch1", shm.metrics.HISTOGRAM, { bins = bins })
+            ngx.say(perr)
+
+            local bins = { 1, 3, -5 }
+            _, perr = pcall(shm.metrics.define, {}, "ch1", shm.metrics.HISTOGRAM, { bins = bins })
+            ngx.say(perr)
+
+            local bins = { 1, 3, 5.5 }
+            _, perr = pcall(shm.metrics.define, {}, "ch1", shm.metrics.HISTOGRAM, { bins = bins })
+            ngx.say(perr)
+
+            local bins = { 1, 5, 3 }
+            _, perr = pcall(shm.metrics.define, {}, "ch1", shm.metrics.HISTOGRAM, { bins = bins })
+            ngx.say(perr)
+
+            -- the optional 'bins' arg is ignored if not defining a histogram
+            shm.metrics:define("c1", shm.metrics.COUNTER, { bins = { 3, -1, 1.5 } })
         }
     }
 --- response_body
 name must be a non-empty string
 name must be a non-empty string
 metric_type must be one of resty.wasmx.shm.metrics.COUNTER, resty.wasmx.shm.metrics.GAUGE, or resty.wasmx.shm.metrics.HISTOGRAM
+opts.bins must be a table
+opts.bins must have up to 18 numbers
+opts.bins must be an ascending list of positive integers
+opts.bins must be an ascending list of positive integers
+opts.bins must be an ascending list of positive integers
 --- no_error_log
 [error]
 [crit]
 [emerg]
 [alert]
+[stub]

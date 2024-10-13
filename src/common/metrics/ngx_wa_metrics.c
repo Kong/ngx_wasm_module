@@ -103,7 +103,9 @@ realloc_metrics(ngx_wa_metrics_t *metrics, ngx_rbtree_node_t *node,
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, metrics->shm->log, 0,
                    "reallocating metric \"%V\"", &n->key.str);
 
-    if (ngx_wa_metrics_define(metrics, &n->key.str, m->type, &mid) != NGX_OK) {
+    if (ngx_wa_metrics_define(metrics, &n->key.str, m->type, NULL, 0, &mid)
+        != NGX_OK)
+    {
         ngx_wasm_log_error(NGX_LOG_ERR, metrics->shm->log, 0,
                            "failed redefining metric \"%V\"",
                            &n->key.str);
@@ -276,7 +278,7 @@ ngx_wa_metrics_shm_init(ngx_cycle_t *cycle)
  */
 ngx_int_t
 ngx_wa_metrics_define(ngx_wa_metrics_t *metrics, ngx_str_t *name,
-    ngx_wa_metric_type_e type, uint32_t *out)
+    ngx_wa_metric_type_e type, uint32_t *bins, uint16_t n_bins, uint32_t *out)
 {
     ssize_t           size = sizeof(ngx_wa_metric_t)
                              + sizeof(ngx_wa_metric_val_t) * metrics->workers;
@@ -316,7 +318,7 @@ ngx_wa_metrics_define(ngx_wa_metrics_t *metrics, ngx_str_t *name,
     m->type = type;
 
     if (type == NGX_WA_METRIC_HISTOGRAM) {
-        rc = ngx_wa_metrics_histogram_add_locked(metrics, m);
+        rc = ngx_wa_metrics_histogram_add_locked(metrics, bins, n_bins, m);
         if (rc != NGX_OK) {
             goto error;
         }
@@ -344,7 +346,7 @@ error:
                        ngx_wa_metric_type_name(type), name, mid);
     }
 
-    ngx_wa_assert(rc == NGX_OK || rc == NGX_ERROR);
+    ngx_wa_assert(rc == NGX_OK || rc == NGX_ERROR || rc == NGX_ABORT);
 
     return rc;
 }

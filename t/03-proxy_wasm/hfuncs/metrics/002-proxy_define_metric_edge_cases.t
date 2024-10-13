@@ -26,7 +26,7 @@ qq{
         module hostcalls $ENV{TEST_NGINX_CRATES_DIR}/hostcalls.wasm;
 
         metrics {
-            max_metric_name_length 6;
+            max_metric_name_length 10;
         }
     }
 }
