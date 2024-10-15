@@ -14,8 +14,8 @@ WasmX/ngx_wasm_module documentation.
 
 ## Installation
 
-Consult [INSTALL.md](INSTALL.md) for instructions on how to install this module
-or use one of the binary releases.
+Consult [INSTALL.md](INSTALL.md) for instructions on how to build
+Nginx/OpenResty with this module.
 
 [Back to TOC](#table-of-contents)
 
@@ -28,8 +28,8 @@ directives and their effects.
 
 ## Development
 
-Consult [DEVELOPER.md](DEVELOPER.md) for developer resources on building this
-module from source and other general development processes.
+Consult [DEVELOPER.md](DEVELOPER.md) for instructions on the development process
+and workflow.
 
 See a term you are unfamiliar with? Consult the [code
 lexicon](DEVELOPER.md#code-lexicon).
