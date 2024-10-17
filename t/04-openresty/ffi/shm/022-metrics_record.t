@@ -23,16 +23,25 @@ __DATA__
             local g1 = shm.metrics:define("g1", shm.metrics.GAUGE)
             local h1 = shm.metrics:define("h1", shm.metrics.HISTOGRAM)
 
+            local bins = { 1, 3, 5 }
+            local ch1 = shm.metrics:define("ch1", shm.metrics.HISTOGRAM, { bins = bins })
+
             assert(shm.metrics:record(g1, 10))
             assert(shm.metrics:record(h1, 100))
 
+            for i in ipairs({ 1, 2, 3, 4, 5, 6 }) do
+                assert(shm.metrics:record(ch1, i))
+            end
+
             ngx.say("g1: ", pretty.write(shm.metrics:get(g1), ""))
             ngx.say("h1: ", pretty.write(shm.metrics:get(h1), ""))
+            ngx.say("ch1: ", pretty.write(shm.metrics:get(ch1), ""))
         }
     }
 --- response_body
 g1: {type="gauge",value=10}
 h1: {sum=100,type="histogram",value={{count=1,ub=128},{count=0,ub=4294967295}}}
+ch1: {sum=21,type="histogram",value={{count=1,ub=1},{count=2,ub=3},{count=2,ub=5},{count=1,ub=4294967295}}}
 --- no_error_log
 [error]
 [crit]
