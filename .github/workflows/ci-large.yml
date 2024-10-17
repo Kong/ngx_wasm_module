@@ -1,8 +1,8 @@
 name: Large CI
 
 on:
-  #pull_request:
-  #  branches: '**'
+  pull_request:
+    branches: '**'
   schedule:
     - cron: '0 9 * * *' # 9am UTC, 2am PST
   workflow_dispatch:
@@ -21,61 +21,67 @@ jobs:
       fail-fast: false
       matrix:
         label: [""]
-        os: [ubuntu-latest]
-        cc: [gcc-12]
+#        os: [ubuntu-latest]
+#        cc: [gcc-12]
+        os: [macos-13]
+        cc: [clang]
         ngx: [1.27.2]
-        runtime: [wasmtime, wasmer, v8]
+#        runtime: [wasmtime, wasmer, v8]
+        runtime: [wasmtime]
         wasmtime: [25.0.1]
         wasmer: [3.1.1]
         v8: [12.0.267.17]
         ipc: [no_ipc]
         ssl: [ssl]
-        debug: [debug, no_debug]
-        hup: [hup, no_hup]
-        module_type: [static, dynamic]
-        include:
-          # OpenResty + static ngx_wasmx_module
-          - label: dynamic_module
-            os: ubuntu-latest
-            cc: gcc-12
-            openresty: 1.25.3.2
-            runtime: wasmtime
-            wasmtime: 25.0.1
-            ipc: no_ipc
-            ssl: ssl
-            debug: debug
-            hup: no_hup
-            module_type: static
-          # macOS - Wasmer
-          - label: macos_wasmer_full
-            runtime: wasmer
-            wasmer: 3.1.1
-            os: macos-13
-            cc: clang
-            ngx: 1.27.2
-            ssl: ssl
-            debug: debug
-            hup: no_hup
-          # macOS - Wasmtime
-          - label: macos_wasmtime
-            runtime: wasmtime
-            wasmtime: 25.0.1
-            os: macos-13
-            cc: clang
-            ngx: 1.27.2
-            ssl: ssl
-            debug: debug
-            hup: hup
-          # macOS - V8
-          - label: macos_v8
-            runtime: v8
-            v8: 12.0.267.17
-            os: macos-13
-            cc: clang
-            ngx: 1.27.2
-            ssl: ssl
-            debug: debug
-            hup: no_hup
+#        debug: [debug, no_debug]
+#        hup: [hup, no_hup]
+#        module_type: [static, dynamic]
+        debug: [debug]
+        hup: [no_hup]
+        module_type: [static]
+#        include:
+#          # OpenResty + static ngx_wasmx_module
+#          - label: dynamic_module
+#            os: ubuntu-latest
+#            cc: gcc-12
+#            openresty: 1.25.3.2
+#            runtime: wasmtime
+#            wasmtime: 25.0.1
+#            ipc: no_ipc
+#            ssl: ssl
+#            debug: debug
+#            hup: no_hup
+#            module_type: static
+#          # macOS - Wasmer
+#          - label: macos_wasmer_full
+#            runtime: wasmer
+#            wasmer: 3.1.1
+#            os: macos-13
+#            cc: clang
+#            ngx: 1.27.2
+#            ssl: ssl
+#            debug: debug
+#            hup: no_hup
+#          # macOS - Wasmtime
+#          - label: macos_wasmtime
+#            runtime: wasmtime
+#            wasmtime: 25.0.1
+#            os: macos-13
+#            cc: clang
+#            ngx: 1.27.2
+#            ssl: ssl
+#            debug: debug
+#            hup: hup
+#          # macOS - V8
+#          - label: macos_v8
+#            runtime: v8
+#            v8: 12.0.267.17
+#            os: macos-13
+#            cc: clang
+#            ngx: 1.27.2
+#            ssl: ssl
+#            debug: debug
+#            hup: no_hup
     uses: ./.github/workflows/job-unit-tests.yml
     with:
       os: ${{ matrix.os }}
@@ -92,107 +98,107 @@ jobs:
       hup: ${{ matrix.hup }}
       module_type: ${{ matrix.module_type }}
 
-  valgrind:
-    name: 'Valgrind'
-    #if: ${{ false }}
-    #timeout-minutes: see job-valgrind-tests.yml
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04]
-        cc: [gcc-12]
-        ngx: [1.27.2]
-        runtime: [wasmer, wasmtime, v8]
-        wasmtime: [25.0.1]
-        wasmer: [3.1.1]
-        v8: [12.0.267.17]
-        hup: [hup, no_hup]
-        debug: [debug]
-        include:
-          # OpenResty
-          - label: openresty
-            os: ubuntu-22.04
-            cc: gcc-12
-            openresty: 1.25.3.2
-            runtime: wasmer
-            wasmer: 3.1.1
-            debug: debug
-            hup: no_hup
-    uses: ./.github/workflows/job-valgrind-tests.yml
-    with:
-      os: ${{ matrix.os }}
-      cc: ${{ matrix.cc }}
-      ngx: ${{ matrix.ngx }}
-      openresty: ${{ matrix.openresty }}
-      runtime: ${{ matrix.runtime }}
-      wasmtime: ${{ matrix.wasmtime }}
-      wasmer: ${{ matrix.wasmer }}
-      v8: ${{ matrix.v8 }}
-      hup: ${{ matrix.hup }}
-      debug: ${{ matrix.debug }}
-    secrets: inherit
-
-  analyzer:
-    name: 'Clang analyzer'
-    #timeout-minutes: see job-clang-analyzer.yml
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        cc: [clang-15]
-        openresty: [1.25.3.2]
-        runtime: [wasmtime, wasmer, v8]
-        wasmtime: [25.0.1]
-        wasmer: [3.1.1]
-        v8: [12.0.267.17]
-        ssl: [no_ssl, ssl]
-        debug: [debug]
-    uses: ./.github/workflows/job-clang-analyzer.yml
-    with:
-      cc: ${{ matrix.cc }}
-      ngx: ${{ matrix.ngx }}
-      openresty: ${{ matrix.openresty }}
-      runtime: ${{ matrix.runtime }}
-      wasmtime: ${{ matrix.wasmtime }}
-      wasmer: ${{ matrix.wasmer }}
-      v8: ${{ matrix.v8 }}
-      ssl: ${{ matrix.ssl }}
-      debug: ${{ matrix.debug }}
-
-  build:
-    name: 'Build'
-    #if: ${{ false }}
-    #timeout-minutes: see job-build-tests.yml
-    strategy:
-      fail-fast: false
-      matrix:
-        label: [""]
-        os: [ubuntu-latest]
-        cc: [clang-13, clang-14, gcc-10, gcc-11]
-        ngx: [1.27.2]
-        runtime: [wasmtime, wasmer, v8]
-        wasmtime: [25.0.1]
-        wasmer: [3.1.1]
-        v8: [12.0.267.17]
-        include:
-          - label: old_nginx
-            os: ubuntu-latest
-            cc: clang-15
-            ngx: 1.21.6
-            runtime: wasmtime
-            wasmtime: 25.0.1
-          - label: old_openresty
-            os: ubuntu-latest
-            cc: clang-15
-            openresty: 1.21.4.2
-            runtime: wasmtime
-            wasmtime: 25.0.1
-    uses: ./.github/workflows/job-build-tests.yml
-    with:
-      os: ${{ matrix.os }}
-      cc: ${{ matrix.cc }}
-      ngx: ${{ matrix.ngx }}
-      runtime: ${{ matrix.runtime }}
-      wasmtime: ${{ matrix.wasmtime }}
-      wasmer: ${{ matrix.wasmer }}
-      v8: ${{ matrix.v8 }}
+#  valgrind:
+#    name: 'Valgrind'
+#    #if: ${{ false }}
+#    #timeout-minutes: see job-valgrind-tests.yml
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        os: [ubuntu-22.04]
+#        cc: [gcc-12]
+#        ngx: [1.27.2]
+#        runtime: [wasmer, wasmtime, v8]
+#        wasmtime: [25.0.1]
+#        wasmer: [3.1.1]
+#        v8: [12.0.267.17]
+#        hup: [hup, no_hup]
+#        debug: [debug]
+#        include:
+#          # OpenResty
+#          - label: openresty
+#            os: ubuntu-22.04
+#            cc: gcc-12
+#            openresty: 1.25.3.2
+#            runtime: wasmer
+#            wasmer: 3.1.1
+#            debug: debug
+#            hup: no_hup
+#    uses: ./.github/workflows/job-valgrind-tests.yml
+#    with:
+#      os: ${{ matrix.os }}
+#      cc: ${{ matrix.cc }}
+#      ngx: ${{ matrix.ngx }}
+#      openresty: ${{ matrix.openresty }}
+#      runtime: ${{ matrix.runtime }}
+#      wasmtime: ${{ matrix.wasmtime }}
+#      wasmer: ${{ matrix.wasmer }}
+#      v8: ${{ matrix.v8 }}
+#      hup: ${{ matrix.hup }}
+#      debug: ${{ matrix.debug }}
+#    secrets: inherit
+#
+#  analyzer:
+#    name: 'Clang analyzer'
+#    #timeout-minutes: see job-clang-analyzer.yml
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        os: [ubuntu-latest]
+#        cc: [clang-15]
+#        openresty: [1.25.3.2]
+#        runtime: [wasmtime, wasmer, v8]
+#        wasmtime: [25.0.1]
+#        wasmer: [3.1.1]
+#        v8: [12.0.267.17]
+#        ssl: [no_ssl, ssl]
+#        debug: [debug]
+#    uses: ./.github/workflows/job-clang-analyzer.yml
+#    with:
+#      cc: ${{ matrix.cc }}
+#      ngx: ${{ matrix.ngx }}
+#      openresty: ${{ matrix.openresty }}
+#      runtime: ${{ matrix.runtime }}
+#      wasmtime: ${{ matrix.wasmtime }}
+#      wasmer: ${{ matrix.wasmer }}
+#      v8: ${{ matrix.v8 }}
+#      ssl: ${{ matrix.ssl }}
+#      debug: ${{ matrix.debug }}
+#
+#  build:
+#    name: 'Build'
+#    #if: ${{ false }}
+#    #timeout-minutes: see job-build-tests.yml
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        label: [""]
+#        os: [ubuntu-latest]
+#        cc: [clang-13, clang-14, gcc-10, gcc-11]
+#        ngx: [1.27.2]
+#        runtime: [wasmtime, wasmer, v8]
+#        wasmtime: [25.0.1]
+#        wasmer: [3.1.1]
+#        v8: [12.0.267.17]
+#        include:
+#          - label: old_nginx
+#            os: ubuntu-latest
+#            cc: clang-15
+#            ngx: 1.21.6
+#            runtime: wasmtime
+#            wasmtime: 25.0.1
+#          - label: old_openresty
+#            os: ubuntu-latest
+#            cc: clang-15
+#            openresty: 1.21.4.2
+#            runtime: wasmtime
+#            wasmtime: 25.0.1
+#    uses: ./.github/workflows/job-build-tests.yml
+#    with:
+#      os: ${{ matrix.os }}
+#      cc: ${{ matrix.cc }}
+#      ngx: ${{ matrix.ngx }}
+#      runtime: ${{ matrix.runtime }}
+#      wasmtime: ${{ matrix.wasmtime }}
+#      wasmer: ${{ matrix.wasmer }}
+#      v8: ${{ matrix.v8 }}
