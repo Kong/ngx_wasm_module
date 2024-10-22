@@ -47,7 +47,7 @@ jobs:
         include:
           # Wasmtime
           - runtime: wasmtime
-            wasmtime: 25.0.1
+            wasmtime: 26.0.0
             os: ubuntu-latest
             cc: gcc-12
             ngx: 1.27.2
@@ -67,7 +67,7 @@ jobs:
             hup: no_hup
           # wasm32-unknown-unknown
           - runtime: wasmtime
-            wasmtime: 25.0.1
+            wasmtime: 26.0.0
             os: ubuntu-latest
             cc: gcc-12
             ngx: 1.27.2
@@ -93,7 +93,7 @@ jobs:
             cc: gcc-12
             ngx: 1.27.2
             runtime: wasmtime
-            wasmtime: 25.0.1
+            wasmtime: 26.0.0
             ipc: no_ipc
             ssl: ssl
             debug: debug
@@ -115,7 +115,7 @@ jobs:
             cc: gcc-12
             openresty: 1.25.3.2
             runtime: wasmtime
-            wasmtime: 25.0.1
+            wasmtime: 26.0.0
             ipc: no_ipc
             ssl: ssl
             debug: debug
@@ -126,7 +126,7 @@ jobs:
             cc: gcc-12
             openresty: 1.25.3.2
             runtime: wasmtime
-            wasmtime: 25.0.1
+            wasmtime: 26.0.0
             ipc: no_ipc
             ssl: ssl
             debug: debug
@@ -138,7 +138,7 @@ jobs:
             cc: gcc-12
             ngx: 1.27.2
             runtime: wasmtime
-            wasmtime: 25.0.1
+            wasmtime: 26.0.0
             ipc: ipc
             ssl: no_ssl
             debug: debug
@@ -197,7 +197,7 @@ jobs:
         include:
           # Wasmtime
           - runtime: wasmtime
-            wasmtime: 25.0.1
+            wasmtime: 26.0.0
             os: ubuntu-22.04
             cc: gcc-12
             ngx: 1.27.2
@@ -288,7 +288,7 @@ jobs:
         cc: [clang-15]
         openresty: [1.25.3.2]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [25.0.1]
+        wasmtime: [26.0.0]
         wasmer: [3.1.1]
         v8: [12.0.267.17]
         ssl: [ssl]
@@ -325,7 +325,7 @@ jobs:
         cc: [clang-15, gcc-12]
         ngx: [1.27.2]
         runtime: [wasmtime, wasmer, v8]
-        wasmtime: [25.0.1]
+        wasmtime: [26.0.0]
         wasmer: [3.1.1]
         v8: [12.0.267.17]
     uses: ./.github/workflows/job-build-tests.yml

@@ -62,7 +62,7 @@ typedef enum {
 #include <wasmtime.h>
 #include <wasi.h>
 
-#if WASMTIME_VERSION_MAJOR != 25
+#if WASMTIME_VERSION_MAJOR != 26
 #   error Unsupported Wasmtime version
 #elif WASMTIME_VERSION_MINOR > 0
 #   warning Untested Wasmtime version
