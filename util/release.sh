@@ -211,11 +211,11 @@ build_static_binary() {
 
     # pcre
 
-    download pcre-$PCRE_VER.tar.gz \
-        "https://downloads.sourceforge.net/project/pcre/pcre/$PCRE_VER/pcre-$PCRE_VER.tar.gz"
+    download pcre2-$PCRE_VER.tar.gz \
+        "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-$PCRE_VER/pcre2-$PCRE_VER.tar.gz"
 
-    if [ ! -d "pcre-$PCRE_VER" ]; then
-        tar -xf pcre-$PCRE_VER.tar.gz
+    if [ ! -d "pcre2-$PCRE_VER" ]; then
+        tar -xf pcre2-$PCRE_VER.tar.gz
     fi
 
     # zlib
@@ -249,7 +249,7 @@ build_static_binary() {
         --with-openssl="$DIR_DIST_WORK/openssl-$OPENSSL_VER" \
         --with-openssl-opt="no-tests" \
         --with-zlib="$DIR_DIST_WORK/zlib-$ZLIB_VER" \
-        --with-pcre="$DIR_DIST_WORK/pcre-$PCRE_VER" \
+        --with-pcre="$DIR_DIST_WORK/pcre2-$PCRE_VER" \
         --with-pcre-jit \
         --with-stream \
         --with-stream_ssl_module \
