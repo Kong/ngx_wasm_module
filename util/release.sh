@@ -268,13 +268,7 @@ build_static_binary() {
         --with-http_dav_module \
         --with-http_flv_module \
         --with-http_mp4_module \
-        --with-threads \
-        --without-mail_pop3_module \
-        --without-mail_imap_module \
-        --without-mail_smtp_module \
-        --without-http_scgi_module \
-        --without-http_uwsgi_module \
-        --without-http_fastcgi_module || cat $DIR_BUILD/build-$dist_bin_name/autoconf*
+        --with-threads || cat $DIR_BUILD/build-$dist_bin_name/autoconf*
 
     make -j$(n_jobs)
 
