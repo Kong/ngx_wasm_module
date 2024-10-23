@@ -1,5 +1,6 @@
 # Table of Contents
 
+- [0.5.0]
 - [0.4.0]
 - [0.3.0]
 - [0.2.0]
@@ -32,6 +33,63 @@ Host ABI.
 As for Nginx developers, the module can also be used to write other modules; the
 best resource for that sort of information would be
 [DEVELOPER.md](https://github.com/Kong/ngx_wasm_module/tree/main/docs/DEVELOPER.md).
+
+## 0.5.0
+
+> 2024/10/23 - Prerelease
+>
+> [Documentation](https://github.com/Kong/ngx_wasm_module/tree/prerelease-0.5.0/docs)
+> | [Release assets](https://github.com/Kong/ngx_wasm_module/releases/tag/prerelease-0.5.0)
+
+This prerelease is focused on the addition of various LuaJIT FFI APIs for
+manipulating ngx_wasm_module shared memory zones (i.e. key/value and metrics
+shms). It also contains a couple of memory leaks/pressure fixes and other minor
+improvements.
+
+#### Changes
+
+> [0.4.0...0.5.0](https://github.com/Kong/ngx_wasm_module/compare/prerelease-0.4.0...prerelease-0.5.0)
+
+- Proxy-Wasm
+    - Feature: allow cancelling background ticks with `set_tick_period(0)`.
+    - Bugfix: only inject shim headers after `on_response_headers` has been
+      executed.
+- Wasmtime
+    - Bugfix: use POSIX signals on macOS instead of Mach ports.
+- LuaJIT FFI
+    - Feature: implement getters & setters APIs for shms (key/value + metrics
+      shms).
+    - Feature: implement user-defined histogram bins.
+- Lua bridge
+    - Bugfix: resolve a potential memory leak when using the Lua resolver
+      (`proxy_wasm_lua_resolver`).
+- Misc
+    - Bugfix: avoid mounting memory pressure in long-lived connections by
+      stashing the local response in the request pool.
+    - Bugfix: minor debug-mode fixes and resolve a few compilation warnings.
+
+#### Dependencies
+
+This release is tested with the following Nginx/OpenResty versions and dependencies:
+
+Name      | Version         | Notes
+---------:|:---------------:|:--------------------------------------------------
+Nginx     | [1.27.2](https://nginx.org/en/download.html)                       |
+OpenSSL   | [3.4.0](https://www.openssl.org/source/)                           |
+Wasmtime  | [26.0.0](https://github.com/bytecodealliance/wasmtime/releases)    |
+Wasmer    | [3.1.1](https://github.com/wasmerio/wasmer/releases/)              |
+V8        | [12.0.267.17](https://github.com/Kong/ngx_wasm_runtimes/releases/) | Built by [Kong/ngx_wasm_runtimes] for convenience.
+OpenResty | [1.27.1.1](https://openresty.org/en/download.html)                 | No binary, tested only.
+
+#### Components
+
+Same as [0.1.0].
+
+#### Known Issues
+
+N/A
+
+[Back to TOC](#table-of-contents)
 
 ## 0.4.0
 
@@ -332,6 +390,7 @@ lua-resty-wasmx | A LuaJIT FFI binding exposing some of ngx_wasm_module's featur
 
 [Back to TOC](#table-of-contents)
 
+[0.5.0]: #050
 [0.4.0]: #040
 [0.3.0]: #030
 [0.2.0]: #020
