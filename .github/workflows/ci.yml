@@ -8,15 +8,15 @@ on:
       - '**/release.yml'
       - '**/ci-large.yml'
       - 'assets/release/Dockerfiles/*'
-  pull_request:
-    branches: '**'
-    paths-ignore:
-      - '**/*.md'
-      - '**/release.yml'
-      - '**/ci-large.yml'
-      - '**/release.sh'
-      - 'assets/release/Dockerfiles/*'
-  workflow_dispatch:
+  #pull_request:
+  #  branches: '**'
+  #  paths-ignore:
+  #    - '**/*.md'
+  #    - '**/release.yml'
+  #    - '**/ci-large.yml'
+  #    - '**/release.sh'
+  #    - 'assets/release/Dockerfiles/*'
+  flow_dispatch:
 
 defaults:
   run:
