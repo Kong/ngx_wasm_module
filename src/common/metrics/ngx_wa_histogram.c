@@ -143,7 +143,7 @@ histogram_log2_bin(ngx_wa_metrics_t *metrics, ngx_wa_metrics_histogram_t *h,
 
 #if (NGX_DEBUG)
 static void
-histogram_log(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m, uint32_t mid)
+histogram_log(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m)
 {
     size_t                       i;
     u_char                      *p;
@@ -172,9 +172,9 @@ histogram_log(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m, uint32_t mid)
 
     p = ngx_sprintf(p, " SUM: %uD;", h->sum);
 
-    ngx_log_debug3(NGX_LOG_DEBUG_WASM, metrics->shm->log, 0,
-                   "histogram \"%uD\": %*s",
-                   mid, p - s_buf - 1, s_buf + 1);
+    ngx_log_debug2(NGX_LOG_DEBUG_WASM, metrics->shm->log, 0,
+                   "histogram: %*s",
+                   p - s_buf - 1, s_buf + 1);
 }
 #endif
 
@@ -239,7 +239,7 @@ error:
 
 ngx_int_t
 ngx_wa_metrics_histogram_record(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m,
-    ngx_uint_t slot, uint32_t mid, ngx_uint_t n)
+    ngx_uint_t slot, ngx_uint_t n)
 {
     ngx_wa_metrics_bin_t        *b;
     ngx_wa_metrics_histogram_t  *h;
@@ -263,7 +263,7 @@ ngx_wa_metrics_histogram_record(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m,
     b->count += 1;
 
 #if (NGX_DEBUG)
-    histogram_log(metrics, m, mid);
+    histogram_log(metrics, m);
 #endif
 
     return NGX_OK;

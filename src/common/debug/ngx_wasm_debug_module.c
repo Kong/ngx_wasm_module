@@ -112,7 +112,7 @@ ngx_wasm_debug_init(ngx_cycle_t *cycle)
 
     ngx_wa_assert(
         ngx_wa_metrics_histogram_record(ngx_wasmx_metrics(cycle),
-                                        m, 0, 0, 1) == NGX_ERROR
+                                        m, 0, 1) == NGX_ERROR
     );
 
     ngx_wa_metrics_histogram_get(ngx_wasmx_metrics(cycle), m, 1, h2);

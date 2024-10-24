@@ -32,10 +32,10 @@ qq{
         echo ok;
     }
 }
---- grep_error_log eval: qr/histogram "\d+":( \d+: \d+;)+/
+--- grep_error_log eval: qr/histogram:( \d+: \d+;)+/
 --- grep_error_log_out eval
 $::total += $::workers;
-qr/histogram "\d+": 1: $::total; 4294967295: 0;/
+qr/histogram: 1: $::total; 4294967295: 0;/
 --- no_error_log
 [error]
 [crit]
@@ -54,10 +54,10 @@ qq{
         echo ok;
     }
 }
---- grep_error_log eval: qr/histogram "\d+":( \d+: \d+;)+/
+--- grep_error_log eval: qr/histogram:( \d+: \d+;)+/
 --- grep_error_log_out eval
 $::total += $::workers;
-qr/histogram "\d+": 1: $::total; 4294967295: 0;/
+qr/histogram: 1: $::total; 4294967295: 0;/
 --- no_error_log
 [error]
 [crit]
@@ -77,10 +77,10 @@ qq{
         echo ok;
     }
 }
---- grep_error_log eval: qr/histogram "\d+":( \d+: \d+;)+/
+--- grep_error_log eval: qr/histogram:( \d+: \d+;)+/
 --- grep_error_log_out eval
 $::total += 4;
-qr/histogram "\d+": 1: $::total; 4294967295: 0;/
+qr/histogram: 1: $::total; 4294967295: 0;/
 --- no_error_log
 [error]
 [crit]
@@ -100,10 +100,10 @@ qq{
         echo ok;
     }
 }
---- grep_error_log eval: qr/histogram "\d+":( \d+: \d+;)+/
+--- grep_error_log eval: qr/histogram:( \d+: \d+;)+/
 --- grep_error_log_out eval
 $::total += 2;
-qr/histogram "\d+": 1: $::total; 4294967295: 0;/
+qr/histogram: 1: $::total; 4294967295: 0;/
 --- no_error_log
 [error]
 [crit]
@@ -133,10 +133,10 @@ qq{
         echo ok;
     }
 }
---- grep_error_log eval: qr/histogram "\d+":( \d+: \d+;)+/
+--- grep_error_log eval: qr/histogram:( \d+: \d+;)+/
 --- grep_error_log_out eval
 $::total += 1;
-qr/histogram "\d+": 1: $::total; 4294967295: 0;/
+qr/histogram: 1: $::total; 4294967295: 0;/
 --- no_error_log
 [error]
 [crit]
@@ -166,10 +166,10 @@ qq{
         echo ok;
     }
 }
---- grep_error_log eval: qr/histogram "\d+":( \d+: \d+;)+/
+--- grep_error_log eval: qr/histogram:( \d+: \d+;)+/
 --- grep_error_log_out eval
 $::total += 1;
-qr/histogram "\d+": 1: $::total; 4294967295: 0;/
+qr/histogram: 1: $::total; 4294967295: 0;/
 --- no_error_log
 [error]
 [crit]

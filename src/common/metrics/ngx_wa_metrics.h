@@ -104,7 +104,7 @@ ngx_int_t ngx_wa_metrics_get(ngx_wa_metrics_t *metrics, uint32_t metric_id,
 ngx_int_t ngx_wa_metrics_histogram_add_locked(ngx_wa_metrics_t *metrics,
     uint32_t *bins, uint16_t n_bins, ngx_wa_metric_t *m);
 ngx_int_t ngx_wa_metrics_histogram_record(ngx_wa_metrics_t *metrics,
-    ngx_wa_metric_t *m, ngx_uint_t slot, uint32_t mid, ngx_uint_t n);
+    ngx_wa_metric_t *m, ngx_uint_t slot, ngx_uint_t n);
 void ngx_wa_metrics_histogram_get(ngx_wa_metrics_t *metrics, ngx_wa_metric_t *m,
     ngx_uint_t slots, ngx_wa_metrics_histogram_t *out);
 
