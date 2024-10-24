@@ -454,7 +454,7 @@ ngx_wa_metrics_record(ngx_wa_metrics_t *metrics, uint32_t mid, ngx_int_t n)
         break;
 
     case NGX_WA_METRIC_HISTOGRAM:
-        ngx_wa_metrics_histogram_record(metrics, m, slot, mid, n);
+        ngx_wa_metrics_histogram_record(metrics, m, slot, n);
         break;
 
     default:
