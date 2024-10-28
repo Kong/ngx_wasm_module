@@ -79,7 +79,7 @@ qr/\[emerg\] .*? invalid number of arguments in "module" directive/
 
 
 
-=== TEST 5: module directive - bad name
+=== TEST 5: module directive - empty name
 --- main_config
     wasm {
         module '' $TEST_NGINX_HTML_DIR/a.wat;
@@ -93,7 +93,49 @@ qr/\[emerg\] .*? invalid module name ""/
 
 
 
-=== TEST 6: module directive - bad path
+=== TEST 6: module directive - bad name, space
+--- main_config
+    wasm {
+        module 'bad name' $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid module name "bad name": character not allowed " "/
+--- no_error_log
+[error]
+[crit]
+--- must_die
+
+
+
+=== TEST 7: module directive - bad name, tab
+--- main_config
+    wasm {
+        module 'bad\tname' $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid module name "bad\tname": character not allowed "\t"/
+--- no_error_log
+[error]
+[crit]
+--- must_die
+
+
+
+=== TEST 8: module directive - bad name, colon
+--- main_config
+    wasm {
+        module 'bad:name' $TEST_NGINX_HTML_DIR/a.wat;
+    }
+--- error_log eval
+qr/\[emerg\] .*? invalid module name "bad:name": character not allowed ":"/
+--- no_error_log
+[error]
+[crit]
+--- must_die
+
+
+
+=== TEST 9: module directive - bad path
 --- main_config
     wasm {
         module a '';
@@ -107,7 +149,7 @@ qr/\[emerg\] .*? invalid module path ""/
 
 
 
-=== TEST 7: module directive - already defined
+=== TEST 10: module directive - already defined
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wat;
@@ -125,7 +167,7 @@ qr/\[emerg\] .*? "a" module already defined/
 
 
 
-=== TEST 8: module directive - no such path
+=== TEST 11: module directive - no such path
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/none.wat;
@@ -139,7 +181,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 9: module directive - no .wat bytes - wasmtime, wasmer
+=== TEST 12: module directive - no .wat bytes - wasmtime, wasmer
 --- skip_eval: 4: !( $::nginxV =~ m/wasmtime/ || $::nginxV =~ m/wasmer/ )
 --- main_config
     wasm {
@@ -158,7 +200,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 10: module directive - no .wat bytes - v8
+=== TEST 13: module directive - no .wat bytes - v8
 --- skip_eval: 4: $::nginxV !~ m/v8/
 --- main_config
     wasm {
@@ -177,7 +219,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 11: module directive - no .wasm bytes
+=== TEST 14: module directive - no .wasm bytes
 --- main_config
     wasm {
         module a $TEST_NGINX_HTML_DIR/a.wasm;
@@ -195,7 +237,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 12: module directive - invalid .wat module - wasmtime, wasmer
+=== TEST 15: module directive - invalid .wat module - wasmtime, wasmer
 --- skip_eval: 4: !( $::nginxV =~ m/wasmtime/ || $::nginxV =~ m/wasmer/ )
 --- main_config
     wasm {
@@ -217,7 +259,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 13: module directive - invalid .wat module - v8
+=== TEST 16: module directive - invalid .wat module - v8
 --- skip_eval: 4: $::nginxV !~ m/v8/
 --- main_config
     wasm {
@@ -239,7 +281,7 @@ qr/\[emerg\] .*? \[wasm\] open\(\) ".*?none\.wat" failed \(2: No such file or di
 
 
 
-=== TEST 14: module directive - invalid module (NYI import types)
+=== TEST 17: module directive - invalid module (NYI import types)
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
@@ -264,7 +306,7 @@ qr/\[alert\] .*? \[wasm\] NYI: module import type not supported/
 
 
 
-=== TEST 15: module directive - invalid module (missing host function in env)
+=== TEST 18: module directive - invalid module (missing host function in env)
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
@@ -291,7 +333,7 @@ qq{
 
 
 
-=== TEST 16: module directive - invalid module (missing WASI function)
+=== TEST 19: module directive - invalid module (missing WASI function)
 'daemon off' must be set to check exit_code is 2
 Valgrind mode already writes 'daemon off'
 HUP mode does not catch the worker exit_code
