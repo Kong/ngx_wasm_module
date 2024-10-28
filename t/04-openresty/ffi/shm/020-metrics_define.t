@@ -40,10 +40,10 @@ __DATA__
 ok
 --- error_log eval
 [
-    qr/.*? \[debug\] .*? defined counter "lua.c1" with id \d+/,
-    qr/.*? \[debug\] .*? defined gauge "lua.g1" with id \d+/,
-    qr/.*? \[debug\] .*? defined histogram "lua.h1" with id \d+/,
-    qr/.*? \[debug\] .*? defined histogram "lua.ch1" with id \d+/,
+    qr/.*? \[debug\] .*? defined counter "lua c1" with id \d+/,
+    qr/.*? \[debug\] .*? defined gauge "lua g1" with id \d+/,
+    qr/.*? \[debug\] .*? defined histogram "lua h1" with id \d+/,
+    qr/.*? \[debug\] .*? defined histogram "lua ch1" with id \d+/,
 ]
 --- no_error_log
 [error]

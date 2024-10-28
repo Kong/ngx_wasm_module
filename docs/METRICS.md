@@ -38,9 +38,9 @@ gauge, or a histogram.
 ## Name Prefixing
 
 To avoid naming conflicts between Proxy-Wasm filters, the name of a metric is
-always prefixed with: `pw.{filter_name}.{metric_name}`. This means that a metric
-named `a_counter` inserted by `a_filter` will have its name stored as:
-`pw.a_filter.a_counter`.
+always prefixed with space-separated metadata: `pw {filter_name} `. This means
+that a metric named `a_counter` inserted by `a_filter` will have its name stored
+as: `pw a_filter a_counter`.
 
 Thus, the maximum length of a metric name configured via
 [max_metric_name_length] is enforced on the prefixed name and may need to be
