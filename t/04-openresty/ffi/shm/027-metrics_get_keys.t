@@ -30,9 +30,9 @@ __DATA__
         }
     }
 --- response_body
-lua.c1
-lua.g1
-lua.h1
+lua:c1
+lua:g1
+lua:h1
 --- no_error_log
 [error]
 [crit]

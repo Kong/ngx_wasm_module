@@ -12,7 +12,7 @@ run_tests();
 __DATA__
 
 === TEST 1: shm_metrics - get_by_name() sanity FFI-defined metrics
-prefix: lua.*
+colon-separated prefix: "lua:*"
 --- valgrind
 --- metrics: 16k
 --- config
@@ -51,7 +51,7 @@ ch1: {sum=2,type="histogram",value={{count=0,ub=1},{count=1,ub=3},{count=0,ub=5}
 
 
 === TEST 2: shm_metrics - get_by_name() sanity non-FFI-defined metrics
-prefix: pw.hostcalls.*
+colon-separated prefix: "pw:hostcalls:*"
 --- wasm_modules: hostcalls
 --- config eval
 my $record_histograms;
@@ -84,9 +84,9 @@ qq{
             local shm = require "resty.wasmx.shm"
             local pretty = require "pl.pretty"
 
-            ngx.say("c1: ", pretty.write(shm.metrics:get_by_name("pw.hostcalls.c1", { prefix = false }), ""))
-            ngx.say("g1: ", pretty.write(shm.metrics:get_by_name("pw.hostcalls.g1", { prefix = false }), ""))
-            ngx.say("h1: ", pretty.write(shm.metrics:get_by_name("pw.hostcalls.h1", { prefix = false }), ""))
+            ngx.say("c1: ", pretty.write(shm.metrics:get_by_name("pw:hostcalls:c1", { prefix = false }), ""))
+            ngx.say("g1: ", pretty.write(shm.metrics:get_by_name("pw:hostcalls:g1", { prefix = false }), ""))
+            ngx.say("h1: ", pretty.write(shm.metrics:get_by_name("pw:hostcalls:h1", { prefix = false }), ""))
         }
     }
 }
