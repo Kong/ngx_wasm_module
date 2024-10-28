@@ -257,6 +257,7 @@ ngx_wasm_core_shm_generic_directive(ngx_conf_t *cf, ngx_command_t *cmd,
 char *
 ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
+    size_t                 i;
     ngx_int_t              rc;
     ngx_str_t             *value, *name, *path;
     ngx_str_t             *config = NULL;
@@ -270,6 +271,16 @@ ngx_wasm_core_module_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "[wasm] invalid module name \"%V\"", name);
         return NGX_CONF_ERROR;
+    }
+
+    for (i = 0; i < name->len; i++) {
+        if (name->data[i] == ' ' || name->data[i] == '\t') {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "[wasm] invalid module name \"%V\":"
+                               " tabs and spaces not allowed",
+                               name);
+            return NGX_CONF_ERROR;
+        }
     }
 
     if (!path->len) {
