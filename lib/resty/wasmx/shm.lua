@@ -403,7 +403,7 @@ local function metrics_define(zone, name, metric_type, opts)
         end
     end
 
-    name = "lua." .. name
+    name = "lua:" .. name
 
     local cname = ffi_new("ngx_str_t", { data = name, len = #name })
     local m_id = ffi_new("uint32_t[1]")
@@ -528,12 +528,12 @@ end
 
 
 ---
--- ngx_wasm_module internally prefixes metric names according to
--- where they have been defined, e.g. "pw.filter.*", "lua.*", or
--- "wa.*".
+-- ngx_wasm_module internally prefixes metric names with colon-separated
+-- metadata indicating where they have been defined, e.g. "pw:a_filter:*",
+-- "lua:*", or "wa:".
 --
 -- metrics_get_by_name assumes it is retrieving a Lua-defined metric
--- and will by default prefix the given name with `lua.`
+-- and will by default prefix the given name with `lua:`
 --
 -- This behavior can be disabled by passing `opts.prefix` as false.
 local function metrics_get_by_name(zone, name, opts)
@@ -554,7 +554,7 @@ local function metrics_get_by_name(zone, name, opts)
     ffi_fill(_mbuf, _mbs)
     ffi_fill(_hbuf, _hbs)
 
-    name = (opts and opts.prefix == false) and name or "lua." .. name
+    name = (opts and opts.prefix == false) and name or "lua:" .. name
 
     local cname = ffi_new("ngx_str_t", { data = name, len = #name })
 
