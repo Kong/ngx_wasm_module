@@ -368,8 +368,8 @@ ngx_int_t
 ngx_wa_ffi_shm_kv_get(ngx_wa_shm_t *shm, ngx_str_t *k, ngx_str_t **v,
     uint32_t *cas)
 {
-    ngx_int_t   rc;
-    unsigned    unlock = 0;
+    ngx_int_t  rc;
+    unsigned   unlock = 0;
 
     ngx_wa_assert(shm->type == NGX_WA_SHM_TYPE_KV);
 
