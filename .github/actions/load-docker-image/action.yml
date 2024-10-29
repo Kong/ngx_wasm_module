@@ -1,0 +1,52 @@
+name: load-docker-image
+decription: |
+  Pull a docker image, cache and load it.
+
+inputs:
+  image:
+    required: true
+    type: string
+  cache_dir:
+    required: false
+    type: string
+    default: "$GITHUB_WORKSPACE/.docker-images-cache"
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Create cache directory
+      shell: bash
+      run: mkdir -p ${{ inputs.cache_dir }}
+
+    - name: Setup cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.cache_dir }}
+        key: pulled-docker-images
+
+    - name: Setup cache path
+      id: cache_setup
+      shell: bash
+      run: |
+        filename="$(echo ${{ inputs.image }} | sed 's/\//_/g').tar"
+        cache_path="${{ inputs.cache_dir }}/$filename"
+
+        if [ -f "$cache_path" ]; then
+          echo "cache_hit=true" >> $GITHUB_OUTPUT
+        else
+          echo "cache_hit=false" >> $GITHUB_OUTPUT
+        fi
+
+        echo "cache_path=$cache_path" >> $GITHUB_OUTPUT
+
+    - name: Pull Docker image
+      if: steps.cache_setup.outputs.cache_hit == 'false'
+      shell: bash
+      run: |
+        docker pull ${{ inputs.image }}
+        docker save -o ${{ steps.cache_setup.outputs.cache_path }} ${{ inputs.image }}
+
+    - name: Load Docker image from cache
+      if: steps.cache_setup.outputs.cache-hit == 'true'
+      shell: bash
+      run: docker load -i ${{ steps.cache_setup.outputs.cache_path }}
