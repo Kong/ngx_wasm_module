@@ -30,6 +30,10 @@ runs:
       if: ${{ contains(inputs.os, 'ubuntu') }}
       shell: bash
       run: |
+        # brute-forcing Ubuntu to not start dnsmasq on install
+        echo "exit 101" | sudo tee /usr/sbin/policy-rc.d
+        sudo chmod +x /usr/sbin/policy-rc.d
+
         sudo apt-get update
         sudo apt-get install -y dnsmasq
     - name: 'Setup deps - macOS'
