@@ -36,12 +36,14 @@ runs:
 
         sudo apt-get update
         sudo apt-get install -y dnsmasq
+
     - name: 'Setup deps - macOS'
       if: ${{ contains(inputs.os, 'macos') }}
       shell: bash
       run: |
         brew install dnsmasq docker colima
         colima start --network-address
+
     - name: Setup Docker image tag
       id: setup
       shell: bash
@@ -54,6 +56,7 @@ runs:
             echo "push=false" >> $GITHUB_OUTPUT
             echo "tag=wasmx-ci-httpbin-proxy:latest" >> $GITHUB_OUTPUT
           fi
+
     - name: Login to GitHub Container Registry
       if: ${{ steps.setup.outputs.push == 'true' }}
       uses: docker/login-action@v3
@@ -61,9 +64,11 @@ runs:
         registry: ghcr.io
         username: ${{ inputs.ghcr_username }}
         password: ${{ inputs.ghcr_password }}
+
     - name: Setup Docker Buildx
       if: ${{ !env.ACT }}
       uses: docker/setup-buildx-action@v3
+
     - name: Build httpbin-proxy image
       uses: docker/build-push-action@v5
       with:
@@ -74,6 +79,13 @@ runs:
         context: .
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+    - name: Load httpbin docker image
+      if: ${{ !env.ACT }}
+      uses: ./.github/actions/load-docker-image
+      with:
+        image: "kennethreitz/httpbin"
+
     - name: Start dnsmasq
       shell: bash
       run: |
@@ -83,6 +95,7 @@ runs:
                 --server=${{ inputs.upstream_dns_server }} \
                 --address=/httpbin.org/127.0.0.1 \
                 --address=/example.com/127.0.0.1
+
     - name: Start httpbin proxy + server
       shell: bash
       run: |
