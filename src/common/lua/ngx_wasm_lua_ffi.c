@@ -397,6 +397,12 @@ ngx_wa_ffi_shm_kv_set(ngx_wa_shm_t *shm, ngx_str_t *k, ngx_str_t *v,
 
     ngx_wa_assert(shm->type == NGX_WA_SHM_TYPE_KV);
 
+    if (ngx_wa_shm_locked(shm)) {
+        /* shm has already been locked by the current worker */
+
+        return NGX_ABORT;
+    }
+
     ngx_wa_shm_lock(shm);
 
     rc = ngx_wa_shm_kv_set_locked(shm, k, v, cas, written);

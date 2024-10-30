@@ -346,6 +346,10 @@ local function shm_kv_set(zone, key, value, cas)
         return nil, "no memory"
     end
 
+    if rc == FFI_ABORT then
+        return nil, "locked"
+    end
+
     assert_debug(rc == FFI_OK)
 
     return tonumber(written[0])
