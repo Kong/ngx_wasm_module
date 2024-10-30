@@ -105,8 +105,6 @@ cas must be a number
 
 
 === TEST 4: shm_kv - set() on locked shm
---- timeout: 1
---- abort
 --- shm_kv: kv 16k
 --- config
     location /t {
@@ -115,15 +113,17 @@ cas must be a number
 
             shm.kv:lock()
 
-            shm.kv:set("kv/k1", "v1")
+            local written, err = shm.kv:set("kv/k1", "v1")
 
             shm.kv:unlock()
 
-            ngx.say("fail")
+            assert(written == nil)
+
+            ngx.say(err)
         }
     }
---- error_code:
+--- response_body
+locked
 --- no_error_log
 [error]
 [crit]
-[emerg]
