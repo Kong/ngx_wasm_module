@@ -369,6 +369,7 @@ name = "rust-sdk-ver-zero-one"
 version = "0.1.0"
 dependencies = [
  "http",
+ "log",
  "proxy-wasm 0.1.4",
 ]
 
