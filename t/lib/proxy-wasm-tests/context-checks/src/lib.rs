@@ -69,13 +69,23 @@ impl HttpContext for TestHttp {
             .get_config("on_http_dispatch_response")
             .is_some()
         {
-            let _ = self.dispatch_http_call(
+            match self.dispatch_http_call(
                 self.tester.get_config("host").unwrap_or(""),
                 vec![(":path", "/dispatch"), (":method", "GET")],
                 None,
                 vec![],
                 Duration::from_secs(0),
-            );
+            ) {
+                Ok(_) => {}
+                Err(status) => match status {
+                    Status::BadArgument => error!("dispatch_http_call: bad argument"),
+                    Status::InternalFailure => error!("dispatch_http_call: internal failure"),
+                    status => panic!(
+                        "dispatch_http_call: unexpected status \"{}\"",
+                        status as u32
+                    ),
+                },
+            }
 
             return Action::Pause;
         }

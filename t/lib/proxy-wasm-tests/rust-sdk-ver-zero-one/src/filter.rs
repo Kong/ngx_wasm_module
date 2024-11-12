@@ -1,6 +1,7 @@
 #![allow(clippy::single_match)]
 
 use http::StatusCode;
+use log::*;
 use proxy_wasm::{traits::*, types::*};
 use std::collections::HashMap;
 use std::time::Duration;
@@ -88,7 +89,7 @@ impl HttpContext for TestHttpHostcalls {
         if let Some(test) = self.config.get("test") {
             match test.as_str() {
                 "dispatch" => {
-                    self.dispatch_http_call(
+                    match self.dispatch_http_call(
                         self.config.get("host").map(|v| v.as_str()).unwrap_or(""),
                         vec![
                             (":method", "GET"),
@@ -104,8 +105,20 @@ impl HttpContext for TestHttpHostcalls {
                         self.config.get("body").map(|v| v.as_bytes()),
                         vec![],
                         Duration::from_secs(3),
-                    )
-                    .unwrap();
+                    ) {
+                        Ok(_) => {}
+                        Err(status) => match status {
+                            Status::BadArgument => error!("dispatch_http_call: bad argument"),
+                            Status::InternalFailure => {
+                                error!("dispatch_http_call: internal failure")
+                            }
+                            status => panic!(
+                                "dispatch_http_call: unexpected status \"{}\"",
+                                status as u32
+                            ),
+                        },
+                    }
+
                     return Action::Pause;
                 }
                 "proxy_get_header_map_value" => {

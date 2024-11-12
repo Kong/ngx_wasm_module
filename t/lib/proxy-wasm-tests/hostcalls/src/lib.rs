@@ -156,14 +156,23 @@ impl RootContext for TestRoot {
 
                 info!("call {}", self.n_sync_calls);
 
-                self.dispatch_http_call(
+                match self.dispatch_http_call(
                     self.get_config("host").unwrap_or(""),
                     headers,
                     self.get_config("body").map(|v| v.as_bytes()),
                     vec![],
                     timeout,
-                )
-                .unwrap();
+                ) {
+                    Ok(_) => {}
+                    Err(status) => match status {
+                        Status::BadArgument => error!("dispatch_http_call: bad argument"),
+                        Status::InternalFailure => error!("dispatch_http_call: internal failure"),
+                        status => panic!(
+                            "dispatch_http_call: unexpected status \"{}\"",
+                            status as u32
+                        ),
+                    },
+                }
             }
             _ => (),
         }
