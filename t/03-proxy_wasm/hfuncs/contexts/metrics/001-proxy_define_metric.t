@@ -185,3 +185,23 @@ define_metric status: 0
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 10: proxy_wasm contexts - define_metric on_foreign_function
+--- skip_eval: 4: $::nginxV !~ m/openresty/
+--- main_config
+    wasm {
+        module context_checks $TEST_NGINX_CRATES_DIR/context_checks.wasm;
+    }
+--- config
+    location /t {
+        proxy_wasm context_checks 'on_foreign_function=define_metric';
+        return 200;
+    }
+--- ignore_response_body
+--- error_log
+define_metric status: 0
+--- no_error_log
+[error]
+[crit]

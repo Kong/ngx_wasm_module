@@ -184,3 +184,20 @@ should not be retrievable after on_response_body since buffers are consumed
 can only set request headers before response is produced
 --- no_error_log
 [crit]
+
+
+
+=== TEST 10: proxy_wasm contexts - set_http_request_header on_foreign_function
+--- skip_eval: 4: $::nginxV !~ m/openresty/
+--- wasm_modules: context_checks
+--- config
+    location /t {
+        proxy_wasm context_checks 'on_foreign_function=set_request_header|:foo=bar';
+        return 200;
+    }
+--- ignore_response_body
+--- error_log
+[error]
+can only set request headers before response is produced
+--- no_error_log
+[crit]

@@ -8,6 +8,7 @@ pub struct TestHttp {
     pub config: HashMap<String, String>,
     pub metrics: BTreeMap<String, u32>,
     pub n_sync_calls: usize,
+    pub pending_callbacks: u32,
 }
 
 impl TestHttp {
@@ -148,6 +149,26 @@ impl TestHttp {
                 let h_id =
                     define_metric(MetricType::Histogram, "h1").expect("cannot define new metric");
                 get_metric(h_id).unwrap();
+            }
+
+            /* foreign functions */
+            "/t/call_foreign_function" => {
+                let name = self.config.get("name").expect("expected a name argument");
+
+                let ret = match self.config.get("arg") {
+                    Some(arg) => call_foreign_function(name, Some((&arg).as_bytes())).unwrap(),
+                    None => call_foreign_function(name, None).unwrap(),
+                }
+                .unwrap();
+
+                info!("foreign function {} returned {:?}", name, ret);
+            }
+            "/t/resolve_lua" => {
+                self.pending_callbacks = test_proxy_resolve_lua(self);
+
+                if self.pending_callbacks > 0 {
+                    return Action::Pause;
+                }
             }
 
             /* errors */

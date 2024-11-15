@@ -1,12 +1,13 @@
 #![allow(clippy::single_match)]
 
 mod filter;
+mod foreign_callbacks;
 mod tests;
 mod types;
 
-use crate::{tests::*, types::test_http::*, types::test_root::*, types::*};
+use crate::{foreign_callbacks::*, tests::*, types::test_http::*, types::test_root::*, types::*};
 use log::*;
-use proxy_wasm::{traits::*, types::*};
+use proxy_wasm::{hostcalls::*, traits::*, types::*};
 use std::{collections::BTreeMap, collections::HashMap, time::Duration};
 
 proxy_wasm::main! {{
@@ -116,6 +117,24 @@ impl RootContext for TestRoot {
                 self.n_sync_calls += 1;
             }
             "set_property" => test_set_property(self),
+            "resolve_lua" => {
+                let names = self
+                    .config
+                    .get("name")
+                    .map(|x| x.as_str())
+                    .expect("expected a name argument");
+
+                for name in names.split(",") {
+                    info!("attempting to resolve {}", name);
+                    match call_foreign_function("resolve_lua", Some(name.as_bytes())) {
+                        Ok(ret) => match ret {
+                            Some(bytes) => info!("resolved (no yielding) {} to {:?}", name, bytes),
+                            _ => (),
+                        },
+                        _ => (),
+                    }
+                }
+            }
             "dispatch" => {
                 let mut timeout = Duration::from_secs(0);
                 let mut headers = Vec::new();
@@ -203,6 +222,7 @@ impl RootContext for TestRoot {
             on_phases: phases,
             metrics: self.metrics.clone(),
             n_sync_calls: 0,
+            pending_callbacks: 0,
         }))
     }
 }
@@ -226,6 +246,19 @@ impl Context for TestRoot {
         match dispatch_status.as_deref() {
             Some(s) => info!("dispatch_status: {}", s),
             None => {}
+        }
+    }
+
+    fn on_foreign_function(&mut self, function_id: u32, args_size: usize) {
+        info!("[hostcalls] on_foreign_function!");
+
+        let f: WasmxForeignFunction = unsafe { ::std::mem::transmute(function_id) };
+        let args = get_buffer(BufferType::CallData, 0, args_size).unwrap();
+
+        match f {
+            WasmxForeignFunction::ResolveLua => {
+                resolve_lua_callback(args);
+            }
         }
     }
 }

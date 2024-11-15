@@ -11,6 +11,7 @@
     - [Host Properties]
     - [Nginx Properties]
     - [HTTP Dispatches]
+    - [Foreign Functions]
 - [Supported Specifications]
     - [Tested SDKs](#tested-sdks)
     - [Supported Entrypoints](#supported-entrypoints)
@@ -493,6 +494,100 @@ impl Context for ExampleRootContext {
 
 [Back to TOC](#table-of-contents)
 
+### Foreign Functions
+
+Proxy-Wasm filters can invoke so-called "foreign functions" which are
+host-specific *host functions* (i.e. only available in one host embedding) that
+can extend filters capabilities in that host.
+
+To call a foreign function, a filter may invoke `call_foreign_function` with the
+name of the foreign function and its arguments.
+
+`call_foreign_function` may return:
+
+- A vector of bytes containing the foreign function's return value.
+- A value representing a failure (e.g. "function not found").
+- Or an empty vector of bytes indicating that the invoked function will return
+  asynchronously later.
+
+When the function returns asynchronously, the `on_foreign_function` callback is
+invoked upon completion with the foreign function's `id` and the size in bytes
+of its returned value. This return value can then be retrieved by calling
+`get_buffer` accordingly.
+
+ngx_wasm_module supports the following foreign functions:
+
+#### `resolve_lua`
+
+Resolve an IPv4/IPv6 hostname using the Lua DNS resolver (see
+[proxy_wasm_lua_resolver]).
+
+This function's sole argument is the name to be resolved.
+
+This function either returns 4 bytes representing an IPv4 address or 16 bytes
+representing an IPv6 address. Note that this return value may be immediate or
+asynchronous as determined by the initial return value (see example below).
+
+**Supported Contexts**
+
+- `on_request_headers`
+- `on_request_body`
+- `on_tick`
+- `on_dispatch_response`
+- `on_foreign_function`
+
+> Notes
+
+This function requires the directive `proxy_wasm_lua_resolver` to be enabled,
+see [proxy_wasm_lua_resolver].
+
+Example:
+
+```rust
+enum WasmxForeignFunctions {
+    ResolveLua = 0, // match the function id assigned to this function by ngx_wasm_module
+}
+
+let hostname = "example.com";
+
+match call_foreign_function("resolve_lua", Some(hostname.as_bytes())) {
+    Ok(ret) => match ret {
+        Some(bytes) => info!("resolved {} to {:?} without yielding", hostname, bytes),
+        None => info!("yielded while resolving {}", hostname),
+    },
+    Err(_) => info!("failed calling resolve_lua"),
+}
+
+fn on_foreign_function(&mut self, function_id: u32, args_size: usize) {
+    let fid: WasmxForeignFunctions = unsafe { ::std::mem::transmute(function_id) };
+    let args = get_buffer(BufferType::CallData, 0, args_size).unwrap();
+
+    match fid {
+        WasmxForeignFunctions::ResolveLua => {
+            // this callback originates from a call to `resolve_lua`, retrieve
+            // the address from args
+            match args {
+                Some(args) => {
+                    let address_size = args[0] as usize;
+                    let name = std::str::from_utf8(&args[(address_size + 1)..]).unwrap();
+
+                    if address_size > 0 {
+                        let address = &args[1..address_size + 1];
+                        info!("resolved {} to {:?} after yielding", name, address);
+                    } else {
+                        info!("could not resolve {}", name)
+                    }
+                },
+                _ => {}
+            }
+        },
+        _ => {}
+    }
+}
+```
+
+[Back to TOC](#table-of-contents)
+
 ## Supported Specifications
 
 This section describes the current state of support for the Proxy-Wasm
@@ -576,6 +671,8 @@ SDK ABI `0.2.1`) and their present status in ngx_wasm_module:
 `on_done`                          | :heavy_check_mark:  | HTTP context done handler.
 *Shared memory queues*             |                     |
 `on_queue_ready`                   | :x:                 | *NYI*
+*Custom extension points*          |                     |
+`on_foreign_function`              | :heavy_check_mark:  | Foreign functions resume handler.
 
 "*NYI*" stands for "Not Yet Implemented".
 
@@ -658,7 +755,7 @@ SDK ABI `0.2.1`) and their present status in ngx_wasm_module:
 `proxy_record_metric`                 | :heavy_check_mark:  |
 `proxy_increment_metric`              | :heavy_check_mark:  |
 *Custom extension points*             |                     |
-`proxy_call_foreign_function`         | :x:                 |
+`proxy_call_foreign_function`         | :heavy_check_mark:  |
 
 [Back to TOC](#table-of-contents)
 
@@ -878,6 +975,7 @@ Proxy-Wasm SDK.
 [Host Properties]: #host-properties
 [Nginx Properties]: #nginx-properties
 [HTTP Dispatches]: #http-dispatches
+[Foreign Functions]: #foreign-functions
 [Supported Specifications]: #supported-specifications
 [Supported Properties]: #supported-properties
 [Examples]: #examples

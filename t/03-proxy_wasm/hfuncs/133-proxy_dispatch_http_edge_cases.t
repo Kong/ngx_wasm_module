@@ -147,7 +147,7 @@ qr/\A.*? on_request_headers.*
 .*? on_response_body.*
 .*? on_log/
 --- error_log eval
-qr/\[notice\] .*? local response produced, cancelling pending dispatch calls/
+qr/\[notice\] .*? local response produced, cancelling pending dispatch operations/
 --- no_error_log
 [error]
 

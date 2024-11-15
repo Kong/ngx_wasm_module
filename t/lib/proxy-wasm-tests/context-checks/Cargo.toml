@@ -8,5 +8,5 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-proxy-wasm = "0.2"
+proxy-wasm = { git = "https://github.com/kong/proxy-wasm-rust-sdk.git", branch = "main" }
 log = "0.4"

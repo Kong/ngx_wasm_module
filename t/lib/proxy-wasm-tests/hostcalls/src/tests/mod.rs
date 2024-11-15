@@ -695,3 +695,27 @@ pub(crate) fn test_proxy_get_header_map_value_misaligned_return_data(_ctx: &Test
         );
     }
 }
+
+pub(crate) fn test_proxy_resolve_lua(ctx: &TestHttp) -> u32 {
+    let mut pending_callbacks = 0;
+    let names = ctx
+        .config
+        .get("name")
+        .map(|x| x.as_str())
+        .expect("expected a name argument");
+
+    for name in names.split(",") {
+        info!("attempting to resolve {}", name);
+        match call_foreign_function("resolve_lua", Some(name.as_bytes())) {
+            Ok(ret) => match ret {
+                Some(bytes) => info!("resolved (no yielding) {} to {:?}", name, bytes),
+                _ => {
+                    pending_callbacks += 1;
+                }
+            },
+            _ => (),
+        }
+    }
+
+    return pending_callbacks;
+}
