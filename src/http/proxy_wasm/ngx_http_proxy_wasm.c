@@ -3,6 +3,7 @@
 #endif
 #include "ddebug.h"
 
+#include <ngx_proxy_wasm_foreign_call.h>
 #include <ngx_http_proxy_wasm.h>
 
 
@@ -358,6 +359,34 @@ ngx_http_proxy_wasm_on_dispatch_response(ngx_proxy_wasm_exec_t *pwexec)
 
 
 static ngx_int_t
+ngx_http_proxy_wasm_on_foreign_function(ngx_proxy_wasm_exec_t *pwexec)
+{
+    size_t                          args_len = 0;
+    ngx_int_t                       rc;
+    ngx_chain_t                    *cl;
+    ngx_http_wasm_req_ctx_t        *rctx;
+    ngx_proxy_wasm_filter_t        *filter = pwexec->filter;
+    ngx_proxy_wasm_foreign_call_t  *call = pwexec->foreign_call;
+
+    rctx = call->rctx;
+
+    ngx_wasm_continue(&rctx->env);
+
+    cl = call->args_out;
+    if (cl) {
+        args_len = cl->buf->last - cl->buf->start;
+    }
+
+    rc = ngx_wavm_instance_call_funcref(pwexec->ictx->instance,
+                                        filter->proxy_on_custom_callback,
+                                        NULL, pwexec->id, call->fcode,
+                                        args_len);
+
+    return rc;
+}
+
+
+static ngx_int_t
 ngx_http_proxy_wasm_ecode(ngx_proxy_wasm_err_e ecode)
 {
     return NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -444,6 +473,9 @@ ngx_http_proxy_wasm_resume(ngx_proxy_wasm_exec_t *pwexec,
 #endif
     case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
         rc = ngx_http_proxy_wasm_on_dispatch_response(pwexec);
+        break;
+    case NGX_PROXY_WASM_STEP_FOREIGN_CALLBACK:
+        rc = ngx_http_proxy_wasm_on_foreign_function(pwexec);
         break;
     default:
         ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwexec->log, 0,
