@@ -1,7 +1,8 @@
-use crate::{test_http::*, types::*};
+use crate::{test_http::*, types::*, tests::*, foreign_callbacks::*};
 use http::StatusCode;
 use log::*;
-use proxy_wasm::{traits::*, types::*};
+use proxy_wasm::{traits::*, types::*, hostcalls::*};
+
 
 impl Context for TestHttp {
     fn on_http_call_response(
@@ -109,10 +110,40 @@ impl Context for TestHttp {
                     Some(format!("called {} times", self.n_sync_calls + 1).as_str()),
                 );
             }
+            "resolve_lua" => {
+                self.pending_callbacks = test_proxy_resolve_lua(self);
+                if self.pending_callbacks > 0 {
+                    return;
+                }
+            }
             _ => {}
         }
 
         self.resume_http_request()
+    }
+
+    fn on_foreign_function(&mut self, function_id: u32, args_size: usize) {
+        info!("[hostcalls] on_foreign_function!");
+
+        let f: WasmxForeignFunction = unsafe { ::std::mem::transmute(function_id) };
+        let args = get_buffer(BufferType::CallData, 0, args_size).unwrap();
+
+        match f {
+            WasmxForeignFunction::ResolveLua => {
+                resolve_lua_callback(args);
+            }
+        }
+
+        match self.get_config("on_foreign_function").unwrap_or("") {
+            "resolve_lua" => { test_proxy_resolve_lua(self); }
+            _ => (),
+        }
+
+        self.pending_callbacks -= 1;
+
+        if self.pending_callbacks == 0 {
+            self.send_plain_response(StatusCode::OK, Some("resolved"));
+        }
     }
 
     fn on_done(&mut self) -> bool {

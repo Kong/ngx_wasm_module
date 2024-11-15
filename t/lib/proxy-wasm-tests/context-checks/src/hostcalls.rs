@@ -1,7 +1,7 @@
 use crate::*;
 use log::*;
 use proxy_wasm::types::*;
-use std::ptr::null_mut;
+use std::ptr::{null, null_mut};
 
 #[allow(improper_ctypes)]
 extern "C" {
@@ -453,5 +453,31 @@ pub fn increment_metric(_ctx: &TestContext) {
         proxy_define_metric(metric_type, name.as_ptr(), name.len(), &mut metric_id);
         let status = proxy_increment_metric(metric_id, 1);
         info!("increment_metric status: {}", status as u32);
+    }
+}
+
+#[allow(improper_ctypes)]
+extern "C" {
+    fn proxy_call_foreign_function(
+        function_name_data: *const u8,
+        function_name_size: usize,
+        arguments_data: *const u8,
+        arguments_size: usize,
+        results_data: *mut *mut u8,
+        results_size: *mut usize,
+    ) -> Status;
+}
+
+pub fn call_resolve_lua(_ctx: &TestContext) {
+    let name = "resolve_lua";
+
+    let mut ret_data: *mut u8 = null_mut();
+    let mut ret_size: usize = 0;
+
+    unsafe {
+        let status = proxy_call_foreign_function(
+            name.as_ptr(), name.len(), null(), 0, &mut ret_data, &mut ret_size);
+
+        info!("resolve_lua status: {}", status as u32);
     }
 }

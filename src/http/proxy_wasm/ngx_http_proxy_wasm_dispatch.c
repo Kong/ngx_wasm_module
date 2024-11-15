@@ -203,6 +203,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     ngx_http_wasm_req_ctx_t         *rctxp = NULL;
     ngx_http_proxy_wasm_dispatch_t  *call = NULL;
     ngx_proxy_wasm_ctx_t            *pwctx = pwexec->parent;
+    ngx_proxy_wasm_dispatch_op_t    *dop = NULL;
     unsigned                         enable_ssl = 0;
 
     /* rctx or fake request */
@@ -417,20 +418,28 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     /* dispatch */
 
+    dop = ngx_pcalloc(pwexec->pool, sizeof(ngx_proxy_wasm_dispatch_op_t));
+    if (dop == NULL) {
+        goto error;
+    }
+
+    dop->type = NGX_PROXY_WASM_DISPATCH_HTTP_CALL;
+    dop->call.http = call;
+
     ev = ngx_calloc(sizeof(ngx_event_t), r->connection->log);
     if (ev == NULL) {
         goto error;
     }
 
     ev->handler = ngx_http_proxy_wasm_dispatch_handler;
-    ev->data = call;
+    ev->data = dop;
     ev->log = r->connection->log;
 
     ngx_post_event(ev, &ngx_posted_events);
 
     call->ev = ev;
 
-    ngx_queue_insert_head(&pwexec->dispatch_calls, &call->q);
+    ngx_queue_insert_head(&pwexec->dispatch_ops, &dop->q);
 
     ngx_proxy_wasm_ctx_set_next_action(pwctx, NGX_PROXY_WASM_ACTION_PAUSE);
 
@@ -505,7 +514,8 @@ static void
 ngx_http_proxy_wasm_dispatch_handler(ngx_event_t *ev)
 {
     ngx_int_t                        rc;
-    ngx_http_proxy_wasm_dispatch_t  *call = ev->data;
+    ngx_proxy_wasm_dispatch_op_t    *dop = ev->data;
+    ngx_http_proxy_wasm_dispatch_t  *call = dop->call.http;
     ngx_http_wasm_req_ctx_t         *rctx = call->rctx;
     ngx_wasm_socket_tcp_t           *sock = &call->sock;
 
@@ -513,7 +523,7 @@ ngx_http_proxy_wasm_dispatch_handler(ngx_event_t *ev)
     call->ev = NULL;
 
     sock->resume_handler = ngx_http_proxy_wasm_dispatch_resume_handler;
-    sock->data = call;
+    sock->data = dop;
 
     rc = sock->resume_handler(sock);
     dd("sock->resume rc: %ld", rc);
@@ -754,13 +764,25 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
     ngx_int_t                        rc = NGX_ERROR;
     ngx_chain_t                     *nl;
     ngx_wavm_instance_t             *instance;
-    ngx_http_proxy_wasm_dispatch_t  *call = sock->data;
-    ngx_http_wasm_req_ctx_t         *rctx = call->rctx;
-    ngx_http_request_t              *r = rctx->r;
-    ngx_proxy_wasm_exec_t           *pwexec = call->pwexec;
-    ngx_proxy_wasm_filter_t         *filter = pwexec->filter;
+    ngx_proxy_wasm_dispatch_op_t    *dop;
+    ngx_http_proxy_wasm_dispatch_t  *call;
+    ngx_http_wasm_req_ctx_t         *rctx;
+    ngx_http_request_t              *r;
+    ngx_proxy_wasm_exec_t           *pwexec;
+    ngx_proxy_wasm_filter_t         *filter;
 
     dd("enter");
+
+    dop = sock->data;
+
+    ngx_wa_assert(dop->type == NGX_PROXY_WASM_DISPATCH_HTTP_CALL);
+
+    call = dop->call.http;
+
+    rctx = call->rctx;
+    r = rctx->r;
+    pwexec = call->pwexec;
+    filter = pwexec->filter;
 
     ngx_wa_assert(&call->sock == sock);
 
@@ -867,7 +889,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         }
 
         /* call has finished */
-        ngx_queue_remove(&call->q);
+        ngx_queue_remove(&dop->q);
 
         if (invoke_on_http_dispatch_response(pwexec, call) != NGX_OK) {
             rc = NGX_ERROR;
@@ -892,7 +914,7 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
 error:
 
     /* call has errored */
-    ngx_queue_remove(&call->q);
+    ngx_queue_remove(&dop->q);
 
 error2:
 
@@ -906,9 +928,9 @@ error2:
 
 done:
 
-    if (ngx_proxy_wasm_dispatch_calls_total(pwexec)) {
+    if (ngx_proxy_wasm_dispatch_ops_total(pwexec)) {
         ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwexec->log, 0,
-                       "proxy_wasm more http dispatch calls pending...");
+                       "proxy_wasm more dispatch operations pending...");
 
         rc = NGX_AGAIN;
         ngx_wasm_yield(&rctx->env);
@@ -917,7 +939,7 @@ done:
 
     } else {
         ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwexec->log, 0,
-                       "proxy_wasm last http dispatch call handled");
+                       "proxy_wasm last dispatch operation handled");
 
         ngx_wasm_continue(&rctx->env);
         ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,

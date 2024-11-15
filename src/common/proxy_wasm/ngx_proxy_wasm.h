@@ -78,6 +78,7 @@ typedef enum {
     NGX_PROXY_WASM_STEP_DONE,
     NGX_PROXY_WASM_STEP_TICK,
     NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE,
+    NGX_PROXY_WASM_STEP_FOREIGN_CALLBACK,
 } ngx_proxy_wasm_step_e;
 
 
@@ -124,7 +125,7 @@ typedef enum {
     NGX_PROXY_WASM_BUFFER_GRPC_RECEIVE_BUFFER = 5,
     NGX_PROXY_WASM_BUFFER_VM_CONFIGURATION = 6,
     NGX_PROXY_WASM_BUFFER_PLUGIN_CONFIGURATION = 7,
-    NGX_PROXY_WASM_BUFFER_CALL_DATA = 8,
+    NGX_PROXY_WASM_BUFFER_FOREIGN_FUNCTION_ARGUMENTS = 8,
 } ngx_proxy_wasm_buffer_type_e;
 
 
@@ -147,6 +148,11 @@ typedef enum {
 } ngx_proxy_wasm_metric_type_e;
 
 
+typedef enum {
+    NGX_PROXY_WASM_FOREIGN_RESOLVE_LUA = 0,
+} ngx_proxy_wasm_foreign_function_e;
+
+
 typedef struct ngx_proxy_wasm_ctx_s  ngx_proxy_wasm_ctx_t;
 typedef struct ngx_proxy_wasm_filter_s  ngx_proxy_wasm_filter_t;
 typedef struct ngx_proxy_wasm_exec_s  ngx_proxy_wasm_exec_t;
@@ -154,43 +160,64 @@ typedef struct ngx_proxy_wasm_instance_s  ngx_proxy_wasm_instance_t;
 #ifdef NGX_WASM_HTTP
 typedef struct ngx_http_proxy_wasm_dispatch_s  ngx_http_proxy_wasm_dispatch_t;
 #endif
+typedef struct ngx_proxy_wasm_foreign_call_s  ngx_proxy_wasm_foreign_call_t;
 typedef ngx_str_t  ngx_proxy_wasm_marshalled_map_t;
 
 
 typedef struct {
-    ngx_queue_t                        busy;
-    ngx_queue_t                        free;
-    ngx_queue_t                        sweep;
-    ngx_pool_t                        *pool;
+    ngx_queue_t                         busy;
+    ngx_queue_t                         free;
+    ngx_queue_t                         sweep;
+    ngx_pool_t                         *pool;
 } ngx_proxy_wasm_store_t;
 
 
 typedef struct {
-    ngx_str_t                          log_prefix;
-    ngx_log_t                         *orig_log;
-    ngx_proxy_wasm_exec_t             *pwexec;
+    ngx_str_t                           log_prefix;
+    ngx_log_t                          *orig_log;
+    ngx_proxy_wasm_exec_t              *pwexec;
 } ngx_proxy_wasm_log_ctx_t;
 
 
-struct ngx_proxy_wasm_exec_s {
-    ngx_uint_t                         root_id;
-    ngx_uint_t                         id;
-    ngx_uint_t                         index;
-    ngx_uint_t                         tick_period;
-    ngx_rbtree_node_t                  node;
-    ngx_proxy_wasm_err_e               ecode;
-    ngx_pool_t                        *pool;
-    ngx_log_t                         *log;
-    ngx_proxy_wasm_log_ctx_t           log_ctx;
-    ngx_proxy_wasm_ctx_t              *parent;
-    ngx_proxy_wasm_filter_t           *filter;
-    ngx_proxy_wasm_instance_t         *ictx;
-    ngx_proxy_wasm_store_t            *store;
-    ngx_event_t                       *ev;
+typedef enum {
+    NGX_PROXY_WASM_DISPATCH_HTTP_CALL,
+    NGX_PROXY_WASM_DISPATCH_FOREIGN_CALL,
+} ngx_proxy_wasm_dispatch_op_e;
+
+
+typedef struct {
+    ngx_queue_t                          q;     /* stored by caller */
+    ngx_proxy_wasm_dispatch_op_e         type;
+
+    union {
 #ifdef NGX_WASM_HTTP
-    ngx_http_proxy_wasm_dispatch_t    *dispatch_call;  /* swap pointer for host functions */
+        ngx_http_proxy_wasm_dispatch_t  *http;
 #endif
-    ngx_queue_t                        dispatch_calls;
+        ngx_proxy_wasm_foreign_call_t   *foreign;
+    } call;
+} ngx_proxy_wasm_dispatch_op_t;
+
+
+struct ngx_proxy_wasm_exec_s {
+    ngx_uint_t                          root_id;
+    ngx_uint_t                          id;
+    ngx_uint_t                          index;
+    ngx_uint_t                          tick_period;
+    ngx_rbtree_node_t                   node;
+    ngx_proxy_wasm_err_e                ecode;
+    ngx_pool_t                         *pool;
+    ngx_log_t                          *log;
+    ngx_proxy_wasm_log_ctx_t            log_ctx;
+    ngx_proxy_wasm_ctx_t               *parent;
+    ngx_proxy_wasm_filter_t            *filter;
+    ngx_proxy_wasm_instance_t          *ictx;
+    ngx_proxy_wasm_store_t             *store;
+    ngx_event_t                        *ev;
+    ngx_queue_t                         dispatch_ops;
+    ngx_proxy_wasm_foreign_call_t      *foreign_call;   /* swap pointer for host functions */
+#ifdef NGX_WASM_HTTP
+    ngx_http_proxy_wasm_dispatch_t     *dispatch_call;  /* swap pointer for host functions */
+#endif
 
     /* flags */
 
@@ -414,8 +441,10 @@ ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_wasm_phase_t *phase, ngx_proxy_wasm_step_e step);
 ngx_proxy_wasm_err_e ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     ngx_proxy_wasm_step_e step);
-ngx_uint_t ngx_proxy_wasm_dispatch_calls_total(ngx_proxy_wasm_exec_t *pwexec);
-void ngx_proxy_wasm_dispatch_calls_cancel(ngx_proxy_wasm_exec_t *pwexec);
+ngx_uint_t ngx_proxy_wasm_dispatch_ops_total(ngx_proxy_wasm_exec_t *pwexec);
+void ngx_proxy_wasm_dispatch_ops_cancel(ngx_proxy_wasm_exec_t *pwexec);
+ngx_uint_t ngx_proxy_wasm_foreign_calls_total(ngx_proxy_wasm_exec_t *pwexec);
+void ngx_proxy_wasm_foreign_calls_cancel(ngx_proxy_wasm_exec_t *pwexec);
 
 
 /* host handlers */

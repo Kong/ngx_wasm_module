@@ -16,6 +16,11 @@ pub enum TestPhase {
     Log,
 }
 
+#[repr(u32)]
+pub enum WasmxForeignFunction {
+    ResolveLua = 0,
+}
+
 pub trait TestContext {
     fn get_config(&self, name: &str) -> Option<&str>;
     fn get_metrics_mapping(&self) -> &BTreeMap<String, u32>;

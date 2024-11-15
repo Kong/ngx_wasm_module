@@ -632,7 +632,7 @@ ngx_http_wasm_init_fake_connection(ngx_connection_t *c)
 }
 
 
-static ngx_connection_t *
+ngx_connection_t *
 ngx_http_wasm_create_fake_connection(ngx_pool_t *pool)
 {
 #if 0
@@ -725,7 +725,7 @@ ngx_http_wasm_cleanup_nop(void *data)
 #endif
 
 
-static ngx_http_request_t *
+ngx_http_request_t *
 ngx_http_wasm_create_fake_request(ngx_connection_t *c)
 {
     ngx_http_request_t     *r;
