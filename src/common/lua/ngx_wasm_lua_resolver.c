@@ -207,8 +207,6 @@ error:
 
     dd("error exit");
 
-    ngx_free(rslv_ctx);
-
     return NGX_ERROR;
 }
 
