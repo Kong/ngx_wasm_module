@@ -14,7 +14,7 @@ use t::TestWasmX;
 our $ExtResolver = $t::TestWasmX::extresolver;
 our $ExtTimeout = $t::TestWasmX::exttimeout;
 
-plan_tests(4);
+plan_tests(6);
 run_tests();
 
 __DATA__
@@ -32,14 +32,19 @@ qq{
         wasm_socket_connect_timeout 1ms;
 
         proxy_wasm hostcalls 'test=/t/dispatch_http_call \
-                              host=google.com';
+                              host=google.com \
+                              on_http_call_response=echo_response_headers';
         echo ok;
     }
 }
---- response_body
-ok
+--- response_body_like
+:dispatch_status: timeout
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out connecting to \".*?\"/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out connecting to \".*?\"/,
+    qr/\*\d+ .*? on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    qr/dispatch_status: timeout/
+]
 --- no_error_log
 [crit]
 
@@ -65,7 +70,11 @@ qq{
 --- response_body
 ok
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolver error: Operation timed out/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolver error: Operation timed out/,
+    qr/on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    "dispatch_status: resolver failure"
+]
 --- no_error_log
 [crit]
 
@@ -92,7 +101,11 @@ macOS: mockeagain NYI
 --- response_body
 ok
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out reading from \"127\.0\.0\.1:\d+\"/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out reading from \"127\.0\.0\.1:\d+\"/,
+    qr/on_http_call_response \(id: \d+, status: (\d+)?, headers: \d+, body_bytes: \d+/,
+    "dispatch_status: timeout"
+]
 --- no_error_log
 [crit]
 
@@ -121,7 +134,11 @@ macOS: mockeagain NYI
 --- response_body
 ok
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out writing to \".*?\"/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out writing to \".*?\"/,
+    qr/on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    "dispatch_status: timeout"
+]
 --- no_error_log
 [crit]
 
@@ -149,6 +166,8 @@ Hello world
 --- no_error_log
 [error]
 [crit]
+[alert]
+[emerg]
 
 
 
@@ -179,3 +198,5 @@ Hello world
 --- no_error_log
 [error]
 [crit]
+[alert]
+[emerg]

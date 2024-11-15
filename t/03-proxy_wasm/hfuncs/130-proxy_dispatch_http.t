@@ -7,7 +7,7 @@ use t::TestWasmX;
 our $ExtResolver = $t::TestWasmX::extresolver;
 our $ExtTimeout = $t::TestWasmX::exttimeout;
 
-plan_tests(4);
+plan_tests(5);
 run_tests();
 
 __DATA__
@@ -24,6 +24,7 @@ __DATA__
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - no host/
 --- no_error_log
 [crit]
+on_http_call_response
 
 
 
@@ -40,6 +41,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - no host
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - no host/
 --- no_error_log
 [crit]
+on_http_call_response
 
 
 
@@ -56,6 +58,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - no host
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - invalid port/
 --- no_error_log
 [crit]
+on_http_call_response
 
 
 
@@ -72,6 +75,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - invalid
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - invalid host/
 --- no_error_log
 [crit]
+on_http_call_response
 
 
 
@@ -88,6 +92,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - invalid
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - invalid port/
 --- no_error_log
 [crit]
+on_http_call_response
 
 
 
@@ -105,6 +110,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - invalid
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :method/
 --- no_error_log
 [crit]
+on_http_call_response
 
 
 
@@ -123,6 +129,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :method/
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :method/
 --- no_error_log
 [crit]
+on_http_call_response
 
 
 
@@ -140,6 +147,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :method/
 qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :path/
 --- no_error_log
 [crit]
+on_http_call_response
 
 
 
@@ -155,7 +163,10 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no :path/
 --- response_body
 ok
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - Connection refused/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - Connection refused/,
+    "dispatch_status: broken connection"
+]
 --- no_error_log
 [crit]
 
@@ -174,7 +185,10 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - Connect
 --- error_code: 500
 --- response_body_like: 500 Internal Server Error
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no resolver defined to resolve "localhost"/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: no resolver defined to resolve "localhost"/,
+    "dispatch_status: resolver failure"
+]
 --- no_error_log
 [crit]
 
@@ -196,6 +210,8 @@ qq{
     qr/\[error\]/,
     qr/dispatch failed: tcp socket - no path in the unix domain socket/
 ]
+--- no_error_log
+on_http_call_response
 
 
 
@@ -214,7 +230,8 @@ qq{
 --- error_log eval
 [
     qr/\[crit\] .*? connect\(\) to unix:\/tmp\/inexistent_file\.sock failed .*? No such file or directory/,
-    qr/\[error\] .*? dispatch failed: tcp socket - No such file or directory/
+    qr/\[error\] .*? dispatch failed: tcp socket - No such file or directory/,
+    "dispatch_status: broken connection"
 ]
 
 
@@ -236,7 +253,8 @@ qq{
 --- error_log eval
 [
     qr/\[(error|crit)\] .*? connect\(\) to unix:\/tmp failed .*? (Connection refused|Socket operation on non-socket)/,
-    qr/\[error\] .*? dispatch failed: tcp socket - (Connection refused|Socket operation on non-socket)/
+    qr/\[error\] .*? dispatch failed: tcp socket - (Connection refused|Socket operation on non-socket)/,
+    "dispatch_status: broken connection"
 ]
 
 
@@ -257,11 +275,13 @@ qq{
     qr/\[error\]/,
     qr/dispatch failed: tcp socket - invalid host/
 ]
+--- no_error_log
+on_http_call_response
 
 
 
 === TEST 15: proxy_wasm - dispatch_http_call() sanity (default resolver)
---- skip_eval: 4: defined $ENV{GITHUB_ACTIONS}
+--- skip_eval: 5: defined $ENV{GITHUB_ACTIONS}
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- main_config eval
@@ -282,6 +302,7 @@ ok
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -309,6 +330,7 @@ ok
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -337,6 +359,7 @@ Hello back
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -375,6 +398,7 @@ Host: localhost\s*
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -385,7 +409,7 @@ Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
 - HTTP 502 (httpbin.org Bad Gateway)
 - HTTP 504 (httpbin.org Gateway timeout)
---- skip_eval: 4: $::osname =~ m/darwin/
+--- skip_eval: 5: $::osname =~ m/darwin/
 --- valgrind
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
@@ -412,12 +436,13 @@ qq{
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
 === TEST 20: proxy_wasm - dispatch_http_call() sanity resolver + hostname (IPv6), default port
 Disabled on GitHub Actions due to IPv6 constraint.
---- skip_eval: 4: system("ping6 -c 1 ::1 >/dev/null 2>&1") ne 0 || defined $ENV{GITHUB_ACTIONS}
+--- skip_eval: 5: system("ping6 -c 1 ::1 >/dev/null 2>&1") ne 0 || defined $ENV{GITHUB_ACTIONS}
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -439,6 +464,7 @@ qq{
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -476,6 +502,7 @@ qq{
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -498,7 +525,10 @@ qq{
 --- response_body
 ok
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolver error: Host not found/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - resolver error: Host not found/,
+    "dispatch_status: resolver failure"
+]
 --- no_error_log
 [crit]
 
@@ -524,6 +554,7 @@ ok
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -550,6 +581,7 @@ ok
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -584,6 +616,7 @@ qq{
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -622,6 +655,7 @@ qq{
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -660,6 +694,7 @@ K: 11.*
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -689,6 +724,7 @@ tcp socket reading done
 tcp socket closing
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -717,6 +753,7 @@ tcp socket reading done
 tcp socket closing
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -747,6 +784,7 @@ tcp socket reading done
 tcp socket closing
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -770,6 +808,7 @@ Hello world
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -795,6 +834,7 @@ Content-Length: 0.*
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -822,6 +862,7 @@ Content-Length: 0.*
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -851,6 +892,7 @@ Hello world
 tcp socket trying to receive data (max: 1)
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -879,6 +921,7 @@ Hello world
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -907,6 +950,7 @@ Hello world
 tcp socket trying to receive data (max: 1)
 tcp socket trying to receive data (max: 11)
 tcp socket - upstream response headers too large, increase wasm_socket_large_buffers size
+dispatch_status: reader failure
 
 
 
@@ -935,6 +979,7 @@ tcp socket - upstream response headers too large, increase wasm_socket_large_buf
 tcp socket trying to receive data (max: 24)
 tcp socket trying to receive data (max: 5)
 tcp socket - upstream response headers too large, increase wasm_socket_large_buffers size
+dispatch_status: reader failure
 
 
 
@@ -965,7 +1010,8 @@ ok
 --- error_log eval
 [
     qr/tcp socket - not enough large buffers available, increase wasm_socket_large_buffers number/,
-    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser error/
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser error/,
+    "dispatch_status: reader failure"
 ]
 
 
@@ -996,6 +1042,7 @@ Hello world
 --- error_log
 tcp socket trying to receive data (max: 1)
 tcp socket trying to receive data (max: 1023)
+on_http_call_response
 
 
 
@@ -1018,7 +1065,10 @@ sub {
 --- response_body
 ok
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser error/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser error/,
+    "dispatch_status: reader failure"
+]
 --- no_error_log
 [crit]
 
@@ -1049,6 +1099,7 @@ Hello world
 --- error_log
 tcp socket trying to receive data (max: 24)
 tcp socket trying to receive data (max: 1017)
+on_http_call_response
 
 
 
@@ -1072,6 +1123,7 @@ tcp socket trying to receive data (max: 1017)
 ok
 --- error_log eval
 [
+    "on_http_call_response",
     qr/\[crit\] .*? panicked at/,
     qr/trap!/,
 ]
@@ -1098,7 +1150,10 @@ sub {
 --- response_body
 ok
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser error/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser error/,
+    "dispatch_status: reader failure"
+]
 --- no_error_log
 [crit]
 
@@ -1149,6 +1204,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - parser 
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -1183,6 +1239,7 @@ qr/^\*\d+ .*? on_http_call_response \(id: \d+[^*]*
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -1208,6 +1265,7 @@ X-Callout-Header: callout-header-value
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -1251,6 +1309,7 @@ qr/^\*\d+ .*? on_http_call_response \(id: \d+, status: 200[^*]*
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -1278,6 +1337,7 @@ helloworld
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -1305,6 +1365,7 @@ helloworl
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -1329,6 +1390,7 @@ cannot override the "Host" header, skipping
 cannot override the "Connection" header, skipping
 --- no_error_log
 [error]
+[crit]
 
 
 
@@ -1353,6 +1415,7 @@ cannot override the "Connection" header, skipping
 --- no_error_log
 [error]
 [crit]
+[alert]
 
 
 
@@ -1365,19 +1428,16 @@ cannot override the "Connection" header, skipping
     }
 
     location /t {
-        proxy_wasm hostcalls 'on=request_body \
+        proxy_wasm hostcalls 'on=request_headers \
                               test=/t/dispatch_http_call \
                               host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
                               path=/dispatched?foo=bár%20bla \
                               on_http_call_response=echo_response_body';
         echo failed;
     }
---- request
-GET /t
-
-Hello world
 --- response_body
 Hello back /dispatched?foo=bár%20bla /dispatched ? foo=bár%20bla
 --- no_error_log
 [error]
 [crit]
+[alert]

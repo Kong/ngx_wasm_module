@@ -852,7 +852,7 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     }
 
     dd("<-- step rc: %ld, old_action: %d, ret action: %d, pwctx->action: %d, "
-       " ictx: %p", rc, old_action, action, pwctx->action, pwexec->ictx);
+       "ictx: %p", rc, old_action, action, pwctx->action, pwexec->ictx);
 
     /* pwctx->action writes in host calls overwrite action return value */
 

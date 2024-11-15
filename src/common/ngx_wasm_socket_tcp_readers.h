@@ -30,6 +30,7 @@ typedef struct {
 
 ngx_int_t ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in,
     ssize_t bytes, ngx_wasm_http_reader_ctx_t *in_ctx);
+ngx_int_t ngx_wasm_http_reader_init(ngx_wasm_http_reader_ctx_t *in_ctx);
 #endif
 
 

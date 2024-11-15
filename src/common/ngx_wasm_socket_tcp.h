@@ -18,6 +18,20 @@ typedef ngx_int_t (*ngx_wasm_socket_tcp_dns_resolver_pt)(
     ngx_resolver_ctx_t *rslv_ctx);
 
 
+typedef enum {
+    NGX_WASM_SOCKET_STATUS_OK = 0,
+    NGX_WASM_SOCKET_STATUS_BAD_ARGUMENT,
+    NGX_WASM_SOCKET_STATUS_TIMEOUT,
+    NGX_WASM_SOCKET_STATUS_BROKEN_CONNECTION,
+#if (NGX_SSL)
+    NGX_WASM_SOCKET_STATUS_TLS_FAILURE,
+#endif
+    NGX_WASM_SOCKET_STATUS_RESOLVER_FAILURE,
+    NGX_WASM_SOCKET_STATUS_READER_FAILURE,
+    NGX_WASM_SOCKET_STATUS_INTERNAL_FAILURE,
+} ngx_wasm_socket_status_e;
+
+
 typedef struct {
     ngx_str_t                                host;
     in_port_t                                port;
@@ -39,6 +53,7 @@ struct ngx_wasm_socket_tcp_s {
     ngx_wasm_subsys_env_t                   *env;
 
     ngx_wasm_socket_tcp_resume_handler_pt    resume_handler;
+    ngx_wasm_socket_status_e                 status;
     void                                    *data;
 #if (NGX_WASM_LUA)
     ngx_wasm_lua_ctx_t                      *lctx;
@@ -85,18 +100,18 @@ struct ngx_wasm_socket_tcp_s {
 
     /* flags */
 
-    unsigned                                 timedout:1;
     unsigned                                 connected:1;
     unsigned                                 eof:1;
     unsigned                                 closed:1;
     unsigned                                 read_closed:1;
     unsigned                                 write_closed:1;
-
 #if (NGX_SSL)
     unsigned                                 ssl_ready:1;
 #endif
 };
 
+
+ngx_str_t *ngx_wasm_socket_tcp_status_strerror(ngx_wasm_socket_status_e status);
 
 ngx_int_t ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
     ngx_str_t *host, unsigned tls, ngx_str_t *sni, ngx_wasm_subsys_env_t *env);

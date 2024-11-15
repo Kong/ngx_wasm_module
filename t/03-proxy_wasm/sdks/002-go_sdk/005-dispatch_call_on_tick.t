@@ -24,6 +24,7 @@ Missing IP for "web_service" host requested by the filter.
     location /t {
         return 200;
     }
+--- wait: 1
 --- ignore_response_body
 --- error_log eval
 qr/\[error\] .*? dispatch failed: tcp socket - resolver error: Host not found/
@@ -49,6 +50,7 @@ Connection refused on 127.0.0.1:81 requested by filter.
     location /t {
         return 200;
     }
+--- wait: 1
 --- ignore_response_body
 --- error_log eval
 qr/\[error\] .*? dispatch failed: tcp socket - Connection refused/

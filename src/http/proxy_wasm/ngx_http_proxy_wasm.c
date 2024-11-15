@@ -313,39 +313,45 @@ ngx_http_proxy_wasm_on_dispatch_response(ngx_proxy_wasm_exec_t *pwexec)
 {
     size_t                           i;
     ngx_int_t                        rc;
-    ngx_uint_t                       n_headers;
+    ngx_uint_t                       n_headers, body_len;
     ngx_list_part_t                 *part;
     ngx_proxy_wasm_filter_t         *filter = pwexec->filter;
     ngx_http_proxy_wasm_dispatch_t  *call = pwexec->call;
     ngx_http_wasm_req_ctx_t         *rctx = call->rctx;
 
-    part = &call->http_reader.fake_r.upstream->headers_in.headers.part;
+    n_headers = 0;
+    body_len = 0;
 
-    for (i = 0, n_headers = 0; /* void */; i++, n_headers++) {
-        if (i >= part->nelts) {
-            if (part->next == NULL) {
-                break;
+    if (call->http_reader.fake_r.signature) {
+        /* reader initialized */
+        part = &call->http_reader.fake_r.upstream->headers_in.headers.part;
+
+        for (i = 0, n_headers = 0; /* void */; i++, n_headers++) {
+            if (i >= part->nelts) {
+                if (part->next == NULL) {
+                    break;
+                }
+
+                part = part->next;
+                i = 0;
             }
-
-            part = part->next;
-            i = 0;
         }
 
-        /* void */
-    }
+        body_len = call->http_reader.body_len;
 
-    ngx_log_debug3(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
-                   "proxy_wasm http dispatch response received "
-                   "(pwexec->id: %d, token_id: %d, n_headers: %d)",
-                   pwexec->id, call->id, n_headers);
+        ngx_log_debug4(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
+                       "proxy_wasm http dispatch response received "
+                       "(pwexec->id: %d, token_id: %d, n_headers: %d, "
+                       "body_len: %d)", pwexec->id, call->id, n_headers,
+                       body_len);
+    }
 
     ngx_wasm_continue(&rctx->env);
 
     rc = ngx_wavm_instance_call_funcref(pwexec->ictx->instance,
                                         filter->proxy_on_http_call_response,
                                         NULL, filter->id, call->id,
-                                        n_headers,
-                                        call->http_reader.body_len, 0); /* eof: 0 */
+                                        n_headers, body_len, 0); /* eof: 0 */
 
     return rc;
 }

@@ -101,6 +101,17 @@ EOF
               }
              }
 EOF
+        patch --forward --ignore-whitespace examples/dispatch_call_on_tick/main.go <<'EOF'
+            @@ -21,7 +21,7 @@ import (
+                    "github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
+             )
+
+            -const tickMilliseconds uint32 = 100
+            +const tickMilliseconds uint32 = 1000
+
+             func main() {
+                    proxywasm.SetVMContext(&vmContext{})
+EOF
         set -e
 
         notice "compiling Go examples..."

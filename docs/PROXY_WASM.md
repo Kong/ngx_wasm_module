@@ -10,6 +10,7 @@
     - [Filters Execution in Nginx](#filters-execution-in-nginx)
     - [Host Properties]
     - [Nginx Properties]
+    - [HTTP Dispatches]
 - [Supported Specifications]
     - [Tested SDKs](#tested-sdks)
     - [Supported Entrypoints](#supported-entrypoints)
@@ -107,13 +108,13 @@ proxy_wasm::main! {{
     // the wasm instance initial entrypoint
     // ...
     proxy_wasm::set_log_level(LogLevel::Info);
-    // create and set the root context for this filter
+    // create and set the Root context for this filter
     proxy_wasm::set_root_context(|_| -> Box<dyn MyRootContext> {
         Box::new(MyRootContext {});
     });
 }}
 
-// implement root entrypoints
+// implement Root entrypoints
 impl Context for TestRoot;
 impl RootContext for TestRoot {
     fn on_configure(&mut self, config_size: usize) -> bool {
@@ -376,6 +377,122 @@ impl HttpContext for MyHttpContext {
 
 [Back to TOC](#table-of-contents)
 
+### HTTP Dispatches
+
+Proxy-Wasm filters can issue requests to an external HTTP service. This feature
+is called an "HTTP dispatch".
+
+In ngx_wasm_module, filters can issue a dispatch call with
+`dispatch_http_call()` in the following steps:
+
+- `on_http_request_headers`
+- `on_http_request_body`
+- `on_tick`
+- `on_http_call_response` (to issue subsequent calls)
+
+For example, in Rust:
+
+```rust
+impl Context for ExampleHttpContext {
+    fn on_http_request_headers(&mut self, nheaders: usize, eof: bool) -> Action {
+        match self.dispatch_http_call(
+            "service.com",             // host
+            vec![("X-Header", "Foo")], // headers
+            Some(b"hello world"),      // body
+            vec![],                    // trailers
+            Duration::from_secs(3),    // timeout
+        ) {
+            Ok(_) => info!("call scheduled"),
+            Err(status) => panic!("unexpected status \"{}\"", status as u32),
+        }
+
+        Action::Pause
+    }
+}
+```
+
+Several calls can be scheduled at the same time before returning
+`Action::Pause`; they will be executed in parallel, their response handlers will
+be invoked when each response is received, and the filter chain will resume once
+all dispatch calls have finished executing.
+
+**Note:** in ngx_wasm_module, the `host` argument of a dispatch call must be a
+valid IP address or a hostname which will be resolved using the [resolver] or
+[proxy_wasm_lua_resolver] directives. This `host` argument may contain a port
+component whether IP or hostname (i.e. `service.com:80`). This is unlike the
+Envoy implementation in which the `host` argument receives a configured cluster
+name.
+
+Once the call is scheduled, the `on_http_call_response` handler will be invoked
+when a response is received or the connection has encountered an error. If an
+error was encountered while receiving the response, `on_http_call_response` is
+invoked with its response arguments set to `0`.
+
+For example, in Rust:
+
+```rust
+impl Context for ExampleHttpContext {
+    fn on_http_call_response(
+        &mut self,
+        token_id: u32,
+        nheaders: usize,
+        body_size: usize,
+        ntrailers: usize,
+    ) {
+        let status = self.get_http_call_response_header(":status");
+        let body_bytes = self.get_http_call_response_body(0, body_size);
+
+        if status.is_none() {
+            // Dispatch had an issue
+            //
+            // nheaders == 0
+            // body_size == 0
+            // ntrailers == 0
+
+            // ngx_wasm_module extension: retrieve error via :dispatch_status pseudo-header
+            let dispatch_status = self.get_http_call_response_header(":dispatch_status");
+            match dispatch_status.as_deref() {
+                Some("timeout") => {},
+                Some("broken connection") => {},
+                Some("tls handshake failure") => {},
+                Some("resolver failure") => {},
+                Some("reader failure") => {},
+                Some(s) => error!("dispatch failure, status: {}", s),
+                None => {}
+            }
+        }
+
+        // ...
+    }
+}
+```
+
+**Note:** if the dispatch call was invoked from the `on_tick` handler,
+`on_http_call_response` must be implemented on the Root filter context instead
+of the HTTP context:
+
+```rust
+proxy_wasm::main! {{
+    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
+        Box::new(ExampleRootContext {})
+    });
+}}
+
+impl Context for ExampleRootContext {
+    fn on_http_call_response(
+        &mut self,
+        token_id: u32,
+        nheaders: usize,
+        body_size: usize,
+        ntrailers: usize,
+    ) {
+        // Root context handler
+    }
+}
+```
+
+[Back to TOC](#table-of-contents)
+
 ## Supported Specifications
 
 This section describes the current state of support for the Proxy-Wasm
@@ -429,7 +546,7 @@ SDK ABI `0.2.1`) and their present status in ngx_wasm_module:
 **Name**                           |  **Supported**      |  **Comment**
 ----------------------------------:|:-------------------:|:--------------
 *Root contexts*                    |                     |
-`proxy_wasm::main!`                | :heavy_check_mark:  | Allocate the root context.
+`proxy_wasm::main!`                | :heavy_check_mark:  | Allocate the Root context.
 `on_vm_start`                      | :heavy_check_mark:  | VM configuration handler.
 `on_configure`                     | :heavy_check_mark:  | Filter configuration handler.
 `on_tick`                          | :heavy_check_mark:  | Background tick handler.
@@ -636,7 +753,7 @@ implementation state in ngx_wasm_module:
 `source.port`                               | :heavy_check_mark: | :x:                 | Maps to [ngx.remote_port](https://nginx.org/en/docs/http/ngx_http_core_module.html#remote_port).
 *Proxy-Wasm properties*                     |                    |
 `plugin_name`                               | :heavy_check_mark: | :x:                 | Returns current filter name.
-`plugin_root_id`                            | :heavy_check_mark: | :x:                 | Returns filter's root context id.
+`plugin_root_id`                            | :heavy_check_mark: | :x:                 | Returns filter's Root context id.
 `plugin_vm_id`                              | :x:                | :x:                 | *NYI*.
 `node`                                      | :x:                | :x:                 | Not supported.
 `cluster_name`                              | :x:                | :x:                 | Not supported.
@@ -743,7 +860,7 @@ payloads.
 
 3. When making a dispatch call, a valid IP address or hostname must be given to
    `dispatch_http_call`. This is in contrast to Envoy's implementation in which
-   a configured cluster name must be given.
+   a configured cluster name must be given. See [HTTP Dispatches].
 
 4. The "queue" shared memory implementation does not implement an automatic
    eviction mechanism when the allocated memory slab is full:
@@ -759,12 +876,15 @@ Proxy-Wasm SDK.
 [Filter Chains]: #filter-chains
 [Host Properties]: #host-properties
 [Nginx Properties]: #nginx-properties
+[HTTP Dispatches]: #http-dispatches
 [Supported Specifications]: #supported-specifications
 [Supported Properties]: #supported-properties
 [Examples]: #examples
 [Current Limitations]: #current-limitations
 
 [wasm_response_body_buffers]: DIRECTIVES.md#wasm_response_body_buffers
+[resolver]: DIRECTIVES.md#resolver
+[proxy_wasm_lua_resolver]: DIRECTIVES.md#proxy_wasm_lua_resolver
 
 [WebAssembly]: https://webassembly.org/
 [Nginx Variables]: https://nginx.org/en/docs/varindex.html

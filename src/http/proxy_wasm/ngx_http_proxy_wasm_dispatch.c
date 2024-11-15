@@ -10,7 +10,7 @@
 static ngx_str_t *ngx_http_proxy_wasm_dispatch_strerror(
     ngx_http_proxy_wasm_dispatch_err_e err);
 static void ngx_http_proxy_wasm_dispatch_err(
-    ngx_http_proxy_wasm_dispatch_t *call);
+    ngx_http_proxy_wasm_dispatch_t *call, unsigned resume);
 static void ngx_http_proxy_wasm_dispatch_handler(ngx_event_t *ev);
 static ngx_chain_t *ngx_http_proxy_wasm_dispatch_request(
     ngx_http_proxy_wasm_dispatch_t *call);
@@ -52,8 +52,55 @@ ngx_http_proxy_wasm_dispatch_strerror(ngx_http_proxy_wasm_dispatch_err_e err)
 }
 
 
+static ngx_int_t
+invoke_on_http_dispatch_response(ngx_proxy_wasm_exec_t *pwexec,
+    ngx_http_proxy_wasm_dispatch_t *call)
+{
+    ngx_proxy_wasm_step_e   step;
+    ngx_proxy_wasm_err_e    ecode;
+
+    /**
+     * Set current call for subsequent call detection after the step
+     * (no yielding).
+     */
+    pwexec->call = call;
+
+    /**
+     * Save step: ngx_proxy_wasm_run_step will set pwctx->step (for host
+     * calls that need it), but we want to resume to the current step when
+     * all calls are finished (i.e. on_request_headers), so we'll save it
+     * here and set it back after run_step.
+     *
+     * This could eventually move to ngx_proxy_wasm_run_step if needed for
+     * other "single step invocations".
+     */
+    step = pwexec->parent->step;
+
+#ifdef NGX_WASM_HTTP
+    pwexec->parent->phase = ngx_wasm_phase_lookup(&ngx_http_wasm_subsystem,
+                                                  NGX_WASM_BACKGROUND_PHASE);
+#endif
+
+    ecode = ngx_proxy_wasm_run_step(pwexec,
+                                    NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE);
+    if (ecode != NGX_PROXY_WASM_ERR_NONE) {
+        /* catch trap for tcp socket resume retval */
+        return NGX_ERROR;
+    }
+
+    /* reset step */
+    pwexec->parent->step = step;
+
+    /* remove current call now that callback was invoked */
+    pwexec->call = NULL;
+
+    return NGX_OK;
+}
+
+
 static void
-ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
+ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call,
+    unsigned resume)
 {
 #if 0
     const char *fmt, ...)
@@ -77,6 +124,8 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
     p = ngx_slprintf(p, last, "dispatch failed");
 
     if (sock->errlen) {
+        ngx_wa_assert(sock->status != NGX_WASM_SOCKET_STATUS_OK);
+
         p = ngx_slprintf(p, last, ": %*s",
                          (int) sock->errlen, sock->err);
     }
@@ -102,6 +151,10 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call)
         /* in-vm, executing a hostcall */
         ngx_wavm_instance_trap_printf(pwexec->ictx->instance, "%*s",
                                       p - (u_char *) &errbuf, &errbuf);
+    }
+
+    if (resume) {
+        (void) invoke_on_http_dispatch_response(pwexec, call);
     }
 
     ngx_http_proxy_wasm_dispatch_destroy(call);
@@ -374,6 +427,10 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     call->http_reader.rctx = call->rctx;
     call->http_reader.sock = sock;
 
+    if (ngx_wasm_http_reader_init(&call->http_reader) != NGX_OK) {
+        goto error;
+    }
+
     /* dispatch */
 
     ev = ngx_calloc(sizeof(ngx_event_t), r->connection->log);
@@ -410,7 +467,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 error:
 
     if (call) {
-        ngx_http_proxy_wasm_dispatch_err(call);
+        ngx_http_proxy_wasm_dispatch_err(call, 0);
     }
 
     return NULL;
@@ -718,8 +775,6 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
     ngx_http_request_t              *r = rctx->r;
     ngx_proxy_wasm_exec_t           *pwexec = call->pwexec;
     ngx_proxy_wasm_filter_t         *filter = pwexec->filter;
-    ngx_proxy_wasm_err_e             ecode = NGX_PROXY_WASM_ERR_NONE;
-    ngx_proxy_wasm_step_e            step = pwexec->parent->step;
 
     dd("enter");
 
@@ -830,41 +885,11 @@ ngx_http_proxy_wasm_dispatch_resume_handler(ngx_wasm_socket_tcp_t *sock)
         /* call has finished */
         ngx_queue_remove(&call->q);
 
-        /**
-         * Set current call for subsequent call detection after the step
-         * (no yielding).
-         */
-        pwexec->call = call;
-
-        /**
-         * Save step: ngx_proxy_wasm_run_step will set pwctx->step (for host
-         * calls that need it), but we want to resume to the current step when
-         * all calls are finished (i.e. on_request_headers), so we'll save it
-         * here and set it back after run_step.
-         *
-         * This could eventually move to ngx_proxy_wasm_run_step if needed for
-         * other "single step invocations".
-         */
-        step = pwexec->parent->step;
-
-#ifdef NGX_WASM_HTTP
-        pwexec->parent->phase = ngx_wasm_phase_lookup(&ngx_http_wasm_subsystem,
-                                    NGX_WASM_BACKGROUND_PHASE);
-#endif
-
-        ecode = ngx_proxy_wasm_run_step(pwexec,
-                                        NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE);
-        if (ecode != NGX_PROXY_WASM_ERR_NONE) {
-            /* catch trap for tcp socket resume retval */
+        if (invoke_on_http_dispatch_response(pwexec, call) != NGX_OK) {
             rc = NGX_ERROR;
-            goto error2;
+            ngx_http_proxy_wasm_dispatch_err(call, 0);
+            goto done;
         }
-
-        /* reset step */
-        pwexec->parent->step = step;
-
-        /* remove current call now that callback was invoked */
-        pwexec->call = NULL;
 
         ngx_http_proxy_wasm_dispatch_destroy(call);
         break;
@@ -887,15 +912,13 @@ error:
 
 error2:
 
-    if (ecode != NGX_PROXY_WASM_ERR_NONE
-        || rc == NGX_ABORT)
-    {
+    if (rc == NGX_ABORT) {
         /* catch trap for tcp socket resume retval or an instance
          * that trapped before the response was received */
         rc = NGX_ERROR;
     }
 
-    ngx_http_proxy_wasm_dispatch_err(call);
+    ngx_http_proxy_wasm_dispatch_err(call, 1);
 
 done:
 
@@ -920,7 +943,7 @@ done:
         if (rc != NGX_ERROR) {
             rc = ngx_proxy_wasm_resume(pwexec->parent,
                                        pwexec->parent->phase,
-                                       step);
+                                       pwexec->parent->step);
         }
     }
 
