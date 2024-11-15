@@ -5,6 +5,7 @@
 
 #include <ngx_proxy_wasm.h>
 #include <ngx_proxy_wasm_properties.h>
+#include <ngx_proxy_wasm_foreign_call.h>
 #ifdef NGX_WASM_HTTP
 #include <ngx_http_proxy_wasm.h>
 #endif
@@ -839,6 +840,9 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
         rc = filter->subsystem->resume(pwexec, step, &action);
         break;
+    case NGX_PROXY_WASM_STEP_FOREIGN_CALLBACK:
+        rc = filter->subsystem->resume(pwexec, step, &action);
+        break;
     case NGX_PROXY_WASM_STEP_TICK:
         pwexec->in_tick = 1;
         rc = ngx_proxy_wasm_on_tick(pwexec);
@@ -922,6 +926,45 @@ ngx_proxy_wasm_dispatch_calls_cancel(ngx_proxy_wasm_exec_t *pwexec)
         ngx_queue_remove(&call->q);
 
         ngx_http_proxy_wasm_dispatch_destroy(call);
+    }
+#endif
+}
+
+
+ngx_uint_t
+ngx_proxy_wasm_foreign_calls_total(ngx_proxy_wasm_exec_t *pwexec)
+{
+    ngx_queue_t  *q;
+    ngx_uint_t    n = 0;
+
+    for (q = ngx_queue_head(&pwexec->foreign_calls);
+         q != ngx_queue_sentinel(&pwexec->foreign_calls);
+         q = ngx_queue_next(q), n++) { /* void */ }
+
+    dd("n: %ld", n);
+
+    return n;
+}
+
+
+void
+ngx_proxy_wasm_foreign_calls_cancel(ngx_proxy_wasm_exec_t *pwexec)
+{
+#ifdef NGX_WASM_HTTP
+    ngx_queue_t                    *q;
+    ngx_proxy_wasm_foreign_call_t  *call;
+
+    while (!ngx_queue_empty(&pwexec->foreign_calls)) {
+        q = ngx_queue_head(&pwexec->foreign_calls);
+        call = ngx_queue_data(q, ngx_proxy_wasm_foreign_call_t, q);
+
+        ngx_log_debug1(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
+                       "proxy_wasm foreign function callback cancelled"
+                       " (callback: %p)", call);
+
+        ngx_queue_remove(&call->q);
+
+        ngx_proxy_wasm_foreign_call_destroy(call);
     }
 #endif
 }
@@ -1146,6 +1189,7 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
             rexec->ictx = ictx;
 
             ngx_queue_init(&rexec->dispatch_calls);
+            ngx_queue_init(&rexec->foreign_calls);
 
             log = filter->log;
 
@@ -1263,6 +1307,7 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
                 pwexec->store = ictx->store;
 
                 ngx_queue_init(&pwexec->dispatch_calls);
+                ngx_queue_init(&pwexec->foreign_calls);
 
             } else {
                 if (in->ictx != ictx) {

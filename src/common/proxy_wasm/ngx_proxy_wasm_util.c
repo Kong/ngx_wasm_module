@@ -41,7 +41,8 @@ static ngx_str_t  ngx_proxy_wasm_steplist[] = {
     ngx_string("on_log"),
     ngx_string("on_done"),
     ngx_string("on_tick"),
-    ngx_string("on_dispatch_response")
+    ngx_string("on_dispatch_response"),
+    ngx_string("on_foreign_function")
 };
 
 
@@ -62,7 +63,7 @@ ngx_proxy_wasm_step_name(ngx_proxy_wasm_step_e step)
     ngx_str_t  *name;
 
     ngx_wa_assert(step);
-    ngx_wa_assert(step <= NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE);
+    ngx_wa_assert(step <= NGX_PROXY_WASM_STEP_FOREIGN_CALLBACK);
 
     name = &ngx_proxy_wasm_steplist[step];
 

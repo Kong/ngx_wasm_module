@@ -915,6 +915,15 @@ done:
         ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
                                            NGX_PROXY_WASM_ACTION_PAUSE);
 
+    } else if (ngx_proxy_wasm_foreign_calls_total(pwexec)) {
+        ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwexec->log, 0,
+                       "proxy_wasm foreign function callbacks pending...");
+
+        rc = NGX_AGAIN;
+        ngx_wasm_yield(&rctx->env);
+        ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
+                                           NGX_PROXY_WASM_ACTION_PAUSE);
+
     } else {
         ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwexec->log, 0,
                        "proxy_wasm last http dispatch call handled");
