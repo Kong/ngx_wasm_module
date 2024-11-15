@@ -23,6 +23,7 @@ impl TestContext {
             "increment_metric" => increment_metric(self),
             "record_metric" => record_metric(self),
             "get_metric" => get_metric(self),
+            "call_resolve_lua" => call_resolve_lua(self, arg),
             "set_tick_period" => set_tick_period(self),
             "add_request_header" => add_request_header(self, arg),
             "add_response_header" => add_response_header(self, arg),
@@ -88,6 +89,11 @@ impl HttpContext for TestHttp {
             }
 
             return Action::Pause;
+        } else if self.tester.get_config("on_foreign_function").is_some() {
+            self.tester
+                .check_host_function("call_resolve_lua|httpbin.org");
+
+            return Action::Pause;
         }
 
         Action::Continue
@@ -144,6 +150,17 @@ impl Context for TestHttp {
         );
 
         if let Some(name) = self.tester.get_config("on_http_dispatch_response") {
+            self.tester.check_host_function(name);
+        }
+    }
+
+    fn on_foreign_function(&mut self, function_id: u32, args_size: usize) {
+        info!(
+            "on_foreign_function (id: {}, args_size: {})",
+            function_id, args_size
+        );
+
+        if let Some(name) = self.tester.get_config("on_foreign_function") {
             self.tester.check_host_function(name);
         }
     }

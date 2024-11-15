@@ -186,3 +186,20 @@ get_request_body_buffer status: 0
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 10: proxy_wasm contexts - get_http_request_body on_foreign_function
+--- skip_eval: 4: $::nginxV !~ m/openresty/
+--- wasm_modules: context_checks
+--- config
+    location /t {
+        proxy_wasm context_checks 'on_foreign_function=get_request_body_buffer';
+        return 200;
+    }
+--- ignore_response_body
+--- error_log
+[error]
+can only get request body during "on_request_body"
+--- no_error_log
+[crit]

@@ -11,6 +11,7 @@
 #include <ngx_wa_shm_kv.h>
 #include <ngx_wa_shm_queue.h>
 #include <ngx_wa_metrics.h>
+#include <ngx_proxy_wasm_foreign_call.h>
 #ifdef NGX_WASM_HTTP
 #include <ngx_http_proxy_wasm.h>
 #endif
@@ -34,9 +35,11 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
     ngx_http_wasm_req_ctx_t  *rctx;
     ngx_http_request_t       *r;
     ngx_proxy_wasm_ctx_t     *pwctx;
+#endif
     ngx_proxy_wasm_exec_t    *pwexec;
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+#ifdef NGX_WASM_HTTP
     pwctx = pwexec->parent;
 #endif
 
@@ -145,6 +148,19 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
             return reader->body;
         }
 #endif
+
+    case NGX_PROXY_WASM_BUFFER_FOREIGN_FUNCTION_ARGUMENTS:
+        {
+            ngx_proxy_wasm_foreign_call_t  *call = pwexec->foreign_call;
+
+            if (call == NULL) {
+                return NULL;
+            }
+
+            ngx_wa_assert(call->args_out);
+
+            return call->args_out;
+        }
 
     default:
         ngx_wavm_log_error(NGX_LOG_WASM_NYI, instance->log, NULL,
@@ -1110,13 +1126,14 @@ ngx_proxy_wasm_hfuncs_send_local_response(ngx_wavm_instance_t *instance,
 
         /* pwexec->step == NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE) */
 
-        if (ngx_proxy_wasm_dispatch_calls_total(pwexec)) {
+        if (ngx_proxy_wasm_dispatch_ops_total(pwexec)) {
             ngx_proxy_wasm_log_error(NGX_LOG_NOTICE, pwexec->log, 0,
                                      "local response produced, cancelling "
-                                     "pending dispatch calls");
+                                     "pending dispatch operations");
 
-            ngx_proxy_wasm_dispatch_calls_cancel(pwexec);
+            ngx_proxy_wasm_dispatch_ops_cancel(pwexec);
         }
+
 
         break;
 
@@ -1173,6 +1190,7 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
     case NGX_PROXY_WASM_STEP_REQ_BODY:
     case NGX_PROXY_WASM_STEP_TICK:
     case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
+    case NGX_PROXY_WASM_STEP_FOREIGN_CALLBACK:
         break;
     default:
         return ngx_proxy_wasm_result_trap(pwexec,
@@ -1180,8 +1198,9 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
                                           "during "
                                           "\"on_request_headers\", "
                                           "\"on_request_body\", "
+                                          "\"on_tick\", "
                                           "\"on_dispatch_response\", "
-                                          "\"on_tick\"",
+                                          "\"on_foreign_function\"",
                                           rets, NGX_WAVM_BAD_USAGE);
     }
 
@@ -1807,7 +1826,38 @@ ngx_proxy_wasm_hfuncs_increment_metric(ngx_wavm_instance_t *instance,
 
 
 /* custom extension points */
-/* NYI */
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_call_foreign_function(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_proxy_wasm_exec_t    *pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+#ifdef NGX_WASM_HTTP
+    ngx_str_t                 fname, fargs;
+    int32_t                  *ret_size;
+    ngx_wavm_ptr_t           *ret_data = 0;
+    ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
+
+    fname.len = args[1].of.i32;
+    fname.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, fname.len);
+
+    fargs.len = args[3].of.i32;
+    fargs.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[2].of.i32, fargs.len);
+
+    ret_data = NGX_WAVM_HOST_LIFT(instance, args[4].of.i32, ngx_wavm_ptr_t);
+    ret_size = NGX_WAVM_HOST_LIFT(instance, args[5].of.i32, int32_t);
+
+    if (ngx_str_eq(fname.data, fname.len, "resolve_lua", -1)) {
+        return ngx_proxy_wasm_foreign_call_resolve_lua(instance, rctx, &fargs,
+                                                       ret_data, ret_size,
+                                                       rets);
+    }
+#endif
+
+    return ngx_proxy_wasm_result_trap(pwexec, "unknown foreign function",
+                                      rets, NGX_WAVM_ERROR);
+}
 
 
 /* legacy */
@@ -2224,7 +2274,7 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
       ngx_wavm_arity_i32x5,
       ngx_wavm_arity_i32 },
     { ngx_string("proxy_call_foreign_function"),         /* 0.2.0 && 0.2.1 */
-      &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
+      &ngx_proxy_wasm_hfuncs_call_foreign_function,
       ngx_wavm_arity_i32x6,
       ngx_wavm_arity_i32 },
 

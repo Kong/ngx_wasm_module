@@ -25,7 +25,7 @@ __DATA__
 --- must_die: 0
 --- error_log
 [error]
-can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_dispatch_response", "on_tick"
+can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_tick", "on_dispatch_response", "on_foreign_function"
 --- no_error_log
 [crit]
 
@@ -41,7 +41,7 @@ can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_
 --- must_die: 0
 --- error_log
 [error]
-can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_dispatch_response", "on_tick"
+can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_tick", "on_dispatch_response", "on_foreign_function"
 --- no_error_log
 [crit]
 
@@ -132,7 +132,7 @@ dispatch failed: no :method
 --- ignore_response_body
 --- error_log
 [error]
-can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_dispatch_response", "on_tick"
+can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_tick", "on_dispatch_response", "on_foreign_function"
 --- no_error_log
 [crit]
 
@@ -149,7 +149,7 @@ can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_
 --- ignore_response_body
 --- error_log
 [error]
-can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_dispatch_response", "on_tick"
+can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_tick", "on_dispatch_response", "on_foreign_function"
 --- no_error_log
 [crit]
 
@@ -164,6 +164,23 @@ can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_
     }
 --- error_log
 [error]
-can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_dispatch_response", "on_tick"
+can only send HTTP dispatch during "on_request_headers", "on_request_body", "on_tick", "on_dispatch_response", "on_foreign_function"
+--- no_error_log
+[crit]
+
+
+
+=== TEST 10: proxy_wasm contexts - dispatch_http_call on_foreign_function
+--- skip_eval: 4: $::nginxV !~ m/openresty/
+--- wasm_modules: context_checks
+--- config
+    location /t {
+        proxy_wasm context_checks 'on_foreign_function=dispatch_http_call';
+        return 200;
+    }
+--- ignore_response_body
+--- error_log
+[error]
+dispatch failed: no :method
 --- no_error_log
 [crit]
