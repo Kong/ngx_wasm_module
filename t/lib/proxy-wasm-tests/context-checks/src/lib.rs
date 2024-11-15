@@ -23,6 +23,7 @@ impl TestContext {
             "increment_metric" => increment_metric(self),
             "record_metric" => record_metric(self),
             "get_metric" => get_metric(self),
+            "call_resolve_lua" => call_resolve_lua(self),
             "set_tick_period" => set_tick_period(self),
             "add_request_header" => add_request_header(self, arg),
             "add_response_header" => add_response_header(self, arg),
