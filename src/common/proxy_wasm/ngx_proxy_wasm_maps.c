@@ -35,6 +35,8 @@ static ngx_str_t *ngx_proxy_wasm_maps_get_response_status(
 static ngx_int_t ngx_proxy_wasm_maps_set_response_status(
     ngx_wavm_instance_t *instance, ngx_str_t *value,
     ngx_proxy_wasm_map_type_e map_type);
+static ngx_str_t *ngx_proxy_wasm_maps_get_dispatch_response_status(
+    ngx_wavm_instance_t *instance, ngx_proxy_wasm_map_type_e map_type);
 static ngx_str_t *ngx_proxy_wasm_maps_get_dispatch_status(
     ngx_wavm_instance_t *instance, ngx_proxy_wasm_map_type_e map_type);
 #endif
@@ -75,6 +77,11 @@ static ngx_proxy_wasm_maps_key_t  ngx_proxy_wasm_maps_special_keys[] = {
     /* dispatch response */
 
     { ngx_string(":status"),
+      NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_HEADERS,
+      ngx_proxy_wasm_maps_get_dispatch_response_status,
+      NULL },
+
+    { ngx_string(":dispatch_status"),
       NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_HEADERS,
       ngx_proxy_wasm_maps_get_dispatch_status,
       NULL },
@@ -118,8 +125,15 @@ ngx_proxy_wasm_maps_get_map(ngx_wavm_instance_t *instance,
         }
 
         reader = &call->http_reader;
+        r = &reader->fake_r;
 
-        return &reader->fake_r.upstream->headers_in.headers;
+        /* reader is initialized */
+        ngx_wa_assert(r->signature);
+
+        return &r->upstream->headers_in.headers;
+
+    case NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_TRAILERS:
+        return NULL;
 #endif
 
     default:
@@ -755,7 +769,7 @@ ngx_proxy_wasm_maps_set_response_status(ngx_wavm_instance_t *instance,
 
 
 static ngx_str_t *
-ngx_proxy_wasm_maps_get_dispatch_status(ngx_wavm_instance_t *instance,
+ngx_proxy_wasm_maps_get_dispatch_response_status(ngx_wavm_instance_t *instance,
     ngx_proxy_wasm_map_type_e map_type)
 {
     ngx_uint_t                       status;
@@ -773,9 +787,8 @@ ngx_proxy_wasm_maps_get_dispatch_status(ngx_wavm_instance_t *instance,
 
     /* status */
 
-    ngx_wa_assert(reader->fake_r.upstream);
-
     if (reader->fake_r.upstream == NULL) {
+        /* response not received */
         return NULL;
     }
 
@@ -811,5 +824,23 @@ ngx_proxy_wasm_maps_get_dispatch_status(ngx_wavm_instance_t *instance,
     ngx_wa_assert(pwctx->call_status.len);
 
     return &pwctx->call_status;
+}
+
+
+static ngx_str_t *
+ngx_proxy_wasm_maps_get_dispatch_status(ngx_wavm_instance_t *instance,
+    ngx_proxy_wasm_map_type_e map_type)
+{
+    ngx_proxy_wasm_exec_t           *pwexec;
+    ngx_http_proxy_wasm_dispatch_t  *call;
+    ngx_wasm_socket_tcp_t           *sock;
+
+    ngx_wa_assert(map_type == NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_HEADERS);
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    call = pwexec->call;
+    sock = &call->sock;
+
+    return ngx_wasm_socket_tcp_status_strerror(sock->status);
 }
 #endif

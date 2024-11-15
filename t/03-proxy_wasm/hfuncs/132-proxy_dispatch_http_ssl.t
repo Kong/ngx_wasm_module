@@ -17,7 +17,7 @@ add_block_preprocessor(sub {
     }
 });
 
-plan_tests(4);
+plan_tests(6);
 run_tests();
 
 __DATA__
@@ -54,6 +54,9 @@ ok
     qr/\[warn\] .*? tls certificate not verified/,
     qr/\[warn\] .*? tls certificate host not verified/
 ]
+--- no_error_log
+[error]
+[crit]
 
 
 
@@ -93,7 +96,9 @@ ok
 --- no_error_log eval
 [
     qr/tls certificate not verified/,
-    qr/\[error\]/
+    "[error]",
+    "[crit]",
+    "[alert]"
 ]
 
 
@@ -138,6 +143,8 @@ Content-Length: 0.*
 qr/verifying tls certificate for "hostname:\d+" \(sni: "hostname"\)/
 --- no_error_log
 [error]
+[crit]
+[alert]
 
 
 
@@ -185,6 +192,8 @@ Content-Length: 0.*
 "verifying tls certificate for \"unix:$ENV{TEST_NGINX_UNIX_SOCKET}\" (sni: \"localhost\")"
 --- no_error_log
 [error]
+[crit]
+[alert]
 
 
 
@@ -213,7 +222,11 @@ qq{
 --- response_body
 ok
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \(10:certificate has expired\)/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \(10:certificate has expired\)/,
+    qr/\*\d+ .*? on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    qr/dispatch_status: tls handshake failure/
+]
 --- no_error_log
 [crit]
 
@@ -260,6 +273,8 @@ Content-Length: 0.*
 qr/checking tls certificate CN for "hostname:\d+" \(sni: "hostname"\)/
 --- no_error_log
 [error]
+[crit]
+[alert]
 
 
 
@@ -294,7 +309,11 @@ qq{
 --- response_body
 ok
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate CN does not match \"localhost\" sni/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate CN does not match \"localhost\" sni/,
+    qr/\*\d+ .*? on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    qr/dispatch_status: tls handshake failure/
+]
 --- no_error_log
 [crit]
 
@@ -325,7 +344,11 @@ qq{
 --- response_body
 ok
 --- error_log eval
-qr/tls certificate verify error: \(19:self.signed certificate in certificate chain\)/
+[
+    qr/tls certificate verify error: \(19:self.signed certificate in certificate chain\)/,
+    qr/\*\d+ .*? on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    qr/dispatch_status: tls handshake failure/
+]
 --- no_error_log
 [crit]
 
@@ -353,7 +376,9 @@ ok
 --- error_log eval
 [
     qr/\[crit\] .*? SSL_do_handshake\(\) failed/,
-    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls handshake failed/
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls handshake failed/,
+    qr/\*\d+ .*? on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    qr/dispatch_status: tls handshake failure/
 ]
 
 
@@ -366,6 +391,8 @@ qr/\[emerg\] .*?no such file/i
 --- no_error_log
 [error]
 [crit]
+[alert]
+stub
 --- must_die
 
 
@@ -380,6 +407,8 @@ qr/\[emerg\] .*?no certificate or crl found/i
 --- no_error_log
 [error]
 [crit]
+[alert]
+stub
 --- must_die
 --- user_files
 >>> ca.pem
@@ -389,7 +418,7 @@ foo
 
 === TEST 12: proxy_wasm - dispatch_https_call() no trusted CA
 macOS: intermitent failures
---- skip_eval: 4: $::osname =~ m/darwin/
+--- skip_eval: $::osname =~ m/darwin/
 --- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
@@ -411,7 +440,11 @@ qq{
     }
 }
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \((18|20):(self-signed certificate|unable to get local issuer certificate)\)/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \((18|20):(self-signed certificate|unable to get local issuer certificate)\)/,
+    qr/\*\d+ .*? on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    qr/dispatch_status: tls handshake failure/
+]
 --- no_error_log
 [crit]
 [emerg]
@@ -420,7 +453,7 @@ qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls cer
 
 === TEST 13: proxy_wasm - dispatch_https_call() empty trusted CA path
 macOS: intermitent failures
---- skip_eval: 4: $::osname =~ m/darwin/
+--- skip_eval: $::osname =~ m/darwin/
 --- timeout eval: $::ExtTimeout
 --- main_config eval
 qq{
@@ -446,7 +479,11 @@ qq{
 --- response_body
 ok
 --- error_log eval
-qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \((18|20):(self-signed certificate|unable to get local issuer certificate)\)/
+[
+    qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - tls certificate verify error: \((18|20):(self-signed certificate|unable to get local issuer certificate)\)/,
+    qr/\*\d+ .*? on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    qr/dispatch_status: tls handshake failure/
+]
 --- no_error_log
 [crit]
 
@@ -490,6 +527,9 @@ ok
     qr/upstream tls server name: "hostname"/,
     qr/checking tls certificate CN for "hostname:\d+" \(sni: "hostname"\)/,
 ]
+--- no_error_log
+[error]
+[crit]
 
 
 
@@ -522,7 +562,11 @@ qq{
 --- response_body
 ok
 --- error_log eval
-qr/could not derive tls sni from host \("127\.0\.0\.1:\d+"\)/
+[
+    qr/could not derive tls sni from host \("127\.0\.0\.1:\d+"\)/,
+    qr/\*\d+ .*? on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    qr/dispatch_status: tls handshake failure/
+]
 --- no_error_log
 [crit]
 
@@ -552,7 +596,11 @@ SNI cannot be an IP address.
 --- response_body
 ok
 --- error_log eval
-qr/could not derive tls sni from host \("\[0:0:0:0:0:0:0:1\]:\d+"\)/
+[
+    qr/could not derive tls sni from host \("\[0:0:0:0:0:0:0:1\]:\d+"\)/,
+    qr/\*\d+ .*? on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    qr/dispatch_status: tls handshake failure/
+]
 --- no_error_log
 [crit]
 
@@ -595,8 +643,11 @@ ok
 --- error_log eval
 [
     "upstream tls server name: \"hostname\"",
-    qr/checking tls certificate CN for "127\.0\.0\.1:\d+" \(sni: "hostname"\)/,
+    qr/checking tls certificate CN for "127\.0\.0\.1:\d+" \(sni: "hostname"\)/
 ]
+--- no_error_log
+[error]
+[crit]
 
 
 
@@ -636,6 +687,8 @@ ok
 --- no_error_log
 [error]
 [crit]
+[alert]
+[emerg]
 
 
 
@@ -680,6 +733,9 @@ ok
     "upstream tls server name: \"hostname\"",
     "verifying tls certificate for \"unix:$ENV{TEST_NGINX_UNIX_SOCKET}\" (sni: \"hostname\")"
 ]
+--- no_error_log
+[error]
+[crit]
 
 
 
@@ -721,6 +777,8 @@ ok
 --- no_error_log
 [error]
 [crit]
+[alert]
+[emerg]
 
 
 
@@ -762,6 +820,9 @@ qq{
     qr/\[warn\] .*? tls certificate host not verified/,
     "on_root_http_call_response (id: 0, status: 200, headers: 5, body_bytes: 3, trailers: 0)",
 ]
+--- no_error_log
+[error]
+[crit]
 
 
 
@@ -805,3 +866,6 @@ qq{
     qr/checking tls certificate CN for "hostname:\d+" \(sni: "hostname"\)/,
     "on_root_http_call_response (id: 0, status: 200, headers: 5, body_bytes: 3, trailers: 0)",
 ]
+--- no_error_log
+[error]
+[crit]

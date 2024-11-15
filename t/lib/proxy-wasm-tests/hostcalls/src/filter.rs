@@ -11,6 +11,7 @@ impl Context for TestHttp {
         body_size: usize,
         ntrailers: usize,
     ) {
+        let dispatch_status = self.get_http_call_response_header(":dispatch_status");
         let status = self.get_http_call_response_header(":status");
         let bytes = self.get_http_call_response_body(0, body_size);
         let op = self
@@ -22,6 +23,11 @@ impl Context for TestHttp {
             "[hostcalls] on_http_call_response (id: {}, status: {}, headers: {}, body_bytes: {}, trailers: {}, op: {})",
             token_id, status.unwrap_or("".to_string()), nheaders, body_size, ntrailers, op
         );
+
+        match dispatch_status.as_deref() {
+            Some(s) => info!("dispatch_status: {}", s),
+            None => {}
+        }
 
         self.add_http_response_header("pwm-call-id", token_id.to_string().as_str());
 

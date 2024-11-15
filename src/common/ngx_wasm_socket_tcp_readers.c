@@ -544,4 +544,57 @@ ngx_wasm_read_http_response(ngx_buf_t *src, ngx_chain_t *buf_in, ssize_t bytes,
 
     return NGX_OK;
 }
+
+
+ngx_int_t
+ngx_wasm_http_reader_init(ngx_wasm_http_reader_ctx_t *in_ctx)
+{
+    ngx_http_wasm_req_ctx_t  *rctx;
+    ngx_http_request_t       *r;
+
+    rctx = in_ctx->rctx;
+    r = &in_ctx->fake_r;
+
+    ngx_wa_assert(!r->signature);
+
+    ngx_memzero(r, sizeof(ngx_http_request_t));
+
+    r->pool = in_ctx->pool;
+    r->signature = NGX_HTTP_MODULE;
+    r->connection = rctx->connection;
+    r->request_start = NULL;
+    r->header_in = NULL;
+
+    if (ngx_list_init(&r->headers_out.headers, r->pool, 20,
+                      sizeof(ngx_table_elt_t))
+        != NGX_OK)
+    {
+        return NGX_ERROR;
+    }
+
+    if (ngx_list_init(&r->headers_out.trailers, r->pool, 4,
+                      sizeof(ngx_table_elt_t))
+        != NGX_OK)
+    {
+        return NGX_ERROR;
+    }
+
+    if (ngx_http_upstream_create(r) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    r->upstream->conf = &in_ctx->uconf;
+
+    if (ngx_list_init(&r->upstream->headers_in.headers, r->pool, 4,
+                      sizeof(ngx_table_elt_t))
+        != NGX_OK)
+    {
+        return NGX_ERROR;
+    }
+
+    r->headers_out.content_length_n = -1;
+    r->headers_out.last_modified_time = -1;
+
+    return NGX_OK;
+}
 #endif

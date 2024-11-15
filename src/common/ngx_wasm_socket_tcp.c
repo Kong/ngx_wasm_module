@@ -14,7 +14,7 @@
 
 
 static void ngx_wasm_socket_tcp_err(ngx_wasm_socket_tcp_t *sock,
-    const char *fmt, ...);
+    ngx_wasm_socket_status_e status, const char *fmt, ...);
 static void ngx_wasm_socket_resolve_handler(ngx_resolver_ctx_t *ctx);
 static ngx_int_t ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock);
 static ngx_int_t ngx_wasm_socket_tcp_get_peer(ngx_peer_connection_t *pc,
@@ -36,14 +36,43 @@ static ngx_int_t ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c,
 #endif
 
 
+static ngx_str_t  ngx_wasm_socket_errlist[] = {
+    ngx_string("ok"),
+    ngx_string("bad argument"),
+    ngx_string("timeout"),
+    ngx_string("broken connection"),
+#if (NGX_SSL)
+    ngx_string("tls handshake failure"),
+#endif
+    ngx_string("resolver failure"),
+    ngx_string("reader failure"),
+    ngx_string("internal failure")
+};
+
+
+ngx_str_t *
+ngx_wasm_socket_tcp_status_strerror(ngx_wasm_socket_status_e status)
+{
+    ngx_str_t  *msg;
+
+    msg = ((ngx_uint_t) status < NGX_WASM_SOCKET_STATUS_INTERNAL_FAILURE)
+          ? &ngx_wasm_socket_errlist[status]
+          : &ngx_wasm_socket_errlist[NGX_WASM_SOCKET_STATUS_INTERNAL_FAILURE];
+
+    return msg;
+}
+
+
 static void
 ngx_wasm_socket_tcp_err(ngx_wasm_socket_tcp_t *sock,
+    ngx_wasm_socket_status_e status,
     const char *fmt, ...)
 {
     va_list   args;
     u_char   *p, *last;
 
     if (sock->err == NULL) {
+        sock->status = status;
         sock->err = ngx_pnalloc(sock->pool, NGX_MAX_ERROR_STR);
         if (sock->err == NULL) {
             return;
@@ -193,7 +222,8 @@ ngx_wasm_socket_tcp_init(ngx_wasm_socket_tcp_t *sock,
     sock->url.no_resolve = 1;
 
     if (ngx_parse_url(sock->pool, &sock->url) != NGX_OK) {
-        ngx_wasm_socket_tcp_err(sock, "%s", sock->url.err);
+        ngx_wasm_socket_tcp_err(sock, NGX_WASM_SOCKET_STATUS_BAD_ARGUMENT,
+                                "%s", sock->url.err);
         return NGX_ERROR;
     }
 
@@ -385,7 +415,8 @@ ngx_wasm_socket_tcp_connect(ngx_wasm_socket_tcp_t *sock)
     }
 
     if (rslv_ctx == NULL) {
-        ngx_wasm_socket_tcp_err(sock, "failed starting resolver");
+        ngx_wasm_socket_tcp_err(sock, NGX_WASM_SOCKET_STATUS_INTERNAL_FAILURE,
+                                "failed starting resolver");
         return NGX_ERROR;
     }
 
@@ -429,7 +460,9 @@ ngx_wasm_socket_resolve_handler(ngx_resolver_ctx_t *ctx)
     if (ctx->state || !ctx->naddrs) {
 #if (NGX_WASM_LUA)
         if (ctx->state == NGX_WASM_LUA_RESOLVE_ERR) {
-            ngx_wasm_socket_tcp_err(sock, "lua resolver failed");
+            ngx_wasm_socket_tcp_err(sock,
+                                    NGX_WASM_SOCKET_STATUS_RESOLVER_FAILURE,
+                                    "lua resolver failed");
             goto error;
         }
 #endif
@@ -440,7 +473,8 @@ ngx_wasm_socket_resolve_handler(ngx_resolver_ctx_t *ctx)
         }
 #endif
 
-        ngx_wasm_socket_tcp_err(sock, "resolver error: %s",
+        ngx_wasm_socket_tcp_err(sock, NGX_WASM_SOCKET_STATUS_RESOLVER_FAILURE,
+                                "resolver error: %s",
                                 ngx_resolver_strerror(ctx->state));
         goto error;
     }
@@ -571,12 +605,14 @@ ngx_wasm_socket_tcp_connect_peer(ngx_wasm_socket_tcp_t *sock)
         return NGX_ERROR;
 
     } else if (rc == NGX_BUSY) {
-        ngx_wasm_socket_tcp_err(sock, "no live connection");
+        ngx_wasm_socket_tcp_err(sock, NGX_WASM_SOCKET_STATUS_INTERNAL_FAILURE,
+                                "no live connection");
         return NGX_BUSY;
 
     } else if (rc == NGX_DECLINED) {
         sock->socket_errno = ngx_socket_errno;
-        ngx_wasm_socket_tcp_err(sock, NULL);
+        ngx_wasm_socket_tcp_err(sock, NGX_WASM_SOCKET_STATUS_BROKEN_CONNECTION,
+                                NULL);
         return NGX_ERROR;
     }
 
@@ -686,11 +722,13 @@ ngx_wasm_socket_tcp_ssl_handshake_handler(ngx_connection_t *c)
     }
 
     if (c->write->timedout) {
-        ngx_wasm_socket_tcp_err(sock, "tls handshake timed out");
+        ngx_wasm_socket_tcp_err(sock, NGX_WASM_SOCKET_STATUS_TLS_FAILURE,
+                                "tls handshake timed out");
         goto resume;
     }
 
-    ngx_wasm_socket_tcp_err(sock, "tls handshake failed");
+    ngx_wasm_socket_tcp_err(sock, NGX_WASM_SOCKET_STATUS_TLS_FAILURE,
+                            "tls handshake failed");
 
 resume:
 
@@ -722,6 +760,7 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c)
         rc = SSL_get_verify_result(c->ssl->connection);
         if (rc != X509_V_OK) {
             ngx_wasm_socket_tcp_err(sock,
+                                    NGX_WASM_SOCKET_STATUS_TLS_FAILURE,
                                     "tls certificate verify error: (%l:%s)",
                                     rc, X509_verify_cert_error_string(rc));
             return NGX_ERROR;
@@ -740,6 +779,7 @@ ngx_wasm_socket_tcp_ssl_handshake_done(ngx_connection_t *c)
 
         if (ngx_ssl_check_host(c, &sock->ssl_server_name) != NGX_OK) {
             ngx_wasm_socket_tcp_err(sock,
+                                    NGX_WASM_SOCKET_STATUS_TLS_FAILURE,
                                     "tls certificate CN "
                                     "does not match \"%V\" sni",
                                     &sock->ssl_server_name);
@@ -809,6 +849,7 @@ ngx_wasm_socket_tcp_ssl_set_server_name(ngx_connection_t *c,
         || ngx_inet_addr(name->data, len) != INADDR_NONE)
     {
         ngx_wasm_socket_tcp_err(sock,
+                                NGX_WASM_SOCKET_STATUS_TLS_FAILURE,
                                 "could not derive tls sni from host (\"%V\")",
                                 &sock->host);
         goto error;
@@ -877,7 +918,8 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
     ngx_connection_t  *c;
 
     if (!sock->connected) {
-        ngx_wasm_socket_tcp_err(sock, "not connected");
+        ngx_wasm_socket_tcp_err(sock, NGX_WASM_SOCKET_STATUS_INTERNAL_FAILURE,
+                                "not connected");
         return NGX_ERROR;
     }
 
@@ -930,7 +972,8 @@ ngx_wasm_socket_tcp_send(ngx_wasm_socket_tcp_t *sock, ngx_chain_t *cl)
     if (n == NGX_ERROR) {
         c->error = 1;
         sock->socket_errno = ngx_socket_errno;
-        ngx_wasm_socket_tcp_err(sock, NULL);
+        ngx_wasm_socket_tcp_err(sock, NGX_WASM_SOCKET_STATUS_BROKEN_CONNECTION,
+                                NULL);
         return NGX_ERROR;
     }
 
@@ -977,53 +1020,6 @@ ngx_int_t
 ngx_wasm_socket_read_http_response(ngx_wasm_socket_tcp_t *sock,
     ssize_t bytes, void *ctx)
 {
-    ngx_wasm_http_reader_ctx_t  *in_ctx = ctx;
-    ngx_http_request_t          *r;
-    ngx_http_wasm_req_ctx_t     *rctx;
-
-    r = &in_ctx->fake_r;
-    rctx = in_ctx->rctx;
-
-    if (!r->signature) {
-        ngx_memzero(r, sizeof(ngx_http_request_t));
-
-        r->pool = in_ctx->pool;
-        r->signature = NGX_HTTP_MODULE;
-        r->connection = rctx->connection;
-        r->request_start = NULL;
-        r->header_in = NULL;
-
-        if (ngx_list_init(&r->headers_out.headers, r->pool, 20,
-                          sizeof(ngx_table_elt_t))
-            != NGX_OK)
-        {
-            return NGX_ERROR;
-        }
-
-        if (ngx_list_init(&r->headers_out.trailers, r->pool, 4,
-                          sizeof(ngx_table_elt_t))
-            != NGX_OK)
-        {
-            return NGX_ERROR;
-        }
-
-        if (ngx_http_upstream_create(r) != NGX_OK) {
-            return NGX_ERROR;
-        }
-
-        r->upstream->conf = &in_ctx->uconf;
-
-        if (ngx_list_init(&r->upstream->headers_in.headers, r->pool, 4,
-                          sizeof(ngx_table_elt_t))
-            != NGX_OK)
-        {
-            return NGX_ERROR;
-        }
-
-        r->headers_out.content_length_n = -1;
-        r->headers_out.last_modified_time = -1;
-    }
-
     if (bytes) {
         ngx_log_debug1(NGX_LOG_DEBUG_WASM, sock->log, 0,
                        "wasm tcp socket resuming http response reading "
@@ -1054,7 +1050,8 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
     ngx_connection_t  *c;
 
     if (!sock->connected) {
-        ngx_wasm_socket_tcp_err(sock, "not connected");
+        ngx_wasm_socket_tcp_err(sock, NGX_WASM_SOCKET_STATUS_INTERNAL_FAILURE,
+                                "not connected");
         return NGX_ERROR;
     }
 
@@ -1091,7 +1088,9 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
             rc = reader(sock, size, reader_ctx);
             if (rc == NGX_ERROR) {
-                ngx_wasm_socket_tcp_err(sock, "parser error");
+                ngx_wasm_socket_tcp_err(sock,
+                                        NGX_WASM_SOCKET_STATUS_READER_FAILURE,
+                                        "parser error");
                 return NGX_ERROR;
             }
 
@@ -1159,7 +1158,9 @@ ngx_wasm_socket_tcp_read(ngx_wasm_socket_tcp_t *sock,
 
         if (n == NGX_ERROR) {
             sock->socket_errno = ngx_socket_errno;
-            ngx_wasm_socket_tcp_err(sock, NULL);
+            ngx_wasm_socket_tcp_err(sock,
+                                    NGX_WASM_SOCKET_STATUS_BROKEN_CONNECTION,
+                                    NULL);
             return NGX_ERROR;
         }
 
@@ -1505,11 +1506,11 @@ ngx_wasm_socket_tcp_connect_handler(ngx_wasm_socket_tcp_t *sock)
                        "wasm tcp socket timed out connecting to \"%V:%ud\"",
                        &c->addr_text, ngx_inet_get_port(sock->peer.sockaddr));
 
-        ngx_wasm_socket_tcp_err(sock, "timed out connecting to \"%V:%ud\"",
+        ngx_wasm_socket_tcp_err(sock,
+                                NGX_WASM_SOCKET_STATUS_TIMEOUT,
+                                "timed out connecting to \"%V:%ud\"",
                                 &c->addr_text,
                                 ngx_inet_get_port(sock->peer.sockaddr));
-
-        sock->timedout = 1;
         return;
     }
 
@@ -1520,7 +1521,9 @@ ngx_wasm_socket_tcp_connect_handler(ngx_wasm_socket_tcp_t *sock)
     if (rc != NGX_OK) {
         if (rc > 0) {
             sock->socket_errno = (ngx_err_t) rc;
-            ngx_wasm_socket_tcp_err(sock, NULL);
+            ngx_wasm_socket_tcp_err(sock,
+                                    NGX_WASM_SOCKET_STATUS_BROKEN_CONNECTION,
+                                    NULL);
         }
 
         return;
@@ -1560,11 +1563,11 @@ ngx_wasm_socket_tcp_send_handler(ngx_wasm_socket_tcp_t *sock)
                        "wasm tcp socket timed out writing to \"%V:%ud\"",
                        &c->addr_text, ngx_inet_get_port(sock->peer.sockaddr));
 
-        ngx_wasm_socket_tcp_err(sock, "timed out writing to \"%V:%ud\"",
+        ngx_wasm_socket_tcp_err(sock,
+                                NGX_WASM_SOCKET_STATUS_TIMEOUT,
+                                "timed out writing to \"%V:%ud\"",
                                 &c->addr_text,
                                 ngx_inet_get_port(sock->peer.sockaddr));
-
-        sock->timedout = 1;
         return;
     }
 }
@@ -1584,11 +1587,11 @@ ngx_wasm_socket_tcp_receive_handler(ngx_wasm_socket_tcp_t *sock)
                        "wasm tcp socket timed out reading from \"%V:%ud\"",
                        &c->addr_text, ngx_inet_get_port(sock->peer.sockaddr));
 
-        ngx_wasm_socket_tcp_err(sock, "timed out reading from \"%V:%ud\"",
+        ngx_wasm_socket_tcp_err(sock,
+                                NGX_WASM_SOCKET_STATUS_TIMEOUT,
+                                "timed out reading from \"%V:%ud\"",
                                 &c->addr_text,
                                 ngx_inet_get_port(sock->peer.sockaddr));
-
-        sock->timedout = 1;
         return;
     }
 

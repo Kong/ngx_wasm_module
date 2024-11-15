@@ -395,10 +395,11 @@ qr/\A.*? on_request_headers.*
 --- grep_error_log_out eval
 qr/\A\[error] .*? dispatch failed: tcp socket - Connection refused
 \[error] .*? dispatch failed: tcp socket - Connection refused\Z/
+--- error_log
+dispatch_status: broken connection
+dispatch_status: broken connection
 --- no_error_log
 [crit]
-[emerg]
-[alert]
 
 
 
@@ -423,10 +424,11 @@ ok
 --- grep_error_log_out eval
 qr/\A\[error] .*? dispatch failed: tcp socket - Connection refused
 \[error] .*? dispatch failed: tcp socket - Connection refused\Z/
+--- error_log
+dispatch_status: broken connection
+dispatch_status: broken connection
 --- no_error_log
 [crit]
-[emerg]
-[alert]
 
 
 
@@ -452,4 +454,4 @@ proxy_wasm http dispatch cancelled
 --- no_error_log
 [crit]
 [emerg]
-[alert]
+on_http_call_response
