@@ -199,7 +199,6 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 #if 0
     ngx_pool_cleanup_t              *cln;
 #endif
-    ngx_connection_t                *c;
     ngx_http_request_t              *r;
     ngx_http_wasm_req_ctx_t         *rctxp = NULL;
     ngx_http_proxy_wasm_dispatch_t  *call = NULL;
@@ -209,26 +208,9 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
     /* rctx or fake request */
 
     if (rctx == NULL) {
-        ngx_wa_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
-        ngx_wa_assert(pwexec->parent->id == NGX_PROXY_WASM_ROOT_CTX_ID);
-
-        c = ngx_http_wasm_create_fake_connection(pwexec->pool);
-        if (c == NULL) {
-            return NULL;
+        if (ngx_http_wasm_create_fake_rctx(pwexec, &r, &rctxp) != NGX_OK) {
+            goto error;
         }
-
-        r = ngx_http_wasm_create_fake_request(c);
-        if (r == NULL) {
-            return NULL;
-        }
-
-        if (ngx_http_wasm_rctx(r, &rctxp) != NGX_OK) {
-            return NULL;
-        }
-
-        ngx_wa_assert(r->pool == rctxp->pool);
-
-        rctxp->data = pwexec->parent;
 
     } else {
         r = rctx->r;
