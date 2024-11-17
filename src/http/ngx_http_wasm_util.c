@@ -990,3 +990,35 @@ ngx_http_wasm_free_fake_request(ngx_http_request_t *r)
     ngx_pfree(r->pool, r);
 #endif
 }
+
+
+ngx_int_t
+ngx_http_wasm_create_fake_rctx(ngx_proxy_wasm_exec_t *pwexec,
+    ngx_http_wasm_req_ctx_t **out)
+{
+    ngx_connection_t    *c;
+    ngx_http_request_t  *r;
+
+    ngx_wa_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+    ngx_wa_assert(pwexec->parent->id == NGX_PROXY_WASM_ROOT_CTX_ID);
+
+    c = ngx_http_wasm_create_fake_connection(pwexec->pool);
+    if (c == NULL) {
+        return NGX_ERROR;
+    }
+
+    r = ngx_http_wasm_create_fake_request(c);
+    if (r == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (ngx_http_wasm_rctx(r, out) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    ngx_wa_assert(r->pool == (*out)->pool);
+
+    (*out)->data = pwexec->parent;
+
+    return NGX_OK;
+}
