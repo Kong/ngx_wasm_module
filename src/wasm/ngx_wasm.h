@@ -101,6 +101,7 @@ typedef struct {
     ngx_resolver_t                    *user_resolver;
 
     ngx_flag_t                         pwm_lua_resolver;
+    ngx_flag_t                         pwm_log_dispatch_errors;
 } ngx_wasm_core_conf_t;
 
 

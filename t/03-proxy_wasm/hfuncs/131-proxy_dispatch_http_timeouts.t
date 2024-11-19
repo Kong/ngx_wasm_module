@@ -42,15 +42,125 @@ qq{
 --- error_log eval
 [
     qr/(\[error\]|Uncaught RuntimeError|\s+).*?dispatch failed: tcp socket - timed out connecting to \".*?\"/,
-    qr/\*\d+ .*? on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
-    qr/dispatch_status: timeout/
+    qr/on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    "dispatch_status: timeout"
 ]
 --- no_error_log
 [crit]
 
 
 
-=== TEST 2: proxy_wasm - dispatch_http_call() resolver timeout
+=== TEST 2: proxy_wasm - dispatch_http_call() 'proxy_wasm_log_dispatch_errors off;' in location{}
+Note: enabled in wasm{} (and by default), but disabled in location{} takes precedence.
+--- timeout eval: $::ExtTimeout
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config eval
+qq{
+    wasm {
+        proxy_wasm_log_dispatch_errors on;
+        module hostcalls $t::TestWasmX::crates/hostcalls.wasm;
+    }
+}
+--- config eval
+qq{
+    resolver         $::ExtResolver ipv6=off;
+    resolver_timeout $::ExtTimeout;
+
+    location /t {
+        proxy_wasm_log_dispatch_errors off;
+        wasm_socket_connect_timeout 1ms;
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=google.com';
+        echo ok;
+    }
+}
+--- response_body
+ok
+--- error_log eval
+[
+    qr/on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    "dispatch_status: timeout"
+]
+--- no_error_log
+dispatch failed: tcp socket - timed out connecting to
+[crit]
+
+
+
+=== TEST 3: proxy_wasm - dispatch_http_call() 'proxy_wasm_log_dispatch_errors off;' in wasm{}
+--- timeout eval: $::ExtTimeout
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config eval
+qq{
+    wasm {
+        proxy_wasm_log_dispatch_errors off;
+        module hostcalls $t::TestWasmX::crates/hostcalls.wasm;
+    }
+}
+--- config eval
+qq{
+    resolver         $::ExtResolver ipv6=off;
+    resolver_timeout $::ExtTimeout;
+
+    location /t {
+        proxy_wasm_log_dispatch_errors off;
+        wasm_socket_connect_timeout 1ms;
+
+        proxy_wasm hostcalls 'test=/t/dispatch_http_call \
+                              host=google.com';
+        echo ok;
+    }
+}
+--- response_body
+ok
+--- error_log eval
+[
+    qr/on_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    "dispatch_status: timeout"
+]
+--- no_error_log
+dispatch failed: tcp socket - timed out connecting to
+[crit]
+
+
+
+=== TEST 4: proxy_wasm - dispatch_http_call() on_tick with 'proxy_wasm_log_dispatch_errors off;' in wasm{}
+Note: needs proxy_wasm_lua_resolver as ipv6=off cannot be configured in default resolver.
+--- skip_eval: 6: $::nginxV !~ m/nginx version: openresty/
+--- timeout eval: $::ExtTimeout
+--- load_nginx_modules: ngx_http_echo_module
+--- main_config eval
+qq{
+    wasm {
+        socket_connect_timeout 1ms;
+        proxy_wasm_lua_resolver on;
+        proxy_wasm_log_dispatch_errors off;
+        module hostcalls $t::TestWasmX::crates/hostcalls.wasm;
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'tick_period=200 \
+                              on_tick=dispatch \
+                              host=google.com';
+        echo ok;
+    }
+--- wait: 1
+--- response_body
+ok
+--- error_log eval
+[
+    qr/on_root_http_call_response \(id: \d+, status: , headers: 0, body_bytes: 0/,
+    "dispatch_status: timeout"
+]
+--- no_error_log
+dispatch failed: tcp socket - timed out connecting to
+[crit]
+
+
+
+=== TEST 5: proxy_wasm - dispatch_http_call() resolver timeout
 Using a non-local resolver
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -80,7 +190,7 @@ ok
 
 
 
-=== TEST 3: proxy_wasm - dispatch_http_call() read timeout
+=== TEST 6: proxy_wasm - dispatch_http_call() read timeout
 macOS: mockeagain NYI
 --- skip_eval: 4: $::osname =~ m/darwin/
 --- load_nginx_modules: ngx_http_echo_module
@@ -111,7 +221,7 @@ ok
 
 
 
-=== TEST 4: proxy_wasm - dispatch_http_call() write timeout
+=== TEST 7: proxy_wasm - dispatch_http_call() write timeout
 macOS: mockeagain NYI
 --- skip_eval: 4: $::osname =~ m/darwin/
 --- load_nginx_modules: ngx_http_echo_module
@@ -144,7 +254,7 @@ ok
 
 
 
-=== TEST 5: proxy_wasm - dispatch_http_call() on_request_headers EAGAIN
+=== TEST 8: proxy_wasm - dispatch_http_call() on_request_headers EAGAIN
 dispatch_http_call() EAGAIN
 local_response() EAGAIN
 --- load_nginx_modules: ngx_http_echo_module
@@ -171,7 +281,7 @@ Hello world
 
 
 
-=== TEST 6: proxy_wasm - dispatch_http_call() on_request_body EAGAIN
+=== TEST 9: proxy_wasm - dispatch_http_call() on_request_body EAGAIN
 dispatch_http_call() EAGAIN
 local_response() EAGAIN
 --- load_nginx_modules: ngx_http_echo_module
