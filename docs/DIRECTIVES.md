@@ -10,6 +10,7 @@ By alphabetical order:
 - [module](#module)
 - [proxy_wasm](#proxy_wasm)
 - [proxy_wasm_isolation](#proxy_wasm_isolation)
+- [proxy_wasm_log_dispatch_errors](#proxy_wasm_log_dispatch_errors)
 - [proxy_wasm_lua_resolver](#proxy_wasm_lua_resolver)
 - [proxy_wasm_request_headers_in_access](#proxy_wasm_request_headers_in_access)
 - [resolver](#resolver)
@@ -45,6 +46,8 @@ By context:
     - [compiler](#compiler)
     - [backtraces](#backtraces)
     - [module](#module)
+    - [proxy_wasm_log_dispatch_errors](#proxy_wasm_log_dispatch_errors)
+    - [proxy_wasm_lua_resolver](#proxy_wasm_lua_resolver)
     - [resolver](#resolver)
     - [resolver_timeout](#resolver_timeout)
     - [shm_kv](#shm_kv)
@@ -72,6 +75,7 @@ By context:
 - `http{}`, `server{}`, `location{}`
     - [proxy_wasm](#proxy_wasm)
     - [proxy_wasm_isolation](#proxy_wasm_isolation)
+    - [proxy_wasm_log_dispatch_errors](#proxy_wasm_log_dispatch_errors)
     - [proxy_wasm_lua_resolver](#proxy_wasm_lua_resolver)
     - [proxy_wasm_request_headers_in_access](#proxy_wasm_request_headers_in_access)
     - [resolver_add](#resolver_add)
@@ -260,7 +264,7 @@ Load a Wasm module from disk.
 - `path` must point to a bytecode file whose format is `.wasm` (binary) or
   `.wat` (text).
 - `config` is an optional configuration string passed to `on_vm_start` when
-  `module` is a proxy-wasm filter.
+  `module` is a Proxy-Wasm filter.
 
 If successfully loaded, the module can later be referred to by `name`.
 
@@ -286,11 +290,11 @@ proxy_wasm
 **default**  |
 **example**  | `proxy_wasm my_filter_module 'foo=bar';`
 
-Add a proxy-wasm filter to the context's execution chain (see [Execution
+Add a Proxy-Wasm filter to the context's execution chain (see [Execution
 Chain]).
 
 - `module` must be a Wasm module name declared by a [module](#module) directive.
-  This module must be a valid proxy-wasm filter.
+  This module must be a valid Proxy-Wasm filter.
 - `config` is an optional configuration string passed to the filter's
   `on_configure` phase.
 
@@ -305,25 +309,25 @@ start.
 > Notes
 
 Each instance of the `proxy_wasm` directive in the configuration will be
-represented by a proxy-wasm root filter context in a Wasm instance.
+represented by a Proxy-Wasm root filter context in a Wasm instance.
 
 All root filter contexts of the same module share the same instance.
 
 All root filter contexts will be initialized during nginx worker process
 initialization, which will invoke the filters' `on_vm_start` and `on_configure`
 phases. Each root context may optionally start a single background tick, as
-specified by the [proxy-wasm SDK](#proxy-wasm).
+specified by the [Proxy-Wasm SDK](#proxy-wasm).
 
 Note that when the master process is in use as a daemon (default Nginx
 configuration), the `nginx` exit code may be `0` when its worker processes fail
-initialization. Since proxy-wasm filters are started on a per-process basis,
+initialization. Since Proxy-Wasm filters are started on a per-process basis,
 filter initialization takes place (and may fail) during worker process
 initialization, which will be reflected in the error logs.
 
 On incoming HTTP requests traversing the context (see [Contexts]), the
 [Execution Chain] will resume execution for the current Nginx phase, which will
-cause each configured filter to resume its corresponding proxy-wasm phase. Each
-request gets associated with a proxy-wasm HTTP filter context, and a Wasm
+cause each configured filter to resume its corresponding Proxy-Wasm phase. Each
+request gets associated with a Proxy-Wasm HTTP filter context, and a Wasm
 instance to execute into.
 
 HTTP filter contexts can execute on instances with various lifecycles and
@@ -341,13 +345,13 @@ proxy_wasm_isolation
 **default**  | `none`
 **example**  | `proxy_wasm_isolation stream;`
 
-Select the Wasm instance isolation mode for proxy-wasm filters.
+Select the Wasm instance isolation mode for Proxy-Wasm filters.
 
 - `isolation` must be one of `none`, `stream`, `filter`.
 
 > Notes
 
-Each proxy-wasm filter within the context's [Execution Chain] will be given an
+Each Proxy-Wasm filter within the context's [Execution Chain] will be given an
 instance to execute onto. The lifecycle and isolation of that instance depend on
 the chosen `isolation` mode:
 
@@ -359,16 +363,40 @@ the chosen `isolation` mode:
 
 [Back to TOC](#directives)
 
+proxy_wasm_log_dispatch_errors
+------------------------------
+
+**usage**    | `proxy_wasm_log_dispatch_errors <on\|off>;`
+------------:|:----------------------------------------------------------------
+**contexts** | `wasm{}`, `http{}`, `server{}`, `location{}`
+**default**  | `on`
+**example**  | `proxy_wasm_log_dispatch_errors off;`
+
+Toggles TCP socket error logs on Proxy-Wasm dispatch calls failure.
+
+When enabled, an `[error]` log will be produced on failure conditions such as
+timeout, broken connection, resolver failure, etc.
+
+When used in the `wasm{}` context, this directive has a global effect on all
+`location{}` contexts (unless overridden) as well as root Proxy-Wasm dispatch
+calls.
+
+[Back to TOC](#directives)
+
 proxy_wasm_lua_resolver
 -----------------------
 
 **usage**    | `proxy_wasm_lua_resolver <on\|off>;`
 ------------:|:----------------------------------------------------------------
-**contexts** | `http{}`, `server{}`, `location{}`
+**contexts** | `wasm{}`, `http{}`, `server{}`, `location{}`
 **default**  | `off`
 **example**  | `proxy_wasm_lua_resolver on;`
 
-Toggles the "Lua DNS resolver for proxy-wasm" feature within the context.
+Toggles the "Lua DNS resolver for Proxy-Wasm" feature within the context.
+
+When used in the `wasm{}` context, this directive has a global effect on all
+`location{}` contexts (unless overridden) as well as root Proxy-Wasm dispatch
+calls.
 
 **Note:** this directive requires Lua support and will only have an effect if
 ngx_wasm_module was compiled alongside [OpenResty].
@@ -389,7 +417,7 @@ If not, a default client instance will be created pointing to `8.8.8.8` with a
 timeout value of `30s`.
 
 When in use, any [resolver] directive in the effective context will be ignored
-for proxy-wasm HTTP dispatches.
+for Proxy-Wasm HTTP dispatches.
 
 [Back to TOC](#directives)
 
@@ -431,7 +459,7 @@ This directive's arguments are identical to Nginx's [resolver] directive.
 
 Wasm sockets usually rely on the configured Nginx [resolver] to resolve
 hostname. However, some contexts do not support a [resolver] yet still provide
-access to Wasm sockets (e.g. proxy-wasm's `on_vm_start` or `on_tick`). In such
+access to Wasm sockets (e.g. Proxy-Wasm's `on_vm_start` or `on_tick`). In such
 contexts, the global `wasm{}` resolver will be used.
 
 The global resolver is also used as a fallback if no resolver is configured in
@@ -525,7 +553,7 @@ start.
 Shared memory zones are shared between all nginx worker processes, and serve as
 a means of storage and exchange for worker processes of a server instance.
 
-Shared key/value memory zones can be used via the [proxy-wasm
+Shared key/value memory zones can be used via the [Proxy-Wasm
 SDK](#proxy-wasm)'s `[get\|set]_shared_data` API.
 
 [Back to TOC](#directives)
@@ -557,7 +585,7 @@ start.
 Shared memory zones are shared between all nginx worker processes, and serve as
 a means of storage and exchange for worker processes of a server instance.
 
-Shared queue memory zones can be used via the [proxy-wasm SDK](#proxy-wasm)'s
+Shared queue memory zones can be used via the [Proxy-Wasm SDK](#proxy-wasm)'s
 `[enqueue\|dequeue]_shared_queue` API.
 
 **Note:** shared memory queues do not presently implement an automatic eviction
@@ -663,7 +691,7 @@ This directive is effective for all Wasm sockets in all contexts.
 
 > Notes
 
-When using the [proxy-wasm SDK](#proxy-wasm) `dispatch_http_call()` method, a
+When using the [Proxy-Wasm SDK](#proxy-wasm) `dispatch_http_call()` method, a
 `timeout` argument can be specified which will override this setting.
 
 For configuring Wasm sockets in `http{}` contexts, see
@@ -708,7 +736,7 @@ Set a default timeout value for Wasm sockets read operations.
 
 > Notes
 
-When using the [proxy-wasm SDK](#proxy-wasm) `dispatch_http_call()` method, a
+When using the [Proxy-Wasm SDK](#proxy-wasm) `dispatch_http_call()` method, a
 `timeout` argument can be specified which will override this setting.
 
 For configuring Wasm sockets in `http{}` contexts, see
@@ -729,7 +757,7 @@ Set a default timeout value for Wasm sockets send operations.
 
 > Notes
 
-When using the [proxy-wasm SDK](#proxy-wasm) `dispatch_http_call()` method, a
+When using the [Proxy-Wasm SDK](#proxy-wasm) `dispatch_http_call()` method, a
 `timeout` argument can be specified which will override this setting.
 
 For configuring Wasm sockets in `http{}` contexts, see

@@ -214,10 +214,16 @@ impl Context for TestRoot {
         ntrailers: usize,
     ) {
         let status = self.get_http_call_response_header(":status");
+        let dispatch_status = self.get_http_call_response_header(":dispatch_status");
 
         info!(
             "[hostcalls] on_root_http_call_response (id: {}, status: {}, headers: {}, body_bytes: {}, trailers: {})",
             token_id, status.unwrap_or("".to_string()), nheaders, body_size, ntrailers
         );
+
+        match dispatch_status.as_deref() {
+            Some(s) => info!("dispatch_status: {}", s),
+            None => {}
+        }
     }
 }

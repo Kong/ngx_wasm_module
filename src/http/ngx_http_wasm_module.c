@@ -116,6 +116,8 @@ ngx_wasm_subsystem_t  ngx_http_wasm_subsystem = {
 
 static ngx_command_t  ngx_http_wasm_module_cmds[] = {
 
+    /* wasm */
+
     { ngx_string("wasm_call"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE3,
       ngx_http_wasm_call_directive,
@@ -172,6 +174,22 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       offsetof(ngx_http_wasm_loc_conf_t, resp_body_buffers),
       NULL },
 
+    { ngx_string("wasm_postpone_rewrite"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, postpone_rewrite),
+      NULL },
+
+    { ngx_string("wasm_postpone_access"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wasm_loc_conf_t, postpone_access),
+      NULL },
+
+    /* proxy_wasm */
+
     { ngx_string("proxy_wasm"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
       ngx_http_wasm_proxy_wasm_directive,
@@ -182,13 +200,6 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
     { ngx_string("proxy_wasm_isolation"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_wasm_proxy_wasm_isolation_directive,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      NGX_HTTP_MODULE,
-      NULL },
-
-    { ngx_string("resolver_add"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
-      ngx_http_wasm_resolver_add_directive,
       NGX_HTTP_LOC_CONF_OFFSET,
       NGX_HTTP_MODULE,
       NULL },
@@ -207,18 +218,20 @@ static ngx_command_t  ngx_http_wasm_module_cmds[] = {
       offsetof(ngx_http_wasm_loc_conf_t, pwm_lua_resolver),
       NULL },
 
-    { ngx_string("wasm_postpone_rewrite"),
+    { ngx_string("proxy_wasm_log_dispatch_errors"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_wasm_loc_conf_t, postpone_rewrite),
+      offsetof(ngx_http_wasm_loc_conf_t, pwm_log_dispatch_errors),
       NULL },
 
-    { ngx_string("wasm_postpone_access"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
+    /* misc */
+
+    { ngx_string("resolver_add"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
+      ngx_http_wasm_resolver_add_directive,
       NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_wasm_loc_conf_t, postpone_access),
+      NGX_HTTP_MODULE,
       NULL },
 
       ngx_null_command
@@ -340,6 +353,7 @@ ngx_http_wasm_create_loc_conf(ngx_conf_t *cf)
     loc->socket_buffer_reuse = NGX_CONF_UNSET;
     loc->pwm_req_headers_in_access = NGX_CONF_UNSET;
     loc->pwm_lua_resolver = NGX_CONF_UNSET;
+    loc->pwm_log_dispatch_errors = NGX_CONF_UNSET;
     loc->postpone_rewrite = NGX_CONF_UNSET;
     loc->postpone_access = NGX_CONF_UNSET;
 
@@ -403,6 +417,9 @@ ngx_http_wasm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->pwm_lua_resolver,
                          prev->pwm_lua_resolver, 0);
+
+    ngx_conf_merge_value(conf->pwm_log_dispatch_errors,
+                         prev->pwm_log_dispatch_errors, 1);
 
     ngx_conf_merge_value(conf->postpone_rewrite,
                          prev->postpone_rewrite, NGX_CONF_UNSET);
@@ -636,10 +653,17 @@ ngx_http_wasm_rctx(ngx_http_request_t *r, ngx_http_wasm_req_ctx_t **out)
             rctx->pwm_lua_resolver = loc->pwm_lua_resolver != NGX_CONF_UNSET
                                      ? loc->pwm_lua_resolver
                                      : wcf ? wcf->pwm_lua_resolver : 0;
+            rctx->pwm_log_dispatch_errors = loc->pwm_log_dispatch_errors
+                                     != NGX_CONF_UNSET
+                                     ? loc->pwm_log_dispatch_errors
+                                     : wcf ? wcf->pwm_log_dispatch_errors : 0;
 
         } else {
             /* fake request */
             rctx->pwm_lua_resolver = wcf ? wcf->pwm_lua_resolver : 0;
+            rctx->pwm_log_dispatch_errors = wcf
+                                            ? wcf->pwm_log_dispatch_errors
+                                            : 0;
         }
     }
 #if (NGX_DEBUG)

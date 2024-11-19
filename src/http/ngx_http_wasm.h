@@ -79,6 +79,7 @@ struct ngx_http_wasm_req_ctx_s {
 
     unsigned                           ffi_attached:1;
     unsigned                           pwm_lua_resolver:1;      /* use Lua-land resolver in OpenResty */
+    unsigned                           pwm_log_dispatch_errors:1;
 };
 
 
@@ -95,11 +96,12 @@ typedef struct {
     ngx_bufs_t                         socket_large_buffers;   /* wasm_socket_large_buffer_size */
     ngx_bufs_t                         resp_body_buffers;      /* wasm_response_body_buffers */
 
-    ngx_flag_t                         pwm_req_headers_in_access;
-    ngx_flag_t                         pwm_lua_resolver;
-
     ngx_flag_t                         postpone_rewrite;
     ngx_flag_t                         postpone_access;
+
+    ngx_flag_t                         pwm_req_headers_in_access;
+    ngx_flag_t                         pwm_lua_resolver;
+    ngx_flag_t                         pwm_log_dispatch_errors;
 
     ngx_queue_t                        q;                      /* main_conf */
 } ngx_http_wasm_loc_conf_t;

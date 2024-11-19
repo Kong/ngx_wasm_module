@@ -166,13 +166,6 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       offsetof(ngx_wasm_core_conf_t, resolver_timeout),
       NULL },
 
-    { ngx_string("proxy_wasm_lua_resolver"),
-      NGX_WASM_CONF|NGX_CONF_TAKE1,
-      ngx_wasm_core_pwm_lua_resolver_directive,
-      NGX_WA_WASM_CONF_OFFSET,
-      offsetof(ngx_wasm_core_conf_t, pwm_lua_resolver),
-      NULL },
-
     { ngx_string("socket_connect_timeout"),
       NGX_WASM_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_msec_slot,
@@ -213,6 +206,20 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       ngx_conf_set_bufs_slot,
       NGX_WA_WASM_CONF_OFFSET,
       offsetof(ngx_wasm_core_conf_t, socket_large_buffers),
+      NULL },
+
+    { ngx_string("proxy_wasm_lua_resolver"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_wasm_core_pwm_lua_resolver_directive,
+      NGX_WA_WASM_CONF_OFFSET,
+      offsetof(ngx_wasm_core_conf_t, pwm_lua_resolver),
+      NULL },
+
+    { ngx_string("proxy_wasm_log_dispatch_errors"),
+      NGX_WASM_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_WA_WASM_CONF_OFFSET,
+      offsetof(ngx_wasm_core_conf_t, pwm_log_dispatch_errors),
       NULL },
 
     ngx_null_command
@@ -364,6 +371,7 @@ ngx_wasm_core_create_conf(ngx_conf_t *cf)
     wcf->recv_timeout = NGX_CONF_UNSET_MSEC;
 
     wcf->pwm_lua_resolver = NGX_CONF_UNSET;
+    wcf->pwm_log_dispatch_errors = NGX_CONF_UNSET;
 
     wcf->socket_buffer_size = NGX_CONF_UNSET_SIZE;
     wcf->socket_buffer_reuse = NGX_CONF_UNSET;

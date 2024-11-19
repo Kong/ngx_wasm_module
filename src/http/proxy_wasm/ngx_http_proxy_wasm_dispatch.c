@@ -144,8 +144,10 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call,
 #endif
 
     if (!pwexec->ictx->instance->hostcall || rctx->fake_request) {
-        ngx_wasm_log_error(NGX_LOG_ERR, pwexec->log, 0,
-                           "%*s", p - (u_char *) &errbuf, &errbuf);
+        if (rctx->pwm_log_dispatch_errors) {
+            ngx_wasm_log_error(NGX_LOG_ERR, pwexec->log, 0, "%*s",
+                               p - (u_char *) &errbuf, &errbuf);
+        }
 
     } else {
         /* in-vm, executing a hostcall */
