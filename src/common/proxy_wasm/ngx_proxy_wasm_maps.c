@@ -511,15 +511,17 @@ ngx_proxy_wasm_maps_set_path(ngx_wavm_instance_t *instance, ngx_str_t *value,
     ngx_proxy_wasm_ctx_t     *pwctx = pwexec->parent;
     ngx_http_wasm_req_ctx_t  *rctx = ngx_http_proxy_wasm_get_rctx(instance);
     ngx_http_request_t       *r = rctx->r;
+    u_char                   *query;
+    size_t                    len = value->len;
 
-    if (ngx_strchr(value->data, '?')) {
-        ngx_wavm_instance_trap_printf(instance,
-                                      "NYI - cannot set request path "
-                                      "with querystring");
-        return NGX_ERROR;
+    query = (u_char *) ngx_strchr(value->data, '?');
+    if (query) {
+        len = query - value->data;
+        r->args.len = value->len - len - 1;
+        r->args.data = query + 1;
     }
 
-    r->uri.len = value->len;
+    r->uri.len = len;
     r->uri.data = value->data;
 
     if (pwctx->path.len) {

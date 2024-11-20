@@ -295,26 +295,135 @@ path: /test
 
 
 
-=== TEST 12: proxy_wasm - set_http_request_headers() cannot set ':path' with querystring (NYI)
+=== TEST 12: proxy_wasm - set_http_request_headers() can set ':path' with querystring
 --- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '\$request_uri \$uri \$is_args \$args\n';
+        }
+    }
+}
 --- config
     location /t {
         proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=/test?foo=bar';
-        return 200;
+        proxy_wasm hostcalls 'test=/t/log/request_path';
+        proxy_pass http://test_upstream$uri$is_args$args;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
---- grep_error_log eval: qr/(NYI|\[.*?failed resuming).*/
---- grep_error_log_out eval
-qr/.*?NYI - cannot set request path with querystring.*
-\[info\] .*? filter chain failed resuming: previous error \(instance trapped\)/
+--- response_body
+/test?foo=bar /test ? foo=bar
+--- error_log
+path: /test?foo=bar
 --- no_error_log
-[alert]
-[stderr]
+[error]
+[crit]
 
 
 
-=== TEST 13: proxy_wasm - set_http_request_header() sets ':method'
+=== TEST 13: proxy_wasm - set_http_request_headers() setting ':path' with empty querystring drops the querystring
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '(\$request_uri) (\$uri) (\$is_args) (\$args)\n';
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=/test?';
+        proxy_wasm hostcalls 'test=/t/log/request_path';
+        proxy_pass http://test_upstream$uri$is_args$args;
+    }
+--- response_body
+(/test) (/test) () ()
+--- error_log
+path: /test
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 14: proxy_wasm - set_http_request_headers() can set ':path' with empty path
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '(\$request_uri) (\$uri) (\$is_args) (\$args)\n';
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=';
+        proxy_wasm hostcalls 'test=/t/log/request_path';
+        proxy_pass http://test_upstream$uri$is_args$args;
+    }
+--- response_body
+(/t) (/t) () ()
+--- error_log
+path:
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 15: proxy_wasm - set_http_request_headers() setting ':path' with single '?' has same behavior as empty path
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '(\$request_uri) (\$uri) (\$is_args) (\$args)\n';
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=?';
+        proxy_wasm hostcalls 'test=/t/log/request_path';
+        proxy_pass http://test_upstream$uri$is_args$args;
+    }
+--- response_body
+(/t) (/t) () ()
+--- error_log
+path:
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 16: proxy_wasm - set_http_request_header() sets ':method'
 --- wasm_modules: hostcalls
 --- http_config eval
 qq{
@@ -344,7 +453,7 @@ POST
 
 
 
-=== TEST 14: proxy_wasm - set_http_request_header() cannot set ':scheme'
+=== TEST 17: proxy_wasm - set_http_request_header() cannot set ':scheme'
 --- wasm_modules: hostcalls
 --- http_config eval
 qq{
