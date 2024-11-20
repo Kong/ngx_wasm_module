@@ -301,7 +301,7 @@ ok
         echo ok;
     }
 --- request
-GET /t
+POST /t
 
 Hello world
 --- response_body
@@ -329,7 +329,7 @@ ok
         echo failed;
     }
 --- request
-GET /t
+POST /t
 
 Hello world
 --- response_body
@@ -1329,3 +1329,27 @@ cannot override the "Host" header, skipping
 cannot override the "Connection" header, skipping
 --- no_error_log
 [error]
+
+
+
+=== TEST 51: proxy_wasm - dispatch_http_call() can use ':path' with querystring
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /dispatched {
+        return 200 "$request_uri $uri $is_args $args";
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched?foo=bar \
+                              on_http_call_response=echo_response_body';
+        echo failed;
+    }
+--- response_body
+/dispatched?foo=bar /dispatched ? foo=bar
+--- no_error_log
+[error]
+[crit]
