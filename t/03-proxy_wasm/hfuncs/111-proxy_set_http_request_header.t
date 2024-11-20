@@ -9,7 +9,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - set_http_request_header() sets a new non-builtin header
+=== TEST 1: proxy_wasm - set_http_request_header() set a new non-builtin header
 --- valgrind
 --- wasm_modules: hostcalls
 --- config
@@ -32,7 +32,7 @@ qr/.*? on_request_headers, 2 headers.*
 
 
 
-=== TEST 2: proxy_wasm - set_http_request_header() sets a new non-builtin header (case-sensitive)
+=== TEST 2: proxy_wasm - set_http_request_header() set a new non-builtin header (case-sensitive)
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -54,7 +54,7 @@ qr/.*? on_request_headers, 2 headers.*
 
 
 
-=== TEST 3: proxy_wasm - set_http_request_header() sets a non-builtin headers when many headers exist
+=== TEST 3: proxy_wasm - set_http_request_header() set a non-builtin headers when many headers exist
 --- valgrind
 --- wasm_modules: hostcalls
 --- config
@@ -97,7 +97,7 @@ Connection: close
 
 
 
-=== TEST 5: proxy_wasm - set_http_request_header() sets the same non-builtin header multiple times
+=== TEST 5: proxy_wasm - set_http_request_header() set the same non-builtin header multiple times
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -127,7 +127,7 @@ qr/.*? on_request_headers, 3 headers.*
 
 
 
-=== TEST 6: proxy_wasm - set_http_request_header() sets Connection header (close) when many headers exist
+=== TEST 6: proxy_wasm - set_http_request_header() set Connection header (close) when many headers exist
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -158,7 +158,7 @@ qr/.*? on_request_headers, 22 headers.*
 
 
 
-=== TEST 7: proxy_wasm - set_http_request_header() sets Connection header (keep-alive)
+=== TEST 7: proxy_wasm - set_http_request_header() set Connection header (keep-alive)
 --- timeout_expected: 5
 --- abort
 --- wasm_modules: hostcalls
@@ -186,7 +186,7 @@ qr/.*? on_request_headers, 2 headers.*
 
 
 
-=== TEST 8: proxy_wasm - set_http_request_header() sets Connection header (closed)
+=== TEST 8: proxy_wasm - set_http_request_header() set Connection header (closed)
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -210,7 +210,7 @@ qr/.*? on_request_headers, 2 headers.*
 
 
 
-=== TEST 9: proxy_wasm - set_http_request_header() sets Content-Length header
+=== TEST 9: proxy_wasm - set_http_request_header() set Content-Length header
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -263,7 +263,7 @@ qr/.*? on_request_headers, 3 headers.*
 
 
 
-=== TEST 11: proxy_wasm - set_http_request_header() sets ':path'
+=== TEST 11: proxy_wasm - set_http_request_header() set ':path'
 --- wasm_modules: hostcalls
 --- http_config eval
 qq{
@@ -295,26 +295,204 @@ path: /test
 
 
 
-=== TEST 12: proxy_wasm - set_http_request_headers() cannot set ':path' with querystring (NYI)
+=== TEST 12: proxy_wasm - set_http_request_headers() set ':path' with querystring
 --- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '\$request_uri \$uri \$is_args \$args\n';
+        }
+    }
+}
 --- config
     location /t {
         proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=/test?foo=bar';
-        return 200;
+        proxy_wasm hostcalls 'test=/t/log/request_path';
+        proxy_pass http://test_upstream$uri$is_args$args;
     }
---- error_code: 500
---- response_body_like: 500 Internal Server Error
---- grep_error_log eval: qr/(NYI|\[.*?failed resuming).*/
---- grep_error_log_out eval
-qr/.*?NYI - cannot set request path with querystring.*
-\[info\] .*? filter chain failed resuming: previous error \(instance trapped\)/
+--- response_body
+/test?foo=bar /test ? foo=bar
+--- error_log
+path: /test?foo=bar
 --- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 13: proxy_wasm - set_http_request_headers() set ':path' with empty querystring drops the querystring
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '(\$request_uri) (\$uri) (\$is_args) (\$args)\n';
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=/test?';
+        proxy_wasm hostcalls 'test=/t/log/request_path';
+        proxy_pass http://test_upstream$uri$is_args$args;
+    }
+--- request
+GET /t?foo=bar
+--- response_body
+(/test) (/test) () ()
+--- error_log
+path: /test
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 14: proxy_wasm - set_http_request_headers() set ':path' with empty path
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '(\$request_uri) (\$uri) (\$is_args) (\$args)\n';
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=';
+        proxy_wasm hostcalls 'test=/t/log/request_path';
+        proxy_pass http://test_upstream$uri$is_args$args;
+    }
+--- response_body
+(/t) (/t) () ()
+--- error_log
+path:
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 15: proxy_wasm - set_http_request_headers() set ':path' with single '?' has same behavior as empty path
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '(\$request_uri) (\$uri) (\$is_args) (\$args)\n';
+        }
+    }
+}
+--- config
+    location /t {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=?';
+        proxy_wasm hostcalls 'test=/t/log/request_path';
+        proxy_pass http://test_upstream$uri$is_args$args;
+    }
+--- response_body
+(/t) (/t) () ()
+--- error_log
+path:
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 16: proxy_wasm - set_http_request_headers() set ':path' with invalid characters (non percent-encoded)
+Match the Nginx behavior (see following test).
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '(\$request_uri) (\$uri) (\$is_args) (\$args)\n';
+        }
+    }
+}
+--- config
+    location /set_by_proxy_wasm {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=/test?foo=bár%20bla';
+        proxy_wasm hostcalls 'test=/t/log/request_path';
+        proxy_pass http://test_upstream$uri$is_args$args;
+    }
+--- request
+GET /set_by_proxy_wasm
+--- response_body
+(/test?foo=bár%20bla) (/test) (?) (foo=bár%20bla)
+--- error_log
+path: /test
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 17: Nginx - proxy a querystring with invalid characters (non percent-encoded)
+This test is here just as documentation. It showcases the same behavior as
+set_http_request_headers(':path'); see previous test.
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '(\$request_uri) (\$uri) (\$is_args) (\$args)\n';
+        }
+    }
+}
+--- config
+    location /raw_nginx {
+        proxy_pass http://test_upstream$uri$is_args$args;
+    }
+--- request
+GET /raw_nginx?foo=bár%20bla
+--- response_body
+(/raw_nginx?foo=bár%20bla) (/raw_nginx) (?) (foo=bár%20bla)
+--- no_error_log
+[error]
+[crit]
 [alert]
-[stderr]
 
 
 
-=== TEST 13: proxy_wasm - set_http_request_header() sets ':method'
+=== TEST 18: proxy_wasm - set_http_request_header() set ':method'
 --- wasm_modules: hostcalls
 --- http_config eval
 qq{
@@ -344,7 +522,7 @@ POST
 
 
 
-=== TEST 14: proxy_wasm - set_http_request_header() cannot set ':scheme'
+=== TEST 19: proxy_wasm - set_http_request_header() cannot set ':scheme'
 --- wasm_modules: hostcalls
 --- http_config eval
 qq{
