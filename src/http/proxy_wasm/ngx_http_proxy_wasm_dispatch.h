@@ -40,7 +40,7 @@ struct ngx_http_proxy_wasm_dispatch_s {
 
     ngx_str_t                               host;
     ngx_str_t                               method;
-    ngx_str_t                               uri;
+    ngx_str_t                               path;  /* ":path" (including query) */
     ngx_str_t                               authority;
     ngx_array_t                             headers;
     ngx_array_t                             trailers;

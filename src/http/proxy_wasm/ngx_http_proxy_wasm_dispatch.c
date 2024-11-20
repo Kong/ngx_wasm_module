@@ -258,8 +258,8 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
                 call->method.data = elt->value.data;
 
             } else if (ngx_str_eq(elt->key.data, elt->key.len, ":path", -1)) {
-                call->uri.len = elt->value.len;
-                call->uri.data = elt->value.data;
+                call->path.len = elt->value.len;
+                call->path.data = elt->value.data;
 
             } else if (ngx_str_eq(elt->key.data, elt->key.len,
                                   ":authority", -1))
@@ -330,7 +330,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
         call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_METHOD;
         goto error;
 
-    } else if (!call->uri.len) {
+    } else if (!call->path.len) {
         call->error = NGX_HTTP_PROXY_WASM_DISPATCH_ERR_BAD_PATH;
         goto error;
     }
@@ -577,7 +577,7 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
      * Connection:
      * Content-Length:
      */
-    len += call->method.len + 1 + call->uri.len + 1
+    len += call->method.len + 1 + call->path.len + 1
            + sizeof(ngx_http_header_version11) - 1;
 
     len += sizeof(ngx_http_host_header) - 1 + sizeof(": ") - 1
@@ -638,7 +638,7 @@ ngx_http_proxy_wasm_dispatch_request(ngx_http_proxy_wasm_dispatch_t *call)
     b->last = ngx_cpymem(b->last, call->method.data, call->method.len);
     *b->last++ = ' ';
 
-    b->last = ngx_cpymem(b->last, call->uri.data, call->uri.len);
+    b->last = ngx_cpymem(b->last, call->path.data, call->path.len);
     *b->last++ = ' ';
 
     b->last = ngx_cpymem(b->last, ngx_http_header_version11,
