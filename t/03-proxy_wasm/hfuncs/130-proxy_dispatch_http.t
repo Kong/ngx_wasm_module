@@ -1357,3 +1357,31 @@ Hello back /dispatched?foo=bar /dispatched ? foo=bar
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 52: proxy_wasm - dispatch_http_call() can use ':path' with querystring, passes through invalid characters
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config
+    location /dispatched {
+        return 200 "Hello back $request_uri $uri $is_args $args";
+    }
+
+    location /t {
+        proxy_wasm hostcalls 'on=request_body \
+                              test=/t/dispatch_http_call \
+                              host=127.0.0.1:$TEST_NGINX_SERVER_PORT \
+                              path=/dispatched?foo=bár%20bla \
+                              on_http_call_response=echo_response_body';
+        echo failed;
+    }
+--- request
+GET /t
+
+Hello world
+--- response_body
+Hello back /dispatched?foo=bár%20bla /dispatched ? foo=bár%20bla
+--- no_error_log
+[error]
+[crit]

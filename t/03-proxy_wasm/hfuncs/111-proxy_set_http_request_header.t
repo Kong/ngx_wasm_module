@@ -423,7 +423,78 @@ path:
 
 
 
-=== TEST 16: proxy_wasm - set_http_request_header() sets ':method'
+=== TEST 16: proxy_wasm - set_http_request_headers() setting ':path' with invalid querystring matches nginx behavior
+See following test for a showcase of the nginx behavior.
+
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '(\$request_uri) (\$uri) (\$is_args) (\$args)\n';
+        }
+    }
+}
+--- config
+    location /set_by_proxy_wasm {
+        proxy_wasm hostcalls 'test=/t/set_request_header name=:path value=/test?foo=bár%20bla';
+        proxy_wasm hostcalls 'test=/t/log/request_path';
+        proxy_pass http://test_upstream$uri$is_args$args;
+    }
+--- request
+GET /set_by_proxy_wasm
+--- response_body
+(/test?foo=bár%20bla) (/test) (?) (foo=bár%20bla)
+--- error_log
+path: /test
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 17: proxy_wasm - showcase that that path with invalid querystring passes through
+This test is here just as documentation, but it showcases
+the same behavior as set_http_request_headers(':path');
+see previous test for the proxy-wasm behavior.
+
+--- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    upstream test_upstream {
+        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+    }
+
+    server {
+        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
+
+        location / {
+            return 200 '(\$request_uri) (\$uri) (\$is_args) (\$args)\n';
+        }
+    }
+}
+--- config
+    location /raw_nginx {
+        proxy_pass http://test_upstream$uri$is_args$args;
+    }
+--- request
+GET /raw_nginx?foo=bár%20bla
+--- response_body
+(/raw_nginx?foo=bár%20bla) (/raw_nginx) (?) (foo=bár%20bla)
+--- no_error_log
+[error]
+[crit]
+[alert]
+
+
+
+=== TEST 18: proxy_wasm - set_http_request_header() sets ':method'
 --- wasm_modules: hostcalls
 --- http_config eval
 qq{
@@ -453,7 +524,7 @@ POST
 
 
 
-=== TEST 17: proxy_wasm - set_http_request_header() cannot set ':scheme'
+=== TEST 19: proxy_wasm - set_http_request_header() cannot set ':scheme'
 --- wasm_modules: hostcalls
 --- http_config eval
 qq{
