@@ -316,7 +316,7 @@ ngx_http_proxy_wasm_on_dispatch_response(ngx_proxy_wasm_exec_t *pwexec)
     ngx_uint_t                       n_headers, body_len;
     ngx_list_part_t                 *part;
     ngx_proxy_wasm_filter_t         *filter = pwexec->filter;
-    ngx_http_proxy_wasm_dispatch_t  *call = pwexec->call;
+    ngx_http_proxy_wasm_dispatch_t  *call = pwexec->dispatch_call;
     ngx_http_wasm_req_ctx_t         *rctx = call->rctx;
 
     n_headers = 0;

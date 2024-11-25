@@ -119,7 +119,7 @@ ngx_proxy_wasm_maps_get_map(ngx_wavm_instance_t *instance,
 
     case NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_HEADERS:
         pwexec = ngx_proxy_wasm_instance2pwexec(instance);
-        call = pwexec->call;
+        call = pwexec->dispatch_call;
         if (call == NULL) {
             return NULL;
         }
@@ -782,7 +782,7 @@ ngx_proxy_wasm_maps_get_dispatch_response_status(ngx_wavm_instance_t *instance,
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
     pwctx = pwexec->parent;
-    call = pwexec->call;
+    call = pwexec->dispatch_call;
     reader = &call->http_reader;
 
     /* status */
@@ -799,31 +799,34 @@ ngx_proxy_wasm_maps_get_dispatch_response_status(ngx_wavm_instance_t *instance,
 
     /* update cached value */
 
-    if (status != pwctx->call_code) {
-        pwctx->call_code = status;
+    if (status != pwctx->dispatch_call_code) {
+        pwctx->dispatch_call_code = status;
 
-        if (pwctx->call_status.len) {
-            ngx_pfree(pwctx->pool, pwctx->call_status.data);
-            pwctx->call_status.len = 0;
+        if (pwctx->dispatch_call_status.len) {
+            ngx_pfree(pwctx->pool, pwctx->dispatch_call_status.data);
+            pwctx->dispatch_call_status.len = 0;
         }
     }
 
     /* format */
 
-    if (!pwctx->call_status.len) {
-        pwctx->call_status.data = ngx_pnalloc(pwctx->pool, NGX_INT_T_LEN);
-        if (pwctx->call_status.data == NULL) {
+    if (!pwctx->dispatch_call_status.len) {
+        pwctx->dispatch_call_status.data = ngx_pnalloc(pwctx->pool,
+                                                       NGX_INT_T_LEN);
+        if (pwctx->dispatch_call_status.data == NULL) {
             return NULL;
         }
 
-        pwctx->call_status.len = ngx_sprintf(pwctx->call_status.data, "%03ui",
-                                             pwctx->call_code)
-                                 - pwctx->call_status.data;
+        pwctx->dispatch_call_status.len = ngx_sprintf(
+                                              pwctx->dispatch_call_status.data,
+                                              "%03ui",
+                                              pwctx->dispatch_call_code)
+                                          - pwctx->dispatch_call_status.data;
     }
 
-    ngx_wa_assert(pwctx->call_status.len);
+    ngx_wa_assert(pwctx->dispatch_call_status.len);
 
-    return &pwctx->call_status;
+    return &pwctx->dispatch_call_status;
 }
 
 
@@ -838,7 +841,7 @@ ngx_proxy_wasm_maps_get_dispatch_status(ngx_wavm_instance_t *instance,
     ngx_wa_assert(map_type == NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_HEADERS);
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
-    call = pwexec->call;
+    call = pwexec->dispatch_call;
     sock = &call->sock;
 
     return ngx_wasm_socket_tcp_status_strerror(sock->status);
