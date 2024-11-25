@@ -188,9 +188,9 @@ struct ngx_proxy_wasm_exec_s {
     ngx_proxy_wasm_store_t            *store;
     ngx_event_t                       *ev;
 #ifdef NGX_WASM_HTTP
-    ngx_http_proxy_wasm_dispatch_t    *call;  /* swap pointer for host functions */
+    ngx_http_proxy_wasm_dispatch_t    *dispatch_call;  /* swap pointer for host functions */
 #endif
-    ngx_queue_t                        calls;
+    ngx_queue_t                        dispatch_calls;
 
     /* flags */
 
@@ -232,19 +232,19 @@ struct ngx_proxy_wasm_ctx_s {
     size_t                                        req_body_len;
     ngx_str_t                                     authority;
     ngx_str_t                                     scheme;
-    ngx_str_t                                     path;              /* r->uri + r->args */
-    ngx_str_t                                     start_time;        /* r->start_sec + r->start_msec */
-    ngx_str_t                                     upstream_address;  /* 1st part of ngx.upstream_addr */
-    ngx_str_t                                     upstream_port;     /* 2nd part of ngx.upstsream_addr */
-    ngx_str_t                                     connection_id;     /* r->connection->number */
-    ngx_str_t                                     mtls;              /* ngx.https && ngx.ssl_client_verify */
-    ngx_str_t                                     root_id;           /* pwexec->root_id */
-    ngx_str_t                                     call_status;       /* dispatch response status */
-    ngx_str_t                                     response_status;   /* response status */
+    ngx_str_t                                     path;                  /* r->uri + r->args */
+    ngx_str_t                                     start_time;            /* r->start_sec + r->start_msec */
+    ngx_str_t                                     upstream_address;      /* 1st part of ngx.upstream_addr */
+    ngx_str_t                                     upstream_port;         /* 2nd part of ngx.upstsream_addr */
+    ngx_str_t                                     connection_id;         /* r->connection->number */
+    ngx_str_t                                     mtls;                  /* ngx.https && ngx.ssl_client_verify */
+    ngx_str_t                                     root_id;               /* pwexec->root_id */
+    ngx_str_t                                     dispatch_call_status;  /* dispatch response status */
+    ngx_str_t                                     response_status;       /* response status */
 #if (NGX_DEBUG)
-    ngx_str_t                                     worker_id;         /* ngx_worker */
+    ngx_str_t                                     worker_id;             /* ngx_worker */
 #endif
-    ngx_uint_t                                    call_code;
+    ngx_uint_t                                    dispatch_call_code;
     ngx_uint_t                                    response_code;
 
     /* host properties */
@@ -259,9 +259,9 @@ struct ngx_proxy_wasm_ctx_s {
 
     /* flags */
 
-    unsigned                                      main:1;            /* r->main */
-    unsigned                                      init:1;            /* can be utilized (has no filters) */
-    unsigned                                      ready:1;           /* filters chain ready */
+    unsigned                                      main:1;                /* r->main */
+    unsigned                                      init:1;                /* can be utilized (has no filters) */
+    unsigned                                      ready:1;               /* filters chain ready */
     unsigned                                      req_headers_in_access:1;
 };
 
