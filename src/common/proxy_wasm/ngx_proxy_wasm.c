@@ -440,8 +440,8 @@ ngx_proxy_wasm_ctx_destroy(ngx_proxy_wasm_ctx_t *pwctx)
         ngx_pfree(pwctx->pool, pwctx->root_id.data);
     }
 
-    if (pwctx->call_status.data) {
-        ngx_pfree(pwctx->pool, pwctx->call_status.data);
+    if (pwctx->dispatch_call_status.data) {
+        ngx_pfree(pwctx->pool, pwctx->dispatch_call_status.data);
     }
 
     if (pwctx->response_status.data) {
@@ -897,8 +897,8 @@ ngx_proxy_wasm_dispatch_calls_total(ngx_proxy_wasm_exec_t *pwexec)
     ngx_queue_t  *q;
     ngx_uint_t    n = 0;
 
-    for (q = ngx_queue_head(&pwexec->calls);
-         q != ngx_queue_sentinel(&pwexec->calls);
+    for (q = ngx_queue_head(&pwexec->dispatch_calls);
+         q != ngx_queue_sentinel(&pwexec->dispatch_calls);
          q = ngx_queue_next(q), n++) { /* void */ }
 
     dd("n: %ld", n);
@@ -914,8 +914,8 @@ ngx_proxy_wasm_dispatch_calls_cancel(ngx_proxy_wasm_exec_t *pwexec)
     ngx_queue_t                     *q;
     ngx_http_proxy_wasm_dispatch_t  *call;
 
-    while (!ngx_queue_empty(&pwexec->calls)) {
-        q = ngx_queue_head(&pwexec->calls);
+    while (!ngx_queue_empty(&pwexec->dispatch_calls)) {
+        q = ngx_queue_head(&pwexec->dispatch_calls);
         call = ngx_queue_data(q, ngx_http_proxy_wasm_dispatch_t, q);
 
         ngx_log_debug1(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
@@ -1148,7 +1148,7 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
             rexec->filter = filter;
             rexec->ictx = ictx;
 
-            ngx_queue_init(&rexec->calls);
+            ngx_queue_init(&rexec->dispatch_calls);
 
             log = filter->log;
 
@@ -1266,7 +1266,7 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
                 pwexec->ictx = ictx;
                 pwexec->store = ictx->store;
 
-                ngx_queue_init(&pwexec->calls);
+                ngx_queue_init(&pwexec->dispatch_calls);
 
             } else {
                 if (in->ictx != ictx) {
@@ -1393,11 +1393,11 @@ ngx_proxy_wasm_on_done(ngx_proxy_wasm_exec_t *pwexec)
 
 #if 0
 #ifdef NGX_WASM_HTTP
-    call = pwexec->call;
+    call = pwexec->dispatch_call;
     if (call) {
         ngx_http_proxy_wasm_dispatch_destroy(call);
 
-        pwexec->call = NULL;
+        pwexec->dispatch_call = NULL;
     }
 #endif
 #endif
