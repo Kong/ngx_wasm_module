@@ -127,7 +127,7 @@ ngx_proxy_wasm_get_buffer_helper(ngx_wavm_instance_t *instance,
 
             /* get */
 
-            call = pwexec->call;
+            call = pwexec->dispatch_call;
             if (call == NULL) {
                 return NULL;
             }

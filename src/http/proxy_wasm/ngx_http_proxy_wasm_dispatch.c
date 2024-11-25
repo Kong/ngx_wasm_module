@@ -63,7 +63,7 @@ invoke_on_http_dispatch_response(ngx_proxy_wasm_exec_t *pwexec,
      * Set current call for subsequent call detection after the step
      * (no yielding).
      */
-    pwexec->call = call;
+    pwexec->dispatch_call = call;
 
     /**
      * Save step: ngx_proxy_wasm_run_step will set pwctx->step (for host
@@ -92,7 +92,7 @@ invoke_on_http_dispatch_response(ngx_proxy_wasm_exec_t *pwexec,
     pwexec->parent->step = step;
 
     /* remove current call now that callback was invoked */
-    pwexec->call = NULL;
+    pwexec->dispatch_call = NULL;
 
     return NGX_OK;
 }
@@ -161,7 +161,7 @@ ngx_http_proxy_wasm_dispatch_err(ngx_http_proxy_wasm_dispatch_t *call,
 
     ngx_http_proxy_wasm_dispatch_destroy(call);
 
-    pwexec->call = NULL;
+    pwexec->dispatch_call = NULL;
 }
 
 
@@ -430,7 +430,7 @@ ngx_http_proxy_wasm_dispatch(ngx_proxy_wasm_exec_t *pwexec,
 
     call->ev = ev;
 
-    ngx_queue_insert_head(&pwexec->calls, &call->q);
+    ngx_queue_insert_head(&pwexec->dispatch_calls, &call->q);
 
     ngx_proxy_wasm_ctx_set_next_action(pwctx, NGX_PROXY_WASM_ACTION_PAUSE);
 
