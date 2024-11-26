@@ -429,7 +429,7 @@ qq{
         echo fail;
     }
 }
---- error_code_like: (200|502|503|504)
+--- error_code_like: (200)
 --- response_body_like
 (\s*"Hello": "world",\s*
 .*?
