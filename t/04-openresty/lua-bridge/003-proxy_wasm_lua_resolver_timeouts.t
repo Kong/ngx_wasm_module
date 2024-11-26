@@ -25,6 +25,7 @@ __DATA__
 Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
 - HTTP 502 (httpbin.org Bad Gateway)
+- HTTP 503 (httpbin.org Service Temporarily Unavailable)
 - HTTP 504 (httpbin.org Gateway timeout)
 --- skip_no_debug
 --- timeout eval: $::ExtTimeout
@@ -40,8 +41,8 @@ Succeeds on:
                               on_http_call_response=echo_response_body';
         echo failed;
     }
---- error_code_like: (200|502|504)
---- response_body_like: ("Host": "httpbin\.org"|.*?502 Bad Gateway.*|.*?504 Gateway Time-out.*)
+--- error_code_like: (200|502|503|504)
+--- response_body_like: ("Host": "httpbin\.org"|.*?502 Bad Gateway.*|.*?503 Service Temporarily Unavailable.*|.*?504 Gateway Time-out.*)
 --- error_log eval
 [
     qr/\[debug\] .*? wasm lua resolver thread/,

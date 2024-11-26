@@ -408,6 +408,7 @@ Needs IPv4 resolution + external I/O to succeed.
 Succeeds on:
 - HTTP 200 (httpbin.org/headers success)
 - HTTP 502 (httpbin.org Bad Gateway)
+- HTTP 503 (httpbin.org Service Temporarily Unavailable)
 - HTTP 504 (httpbin.org Gateway timeout)
 --- skip_eval: 5: $::osname =~ m/darwin/
 --- valgrind
@@ -428,11 +429,11 @@ qq{
         echo fail;
     }
 }
---- error_code_like: (200|502|504)
+--- error_code_like: (200|502|503|504)
 --- response_body_like
 (\s*"Hello": "world",\s*
 .*?
-\s*"X-Thing": "foo,bar"\s*|.*?502 Bad Gateway.*|.*?504 Gateway Time-out.*)
+\s*"X-Thing": "foo,bar"\s*|.*?502 Bad Gateway.*|.*?503 Service Temporarily Unavailable.*|.*?504 Gateway Time-out.*)
 --- no_error_log
 [error]
 [crit]
