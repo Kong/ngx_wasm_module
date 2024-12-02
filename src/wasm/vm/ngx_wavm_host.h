@@ -50,7 +50,7 @@ extern const wasm_valkind_t *ngx_wavm_arity_i32x5_i64x2_i32x2[];
 /* hfuncs */
 
 
-#define NGX_WAVM_HFUNCS_MAX_TRAP_LEN   128
+#define NGX_WAVM_HFUNCS_MAX_TRAP_LEN   256
 
 #define ngx_wavm_hfunc_null            { ngx_null_string, NULL, NULL, NULL }
 
