@@ -2,7 +2,7 @@
 
 TARGET ?= /usr/local
 V8_INCDIR ?= /usr/local/include
-CXXFLAGS += -I $(V8_INCDIR) -std=c++17 -O3
+CXXFLAGS += -I $(V8_INCDIR) -std=c++20 -O3
 
 build: libv8bridge
 
