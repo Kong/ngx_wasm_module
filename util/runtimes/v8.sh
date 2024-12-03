@@ -218,7 +218,7 @@ build_v8bridge() {
         make -C "$NGX_WASM_DIR/lib/v8bridge" clean
     fi
 
-    local v8_cxx="$CC"
+    local v8_cxx="${CC:-gcc}"
 
     if [[ "$v8_cxx" = "clang" ]]; then
         # Use the same V8 clang toolchain to build v8bridge - C++ ABI compatibility
