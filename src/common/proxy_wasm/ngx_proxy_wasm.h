@@ -179,6 +179,25 @@ typedef struct {
 } ngx_proxy_wasm_log_ctx_t;
 
 
+typedef enum {
+    NGX_PROXY_WASM_DISPATCH_HTTP_CALL,
+    NGX_PROXY_WASM_DISPATCH_FOREIGN_CALL,
+} ngx_proxy_wasm_dispatch_op_e;
+
+
+typedef struct {
+    ngx_queue_t                          q;     /* stored by caller */
+    ngx_proxy_wasm_dispatch_op_e         type;
+
+    union {
+#ifdef NGX_WASM_HTTP
+        ngx_http_proxy_wasm_dispatch_t  *http;
+#endif
+        ngx_proxy_wasm_foreign_call_t   *foreign;
+    } call;
+} ngx_proxy_wasm_dispatch_op_t;
+
+
 struct ngx_proxy_wasm_exec_s {
     ngx_uint_t                          root_id;
     ngx_uint_t                          id;
@@ -194,12 +213,11 @@ struct ngx_proxy_wasm_exec_s {
     ngx_proxy_wasm_instance_t          *ictx;
     ngx_proxy_wasm_store_t             *store;
     ngx_event_t                        *ev;
+    ngx_queue_t                         dispatch_ops;
+    ngx_proxy_wasm_foreign_call_t      *foreign_call;   /* swap pointer for host functions */
 #ifdef NGX_WASM_HTTP
-    ngx_http_proxy_wasm_dispatch_t    *dispatch_call;  /* swap pointer for host functions */
+    ngx_http_proxy_wasm_dispatch_t     *dispatch_call;  /* swap pointer for host functions */
 #endif
-    ngx_queue_t                        dispatch_calls;
-    ngx_proxy_wasm_foreign_call_t     *foreign_call;
-    ngx_queue_t                        foreign_calls;
 
     /* flags */
 
@@ -422,8 +440,8 @@ ngx_int_t ngx_proxy_wasm_resume(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_wasm_phase_t *phase, ngx_proxy_wasm_step_e step);
 ngx_proxy_wasm_err_e ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
     ngx_proxy_wasm_step_e step);
-ngx_uint_t ngx_proxy_wasm_dispatch_calls_total(ngx_proxy_wasm_exec_t *pwexec);
-void ngx_proxy_wasm_dispatch_calls_cancel(ngx_proxy_wasm_exec_t *pwexec);
+ngx_uint_t ngx_proxy_wasm_dispatch_ops_total(ngx_proxy_wasm_exec_t *pwexec);
+void ngx_proxy_wasm_dispatch_ops_cancel(ngx_proxy_wasm_exec_t *pwexec);
 ngx_uint_t ngx_proxy_wasm_foreign_calls_total(ngx_proxy_wasm_exec_t *pwexec);
 void ngx_proxy_wasm_foreign_calls_cancel(ngx_proxy_wasm_exec_t *pwexec);
 

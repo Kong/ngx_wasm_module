@@ -4,7 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasmX;
 
-plan_tests(5);
+plan_tests(4);
 run_tests();
 
 __DATA__
@@ -22,12 +22,11 @@ qr/host trap \(internal error\): unknown foreign function/
 --- no_error_log
 [crit]
 [emerg]
-[stub]
 
 
 
 === TEST 2: proxy_wasm - call_foreign_function(), resolve_lua (no lua support)
---- skip_eval: 5: $::nginxV =~ m/openresty/
+--- skip_eval: 4: $::nginxV =~ m/openresty/
 --- wasm_modules: hostcalls
 --- config
     location /t {
@@ -40,4 +39,3 @@ qr/host trap \(internal error\): cannot resolve, no lua support/
 --- no_error_log
 [crit]
 [emerg]
-[stub]

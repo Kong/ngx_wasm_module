@@ -893,13 +893,13 @@ done:
 
 
 ngx_uint_t
-ngx_proxy_wasm_dispatch_calls_total(ngx_proxy_wasm_exec_t *pwexec)
+ngx_proxy_wasm_dispatch_ops_total(ngx_proxy_wasm_exec_t *pwexec)
 {
     ngx_queue_t  *q;
     ngx_uint_t    n = 0;
 
-    for (q = ngx_queue_head(&pwexec->dispatch_calls);
-         q != ngx_queue_sentinel(&pwexec->dispatch_calls);
+    for (q = ngx_queue_head(&pwexec->dispatch_ops);
+         q != ngx_queue_sentinel(&pwexec->dispatch_ops);
          q = ngx_queue_next(q), n++) { /* void */ }
 
     dd("n: %ld", n);
@@ -909,64 +909,34 @@ ngx_proxy_wasm_dispatch_calls_total(ngx_proxy_wasm_exec_t *pwexec)
 
 
 void
-ngx_proxy_wasm_dispatch_calls_cancel(ngx_proxy_wasm_exec_t *pwexec)
+ngx_proxy_wasm_dispatch_ops_cancel(ngx_proxy_wasm_exec_t *pwexec)
 {
-#ifdef NGX_WASM_HTTP
-    ngx_queue_t                     *q;
-    ngx_http_proxy_wasm_dispatch_t  *call;
+    ngx_queue_t                   *q;
+    ngx_proxy_wasm_dispatch_op_t  *dop;
 
-    while (!ngx_queue_empty(&pwexec->dispatch_calls)) {
-        q = ngx_queue_head(&pwexec->dispatch_calls);
-        call = ngx_queue_data(q, ngx_http_proxy_wasm_dispatch_t, q);
+    while (!ngx_queue_empty(&pwexec->dispatch_ops)) {
+        q = ngx_queue_head(&pwexec->dispatch_ops);
+        dop = ngx_queue_data(q, ngx_proxy_wasm_dispatch_op_t, q);
 
         ngx_log_debug1(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
                        "proxy_wasm http dispatch cancelled (dispatch: %p)",
-                       call);
+                       dop->call);
 
-        ngx_queue_remove(&call->q);
+        ngx_queue_remove(&dop->q);
 
-        ngx_http_proxy_wasm_dispatch_destroy(call);
-    }
-#endif
-}
-
-
-ngx_uint_t
-ngx_proxy_wasm_foreign_calls_total(ngx_proxy_wasm_exec_t *pwexec)
-{
-    ngx_queue_t  *q;
-    ngx_uint_t    n = 0;
-
-    for (q = ngx_queue_head(&pwexec->foreign_calls);
-         q != ngx_queue_sentinel(&pwexec->foreign_calls);
-         q = ngx_queue_next(q), n++) { /* void */ }
-
-    dd("n: %ld", n);
-
-    return n;
-}
-
-
-void
-ngx_proxy_wasm_foreign_calls_cancel(ngx_proxy_wasm_exec_t *pwexec)
-{
+        switch (dop->type) {
 #ifdef NGX_WASM_HTTP
-    ngx_queue_t                    *q;
-    ngx_proxy_wasm_foreign_call_t  *call;
-
-    while (!ngx_queue_empty(&pwexec->foreign_calls)) {
-        q = ngx_queue_head(&pwexec->foreign_calls);
-        call = ngx_queue_data(q, ngx_proxy_wasm_foreign_call_t, q);
-
-        ngx_log_debug1(NGX_LOG_DEBUG_ALL, pwexec->log, 0,
-                       "proxy_wasm foreign function callback cancelled"
-                       " (callback: %p)", call);
-
-        ngx_queue_remove(&call->q);
-
-        ngx_proxy_wasm_foreign_call_destroy(call);
-    }
+        case NGX_PROXY_WASM_DISPATCH_HTTP_CALL:
+            ngx_http_proxy_wasm_dispatch_destroy(dop->call.http);
+            break;
 #endif
+        case NGX_PROXY_WASM_DISPATCH_FOREIGN_CALL:
+            /* fallthrough */
+        default:
+            ngx_proxy_wasm_foreign_call_destroy(dop->call.foreign);
+            break;
+        }
+    }
 }
 
 
@@ -1188,8 +1158,7 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
             rexec->filter = filter;
             rexec->ictx = ictx;
 
-            ngx_queue_init(&rexec->dispatch_calls);
-            ngx_queue_init(&rexec->foreign_calls);
+            ngx_queue_init(&rexec->dispatch_ops);
 
             log = filter->log;
 
@@ -1306,8 +1275,7 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
                 pwexec->ictx = ictx;
                 pwexec->store = ictx->store;
 
-                ngx_queue_init(&pwexec->dispatch_calls);
-                ngx_queue_init(&pwexec->foreign_calls);
+                ngx_queue_init(&pwexec->dispatch_ops);
 
             } else {
                 if (in->ictx != ictx) {

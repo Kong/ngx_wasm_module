@@ -19,34 +19,35 @@ ngx_proxy_wasm_foreign_call_destroy(ngx_proxy_wasm_foreign_call_t *call)
 #if (NGX_WASM_HTTP)
 #if (NGX_WASM_LUA)
 static void
-ngx_proxy_wasm_foreign_call(ngx_proxy_wasm_foreign_call_t *call)
+ngx_proxy_wasm_foreign_call(ngx_proxy_wasm_dispatch_op_t *dop)
 {
-    ngx_proxy_wasm_exec_t  *pwexec = call->pwexec;
-    ngx_proxy_wasm_step_e   step = pwexec->parent->step;
+    ngx_proxy_wasm_foreign_call_t  *call;
+    ngx_proxy_wasm_exec_t          *pwexec;
+    ngx_proxy_wasm_step_e           step;
 
-    ngx_queue_remove(&call->q);
+    ngx_wa_assert(dop->type == NGX_PROXY_WASM_DISPATCH_FOREIGN_CALL);
 
+    call = dop->call.foreign;
+    pwexec = call->pwexec;
     pwexec->foreign_call = call;
+    step = pwexec->parent->step;
+
+    ngx_queue_remove(&dop->q);
 
     pwexec->parent->phase = ngx_wasm_phase_lookup(&ngx_http_wasm_subsystem,
                                                   NGX_WASM_BACKGROUND_PHASE);
 
     ngx_proxy_wasm_run_step(pwexec, NGX_PROXY_WASM_STEP_FOREIGN_CALLBACK);
 
+    /* potential trap ignored here as it's logged somewhere else and not futher
+     * handling is needed */
+
     pwexec->parent->step = step;
     pwexec->foreign_call = NULL;
 
-    if (ngx_proxy_wasm_foreign_calls_total(pwexec)) {
+    if (ngx_proxy_wasm_dispatch_ops_total(pwexec)) {
         ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwexec->log, 0,
-                       "proxy_wasm more foreign function callbacks pending...");
-
-        ngx_wasm_yield(&call->rctx->env);
-        ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
-                                           NGX_PROXY_WASM_ACTION_PAUSE);
-
-    } else if (ngx_proxy_wasm_dispatch_calls_total(pwexec)) {
-        ngx_log_debug0(NGX_LOG_DEBUG_WASM, pwexec->log, 0,
-                       "proxy_wasm http dispatch calls pending...");
+                       "proxy_wasm more dispatch operations pending...");
 
         ngx_wasm_yield(&call->rctx->env);
         ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
@@ -60,7 +61,6 @@ ngx_proxy_wasm_foreign_call(ngx_proxy_wasm_foreign_call_t *call)
         ngx_proxy_wasm_ctx_set_next_action(pwexec->parent,
                                            NGX_PROXY_WASM_ACTION_CONTINUE);
 
-        /* resume current step if unfinished */
         ngx_proxy_wasm_resume(pwexec->parent, pwexec->parent->phase, step);
     }
 
@@ -76,12 +76,13 @@ ngx_proxy_wasm_hfuncs_resolve_lua_handler(ngx_resolver_ctx_t *rslv_ctx)
 #endif
     struct sockaddr_in             *sin;
     u_char                         *p;
+    u_short                         sa_family = AF_INET;
     ngx_buf_t                      *b;
     ngx_str_t                       args;
     ngx_wasm_lua_ctx_t             *lctx;
-    ngx_wasm_socket_tcp_t          *sock;
-    ngx_proxy_wasm_foreign_call_t  *call;
-    u_short                         sa_family = AF_INET;
+    ngx_wasm_socket_tcp_t          *sock = rslv_ctx->data;
+    ngx_proxy_wasm_dispatch_op_t   *dop = sock->data;
+    ngx_proxy_wasm_foreign_call_t  *call = dop->call.foreign;
     u_char                          buf[rslv_ctx->name.len +
 #if (NGX_HAVE_INET6)
                                         sizeof(struct in6_addr) + 1];
@@ -93,9 +94,7 @@ ngx_proxy_wasm_hfuncs_resolve_lua_handler(ngx_resolver_ctx_t *rslv_ctx)
         sa_family = AF_INET6;
     }
 
-    sock = (ngx_wasm_socket_tcp_t *) rslv_ctx->data;
     lctx = sock->lctx;
-    call = (ngx_proxy_wasm_foreign_call_t *) sock->data;
     p = buf;
 
     ngx_memzero(buf, sizeof(buf));
@@ -139,7 +138,7 @@ not_found:
     b->last = ngx_cpymem(b->last, args.data, args.len);
 
     if (lctx->yielded) {
-        ngx_proxy_wasm_foreign_call(call);
+        ngx_proxy_wasm_foreign_call(dop);
 
         if (rslv_ctx->state == NGX_WASM_LUA_RESOLVE_ERR) {
             ngx_wasm_resume(&call->rctx->env);
@@ -167,6 +166,7 @@ ngx_proxy_wasm_foreign_call_resolve_lua(ngx_wavm_instance_t *instance,
     ngx_http_request_t             *r;
     ngx_resolver_ctx_t             *rslv_ctx;
     ngx_wasm_socket_tcp_t          *sock;
+    ngx_proxy_wasm_dispatch_op_t   *dop;
     ngx_proxy_wasm_foreign_call_t  *call;
     ngx_wavm_ptr_t                  p;
 
@@ -218,6 +218,16 @@ ngx_proxy_wasm_foreign_call_resolve_lua(ngx_wavm_instance_t *instance,
         call->rctx = rctx;
     }
 
+    /* dispatch */
+
+    dop = ngx_calloc(sizeof(ngx_proxy_wasm_dispatch_op_t), pwexec->log);
+    if (dop == NULL) {
+        goto error;
+    }
+
+    dop->type = NGX_PROXY_WASM_DISPATCH_FOREIGN_CALL;
+    dop->call.foreign = call;
+
     sock = ngx_pcalloc(pwexec->pool, sizeof(ngx_wasm_socket_tcp_t));
     if (sock == NULL) {
         goto error;
@@ -226,7 +236,7 @@ ngx_proxy_wasm_foreign_call_resolve_lua(ngx_wavm_instance_t *instance,
     sock->env = &call->rctx->env;
     sock->log = pwexec->log;
     sock->pool = pwexec->pool;
-    sock->data = call;
+    sock->data = dop;
 
     rslv_ctx = ngx_calloc(sizeof(ngx_resolver_ctx_t), pwexec->log);
     if (rslv_ctx == NULL) {
@@ -260,7 +270,7 @@ ngx_proxy_wasm_foreign_call_resolve_lua(ngx_wavm_instance_t *instance,
         return ngx_proxy_wasm_result_ok(rets);
 
     case NGX_AGAIN:
-        ngx_queue_insert_head(&pwexec->foreign_calls, &call->q);
+        ngx_queue_insert_head(&pwexec->dispatch_ops, &dop->q);
         return ngx_proxy_wasm_result_ok(rets);
 
     default:

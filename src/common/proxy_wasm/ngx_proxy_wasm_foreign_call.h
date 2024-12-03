@@ -12,7 +12,6 @@
 
 
 struct ngx_proxy_wasm_foreign_call_s {
-    ngx_queue_t                         q;
     ngx_proxy_wasm_exec_t              *pwexec;
 #if (NGX_WASM_HTTP)
     ngx_http_wasm_req_ctx_t            *rctx;
