@@ -126,14 +126,27 @@ install_openssl() {
         local dirname="openssl-lib-$OPENSSL_VER"
 
         if [ ! -d $dirname ]; then
-            notice "building OpenSSL..."
+            notice "building OpenSSL... (debug: $NGX_BUILD_OPENSSL_DEBUG)"
             local prefix="$(pwd)/$dirname"
+            local opts=""
+
+            if [[ "$NGX_BUILD_OPENSSL_DEBUG" == 1 ]]; then
+                opts+="no-asm \
+                       -fno-inline \
+                       -fno-omit-frame-pointer \
+                       -d \
+                       -g3 \
+                       -ggdb3 \
+                       -O0"
+            fi
+
             pushd openssl-$OPENSSL_VER
-                ./config \
-                    --prefix=$prefix \
-                    --openssldir=$prefix/openssl \
-                    shared \
-                    no-threads
+                eval ./config \
+                    "--prefix=$prefix" \
+                    "--openssldir=$prefix/openssl" \
+                    "shared" \
+                    "no-threads" \
+                    "$opts"
                 make -j$(n_jobs)
                 make install_sw
             popd
