@@ -41,7 +41,7 @@ Succeeds on:
                               on_http_call_response=echo_response_body';
         echo failed;
     }
---- error_code_like: (200|502|503|504)
+--- error_code_like: (200)
 --- response_body_like: ("Host": "httpbin\.org"|.*?502 Bad Gateway.*|.*?503 Service Temporarily Unavailable.*|.*?504 Gateway Time-out.*)
 --- error_log eval
 [
