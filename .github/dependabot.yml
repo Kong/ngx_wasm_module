@@ -1,47 +1,79 @@
 # https://docs.github.com/en/code-security/supply-chain-security/configuration-options-for-dependency-updates
 version: 2
 updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels:
+      - "pr/dependabot"
+    commit-message:
+      prefix: "chore(ci) "
+
   - package-ecosystem: cargo
     directory: /lib
     schedule:
       interval: monthly
     labels:
-      - dependabot
+      - "pr/dependabot"
     groups:
       production-dependencies:
         dependency-type: "production"
         patterns:
           - "*"
+      development-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "*"
     commit-message:
       prefix: "chore(deps) "
-      include: scope
 
   - package-ecosystem: cargo
-    directory: /t/lib
+    directories:
+      - "/t/lib/ngx-lua-tests"
+      - "/t/lib/ngx-rust-tests"
+      - "/t/lib/wasi-host-tests"
+      - "/t/lib/wasi-vm-tests"
+      - "/t/lib/proxy-wasm-tests/benchmarks"
+      - "/t/lib/proxy-wasm-tests/context-checks"
+      - "/t/lib/proxy-wasm-tests/hostcalls"
+      - "/t/lib/proxy-wasm-tests/instance-lifecycle"
+      - "/t/lib/proxy-wasm-tests/on-phases"
+      - "/t/lib/proxy-wasm-tests/on-tick"
     schedule:
       interval: monthly
     groups:
+      production-dependencies:
+        dependency-type: "production"
+        patterns:
+          - "*"
       development-dependencies:
         dependency-type: "development"
         patterns:
           - "*"
     labels:
-      - dependabot
+      - "pr/dependabot"
     commit-message:
       prefix: "chore(tests) "
-      include: scope
 
-  - package-ecosystem: github-actions
-    directory: /
+  - package-ecosystem: cargo
+    directory: /t/lib/proxy-wasm-tests/rust-sdk-ver-zero-one
     schedule:
       interval: monthly
     groups:
+      production-dependencies:
+        dependency-type: "production"
+        patterns:
+          - "*"
       development-dependencies:
         dependency-type: "development"
         patterns:
           - "*"
+    ignore:
+      # do not update beyond proxy-wasm 0.1.x in rust-sdk-ver-zero-one
+      - dependency-name: "proxy-wasm"
+        versions: [">=0.2.0"]
     labels:
-      - dependabot
+      - "pr/dependabot"
     commit-message:
-      prefix: "chore(ci) "
-      include: scope
+      prefix: "chore(tests) "
