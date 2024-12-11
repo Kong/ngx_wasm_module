@@ -139,7 +139,7 @@ jobs:
           lcov --gcov-tool gcov-${CC#*-} --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
       - name: Codecov Upload
         if: ${{ !env.ACT && inputs.coverage }}
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: './lcov.info'
