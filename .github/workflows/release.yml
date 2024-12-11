@@ -184,12 +184,12 @@ jobs:
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts-${{ github.job }}
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -320,12 +320,12 @@ jobs:
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-artifacts-${{ github.job }}
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -390,7 +390,7 @@ jobs:
           name: release-artifacts-${{ github.job }}
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
