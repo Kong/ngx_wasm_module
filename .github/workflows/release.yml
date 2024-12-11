@@ -29,7 +29,7 @@ defaults:
 env:
   CC: clang
   RETENTION_DAYS: 7
-  # For actions/checkout@v3 to use node16 instead of node20
+  # For actions/checkout@v4 to use node16 instead of node20
   # https://github.com/actions/checkout/issues/1487
   # https://github.com/actions/checkout/issues/1809
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
@@ -48,7 +48,7 @@ jobs:
       release_channel: ${{ steps.assign-vars.outputs.release_channel }}
       release_version: ${{ steps.assign-vars.outputs.release_version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Assign runtime versions
         id: assign-versions
         run: |
@@ -105,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build archive
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --src
       - name: Upload archive
@@ -142,7 +142,7 @@ jobs:
             file: "./assets/release/Dockerfiles/Dockerfile.amd64.archlinux"
             tags: "ghcr.io/kong/wasmx-build-arch:latest"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -178,7 +178,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
@@ -210,7 +210,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
@@ -242,7 +242,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
@@ -265,7 +265,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
       - name: Login to GitHub Container Registry
@@ -314,7 +314,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
@@ -347,7 +347,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
@@ -379,7 +379,7 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.TOKEN_GITHUB }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build binary
         run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
         env:
@@ -406,7 +406,7 @@ jobs:
       WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
       V8_VER: ${{ needs.setup.outputs.v8_ver }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup dependencies
         run: |
           brew install ninja openssh
