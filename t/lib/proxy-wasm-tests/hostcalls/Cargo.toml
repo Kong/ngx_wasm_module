@@ -10,6 +10,6 @@ crate-type = ["cdylib"]
 [dependencies]
 proxy-wasm = "0.2"
 log = "0.4"
-http = "0.2"
+http = "1.2"
 enum-utils = "0.1.2"
 urlencoding = "2.1.2"
