@@ -208,6 +208,7 @@ jobs:
             work/buildroot/
             t/servroot*
             ${{ github.workspace }}/coredumps
+            /var/log/nginx/
       #- name: Setup tmate session
       #  if: ${{ failure() && !env.ACT }}
       #  uses: mxschmitt/action-tmate@v3
