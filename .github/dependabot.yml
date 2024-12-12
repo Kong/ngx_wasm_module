@@ -51,6 +51,9 @@ updates:
         dependency-type: "development"
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "wasi"
+        versions: [">0.11"]
     labels:
       - "pr/dependabot"
     commit-message:
@@ -72,7 +75,7 @@ updates:
     ignore:
       # do not update beyond proxy-wasm 0.1.x in rust-sdk-ver-zero-one
       - dependency-name: "proxy-wasm"
-        versions: [">=0.2.0"]
+        versions: [">0.1"]
     labels:
       - "pr/dependabot"
     commit-message:
