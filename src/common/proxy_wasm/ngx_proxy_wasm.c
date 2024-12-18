@@ -1213,7 +1213,8 @@ ngx_proxy_wasm_create_context(ngx_proxy_wasm_filter_t *filter,
             rc = ngx_wavm_instance_call_funcref(ictx->instance,
                                                 filter->proxy_on_vm_start,
                                                 &rets,
-                                                rexec->id, rexec->root_id);
+                                                rexec->id,
+                                                filter->module->config.len);
             if (rc != NGX_OK || !rets->data[0].of.i32) {
                 ecode = NGX_PROXY_WASM_ERR_VM_START_FAILED;
                 goto error;
