@@ -9,7 +9,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: proxy_wasm - on_vm_start
+=== TEST 1: proxy_wasm - on_vm_start without configuration
 --- wasm_modules: on_phases
 --- config
     location /t {
@@ -25,7 +25,28 @@ qr/\[info\] .*? on_vm_start, config_size: 0/
 
 
 
-=== TEST 2: proxy_wasm - on_configure without configuration
+=== TEST 2: proxy_wasm - on_vm_start with configuration
+--- main_config eval
+qq{
+    wasm {
+        module on_phases $ENV{TEST_NGINX_CRATES_DIR}/on_phases.wasm 'foo=bar';
+    }
+}
+--- config
+    location /t {
+        proxy_wasm on_phases;
+        return 200;
+    }
+--- response_body
+--- error_log eval
+qr/\[info\] .*? on_vm_start, config_size: 7/
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 3: proxy_wasm - on_configure without configuration
 --- wasm_modules: on_phases
 --- config
     location /t {
@@ -41,7 +62,7 @@ qr/\[info\] .*? on_configure, config_size: 0/
 
 
 
-=== TEST 3: proxy_wasm - on_configure with configuration
+=== TEST 4: proxy_wasm - on_configure with configuration
 --- wasm_modules: on_phases
 --- config
     location /t {
