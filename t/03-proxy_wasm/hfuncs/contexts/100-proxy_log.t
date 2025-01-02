@@ -187,3 +187,20 @@ proxy_log msg
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 10: proxy_wasm contexts - proxy_log on_foreign_function
+--- skip_eval: 4: $::nginxV !~ m/openresty/
+--- wasm_modules: context_checks
+--- config
+    location /t {
+        proxy_wasm context_checks 'on_foreign_function=proxy_log';
+        return 200;
+    }
+--- ignore_response_body
+--- error_log
+proxy_log msg
+--- no_error_log
+[error]
+[crit]

@@ -180,3 +180,20 @@ can only set tick_period in root context
 --- no_error_log
 [crit]
 [alert]
+
+
+
+=== TEST 10: proxy_wasm contexts - set_tick_period on_foreign_function
+--- skip_eval: 4: $::nginxV !~ m/openresty/
+--- wasm_modules: context_checks
+--- config
+    location /t {
+        proxy_wasm context_checks 'on_foreign_function=set_tick_period';
+        return 200;
+    }
+--- ignore_response_body
+--- error_log
+can only set tick_period in root context
+--- no_error_log
+[crit]
+[alert]

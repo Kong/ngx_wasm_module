@@ -707,15 +707,13 @@ pub(crate) fn test_proxy_resolve_lua(ctx: &TestHttp) -> u32 {
     for name in names.split(",") {
         info!("attempting to resolve {}", name);
         match call_foreign_function("resolve_lua", Some(name.as_bytes())) {
-            Ok(ret) => {
-                match ret {
-                    Some(bytes) => info!("resolved (no yielding) {} to {:?}", name, bytes),
-                    _ => {
-                        pending_callbacks += 1;
-                    }
+            Ok(ret) => match ret {
+                Some(bytes) => info!("resolved (no yielding) {} to {:?}", name, bytes),
+                _ => {
+                    pending_callbacks += 1;
                 }
-            }
-            _ => ()
+            },
+            _ => (),
         }
     }
 

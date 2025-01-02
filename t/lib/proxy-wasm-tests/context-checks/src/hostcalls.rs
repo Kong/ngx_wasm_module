@@ -1,7 +1,7 @@
 use crate::*;
 use log::*;
 use proxy_wasm::types::*;
-use std::ptr::{null, null_mut};
+use std::ptr::null_mut;
 
 #[allow(improper_ctypes)]
 extern "C" {
@@ -468,15 +468,21 @@ extern "C" {
     ) -> Status;
 }
 
-pub fn call_resolve_lua(_ctx: &TestContext) {
-    let name = "resolve_lua";
+pub fn call_resolve_lua(_ctx: &TestContext, name: &str) {
+    let f_name = "resolve_lua";
 
     let mut ret_data: *mut u8 = null_mut();
     let mut ret_size: usize = 0;
 
     unsafe {
         let status = proxy_call_foreign_function(
-            name.as_ptr(), name.len(), null(), 0, &mut ret_data, &mut ret_size);
+            f_name.as_ptr(),
+            f_name.len(),
+            name.as_ptr(),
+            name.len(),
+            &mut ret_data,
+            &mut ret_size,
+        );
 
         info!("resolve_lua status: {}", status as u32);
     }

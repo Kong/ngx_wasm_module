@@ -13,6 +13,6 @@ pub fn resolve_lua_callback(args: Option<Vec<u8>>) {
                 info!("could not resolve {}", name)
             }
         }
-        _ => info!("empty args")
+        _ => info!("empty args"),
     }
 }

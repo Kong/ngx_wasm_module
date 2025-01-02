@@ -158,7 +158,8 @@ impl TestHttp {
                 let ret = match self.config.get("arg") {
                     Some(arg) => call_foreign_function(name, Some((&arg).as_bytes())).unwrap(),
                     None => call_foreign_function(name, None).unwrap(),
-                }.unwrap();
+                }
+                .unwrap();
 
                 info!("foreign function {} returned {:?}", name, ret);
             }
@@ -166,9 +167,8 @@ impl TestHttp {
                 self.pending_callbacks = test_proxy_resolve_lua(self);
 
                 if self.pending_callbacks > 0 {
-                    return Action::Pause
+                    return Action::Pause;
                 }
-
             }
 
             /* errors */

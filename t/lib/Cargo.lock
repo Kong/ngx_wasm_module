@@ -129,7 +129,7 @@ name = "context-checks"
 version = "0.1.0"
 dependencies = [
  "log",
- "proxy-wasm 0.2.2",
+ "proxy-wasm 0.2.3-dev",
 ]
 
 [[package]]

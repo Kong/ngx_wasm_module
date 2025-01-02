@@ -167,3 +167,19 @@ can only call resolve_lua during "on_request_headers", "on_request_body", "on_ti
 can only call resolve_lua during "on_request_headers", "on_request_body", "on_tick", "on_dispatch_response", "on_foreign_function"
 --- no_error_log
 [crit]
+
+
+
+=== TEST 10: proxy_wasm contexts - call_resolve_lua on_foreign_function
+--- wasm_modules: context_checks
+--- config
+    location /t {
+        proxy_wasm context_checks 'on_foreign_function=call_resolve_lua';
+        return 200;
+    }
+--- ignore_response_body
+--- error_log
+[error]
+cannot resolve, missing name
+--- no_error_log
+[crit]

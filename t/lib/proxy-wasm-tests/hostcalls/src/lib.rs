@@ -1,13 +1,13 @@
 #![allow(clippy::single_match)]
 
 mod filter;
+mod foreign_callbacks;
 mod tests;
 mod types;
-mod foreign_callbacks;
 
-use crate::{tests::*, types::test_http::*, types::test_root::*, types::*, foreign_callbacks::*};
+use crate::{foreign_callbacks::*, tests::*, types::test_http::*, types::test_root::*, types::*};
 use log::*;
-use proxy_wasm::{traits::*, types::*, hostcalls::*};
+use proxy_wasm::{hostcalls::*, traits::*, types::*};
 use std::{collections::BTreeMap, collections::HashMap, time::Duration};
 
 proxy_wasm::main! {{
@@ -127,13 +127,11 @@ impl RootContext for TestRoot {
                 for name in names.split(",") {
                     info!("attempting to resolve {}", name);
                     match call_foreign_function("resolve_lua", Some(name.as_bytes())) {
-                        Ok(ret) => {
-                            match ret {
-                                Some(bytes) => info!("resolved (no yielding) {} to {:?}", name, bytes),
-                                _ => ()
-                            }
-                        }
-                        _ => ()
+                        Ok(ret) => match ret {
+                            Some(bytes) => info!("resolved (no yielding) {} to {:?}", name, bytes),
+                            _ => (),
+                        },
+                        _ => (),
                     }
                 }
             }

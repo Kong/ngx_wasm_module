@@ -267,3 +267,20 @@ set_response_headers status: 0
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 14: proxy_wasm contexts - set_http_response_headers on_foreign_function
+--- skip_eval: 4: $::nginxV !~ m/openresty/
+--- wasm_modules: context_checks
+--- config
+    location /t {
+        proxy_wasm context_checks 'on_foreign_function=set_response_headers|:foo=bar';
+        return 200;
+    }
+--- ignore_response_body
+--- error_log
+[error]
+can only set response headers before "on_response_body"
+--- no_error_log
+[crit]

@@ -1,8 +1,7 @@
-use crate::{test_http::*, types::*, tests::*, foreign_callbacks::*};
+use crate::{foreign_callbacks::*, test_http::*, tests::*, types::*};
 use http::StatusCode;
 use log::*;
-use proxy_wasm::{traits::*, types::*, hostcalls::*};
-
+use proxy_wasm::{hostcalls::*, traits::*, types::*};
 
 impl Context for TestHttp {
     fn on_http_call_response(
@@ -135,7 +134,9 @@ impl Context for TestHttp {
         }
 
         match self.get_config("on_foreign_function").unwrap_or("") {
-            "resolve_lua" => { test_proxy_resolve_lua(self); }
+            "resolve_lua" => {
+                test_proxy_resolve_lua(self);
+            }
             _ => (),
         }
 
