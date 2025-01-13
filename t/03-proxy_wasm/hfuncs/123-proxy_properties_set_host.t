@@ -159,7 +159,7 @@ ngx_http_* calls.
 --- error_log eval
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
-    qr/\[error\] .*? cannot set host properties outside of a request/,
+    qr/\[error\] .*? cannot set scoped properties outside of a request/,
     qr/\[crit\] .*? panicked at/,
     qr/unexpected status: 10/,
 ]
@@ -191,7 +191,7 @@ ngx_http_* calls.
 --- error_log eval
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
-    qr/\[error\] .*? cannot set host properties outside of a request/,
+    qr/\[error\] .*? cannot set scoped properties outside of a request/,
     qr/\[crit\] .*? panicked at/,
     qr/unexpected status: 10/,
 ]

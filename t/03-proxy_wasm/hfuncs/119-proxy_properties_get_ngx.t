@@ -147,7 +147,7 @@ ngx_http_* calls.
 --- error_log eval
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
-    qr/\[error\] .*? cannot get ngx properties outside of a request/,
+    qr/\[error\] .*? cannot get scoped properties outside of a request/,
     qr/\[crit\] .*? panicked at/,
     qr/value: InternalFailure/,
 ]

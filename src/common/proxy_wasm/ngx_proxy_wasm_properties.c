@@ -774,21 +774,18 @@ ngx_proxy_wasm_properties_get_ngx(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_uint_t                  hash;
     ngx_str_t                   name;
     ngx_http_variable_value_t  *vv;
+    ngx_http_request_t         *r;
     ngx_http_wasm_req_ctx_t    *rctx;
+
+    rctx = (ngx_http_wasm_req_ctx_t *) pwctx->data;
+    ngx_wa_assert(rctx && !rctx->fake_request);
+    r = rctx->r;
 
     name.data = (u_char *) (path->data + ngx_prefix_len);
     name.len = path->len - ngx_prefix_len;
-
     hash = hash_str(name.data, name.len);
 
-    rctx = (ngx_http_wasm_req_ctx_t *) pwctx->data;
-    if (rctx == NULL || rctx->fake_request) {
-        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
-                           "cannot get ngx properties outside of a request");
-        return NGX_ERROR;
-    }
-
-    vv = ngx_http_get_variable(rctx->r, &name, hash);
+    vv = ngx_http_get_variable(r, &name, hash);
     if (vv && !vv->not_found) {
         value->data = vv->data;
         value->len = vv->len;
@@ -816,12 +813,7 @@ ngx_proxy_wasm_properties_set_ngx(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_http_core_main_conf_t  *cmcf;
 
     rctx = (ngx_http_wasm_req_ctx_t *) pwctx->data;
-    if (rctx == NULL || rctx->fake_request) {
-        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
-                           "cannot set ngx properties outside of a request");
-        return NGX_ERROR;
-    }
-
+    ngx_wa_assert(rctx && !rctx->fake_request);
     r = rctx->r;
 
     cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
@@ -921,17 +913,8 @@ static ngx_int_t
 ngx_proxy_wasm_properties_get_host(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_str_t *path, ngx_str_t *value)
 {
-    uint32_t                  hash;
-    host_props_node_t        *hpn;
-#ifdef NGX_WASM_HTTP
-    ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
-
-    if (rctx == NULL || rctx->fake_request) {
-        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
-                           "cannot get host properties outside of a request");
-        return NGX_ERROR;
-    }
-#endif
+    uint32_t            hash;
+    host_props_node_t  *hpn;
 
     dd("get \"%.*s\"", (int) path->len, path->data);
 
@@ -997,14 +980,10 @@ ngx_proxy_wasm_properties_set_host(ngx_proxy_wasm_ctx_t *pwctx,
 {
     uint32_t                  hash;
     host_props_node_t        *hpn;
-#ifdef NGX_WASM_HTTP
+#if (NGX_WASM_HTTP && NGX_DEBUG)
     ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
 
-    if (rctx == NULL || rctx->fake_request) {
-        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
-                           "cannot set host properties outside of a request");
-        return NGX_ERROR;
-    }
+    ngx_wa_assert(rctx && !rctx->fake_request);
 #endif
 
     dd("set \"%.*s\"=\"%.*s\"",
@@ -1076,18 +1055,35 @@ ngx_int_t
 ngx_proxy_wasm_properties_get(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_str_t *path, ngx_str_t *value, ngx_str_t *err)
 {
-    u_char              dotted_path_buf[path->len];
-    ngx_int_t           rc;
-    ngx_uint_t          key;
-    ngx_str_t           p = { path->len, NULL };
-    pwm2ngx_mapping_t  *m;
+    u_char                    dotted_path_buf[path->len];
+    ngx_int_t                 rc;
+    ngx_uint_t                key;
+    ngx_str_t                 p = { path->len, NULL };
+    pwm2ngx_mapping_t        *m;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
+#endif
+
+    /* ensure this buffer is initialized for ngx_strchr below */
+    ngx_memzero(&dotted_path_buf, path->len);
 
     p.data = replace_nulls_by_dots(path, dotted_path_buf);
-    key = ngx_hash_key(p.data, p.len);
 
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
                    "wasm properties get \"%V\"", &p);
 
+#ifdef NGX_WASM_HTTP
+    if ((rctx == NULL || rctx->fake_request)
+        && ngx_strchr(p.data, '.'))
+    {
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                           "cannot get scoped properties "
+                           "outside of a request");
+        return NGX_ERROR;
+    }
+#endif
+
+    key = ngx_hash_key(p.data, p.len);
     m = ngx_hash_find_combined(&pwm2ngx_hash, key, p.data, p.len);
     if (m) {
         if (!m->getter) {
@@ -1142,16 +1138,33 @@ ngx_int_t
 ngx_proxy_wasm_properties_set(ngx_proxy_wasm_ctx_t *pwctx,
     ngx_str_t *path, ngx_str_t *value, ngx_str_t *err)
 {
-    u_char              dotted_path_buf[path->len];
-    ngx_str_t           p = { path->len, NULL };
-    ngx_uint_t          key;
-    pwm2ngx_mapping_t  *m;
+    u_char                    dotted_path_buf[path->len];
+    ngx_str_t                 p = { path->len, NULL };
+    ngx_uint_t                key;
+    pwm2ngx_mapping_t        *m;
+#ifdef NGX_WASM_HTTP
+    ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
+#endif
+
+    /* ensure this buffer is initialized for ngx_strchr below */
+    ngx_memzero(&dotted_path_buf, path->len);
 
     p.data = replace_nulls_by_dots(path, dotted_path_buf);
 
     ngx_log_debug2(NGX_LOG_DEBUG_WASM, pwctx->log, 0,
                    "wasm properties set \"%V\" to \"%V\"",
                    &p, value);
+
+#ifdef NGX_WASM_HTTP
+    if ((rctx == NULL || rctx->fake_request)
+        && ngx_strchr(p.data, '.'))
+    {
+        ngx_wavm_log_error(NGX_LOG_ERR, pwctx->log, NULL,
+                           "cannot set scoped properties "
+                           "outside of a request");
+        return NGX_ERROR;
+    }
+#endif
 
     if (p.len > ngx_prefix_len
         && ngx_memcmp(p.data, ngx_prefix, ngx_prefix_len) == 0)

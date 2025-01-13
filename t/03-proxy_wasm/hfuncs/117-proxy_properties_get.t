@@ -683,3 +683,95 @@ qr/\[info\] .*? property not found: nonexistent_property,/
 --- no_error_log
 [error]
 [crit]
+
+
+
+=== TEST 16: proxy_wasm - get_property() request.* - not available on: tick (isolation: global)
+--- skip_hup
+--- wasm_modules: hostcalls
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm hostcalls 'tick_period=200 \
+                              on_tick=log_property \
+                              name=request.id';
+        echo_sleep 0.5;
+        echo ok;
+    }
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[info\] .*? \[hostcalls\] on_tick/,
+    qr/\[error\] .*? cannot get scoped properties outside of a request/,
+    qr/\[crit\] .*? panicked at/,
+    qr/value: InternalFailure/,
+]
+
+
+
+=== TEST 17: proxy_wasm - get_property() response.* - not available on: tick (isolation: global)
+--- skip_hup
+--- wasm_modules: hostcalls
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm hostcalls 'tick_period=200 \
+                              on_tick=log_property \
+                              name=response.grpc_status';
+        echo_sleep 0.5;
+        echo ok;
+    }
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[info\] .*? \[hostcalls\] on_tick/,
+    qr/\[error\] .*? cannot get scoped properties outside of a request/,
+    qr/\[crit\] .*? panicked at/,
+    qr/value: InternalFailure/,
+]
+
+
+
+=== TEST 18: proxy_wasm - get_property() upstream.* - not available on: tick (isolation: global)
+--- skip_hup
+--- wasm_modules: hostcalls
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm hostcalls 'tick_period=200 \
+                              on_tick=log_property \
+                              name=upstream.address';
+        echo_sleep 0.5;
+        echo ok;
+    }
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[info\] .*? \[hostcalls\] on_tick/,
+    qr/\[error\] .*? cannot get scoped properties outside of a request/,
+    qr/\[crit\] .*? panicked at/,
+    qr/value: InternalFailure/,
+]
+
+
+
+=== TEST 19: proxy_wasm - get_property() upstream.* - not available on: configure (isolation: global)
+--- skip_hup
+--- wasm_modules: hostcalls
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm hostcalls 'on_configure=log_property \
+                              name=upstream.address';
+        echo_sleep 0.5;
+        echo ok;
+    }
+--- must_die: 0
+--- ignore_response_body
+--- error_log eval
+[
+    qr/\[error\] .*? cannot get scoped properties outside of a request/,
+    qr/\[crit\] .*? panicked at/,
+    qr/value: InternalFailure/,
+    qr/\[emerg\] .*? failed initializing "hostcalls"/,
+]

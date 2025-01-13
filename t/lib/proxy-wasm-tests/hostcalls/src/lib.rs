@@ -82,6 +82,8 @@ impl RootContext for TestRoot {
                 test_define_metrics(self);
                 test_record_metric(self, TestPhase::Configure);
             }
+            "log_property" => test_log_property(self),
+            "set_property" => test_set_property(self),
             _ => (),
         }
 

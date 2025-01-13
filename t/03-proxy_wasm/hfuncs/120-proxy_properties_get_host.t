@@ -142,7 +142,7 @@ qr/\[info\] .*? property not found: was,/
 --- error_log eval
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
-    qr/\[error\] .*? cannot get host properties outside of a request/,
+    qr/\[error\] .*? cannot get scoped properties outside of a request/,
     qr/\[crit\] .*? panicked at/,
     qr/value: InternalFailure/,
 ]
@@ -166,7 +166,7 @@ qr/\[info\] .*? property not found: was,/
 --- error_log eval
 [
     qr/\[info\] .*? \[hostcalls\] on_tick/,
-    qr/\[error\] .*? cannot get host properties outside of a request/,
+    qr/\[error\] .*? cannot get scoped properties outside of a request/,
     qr/\[crit\] .*? panicked at/,
     qr/value: InternalFailure/,
 ]

@@ -39,7 +39,7 @@ __DATA__
 ok
 --- error_log eval
 [
-    qr/\[error\] .*? cannot set host properties outside of a request/,
+    qr/\[error\] .*? cannot set scoped properties outside of a request/,
     qr/\[error\] .*? init_worker_by_lua(\(nginx\.conf:\d+\))?:\d+: unknown error/,
 ]
 --- no_error_log
