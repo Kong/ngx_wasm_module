@@ -136,16 +136,27 @@ ngx_stream_wasm_module
 
 
 === TEST 10: build with OpenResty
---- build: NGX_BUILD_OPENRESTY=1.21.4.1 make
+--- build: NGX_BUILD_OPENRESTY=1.27.1.1 make
 --- grep_nginxV
-openresty/1.21.4.1 (ngx_wasmx_module dev [debug
+openresty/1.27.1.1 (ngx_wasmx_module dev [debug
 built with OpenSSL
 --with-debug
 -O0 -ggdb3 -gdwarf
 
 
 
-=== TEST 11: build without IPC by default
+=== TEST 11: build with OpenResty without debug
+--- build: NGX_BUILD_OPENRESTY=1.27.1.1 NGX_BUILD_DEBUG=0 NGX_BUILD_CC_OPT= make
+--- grep_nginxV
+openresty/1.27.1.1 (ngx_wasmx_module dev
+built with OpenSSL
+--- no_grep_nginxV
+--with-debug
+-O0 -ggdb3 -gdwarf
+
+
+
+=== TEST 12: build without IPC by default
 --- build: make
 --- grep_nginxV
 ngx_wasmx_module dev [debug
@@ -158,7 +169,7 @@ ngx_ipc_core_module
 
 
 
-=== TEST 12: build with IPC (NGX_IPC=1)
+=== TEST 13: build with IPC (NGX_IPC=1)
 --- build: make NGX_IPC=1
 --- grep_nginxV
 ngx_wasmx_module dev [ipc
@@ -170,7 +181,7 @@ ngx_ipc_core_module
 
 
 
-=== TEST 13: build with IPC (NGX_IPC=YES)
+=== TEST 14: build with IPC (NGX_IPC=YES)
 --- build: make NGX_IPC=YES
 --- grep_nginxV
 ngx_wasmx_module dev [ipc
