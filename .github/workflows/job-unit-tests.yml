@@ -151,13 +151,13 @@ jobs:
         run: |
           case "$CC" in
             clang*)
-              lcov --gcov-tool gcov --capture --directory work/buildroot --base-directory work/nginx-patched --output-file lcov.info
-              lcov --gcov-tool gcov --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
+              lcov  --gcov-tool gcov --ignore-errors source --capture --directory work/buildroot --output-file lcov.info
+              lcov --ignore-errors unused --gcov-tool gcov --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
               lcov --gcov-tool gcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
             ;;
             *)
-              lcov --gcov-tool gcov-${CC#*-} --capture --directory work/buildroot --output-file lcov.info
-              lcov --gcov-tool gcov-${CC#*-} --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
+              lcov --gcov-tool gcov-${CC#*-} --ignore-errors source --capture --directory work/buildroot --output-file lcov.info
+              lcov --ignore-errors unused --gcov-tool gcov-${CC#*-} --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
               lcov --gcov-tool gcov-${CC#*-} --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
             ;;
           esac
