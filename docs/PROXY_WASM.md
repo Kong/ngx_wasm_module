@@ -712,6 +712,7 @@ implementation state in ngx_wasm_module:
 `request.size`                              | :heavy_check_mark: | :x:                 | Maps to [ngx.content_length](https://nginx.org/en/docs/http/ngx_http_core_module.html#content_length).
 `request.total_size`                        | :heavy_check_mark: | :x:                 | Maps to [ngx.request_length](https://nginx.org/en/docs/http/ngx_http_core_module.html#request_length).
 `request.headers.*`                         | :heavy_check_mark: | :x:                 | Returns the value of any request header, e.g. `request.headers.date`.
+`request.is_subrequest`                     | :heavy_check_mark: | :x:                 | An ngx_wasm_module extension indicating whether the current request is a subrequest as a `"true"/"false"` string.
 *Response properties*                       |                    |
 `response.code`                             | :heavy_check_mark: | :x:                 | Maps to [ngx.status](https://nginx.org/en/docs/http/ngx_http_core_module.html#status).
 `response.size`                             | :heavy_check_mark: | :x:                 | Maps to [ngx.body_bytes_sent](https://nginx.org/en/docs/http/ngx_http_core_module.html#body_bytes_sent).

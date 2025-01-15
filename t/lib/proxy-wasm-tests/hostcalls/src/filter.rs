@@ -44,6 +44,7 @@ impl Context for TestHttp {
                     "request.protocol",
                     "request.query",
                     "request.total_size",
+                    "request.is_subrequest",
                 ];
 
                 for property in properties {
