@@ -41,13 +41,20 @@ static const char             *ngx_prefix = "ngx.";
 static const size_t            ngx_prefix_len = 4;
 
 
+static const char             *host_prefix =
+                                  NGX_WASM_HOST_PROPERTY_NAMESPACE_STR ".";
+static size_t                  host_prefix_len;
+
+
+#ifdef NGX_WASM_HTTP
+static ngx_str_t               str_on  = ngx_string("true");
+static ngx_str_t               str_off = ngx_string("false");
+#endif
+
+
 static ngx_hash_init_t         pwm2ngx_init;
 static ngx_hash_combined_t     pwm2ngx_hash;
 static ngx_hash_keys_arrays_t  pwm2ngx_keys;
-
-
-static const char  *host_prefix = NGX_WASM_HOST_PROPERTY_NAMESPACE_STR ".";
-static size_t       host_prefix_len;
 
 
 typedef struct {
@@ -172,6 +179,37 @@ get_request_time(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
 
 
 static ngx_int_t
+get_request_header(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    ngx_str_t   name;
+
+    name.data = (u_char *) (path->data + request_headers_prefix_len);
+    name.len = path->len - request_headers_prefix_len;
+
+    return get_map_value(pwctx, &name, value,
+                         NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS);
+}
+
+
+static ngx_int_t
+is_subrequest(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    ngx_str_t                *result;
+    ngx_http_wasm_req_ctx_t  *rctx = pwctx->data;
+    ngx_http_request_t       *r = rctx->r;
+
+    result = r != r->main ? &str_on : &str_off;
+
+    value->data = result->data;
+    value->len = result->len;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
 get_upstream_address(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
     ngx_str_t *value)
 {
@@ -244,20 +282,6 @@ get_upstream_port(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
 
 
 static ngx_int_t
-get_request_header(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
-    ngx_str_t *value)
-{
-    ngx_str_t   name;
-
-    name.data = (u_char *) (path->data + request_headers_prefix_len);
-    name.len = path->len - request_headers_prefix_len;
-
-    return get_map_value(pwctx, &name, value,
-                         NGX_PROXY_WASM_MAP_HTTP_REQUEST_HEADERS);
-}
-
-
-static ngx_int_t
 get_response_header(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
     ngx_str_t *value)
 {
@@ -313,9 +337,6 @@ get_connection_mtls(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
     static ngx_str_t  verify_p = ngx_string("ngx.ssl_client_verify");
     static ngx_str_t  verify_e = ngx_string("SUCCESS");
 
-    static ngx_str_t  mtls_on  = ngx_string("true");
-    static ngx_str_t  mtls_off = ngx_string("false");
-
     if (!pwctx->mtls.len) {
         rc = ngx_proxy_wasm_properties_get_ngx(pwctx, &https_p, &https_v);
         if (rc != NGX_OK) {
@@ -331,7 +352,7 @@ get_connection_mtls(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
              && ngx_str_eq(verify_v.data, verify_v.len,
                            verify_e.data, verify_e.len);
 
-        result = on ? &mtls_on : &mtls_off;
+        result = on ? &str_on : &str_off;
 
         pwctx->mtls.data = ngx_pnalloc(pwctx->pool, result->len);
         if (pwctx->mtls.data == NULL) {
@@ -472,6 +493,9 @@ static pwm2ngx_mapping_t  pw2ngx[] = {
     { ngx_string("request.headers.*"),
       ngx_null_string,
       &get_request_header, NULL },
+    { ngx_string("request.is_subrequest"),
+      ngx_null_string,
+      &is_subrequest, NULL },
 
     /* Response properties */
 
