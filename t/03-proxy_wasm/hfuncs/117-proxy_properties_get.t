@@ -19,6 +19,7 @@ our $request_properties = join(',', qw(
     request.duration
     request.size
     request.total_size
+    request.is_subrequest
 ));
 
 plan_tests(5);
@@ -63,7 +64,8 @@ request\.protocol: HTTP\/1\.1 at RequestHeaders
 request\.query: special_arg\=true\&special_arg2\=false at RequestHeaders
 request\.duration: \d+\.\d+ at RequestHeaders
 request\.size: 5 at RequestHeaders
-request\.total_size: 187 at RequestHeaders/
+request\.total_size: 187 at RequestHeaders
+request\.is_subrequest: false at RequestHeaders/
 --- no_error_log
 [error]
 [crit]
@@ -151,7 +153,8 @@ request.method: GET at OnHttpCallResponse
 request.time: \d+\.\d+ at OnHttpCallResponse
 request.protocol: HTTP\/1\.1 at OnHttpCallResponse
 request.query: hello\=world at OnHttpCallResponse
-request.total_size: [1-9]+[0-9]+ at OnHttpCallResponse/
+request.total_size: [1-9]+[0-9]+ at OnHttpCallResponse
+request.is_subrequest: false at OnHttpCallResponse/
 --- no_error_log
 [error]
 [crit]
@@ -230,7 +233,8 @@ response\.size: 0 at ResponseBody
 response\.total_size: 0 at ResponseBody
 response\.code: 200 at ResponseBody
 response\.size: 0 at ResponseBody
-response\.total_size: 0 at ResponseBody/
+response\.total_size: 0 at ResponseBody
+response\.is_subrequest: false at ResponseBody/
 --- no_error_log
 [error]
 [crit]
@@ -680,6 +684,35 @@ qr/"response.code_details" property not supported
 ok
 --- error_log eval
 qr/\[info\] .*? property not found: nonexistent_property,/
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 16: proxy_wasm - get_property() - request.is_subrequest on: request_headers
+--- load_nginx_modules: ngx_http_echo_module
+--- wasm_modules: hostcalls
+--- config eval
+qq{
+    location /t {
+        echo_subrequest GET '/sub';
+    }
+
+    location /sub {
+        proxy_wasm hostcalls 'on=request_headers \
+                              test=/t/log/properties \
+                              name=request.is_subrequest';
+        echo ok;
+    }
+}
+--- request
+GET /t
+--- response_body
+ok
+--- grep_error_log eval: qr/request\.is_subrequest: (true|false) at \w+/
+--- grep_error_log_out eval
+qr/request\.is_subrequest: true at RequestHeaders/
 --- no_error_log
 [error]
 [crit]

@@ -172,6 +172,23 @@ get_request_time(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
 
 
 static ngx_int_t
+is_subrequest(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
+    ngx_str_t *value)
+{
+    ngx_http_wasm_req_ctx_t  *rctx = (ngx_http_wasm_req_ctx_t *) pwctx->data;
+    ngx_http_request_t       *r = rctx->r;
+
+    if (r == r->main) {
+        ngx_str_set(value, "false");
+    } else {
+        ngx_str_set(value, "true");
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
 get_upstream_address(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
     ngx_str_t *value)
 {
@@ -472,6 +489,9 @@ static pwm2ngx_mapping_t  pw2ngx[] = {
     { ngx_string("request.headers.*"),
       ngx_null_string,
       &get_request_header, NULL },
+    { ngx_string("request.is_subrequest"),
+      ngx_null_string,
+      &is_subrequest, NULL },
 
     /* Response properties */
 
