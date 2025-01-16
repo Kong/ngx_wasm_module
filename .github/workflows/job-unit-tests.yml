@@ -104,7 +104,7 @@ jobs:
           key: work-${{ inputs.os }}-${{ inputs.cc }}-${{ inputs.ngx }}-${{ inputs.openresty }}-${{ inputs.runtime }}-${{ hashFiles('util/**/*.sh', 'util/**/*.pl', 'util/**/*.awk', '.github/**/*.yml', '.github/**/*.sh', '.github/**/*.js', 'rust-toolchain', 'Makefile') }}
       - name: Setup Rust
         if: ${{ !env.ACT }}
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1ff72ee08e3cb84d84adba594e0a297990fc1ed3 # stable
         with:
           target: wasm32-wasip1
       - name: Add wasm32-unknown-unknown target
@@ -118,7 +118,7 @@ jobs:
           go-version: 1.22.x
       - name: Setup TinyGo
         if: ${{ !env.ACT }}
-        uses: acifani/setup-tinygo@v2
+        uses: acifani/setup-tinygo@b2ba42b249c7d3efdfe94166ec0f48b3191404f7 # v2
         with:
           tinygo-version: 0.31.1
       - name: Setup Node.js
@@ -184,7 +184,7 @@ jobs:
           echo "name=$name" >> $GITHUB_OUTPUT
       - name: Coveralls Upload
         if: ${{ !env.ACT && inputs.coverage }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@cfd0633edbd2411b532b808ba7a8b5e04f76d2c8 # v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: ${{ steps.lcov.outputs.name }}
@@ -192,7 +192,7 @@ jobs:
           parallel: true
       - name: Codecov Upload
         if: ${{ !env.ACT && inputs.coverage }}
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: './lcov.info'
