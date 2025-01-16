@@ -168,7 +168,7 @@ jobs:
       matrix:
         label: [""]
         os: [ubuntu-latest]
-        cc: [clang-13, clang-14, gcc-10, gcc-11]
+        cc: [clang-14, clang-18, gcc-10, gcc-11]
         ngx: [1.27.3]
         runtime: [wasmtime, wasmer, v8]
         wasmtime: [26.0.0]
