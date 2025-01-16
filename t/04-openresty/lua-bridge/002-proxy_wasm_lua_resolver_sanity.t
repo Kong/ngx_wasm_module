@@ -85,6 +85,20 @@ ok
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    init_worker_by_lua_block {
+        dns_client = require 'resty.dns.client'
+        assert(dns_client.init({
+            noSynchronisation = false, -- default
+            order = { 'A' },
+            resolvConf = {
+                'nameserver $::ExtResolver',
+                'options timeout:$::ExtTimeout',
+            }
+        }))
+    }
+}
 --- config
     location /t {
         proxy_wasm_lua_resolver on;
@@ -111,6 +125,20 @@ called 3 times
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    init_worker_by_lua_block {
+        dns_client = require 'resty.dns.client'
+        assert(dns_client.init({
+            noSynchronisation = false, -- default
+            order = { 'A' },
+            resolvConf = {
+                'nameserver $::ExtResolver',
+                'options timeout:$::ExtTimeout',
+            }
+        }))
+    }
+}
 --- config
     location /t {
         proxy_wasm_lua_resolver on;
@@ -612,6 +640,20 @@ ok
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    init_worker_by_lua_block {
+        dns_client = require 'resty.dns.client'
+        assert(dns_client.init({
+            noSynchronisation = false, -- default
+            order = { 'A' },
+            resolvConf = {
+                'nameserver $::ExtResolver',
+                'options timeout:$::ExtTimeout',
+            }
+        }))
+    }
+}
 --- config
     location /t {
         proxy_wasm_lua_resolver on;
@@ -638,6 +680,20 @@ TODO: also test with no_postpone
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    init_worker_by_lua_block {
+        dns_client = require 'resty.dns.client'
+        assert(dns_client.init({
+            noSynchronisation = false, -- default
+            order = { 'A' },
+            resolvConf = {
+                'nameserver $::ExtResolver',
+                'options timeout:$::ExtTimeout',
+            }
+        }))
+    }
+}
 --- config
     location /t {
         proxy_wasm_lua_resolver on;
@@ -689,6 +745,20 @@ ok
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    init_worker_by_lua_block {
+        dns_client = require 'resty.dns.client'
+        assert(dns_client.init({
+            noSynchronisation = false, -- default
+            order = { 'A' },
+            resolvConf = {
+                'nameserver $::ExtResolver',
+                'options timeout:$::ExtTimeout',
+            }
+        }))
+    }
+}
 --- config
     location /t {
         proxy_wasm_lua_resolver on;
@@ -715,6 +785,20 @@ TODO: also test with no_postpone
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    init_worker_by_lua_block {
+        dns_client = require 'resty.dns.client'
+        assert(dns_client.init({
+            noSynchronisation = false, -- default
+            order = { 'A' },
+            resolvConf = {
+                'nameserver $::ExtResolver',
+                'options timeout:$::ExtTimeout',
+            }
+        }))
+    }
+}
 --- config
     location /t {
         proxy_wasm_lua_resolver on;
@@ -766,6 +850,20 @@ ok
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    init_worker_by_lua_block {
+        dns_client = require 'resty.dns.client'
+        assert(dns_client.init({
+            noSynchronisation = false, -- default
+            order = { 'A' },
+            resolvConf = {
+                'nameserver $::ExtResolver',
+                'options timeout:$::ExtTimeout',
+            }
+        }))
+    }
+}
 --- config
     location /t {
         proxy_wasm_lua_resolver on;
@@ -798,6 +896,20 @@ ok
 --- timeout eval: $::ExtTimeout
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
+--- http_config eval
+qq{
+    init_worker_by_lua_block {
+        dns_client = require 'resty.dns.client'
+        assert(dns_client.init({
+            noSynchronisation = false, -- default
+            order = { 'A' },
+            resolvConf = {
+                'nameserver $::ExtResolver',
+                'options timeout:$::ExtTimeout',
+            }
+        }))
+    }
+}
 --- config
     location /t {
         proxy_wasm_lua_resolver on;
