@@ -840,9 +840,12 @@ ngx_proxy_wasm_run_step(ngx_proxy_wasm_exec_t *pwexec,
         rc = filter->subsystem->resume(pwexec, step, &action);
         break;
     case NGX_PROXY_WASM_STEP_TICK:
+        ngx_wa_assert(pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID);
+        pwctx->rexec = pwexec;
         pwexec->in_tick = 1;
         rc = ngx_proxy_wasm_on_tick(pwexec);
         pwexec->in_tick = 0;
+        pwctx->rexec = NULL;
         break;
     default:
         ngx_proxy_wasm_log_error(NGX_LOG_WASM_NYI, pwctx->log, 0,
