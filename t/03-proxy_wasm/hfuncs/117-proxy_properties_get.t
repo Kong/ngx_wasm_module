@@ -695,7 +695,49 @@ qr/request\.is_subrequest: true at RequestHeaders/
 
 
 
-=== TEST 16: proxy_wasm - get_property() - unknown property on: request_headers
+=== TEST 16: proxy_wasm - get_property() plugin_name on: tick
+--- wasm_modules: hostcalls
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm hostcalls 'tick_period=200 \
+                              on_tick=log_property \
+                              name=plugin_name';
+        echo_sleep 0.5;
+        echo ok;
+    }
+--- response_body
+ok
+--- error_log
+plugin_name: hostcalls
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 17: proxy_wasm - get_property() plugin_root_id on: tick
+--- wasm_modules: hostcalls
+--- load_nginx_modules: ngx_http_echo_module
+--- config
+    location /t {
+        proxy_wasm hostcalls 'tick_period=200 \
+                              on_tick=log_property \
+                              name=plugin_root_id';
+        echo_sleep 0.5;
+        echo ok;
+    }
+--- response_body
+ok
+--- error_log
+plugin_root_id: 0
+--- no_error_log
+[error]
+[crit]
+
+
+
+=== TEST 18: proxy_wasm - get_property() - unknown property on: request_headers
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -714,7 +756,7 @@ qr/\[info\] .*? property not found: nonexistent_property,/
 
 
 
-=== TEST 17: proxy_wasm - get_property() request.* - not available on: tick (isolation: global)
+=== TEST 19: proxy_wasm - get_property() request.* - not available on: tick (isolation: global)
 --- skip_hup
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
@@ -737,7 +779,7 @@ qr/\[info\] .*? property not found: nonexistent_property,/
 
 
 
-=== TEST 18: proxy_wasm - get_property() response.* - not available on: tick (isolation: global)
+=== TEST 20: proxy_wasm - get_property() response.* - not available on: tick (isolation: global)
 --- skip_hup
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
@@ -760,7 +802,7 @@ qr/\[info\] .*? property not found: nonexistent_property,/
 
 
 
-=== TEST 19: proxy_wasm - get_property() upstream.* - not available on: tick (isolation: global)
+=== TEST 21: proxy_wasm - get_property() upstream.* - not available on: tick (isolation: global)
 --- skip_hup
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
@@ -783,7 +825,7 @@ qr/\[info\] .*? property not found: nonexistent_property,/
 
 
 
-=== TEST 20: proxy_wasm - get_property() upstream.* - not available on: configure (isolation: global)
+=== TEST 22: proxy_wasm - get_property() upstream.* - not available on: configure (isolation: global)
 --- skip_hup
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module

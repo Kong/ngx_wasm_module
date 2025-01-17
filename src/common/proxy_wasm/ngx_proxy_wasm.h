@@ -213,6 +213,7 @@ struct ngx_proxy_wasm_ctx_s {
     ngx_uint_t                                    isolation;
     ngx_proxy_wasm_store_t                        store;
     ngx_proxy_wasm_context_type_e                 type;
+    ngx_proxy_wasm_exec_t                        *rexec;  /* root exec ctx */
     ngx_log_t                                    *log;
     ngx_pool_t                                   *pool;
     ngx_pool_t                                   *parent_pool;

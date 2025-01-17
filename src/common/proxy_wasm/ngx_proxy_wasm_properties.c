@@ -378,9 +378,15 @@ get_filter_name(ngx_proxy_wasm_ctx_t *pwctx, ngx_str_t *path,
     ngx_proxy_wasm_exec_t    *pwexec, *pwexecs;
     ngx_proxy_wasm_filter_t  *filter;
 
-    pwexecs = (ngx_proxy_wasm_exec_t *) pwctx->pwexecs.elts;
-    pwexec = &pwexecs[pwctx->exec_index];
-    filter = pwexec->filter;
+    if (pwctx->step == NGX_PROXY_WASM_STEP_TICK) {
+        /* no filter chain initialized */
+        filter = pwctx->rexec->filter;
+
+    } else {
+        pwexecs = (ngx_proxy_wasm_exec_t *) pwctx->pwexecs.elts;
+        pwexec = &pwexecs[pwctx->exec_index];
+        filter = pwexec->filter;
+    }
 
     value->len = filter->name->len;
     value->data = filter->name->data;
