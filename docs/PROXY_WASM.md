@@ -493,6 +493,95 @@ impl Context for ExampleRootContext {
 
 [Back to TOC](#table-of-contents)
 
+### Foreign Function Calls
+
+Proxy-Wasm filters can invoke host-specific functions, i.e. not part of the
+Proxy-Wasm ABI specification, by invoking `proxy_call_foreign_function` with the
+name of the host-specific function along with its arguments.
+
+`proxy_call_foreign_function` may return a vector of bytes containing the
+host-specific function's returned value, a value representing a failure (e.g.,
+function not found), or even an empty vector of bytes indicating that the
+invoked function will return asynchronously later.
+
+When the function finally returns, the handler `on_foreign_function` is invoked
+with the host-specific function's id and the size in bytes of its returned
+value, which can be retrieved by calling `get_buffer` accordingly.
+
+ngx_wasm_module supports the following host-specific functions:
+
+#### `resolve_lua`
+
+Resolves a name using the Lua DNS resolver.
+
+Expects the name to be resolved as its single argument.
+
+Returns either 4 bytes representing an IPv4 address, or 16 bytes representing an
+IPv6 address.
+
+**Supported Contexts**
+
+- `on_request_headers`
+- `on_request_body`
+- `on_tick`
+- `on_dispatch_response`
+- `on_foreign_function`
+
+Example:
+```rust
+pub enum WasmxForeignFunction {
+    ResolveLua = 0,
+}
+
+pub fn resolve_lua_callback(args: Option<Vec<u8>>) {
+    match args {
+        Some(args) => {
+            let address_size = args[0] as usize;
+            let name = std::str::from_utf8(&args[(address_size + 1)..]).unwrap();
+
+            if address_size > 0 {
+                let address = &args[1..address_size + 1];
+                info!("resolved (yielding) {} to {:?}", name, address);
+            } else {
+                info!("could not resolve {}", name)
+            }
+        }
+        _ => info!("empty args"),
+    }
+}
+
+let name = "a_name";
+
+match call_foreign_function("resolve_lua", Some(name.as_bytes())) {
+    Ok(ret) => match ret {
+        Some(bytes) => info!("resolved (no yielding) {} to {:?}", name, bytes),
+        None => info!("yielded while resolving {}", name),
+    },
+    Err(_) => info!("failed calling resolve_lua"),
+}
+
+fn on_foreign_function(&mut self, function_id: u32, args_size: usize) {
+    let f: WasmxForeignFunction = unsafe { ::std::mem::transmute(function_id) };
+    let args = get_buffer(BufferType::CallData, 0, args_size).unwrap();
+
+    match f {
+        WasmxForeignFunction::ResolveLua => {
+            lua_resolver_callback(args);
+        }
+    }
+}
+
+```
+
+> Notes
+
+This function requires the directive `proxy_wasm_lua_resolver` to be set to
+`on`, see [proxy_wasm_lua_resolver].
+
+This function may return asynchronously.
+
+[Back to TOC](#table-of-contents)
+
 ## Supported Specifications
 
 This section describes the current state of support for the Proxy-Wasm
@@ -576,6 +665,8 @@ SDK ABI `0.2.1`) and their present status in ngx_wasm_module:
 `on_done`                          | :heavy_check_mark:  | HTTP context done handler.
 *Shared memory queues*             |                     |
 `on_queue_ready`                   | :x:                 | *NYI*
+*Custom extension points*          |                     |
+`on_foreign_function`              | :heavy_check_mark:  |
 
 "*NYI*" stands for "Not Yet Implemented".
 
@@ -658,7 +749,7 @@ SDK ABI `0.2.1`) and their present status in ngx_wasm_module:
 `proxy_record_metric`                 | :heavy_check_mark:  |
 `proxy_increment_metric`              | :heavy_check_mark:  |
 *Custom extension points*             |                     |
-`proxy_call_foreign_function`         | :x:                 |
+`proxy_call_foreign_function`         | :heavy_check_mark:  |
 
 [Back to TOC](#table-of-contents)
 
