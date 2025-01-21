@@ -122,19 +122,20 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: "Ubuntu 18.04 build image"
-            file: "./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-18.04"
-            tags: "ghcr.io/kong/wasmx-build-ubuntu:18.04"
+          #- name: "Ubuntu 18.04 build image"
+          #  file: "./assets/release/Dockerfiles/Dockerfile.amd64.ubuntu-18.04"
+          #  tags: "ghcr.io/kong/wasmx-build-ubuntu:18.04"
           - name: "Ubuntu 20.04 build image"
             file: "./assets/release/Dockerfiles/Dockerfile.ubuntu-20.04"
             tags: "ghcr.io/kong/wasmx-build-ubuntu:20.04"
           - name: "Ubuntu 22.04 build image"
             file: "./assets/release/Dockerfiles/Dockerfile.ubuntu-22.04"
             tags: "ghcr.io/kong/wasmx-build-ubuntu:22.04"
-            platforms: "linux/arm64,linux/amd64"
-          - name: "Centos 7 build image"
-            file: "./assets/release/Dockerfiles/Dockerfile.amd64.centos7"
-            tags: "ghcr.io/kong/wasmx-build-centos:7"
+            #platforms: "linux/arm64,linux/amd64"
+            platforms: "linux/amd64"
+          #- name: "Centos 7 build image"
+          #  file: "./assets/release/Dockerfiles/Dockerfile.amd64.centos7"
+          #  tags: "ghcr.io/kong/wasmx-build-centos:7"
           - name: "Centos 8 build image"
             file: "./assets/release/Dockerfiles/Dockerfile.amd64.centos8"
             tags: "ghcr.io/kong/wasmx-build-centos:8"
@@ -163,37 +164,37 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  binary-ubuntu-bionic:
-    name: "Build Ubuntu 18.04 (bionic) binary"
-    needs: [setup, build-images]
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    env:
-      WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
-      WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
-      V8_VER: ${{ needs.setup.outputs.v8_ver }}
-    container:
-      image: ghcr.io/kong/wasmx-build-ubuntu:18.04
-      credentials:
-        username: ${{ github.repository_owner }}
-        password: ${{ secrets.TOKEN_GITHUB }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build binary
-        run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
-        with:
-          name: release-artifacts-${{ github.job }}
-          path: dist
-          retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
-        if: failure()
-        with:
-          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
-          path: work/dist/build/*
+  #binary-ubuntu-bionic:
+  #  name: "Build Ubuntu 18.04 (bionic) binary"
+  #  needs: [setup, build-images]
+  #  runs-on: ubuntu-latest
+  #  timeout-minutes: 120
+  #  env:
+  #    WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
+  #    WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
+  #    V8_VER: ${{ needs.setup.outputs.v8_ver }}
+  #  container:
+  #    image: ghcr.io/kong/wasmx-build-ubuntu:18.04
+  #    credentials:
+  #      username: ${{ github.repository_owner }}
+  #      password: ${{ secrets.TOKEN_GITHUB }}
+  #  steps:
+  #    - uses: actions/checkout@v3
+  #    - name: Build binary
+  #      run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
+  #      env:
+  #        GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
+  #    - name: Upload binary
+  #      uses: actions/upload-artifact@v3
+  #      with:
+  #        name: release-artifacts-${{ github.job }}
+  #        path: dist
+  #        retention-days: ${{ env.RETENTION_DAYS }}
+  #    - uses: actions/upload-artifact@v3
+  #      if: failure()
+  #      with:
+  #        name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+  #        path: work/dist/build/*
 
   binary-ubuntu-focal:
     name: "Build Ubuntu 20.04 (focal) binary"
@@ -259,77 +260,77 @@ jobs:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
           path: work/dist/build/*
 
-  binary-ubuntu-jammy-arm:
-    name: "Build ARM Ubuntu 22.04 (jammy) binary"
-    needs: [setup, build-images]
-    runs-on: ubuntu-latest
-    timeout-minutes: 150
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@53851d14592bedcffcf25ea515637cff71ef929a # v3
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.TOKEN_GITHUB }}
-      - run: |
-          docker run \
-              --platform=linux/arm64 \
-              --volume $PWD:/wasmx \
-              --volume $GITHUB_ENV:$GITHUB_ENV \
-              -e CI \
-              -e GITHUB_ENV \
-              --env CARGO_NET_GIT_FETCH_WITH_CLI=true \
-              --env WASMTIME_VER='${{ needs.setup.outputs.wasmtime_ver }}' \
-              --env WASMER_VER='${{ needs.setup.outputs.wasmer_ver }}' \
-              --env V8_VER='${{ needs.setup.outputs.v8_ver }}' \
-              ghcr.io/kong/wasmx-build-ubuntu:22.04 \
-              /wasmx/util/release.sh ${{ needs.setup.outputs.release_name }} --bin
-      - name: Upload binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-artifacts-${{ github.job }}
-          path: dist
-          retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
-          path: work/dist/build/*
+  #binary-ubuntu-jammy-arm:
+  #  name: "Build ARM Ubuntu 22.04 (jammy) binary"
+  #  needs: [setup, build-images]
+  #  runs-on: ubuntu-latest
+  #  timeout-minutes: 150
+  #  steps:
+  #    - uses: actions/checkout@v3
+  #    - name: Setup QEMU
+  #      uses: docker/setup-qemu-action@53851d14592bedcffcf25ea515637cff71ef929a # v3
+  #    - name: Login to GitHub Container Registry
+  #      uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+  #      with:
+  #        registry: ghcr.io
+  #        username: ${{ github.repository_owner }}
+  #        password: ${{ secrets.TOKEN_GITHUB }}
+  #    - run: |
+  #        docker run \
+  #            --platform=linux/arm64 \
+  #            --volume $PWD:/wasmx \
+  #            --volume $GITHUB_ENV:$GITHUB_ENV \
+  #            -e CI \
+  #            -e GITHUB_ENV \
+  #            --env CARGO_NET_GIT_FETCH_WITH_CLI=true \
+  #            --env WASMTIME_VER='${{ needs.setup.outputs.wasmtime_ver }}' \
+  #            --env WASMER_VER='${{ needs.setup.outputs.wasmer_ver }}' \
+  #            --env V8_VER='${{ needs.setup.outputs.v8_ver }}' \
+  #            ghcr.io/kong/wasmx-build-ubuntu:22.04 \
+  #            /wasmx/util/release.sh ${{ needs.setup.outputs.release_name }} --bin
+  #    - name: Upload binary
+  #      uses: actions/upload-artifact@v4
+  #      with:
+  #        name: release-artifacts-${{ github.job }}
+  #        path: dist
+  #        retention-days: ${{ env.RETENTION_DAYS }}
+  #    - uses: actions/upload-artifact@v4
+  #      if: failure()
+  #      with:
+  #        name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+  #        path: work/dist/build/*
 
-  binary-centos7:
-    name: "Build Centos 7 binary"
-    needs: [setup, build-images]
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    env:
-      WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
-      WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
-      V8_VER: ${{ needs.setup.outputs.v8_ver }}
-    container:
-      image: ghcr.io/kong/wasmx-build-centos:7
-      credentials:
-        username: ${{ github.repository_owner }}
-        password: ${{ secrets.TOKEN_GITHUB }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build binary
-        run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
-        env:
-          GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
-      - name: Upload binary
-        uses: actions/upload-artifact@v3
-        with:
-          name: release-artifacts-${{ github.job }}
-          path: dist
-          retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
-        if: failure()
-        with:
-          name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
-          path: work/dist/build/*
+  #binary-centos7:
+  #  name: "Build Centos 7 binary"
+  #  needs: [setup, build-images]
+  #  runs-on: ubuntu-latest
+  #  timeout-minutes: 120
+  #  env:
+  #    WASMTIME_VER: ${{ needs.setup.outputs.wasmtime_ver }}
+  #    WASMER_VER: ${{ needs.setup.outputs.wasmer_ver }}
+  #    V8_VER: ${{ needs.setup.outputs.v8_ver }}
+  #  container:
+  #    image: ghcr.io/kong/wasmx-build-centos:7
+  #    credentials:
+  #      username: ${{ github.repository_owner }}
+  #      password: ${{ secrets.TOKEN_GITHUB }}
+  #  steps:
+  #    - uses: actions/checkout@v3
+  #    - name: Build binary
+  #      run: ./util/release.sh ${{ needs.setup.outputs.release_name }} --bin
+  #      env:
+  #        GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
+  #    - name: Upload binary
+  #      uses: actions/upload-artifact@v3
+  #      with:
+  #        name: release-artifacts-${{ github.job }}
+  #        path: dist
+  #        retention-days: ${{ env.RETENTION_DAYS }}
+  #    - uses: actions/upload-artifact@v3
+  #      if: failure()
+  #      with:
+  #        name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
+  #        path: work/dist/build/*
 
   binary-centos8:
     name: "Build Centos 8 binary"
@@ -431,7 +432,8 @@ jobs:
 
   upload-artifacts:
     name: "Upload release artifacts"
-    needs: [setup, source-release, binary-ubuntu-bionic, binary-ubuntu-focal, binary-ubuntu-jammy, binary-ubuntu-jammy-arm, binary-centos7, binary-centos8, binary-arch, binary-macos]
+    #needs: [setup, source-release, binary-ubuntu-bionic, binary-ubuntu-focal, binary-ubuntu-jammy, binary-ubuntu-jammy-arm, binary-centos7, binary-centos8, binary-arch, binary-macos]
+    needs: [setup, source-release, binary-ubuntu-focal, binary-ubuntu-jammy, binary-centos8, binary-arch, binary-macos]
     runs-on: ubuntu-latest
     timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     steps:
