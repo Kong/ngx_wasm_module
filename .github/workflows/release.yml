@@ -185,12 +185,12 @@ jobs:
   #      env:
   #        GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
   #    - name: Upload binary
-  #      uses: actions/upload-artifact@v3
+  #      uses: actions/upload-artifact@v4
   #      with:
   #        name: release-artifacts-${{ github.job }}
   #        path: dist
   #        retention-days: ${{ env.RETENTION_DAYS }}
-  #    - uses: actions/upload-artifact@v3
+  #    - uses: actions/upload-artifact@v4
   #      if: failure()
   #      with:
   #        name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -321,12 +321,12 @@ jobs:
   #      env:
   #        GITHUB_OAUTH_TOKEN: ${{ secrets.GH_BOT_TOKEN }}
   #    - name: Upload binary
-  #      uses: actions/upload-artifact@v3
+  #      uses: actions/upload-artifact@v4
   #      with:
   #        name: release-artifacts-${{ github.job }}
   #        path: dist
   #        retention-days: ${{ env.RETENTION_DAYS }}
-  #    - uses: actions/upload-artifact@v3
+  #    - uses: actions/upload-artifact@v4
   #      if: failure()
   #      with:
   #        name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -391,7 +391,7 @@ jobs:
           name: release-artifacts-${{ github.job }}
           path: dist
           retention-days: ${{ env.RETENTION_DAYS }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: ${{ github.workflow }}-${{ github.job }}-sha-${{ github.sha }}-run-${{ github.run_number }}
@@ -437,10 +437,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     steps:
-      - name: Retrieve sibling release artifacts (legacy upload-artifact)
-        uses: actions/download-artifact@v4.1.7
       - name: Retrieve sibling release artifacts
-        uses: actions/download-artifact@v4.1.7
+        uses: actions/download-artifact@v4
         with:
           pattern: release-artifacts-*
           merge-multiple: true
