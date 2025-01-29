@@ -74,8 +74,6 @@ jobs:
     name: 'Unit tests'
     runs-on: ${{ inputs.os }}
     timeout-minutes: 90
-    outputs:
-      coveralls_name: ${{ steps.lcov.outputs.name }}
     steps:
       - name: 'Setup deps - apt-get'
         if: ${{ contains(inputs.os, 'ubuntu') }}
@@ -196,7 +194,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: './lcov.info'
-          flags: unit
+          flags: ${{ steps.lcov.outputs.name }}
       - run: rm -f t/servroot/html/nginx.sock
         if: ${{ failure() && !env.ACT }}
       - name: Artifacts Upload
