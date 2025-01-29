@@ -132,18 +132,57 @@ jobs:
             exit 1
           fi
       - name: Run lcov
+        id: lcov
         if: ${{ !env.ACT && inputs.coverage }}
         run: |
-          lcov --gcov-tool gcov-${CC#*-} --capture --directory work/buildroot --output-file lcov.info
-          lcov --gcov-tool gcov-${CC#*-} --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
-          lcov --gcov-tool gcov-${CC#*-} --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
+          case "$CC" in
+            clang*)
+              lcov  --gcov-tool gcov --ignore-errors source --capture --directory work/buildroot --output-file lcov.info
+              lcov --ignore-errors unused --gcov-tool gcov --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
+              lcov --gcov-tool gcov --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
+            ;;
+            *)
+              lcov --gcov-tool gcov-${CC#*-} --ignore-errors source --capture --directory work/buildroot --output-file lcov.info
+              lcov --ignore-errors unused --gcov-tool gcov-${CC#*-} --remove lcov.info "*/ngx_wasm_module/src/common/debug/*" --output-file lcov.info
+              lcov --gcov-tool gcov-${CC#*-} --extract lcov.info "*/ngx_wasm_module/src/*" --output-file lcov.info
+            ;;
+          esac
+
+          name="valgrind"
+          if [ -n "${{ inputs.openresty }}" ]; then
+            name="$name-openresty_${{ inputs.openresty }}"
+          else
+            name="$name-ngx_${{ inputs.ngx }}"
+          fi
+          name="$name-${{ inputs.runtime }}"
+          name="$name-${{ inputs.ipc }}"
+          name="$name-${{ inputs.ssl }}"
+          name="$name-${{ inputs.debug }}"
+          name="$name-${{ inputs.hup }}"
+          if [ "${{ inputs.module_type }}" = dynamic ]; then
+            name="$name-dynamic"
+          else
+            name="$name-static"
+          fi
+          if [ -n "${{ inputs.wasm_target }}" ]; then
+            name="$name-${{ inputs.wasm_target }}"
+          fi
+          echo "name=$name" >> $GITHUB_OUTPUT
+      - name: Coveralls Upload
+        if: ${{ !env.ACT && inputs.coverage }}
+        uses: coverallsapp/github-action@cfd0633edbd2411b532b808ba7a8b5e04f76d2c8 # v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: ${{ steps.lcov.outputs.name }}
+          path-to-lcov: './lcov.info'
+          parallel: true
       - name: Codecov Upload
         if: ${{ !env.ACT && inputs.coverage }}
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: './lcov.info'
-          flags: valgrind
+          flags: ${{ steps.lcov.outputs.name }}
       - run: rm -f t/servroot/html/nginx.sock
         if: ${{ failure() && !env.ACT }}
       - uses: actions/upload-artifact@v4
