@@ -448,36 +448,33 @@ jobs:
         run: find . -name '*.tar.gz'
         # Channel: nightly
       - name: Nightly release
-        uses: marvinpinto/action-automatic-releases@d68defdd11f9dcc7f52f35c1b7c236ee7513bcc1
+        uses: ncipollo/release-action@cdcc88a9acf3ca41c16c37bb7d21b9ad48560d87
         if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'nightly' }}
         with:
           prerelease: true
-          title: ${{ needs.setup.outputs.release_name }}
-          automatic_release_tag: nightly
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          files: |
+          name: ${{ needs.setup.outputs.release_name }}
+          tag: nightly
+          artifacts: |
             *.tar.gz
         # Channel: prerelease
       - name: Prerelease
-        uses: marvinpinto/action-automatic-releases@latest
+        uses: ncipollo/release-action@cdcc88a9acf3ca41c16c37bb7d21b9ad48560d87
         if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'prerelease' }}
         with:
           draft: true
           prerelease: true
-          title: Prerelease - ${{ needs.setup.outputs.release_version }}
-          automatic_release_tag: ${{ needs.setup.outputs.release_name }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          files: |
+          name: Prerelease - ${{ needs.setup.outputs.release_version }}
+          tag: ${{ needs.setup.outputs.release_name }}
+          artifacts: |
             *.tar.gz
         # Channel: release
       - name: Release
-        uses: marvinpinto/action-automatic-releases@latest
+        uses: ncipollo/release-action@cdcc88a9acf3ca41c16c37bb7d21b9ad48560d87
         if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'release' }}
         with:
           draft: true
           prerelease: false
-          title: Release - ${{ needs.setup.outputs.release_version }}
-          automatic_release_tag: ${{ needs.setup.outputs.release_name }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          files: |
+          name: Release - ${{ needs.setup.outputs.release_version }}
+          tag: ${{ needs.setup.outputs.release_name }}
+          artifacts: |
             *.tar.gz
