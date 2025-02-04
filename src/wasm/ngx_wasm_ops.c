@@ -213,10 +213,20 @@ ngx_wasm_ops_plan_load(ngx_wasm_ops_plan_t *plan, ngx_log_t *log)
 void
 ngx_wasm_ops_plan_destroy(ngx_wasm_ops_plan_t *plan)
 {
+    size_t                    i;
+    ngx_wasm_ops_pipeline_t  *pipeline;
+
     ngx_log_debug1(NGX_LOG_DEBUG_WASM, ngx_cycle->log, 0,
                    "wasm freeing plan: %p", plan);
 
+    for (i = plan->subsystem->nphases - 1; i-- > 0; /* void */) {
+        pipeline = &plan->pipelines[i];
+
+        ngx_array_destroy(&pipeline->ops);
+    }
+
     ngx_pfree(plan->pool, plan->pipelines);
+    ngx_pfree(plan->pool, plan);
 }
 
 
