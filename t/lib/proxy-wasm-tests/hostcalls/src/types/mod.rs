@@ -17,6 +17,7 @@ pub enum TestPhase {
 }
 
 #[repr(u32)]
+#[allow(dead_code)] // ignore erroneous dead code warning
 pub enum WasmxForeignFunction {
     ResolveLua = 0,
 }
