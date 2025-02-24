@@ -255,6 +255,12 @@ pub fn test_wasi_fd_fdstat_get() {
 }
 
 #[no_mangle]
+pub fn test_wasi_fd_fdstat_set_flags() {
+    // current stub implementation always returns BADF
+    expect_errno(wasi::ERRNO_BADF, unsafe { wasi::fd_fdstat_set_flags(1, 0) });
+}
+
+#[no_mangle]
 pub fn test_wasi_fd_prestat_get() {
     // current stub implementation always returns BADF
     expect_errno(wasi::ERRNO_BADF, unsafe { wasi::fd_prestat_get(1) });
@@ -291,5 +297,19 @@ pub fn test_wasi_path_open() {
     // current stub implementation always returns NOTDIR
     expect_errno(wasi::ERRNO_NOTDIR, unsafe {
         wasi::path_open(1, 0, "/tmp", 0, 0, 0, 0)
+    });
+}
+
+#[no_mangle]
+pub fn test_wasi_sched_yield() {
+    // current stub implementation always returns NOTSUP
+    expect_errno(wasi::ERRNO_NOTSUP, unsafe { wasi::sched_yield() });
+}
+
+#[no_mangle]
+pub fn test_wasi_poll_oneoff() {
+    // current stub implementation always returns NOTSUP
+    expect_errno(wasi::ERRNO_NOTSUP, unsafe {
+        wasi::poll_oneoff(std::ptr::null(), std::ptr::null_mut(), 0)
     });
 }
