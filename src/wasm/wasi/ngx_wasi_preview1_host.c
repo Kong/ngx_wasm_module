@@ -356,6 +356,11 @@ static ngx_wavm_host_func_def_t  ngx_wasi_hfuncs[] = {
       ngx_wavm_arity_i32x2,
       ngx_wavm_arity_i32 },
 
+    { ngx_string("fd_fdstat_set_flags"),
+      &ngx_wasi_hfuncs_errno_badf,
+      ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
+
     { ngx_string("fd_prestat_get"),
       &ngx_wasi_hfuncs_errno_badf,
       ngx_wavm_arity_i32x2,
@@ -394,6 +399,16 @@ static ngx_wavm_host_func_def_t  ngx_wasi_hfuncs[] = {
     { ngx_string("random_get"),
       &ngx_wasi_hfuncs_random_get,
       ngx_wavm_arity_i32x2,
+      ngx_wavm_arity_i32 },
+
+    { ngx_string("sched_yield"),
+      &ngx_wasi_hfuncs_errno_notsup,
+      NULL,
+      ngx_wavm_arity_i32 },
+
+    { ngx_string("poll_oneoff"),
+      &ngx_wasi_hfuncs_errno_notsup,
+      ngx_wavm_arity_i32x4,
       ngx_wavm_arity_i32 },
 
     ngx_wavm_hfunc_null
