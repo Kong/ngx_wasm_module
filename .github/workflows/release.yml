@@ -446,6 +446,11 @@ jobs:
         run: find . -name '*wasmer*' | xargs rm -f
       - name: List all collected assets
         run: find . -name '*.tar.gz'
+      - name: Update Nightly tag
+        uses: actions-ecosystem/action-push-tag@v1
+        if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'nightly' }}
+        with:
+          tag: nightly
         # Channel: nightly
       - name: Nightly release
         uses: ncipollo/release-action@cdcc88a9acf3ca41c16c37bb7d21b9ad48560d87
@@ -453,7 +458,9 @@ jobs:
         with:
           prerelease: true
           allowUpdates: true
+          removeArtifacts: true
           replacesArtifacts: true
+          generateReleaseNotes: true
           name: ${{ needs.setup.outputs.release_name }}
           tag: nightly
           artifacts: |
