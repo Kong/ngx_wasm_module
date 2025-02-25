@@ -1,5 +1,6 @@
 # Table of Contents
 
+- [0.6.0]
 - [0.5.0]
 - [0.4.0]
 - [0.3.0]
@@ -33,6 +34,71 @@ Host ABI.
 As for Nginx developers, the module can also be used to write other modules; the
 best resource for that sort of information would be
 [DEVELOPER.md](https://github.com/Kong/ngx_wasm_module/tree/main/docs/DEVELOPER.md).
+
+## 0.6.0
+
+> 2025/02/24 - Prerelease
+>
+> [Documentation](https://github.com/Kong/ngx_wasm_module/tree/prerelease-0.6.0/docs)
+> | [Release assets](https://github.com/Kong/ngx_wasm_module/releases/tag/prerelease-0.6.0)
+
+This prerelease includes a number of features and improvements mostly targeted
+at improving the Proxy-Wasm embedding.
+
+#### Changes
+
+> [0.5.0...0.6.0](https://github.com/Kong/ngx_wasm_module/compare/prerelease-0.5.0...prerelease-0.6.0)
+
+- Proxy-Wasm
+    - Feature: support for the foreign function interface allowing for custom
+      host extensions.
+    - Feature: always invoke the `on_http_call_response()` handler during HTTP
+      dispatch failures (e.g. timeout, broken connection, resolver failures,
+      ...).
+    - Feature: support for setting the proxied request querystring via the
+      `:path` property.
+    - Feature: new property `request.is_subrequest` allowing filters to
+      determine whether the current request is a subrequest.
+    - Feature: add a new directive: `proxy_wasm_log_dispatch_errors` which
+      toggles whether TCP socket errors produce an `[error]` log or not.
+    - Bugfix: resolve a segfault when filters would access request-only
+      properties in root contexts (e.g. `request.*`, `upstream.*`, ...).
+    - Bugfix: allow filters to access root properties in the background tick
+      context (e.g. `plugin_name`, `plugin_root_id`, ...).
+    - Bugfix: pass the VM config size argument to the `on_vm_start()` handler.
+- LuaJIT FFI
+    - Feature: produce an error when `shm:set()` is invoked while the shm lock
+      is already being held.
+- WASI
+    - Feature: add some missing wasi-preview1 host functions (as stubs only).
+- Misc
+    - Feature: disallow spaces, tabs and colons in the name of defined Wasm
+      modules.
+    - Bugfix: ensure filter chain plans are freed on worker shutdown as well as
+      during FFI reconfiguration.
+
+#### Dependencies
+
+This release is tested with the following Nginx/OpenResty versions and dependencies:
+
+Name      | Version         | Notes
+---------:|:---------------:|:--------------------------------------------------
+Nginx     | [1.27.4](https://nginx.org/en/download.html)                       |
+OpenSSL   | [3.4.1](https://www.openssl.org/source/)                           |
+Wasmtime  | [26.0.0](https://github.com/bytecodealliance/wasmtime/releases)    |
+Wasmer    | [3.1.1](https://github.com/wasmerio/wasmer/releases/)              |
+V8        | [13.1.201.15](https://github.com/Kong/ngx_wasm_runtimes/releases/) | Built by [Kong/ngx_wasm_runtimes] for convenience.
+OpenResty | [1.27.1.1](https://openresty.org/en/download.html)                 | No binary, tested only.
+
+#### Components
+
+Same as [0.1.0].
+
+#### Known Issues
+
+N/A
+
+[Back to TOC](#table-of-contents)
 
 ## 0.5.0
 
@@ -390,6 +456,7 @@ lua-resty-wasmx | A LuaJIT FFI binding exposing some of ngx_wasm_module's featur
 
 [Back to TOC](#table-of-contents)
 
+[0.6.0]: #060
 [0.5.0]: #050
 [0.4.0]: #040
 [0.3.0]: #030
