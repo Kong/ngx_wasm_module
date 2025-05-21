@@ -179,7 +179,7 @@ extern ngx_wasm_subsystem_t  ngx_http_wasm_subsystem;
 extern ngx_wavm_host_def_t   ngx_http_wasm_host_interface;
 extern ngx_module_t          ngx_http_wasm_module;
 
-static const ngx_buf_tag_t   buf_tag = &ngx_http_wasm_module;
+static const ngx_buf_tag_t   buf_tag = (ngx_buf_tag_t) &ngx_http_wasm_module;
 
 
 #endif /* _NGX_HTTP_WASM_H_INCLUDED_ */
