@@ -178,7 +178,7 @@ jobs:
           parallel: true
       - name: Codecov Upload
         if: ${{ !env.ACT && inputs.coverage }}
-        uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # v4
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: './lcov.info'
