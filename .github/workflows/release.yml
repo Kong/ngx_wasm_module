@@ -453,7 +453,7 @@ jobs:
           tag: nightly
         # Channel: nightly
       - name: Nightly release
-        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b
         if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'nightly' }}
         with:
           prerelease: true
@@ -467,7 +467,7 @@ jobs:
             *.tar.gz
         # Channel: prerelease
       - name: Prerelease
-        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b
         if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'prerelease' }}
         with:
           draft: true
@@ -479,7 +479,7 @@ jobs:
             *.tar.gz
         # Channel: release
       - name: Release
-        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b
         if: ${{ needs.setup.outputs.create_release == 'true' && needs.setup.outputs.release_channel == 'release' }}
         with:
           draft: true
