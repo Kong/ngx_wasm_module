@@ -67,6 +67,17 @@ impl RootContext for TestRoot {
             ));
         }
 
+        if let Some(servers) = self.get_upstream_configuration() {
+            for s in &servers {
+                info!(
+                    "[hostcalls] upstream: {}:{} weight={} max_fails={} fail_timeout={} backup={}",
+                    s.address, s.port, s.weight, s.max_fails, s.fail_timeout, s.backup
+                );
+            }
+        } else {
+            info!("no upstream config");
+        }
+
         match self.get_config("on_configure").unwrap_or("") {
             "do_trap" => panic!("trap on_configure"),
             "do_return_false" => return false,
@@ -127,6 +138,24 @@ impl RootContext for TestRoot {
                 for name in names.split(",") {
                     info!("attempting to resolve {}", name);
                     match call_foreign_function("resolve_lua", Some(name.as_bytes())) {
+                        Ok(ret) => match ret {
+                            Some(bytes) => info!("resolved (no yielding) {} to {:?}", name, bytes),
+                            _ => (),
+                        },
+                        _ => (),
+                    }
+                }
+            }
+            "resolve" => {
+                let names = self
+                    .config
+                    .get("name")
+                    .map(|x| x.as_str())
+                    .expect("expected a name argument");
+
+                for name in names.split(",") {
+                    info!("attempting to resolve {}", name);
+                    match call_foreign_function("resolve", Some(name.as_bytes())) {
                         Ok(ret) => match ret {
                             Some(bytes) => info!("resolved (no yielding) {} to {:?}", name, bytes),
                             _ => (),
@@ -223,6 +252,8 @@ impl RootContext for TestRoot {
             metrics: self.metrics.clone(),
             n_sync_calls: 0,
             pending_callbacks: 0,
+            upstream_index: 0,
+            upstream_response_status: None,
         }))
     }
 }
@@ -257,7 +288,10 @@ impl Context for TestRoot {
 
         match f {
             WasmxForeignFunction::ResolveLua => {
-                resolve_lua_callback(args);
+                resolve_callback(args);
+            }
+            WasmxForeignFunction::Resolve => {
+                resolve_callback(args);
             }
         }
     }

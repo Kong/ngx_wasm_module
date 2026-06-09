@@ -14,7 +14,9 @@
 #include <ngx_proxy_wasm_foreign_call.h>
 #ifdef NGX_WASM_HTTP
 #include <ngx_http_proxy_wasm.h>
+#include <ngx_http_wasm_upstream.h>
 #endif
+#include <ngx_wasm_acl.h>
 
 
 #ifdef NGX_WASM_HTTP
@@ -324,6 +326,7 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     char                          *trapmsg = NULL;
     u_char                        *start = NULL;
     ngx_chain_t                   *cl = NULL;
+    ngx_int_t                      rc;
     ngx_buf_t                     *buf;
     uint32_t                      *rlen;
     ngx_wavm_ptr_t                *rbuf, p;
@@ -347,6 +350,15 @@ ngx_proxy_wasm_hfuncs_get_buffer(ngx_wavm_instance_t *instance,
     case NGX_PROXY_WASM_BUFFER_VM_CONFIGURATION:
         start = pwexec->filter->module->config.data;
         len = pwexec->filter->module->config.len;
+        break;
+
+    case NGX_PROXY_WASM_BUFFER_UPSTREAM_CONFIGURATION:
+        rc = ngx_http_wasm_get_upstreams(pwexec, &start, &len);
+        if (rc == NGX_DECLINED) {
+            len = 0;
+        } else if (rc == NGX_ERROR) {
+            return ngx_proxy_wasm_result_err(rets);
+        }
         break;
 
     default:
@@ -666,9 +678,10 @@ ngx_proxy_wasm_hfuncs_set_header_check(ngx_wavm_instance_t *instance,
         case NGX_PROXY_WASM_STEP_REQ_BODY:
         case NGX_PROXY_WASM_STEP_REQ_TRAILERS:
             break;
+        case NGX_PROXY_WASM_STEP_UPSTREAM_SELECT:
         case NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE:
             if (!rctx->entered_header_filter) {
-                return NGX_OK;
+                break;
             }
             /* fallthrough */
         default:
@@ -678,6 +691,7 @@ ngx_proxy_wasm_hfuncs_set_header_check(ngx_wavm_instance_t *instance,
                                               rets, NGX_WAVM_BAD_USAGE);
         }
 
+        rctx->req_headers_modified = 1;
         break;
 
     case NGX_PROXY_WASM_MAP_HTTP_RESPONSE_HEADERS:
@@ -703,6 +717,11 @@ ngx_proxy_wasm_hfuncs_set_header_check(ngx_wavm_instance_t *instance,
         }
 
         break;
+
+    case NGX_PROXY_WASM_MAP_HTTP_UPSTREAM_RESPONSE_HEADERS:
+        return ngx_proxy_wasm_result_trap(pwexec,
+                                          "cannot set upstream response headers",
+                                          rets, NGX_WAVM_BAD_USAGE);
 #endif
     default:
         ngx_wasm_log_error(NGX_LOG_WASM_NYI, instance->log, 0,
@@ -1175,11 +1194,12 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
     ngx_str_t                         host, body;
     ngx_proxy_wasm_marshalled_map_t   headers, trailers;
     ngx_proxy_wasm_ctx_t             *pwctx;
-    ngx_proxy_wasm_exec_t            *pwexec;
+    ngx_proxy_wasm_exec_t            *pwexec, *rexec;
     ngx_http_wasm_req_ctx_t          *rctx;
     ngx_http_proxy_wasm_dispatch_t   *call = NULL;
 
     pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    rexec = ngx_proxy_wasm_rexec(pwexec);
     rctx = ngx_http_proxy_wasm_get_rctx(instance);
     pwctx = pwexec->parent;
 
@@ -1206,6 +1226,15 @@ ngx_proxy_wasm_hfuncs_dispatch_http_call(ngx_wavm_instance_t *instance,
 
     host.len = args[1].of.i32;
     host.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, host.len);
+
+    if (rexec != NULL && rexec->acl != NULL
+        && ngx_wasm_acl_check_host(rexec->acl, &host) != NGX_OK)
+    {
+        ngx_wavm_instance_trap_printf(ngx_proxy_wasm_pwexec2instance(pwexec),
+                                "dispatch forbidden: \"%V\"", &host);
+        rets[0] = (wasm_val_t) WASM_I32_VAL(NGX_PROXY_WASM_RESULT_OK);
+        return NGX_WAVM_BAD_USAGE;
+    }
 
     headers.len = args[3].of.i32;
     headers.data = NGX_WAVM_HOST_LIFT_SLICE(instance, args[2].of.i32,
@@ -1853,6 +1882,13 @@ ngx_proxy_wasm_hfuncs_call_foreign_function(ngx_wavm_instance_t *instance,
                                                        ret_data, ret_size,
                                                        rets);
     }
+
+    if (ngx_str_eq(fname.data, fname.len, "resolve", -1)) {
+        return ngx_proxy_wasm_foreign_call_resolve(instance, rctx, &fargs,
+                                                       ret_data, ret_size,
+                                                       rets);
+    }
+
 #endif
 
     return ngx_proxy_wasm_result_trap(pwexec, "unknown foreign function",
@@ -1891,6 +1927,201 @@ ngx_proxy_wasm_hfuncs_get_configuration(ngx_wavm_instance_t *instance,
 
         *rbuf = p;
         *rlen = (uint32_t) pwexec->filter->config.len;
+    }
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_proxy_set_upstream(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    u_char                   *addr, *sni;
+    uint32_t                  addr_size, sni_size, port, tls;
+    ngx_int_t                 rc;
+    ngx_str_t                 addr_str, sni_str;
+    ngx_http_request_t       *r;
+    ngx_proxy_wasm_ctx_t     *pwctx;
+    ngx_proxy_wasm_exec_t    *pwexec;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    r = rctx->r;
+    pwctx = pwexec->parent;
+
+    if (pwctx->step != NGX_PROXY_WASM_STEP_UPSTREAM_SELECT) {
+        return ngx_proxy_wasm_result_trap(pwexec,
+                                          "can only set upstream during "
+                                          "\"on_upstream_select\"",
+                                          rets, NGX_WAVM_BAD_USAGE);
+    }
+
+    addr_size = args[1].of.i32;
+    addr = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, addr_size);
+    port = args[2].of.i32;
+    tls = args[3].of.i32;
+    sni_size = args[5].of.i32;
+    sni = NGX_WAVM_HOST_LIFT_SLICE(instance, args[4].of.i32, sni_size);
+
+    if (port > 65535) {
+        ngx_wavm_log_error(NGX_LOG_INFO, instance->log, NULL,
+                       "proxy_set_upstream: port out of range: %d", port);
+        return ngx_proxy_wasm_result_badarg(rets);
+    }
+
+    if (tls != 0 && tls != 1) {
+        ngx_wavm_log_error(NGX_LOG_INFO, instance->log, NULL,
+                       "proxy_set_upstream: invalid tls flag: %d", tls);
+        return ngx_proxy_wasm_result_badarg(rets);
+    }
+
+    addr_str.len = addr_size;
+    addr_str.data = addr;
+
+    sni_str.len = sni_size;
+    sni_str.data = sni;
+
+    if (!r || !r->upstream || !r->upstream->peer.data) {
+        return ngx_proxy_wasm_result_err(rets);
+    }
+
+    rc = ngx_http_wasm_set_upstream(r->upstream->peer.data, &addr_str, port,
+                                    tls, &sni_str, pwexec->pool, pwexec);
+    if (rc == NGX_ERROR) {
+        return ngx_proxy_wasm_result_err(rets);
+    } else if (rc == NGX_DECLINED) {
+        return ngx_proxy_wasm_result_badarg(rets);
+    }
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_proxy_accept_upstream_response(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    ngx_http_request_t                  *r;
+    ngx_proxy_wasm_ctx_t                *pwctx;
+    ngx_proxy_wasm_exec_t               *pwexec;
+    ngx_http_wasm_req_ctx_t             *rctx;
+    ngx_http_wasm_upstream_peer_data_t  *up;
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    r = rctx->r;
+    pwctx = pwexec->parent;
+
+    if (pwctx->step != NGX_PROXY_WASM_STEP_NEXT_UPSTREAM) {
+        return ngx_proxy_wasm_result_trap(pwexec,
+                                          "can only accept response "
+                                          "during "
+                                          "\"on_next_upstream\"",
+                                          rets, NGX_WAVM_BAD_USAGE);
+    }
+
+    if (r->upstream == NULL) {
+        return ngx_proxy_wasm_result_trap(pwexec,
+                                          "no upstream available",
+                                          rets, NGX_WAVM_BAD_USAGE);
+    }
+
+    up = r->upstream->peer.data;
+    up->accept_resp = 1;
+
+    ngx_wavm_log_error(NGX_LOG_INFO, instance->log, NULL,
+                       "accepting upstream response with status: %ui",
+                       up->last_status);
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_proxy_get_upstream_timeouts(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    uint32_t                  *connect, *send, *read;
+    ngx_http_request_t        *r;
+    ngx_proxy_wasm_ctx_t      *pwctx;
+    ngx_proxy_wasm_exec_t     *pwexec;
+    ngx_http_wasm_req_ctx_t   *rctx;
+    ngx_http_upstream_conf_t  *u;
+
+    connect = NGX_WAVM_HOST_LIFT_SLICE(instance, args[0].of.i32, sizeof(uint32_t));
+    send = NGX_WAVM_HOST_LIFT_SLICE(instance, args[1].of.i32, sizeof(uint32_t));
+    read = NGX_WAVM_HOST_LIFT_SLICE(instance, args[2].of.i32, sizeof(uint32_t));
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    pwctx = pwexec->parent;
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    r = rctx->r;
+
+    switch (pwctx->step) {
+    case NGX_PROXY_WASM_STEP_UPSTREAM_SELECT:
+    case NGX_PROXY_WASM_STEP_NEXT_UPSTREAM:
+    case NGX_PROXY_WASM_STEP_UPSTREAM_INFO:
+        break;
+
+    default:
+        return ngx_proxy_wasm_result_trap(pwexec,
+                                          "can only get upstream timeouts "
+                                          "during "
+                                          "\"on_upstream_*\" phases",
+                                          rets, NGX_WAVM_BAD_USAGE);
+    }
+
+    if (r->upstream == NULL || r->upstream->conf == NULL) {
+        return ngx_proxy_wasm_result_err(rets);
+    }
+
+    u = r->upstream->conf;
+
+    *connect = u->connect_timeout;
+    *send = u->send_timeout;
+    *read = u->read_timeout;
+
+    return ngx_proxy_wasm_result_ok(rets);
+}
+
+
+static ngx_int_t
+ngx_proxy_wasm_hfuncs_proxy_set_upstream_timeouts(ngx_wavm_instance_t *instance,
+    wasm_val_t args[], wasm_val_t rets[])
+{
+    uint32_t                  connect, send, read;
+    ngx_int_t                 rc;
+    ngx_http_request_t       *r;
+    ngx_proxy_wasm_ctx_t     *pwctx;
+    ngx_proxy_wasm_exec_t    *pwexec;
+    ngx_http_wasm_req_ctx_t  *rctx;
+
+    connect = args[0].of.i32;
+    send = args[1].of.i32;
+    read = args[2].of.i32;
+
+    pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+    pwctx = pwexec->parent;
+    rctx = ngx_http_proxy_wasm_get_rctx(instance);
+    r = rctx->r;
+
+    if (pwctx->step != NGX_PROXY_WASM_STEP_UPSTREAM_SELECT) {
+        return ngx_proxy_wasm_result_trap(pwexec,
+                                          "can only set upstream timeouts "
+                                          "during "
+                                          "\"on_upstream_select\"",
+                                          rets, NGX_WAVM_BAD_USAGE);
+    }
+
+    if (r->upstream == NULL || r->upstream->conf == NULL) {
+        return ngx_proxy_wasm_result_err(rets);
+    }
+
+    rc = ngx_http_wasm_set_upstream_timeouts(r, connect, send, read);
+    if (rc == NGX_ERROR) {
+        return ngx_proxy_wasm_result_err(rets);
     }
 
     return ngx_proxy_wasm_result_ok(rets);
@@ -2287,6 +2518,25 @@ static ngx_wavm_host_func_def_t  ngx_proxy_wasm_hfuncs[] = {
     { ngx_string("proxy_clear_route_cache"),             /* 0.1.0 */
       &ngx_proxy_wasm_hfuncs_nop,                        /* NYI */
       NULL,
+      ngx_wavm_arity_i32 },
+
+    /* upstream */
+
+    { ngx_string("proxy_set_upstream"),
+      &ngx_proxy_wasm_hfuncs_proxy_set_upstream,
+      ngx_wavm_arity_i32x6,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_accept_upstream_response"),
+      &ngx_proxy_wasm_hfuncs_proxy_accept_upstream_response,
+      NULL,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_get_upstream_timeouts"),
+      &ngx_proxy_wasm_hfuncs_proxy_get_upstream_timeouts,
+      ngx_wavm_arity_i32x3,
+      ngx_wavm_arity_i32 },
+    { ngx_string("proxy_set_upstream_timeouts"),
+      &ngx_proxy_wasm_hfuncs_proxy_set_upstream_timeouts,
+      ngx_wavm_arity_i32x3,
       ngx_wavm_arity_i32 },
 
     ngx_wavm_hfunc_null

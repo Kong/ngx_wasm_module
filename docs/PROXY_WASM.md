@@ -12,6 +12,8 @@
     - [Nginx Properties]
     - [HTTP Dispatches]
     - [Foreign Functions]
+    - [Upstream selection]
+    - [Access Control (ACL)]
 - [Supported Specifications]
     - [Tested SDKs](#tested-sdks)
     - [Supported Entrypoints](#supported-entrypoints)
@@ -586,6 +588,308 @@ fn on_foreign_function(&mut self, function_id: u32, args_size: usize) {
 }
 ```
 
+#### `resolve`
+
+Resolve a hostname to an IPv4/IPv6 address using the Nginx built-in DNS resolver.
+
+Interface same as `resolve_lua`, but does not require an Nginx build with Lua.
+
+**Supported Contexts**
+
+- `on_request_headers`
+- `on_request_body`
+- `on_tick`
+- `on_dispatch_response`
+- `on_foreign_function`
+
+Example:
+
+```rust
+enum WasmxForeignFunctions {
+    ResolveLua = 0, 
+    Resolve = 1,
+}
+
+// same as in previous example
+```
+
+[Back to TOC](#table-of-contents)
+
+### Upstream Selection
+
+Proxy-Wasm filters can handle the decision-making behind choosing the 
+upstream server for each request. The process includes multiple callbacks
+and hostcalls.
+
+To enable proxying to upstream servers Nginx config has to include an
+`upstream{}` block and a `proxy_pass` directive:
+
+```nginx
+# http config
+upstream backend {
+    server 203.57.118.42:80;
+    server 203.57.118.43:80;
+    server 203.57.118.44:80;
+}
+
+# server config
+location / {
+    proxy_pass http://backend;
+}
+```
+
+To allow filters to choose the upstream, `wasm_upstream_select` directive 
+must be added:
+
+```nginx
+# http config
+upstream backend {
+    wasm_upstream_select;
+
+    server 203.57.118.42:80;
+    server 203.57.118.43:80;
+    server 203.57.118.44:80;
+}
+
+# server config
+location / {
+    proxy_wasm my_module;
+    proxy_pass http://backend;
+}
+```
+
+There are two ways to pass the pool of servers to the filter
+- using the plugin configuration:
+```nginx
+# http config
+upstream backend {
+    wasm_upstream_select;
+
+    server 0.0.0.0; #placeholder for Nginx to accept the config
+} 
+
+# server config
+location / {
+    proxy_wasm my_module '203.57.118.42:80,203.57.118.43:80,203.57.118.44:80';
+    proxy_pass http://backend;
+}
+```
+- by exposing the servers configured in the `upstream{}` block:
+```nginx
+# http config
+upstream backend {
+    wasm_upstream_select;
+
+    server 203.57.118.42:80;
+    server 203.57.118.43:80;
+    server 203.57.118.44:80;                                           
+}
+
+# server config
+location / {
+    proxy_wasm my_module upstream=backend;
+    proxy_pass http://backend;
+}
+```
+
+and fetching the servers during `on_configure`:
+
+```rust
+fn on_configure(&mut self, _: usize) -> bool {
+    let upstreams = self.get_upstream_configuration();
+    log::info!("Upstreams: {upstreams:?}");
+    true
+}
+```
+
+This way also exposes additional information configured for each server.
+The filter does not have to use the given information, but it might
+need it for some load balancing algorithms.
+```rust
+pub struct UpstreamServer {
+    pub address: String, // ipv4/ipv6 address in text format
+    pub port: u32,  // configured port 
+    pub weight: u32,  // weight to specify stronger servers
+    pub max_fails: u32, // number of failed attempts before temporarily disabling the server
+    pub fail_timeout: u32,  // time in seconds to disable the server after max_fails fails
+    pub backup: bool,  // should be used only when non-backup servers are unavailable
+}
+```
+
+There are 3 callbacks connected to upstream selection:
+
+### `on_upstream_select` 
+is called in content phase before Nginx starts the proxying 
+process to an upstream. In this phase the filter can call `proxy_set_upstream`
+to choose the desired upstream
+
+```rust
+fn on_http_upstream_select(&mut self) {
+  // plain HTTP upstream
+  self.set_upstream("127.0.0.1", 8090, false, None);
+
+  // HTTPS upstream with SNI
+  // self.set_upstream("1.1.1.1", 443, true, Some("one.one.one.one"));
+}
+```
+
+**Note:** hostnames are not supported directly, because resolving would require a pause
+which is not supported during upstream selection. To use a hostname, resolve it during
+one of the previous phases (e.g. `on_request_headers`) using the `resolve` foreign call.
+
+`on_upstream_select` may be called multiple times, if Nginx is configured to allow multiple
+tries (`proxy_next_upstream_tries` or `wasm_upstream_select max_tries=`) and the previous
+attempt fails.
+
+The filter can modify the request headers between each try. Fetching and modifying timeouts 
+for the particular request can be done using `proxy_get_upstream_timeouts` and 
+`proxy_set_upstream_timeouts`. Setting them is limited to smaller values than the initial
+values from Nginx config. (`proxy_connect_timeout` etc.)
+
+During `on_upstream_select` the filter can use `proxy_send_local_response` to send a response
+without connecting to the next upstream.
+
+If `proxy_set_upstream` is not called, Nginx will fall back to the original upstream selection 
+method (default is round robin).
+
+#### Upstream `Host` header (`$wasm_upstream_host`)
+
+The `Host` header in outgoing proxy requests is not plugin-controllable
+without an explicit `proxy_set_header` directive, because Nginx's proxy
+module fills `Host` from its built-in `$proxy_host`.
+
+The framework registers the `$wasm_upstream_host` Nginx variable, intended
+for use with a location-level directive such as:
+
+```nginx
+proxy_set_header Host $wasm_upstream_host;
+```
+
+`$wasm_upstream_host` evaluates to value set to the `"Host"` header during `on_upstream_select`,
+otherwise falls back to the original `$proxy_host`
+
+### `on_next_upstream` 
+is called when Nginx has `proxy_next_upstream` defined with
+some HTTP status codes and an upstream response fitting that criteria arrives. 
+
+The filter can access the status code and inspect the response headers by fetching headers using 
+`map_id`: `HTTP_UPSTREAM_RESPONSE_HEADERS`. 
+
+Based on that `proxy_accept_upstream_response` can be called to accept this response 
+and proxy it downstream instead of attempting to contact another upstream.
+
+```rust
+fn on_http_next_upstream(&mut self, status: u32) {
+    if let Some(header) = self.get_http_upstream_response_header("x-custom") { 
+        if status == 404 && header == "value" {
+            self.accept_upstream_response()
+        }
+    }
+}
+```
+
+### `on_upstream_info` 
+is called after each upstream attempt is finished. The filter receives
+general state (`OK`, `FAILED`) and  can fetch further information (status, response times) about 
+that attempt using `upstream.*` properties.
+
+This callback is simply to let the filter update its internal state about upstream 
+servers, no action is expected.
+
+```rust
+fn on_http_upstream_info(&mut self, last_state: LastUpstreamState) {
+      let address = self.get_property(vec!["upstream", "address"])
+          .and_then(|bytes| String::from_utf8(bytes).ok());                                                                                                                                                                                                                                                                                    
+   
+      let address = match address {                                                                                                                                                                                                                                                                                                            
+          Some(addr) => addr,
+          None => return,                                                                                                                                                                                                                                                                                                                      
+      };          
+
+      if let Some(server) = self.upstreams.iter_mut().find(|s| s.address == address) {                                                                                                                                                                                                                                                         
+          if last_state == LastUpstreamState::Failed {
+              server.failed_count += 1;                                                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                                                                               
+              if server.failed_count >= server.max_fails {
+                  server.disabled = true;                                                                                                                                                                                                                                                                                                      
+              }   
+          }
+      }
+  }
+```
+
+It is possible to enable Nginx's `keepalive` to reuse established connections
+between requests. It is necessary for the `wasm_upstream_select` directive to be
+before the `keepalive` directive.
+```nginx
+upstream backends {
+    server 0.0.0.1;
+    
+    wasm_upstream_select max_tries=3;
+    keepalive 32;
+}
+```
+
+[Back to TOC](#table-of-contents)
+
+### Access Control (ACL)
+
+By default a Proxy-Wasm filter can ask the host to reach any IP address or
+hostname through `proxy_set_upstream`, `proxy_dispatch_http_call`, and the
+`resolve` foreign function. 
+
+The `acl` block inside `wasm{}` allows creating a named allowlist
+of IP ranges and hostnames. Filters opt in to a named ACL via the
+`proxy_wasm ... acl=name` parameter; a filter without `acl=` stays
+unrestricted.
+
+```nginx
+wasm {
+    module my_plugin /path/to/plugin.wasm;
+
+    acl internal_only {
+        allow       10.0.0.0/8;
+        allow       192.168.0.0/16;
+        allow_host  api.internal.corp;
+        allow_host  *.internal.corp;
+
+        deny        10.0.0.13;          
+        deny_host   evil.internal.corp;
+    }
+
+    acl public_api {
+        allow_host  *.api.example.net;
+    }
+}
+
+# server config
+location /a {
+    proxy_wasm my_plugin acl=internal_only;
+}
+location /b {
+    proxy_wasm my_plugin acl=public_api;
+}
+```
+
+**Rules**
+
+| Directive    | Argument            | Meaning                                                                                                     |
+|--------------|---------------------|-------------------------------------------------------------------------------------------------------------|
+| `allow`      | IP or CIDR          | Permits destinations whose address falls in the range. Accepts IPv4 and IPv6.                               |
+| `deny`       | IP or CIDR          | Blocks destinations in the range, even when the address came from an allowed hostname. |
+| `allow_host` | hostname or pattern | Permits `resolve(name)` and `dispatch_http_call(name)`. Exact match, or `*.suffix` for any subdomain of `suffix`. |
+| `deny_host`  | hostname or pattern | Blocks hostnames. Same pattern syntax.                                        |
+
+Wildcards are supported in hostnames. This uses nginx's standard wildcard matcher — the same one behind                                                                                                                                                                                                    
+`server_name`. See the nginx docs on [server_names_hash](https://nginx.org/en/docs/http/server_names.html)                                                                                                                                                                                                
+for the underlying matching algorithm.
+
+When an `acl` ruleset is defined for a plugin, the `proxy_set_upstream`, `proxy_dispatch_http_call`, and 
+`resolve` hostcalls may only use the allowed IPs and hostnames to send requests.
+
+If an allowed hostname is resolved to an IP address, that address is added to the IP allowlist for that particular 
+to allow using it for upstream selection.
+
 [Back to TOC](#table-of-contents)
 
 ## Supported Specifications
@@ -669,6 +973,10 @@ SDK ABI `0.2.1`) and their present status in ngx_wasm_module:
 `on_grpc_call_close`               | :x:                 | *NYI*.
 `on_log`                           | :heavy_check_mark:  | HTTP context log handler.
 `on_done`                          | :heavy_check_mark:  | HTTP context done handler.
+**Upstream contexts**              |                     |
+`on_upstream_select`               | :heavy_check_mark:  | Upstream selection handler.
+`on_next_upstream`     | :heavy_check_mark:  | Next upstream handler.
+`on_upstream_info`                 | :heavy_check_mark:  | Upstream attempt info handler.
 *Shared memory queues*             |                     |
 `on_queue_ready`                   | :x:                 | *NYI*
 *Custom extension points*          |                     |
@@ -754,6 +1062,11 @@ SDK ABI `0.2.1`) and their present status in ngx_wasm_module:
 `proxy_get_metric`                    | :heavy_check_mark:  |
 `proxy_record_metric`                 | :heavy_check_mark:  |
 `proxy_increment_metric`              | :heavy_check_mark:  |
+*Upstream*                            |                     |
+`proxy_set_upstream`                  | :heavy_check_mark:  |
+`proxy_accept_upstream_response`      | :heavy_check_mark:  |
+`proxy_get_upstream_timeouts`         | :heavy_check_mark:  |
+`proxy_set_upstream_timeouts`         | :heavy_check_mark:  |
 *Custom extension points*             |                     |
 `proxy_call_foreign_function`         | :heavy_check_mark:  |
 
@@ -820,8 +1133,11 @@ implementation state in ngx_wasm_module:
 `response.flags`                            | :x:                | :x:                 | Not supported.
 `response.headers.*`                        | :heavy_check_mark: | :x:                 | Returns the value of any response header, e.g. `response.headers.date`.
 *Upstream properties*                       |                    |
-`upstream.address`                          | :heavy_check_mark: | :x:                 | Returns Nginx upstream address if any. This value is retrieved from Nginx's `r->upstream` member, mostly set through [ngx_http_proxy_module].
-`upstream.port`                             | :heavy_check_mark: | :x:                 | Returns Nginx upstream port if any. This value is retrieved from Nginx's `r->upstream` member, mostly set through [ngx_http_proxy_module].
+`upstream.address`                          | :heavy_check_mark: | :x:                 | Returns the address of the last upstream peer. Available during `on_upstream_info`.
+`upstream.status`                           | :heavy_check_mark: | :x:                 | Returns the HTTP status code of the last upstream response. Available during `on_upstream_info`.
+`upstream.connect_time`                     | :heavy_check_mark: | :x:                 | Time to establish a connection to the upstream server, in milliseconds. Available during `on_upstream_info`.
+`upstream.response_time`                    | :heavy_check_mark: | :x:                 | Time from sending the request to receiving the full response from the upstream server, in milliseconds. Available during `on_upstream_info`.
+`upstream.header_time`                      | :heavy_check_mark: | :x:                 | Time to receive response headers from the upstream server, in milliseconds. Available during `on_upstream_info`.
 `upstream.tls_version`                      | :x:                | :x:                 | *NYI*.
 `upstream.subject_local_certificate`        | :x:                | :x:                 | *NYI*.
 `upstream.subject_peer_certificate`         | :x:                | :x:                 | *NYI*.
@@ -976,6 +1292,8 @@ Proxy-Wasm SDK.
 [Nginx Properties]: #nginx-properties
 [HTTP Dispatches]: #http-dispatches
 [Foreign Functions]: #foreign-functions
+[Upstream Selection]: #upstream-selection
+[Access Control (ACL)]: #access-control-acl
 [Supported Specifications]: #supported-specifications
 [Supported Properties]: #supported-properties
 [Examples]: #examples

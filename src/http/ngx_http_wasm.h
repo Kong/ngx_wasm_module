@@ -54,6 +54,10 @@ struct ngx_http_wasm_req_ctx_s {
     ngx_chain_t                       *local_resp_body;
     off_t                              local_resp_body_len;
 
+    /* upstream */
+
+    void                               *upstream_peer;
+
     /* flags */
 
     unsigned                           local_resp_flushed:1;    /* local response can only be flushed once */
@@ -76,6 +80,7 @@ struct ngx_http_wasm_req_ctx_s {
     unsigned                           resp_content_sent:1;     /* has started sending output (may have yielded) */
     unsigned                           resp_finalized:1;        /* finalized connection (ourselves) */
     unsigned                           fake_request:1;
+    unsigned                           req_headers_modified:1;
 
     unsigned                           ffi_attached:1;
     unsigned                           pwm_lua_resolver:1;      /* use Lua-land resolver in OpenResty */
@@ -105,6 +110,13 @@ typedef struct {
 
     ngx_queue_t                        q;                      /* main_conf */
 } ngx_http_wasm_loc_conf_t;
+
+
+typedef struct {
+    ngx_http_upstream_init_pt          original_init_upstream;
+    ngx_http_upstream_init_peer_pt     original_init_peer;
+    ngx_uint_t                         upstream_max_tries;
+} ngx_http_wasm_srv_conf_t;
 
 
 typedef struct {

@@ -115,6 +115,12 @@ impl Context for TestHttp {
                     return;
                 }
             }
+            "resolve" => {
+                self.pending_callbacks = test_proxy_resolve(self);
+                if self.pending_callbacks > 0 {
+                    return;
+                }
+            }
             _ => {}
         }
 
@@ -129,7 +135,10 @@ impl Context for TestHttp {
 
         match f {
             WasmxForeignFunction::ResolveLua => {
-                resolve_lua_callback(args);
+                resolve_callback(args);
+            }
+            WasmxForeignFunction::Resolve => {
+                resolve_callback(args);
             }
         }
 
@@ -191,5 +200,22 @@ impl HttpContext for TestHttp {
     fn on_log(&mut self) {
         info!("[hostcalls] on_log");
         self.exec_tests(TestPhase::Log);
+    }
+
+    fn on_http_upstream_select(&mut self) {
+        info!("[hostcalls] on_upstream_select");
+        self.exec_tests(TestPhase::UpstreamSelect);
+        self.upstream_index += 1;
+    }
+
+    fn on_http_upstream_info(&mut self, last_state: LastUpstreamState) {
+        info!("[hostcalls] on_upstream_info, last_state: {:?}", last_state);
+        self.exec_tests(TestPhase::UpstreamInfo);
+    }
+
+    fn on_http_next_upstream(&mut self, status: u32) {
+        info!("[hostcalls] on_next_upstream, status: {:?}", status);
+        self.upstream_response_status = Some(status);
+        self.exec_tests(TestPhase::NextUpstream);
     }
 }

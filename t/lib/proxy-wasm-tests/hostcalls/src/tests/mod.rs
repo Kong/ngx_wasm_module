@@ -70,6 +70,21 @@ pub(crate) fn test_log_response_body(ctx: &TestHttp) {
     }
 }
 
+pub(crate) fn test_log_upstream_response_header(ctx: &TestHttp) {
+    if let Some(header_name) = ctx.config.get("name") {
+        let value = ctx.get_http_upstream_response_header(header_name.as_str());
+        if value.is_some() {
+            info!("upstream resp header \"{}: {}\"", header_name, value.unwrap());
+        }
+    }
+}
+
+pub(crate) fn test_log_upstream_response_headers(ctx: &TestHttp) {
+    for (name, value) in ctx.get_http_upstream_response_headers() {
+        info!("upstream resp {}: {}", name, value)
+    }
+}
+
 pub(crate) fn test_log_response_header(ctx: &TestHttp) {
     if let Some(header_name) = ctx.config.get("name") {
         let value = ctx.get_http_response_header(header_name.as_str());
@@ -221,6 +236,79 @@ pub(crate) fn test_set_headers_escaping(ctx: &TestHttp) {
     )
 }
 
+pub(crate) fn test_set_upstream(ctx: &TestHttp) {
+    let addr = ctx.config.get("ip").unwrap();
+    let port = ctx.config.get("port").unwrap().parse::<u32>().unwrap();
+    let tls = ctx.config.get("tls").map(|v| v == "1").unwrap_or(false);
+    let sni = ctx.config.get("sni").map(|s| s.as_str());
+    if let Some(host) = ctx.config.get("host") {
+        ctx.set_http_request_header("Host", Some(host));
+    }
+    ctx.set_upstream(addr, port, tls, sni);
+}
+
+pub(crate) fn test_set_upstreams(ctx: &mut TestHttp) {
+    let upstreams_str = ctx.config.get("upstreams").unwrap().clone();
+    let upstreams: Vec<&str> = upstreams_str.split(',').collect();
+    let entry = upstreams[ctx.upstream_index % upstreams.len()];
+
+    let (addr, port_str) = entry.rsplit_once(':').expect("expected ip:port format");
+    let port = port_str.parse::<u32>().unwrap();
+    ctx.set_upstream(addr, port, false, None);
+}
+
+pub(crate) fn test_accept_response(ctx: &TestHttp) {
+    let status_str = match ctx.config.get("status") {
+        Some(s) => s.parse::<u32>().unwrap(),
+        None => {
+            ctx.accept_upstream_response();
+            return;
+        }
+    };
+    if let Some(actual_status) = ctx.upstream_response_status {
+        if actual_status == status_str {
+            ctx.accept_upstream_response();
+        }
+    }
+}
+
+pub(crate) fn test_get_upstream_timeouts(ctx: &TestHttp) {
+    let (connect, send, read) = ctx.get_upstream_timeouts();
+    info!("upstream timeouts - connect: \"{}\", send: \"{}\", read: \"{}\"", connect, send, read);
+}
+
+pub(crate) fn test_set_upstream_timeouts(ctx: &TestHttp) {
+    let connect = ctx.config.get("connect").map_or(0, |v| v.parse().unwrap_or(0));
+    let send = ctx.config.get("send").map_or(0, |v| v.parse().unwrap_or(0));
+    let read = ctx.config.get("read").map_or(0, |v| v.parse().unwrap_or(0));
+
+    ctx.set_upstream_timeouts(connect, send, read);
+}
+
+pub(crate) fn test_set_upstream_timeouts_if_header(ctx: &TestHttp) {
+    let header_name = ctx.config.get("header").unwrap();
+    if ctx.get_http_request_header(header_name).is_some() {
+        let connect = ctx.config.get("connect").map_or(0, |v| v.parse().unwrap_or(0));
+        let send = ctx.config.get("send").map_or(0, |v| v.parse().unwrap_or(0));
+        let read = ctx.config.get("read").map_or(0, |v| v.parse().unwrap_or(0));
+
+        ctx.set_upstream_timeouts(connect, send, read);
+    }
+}
+
+pub(crate) fn test_set_upstream_timeouts_rotate(ctx: &TestHttp) {
+    let values_str = ctx.config.get("values").unwrap().clone();
+    let values: Vec<&str> = values_str.split(',').collect();
+    let entry = values[ctx.upstream_index % values.len()];
+
+    let parts: Vec<&str> = entry.split(':').collect();
+    let connect: u32 = parts[0].parse().unwrap_or(0);
+    let send: u32 = parts[1].parse().unwrap_or(0);
+    let read: u32 = parts[2].parse().unwrap_or(0);
+
+    ctx.set_upstream_timeouts(connect, send, read);
+}
+
 pub(crate) fn test_set_request_headers(ctx: &TestHttp) {
     ctx.set_http_request_headers(vec![("Hello", "world"), ("Welcome", "wasm")]);
 }
@@ -278,6 +366,14 @@ pub(crate) fn test_add_request_header(ctx: &TestHttp) {
         let (name, value) = header.split_once('=').unwrap();
         ctx.add_http_request_header(name, value);
     }
+}
+
+pub(crate) fn test_set_request_header_rotate(ctx: &mut TestHttp) {
+    let name = ctx.config.get("name").unwrap().clone();
+    let values_str = ctx.config.get("values").unwrap().clone();
+    let values: Vec<&str> = values_str.split(',').collect();
+    let value = values[ctx.upstream_index % values.len()];
+    ctx.set_http_request_header(&name, Some(value));
 }
 
 pub(crate) fn test_add_response_header(ctx: &TestHttp) {
@@ -707,6 +803,30 @@ pub(crate) fn test_proxy_resolve_lua(ctx: &TestHttp) -> u32 {
     for name in names.split(",") {
         info!("attempting to resolve {}", name);
         match call_foreign_function("resolve_lua", Some(name.as_bytes())) {
+            Ok(ret) => match ret {
+                Some(bytes) => info!("resolved (no yielding) {} to {:?}", name, bytes),
+                _ => {
+                    pending_callbacks += 1;
+                }
+            },
+            _ => (),
+        }
+    }
+
+    return pending_callbacks;
+}
+
+pub(crate) fn test_proxy_resolve(ctx: &TestHttp) -> u32 {
+    let mut pending_callbacks = 0;
+    let names = ctx
+        .config
+        .get("name")
+        .map(|x| x.as_str())
+        .expect("expected a name argument");
+
+    for name in names.split(",") {
+        info!("attempting to resolve {}", name);
+        match call_foreign_function("resolve", Some(name.as_bytes())) {
             Ok(ret) => match ret {
                 Some(bytes) => info!("resolved (no yielding) {} to {:?}", name, bytes),
                 _ => {

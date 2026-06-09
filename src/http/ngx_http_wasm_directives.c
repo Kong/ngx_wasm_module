@@ -5,6 +5,7 @@
 
 #include <ngx_http_wasm.h>
 #include <ngx_http_proxy_wasm.h>
+#include <ngx_wasm_acl.h>
 
 
 #define NGX_WASM_DEFAULT_RESOLVER 1
@@ -102,8 +103,10 @@ char *
 ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf)
 {
+    size_t                      i;
     ngx_int_t                   rc;
-    ngx_str_t                  *values, *name, *config;
+    ngx_str_t                  *values, *name, *config, *upstream, *acl_name;
+    ngx_wasm_acl_ctx_t         *acl_ctx;
     ngx_http_wasm_loc_conf_t   *loc = conf;
     ngx_http_wasm_main_conf_t  *mcf;
 
@@ -117,18 +120,51 @@ ngx_http_wasm_proxy_wasm_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     values = cf->args->elts;
 
     name = &values[1];
-    config = cf->args->nelts > 2 ? &values[2] : NULL;
-
     if (name->len == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "invalid module name \"%V\"", name);
         return NGX_CONF_ERROR;
     }
 
+    config = NULL;
+    upstream = NULL;
+    acl_ctx = NULL;
+
+    if (cf->args->nelts > 2) {
+        for (i = 2; i < cf->args->nelts; i++) {
+            if (ngx_strncmp(values[i].data, "upstream=", 9) == 0) {
+                upstream = &values[i];
+                upstream->data = values[i].data + 9;
+                upstream->len = values[i].len - 9;
+
+            } else if (ngx_strncmp(values[i].data, "config=", 7) == 0){
+                config = &values[i];
+                config->data = values[i].data + 7;
+                config->len = values[i].len - 7;
+
+            } else if (ngx_strncmp(values[i].data, "acl=", 4) == 0){
+                acl_name = &values[i];
+                acl_name->data = values[i].data + 4;
+                acl_name->len = values[i].len - 4;
+
+                acl_ctx = ngx_wasm_acl_find_ctx(cf->cycle, acl_name);
+                if (acl_ctx == NULL) {
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                       "unknown acl \"%V\"", acl_name);
+                    return NGX_CONF_ERROR;
+                }
+
+            } else {
+                config = &values[i];
+            }
+        }
+    }
+
     loc->plan->conf.proxy_wasm.pwroot = &mcf->pwroot;
     loc->plan->conf.proxy_wasm.worker_pwroot = &mcf->pwroot;
 
-    rc = ngx_http_wasm_ops_add_filter(loc->plan, name, config, mcf->vm);
+    rc = ngx_http_wasm_ops_add_filter(loc->plan, name, config, upstream,
+                                      acl_ctx, mcf->vm);
     if (rc != NGX_OK) {
         if (rc == NGX_ABORT) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,

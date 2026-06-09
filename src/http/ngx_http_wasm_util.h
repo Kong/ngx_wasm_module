@@ -23,8 +23,9 @@ ngx_int_t ngx_http_wasm_read_client_request_body(ngx_http_request_t *r,
 ngx_int_t ngx_http_wasm_send_chain_link(ngx_http_request_t *r, ngx_chain_t *in);
 
 /* proxy-wasm with wasm ops */
-ngx_int_t ngx_http_wasm_ops_add_filter(ngx_wasm_ops_plan_t *plan,
-    ngx_str_t *name, ngx_str_t *config, ngx_wavm_t *vm);
+ngx_int_t ngx_http_wasm_ops_add_filter(ngx_wasm_ops_plan_t *plan, ngx_str_t *name,
+    ngx_str_t *config, ngx_str_t *upstream, ngx_wasm_acl_ctx_t *acl_ctx,
+    ngx_wavm_t *vm);
 
 /* fake requests */
 ngx_connection_t *ngx_http_wasm_create_fake_connection(ngx_pool_t *pool);

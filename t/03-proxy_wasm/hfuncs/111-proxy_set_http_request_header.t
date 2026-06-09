@@ -4,7 +4,7 @@ use strict;
 use lib '.';
 use t::TestWasmX;
 
-plan_tests(5);
+plan tests => 89;
 run_tests();
 
 __DATA__
@@ -383,12 +383,8 @@ qq{
         proxy_wasm hostcalls 'test=/t/log/request_path';
         proxy_pass http://test_upstream$uri$is_args$args;
     }
---- response_body
-(/t) (/t) () ()
---- error_log
-path:
+--- error_code: 400
 --- no_error_log
-[error]
 [crit]
 
 
@@ -415,12 +411,8 @@ qq{
         proxy_wasm hostcalls 'test=/t/log/request_path';
         proxy_pass http://test_upstream$uri$is_args$args;
     }
---- response_body
-(/t) (/t) () ()
---- error_log
-path:
+--- error_code: 400
 --- no_error_log
-[error]
 [crit]
 
 

@@ -6,6 +6,8 @@
 #include <ngx_wasm.h>
 #include <ngx_wavm.h>
 
+#include "ngx_wasm_acl.h"
+
 
 static char *
 ngx_wasm_core_runtime_block(ngx_conf_t *cf, ngx_uint_t cmd_type)
@@ -66,6 +68,152 @@ ngx_wasm_core_metrics_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     *cf = save;
 
     return rv;
+}
+
+
+char *
+ngx_wasm_acl_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    char                  *rv;
+    ngx_str_t             *value, *name;
+    ngx_conf_t             save = *cf;
+    ngx_wasm_acl_ctx_t    *acl_ctx, **slot;
+    ngx_wasm_core_conf_t  *wcf = conf;
+
+    value = cf->args->elts;
+    name = &value[1];
+
+    if (ngx_wasm_acl_find_ctx(cf->cycle, name) != NULL) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] duplicate acl \"%V\"", name);
+        return NGX_CONF_ERROR;
+    }
+
+    acl_ctx = ngx_pcalloc(cf->pool, sizeof(ngx_wasm_acl_ctx_t));
+    if (acl_ctx == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    acl_ctx->name = *name;
+
+    acl_ctx->addrs_v4 = ngx_radix_tree_create(cf->pool, -1);
+    if (acl_ctx->addrs_v4 == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    acl_ctx->addrs_v6 = ngx_radix_tree_create(cf->pool, -1);
+    if (acl_ctx->addrs_v6 == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    if (ngx_array_init(&acl_ctx->hosts_arr, cf->pool, 4,
+                       sizeof(ngx_wasm_acl_host_t))
+        != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+
+    slot = ngx_array_push(&wcf->acls);
+    if (slot == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    *slot = acl_ctx;
+
+    cf->cmd_type = NGX_WASM_ACL_CONF;
+    cf->module_type = NGX_WASM_MODULE;
+    cf->ctx = acl_ctx;
+
+    rv = ngx_conf_parse(cf, NULL);
+
+    if (ngx_wasm_acl_ctx_init(cf, acl_ctx) != NGX_OK) {
+        return NGX_CONF_ERROR;
+    }
+
+    *cf = save;
+
+    return rv;
+}
+
+
+char *
+ngx_wasm_acl_addr_rule(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_int_t             rc;
+    ngx_str_t            *args;
+    ngx_cidr_t            cidr;
+    ngx_wasm_acl_ctx_t   *acl_ctx;
+    ngx_wasm_acl_type_e   type;
+
+    acl_ctx = cf->ctx;
+    args = cf->args->elts;
+
+    if (ngx_ptocidr(&args[1], &cidr) == NGX_ERROR) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                         "[wasm] invalid CIDR \"%V\"", &args[1]);
+        return NGX_CONF_ERROR;
+    }
+
+    type = (cmd->name.data[0] == 'a') ? NGX_WASM_ACL_ALLOW
+                                      : NGX_WASM_ACL_DENY;
+
+    rc = ngx_wasm_acl_ctx_insert_cidr(acl_ctx, &cidr, type);
+    if (rc != NGX_OK) {
+        if (rc == NGX_BUSY) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "duplicate CIDR \"%V\"",
+                               &args[1]);
+        }
+        return NGX_CONF_ERROR;
+    }
+
+    return NGX_CONF_OK;
+}
+
+
+char *
+ngx_wasm_acl_host_rule(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_str_t             *args;
+    ngx_wasm_acl_ctx_t    *acl_ctx;
+    ngx_wasm_acl_host_t   *slot;
+
+    acl_ctx = cf->ctx;
+    args = cf->args->elts;
+
+    if (args[1].len == 0) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] empty hostname in \"%V\" directive",
+                           &cmd->name);
+        return NGX_CONF_ERROR;
+    }
+
+    if (args[1].len > 255) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "[wasm] hostname \"%V\" exceeds 255 characters (RFC 1035)",
+                           &args[1]);
+        return NGX_CONF_ERROR;
+    }
+
+    slot = ngx_array_push(&acl_ctx->hosts_arr);
+    if (slot == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    if (ngx_strlchr(args[1].data, args[1].data + args[1].len, '*')
+        != NULL)
+    {
+        slot->wildcard = 1;
+    } else {
+        slot->wildcard = 0;
+    }
+
+    slot->type = (cmd->name.data[0] == 'a') ? NGX_WASM_ACL_ALLOW
+                                            : NGX_WASM_ACL_DENY;
+
+    slot->host = args[1];
+
+    return NGX_CONF_OK;
 }
 
 

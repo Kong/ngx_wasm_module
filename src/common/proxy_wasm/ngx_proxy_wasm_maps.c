@@ -99,6 +99,7 @@ ngx_proxy_wasm_maps_get_map(ngx_wavm_instance_t *instance,
 #ifdef NGX_WASM_HTTP
     ngx_http_wasm_req_ctx_t         *rctx;
     ngx_http_request_t              *r;
+    ngx_proxy_wasm_ctx_t            *pwctx;
     ngx_proxy_wasm_exec_t           *pwexec;
     ngx_http_proxy_wasm_dispatch_t  *call;
     ngx_wasm_http_reader_ctx_t      *reader;
@@ -134,6 +135,20 @@ ngx_proxy_wasm_maps_get_map(ngx_wavm_instance_t *instance,
 
     case NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_TRAILERS:
         return NULL;
+    case NGX_PROXY_WASM_MAP_HTTP_UPSTREAM_RESPONSE_HEADERS:
+        pwexec = ngx_proxy_wasm_instance2pwexec(instance);
+        pwctx = pwexec->parent;
+        if (pwctx->step != NGX_PROXY_WASM_STEP_NEXT_UPSTREAM) {
+            return NULL;
+        }
+
+        rctx = ngx_http_proxy_wasm_get_rctx(instance);
+        r = rctx->r;
+        if (r->upstream == NULL) {
+            return NULL;
+        }
+
+        return &r->upstream->headers_in.headers;
 #endif
 
     default:
@@ -537,6 +552,10 @@ ngx_proxy_wasm_maps_set_path(ngx_wavm_instance_t *instance, ngx_str_t *value,
 
     r->uri.len = len;
     r->uri.data = value->data;
+
+    r->valid_unparsed_uri = 0;
+    r->valid_location = 0;
+    r->internal = 1;
 
     if (pwctx->path.len) {
         ngx_pfree(pwctx->pool, pwctx->path.data);

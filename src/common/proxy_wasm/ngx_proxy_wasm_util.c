@@ -12,9 +12,6 @@
 #endif
 
 
-#define NGX_PROXY_WASM_PTR_SIZE  4
-
-
 static ngx_str_t  ngx_proxy_wasm_errlist[] = {
     ngx_null_string,
     ngx_string("unknown ABI version"),
@@ -42,7 +39,10 @@ static ngx_str_t  ngx_proxy_wasm_steplist[] = {
     ngx_string("on_done"),
     ngx_string("on_tick"),
     ngx_string("on_dispatch_response"),
-    ngx_string("on_foreign_function")
+    ngx_string("on_foreign_function"),
+    ngx_string("on_upstream_select"),
+    ngx_string("on_next_upstream"),
+    ngx_string("on_upstream_info")
 };
 
 
@@ -63,7 +63,7 @@ ngx_proxy_wasm_step_name(ngx_proxy_wasm_step_e step)
     ngx_str_t  *name;
 
     ngx_wa_assert(step);
-    ngx_wa_assert(step <= NGX_PROXY_WASM_STEP_FOREIGN_CALLBACK);
+    ngx_wa_assert(step <= NGX_PROXY_WASM_STEP_UPSTREAM_INFO);
 
     name = &ngx_proxy_wasm_steplist[step];
 

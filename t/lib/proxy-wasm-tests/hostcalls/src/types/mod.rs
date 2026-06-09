@@ -14,12 +14,16 @@ pub enum TestPhase {
     ResponseBody,
     ResponseTrailers,
     Log,
+    UpstreamSelect,
+    UpstreamInfo,
+    NextUpstream,
 }
 
 #[repr(u32)]
 #[allow(dead_code)] // ignore erroneous dead code warning
 pub enum WasmxForeignFunction {
     ResolveLua = 0,
+    Resolve = 1,
 }
 
 pub trait TestContext {

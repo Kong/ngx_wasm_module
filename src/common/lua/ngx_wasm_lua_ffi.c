@@ -71,6 +71,7 @@ ngx_http_wasm_ffi_plan_new(ngx_wavm_t *vm,
         rc = ngx_http_wasm_ops_add_filter(plan,
                                           ffi_filter->name,
                                           ffi_filter->config,
+                                          NULL,
                                           vm);
         if (rc != NGX_OK) {
             if (rc == NGX_ABORT) {

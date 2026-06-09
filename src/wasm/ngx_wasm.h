@@ -18,6 +18,7 @@
 #define NGX_WASMER_CONF              0x40000000
 #define NGX_V8_CONF                  0x80000000
 #define NGX_METRICS_CONF             0x16000000
+#define NGX_WASM_ACL_CONF            0x32000000
 
 #define NGX_WASM_DONE_PHASE          15
 #define NGX_WASM_BACKGROUND_PHASE    16
@@ -75,6 +76,10 @@ typedef struct ngx_stream_wasm_ctx_s  ngx_stream_wasm_ctx_t;
 #endif
 
 
+typedef struct ngx_wasm_acl_ctx_s  ngx_wasm_acl_ctx_t;
+typedef struct ngx_wasm_acl_s  ngx_wasm_acl_t;
+
+
 typedef struct {
     ngx_wa_create_conf_pt              create_conf;
     ngx_wa_init_conf_pt                init_conf;
@@ -102,6 +107,8 @@ typedef struct {
 
     ngx_flag_t                         pwm_lua_resolver;
     ngx_flag_t                         pwm_log_dispatch_errors;
+
+    ngx_array_t                        acls;
 } ngx_wasm_core_conf_t;
 
 
@@ -136,6 +143,8 @@ char *ngx_wasm_core_wasmer_block(ngx_conf_t *cf, ngx_command_t *cmd,
 char *ngx_wasm_core_v8_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 char *ngx_wasm_core_metrics_block(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
+char *ngx_wasm_acl_block(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
 
 /* directives */
 char *ngx_wasm_core_flag_directive(ngx_conf_t *cf, ngx_command_t *cmd,
@@ -154,6 +163,10 @@ char *ngx_wasm_core_resolver_directive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_wasm_core_pwm_lua_resolver_directive(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
+char *ngx_wasm_acl_addr_rule(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+char *ngx_wasm_acl_host_rule(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
 
 
 extern ngx_module_t  ngx_wasm_core_module;

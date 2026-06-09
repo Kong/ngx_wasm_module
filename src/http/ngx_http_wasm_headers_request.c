@@ -4,6 +4,7 @@
 #include "ddebug.h"
 
 #include <ngx_http_wasm.h>
+#include <ngx_http_wasm_upstream.h>
 
 
 static ngx_int_t ngx_http_wasm_set_host_header_handler(
@@ -172,8 +173,22 @@ ngx_http_wasm_set_req_header(ngx_http_request_t *r, ngx_str_t *key,
 static ngx_int_t
 ngx_http_wasm_set_host_header_handler(ngx_http_wasm_header_set_ctx_t *hv)
 {
-    ngx_int_t            rc;
-    ngx_http_request_t  *r = hv->r;
+    ngx_int_t                            rc;
+    ngx_http_request_t                  *r = hv->r;
+    ngx_proxy_wasm_ctx_t                *pwctx;
+    ngx_http_wasm_req_ctx_t             *rctx;
+    ngx_http_wasm_upstream_peer_data_t  *up;
+
+    if (ngx_http_wasm_rctx(r, &rctx) == NGX_OK && rctx->data) {
+        pwctx = rctx->data;
+
+        if (pwctx->step == NGX_PROXY_WASM_STEP_UPSTREAM_SELECT) {
+            up = rctx->upstream_peer;
+            up->host = *hv->value;
+
+            return NGX_OK;
+        }
+    }
 
     rc = ngx_http_wasm_set_builtin_header_handler(hv);
     if (rc != NGX_OK) {

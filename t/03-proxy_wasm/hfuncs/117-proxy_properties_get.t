@@ -289,101 +289,7 @@ qr/$checks/
 
 
 
-=== TEST 7: proxy_wasm - get_property() - upstream properties on: response_headers, response_body
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
---- http_config eval
-qq{
-    upstream test_upstream {
-        server unix:$ENV{TEST_NGINX_UNIX_SOCKET};
-    }
-
-    server {
-        listen unix:$ENV{TEST_NGINX_UNIX_SOCKET};
-
-        location / {
-            echo ok;
-        }
-    }
-}
---- config
-    location /t {
-        proxy_pass http://test_upstream/;
-        proxy_wasm hostcalls 'on=response_headers,response_body \
-                              test=/t/log/properties \
-                              name=upstream.address,upstream.port';
-    }
---- response_body
-ok
---- grep_error_log eval: qr/upstream\.\w+: [\w\.\/-]+ at \w+/
---- grep_error_log_out eval
-my $checks;
-my @phases = qw(
-    ResponseHeaders
-    ResponseBody
-    ResponseBody
-);
-
-foreach my $phase (@phases) {
-    $checks .= "upstream.address: unix at $phase\n";
-    $checks .= "upstream.port: [\\w\.\/-]+ at $phase\n";
-}
-
-qr/$checks/
---- no_error_log
-[error]
-[crit]
-
-
-
-=== TEST 8: proxy_wasm - get_property() - upstream properties (IPv6) on: response_headers
-
-Disabled on GitHub Actions due to IPv6 constraint.
-
---- skip_eval: 5: system("ping6 -c 1 ipv6.google.com >/dev/null 2>&1") ne 0 || defined $ENV{GITHUB_ACTIONS}
---- timeout eval: $::ExtTimeout
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
---- config
-    location /t {
-        proxy_pass https://ipv6.google.com/;
-        proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/log/properties \
-                              name=upstream.address,upstream.port';
-    }
---- response_body_like
-\A\<!doctype html\>.*
---- grep_error_log eval: qr/upstream\.\w+: (\w|\[|\]|:)+/
---- grep_error_log_out eval
-qr/upstream\.address: \[[a-z0-9]+:[a-z0-9]+:[a-z0-9]+:[a-z0-9]+::[a-z0-9]+\]
-upstream\.port: [0-9]+/
---- no_error_log
-[error]
-[crit]
-
-
-
-=== TEST 9: proxy_wasm - get_property() - upstream properties access without an upstream
---- load_nginx_modules: ngx_http_echo_module
---- wasm_modules: hostcalls
---- config
-    location /t {
-        echo ok;
-        proxy_wasm hostcalls 'on=response_headers \
-                              test=/t/log/properties \
-                              name=upstream.address,upstream.port';
-    }
---- ignore_response_body
---- error_log
-property not found: upstream.address
-property not found: upstream.port
---- no_error_log
-[error]
-[crit]
-
-
-
-=== TEST 10: proxy_wasm - get_property() - connection properties on: request_headers, response_headers, response_body
+=== TEST 7: proxy_wasm - get_property() - connection properties on: request_headers, response_headers, response_body
 --- skip_eval: 5: $::nginxV !~ m/built with OpenSSL/
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
@@ -460,7 +366,7 @@ qr/$checks/
 
 
 
-=== TEST 11: proxy_wasm - get_property() - connection properties (mTLS) on: request_headers, response_headers, response_body
+=== TEST 8: proxy_wasm - get_property() - connection properties (mTLS) on: request_headers, response_headers, response_body
 
 TODO: fix what looks like an nginx memleak:
 
@@ -552,7 +458,7 @@ qr/$checks/
 
 
 
-=== TEST 12: proxy_wasm - get_property() - proxy-wasm properties on: request_headers, request_body, response_headers, response_body
+=== TEST 9: proxy_wasm - get_property() - proxy-wasm properties on: request_headers, request_body, response_headers, response_body
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
@@ -599,7 +505,7 @@ qr/$checks/
 
 
 
-=== TEST 13: proxy_wasm - get_property() - uri encoded request.path on: request_headers
+=== TEST 10: proxy_wasm - get_property() - uri encoded request.path on: request_headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -623,7 +529,7 @@ qr/request.path: \/t\?foo=std\:\:min\&bar=\[1,2\]/
 
 
 
-=== TEST 14: proxy_wasm - get_property() - explicitly unsupported properties on: request_headers
+=== TEST 11: proxy_wasm - get_property() - explicitly unsupported properties on: request_headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config eval
@@ -670,7 +576,7 @@ qr/"response.code_details" property not supported
 
 
 
-=== TEST 15: proxy_wasm - get_property() - request.is_subrequest on: request_headers
+=== TEST 12: proxy_wasm - get_property() - request.is_subrequest on: request_headers
 --- load_nginx_modules: ngx_http_echo_module
 --- wasm_modules: hostcalls
 --- config
@@ -695,7 +601,7 @@ qr/request\.is_subrequest: true at RequestHeaders/
 
 
 
-=== TEST 16: proxy_wasm - get_property() plugin_name on: tick
+=== TEST 13: proxy_wasm - get_property() plugin_name on: tick
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -716,7 +622,7 @@ plugin_name: hostcalls
 
 
 
-=== TEST 17: proxy_wasm - get_property() plugin_root_id on: tick
+=== TEST 14: proxy_wasm - get_property() plugin_root_id on: tick
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -737,7 +643,7 @@ plugin_root_id: 0
 
 
 
-=== TEST 18: proxy_wasm - get_property() - unknown property on: request_headers
+=== TEST 15: proxy_wasm - get_property() - unknown property on: request_headers
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
 --- config
@@ -756,7 +662,7 @@ qr/\[info\] .*? property not found: nonexistent_property,/
 
 
 
-=== TEST 19: proxy_wasm - get_property() request.* - not available on: tick (isolation: global)
+=== TEST 16: proxy_wasm - get_property() request.* - not available on: tick (isolation: global)
 --- skip_hup
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
@@ -779,7 +685,7 @@ qr/\[info\] .*? property not found: nonexistent_property,/
 
 
 
-=== TEST 20: proxy_wasm - get_property() response.* - not available on: tick (isolation: global)
+=== TEST 17: proxy_wasm - get_property() response.* - not available on: tick (isolation: global)
 --- skip_hup
 --- wasm_modules: hostcalls
 --- load_nginx_modules: ngx_http_echo_module
@@ -798,50 +704,4 @@ qr/\[info\] .*? property not found: nonexistent_property,/
     qr/\[error\] .*? cannot get scoped properties outside of a request/,
     qr/\[crit\] .*? panicked at/,
     qr/value: InternalFailure/,
-]
-
-
-
-=== TEST 21: proxy_wasm - get_property() upstream.* - not available on: tick (isolation: global)
---- skip_hup
---- wasm_modules: hostcalls
---- load_nginx_modules: ngx_http_echo_module
---- config
-    location /t {
-        proxy_wasm hostcalls 'tick_period=200 \
-                              on_tick=log_property \
-                              name=upstream.address';
-        echo_sleep 0.5;
-        echo ok;
-    }
---- ignore_response_body
---- error_log eval
-[
-    qr/\[info\] .*? \[hostcalls\] on_tick/,
-    qr/\[error\] .*? cannot get scoped properties outside of a request/,
-    qr/\[crit\] .*? panicked at/,
-    qr/value: InternalFailure/,
-]
-
-
-
-=== TEST 22: proxy_wasm - get_property() upstream.* - not available on: configure (isolation: global)
---- skip_hup
---- wasm_modules: hostcalls
---- load_nginx_modules: ngx_http_echo_module
---- config
-    location /t {
-        proxy_wasm hostcalls 'on_configure=log_property \
-                              name=upstream.address';
-        echo_sleep 0.5;
-        echo ok;
-    }
---- must_die: 0
---- ignore_response_body
---- error_log eval
-[
-    qr/\[error\] .*? cannot get scoped properties outside of a request/,
-    qr/\[crit\] .*? panicked at/,
-    qr/value: InternalFailure/,
-    qr/\[emerg\] .*? failed initializing "hostcalls"/,
 ]

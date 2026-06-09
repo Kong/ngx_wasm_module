@@ -11,4 +11,5 @@ members = [
     "proxy-wasm-tests/benchmarks",
     "proxy-wasm-tests/instance-lifecycle",
     "proxy-wasm-tests/context-checks",
+    "proxy-wasm-tests/upstream_resolve",
 ]

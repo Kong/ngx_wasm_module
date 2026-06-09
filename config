@@ -135,6 +135,7 @@ NGX_WASMX_INCS="\
 NGX_WASMX_DEPS="\
     $ngx_addon_dir/src/ngx_wasmx.h \
     $ngx_addon_dir/src/common/ngx_wa_readers.h \
+    $ngx_addon_dir/src/common/ngx_wasm_acl.h \
     $ngx_addon_dir/src/common/ngx_wasm_subsystem.h \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp.h \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp_readers.h \
@@ -150,6 +151,7 @@ NGX_WASMX_DEPS="\
 NGX_WASMX_SRCS="\
     $ngx_addon_dir/src/ngx_wasmx.c \
     $ngx_addon_dir/src/common/ngx_wa_readers.c \
+    $ngx_addon_dir/src/common/ngx_wasm_acl.c \
     $ngx_addon_dir/src/common/ngx_wasm_subsystem.c \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp.c \
     $ngx_addon_dir/src/common/ngx_wasm_socket_tcp_readers.c \
@@ -224,6 +226,7 @@ NGX_HTTP_WASM_DEPS="\
     $ngx_addon_dir/src/http/ngx_http_wasm_util.h \
     $ngx_addon_dir/src/http/ngx_http_wasm_headers.h \
     $ngx_addon_dir/src/http/ngx_http_wasm_trailers.h \
+    $ngx_addon_dir/src/http/ngx_http_wasm_upstream.h \
     $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.h \
     $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm_dispatch.h"
 
@@ -239,6 +242,7 @@ NGX_HTTP_WASM_SRCS="\
     $ngx_addon_dir/src/http/ngx_http_wasm_host.c \
     $ngx_addon_dir/src/http/ngx_http_wasm_util.c \
     $ngx_addon_dir/src/http/ngx_http_wasm_escape.c \
+    $ngx_addon_dir/src/http/ngx_http_wasm_upstream.c \
     $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm.c \
     $ngx_addon_dir/src/http/proxy_wasm/ngx_http_proxy_wasm_dispatch.c"
 

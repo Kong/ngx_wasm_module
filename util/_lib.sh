@@ -358,6 +358,8 @@ build_nginx() {
                 set -e
             fi
         fi
+
+        apply_patch -p1 "$NGX_WASM_DIR/assets/nginx-patches/nginx-upstream-test-next.patch" $NGX_BUILD_DIR_PATCHED
     fi
 
     ###########

@@ -1,0 +1,55 @@
+--- a/src/event/ngx_event_connect.h
++++ b/src/event/ngx_event_connect.h
+@@ -31,6 +31,8 @@
+     void *data);
+ typedef void (*ngx_event_save_peer_session_pt)(ngx_peer_connection_t *pc,
+     void *data);
++typedef ngx_int_t (*ngx_event_test_next_pt)(ngx_peer_connection_t *pc,
++    void *data, ngx_uint_t status);
+
+
+ struct ngx_peer_connection_s {
+@@ -46,6 +48,7 @@
+     ngx_event_get_peer_pt            get;
+     ngx_event_free_peer_pt           free;
+     ngx_event_notify_peer_pt         notify;
++    ngx_event_test_next_pt           test_next;
+     void                            *data;
+
+ #if (NGX_SSL || NGX_COMPAT)
+--- a/src/http/ngx_http_upstream.h
++++ b/src/http/ngx_http_upstream.h
+@@ -417,6 +417,8 @@
+ } ngx_http_upstream_next_t;
+
+
++extern ngx_http_upstream_next_t  ngx_http_upstream_next_errors[];
++
+ typedef struct {
+     ngx_str_t   key;
+     ngx_str_t   value;
+--- a/src/http/ngx_http_upstream.c
++++ b/src/http/ngx_http_upstream.c
+@@ -462,7 +462,7 @@
+ };
+
+
+-static ngx_http_upstream_next_t  ngx_http_upstream_next_errors[] = {
++ngx_http_upstream_next_t  ngx_http_upstream_next_errors[] = {
+     { 500, NGX_HTTP_UPSTREAM_FT_HTTP_500 },
+     { 502, NGX_HTTP_UPSTREAM_FT_HTTP_502 },
+     { 503, NGX_HTTP_UPSTREAM_FT_HTTP_503 },
+@@ -2598,6 +2598,13 @@
+             && !(u->request_sent && r->request_body_no_buffering)
+             && !(timeout && ngx_current_msec - u->peer.start_time >= timeout))
+         {
++            if (u->peer.test_next
++                && u->peer.test_next(&u->peer, u->peer.data, status)
++                   == NGX_DECLINED)
++            {
++                return NGX_DECLINED;
++            }
++
+             ngx_http_upstream_next(r, u, un->mask);
+             return NGX_OK;
+         }

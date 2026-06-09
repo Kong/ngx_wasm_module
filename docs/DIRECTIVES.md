@@ -39,6 +39,7 @@ By alphabetical order:
 - [wasm_socket_large_buffers](#wasm_socket_large_buffers)
 - [wasm_socket_read_timeout](#wasm_socket_read_timeout)
 - [wasm_socket_send_timeout](#wasm_socket_send_timeout)
+- [wasm_upstream_select](#wasm_upstream_select)
 
 By context:
 
@@ -89,6 +90,8 @@ By context:
     - [wasm_socket_large_buffers](#wasm_socket_large_buffers)
     - [wasm_socket_read_timeout](#wasm_socket_read_timeout)
     - [wasm_socket_send_timeout](#wasm_socket_send_timeout)
+- `upstream{}`
+  - [wasm_upstream_select](#wasm_upstream_select)
 
 backtraces
 ----------
@@ -284,11 +287,11 @@ The Wasm modules will then be loaded again during worker process initialization.
 proxy_wasm
 ----------
 
-**usage**    | `proxy_wasm <module> [config];`
+**usage**    | `proxy_wasm <module> [config=] [upstream=] [acl=];`
 ------------:|:----------------------------------------------------------------
 **contexts** | `http{}`, `server{}`, `location{}`
 **default**  |
-**example**  | `proxy_wasm my_filter_module 'foo=bar';`
+**example**  | `proxy_wasm my_filter_module 'config=foo=bar' upstream=backends;`<br>`proxy_wasm my_filter_module 'foo=bar' acl=internal_only;`
 
 Add a Proxy-Wasm filter to the context's execution chain (see [Execution
 Chain]).
@@ -297,6 +300,14 @@ Chain]).
   This module must be a valid Proxy-Wasm filter.
 - `config` is an optional configuration string passed to the filter's
   `on_configure` phase.
+- `upstream` is an optional parameter specifying the name of the `upstream{}`
+  block from which the configured servers should be exposed to the plugin when 
+  it asks for the `UPSTREAM_CONFIGURATION` buffer type.
+- `acl` is an optional parameter specifying the name of the `acl{}` block defined
+  inside `wasm{}` (see [Access Control (ACL)]). Outbound destinations reached
+  via `proxy_set_upstream`, `proxy_dispatch_http_call`, and the `resolve` /
+  `resolve_lua` foreign functions are restricted to the addresses and
+  hostnames listed in that ACL. A filter without `acl=` is unrestricted.
 
 If successfully loaded, the filter will begin its root context execution (i.e.
 `on_vm_start`, `on_configure`, `on_tick`), and will be considered part of the
@@ -1045,8 +1056,30 @@ the `http{}` contexts.
 
 [Back to TOC](#directives)
 
+wasm_upstream_select
+------------------------
+
+**usage**    | `wasm_upstream_select [max_tries=];`
+------------:|:----------------------------------------------------------------
+**contexts** | `upstream{}`
+**default**  | none (max_tries=3 if not defined)
+**example**  | `wasm_upstream_select max_tries=4;`
+
+Enables upstream callbacks (`on_upstream_select`, `on_next_upstream`, 
+`on_upstream_info`) for modules which have requests routed to the particular 
+`upstream{}` block (using the `proxy_pass` directive). 
+
+- `max_tries` sets the maximum number of attempts for proxying to an upstream 
+  server per request.
+
+If both `max_tries` and `proxy_next_upstream_tries` are set, the minimum value 
+is used as the limit.
+
+[Back to TOC](#directives)
+
 [Contexts]: USER.md#contexts
 [Execution Chain]: USER.md#execution-chain
+[Access Control (ACL)]: PROXY_WASM.md#access-control-acl
 [Metrics]: METRICS.md
 [OpenResty]: https://openresty.org/en/
 [resolver]: https://nginx.org/en/docs/http/ngx_http_core_module.html#resolver

@@ -1,6 +1,6 @@
 use log::*;
 
-pub fn resolve_lua_callback(args: Option<Vec<u8>>) {
+pub fn resolve_callback(args: Option<Vec<u8>>) {
     match args {
         Some(args) => {
             let address_size = args[0] as usize;

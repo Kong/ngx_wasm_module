@@ -9,6 +9,6 @@ path = "src/filter.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-proxy-wasm = "0.2"
+proxy-wasm = { git = "https://github.com/Lakyn03/proxy-wasm-rust-sdk.git", branch = "main"}
 log = "0.4"
 enum-utils = "0.1.2"

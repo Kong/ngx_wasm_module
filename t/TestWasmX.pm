@@ -257,6 +257,12 @@ add_block_preprocessor(sub {
         $wasm_config = $wasm_config . (join "\n", @arr);
     }
 
+    my $wasm_acl = $block->wasm_acl;
+    if (defined $wasm_acl) {
+        $add_wasm_block = 1;
+        $wasm_config = $wasm_config . $wasm_acl . "\n";
+    }
+
     $wasm_config = $wasm_config . "\n}\n";
 
     if ($add_wasm_block) {

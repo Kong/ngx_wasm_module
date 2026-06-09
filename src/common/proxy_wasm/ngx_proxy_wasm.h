@@ -7,6 +7,7 @@
 
 
 #define NGX_PROXY_WASM_ROOT_CTX_ID  0
+#define NGX_PROXY_WASM_PTR_SIZE  4
 
 
 typedef enum {
@@ -79,6 +80,9 @@ typedef enum {
     NGX_PROXY_WASM_STEP_TICK,
     NGX_PROXY_WASM_STEP_DISPATCH_RESPONSE,
     NGX_PROXY_WASM_STEP_FOREIGN_CALLBACK,
+    NGX_PROXY_WASM_STEP_UPSTREAM_SELECT,
+    NGX_PROXY_WASM_STEP_NEXT_UPSTREAM,
+    NGX_PROXY_WASM_STEP_UPSTREAM_INFO,
 } ngx_proxy_wasm_step_e;
 
 
@@ -126,6 +130,7 @@ typedef enum {
     NGX_PROXY_WASM_BUFFER_VM_CONFIGURATION = 6,
     NGX_PROXY_WASM_BUFFER_PLUGIN_CONFIGURATION = 7,
     NGX_PROXY_WASM_BUFFER_FOREIGN_FUNCTION_ARGUMENTS = 8,
+    NGX_PROXY_WASM_BUFFER_UPSTREAM_CONFIGURATION = 9,
 } ngx_proxy_wasm_buffer_type_e;
 
 
@@ -138,6 +143,7 @@ typedef enum {
     NGX_PROXY_WASM_MAP_GRPC_RECEIVE_TRAILING_METADATA = 5,
     NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_HEADERS = 6,
     NGX_PROXY_WASM_MAP_HTTP_CALL_RESPONSE_TRAILERS = 7,
+    NGX_PROXY_WASM_MAP_HTTP_UPSTREAM_RESPONSE_HEADERS = 8,
 } ngx_proxy_wasm_map_type_e;
 
 
@@ -149,7 +155,14 @@ typedef enum {
 
 
 typedef enum {
+    NGX_PROXY_WASM_LAST_UPSTREAM_OK = 0,
+    NGX_PROXY_WASM_LAST_UPSTREAM_FAILED = 1,
+} ngx_proxy_wasm_last_upstream_state_e;
+
+
+typedef enum {
     NGX_PROXY_WASM_FOREIGN_RESOLVE_LUA = 0,
+    NGX_PROXY_WASM_FOREIGN_RESOLVE = 1,
 } ngx_proxy_wasm_foreign_function_e;
 
 
@@ -218,7 +231,7 @@ struct ngx_proxy_wasm_exec_s {
 #ifdef NGX_WASM_HTTP
     ngx_http_proxy_wasm_dispatch_t     *dispatch_call;  /* swap pointer for host functions */
 #endif
-
+    ngx_wasm_acl_t                     *acl;  /* only rexec */
     /* flags */
 
     unsigned                           started:1;
@@ -261,8 +274,6 @@ struct ngx_proxy_wasm_ctx_s {
     ngx_str_t                                     scheme;
     ngx_str_t                                     path;                  /* r->uri + r->args */
     ngx_str_t                                     start_time;            /* r->start_sec + r->start_msec */
-    ngx_str_t                                     upstream_address;      /* 1st part of ngx.upstream_addr */
-    ngx_str_t                                     upstream_port;         /* 2nd part of ngx.upstsream_addr */
     ngx_str_t                                     connection_id;         /* r->connection->number */
     ngx_str_t                                     mtls;                  /* ngx.https && ngx.ssl_client_verify */
     ngx_str_t                                     root_id;               /* pwexec->root_id */
@@ -325,6 +336,8 @@ struct ngx_proxy_wasm_filter_s {
     ngx_log_t                     *log;
     ngx_pool_t                    *pool;
     ngx_str_t                      config;
+    ngx_str_t                      upstream;
+    ngx_wasm_acl_ctx_t            *acl_ctx;
     uintptr_t                      data;
     ngx_rbtree_node_t              node;
     ngx_wavm_module_t             *module;
@@ -379,6 +392,9 @@ struct ngx_proxy_wasm_filter_s {
     ngx_wavm_funcref_t            *proxy_on_http_response_body;
     ngx_wavm_funcref_t            *proxy_on_http_response_trailers;
     ngx_wavm_funcref_t            *proxy_on_http_response_metadata;
+    ngx_wavm_funcref_t            *proxy_on_http_upstream_select;
+    ngx_wavm_funcref_t            *proxy_on_http_next_upstream;
+    ngx_wavm_funcref_t            *proxy_on_http_upstream_info;
 
     /* shared queue */
 
@@ -464,6 +480,8 @@ ngx_int_t ngx_proxy_wasm_pairs_unmarshal(ngx_proxy_wasm_exec_t *pwexec,
 unsigned ngx_proxy_wasm_marshal(ngx_proxy_wasm_exec_t *pwexec,
     ngx_list_t *list, ngx_array_t *extras, ngx_wavm_ptr_t *out,
     uint32_t *out_size, ngx_uint_t *truncated);
+ngx_proxy_wasm_exec_t *ngx_proxy_wasm_lookup_root_ctx(
+    ngx_proxy_wasm_instance_t *ictx, ngx_uint_t id);
 
 
 static ngx_inline void
@@ -496,6 +514,17 @@ ngx_proxy_wasm_instance2pwexec(ngx_wavm_instance_t *instance)
     ngx_proxy_wasm_instance_t  *ictx = instance->data;
 
     return ictx->pwexec;
+}
+
+
+static ngx_inline ngx_proxy_wasm_exec_t *
+ngx_proxy_wasm_rexec(ngx_proxy_wasm_exec_t *pwexec)
+{
+    if (pwexec->root_id == NGX_PROXY_WASM_ROOT_CTX_ID) {
+        return pwexec;
+    }
+
+    return ngx_proxy_wasm_lookup_root_ctx(pwexec->ictx, pwexec->filter->id);
 }
 
 

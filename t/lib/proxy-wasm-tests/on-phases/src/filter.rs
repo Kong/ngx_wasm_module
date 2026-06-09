@@ -211,4 +211,8 @@ impl HttpContext for OnPhases {
             info!("#{} log_msg: {}", self.context_id, log_msg);
         }
     }
+
+    fn on_http_upstream_select(&mut self) {
+        info!("#{} on_upstream_select", self.context_id);
+    }
 }

@@ -50,6 +50,13 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       0,
       NULL },
 
+    { ngx_string("acl"),
+      NGX_WASM_CONF|NGX_CONF_BLOCK|NGX_CONF_TAKE1,
+      ngx_wasm_acl_block,
+      NGX_WA_WASM_CONF_OFFSET,
+      0,
+      NULL },
+
     /* directives */
 
     { ngx_string("flag"),
@@ -222,6 +229,34 @@ static ngx_command_t  ngx_wasm_core_commands[] = {
       offsetof(ngx_wasm_core_conf_t, pwm_log_dispatch_errors),
       NULL },
 
+    { ngx_string("allow"),
+      NGX_WASM_ACL_CONF|NGX_CONF_TAKE1,
+      ngx_wasm_acl_addr_rule,
+      NGX_WA_WASM_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("deny"),
+      NGX_WASM_ACL_CONF|NGX_CONF_TAKE1,
+      ngx_wasm_acl_addr_rule,
+      NGX_WA_WASM_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("allow_host"),
+      NGX_WASM_ACL_CONF|NGX_CONF_TAKE1,
+      ngx_wasm_acl_host_rule,
+      NGX_WA_WASM_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("deny_host"),
+      NGX_WASM_ACL_CONF|NGX_CONF_TAKE1,
+      ngx_wasm_acl_host_rule,
+      NGX_WA_WASM_CONF_OFFSET,
+      0,
+      NULL },
+
     ngx_null_command
 };
 
@@ -379,6 +414,13 @@ ngx_wasm_core_create_conf(ngx_conf_t *cf)
     wcf->user_resolver = NULL;
     wcf->resolver = ngx_resolver_create(cf, (ngx_str_t *) &ip, 1);
     if (wcf->resolver == NULL) {
+        return NULL;
+    }
+
+    if (ngx_array_init(&wcf->acls, cycle->pool,
+                     1, sizeof(ngx_wasm_acl_ctx_t *))
+        != NGX_OK)
+    {
         return NULL;
     }
 

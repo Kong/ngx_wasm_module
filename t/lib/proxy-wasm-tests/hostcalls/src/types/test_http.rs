@@ -9,6 +9,8 @@ pub struct TestHttp {
     pub metrics: BTreeMap<String, u32>,
     pub n_sync_calls: usize,
     pub pending_callbacks: u32,
+    pub upstream_index: usize,
+    pub upstream_response_status: Option<u32>,
 }
 
 impl TestHttp {
@@ -61,6 +63,8 @@ impl TestHttp {
             "/t/log/request_header" => test_log_request_header(self),
             "/t/log/request_headers" => test_log_request_headers(self),
             "/t/log/request_body" => test_log_request_body(self),
+            "/t/log/upstream_response_header" => test_log_upstream_response_header(self),
+            "/t/log/upstream_response_headers" => test_log_upstream_response_headers(self),
             "/t/log/response_header" => test_log_response_header(self),
             "/t/log/response_headers" => test_log_response_headers(self),
             "/t/log/response_body" => test_log_response_body(self),
@@ -79,6 +83,15 @@ impl TestHttp {
             "/t/send_local_response/set_special_headers" => test_set_special_headers(self),
             "/t/send_local_response/set_headers_escaping" => test_set_headers_escaping(self),
 
+            /* upstream */
+            "/t/set_upstream" => test_set_upstream(self),
+            "/t/set_upstreams" => test_set_upstreams(self),
+            "/t/accept_response" => test_accept_response(self),
+            "/t/get_upstream_timeouts" => test_get_upstream_timeouts(self),
+            "/t/set_upstream_timeouts" => test_set_upstream_timeouts(self),
+            "/t/set_upstream_timeouts_if_header" => test_set_upstream_timeouts_if_header(self),
+            "/t/set_upstream_timeouts_rotate" => test_set_upstream_timeouts_rotate(self),
+
             /* set/add request/response headers */
             "/t/set_request_headers" => test_set_request_headers(self),
             "/t/set_request_headers/special" => test_set_request_headers_special(self),
@@ -88,6 +101,7 @@ impl TestHttp {
             "/t/set_response_header" => test_set_response_header(self),
             "/t/add_request_header" => test_add_request_header(self),
             "/t/add_response_header" => test_add_response_header(self),
+            "/t/set_request_header_rotate" => test_set_request_header_rotate(self),
 
             /* set/add request/response body */
             "/t/set_request_body" => test_set_request_body(self),
@@ -165,6 +179,13 @@ impl TestHttp {
             }
             "/t/resolve_lua" => {
                 self.pending_callbacks = test_proxy_resolve_lua(self);
+
+                if self.pending_callbacks > 0 {
+                    return Action::Pause;
+                }
+            }
+            "/t/resolve" => {
+                self.pending_callbacks = test_proxy_resolve(self);
 
                 if self.pending_callbacks > 0 {
                     return Action::Pause;
